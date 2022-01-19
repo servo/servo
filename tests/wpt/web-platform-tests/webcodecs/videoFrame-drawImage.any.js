@@ -2,18 +2,12 @@
 // META: script=/webcodecs/utils.js
 
 function testDrawImageFromVideoFrame(
-    width, height, expectedPixel, canvasOptions, imageBitmapOptions,
-    imageSetting) {
-  let vfInit = {timestamp: 0, codedWidth: width, codedHeight: height};
-  let u32_data = new Uint32Array(vfInit.codedWidth * vfInit.codedHeight);
-  u32_data.fill(0xFF966432); // 'rgb(50, 100, 150)';
-  let argbPlaneData = new Uint8Array(u32_data.buffer);
-  let argbPlane = {
-    src: argbPlaneData,
-    stride: width * 4,
-    rows: height
-  };
-  let frame = new VideoFrame('ABGR', [argbPlane], vfInit);
+    width, height, expectedPixel, canvasOptions, imageSetting) {
+  let vfInit =
+      {format: 'RGBA', timestamp: 0, codedWidth: width, codedHeight: height};
+  let data = new Uint32Array(vfInit.codedWidth * vfInit.codedHeight);
+  data.fill(0xFF966432);  // 'rgb(50, 100, 150)';
+  let frame = new VideoFrame(data, vfInit);
   let canvas = new OffscreenCanvas(width, height);
   let ctx = canvas.getContext('2d', canvasOptions);
   ctx.drawImage(frame, 0, 0);
@@ -21,34 +15,61 @@ function testDrawImageFromVideoFrame(
   frame.close();
 }
 
-test(() => {
+test(_ => {
   return testDrawImageFromVideoFrame(48, 36, kSRGBPixel);
 }, 'drawImage(VideoFrame) with canvas(48x36 srgb uint8).');
 
-test(() => {
+test(_ => {
   return testDrawImageFromVideoFrame(480, 360, kSRGBPixel);
 }, 'drawImage(VideoFrame) with canvas(480x360 srgb uint8).');
 
-test(() => {
+test(_ => {
   return testDrawImageFromVideoFrame(
       48, 36, kP3Pixel, kCanvasOptionsP3Uint8, {colorSpaceConversion: 'none'},
       kImageSettingOptionsP3Uint8);
 }, 'drawImage(VideoFrame) with canvas(48x36 display-p3 uint8).');
 
-test(() => {
+test(_ => {
   return testDrawImageFromVideoFrame(
       480, 360, kP3Pixel, kCanvasOptionsP3Uint8, {colorSpaceConversion: 'none'},
       kImageSettingOptionsP3Uint8);
 }, 'drawImage(VideoFrame) with canvas(480x360 display-p3 uint8).');
 
-test(() => {
+test(_ => {
   return testDrawImageFromVideoFrame(
       48, 36, kRec2020Pixel, kCanvasOptionsRec2020Uint8,
       {colorSpaceConversion: 'none'}, kImageSettingOptionsRec2020Uint8);
 }, 'drawImage(VideoFrame) with canvas(48x36 rec2020 uint8).');
 
-test(() => {
-  return testDrawImageFromVideoFrame(
-      480, 360, kRec2020Pixel, kCanvasOptionsRec2020Uint8,
-      {colorSpaceConversion: 'none'}, kImageSettingOptionsRec2020Uint8);
-}, 'drawImage(VideoFrame) with canvas(480x360 rec2020 uint8).');
+test(_ => {
+  let width = 128;
+  let height = 128;
+  let vfInit =
+      {format: 'RGBA', timestamp: 0, codedWidth: width, codedHeight: height};
+  let data = new Uint32Array(vfInit.codedWidth * vfInit.codedHeight);
+  data.fill(0xFF966432);  // 'rgb(50, 100, 150)';
+  let frame = new VideoFrame(data, vfInit);
+  let canvas = new OffscreenCanvas(width, height);
+  let ctx = canvas.getContext('2d');
+
+  frame.close();
+  assert_throws_dom('InvalidStateError', _ => {
+    ctx.drawImage(frame, 0, 0);
+  }, 'drawImage with a closed VideoFrame should throw InvalidStateError.');
+}, 'drawImage on a closed VideoFrame throws InvalidStateError.');
+
+
+test(_ => {
+  let canvas = new OffscreenCanvas(128, 128);
+  let ctx = canvas.getContext('2d');
+
+  let init = {alpha: 'discard', timestamp: 33090};
+  let frame = new VideoFrame(canvas);
+  let frame2 = new VideoFrame(frame, init);
+  let frame3 = new VideoFrame(frame2, init);
+
+  ctx.drawImage(frame3, 0, 0);
+  frame.close();
+  frame2.close();
+  frame3.close();
+}, 'drawImage of nested frame works properly');

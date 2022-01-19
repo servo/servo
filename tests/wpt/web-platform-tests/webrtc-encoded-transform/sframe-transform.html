@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+
+promise_test(async (test) => {
+    const pc = new RTCPeerConnection();
+    const senderTransform = new SFrameTransform();
+    const receiverTransform = new SFrameTransform();
+    const sender1 = pc.addTransceiver('audio').sender;
+    const sender2 = pc.addTransceiver('video').sender;
+    const receiver1 = pc.getReceivers()[0];
+    const receiver2 = pc.getReceivers()[1];
+
+    sender1.transform = senderTransform;
+    receiver1.transform = receiverTransform;
+    assert_throws_dom("InvalidStateError", () => sender2.transform = senderTransform);
+    assert_throws_dom("InvalidStateError", () => receiver2.transform = receiverTransform);
+
+    sender1.transform = senderTransform;
+    receiver1.transform = receiverTransform;
+
+    sender1.transform = null;
+    receiver1.transform = null;
+}, "Cannot reuse attached transforms");
+
+test(() => {
+    const senderTransform = new SFrameTransform();
+
+    assert_true(senderTransform.readable instanceof ReadableStream);
+    assert_true(senderTransform.writable instanceof WritableStream);
+}, "SFrameTransform exposes readable and writable");
+
+promise_test(async (test) => {
+    const pc = new RTCPeerConnection();
+    const senderTransform = new SFrameTransform();
+    const receiverTransform = new SFrameTransform();
+    const sender1 = pc.addTransceiver('audio').sender;
+    const sender2 = pc.addTransceiver('video').sender;
+    const receiver1 = pc.getReceivers()[0];
+    const receiver2 = pc.getReceivers()[1];
+
+    assert_false(senderTransform.readable.locked, "sender readable before");
+    assert_false(senderTransform.writable.locked, "sender writable before");
+    assert_false(receiverTransform.readable.locked, "receiver readable before");
+    assert_false(receiverTransform.writable.locked, "receiver writable before");
+
+    sender1.transform = senderTransform;
+    receiver1.transform = receiverTransform;
+
+    assert_true(senderTransform.readable.locked, "sender readable during");
+    assert_true(senderTransform.writable.locked, "sender writable during");
+    assert_true(receiverTransform.readable.locked, "receiver readable during");
+    assert_true(receiverTransform.writable.locked, "receiver writable during");
+
+    sender1.transform = null;
+    receiver1.transform = null;
+
+    assert_true(senderTransform.readable.locked, "sender readable after");
+    assert_true(senderTransform.writable.locked, "sender writable after");
+    assert_true(receiverTransform.readable.locked, "receiver readable after");
+    assert_true(receiverTransform.writable.locked, "receiver writable after");
+}, "readable/writable are locked when attached and after being attached");
+
+promise_test(async (test) => {
+    const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+
+    const senderTransform = new SFrameTransform({ role : 'encrypt', authenticationSize: 10 });
+    senderTransform.setEncryptionKey(key);
+
+    const receiverTransform = new SFrameTransform({ role : 'decrypt', authenticationSize: 10 });
+    receiverTransform.setEncryptionKey(key);
+
+    const writer = senderTransform.writable.getWriter();
+    const reader = receiverTransform.readable.getReader();
+
+    senderTransform.readable.pipeTo(receiverTransform.writable);
+
+    const sent = new ArrayBuffer(8);
+    const view = new Int8Array(sent);
+    for (let cptr = 0; cptr < sent.byteLength; ++cptr)
+        view[cptr] = cptr;
+
+    writer.write(sent);
+    const received = await reader.read();
+
+    assert_equals(received.value.byteLength, 8);
+    const view2 = new Int8Array(received.value);
+    for (let cptr = 0; cptr < sent.byteLength; ++cptr)
+        assert_equals(view2[cptr], view[cptr]);
+}, "SFrame with array buffer - authentication size 10");
+
+promise_test(async (test) => {
+    const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+
+    const senderTransform = new SFrameTransform({ role : 'encrypt', authenticationSize: 10 });
+    const senderWriter = senderTransform.writable.getWriter();
+    const senderReader = senderTransform.readable.getReader();
+
+    const receiverTransform = new SFrameTransform({ role : 'decrypt', authenticationSize: 10 });
+    const receiverWriter = receiverTransform.writable.getWriter();
+    const receiverReader = receiverTransform.readable.getReader();
+
+    senderTransform.setEncryptionKey(key);
+    receiverTransform.setEncryptionKey(key);
+
+    const chunk = new ArrayBuffer(8);
+
+    // decryption should fail, leading to an empty array buffer.
+    await receiverWriter.write(chunk);
+    let received = await receiverReader.read();
+    assert_equals(received.value.byteLength, 0);
+
+    // We write again but this time with a chunk we can decrypt.
+    await senderWriter.write(chunk);
+    const encrypted = await senderReader.read();
+    await receiverWriter.write(encrypted.value);
+    received = await receiverReader.read();
+    assert_equals(received.value.byteLength, 8);
+}, "SFrame decryption with array buffer that is too small");
+
+promise_test(async (test) => {
+    const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+
+    const receiverTransform = new SFrameTransform({ role : 'decrypt', authenticationSize: 10 });
+    const receiverWriter = receiverTransform.writable.getWriter();
+    receiverTransform.setEncryptionKey(key);
+
+    // decryption should fail, leading to erroring the transform.
+    await promise_rejects_js(test, TypeError, receiverWriter.write({ }));
+    await promise_rejects_js(test, TypeError, receiverWriter.closed);
+}, "SFrame transform gets errored if trying to process unexpected value types");
+
+        </script>
+    </body>
+</html>

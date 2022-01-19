@@ -1,0 +1,85 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Filter on an element in a preserve-3d scene</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2/#3d-transform-rendering">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<meta name="assert" content="The filtered element is rendered correctly without clipping, despite the interesting transform.">
+<link rel="match" href="preserve3d-and-filter-no-perspective-ref.html">
+
+<style>
+
+  .scene {
+    width: 400px;
+    height: 400px;
+    position: absolute;
+    left: 100px;
+    top: 100px;
+  }
+
+  .chair {
+    width: 400px;
+    height: 400px;
+    transform: rotateY(80deg);
+    transform-style: preserve-3d;
+    transform-origin: 50% 50% 50%;
+  }
+
+  .shadow {
+    position: absolute;
+    top: 250px;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    filter: blur(1px);
+    background: black;
+    transform: translate3d(1px, 1px, 1px);
+  }
+
+  svg.cover {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 500px;
+    height: 570px;
+  }
+
+</style>
+
+<!--
+
+The overall transform here from the viewport to the
+<div class="shadow"></div> is:
+
+translate(100px, 100px) translate(200px, 200px) rotateY(80deg) translate(-200px, -200px) translateY(250px) translate(100px, 100px) translate3d(1px, 1px, 1px) translate(-100px, -100px)
+
+which according to https://codepen.io/milosdjakonovic/pen/QyqJyp
+is equivalent to the matrix:
+
+matrix3d(0.173648, 0, -0.984808, 0,
+         0, 1, 0, 0,
+         0.984808, 0, 0.173648, 0,
+         266.429, 351, 196.15, 1)
+
+[ 0.173648 0 0.984808 266.429 ]
+[ 0 1 0 351 ]
+[ -0.984808 0 0.173648 196.15 ]
+[ 0 0 0 1 ]
+
+-->
+
+<div class="scene">
+ <div class="chair">
+  <div class="shadow"></div>
+ </div>
+</div>
+
+<!-- cover the blurred edge so we can match to a reference -->
+<svg class="cover">
+  <polygon fill="transparent" stroke="blue" stroke-width="8"
+           points="266.429,351
+                   301.1586,351
+                   301.1586,551
+                   266.429,551" />
+</svg>

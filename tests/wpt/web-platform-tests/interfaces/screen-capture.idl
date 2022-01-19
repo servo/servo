@@ -30,6 +30,13 @@ partial dictionary MediaTrackSettings {
   DOMString displaySurface;
   boolean logicalSurface;
   DOMString cursor;
+  boolean restrictOwnAudio;
+};
+
+partial dictionary MediaTrackCapabilities {
+  DOMString displaySurface;
+  boolean logicalSurface;
+  sequence<DOMString> cursor;
 };
 
 enum DisplayCaptureSurfaceType {

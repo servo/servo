@@ -7,11 +7,12 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=/common/get-host-info.sub.js></script>
 <script src="/common/utils.js"></script>
-<script src="../resources/dispatcher.js"></script>
-<script src="../resources/try-access.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/try-access.js"></script>
 <script>
 
-const directory = "/html/cross-origin-opener-policy/reporting";
+const directory = "/html/cross-origin-opener-policy";
 const executor_path = directory + "/resources/executor.html?pipe=";
 const origin_opener = get_host_info().HTTPS_ORIGIN;
 const origin_openee = get_host_info().HTTPS_REMOTE_ORIGIN;
@@ -76,7 +77,10 @@ promise_test(async test => {
     openee_token, openee_report_token, openee_url,
   ] = await genericSetup(test);
 
-  send(opener_token, `tryAccess(openee);`);
+  send(opener_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js",
+    "tryAccess(openee);")
+  );
 
   let report_opener =
     await receiveReport(opener_report_token, "access-from-coop-page-to-openee")
@@ -99,7 +103,10 @@ promise_test(async test => {
     openee_token, openee_report_token, openee_url,
   ] = await genericSetup(test);
 
-  send(openee_token, `tryAccess(opener);`);
+  send(openee_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js",
+    "tryAccess(opener);")
+  );
 
   let report_opener =
     await receiveReport(opener_report_token, "access-to-coop-page-from-openee")

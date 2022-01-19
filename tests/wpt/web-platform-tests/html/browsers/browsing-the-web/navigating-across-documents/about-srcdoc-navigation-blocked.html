@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  let message_from = w => {
+    return new Promise(resolve => {
+      window.addEventListener('message', msg => {
+        if (msg.source == w) resolve(msg.data);
+      });
+    });
+  };
+
+  let setup_iframe = async t => {
+    let iframe = document.createElement('iframe');
+    iframe.srcdoc =
+      '<script>window.parent.postMessage("srcdoc ready", "*")</scr' + 'ipt>';
+    document.body.appendChild(iframe);
+    assert_equals(await message_from(iframe.contentWindow), "srcdoc ready");
+
+    iframe.contentWindow.location = "resources/message-parent.html";
+    assert_equals(await message_from(iframe.contentWindow), "ready");
+
+    let srcdoc_loaded = message_from(iframe.contentWindow)
+        .then(() => "allowed");
+
+    // Fetching "about:srcdoc" should result in a network error, and navigating
+    // to a network error should produce an opaque-origin page. In particular,
+    // since the error page should end up being cross-origin to the parent
+    // frame, `contentDocument` should return `null`.
+    let srcdoc_blocked = t.step_wait(() => iframe.contentDocument === null)
+        .then(() => "blocked");
+    return [iframe, Promise.any([srcdoc_loaded, srcdoc_blocked])];
+  };
+
+  promise_test(async t => {
+    let [iframe, status] = await setup_iframe(t);
+    iframe.contentWindow.location = "about:srcdoc";
+
+    assert_equals(await status, "blocked");
+
+  }, "Navigations to about:srcdoc via window.location are blocked.");
+
+  promise_test(async t => {
+    let [iframe, status] = await setup_iframe(t);
+    iframe.contentWindow.name = "test_frame";
+    window.open("about:srcdoc", "test_frame");
+
+    assert_equals(await status, "blocked");
+
+  }, "Navigations to about:srcdoc via window.open() are blocked.");
+</script>
+</body>
+</html>

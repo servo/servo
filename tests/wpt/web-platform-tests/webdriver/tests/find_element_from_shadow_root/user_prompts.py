@@ -14,7 +14,7 @@ def find_element(session, shadow_id, using, value):
     return session.transport.send(
         "POST", "session/{session_id}/shadow/{shadow_id}/element".format(
             session_id=session.session_id,
-            element_id=shadow_id),
+            shadow_id=shadow_id),
         {"using": using, "value": value})
 
 

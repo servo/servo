@@ -66,11 +66,6 @@ interface SourceBufferList : EventTarget {
     getter SourceBuffer (unsigned long index);
 };
 
-[Exposed=Window]
-partial interface URL {
-    static DOMString createObjectURL (MediaSource mediaSource);
-};
-
 partial interface AudioTrack {
     readonly        attribute SourceBuffer? sourceBuffer;
 };

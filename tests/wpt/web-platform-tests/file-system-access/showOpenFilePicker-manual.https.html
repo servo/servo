@@ -38,25 +38,5 @@
     }, 'showOpenFilePicker returns correct permissions');
   }, 'showOpenFilePicker works');
 
-  promise_test(async t => {
-    await window.test_driver.bless(
-      'show a file picker.<br />Please select file-system-access/resources/data/testfile.txt');
-    const files = await self.showOpenFilePicker({
-      multiple: false,
-      startIn: null,
-      types: [
-        { description: 'Text files', accept: { ' text/plain ': ['.txt'] } },
-        { description: 'Images', accept: { '  image/*  ': ['.jpg', '.jpeg', '.png'] } },
-      ],
-    });
-    assert_true(Array.isArray(files));
-    assert_equals(files.length, 1);
-    assert_true(files[0] instanceof FileSystemHandle);
-    assert_true(files[0] instanceof FileSystemFileHandle);
-    assert_equals(files[0].kind, "file");
-    assert_equals(files[0].name, 'testfile.txt');
-    assert_equals(await (await files[0].getFile()).text(), 'Hello World!\n');
-  }, 'showOpenFilePicker does not fail when starting directory is null');
-
 </script>
 

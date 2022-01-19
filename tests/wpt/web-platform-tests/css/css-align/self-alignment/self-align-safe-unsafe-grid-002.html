@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<title>Safe vs Unsafe justify-self in Grid Layout</title>
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#overflow-values">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/row-align">
+<link rel="match" href="self-align-safe-unsafe-grid-002-ref.html">
+<style>
+  /* Label things */
+  body > div {
+    display: flow-root;
+  }
+  body > div::before {
+    display: block;
+    content: attr(class);
+    font-size: 10px;
+    margin-top: 10px;
+  }
+
+  /* Test Framework */
+  .container {
+    border: solid aqua;
+    margin: 10px;
+    float: left;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    grid: 100% / 100%;
+  }
+
+  .item {
+    background: orange;
+    height: 100%;
+  }
+
+  /* Test */
+  .small .item {
+    width: 20px;
+  }
+  .large .item {
+    width: 40px;
+  }
+
+  .center     { justify-self: center; }
+  .start      { justify-self: start; }
+  .end        { justify-self: end; }
+  .self-start { justify-self: self-start; }
+  .self-end   { justify-self: self-end; }
+  .flex-start { justify-self: flex-start; }
+  .flex-end   { justify-self: flex-end; }
+
+  .safe .center     { justify-self: safe center; }
+  .safe .start      { justify-self: safe start; }
+  .safe .end        { justify-self: safe end; }
+  .safe .self-start { justify-self: safe self-start; }
+  .safe .self-end   { justify-self: safe self-end; }
+  .safe .flex-start { justify-self: safe flex-start; }
+  .safe .flex-end   { justify-self: safe flex-end; }
+
+  .safe .center     { justify-self: safe center; }
+  .safe .start      { justify-self: safe start; }
+  .safe .end        { justify-self: safe end; }
+  .safe .self-start { justify-self: safe self-start; }
+  .safe .self-end   { justify-self: safe self-end; }
+  .safe .flex-start { justify-self: safe flex-start; }
+  .safe .flex-end   { justify-self: safe flex-end; }
+</style>
+
+<div class="default small">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="default large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="unsafe large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="safe large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+

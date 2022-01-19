@@ -18,7 +18,7 @@
     }, 'should return false when member is an attribute.');
 
     test(function() {
-        var m = memberFrom("static void foo()");
+        var m = memberFrom("static undefined foo()");
         assert_false(m.is_to_json_regular_operation());
     }, 'should return false when member is a static operation.');
 

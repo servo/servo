@@ -20,8 +20,11 @@ onload = function() {setTimeout(function() {
     assert_equals(e.type, "pagehide");
     assert_equals(e.target, iframe.contentDocument);
     assert_equals(e.currentTarget, iframe.contentWindow);
-    assert_false(e.bubbles, "bubbles");
-    assert_false(e.cancelable, "cancelable");
+
+    // https://github.com/whatwg/html/issues/6794
+    assert_true(e.bubbles, "bubbles");
+    assert_true(e.cancelable, "cancelable");
+
     assert_true(e.persisted, "persisted");
   }
 

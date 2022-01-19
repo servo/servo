@@ -5,8 +5,15 @@
 <link rel="stylesheet" href="/fonts/ahem.css">
 <title>Tests the 'normal' keyword on descriptors ascent-override, descent-override and line-gap-override</title>
 
-<div style="font-family: Ahem">Test<br>Test</div>
+<style>
+@font-face {
+  font-family: reference-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+}
+</style>
 
-<div style="font-family: Ahem">Test<br>Test</div>
+<div style="font-family: reference-font">Test<br>Test</div>
 
-<div style="font-family: Ahem">Test<br>Test</div>
+<div style="font-family: reference-font">Test<br>Test</div>
+
+<div style="font-family: reference-font">Test<br>Test</div>

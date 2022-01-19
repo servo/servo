@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: tab-size and word-spacing</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#tab-size-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<link rel="match" href="tab-size-spacing-003-ref.html">
+<meta name="assert" content="For the tab-size property, a <number> represents the measure as a multiple of the space character’s advance width (U+0020) including its associated letter-spacing and word-spacing">
+<style>
+div {
+  font-family: monospace; /* so we can compare tab with a count of preserved spaces */
+  white-space: pre;
+}
+.test {
+  word-spacing: 100%; /* effectively double the size of SPACE, and hence of tabs */
+  tab-size: 3;
+}
+.ref1 {
+  word-spacing: 100%;
+}
+.ref2 {
+  white-space: pre;
+}
+</style>
+
+<p>Test passes if the "1"s all line up vertically:
+<div class=ref1>1 2 1 2 1 2 1</div>
+<div class=test>1&#9;1&#9;1&#9;1</div>
+<div class=ref2>1     1     1     1</div>

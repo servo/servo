@@ -1,6 +1,6 @@
 import os, sys, array, math
 
-from six import BytesIO
+from io import BytesIO
 
 from wptserve.utils import isomorphic_decode
 

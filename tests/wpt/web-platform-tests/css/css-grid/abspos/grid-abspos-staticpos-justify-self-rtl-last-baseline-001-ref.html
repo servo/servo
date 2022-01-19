@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+    .container {
+      display: block;
+      padding: 2px 1px;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      float: left; /* For testing in "rows" of containers */
+    }
+    br { clear: both }
+
+    .big > .container {
+      width: 30px;
+      height: 22px;
+    }
+    .small > .container {
+      width: 2px;
+      height: 4px;
+      margin-right: 10px; /* To avoid overlap between overflowing kids */
+    }
+
+    .container > * {
+      background: teal;
+      width: 6px;
+      height: 8px;
+      margin-top: 3px;
+    }
+    .big   .alignStart  { margin-left: 22px; }
+    .big   .alignCenter { margin-left: 15px; }
+    .big   .alignEnd    { margin-left:  8px; }
+    .small .alignStart  { margin-left: -4px; }
+    .small .alignCenter { margin-left: -2px; }
+    .small .alignEnd    { margin-left:  0px; }
+  </style>
+</head>
+<body>
+  <!-- The last baseline value, from
+       https://www.w3.org/TR/css-align-3/#propdef-justify-self -->
+  <div class="big">
+    <div class="container"><div class="alignEnd"><!--last baseline--></div></div>
+  </div>
+  <div class="small">
+    <div class="container"><div class="alignEnd"><!--last baseline--></div></div>
+  </div>
+</body>
+</html>

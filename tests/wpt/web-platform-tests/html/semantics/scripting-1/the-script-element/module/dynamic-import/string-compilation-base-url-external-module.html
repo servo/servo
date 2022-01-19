@@ -8,7 +8,18 @@
 
 <div id="dummy"></div>
 
+<base href="scripts/foo/">
 <script type="module">
+// Tweak the base URL of the document here to distinguish:
+// - document URL
+// - document base URL = ../
+// - External scripts' base URL = ./scripts/eval.js etc.
+// - This inline script's base URL = ./scripts/foo/
+document.querySelector("base").remove();
+const base = document.createElement("base");
+base.setAttribute("href", "../");
+document.body.appendChild(base);
+
 function load(scriptSrc) {
   const el = document.createElement("script");
   el.type = "module";
@@ -42,7 +53,7 @@ for (const label of evaluators) {
     const promise = createTestPromise();
 
     window.label = label;
-    load(`scripts/${label}.js`);
+    load(`dynamic-import/scripts/${label}.js`);
 
     return promise.then(module => {
       assert_true(window.evaluated_imports_a, "The module must have been evaluated");

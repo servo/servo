@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Test: Dynamic change to the inline-size of a container containing a inline-flex child</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1686961">
+  <link rel="match" href="dynamic-isize-change-ref.html">
+
+  <style>
+  #container {
+    border: 1px solid black;
+    font: 30px monospace;
+    width: 200px;
+  }
+  .inline-flex {
+    display: inline-flex;
+    width: 100px;
+    border: 1px solid gray;
+  }
+
+  .small {
+    display: flex;
+    align-items: flex-end;
+    font: 8px monospace;
+    background: pink;
+  }
+  </style>
+
+  <script>
+  function test() {
+    let container = document.getElementById("container");
+    container.offsetTop;
+
+    /* Change the width to trigger incremental reflow. */
+    container.style.width = "400px";
+  }
+  </script>
+
+  <body onload="test()">
+    <div id="container">
+      abc
+      <div class="inline-flex">
+        <div class="small">D</div>
+        <div>efg</div>
+      </div>
+    </div>
+  </body>
+</html>

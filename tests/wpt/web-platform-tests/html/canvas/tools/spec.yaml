@@ -38,7 +38,7 @@ assertions:
   - id: context.2d
     text: "When the getContext() method of a canvas element is to return a new object for the contextId 2d, the user agent *must* return a new CanvasRenderingContext2D object."
   - id: context.2d.extraargs
-    text: "When the getContext() method of a canvas element is to return a new object for the contextId 2d, the user agent *must* return a new CanvasRenderingContext2D object. Any additional arguments are ignored."
+    text: "If options is not an object, then set options to null."
 
   - id: toDataURL.noarguments
     text: "When a user agent is to create a serialization of the image as a file, <...> if there are no arguments, in the PNG format."
@@ -455,6 +455,13 @@ assertions:
     text: "The rect(x, y, w, h) method <...> *must* then mark the subpath as closed."
   - id: 2d.path.rect.newsubpath
     text: "The rect(x, y, w, h) method <...> *must* then create a new subpath with the point (x, y) as the only point in the subpath."
+
+  - id: 2d.path.roundrect.radii
+    text: "The elements of the radii argument to roundRect must map to the right corners."
+  - id: 2d.path.roundrect.subpath
+    text: "The roundRect(x, y, w, h, radii) method *must* create a new subpath containing just the rounded rectangle"
+  - id: 2d.path.roundrect.newsubpath
+    text: "The roundRect(x, y, w, h, radii) method <...> *must* then create a new subpath with the point (x, y) as the only point in the subpath."
 
   - id: 2d.path.fill.basic
     text: "The fill() method *must* fill all the subpaths of the current path, using fillStyle, and using the non-zero winding number rule."

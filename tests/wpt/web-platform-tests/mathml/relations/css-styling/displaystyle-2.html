@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>displaystyle</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-style-property">
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-math-style-property">
 <meta name="assert" content="Verify interaction between automatic displaystyle and specified displaystyle on descendants.">
 <style>
   @font-face {
@@ -20,6 +20,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/attribute-values.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <script>
   setup({ explicit_done: true });
   var emToPx = 10 / 1000; // font-size: 10px, font.em = 1000
@@ -31,7 +32,7 @@
       assert_approx_equals(elementSize, expectedSize, epsilon, description);
   }
 
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function runTests() {
       for (transform in AttributeValueTransforms) {

@@ -17,30 +17,56 @@
   <script>
     "use strict";
 
-    // No original existence
-    (() => {
-      const idlArray = new IdlArray();
-      idlArray.add_idls('partial interface mixin A {};');
-      idlArray.test();
-    })();
-
-    // Name clash (partials)
+    // Simple includes statement (valid)
     (() => {
       const idlArray = new IdlArray();
       idlArray.add_idls(`
-        interface mixin B { attribute any F; };
-        partial interface mixin B { attribute any F; };`);
-      idlArray.collapse_partials();
+        [Exposed=Window] interface I1 {};
+        interface mixin M1 { attribute any a1; };
+        I1 includes M1;`);
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
     })();
 
-    // Name clash (different mixins)
+    // Partial interface mixin (valid)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        [Exposed=Window] interface I2 {};
+        interface mixin M2 {};
+        partial interface mixin M2 { attribute any a2; };
+        I2 includes M2;`);
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
+    })();
+
+    // Partial interface mixin without original mixin
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls('partial interface mixin M3 {};');
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
+    })();
+
+    // Name clash between mixin and partial mixin
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        interface mixin M4 { attribute any a4; };
+        partial interface mixin M4 { attribute any a4; };`);
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
+    })();
+
+    // Name clash between interface and mixin
     (() => {
       const idlArray = new IdlArray();
       idlArray.add_untested_idls(`
-        interface mixin C { attribute any F; };
-        interface D { attribute any F; };
-        D includes C;`);
-      idlArray.test();
+        interface mixin M5 { attribute any a5; };
+        interface I5 { attribute any a5; };
+        I5 includes M5;`);
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
     })();
   </script>
   <script type="text/json" id="expected">
@@ -51,28 +77,52 @@
   },
   "summarized_tests": [
     {
-      "name": "Partial interface mixin A: original interface mixin defined",
-      "status_string": "FAIL",
-      "properties": {},
-      "message": "assert_true: Original interface mixin should be defined expected true got false"
-    },
-    {
-      "name": "Partial interface mixin B: original interface mixin defined",
+      "name": "I1 includes M1: member names are unique",
       "status_string": "PASS",
       "properties": {},
       "message": null
     },
     {
-      "name": "Partial interface mixin B: member names are unique",
-      "status_string": "FAIL",
+      "name": "I2 includes M2: member names are unique",
+      "status_string": "PASS",
       "properties": {},
-      "message": "assert_true: member F is unique expected true got false"
+      "message": null
     },
     {
-      "name": "D includes C: member names are unique",
+      "name": "I5 includes M5: member names are unique",
       "status_string": "FAIL",
       "properties": {},
-      "message": "assert_true: member F is unique expected true got false"
+      "message": "assert_true: member a5 is unique expected true got false"
+    },
+    {
+      "name": "Partial interface mixin M2: member names are unique",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface mixin M2: original interface mixin defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface mixin M3: original interface mixin defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original interface mixin should be defined expected true got false"
+    },
+    {
+      "name": "Partial interface mixin M4: member names are unique",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: member a4 is unique expected true got false"
+    },
+    {
+      "name": "Partial interface mixin M4: original interface mixin defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
     }
   ],
   "type": "complete"

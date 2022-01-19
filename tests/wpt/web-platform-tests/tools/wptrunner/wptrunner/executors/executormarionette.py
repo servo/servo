@@ -41,7 +41,6 @@ from .protocol import (ActionSequenceProtocolPart,
                        SetPermissionProtocolPart,
                        PrintProtocolPart,
                        DebugProtocolPart)
-from ..webdriver_server import GeckoDriverServer
 
 
 def do_delayed_imports():
@@ -128,7 +127,7 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
                 pass
             except errors.JavascriptException as e:
                 # This can happen if we navigate, but just keep going
-                self.logger.debug(e.message)
+                self.logger.debug(e)
                 pass
             except IOError:
                 self.logger.debug("Socket closed")
@@ -477,8 +476,12 @@ class MarionetteTestDriverProtocolPart(TestDriverProtocolPart):
             obj["message"] = str(message)
         self.parent.base.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
 
-    def _switch_to_frame(self, frame_number):
-        self.marionette.switch_to_frame(frame_number)
+    def _switch_to_frame(self, index_or_elem):
+        try:
+            self.marionette.switch_to_frame(index_or_elem)
+        except (errors.NoSuchFrameException,
+                errors.StaleElementException) as e:
+            raise ValueError from e
 
     def _switch_to_parent_frame(self):
         self.marionette.switch_to_parent_frame()
@@ -493,7 +496,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
             return
 
         script = """
-            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://remote/content/marionette/PerTestCoverageUtils.jsm");
             return PerTestCoverageUtils.enabled;
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -503,7 +506,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
         script = """
             var callback = arguments[arguments.length - 1];
 
-            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://remote/content/marionette/PerTestCoverageUtils.jsm");
             PerTestCoverageUtils.beforeTest().then(callback, callback);
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -523,7 +526,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
         script = """
             var callback = arguments[arguments.length - 1];
 
-            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://marionette/content/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://remote/content/marionette/PerTestCoverageUtils.jsm");
             PerTestCoverageUtils.afterTest().then(callback, callback);
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -567,12 +570,22 @@ class MarionetteVirtualAuthenticatorProtocolPart(VirtualAuthenticatorProtocolPar
     def set_user_verified(self, authenticator_id, uv):
         raise NotImplementedError("set_user_verified not yet implemented")
 
+
 class MarionetteSetPermissionProtocolPart(SetPermissionProtocolPart):
     def setup(self):
         self.marionette = self.parent.marionette
 
-    def set_permission(self, name, state, one_realm):
-        raise NotImplementedError("set_permission not yet implemented")
+    def set_permission(self, descriptor, state, one_realm):
+        body = {
+            "descriptor": descriptor,
+            "state": state,
+        }
+        if one_realm is not None:
+            body["oneRealm"] = one_realm
+        try:
+            self.marionette._send_message("WebDriver:SetPermission", body)
+        except errors.UnsupportedOperationException:
+            raise NotImplementedError("set_permission not yet implemented")
 
 
 class MarionettePrintProtocolPart(PrintProtocolPart):
@@ -710,11 +723,12 @@ class MarionetteProtocol(Protocol):
             try:
                 self.marionette._request_in_app_shutdown()
                 self.marionette.delete_session(send_request=False)
+                self.marionette.cleanup()
             except Exception:
                 # This is typically because the session never started
                 pass
         if self.marionette is not None:
-            del self.marionette
+            self.marionette = None
         super(MarionetteProtocol, self).teardown()
 
     def is_alive(self):
@@ -777,7 +791,7 @@ class ExecuteAsyncScriptRun(TimedRunner):
             self.logger.info("NoSuchWindowException on command, setting status to CRASH")
             self.result = False, ("CRASH", None)
         except Exception as e:
-            if isinstance(e, errors.JavascriptException) and e.message.startswith("Document was unloaded"):
+            if isinstance(e, errors.JavascriptException) and str(e).startswith("Document was unloaded"):
                 message = "Document unloaded; maybe test navigated the top-level-browsing context?"
             else:
                 message = getattr(e, "message", "")
@@ -1099,11 +1113,31 @@ class InternalRefTestImplementation(RefTestImplementation):
 
 
 class GeckoDriverProtocol(WdspecProtocol):
-    server_cls = GeckoDriverServer
+    server_cls = None  # To avoid circular imports we set this at runtime
 
 
 class MarionetteWdspecExecutor(WdspecExecutor):
     protocol_cls = GeckoDriverProtocol
+
+    def __init__(self, logger, browser, server_config, webdriver_binary,
+                 webdriver_args, timeout_multiplier=1, capabilities=None,
+                 debug_info=None, environ=None, stackfix_dir=None,
+                 symbols_path=None, leak_report_file=None, asan=False,
+                 group_metadata=None, browser_settings=None, **kwargs):
+
+        from ..browsers.firefox import GeckoDriverServer
+        super().__init__(logger, browser, server_config, webdriver_binary,
+                         webdriver_args, timeout_multiplier=timeout_multiplier,
+                         capabilities=capabilities, debug_info=debug_info,
+                         environ=environ, **kwargs)
+        self.protocol_cls.server_cls = GeckoDriverServer
+        self.output_handler_kwargs = {"stackfix_dir": stackfix_dir,
+                                      "symbols_path": symbols_path,
+                                      "asan": asan,
+                                      "leak_report_file": leak_report_file}
+        self.output_handler_start_kwargs = {"group_metadata": group_metadata}
+        self.output_handler_start_kwargs.update(browser_settings)
+
 
 
 class MarionetteCrashtestExecutor(CrashtestExecutor):

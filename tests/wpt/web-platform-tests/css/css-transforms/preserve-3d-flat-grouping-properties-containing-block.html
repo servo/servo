@@ -1,0 +1,41 @@
+<!doctype HTML>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  div {
+    width: 200px;
+    height: 200px;
+  }
+  .parent {
+    transform-style: preserve-3d;
+    transform: rotateY(45deg)
+  }
+
+  .child {
+    transform: rotateY(45deg);
+    background: lightblue
+  }
+</style>
+
+<div id=parentWithGrouping style="transform-style: preserve-3d; overflow: hidden">
+  <div id=absoluteUnderGrouping style="position: absolute">
+  </div>
+</div>
+
+<div id=parentWithoutGrouping style="transform-style: preserve-3d">
+  <div id=absoluteNotUnderGrouping style="position: absolute">
+  </div>
+</div>
+
+<script>
+  test(function() {
+    assert_equals(absoluteUnderGrouping.offsetParent, parentWithGrouping);
+  }, "Preserve-3d element with a grouping property still a containing block");
+
+  test(function() {
+    assert_equals(absoluteNotUnderGrouping.offsetParent, parentWithoutGrouping);
+  }, "Preserve-3d element without a grouping property still a containing block");
+</script>

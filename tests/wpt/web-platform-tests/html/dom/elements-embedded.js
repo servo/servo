@@ -93,6 +93,7 @@ var embeddedElements = {
     autoplay: "boolean",
     loop: "boolean",
     controls: "boolean",
+    controlsList: {type: "tokenlist", domAttrName: "controlsList"},
     defaultMuted: {type: "boolean", domAttrName: "muted"},
 
     width: "unsigned long",

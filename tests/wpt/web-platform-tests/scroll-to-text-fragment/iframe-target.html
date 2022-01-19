@@ -1,0 +1,43 @@
+<!doctype html>
+<title>Inner document for use in iframes.sub.html test</title>
+<script>
+  function isInView(element) {
+    let rect = element.getBoundingClientRect();
+    return rect.top >= 0 && rect.top <= window.innerHeight
+        && rect.left >= 0 && rect.left <= window.innerWidth;
+  }
+
+  function postResult() {
+    let position = 'unknown';
+    if (window.scrollY == 0)
+      position = 'top';
+    else if (isInView(document.getElementById('target')))
+      position = 'target';
+
+    let results = {
+      scrollPosition: position,
+      href: window.location.href,
+    };
+
+    window.top.postMessage(results, "*");
+  }
+
+  window.addEventListener('message', (e) => {
+    if (e.data == 'getResult') {
+      // rAF twice in case there is any asynchronicity in scrolling to the
+      // target.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(postResult);
+      })
+    }
+  });
+</script>
+<style>
+  p {
+    margin-top: 400vh;
+    margin-bottom: 400vh;
+  }
+</style>
+<body>
+  <p id="target">Target Text</p>
+</body>

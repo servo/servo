@@ -6,7 +6,7 @@
 <title>Tests the ascent-override and descent-override descriptors of @font-face</title>
 <style>
 @font-face {
-  font-family: custom-font;
+  font-family: Ahem;
   src: local(Ahem), url(/fonts/Ahem.ttf);
   /* The default ascent and descent are 80% and 20%, respectively. */
   ascent-override: 100%;
@@ -14,7 +14,7 @@
 }
 
 .target {
-  font: 20px custom-font;
+  font: 20px Ahem;
   color: green;
   position: absolute;
   top: 10px;

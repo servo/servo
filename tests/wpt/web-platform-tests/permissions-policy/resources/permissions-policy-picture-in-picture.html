@@ -4,8 +4,8 @@
 'use strict';
 
 window.addEventListener('load', () => {
-  isPictureInPictureAllowed().then(result => {
-    window.parent.postMessage({ enabled: result }, '*');
+  isPictureInPictureAllowed().then(enabled => {
+    window.parent.postMessage({ type: 'availability-result', enabled }, '*');
   });
 }, { once: true });
 </script>

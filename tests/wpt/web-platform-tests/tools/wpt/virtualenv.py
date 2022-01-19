@@ -91,6 +91,13 @@ class Virtualenv(object):
         return self._working_set
 
     def activate(self):
+        if sys.platform == 'darwin':
+            # The default Python on macOS sets a __PYVENV_LAUNCHER__ environment
+            # variable which affects invocation of python (e.g. via pip) in a
+            # virtualenv. Unset it if present to avoid this. More background:
+            # https://github.com/web-platform-tests/wpt/issues/27377
+            # https://github.com/python/cpython/pull/9516
+            os.environ.pop('__PYVENV_LAUNCHER__', None)
         path = os.path.join(self.bin_path, "activate_this.py")
         with open(path) as f:
             exec(f.read(), {"__file__": path})

@@ -15,10 +15,13 @@
   grid-gap: 5px;
 }
 .one {
-  grid-template: none / 3fr 4fr;
+  grid-template: repeat(8, 10px) / 3fr 4fr;
 }
 .two {
-  grid-template: 1fr 2fr / none;
+  grid-template: 1fr 2fr / repeat(3, 15px);
+}
+.three {
+  grid-template: repeat(8, 10px) / repeat(3, 15px);
 }
 
 .item {

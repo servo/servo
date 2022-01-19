@@ -196,8 +196,19 @@ function generateRequestDeviceArgsWithServices(services = ['heart_rate']) {
   return [
     {filters: [{services: services}]},
     {filters: [{services: services, name: 'Name'}]},
-    {filters: [{services: services, namePrefix: 'Pre'}]},
-    {filters: [{services: services, name: 'Name', namePrefix: 'Pre'}]},
+    {filters: [{services: services, namePrefix: 'Pre'}]}, {
+      filters: [
+        {services: services, manufacturerData: [{companyIdentifier: 0x0001}]}
+      ]
+    },
+    {
+      filters: [{
+        services: services,
+        name: 'Name',
+        namePrefix: 'Pre',
+        manufacturerData: [{companyIdentifier: 0x0001}]
+      }]
+    },
     {filters: [{services: services}], optionalServices: ['heart_rate']}, {
       filters: [{services: services, name: 'Name'}],
       optionalServices: ['heart_rate']
@@ -207,7 +218,18 @@ function generateRequestDeviceArgsWithServices(services = ['heart_rate']) {
       optionalServices: ['heart_rate']
     },
     {
-      filters: [{services: services, name: 'Name', namePrefix: 'Pre'}],
+      filters: [
+        {services: services, manufacturerData: [{companyIdentifier: 0x0001}]}
+      ],
+      optionalServices: ['heart_rate']
+    },
+    {
+      filters: [{
+        services: services,
+        name: 'Name',
+        namePrefix: 'Pre',
+        manufacturerData: [{companyIdentifier: 0x0001}]
+      }],
       optionalServices: ['heart_rate']
     }
   ];
@@ -242,6 +264,7 @@ async function initializeFakeCentral({state = 'powered-on'}) {
 /**
  * A dictionary for specifying fake Bluetooth device setup options.
  * @typedef {{address: !string, name: !string,
+ *            manufacturerData: !Object<uint16,Array<uint8>>,
  *            knownServiceUUIDs: !Array<string>, connectable: !boolean,
  *            serviceDiscoveryComplete: !boolean}}
  */
@@ -260,6 +283,7 @@ let SetupOptions;
 const fakeDeviceOptionsDefault = {
   address: '00:00:00:00:00:00',
   name: 'LE Device',
+  manufacturerData: {},
   knownServiceUUIDs: [],
   connectable: false,
   serviceDiscoveryComplete: false,
@@ -327,6 +351,7 @@ async function setUpPreconnectedFakeDevice(setupOptionsOverride) {
       await fake_central.simulatePreconnectedPeripheral({
         address: setupOptions.fakeDeviceOptions.address,
         name: setupOptions.fakeDeviceOptions.name,
+        manufacturerData: setupOptions.fakeDeviceOptions.manufacturerData,
         knownServiceUUIDs: setupOptions.fakeDeviceOptions.knownServiceUUIDs,
       });
 
@@ -360,14 +385,16 @@ async function setUpPreconnectedFakeDevice(setupOptionsOverride) {
 
 /**
  * Deprecated: Use setUpPreconnectedFakeDevice() instead.
- * Simulates a preconnected device with |address|, |name| and
- * |knownServiceUUIDs|. A preconnected device is a device that has been paired
- * with the system previously. This can be done if, for example, the user pairs
- * the device using the OS'es settings.
+ * Simulates a preconnected device with |address|, |name|, |manufacturerData|
+ * and |knownServiceUUIDs|. A preconnected device is a device that has been
+ * paired with the system previously. This can be done if, for example, the user
+ * pairs the device using the OS'es settings.
  * TODO(https://crbug.com/1070816): Remove this method when all uses have been
  * converted to using setUpPreconnectedFakeDevice();
  * @param {string} address The device MAC address.
  * @param {string} name The device name.
+ * @param {Object<uint16,Array<uint8>>} manufacturerData A map of company
+ *     identifier and manufacturer data to set up the fake with.
  * @param {Array<string>} knownServiceUUIDs An array of GATT service UUIDs to
  *     set up the fake with.
  * @returns {Promise<FakePeripheral>} The fake devices are initialized with the
@@ -376,12 +403,14 @@ async function setUpPreconnectedFakeDevice(setupOptionsOverride) {
 async function setUpPreconnectedDevice({
   address = '00:00:00:00:00:00',
   name = 'LE Device',
+  manufacturerData = {},
   knownServiceUUIDs = []
 }) {
   await initializeFakeCentral({state: 'powered-on'});
   return await fake_central.simulatePreconnectedPeripheral({
     address: address,
     name: name,
+    manufacturerData: manufacturerData,
     knownServiceUUIDs: knownServiceUUIDs,
   });
 }
@@ -705,7 +734,7 @@ async function getHIDDevice(options) {
 /**
  * Returns a FakePeripheral that corresponds to a simulated pre-connected device
  * called 'Health Thermometer'. The device has two known serviceUUIDs:
- * 'generic_access' and 'health_thermometer'.
+ * 'generic_access' and 'health_thermometer' and some fake manufacturer data.
  * @returns {Promise<FakePeripheral>} The device fake initialized as a Health
  *     Thermometer device.
  */
@@ -713,6 +742,7 @@ function setUpHealthThermometerDevice() {
   return setUpPreconnectedDevice({
     address: '09:09:09:09:09:09',
     name: 'Health Thermometer',
+    manufacturerData: {0x0001: manufacturer1Data, 0x0002: manufacturer2Data},
     knownServiceUUIDs: ['generic_access', 'health_thermometer'],
   });
 }
@@ -1122,11 +1152,13 @@ async function setUpHealthThermometerAndHeartRateDevices() {
     fake_central.simulatePreconnectedPeripheral({
       address: '09:09:09:09:09:09',
       name: 'Health Thermometer',
+      manufacturerData: {},
       knownServiceUUIDs: ['generic_access', 'health_thermometer'],
     }),
     fake_central.simulatePreconnectedPeripheral({
       address: '08:08:08:08:08:08',
       name: 'Heart Rate',
+      manufacturerData: {},
       knownServiceUUIDs: ['generic_access', 'heart_rate'],
     })
   ]);

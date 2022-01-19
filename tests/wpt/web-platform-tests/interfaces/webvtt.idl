@@ -11,7 +11,7 @@ enum PositionAlignSetting { "line-left", "center", "line-right", "auto" };
 enum AlignSetting { "start", "center", "end", "left", "right" };
 [Exposed=Window]
 interface VTTCue : TextTrackCue {
-  constructor(double startTime, double endTime, DOMString text);
+  constructor(double startTime, unrestricted double endTime, DOMString text);
   attribute VTTRegion? region;
   attribute DirectionSetting vertical;
   attribute boolean snapToLines;

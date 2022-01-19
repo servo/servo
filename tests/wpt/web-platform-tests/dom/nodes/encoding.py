@@ -1,7 +1,4 @@
-try:
-    from cgi import escape
-except ImportError:
-    from html import escape
+from html import escape
 
 from wptserve.utils import isomorphic_decode
 

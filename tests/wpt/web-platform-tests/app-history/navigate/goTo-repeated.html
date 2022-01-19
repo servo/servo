@@ -1,0 +1,21 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  let key = appHistory.current.key;
+  await appHistory.navigate("#1");
+
+  let first_promise = appHistory.goTo(key);
+  let second_promise = appHistory.goTo(key);
+  assert_equals(first_promise, second_promise);
+
+  let second_promise_resolved = false;
+  second_promise.then(() => second_promise_resolved = true);
+  await first_promise;
+  assert_true(second_promise_resolved);
+}, "Repeated navigate.goTo()");
+</script>

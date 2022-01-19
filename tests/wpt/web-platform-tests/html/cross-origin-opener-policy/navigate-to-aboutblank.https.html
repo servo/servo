@@ -6,9 +6,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/utils.js"></script>
-<script src="reporting/resources/dispatcher.js"></script>
-<script src="reporting/resources/try-access.js"></script>
-
+<script src="/html/cross-origin-opener-policy/resources/dispatcher.js"></script>
 
 <p>Non-initial empty documents (about:blank) should inherit their
   cross-origin-opener-policy from the navigation's initiator top level document,
@@ -27,11 +25,15 @@
 
 <script>
 const directory = "/html/cross-origin-opener-policy";
-const executor_path = directory + "/reporting/resources/executor.html?pipe=";
+const executor_path = directory + "/resources/executor.html?pipe=";
 const same_origin = get_host_info().HTTPS_ORIGIN;
 const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
 const coop_same_origin_header =
   '|header(Cross-Origin-Opener-Policy,same-origin)';
+const coep_require_corp_header =
+  '|header(Cross-Origin-Embedder-Policy,require-corp)';
+const coop_same_origin_plus_coep_header =
+  coop_same_origin_header + coep_require_corp_header;
 const coop_same_origin_allow_popups_header =
   '|header(Cross-Origin-Opener-Policy,same-origin-allow-popups)';
 const coop_unsafe_none_header =
@@ -42,6 +44,7 @@ function navigateToAboutBlankTest(
   iframe_origin,
   openee_COOP_header,
   openee_origin,
+  iframe_header,
   expect_openee_closed
 ){
   return promise_test(async t => {
@@ -54,7 +57,7 @@ function navigateToAboutBlankTest(
         `&uuid=${opener_token}`;
     const openee_url = openee_origin + executor_path + openee_COOP_header +
         `&uuid=${openee_token}`;
-    const iframe_url = iframe_origin + executor_path + `&uuid=${iframe_token}`;
+    const iframe_url = iframe_origin + executor_path + iframe_header + `&uuid=${iframe_token}`;
 
     t.add_cleanup(() => {
       send(openee_token, "window.close()");
@@ -106,7 +109,6 @@ function navigateToAboutBlankTest(
     `);
     assert_equals(await receive(this_window_token), "about:blank loaded");
 
-
     // 6. Retrieve and check the results.
     send(iframe_token, `
       send("${this_window_token}", window.openee.closed);
@@ -128,6 +130,19 @@ navigateToAboutBlankTest(
   same_origin,
   coop_same_origin_header,
   same_origin,
+  "",
+  false
+);
+
+// Since all navigations of openee are within same-origin pages with the
+// same COOP value, there are no browsing context group switches.
+// Test with both COOP and COEP.
+navigateToAboutBlankTest(
+  coop_same_origin_plus_coep_header,
+  same_origin,
+  coop_same_origin_plus_coep_header,
+  same_origin,
+  coep_require_corp_header,
   false
 );
 
@@ -138,6 +153,7 @@ navigateToAboutBlankTest(
   same_origin,
   coop_same_origin_allow_popups_header,
   same_origin,
+  "",
   false
 );
 
@@ -153,6 +169,7 @@ navigateToAboutBlankTest(
   same_origin,
   coop_unsafe_none_header,
   cross_origin,
+  "",
   true
 );
 
@@ -171,6 +188,7 @@ navigateToAboutBlankTest(
   cross_origin,
   coop_unsafe_none_header,
   cross_origin,
+  "",
   false
 );
 </script>

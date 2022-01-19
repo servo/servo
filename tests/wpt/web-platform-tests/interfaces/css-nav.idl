@@ -1,0 +1,48 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Spatial Navigation Level 1 (https://drafts.csswg.org/css-nav-1/)
+
+enum SpatialNavigationDirection {
+    "up",
+    "down",
+    "left",
+    "right",
+};
+
+partial interface Window {
+    undefined navigate(SpatialNavigationDirection dir);
+};
+
+enum FocusableAreaSearchMode {
+    "visible",
+    "all"
+};
+
+dictionary FocusableAreasOption {
+    FocusableAreaSearchMode mode;
+};
+
+dictionary SpatialNavigationSearchOptions {
+    sequence<Node>? candidates;
+    Node? container;
+};
+
+partial interface Element {
+    Node getSpatialNavigationContainer();
+    sequence<Node> focusableAreas(optional FocusableAreasOption option = {});
+    Node? spatialNavigationSearch(SpatialNavigationDirection dir, optional SpatialNavigationSearchOptions options = {});
+};
+
+[Exposed=Window]
+interface NavigationEvent : UIEvent {
+    constructor(DOMString type,
+                optional NavigationEventInit eventInitDict = {});
+    readonly attribute SpatialNavigationDirection dir;
+    readonly attribute EventTarget? relatedTarget;
+};
+
+dictionary NavigationEventInit : UIEventInit {
+    SpatialNavigationDirection dir;
+    EventTarget? relatedTarget = null;
+};

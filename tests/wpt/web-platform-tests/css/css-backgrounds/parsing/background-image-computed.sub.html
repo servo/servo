@@ -54,6 +54,10 @@ test_computed_value('background-image', 'conic-gradient(from 45deg, rgb(255, 0, 
 test_computed_value('background-image', 'conic-gradient(from 45deg at center, red, blue)', 'conic-gradient(from 45deg, rgb(255, 0, 0), rgb(0, 0, 255))');
 test_computed_value('background-image', 'conic-gradient(from 45deg at 50%, red, blue)', 'conic-gradient(from 45deg, rgb(255, 0, 0), rgb(0, 0, 255))');
 test_computed_value('background-image', 'conic-gradient(from 45deg at 10px 10px, red, blue)', 'conic-gradient(from 45deg at 10px 10px, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('background-image', 'conic-gradient(from -45deg, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('background-image', 'conic-gradient(from -45deg at center, red, blue)', 'conic-gradient(from -45deg, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('background-image', 'conic-gradient(from -45deg at 50%, red, blue)', 'conic-gradient(from -45deg, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('background-image', 'conic-gradient(from -45deg at 10px 10px, red, blue)', 'conic-gradient(from -45deg at 10px 10px, rgb(255, 0, 0), rgb(0, 0, 255))');
 </script>
 </body>
 </html>

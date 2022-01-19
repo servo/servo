@@ -65,30 +65,8 @@ async function getPaymentRequestResponse(options, id) {
       label: "Total due",
       amount: { currency: "USD", value: "1.0" },
     },
-    shippingOptions: [
-      {
-        id: "fail1",
-        label: "Fail option 1",
-        amount: { currency: "USD", value: "5.00" },
-        selected: false,
-      },
-      {
-        id: "pass",
-        label: "Pass option",
-        amount: { currency: "USD", value: "5.00" },
-        selected: true,
-      },
-      {
-        id: "fail2",
-        label: "Fail option 2",
-        amount: { currency: "USD", value: "5.00" },
-        selected: false,
-      },
-    ],
   };
   const request = new PaymentRequest(methods, details, options);
-  request.onshippingaddresschange = ev => ev.updateWith(details);
-  request.onshippingoptionchange = ev => ev.updateWith(details);
   const response = await request.show();
   return { request, response };
 }
@@ -128,23 +106,5 @@ async function runManualTest(button, options, expected = {}, id = undefined) {
     assert_equals(typeof response.details, "object", "Expected an object");
     // Testing that this does not throw:
     response.toJSON();
-    if (options && options.requestShipping) {
-      assert_equals(
-        response.shippingOption,
-        "pass",
-        "request.shippingOption must be 'pass'"
-      );
-    } else {
-      assert_equals(
-        request.shippingOption,
-        null,
-        "If requestShipping is falsy, request.shippingOption must be null"
-      );
-      assert_equals(
-        response.shippingOption,
-        null,
-        "request.shippingOption must be null"
-      );
-    }
   }, button.textContent.trim());
 }

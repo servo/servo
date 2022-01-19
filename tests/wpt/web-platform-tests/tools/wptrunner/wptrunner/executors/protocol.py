@@ -1,6 +1,7 @@
 import traceback
 
 from abc import ABCMeta, abstractmethod
+from typing import ClassVar, List, Type
 
 
 class Protocol(object):
@@ -16,7 +17,7 @@ class Protocol(object):
     :param Browser browser: The Browser using this protocol"""
     __metaclass__ = ABCMeta
 
-    implements = []
+    implements = []  # type: ClassVar[List[Type[ProtocolPart]]]
 
     def __init__(self, executor, browser):
         self.executor = executor
@@ -82,7 +83,7 @@ class ProtocolPart(object):
     :param Protocol parent: The parent protocol"""
     __metaclass__ = ABCMeta
 
-    name = None
+    name = None  # type: ClassVar[str]
 
     def __init__(self, parent):
         self.parent = parent
@@ -370,43 +371,72 @@ class TestDriverProtocolPart(ProtocolPart):
         :param str message: Additional data to add to the message."""
         pass
 
-    def switch_to_window(self, wptrunner_id):
+    def switch_to_window(self, wptrunner_id, initial_window=None):
         """Switch to a window given a wptrunner window id
 
-        :param str wptrunner_id: window id"""
+        :param str wptrunner_id: Testdriver-specific id for the target window
+        :param str initial_window: WebDriver window id for the test window"""
         if wptrunner_id is None:
             return
 
+        if initial_window is None:
+            initial_window = self.parent.base.current_window
+
         stack = [str(item) for item in self.parent.base.window_handles()]
+        first = True
         while stack:
             item = stack.pop()
+
             if item is None:
+                assert first is False
                 self._switch_to_parent_frame()
                 continue
-            elif isinstance(item, str):
-                self.parent.base.set_window(item)
+
+            if isinstance(item, str):
+                if not first or item != initial_window:
+                    self.parent.base.set_window(item)
+                first = False
             else:
-                self._switch_to_frame(item)
+                assert first is False
+                try:
+                    self._switch_to_frame(item)
+                except ValueError:
+                    # The frame no longer exists, or doesn't have a nested browsing context, so continue
+                    continue
 
             try:
-                handle_window_id = self.parent.base.execute_script("return window.__wptrunner_id")
-                if str(handle_window_id) == wptrunner_id:
-                    return
+                # Get the window id and a list of elements containing nested browsing contexts.
+                # For embed we can't tell fpr sure if there's a nested browsing context, so always return it
+                # and fail later if there isn't
+                result = self.parent.base.execute_script("""
+                let contextParents = Array.from(document.querySelectorAll("frame, iframe, embed, object"))
+                    .filter(elem => elem.localName !== "embed" ? (elem.contentWindow !== null) : true);
+                return [window.__wptrunner_id, contextParents]""")
             except Exception:
-                pass
-            frame_count = self.parent.base.execute_script("return window.length")
-            # None here makes us switch back to the parent after we've processed all the subframes
-            stack.append(None)
-            if frame_count:
-                stack.extend(reversed(range(0, frame_count)))
+                continue
+
+            if result is None:
+                # With marionette at least this is possible if the content process crashed. Not quite
+                # sure how we want to handle that case.
+                continue
+
+            handle_window_id, nested_context_containers = result
+
+            if handle_window_id and str(handle_window_id) == wptrunner_id:
+                return
+
+            for elem in reversed(nested_context_containers):
+                # None here makes us switch back to the parent after we've processed the frame
+                stack.append(None)
+                stack.append(elem)
 
         raise Exception("Window with id %s not found" % wptrunner_id)
 
     @abstractmethod
-    def _switch_to_frame(self, index):
+    def _switch_to_frame(self, index_or_elem):
         """Switch to a frame in the current window
 
-        :param int index: Frame id"""
+        :param int index_or_elem: Frame id or container element"""
         pass
 
     @abstractmethod

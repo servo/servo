@@ -41,7 +41,7 @@
       idlArray.add_idls(`
         partial dictionary C {};
         namespace C {};`);
-      idlArray.collapse_partials();
+      idlArray.merge_partials();
     })();
   </script>
   <script type="text/json" id="expected">

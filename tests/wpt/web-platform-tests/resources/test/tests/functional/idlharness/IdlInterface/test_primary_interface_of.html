@@ -40,8 +40,7 @@ Foo.prototype[Symbol.toStringTag] = "Foo";
 var idlArray = new IdlArray();
 idlArray.add_untested_idls("interface FooParent {};");
 idlArray.add_idls(
-    "[Constructor()]\n" +
-    "interface Foo : FooParent {};"
+    "interface Foo : FooParent { constructor(); };"
   );
 idlArray.add_objects({
   Foo: ["new Foo()"],

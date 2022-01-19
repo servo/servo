@@ -1,0 +1,11 @@
+<!doctype html>
+<title>Attaching shadow slot with assigned whitespace separated inline elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-rules">
+<link rel="match" href="../reference/pass_if_two_words.html">
+<p>There should be a space between "two" and "words" below.</p>
+<div id="host"><span>two</span> <span>words</span></div>
+<script>
+  host.offsetTop;
+  host.attachShadow({mode:"open"}).innerHTML = "<slot />";
+</script>

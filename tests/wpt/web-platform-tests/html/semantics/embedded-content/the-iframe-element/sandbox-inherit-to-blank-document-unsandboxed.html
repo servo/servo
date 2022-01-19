@@ -1,0 +1,75 @@
+<!--
+Content-Security-Policy: sandbox allow-scripts
+                                 allow-popups
+                                 allow-popups-to-escape-sandbox
+-->
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<script>
+
+// Sandbox flags are inherited from a document toward every frame it creates,
+// which then is inherited to every new document created in this frame.
+
+// Using the flag 'allow-popups-to-escape-sandbox' inhibits this inheritance
+// mechanism when the new frame is a popup.
+//
+// Sandbox flags can also be set via CSP. CSP are inherited from a document
+// toward every other documents its creates that are loading with a local scheme.
+// In particular, this includes:
+//  - The initial empty document
+//  - The first about:blank navigation. See (note)
+//  - Any about:blank navigation.
+//
+// Both mechanism are at play here.
+//
+// Note: As of 2021, Chrome handles the very first navigation to about:blank in
+// a frame synchronously instead of asynchronously. This is the only navigation
+// behaving this way. As a result, inheritance of sandbox is different and needs
+// to be tested separately.
+// See also:
+// https://docs.google.com/document/d/1KY0DCaoKjUPbOX28N9KWvBjbnAfQEIRTaLbZUq9EkK8
+
+test(test => {
+  assert_equals(window.origin, 'null');
+}, "Document is sandboxed via its CSP.");
+
+test(test => {
+    // The navigation will be canceled (204 no content). As a result, the
+    // document in the popup must still be the initial empty document.
+    const w = window.open("common/blank.html?pipe=status(204)")
+
+    // The about:blank document is sandboxed, because it inherited CSP from its
+    // opener. However this is impossible to verify. There are cross-origin
+    // access restrictions and an about:blank document can't do much on its own.
+    assert_throws_dom("SecurityError", () => { w.origin });
+
+}, "The initial empty document inherit sandbox via CSP.");
+
+// Regression test for https://crbug.com/1190065
+test(test => {
+    const w = window.open("about:blank");
+
+    // The about:blank document is sandboxed, because it inherited CSP from its
+    // opener. However this is impossible to verify. There are cross-origin
+    // access restrictions and an about:blank document can't do much on its own.
+    assert_throws_dom("SecurityError", () => { w.origin });
+
+}, "The synchronous re-navigation to about:blank inherits sandbox via CSP");
+
+async_test(test => {
+    window.addEventListener("message", test.step_func_done(e => {
+      assert_equals(e.data.origin, (new URL(location)).origin,
+        "popup is not sandboxed");
+    }));
+    window.open("./resources/post-origin-to-opener.html");
+}, "Popup do not inherit sandbox, because of 'allow-popups-to-escape-sandbox'" +
+   " the document doesn't inherit CSP. The document isn't sandboxed")
+
+</script>
+</body>
+</html>

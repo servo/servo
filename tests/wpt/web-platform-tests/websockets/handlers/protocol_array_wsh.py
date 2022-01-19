@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-from mod_pywebsocket import msgutil, util
+from mod_pywebsocket import msgutil
 
 def web_socket_do_extra_handshake(request):
-    line = request.headers_in.get('Sec-WebSocket-Protocol')
+    line = request.headers_in.get('sec-websocket-protocol')
     request.ws_protocol = line.split(',', 1)[0]
 
 #pass

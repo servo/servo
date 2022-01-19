@@ -5,14 +5,15 @@ import platform
 import socket
 import time
 import traceback
+from typing import ClassVar, Type
 
 import mozprocess
 
-from .process import cast_env
+from .browsers.base import OutputHandler
 
 
 __all__ = ["SeleniumServer", "ChromeDriverServer", "CWTChromeDriverServer",
-           "EdgeChromiumDriverServer", "OperaDriverServer", "GeckoDriverServer",
+           "EdgeChromiumDriverServer", "OperaDriverServer",
            "InternetExplorerDriverServer", "EdgeDriverServer",
            "ServoDriverServer", "WebKitDriverServer", "WebDriverServer"]
 
@@ -21,6 +22,7 @@ class WebDriverServer(object):
     __metaclass__ = abc.ABCMeta
 
     default_base_path = "/"
+    output_handler_cls = OutputHandler  # type: ClassVar[Type[OutputHandler]]
 
     def __init__(self, logger, binary, host="127.0.0.1", port=None,
                  base_path="", env=None, args=None):
@@ -31,12 +33,14 @@ class WebDriverServer(object):
         self.logger = logger
         self.binary = binary
         self.host = host
+
         if base_path == "":
             self.base_path = self.default_base_path
         else:
             self.base_path = base_path
         self.env = os.environ.copy() if env is None else env
 
+        self._output_handler = None
         self._port = port
         self._cmd = None
         self._args = args if args is not None else []
@@ -46,18 +50,28 @@ class WebDriverServer(object):
     def make_command(self):
         """Returns the full command for starting the server process as a list."""
 
-    def start(self, block=False):
+    def start(self,
+              block=False,
+              output_handler_kwargs=None,
+              output_handler_start_kwargs=None):
         try:
-            self._run(block)
+            self._run(block, output_handler_kwargs, output_handler_start_kwargs)
         except KeyboardInterrupt:
             self.stop()
 
-    def _run(self, block):
+    def _run(self, block, output_handler_kwargs, output_handler_start_kwargs):
+        if output_handler_kwargs is None:
+            output_handler_kwargs = {}
+        if output_handler_start_kwargs is None:
+            output_handler_start_kwargs = {}
         self._cmd = self.make_command()
+        self._output_handler = self.output_handler_cls(self.logger,
+                                                       self._cmd,
+                                                       **output_handler_kwargs)
         self._proc = mozprocess.ProcessHandler(
             self._cmd,
-            processOutputLine=self.on_output,
-            env=cast_env(self.env),
+            processOutputLine=self._output_handler,
+            env=self.env,
             storeOutput=False)
 
         self.logger.debug("Starting WebDriver: %s" % ' '.join(self._cmd))
@@ -68,6 +82,7 @@ class WebDriverServer(object):
                 raise IOError(
                     "WebDriver executable not found: %s" % self.binary)
             raise
+        self._output_handler.after_process_start(self._proc.pid)
 
         self.logger.debug(
             "Waiting for WebDriver to become accessible: %s" % self.url)
@@ -78,26 +93,27 @@ class WebDriverServer(object):
                 "WebDriver was not accessible "
                 "within the timeout:\n%s" % traceback.format_exc())
             raise
-
+        self._output_handler.start(**output_handler_start_kwargs)
         if block:
             self._proc.wait()
 
     def stop(self, force=False):
         self.logger.debug("Stopping WebDriver")
+        clean = True
         if self.is_alive():
             kill_result = self._proc.kill()
             if force and kill_result != 0:
-                return self._proc.kill(9)
-            return kill_result
-        return not self.is_alive()
+                clean = False
+                self._proc.kill(9)
+        success = not self.is_alive()
+        if success and self._output_handler is not None:
+            # Only try to do output post-processing if we managed to shut down
+            self._output_handler.after_process_stop(clean)
+            self._output_handler = None
+        return success
 
     def is_alive(self):
         return hasattr(self._proc, "proc") and self._proc.poll() is None
-
-    def on_output(self, line):
-        self.logger.process_output(self.pid,
-                                   line.decode("utf8", "replace"),
-                                   command=" ".join(self._cmd))
 
     @property
     def pid(self):
@@ -123,88 +139,42 @@ class SeleniumServer(WebDriverServer):
 
 
 class ChromeDriverServer(WebDriverServer):
-    def __init__(self, logger, binary="chromedriver", port=None,
-                 base_path="", args=None):
-        WebDriverServer.__init__(
-            self, logger, binary, port=port, base_path=base_path, args=args)
-
     def make_command(self):
         return [self.binary,
                 cmd_arg("port", str(self.port)),
                 cmd_arg("url-base", self.base_path) if self.base_path else "",
                 cmd_arg("enable-chrome-logs")] + self._args
 
-class CWTChromeDriverServer(WebDriverServer):
-    def __init__(self, logger, binary, port=None, args=None):
-        WebDriverServer.__init__(self, logger, binary, port=port, args=args)
 
+class CWTChromeDriverServer(WebDriverServer):
     def make_command(self):
         return [self.binary,
                 "--port=%s" % str(self.port)] + self._args
 
-class EdgeChromiumDriverServer(WebDriverServer):
-    def __init__(self, logger, binary="msedgedriver", port=None,
-                 base_path="", args=None):
-        WebDriverServer.__init__(
-            self, logger, binary, port=port, base_path=base_path, args=args)
 
+class EdgeChromiumDriverServer(WebDriverServer):
     def make_command(self):
         return [self.binary,
                 cmd_arg("port", str(self.port)),
                 cmd_arg("url-base", self.base_path) if self.base_path else ""] + self._args
 
-class EdgeDriverServer(WebDriverServer):
-    def __init__(self, logger, binary="microsoftwebdriver.exe", port=None,
-                 base_path="", host="localhost", args=None):
-        WebDriverServer.__init__(
-            self, logger, binary, host=host, port=port, args=args)
 
+class EdgeDriverServer(WebDriverServer):
     def make_command(self):
         return [self.binary,
                 "--port=%s" % str(self.port)] + self._args
+
 
 class OperaDriverServer(ChromeDriverServer):
-    def __init__(self, logger, binary="operadriver", port=None,
-                 base_path="", args=None):
-        ChromeDriverServer.__init__(
-            self, logger, binary, port=port, base_path=base_path, args=args)
-
+    pass
 
 class InternetExplorerDriverServer(WebDriverServer):
-    def __init__(self, logger, binary="IEDriverServer.exe", port=None,
-                 base_path="", host="localhost", args=None):
-        WebDriverServer.__init__(
-            self, logger, binary, host=host, port=port, args=args)
-
     def make_command(self):
         return [self.binary,
                 "--port=%s" % str(self.port)] + self._args
-
-
-class GeckoDriverServer(WebDriverServer):
-    def __init__(self, logger, marionette_port=2828, binary="geckodriver",
-                 host="127.0.0.1", port=None, args=None):
-        env = os.environ.copy()
-        env["RUST_BACKTRACE"] = "1"
-        WebDriverServer.__init__(self, logger, binary,
-                                 host=host,
-                                 port=port,
-                                 env=cast_env(env),
-                                 args=args)
-        self.marionette_port = marionette_port
-
-    def make_command(self):
-        return [self.binary,
-                "--marionette-port", str(self.marionette_port),
-                "--host", self.host,
-                "--port", str(self.port)] + self._args
 
 
 class SafariDriverServer(WebDriverServer):
-    def __init__(self, logger, binary="safaridriver", port=None, args=None):
-        WebDriverServer.__init__(
-            self, logger, binary, port=port, args=args)
-
     def make_command(self):
         return [self.binary,
                 "--port=%s" % str(self.port)] + self._args
@@ -212,13 +182,13 @@ class SafariDriverServer(WebDriverServer):
 
 class ServoDriverServer(WebDriverServer):
     def __init__(self, logger, binary="servo", binary_args=None, host="127.0.0.1",
-                 port=None, args=None):
-        env = os.environ.copy()
+                 port=None, env=None, args=None):
+        env = env if env is not None else os.environ.copy()
         env["RUST_BACKTRACE"] = "1"
         WebDriverServer.__init__(self, logger, binary,
                                  host=host,
                                  port=port,
-                                 env=cast_env(env),
+                                 env=env,
                                  args=args)
         self.binary_args = binary_args
 
@@ -233,9 +203,6 @@ class ServoDriverServer(WebDriverServer):
 
 
 class WebKitDriverServer(WebDriverServer):
-    def __init__(self, logger, binary=None, port=None, args=None):
-        WebDriverServer.__init__(self, logger, binary, port=port, args=args)
-
     def make_command(self):
         return [self.binary, "--port=%s" % str(self.port)] + self._args
 
@@ -254,7 +221,7 @@ def get_free_port():
         s = socket.socket()
         try:
             s.bind(("127.0.0.1", 0))
-        except socket.error:
+        except OSError:
             continue
         else:
             return s.getsockname()[1]
@@ -265,7 +232,7 @@ def get_free_port():
 def wait_for_service(addr, timeout=60):
     """Waits until network service given as a tuple of (host, port) becomes
     available or the `timeout` duration is reached, at which point
-    ``socket.error`` is raised."""
+    ``socket.timeout`` is raised."""
     end = time.time() + timeout
     while end > time.time():
         so = socket.socket()
@@ -273,7 +240,7 @@ def wait_for_service(addr, timeout=60):
             so.connect(addr)
         except socket.timeout:
             pass
-        except socket.error as e:
+        except OSError as e:
             if e.errno != errno.ECONNREFUSED:
                 raise
         else:
@@ -281,4 +248,4 @@ def wait_for_service(addr, timeout=60):
         finally:
             so.close()
         time.sleep(0.5)
-    raise socket.error("Service is unavailable: %s:%i" % addr)
+    raise socket.timeout("Service is unavailable: %s:%i" % addr)

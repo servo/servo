@@ -14,6 +14,9 @@ test(function(t) {
   window.navigator.mediaSession.setActionHandler("stop", null);
   window.navigator.mediaSession.setActionHandler("seekto", null);
   window.navigator.mediaSession.setActionHandler("skipad", null);
+  window.navigator.mediaSession.setActionHandler("togglemicrophone", null);
+  window.navigator.mediaSession.setActionHandler("togglecamera", null);
+  window.navigator.mediaSession.setActionHandler("hangup", null);
 }, "Test that setActionHandler() can be executed for supported actions");
 
 test(function(t) {

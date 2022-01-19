@@ -316,3 +316,72 @@ dictionary CSSMatrixComponentOptions {
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSImageValue : CSSStyleValue {
 };
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSColorValue : CSSStyleValue {
+    readonly attribute CSSKeywordValue colorSpace;
+    CSSColorValue to(CSSKeywordish colorSpace);
+    [Exposed=Window] static CSSColorValue parse(USVString cssText);
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSRGB : CSSColorValue {
+    constructor(CSSNumberish r, CSSNumberish g, CSSNumberish b, optional CSSNumberish alpha = 1);
+    attribute CSSNumberish r;
+    attribute CSSNumberish g;
+    attribute CSSNumberish b;
+    attribute CSSNumberish alpha;
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSHSL : CSSColorValue {
+    constructor(CSSNumericValue h, CSSNumberish s, CSSNumberish l, optional CSSNumberish alpha = 1);
+    attribute CSSNumericValue h;
+    attribute CSSNumberish s;
+    attribute CSSNumberish l;
+    attribute CSSNumberish alpha;
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSHWB : CSSColorValue {
+    constructor(CSSNumericValue h, CSSNumberish w, CSSNumberish b, optional CSSNumberish alpha = 1);
+    attribute CSSNumericValue h;
+    attribute CSSNumberish w;
+    attribute CSSNumberish b;
+    attribute CSSNumberish alpha;
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSLCH : CSSColorValue {
+    constructor(CSSNumberish l, CSSNumberish c, CSSNumericValue h, optional CSSNumberish alpha = 1);
+    attribute CSSNumberish l;
+    attribute CSSNumberish c;
+    attribute CSSNumericValue h;
+    attribute CSSNumberish alpha;
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSLab : CSSColorValue {
+    constructor(CSSNumberish l, CSSNumberish a, CSSNumberish b, optional CSSNumberish alpha = 1);
+    attribute CSSNumberish l;
+    attribute CSSNumberish a;
+    attribute CSSNumberish b;
+    attribute CSSNumberish alpha;
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSColor : CSSColorValue {
+    constructor(sequence<(DOMString or CSSNumberish)> variant);
+    /* CSSColor(["foo", 0, 1, .5], ["bar", "yellow"], 1, fallbackColor) */
+    /* or just make the alpha and fallback successive optional args? */
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSDeviceCMYK : CSSColorValue {
+    constructor(CSSNumberish c, CSSNumberish m, CSSNumberish y, CSSNumberish k, optional CSSNumberish alpha = 1);
+    attribute CSSNumberish c;
+    attribute CSSNumberish m;
+    attribute CSSNumberish y;
+    attribute CSSNumberish k;
+    attribute CSSNumberish alpha;
+};

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<style>
+div.test {
+  font-family: Arial;
+  line-height: 1;
+  width: 10ch;
+  border: 1px solid blue;
+}
+</style>
+<body>
+  <div class="test" dir="rtl">
+    &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+    MMMMM
+  </div>
+  <div class="test">
+    MMMMM
+    &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+  </div>
+  <div class="test">
+    <div>a</div>
+    <div dir="rtl">
+      &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+      MMMMM
+    </div>
+  </div>
+  <div class="test">
+    <div>a</div>
+    <div>
+      MMMMM
+      &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+    </div>
+  </div>
+  <div class="test">
+    <div dir="rtl">&#x5D0;</div>
+    <div dir="rtl">
+      &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+      MMMMM
+    </div>
+  </div>
+  <div class="test">
+    <div dir="rtl">&#x5D0;</div>
+    <div>
+      MMMMM
+      &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+    </div>
+  </div>
+</body>

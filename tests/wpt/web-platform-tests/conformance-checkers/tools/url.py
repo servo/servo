@@ -37,7 +37,7 @@ invalid = {
     "fragment-contains-hash": "http://foo/path#f#g",
     "path-percent-encoded-malformed": "http://example.com/foo/%2e%2",
     "path-bare-percent-sign": "http://example.com/foo%",
-    "path-u0091": u"http://example.com/foo\u0091".encode('utf-8'),
+    "path-u0091": "http://example.com/foo\u0091",
     "userinfo-username-contains-pile-of-poo": "http://💩:foo@example.com",
     "userinfo-password-contains-pile-of-poo": "http://foo:💩@example.com",
     "host-hostname-in-brackets": "http://[www.google.com]/",
@@ -45,11 +45,11 @@ invalid = {
     "host-empty-with-userinfo": "http://user:pass@/",
     "port-leading-dash": "http://foo:-80/",
     "host-empty-userinfo-empty": "http://@/www.example.com",
-    "host-invalid-unicode": u"http://\ufdd0zyx.com".encode('utf-8'),
+    "host-invalid-unicode": "http://\ufdd0zyx.com",
     "host-invalid-unicode-percent-encoded": "http://%ef%b7%90zyx.com",
-    "host-double-percent-encoded": u"http://\uff05\uff14\uff11.com".encode('utf-8'),
+    "host-double-percent-encoded": "http://\uff05\uff14\uff11.com",
     "host-double-percent-encoded-percent-encoded": "http://%ef%bc%85%ef%bc%94%ef%bc%91.com",
-    "host-u0000-percent-encoded": u"http://\uff05\uff10\uff10.com".encode('utf-8'),
+    "host-u0000-percent-encoded": "http://\uff05\uff10\uff10.com",
     "host-u0000-percent-encoded-percent-encoded": "http://%ef%bc%85%ef%bc%90%ef%bc%90.com",
 }
 invalid_absolute = invalid.copy()
@@ -107,14 +107,14 @@ valid_absolute = {
     "fragment-contains-question-mark": "http://foo/abcd#foo?bar",
     "path-percent-encoded-dot": "http://example.com/foo/%2e",
     "path-percent-encoded-space": "http://example.com/%20foo",
-    "path-non-ascii": u"http://example.com/\u00C2\u00A9zbar".encode('utf-8'),
+    "path-non-ascii": "http://example.com/\u00C2\u00A9zbar",
     "path-percent-encoded-multiple": "http://example.com/foo%41%7a",
     "path-percent-encoded-u0091": "http://example.com/foo%91",
     "path-percent-encoded-u0000": "http://example.com/foo%00",
     "path-percent-encoded-mixed-case": "http://example.com/%3A%3a%3C%3c",
-    "path-unicode-han": u"http://example.com/\u4F60\u597D\u4F60\u597D".encode('utf-8'),
-    "path-uFEFF": u"http://example.com/\uFEFF/foo".encode('utf-8'),
-    "path-u202E-u202D": u"http://example.com/\u202E/foo/\u202D/bar".encode('utf-8'),
+    "path-unicode-han": "http://example.com/\u4F60\u597D\u4F60\u597D",
+    "path-uFEFF": "http://example.com/\uFEFF/foo",
+    "path-u202E-u202D": "http://example.com/\u202E/foo/\u202D/bar",
     "host-is-pile-of-poo": "http://💩",
     "path-contains-pile-of-poo": "http://example.com/foo/💩",
     "query-contains-pile-of-poo": "http://example.com/foo?💩",
@@ -124,10 +124,10 @@ valid_absolute = {
     "userinfo-empty": "http://@www.example.com",
     "userinfo-user-empty": "http://:b@www.example.com",
     "userinfo-password-empty": "http://a:@www.example.com",
-    "host-exotic-whitespace": u"http://GOO\u200b\u2060\ufeffgoo.com".encode('utf-8'),
-    "host-exotic-dot": u"http://www.foo\u3002bar.com".encode('utf-8'),
-    "host-fullwidth": u"http://\uff27\uff4f.com".encode('utf-8'),
-    "host-idn-unicode-han": u"http://\u4f60\u597d\u4f60\u597d".encode('utf-8'),
+    "host-exotic-whitespace": "http://GOO\u200b\u2060\ufeffgoo.com",
+    "host-exotic-dot": "http://www.foo\u3002bar.com",
+    "host-fullwidth": "http://\uff27\uff4f.com",
+    "host-idn-unicode-han": "http://\u4f60\u597d\u4f60\u597d",
     "host-IP-address-broken": "http://192.168.0.257/",
 }
 valid = valid_absolute.copy()
@@ -142,7 +142,7 @@ valid_relative = {
     "fragment-empty-hash-only-no-path-relative": "#",
     "fragment-slash-relative": "#/",
     "fragment-semicolon-question-mark-relative": "#;?",
-    "fragment-non-ascii-relative": u"#\u03B2".encode('utf-8'),
+    "fragment-non-ascii-relative": "#\u03B2",
 }
 valid.update(valid_relative)
 invalid_absolute.update(valid_relative)
@@ -223,65 +223,65 @@ def write_novalid_files():
     for el, attr in (pair.split() for pair in element_attribute_pairs):
         for desc, url in invalid.items():
             if ("area" == el):
-                f = open(os.path.join(ccdir, "html/elements/area/href/%s-novalid.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/area/href/%s-novalid.html" % desc), 'w')
                 f.write(template + '<title>invalid href: %s</title>\n' % desc)
                 f.write('<map name=foo><%s %s="%s" alt></map>\n' % (el, attr, url))
                 f.close()
             elif ("base" == el or "embed" == el):
-                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-novalid.html" % (el, attr, desc)), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-novalid.html" % (el, attr, desc)), 'w')
                 f.write(template + '<title>invalid %s: %s</title>\n' % (attr, desc))
                 f.write('<%s %s="%s">\n' % (el, attr, url))
                 f.close()
             elif ("img" == el):
-                f = open(os.path.join(ccdir, "html/elements/img/src/%s-novalid.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/img/src/%s-novalid.html" % desc), 'w')
                 f.write(template + '<title>invalid src: %s</title>\n' %  desc)
                 f.write('<img src="%s" alt>\n' % url)
                 f.close()
             elif ("input" == el and "src" == attr):
-                f = open(os.path.join(ccdir, "html/elements/input/type-image-src/%s-novalid.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/input/type-image-src/%s-novalid.html" % desc), 'w')
                 f.write(template + '<title>invalid src: %s</title>\n' % desc)
                 f.write('<%s type=image alt="foo" %s="%s">\n' % (el, attr, url))
                 f.close()
             elif ("input" == el and "formaction" == attr):
-                f = open(os.path.join(ccdir, "html/elements/input/type-submit-formaction/%s-novalid.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/input/type-submit-formaction/%s-novalid.html" % desc), 'w')
                 f.write(template + '<title>invalid formaction: %s</title>\n' % desc)
                 f.write('<%s type=submit %s="%s">\n' % (el, attr, url))
                 f.close()
-                f = open(os.path.join(ccdir, "html/elements/input/type-image-formaction/%s-novalid.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/input/type-image-formaction/%s-novalid.html" % desc), 'w')
                 f.write(template + '<title>invalid formaction: %s</title>\n' % desc)
                 f.write('<%s type=image alt="foo" %s="%s">\n' % (el, attr, url))
                 f.close()
             elif ("input" == el and "value" == attr):
-                f = open(os.path.join(ccdir, "html/elements/input/type-url-value/%s-novalid.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/input/type-url-value/%s-novalid.html" % desc), 'w')
                 f.write(template + '<title>invalid value attribute: %s</title>\n' % desc)
                 f.write('<%s type=url %s="%s">\n' % (el, attr, url))
                 f.close()
             elif ("link" == el):
-                f = open(os.path.join(ccdir, "html/elements/link/href/%s-novalid.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/link/href/%s-novalid.html" % desc), 'w')
                 f.write(template + '<title>invalid href: %s</title>\n' %  desc)
                 f.write('<link href="%s" rel=help>\n' % url)
                 f.close()
             elif ("source" == el or "track" == el):
-                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-novalid.html" % (el, attr, desc)), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-novalid.html" % (el, attr, desc)), 'w')
                 f.write(template + '<title>invalid %s: %s</title>\n' % (attr, desc))
                 f.write('<video><%s %s="%s"></video>\n' % (el, attr, url))
                 f.close()
             else:
-                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-novalid.html" % (el, attr, desc)), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-novalid.html" % (el, attr, desc)), 'w')
                 f.write(template + '<title>invalid %s: %s</title>\n' % (attr, desc))
                 f.write('<%s %s="%s"></%s>\n' % (el, attr, url, el))
                 f.close()
     for desc, url in invalid.items():
-        f = open(os.path.join(ccdir, "html/microdata/itemid/%s-novalid.html" % desc), 'wb')
+        f = open(os.path.join(ccdir, "html/microdata/itemid/%s-novalid.html" % desc), 'w')
         f.write(template + '<title>invalid itemid: %s</title>\n' % desc)
         f.write('<div itemid="%s" itemtype="http://foo" itemscope></div>\n' % url)
         f.close()
     for desc, url in invalid_absolute.items():
-        f = open(os.path.join(ccdir, "html/microdata/itemtype/%s-novalid.html" % desc), 'wb')
+        f = open(os.path.join(ccdir, "html/microdata/itemtype/%s-novalid.html" % desc), 'w')
         f.write(template + '<title>invalid itemtype: %s</title>\n' % desc)
         f.write('<div itemtype="%s" itemscope></div>\n' % url)
         f.close()
-        f = open(os.path.join(ccdir, "html/elements/input/type-url-value/%s-novalid.html" % desc), 'wb')
+        f = open(os.path.join(ccdir, "html/elements/input/type-url-value/%s-novalid.html" % desc), 'w')
         f.write(template + '<title>invalid value attribute: %s</title>\n' %desc)
         f.write('<input type=url value="%s">\n' % url)
         f.close()
@@ -290,60 +290,60 @@ def write_haswarn_files():
     for el, attr in (pair.split() for pair in element_attribute_pairs):
         for desc, url in warnings.items():
             if ("area" == el):
-                f = open(os.path.join(ccdir, "html/elements/area/href/%s-haswarn.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/area/href/%s-haswarn.html" % desc), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<map name=foo><%s %s="%s" alt></map>\n' % (el, attr, url))
                 f.close()
             elif ("base" == el or "embed" == el):
-                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-haswarn.html" % (el, attr, desc)), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-haswarn.html" % (el, attr, desc)), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<%s %s="%s">\n' % (el, attr, url))
                 f.close()
             elif ("img" == el):
-                f = open(os.path.join(ccdir, "html/elements/img/src/%s-haswarn.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/img/src/%s-haswarn.html" % desc), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<%s %s="%s" alt>\n' % (el, attr, url))
                 f.close()
             elif ("input" == el and "src" == attr):
-                f = open(os.path.join(ccdir, "html/elements/input/type-image-src/%s-haswarn.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/input/type-image-src/%s-haswarn.html" % desc), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<%s type=image alt="foo" %s="%s">\n' % (el, attr, url))
                 f.close()
             elif ("input" == el and "formaction" == attr):
-                f = open(os.path.join(ccdir, "html/elements/input/type-submit-formaction/%s-haswarn.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/input/type-submit-formaction/%s-haswarn.html" % desc), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<%s type=submit %s="%s">\n' % (el, attr, url))
                 f.close()
-                f = open(os.path.join(ccdir, "html/elements/input/type-image-formaction/%s-haswarn.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/input/type-image-formaction/%s-haswarn.html" % desc), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<%s type=image alt="foo" %s="%s">\n' % (el, attr, url))
                 f.close()
             elif ("input" == el and "value" == attr):
-                f = open(os.path.join(ccdir, "html/elements/input/type-url-value/%s-haswarn.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/input/type-url-value/%s-haswarn.html" % desc), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<%s type=url %s="%s">\n' % (el, attr, url))
                 f.close()
             elif ("link" == el):
-                f = open(os.path.join(ccdir, "html/elements/link/href/%s-haswarn.html" % desc), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/link/href/%s-haswarn.html" % desc), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<%s %s="%s" rel=help>\n' % (el, attr, url))
                 f.close()
             elif ("source" == el or "track" == el):
-                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-haswarn.html" % (el, attr, desc)), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-haswarn.html" % (el, attr, desc)), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<video><%s %s="%s"></video>\n' % (el, attr, url))
                 f.close()
             else:
-                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-haswarn.html" % (el, attr, desc)), 'wb')
+                f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-haswarn.html" % (el, attr, desc)), 'w')
                 f.write(template + '<title>%s warning: %s</title>\n' % (url, desc))
                 f.write('<%s %s="%s"></%s>\n' % (el, attr, url, el))
                 f.close()
     for desc, url in warnings.items():
-        f = open(os.path.join(ccdir, "html/microdata/itemtype-%s-haswarn.html" % desc ), 'wb')
+        f = open(os.path.join(ccdir, "html/microdata/itemtype-%s-haswarn.html" % desc ), 'w')
         f.write(template + '<title>warning: %s</title>\n' % desc)
         f.write('<div itemtype="%s" itemscope></div>\n' % url)
         f.close()
-        f = open(os.path.join(ccdir, "html/microdata/itemid-%s-haswarn.html" % desc), 'wb')
+        f = open(os.path.join(ccdir, "html/microdata/itemid-%s-haswarn.html" % desc), 'w')
         f.write(template + '<title>warning: %s</title>\n' % desc)
         f.write('<div itemid="%s" itemtype="http://foo" itemscope></div>\n' % url)
         f.close()
@@ -357,15 +357,15 @@ def write_isvalid_files():
         elif ("input" == el and "value" == attr):
             continue
         elif ("input" == el and "formaction" == attr):
-            fs = open(os.path.join(ccdir, "html/elements/input/type-submit-formaction-isvalid.html"), 'wb')
+            fs = open(os.path.join(ccdir, "html/elements/input/type-submit-formaction-isvalid.html"), 'w')
             fs.write(template + '<title>valid formaction</title>\n')
-            fi = open(os.path.join(ccdir, "html/elements/input/type-image-formaction-isvalid.html"), 'wb')
+            fi = open(os.path.join(ccdir, "html/elements/input/type-image-formaction-isvalid.html"), 'w')
             fi.write(template + '<title>valid formaction</title>\n')
         elif ("input" == el and "src" == attr):
-            f = open(os.path.join(ccdir, "html/elements/input/type-image-src-isvalid.html"), 'wb')
+            f = open(os.path.join(ccdir, "html/elements/input/type-image-src-isvalid.html"), 'w')
             f.write(template + '<title>valid src</title>\n')
         else:
-            f = open(os.path.join(ccdir, "html/elements/%s/%s-isvalid.html" % (el, attr)), 'wb')
+            f = open(os.path.join(ccdir, "html/elements/%s/%s-isvalid.html" % (el, attr)), 'w')
             f.write(template + '<title>valid %s</title>\n' % attr)
         for desc, url in valid.items():
             if ("area" == el):
@@ -393,26 +393,26 @@ def write_isvalid_files():
                 f.write('<a href=""></a><!-- empty-href -->\n')
             f.close()
     for desc, url in valid.items():
-        f = open(os.path.join(ccdir, "html/elements/base/href/%s-isvalid.html" % desc), 'wb')
+        f = open(os.path.join(ccdir, "html/elements/base/href/%s-isvalid.html" % desc), 'w')
         f.write(template + '<title>valid href: %s</title>\n' % desc)
         f.write('<base href="%s">\n' % url)
         f.close()
-    f = open(os.path.join(ccdir, "html/elements/meta/refresh-isvalid.html"), 'wb')
+    f = open(os.path.join(ccdir, "html/elements/meta/refresh-isvalid.html"), 'w')
     f.write(template + '<title>valid meta refresh</title>\n')
     for desc, url in valid.items():
         f.write('<meta http-equiv=refresh content="0; URL=%s"><!-- %s -->\n' % (url, desc))
     f.close()
-    f = open(os.path.join(ccdir, "html/microdata/itemid-isvalid.html"), 'wb')
+    f = open(os.path.join(ccdir, "html/microdata/itemid-isvalid.html"), 'w')
     f.write(template + '<title>valid itemid</title>\n')
     for desc, url in valid.items():
         f.write('<div itemid="%s" itemtype="http://foo" itemscope></div><!-- %s -->\n' % (url, desc))
     f.close()
-    f = open(os.path.join(ccdir, "html/microdata/itemtype-isvalid.html"), 'wb')
+    f = open(os.path.join(ccdir, "html/microdata/itemtype-isvalid.html"), 'w')
     f.write(template + '<title>valid itemtype</title>\n')
     for desc, url in valid_absolute.items():
         f.write('<div itemtype="%s" itemscope></div><!-- %s -->\n' % (url, desc))
     f.close()
-    f = open(os.path.join(ccdir, "html/elements/input/type-url-value-isvalid.html"), 'wb')
+    f = open(os.path.join(ccdir, "html/elements/input/type-url-value-isvalid.html"), 'w')
     f.write(template + '<title>valid value attribute</title>\n')
     for desc, url in valid_absolute.items():
         f.write('<input type=url value="%s"><!-- %s -->\n' % (url, desc))

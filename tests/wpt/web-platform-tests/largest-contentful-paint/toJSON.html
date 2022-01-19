@@ -1,4 +1,4 @@
-<!DOCTYPE HTML>
+﻿<!DOCTYPE HTML>
 <meta charset=utf-8>
 <title>Largest Contentful Paint: toJSON</title>
 <body>
@@ -26,12 +26,12 @@
           'size',
           'id',
           'url',
-          'element',
         ];
         for (const key of keys) {
           assert_equals(json[key], entry[key],
             'LargestContentfulPaint ${key} entry does not match its toJSON value');
         }
+        assert_equals(json['element'], undefined, 'toJSON should not include element');
       })
     );
     observer.observe({type: 'largest-contentful-paint', buffered: true});

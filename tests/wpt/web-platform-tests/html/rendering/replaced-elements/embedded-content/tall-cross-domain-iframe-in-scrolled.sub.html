@@ -1,0 +1,14 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Rendering of tall cross-domain iframe element in a scrolled window</title>
+<link rel="match" href="tall-cross-domain-iframe-in-scrolled.sub-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#embedded-content-rendering-rules">
+<meta name="assert" content="Checks that tall cross-domain iframe in a scrolled window is correctly rendered">
+<iframe id=myframe style="width: 300px; height: 1000px"
+    src="http://{{domains[www1]}}:{{ports[http][0]}}/html/rendering/replaced-elements/embedded-content/resources/tall.html"></iframe>
+<div style="height: 2000px"></div>
+<script>
+  window.scrollTo(0, 700);
+  myframe.onload = () => document.documentElement.classList.remove('reftest-wait');
+</script>
+</html>

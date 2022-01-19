@@ -16,9 +16,10 @@ test_valid_value("flex-basis", "1px");
 test_valid_value("flex-basis", "calc(2em + 3ex)");
 test_valid_value("flex-basis", "400%");
 test_valid_value("flex-basis", "auto");
-
-// The following is not yet supported by browsers:
-// test_valid_value("flex-basis", "content");
+test_valid_value("flex-basis", "fit-content");
+test_valid_value("flex-basis", "min-content");
+test_valid_value("flex-basis", "max-content");
+test_valid_value("flex-basis", "content");
 </script>
 </body>
 </html>

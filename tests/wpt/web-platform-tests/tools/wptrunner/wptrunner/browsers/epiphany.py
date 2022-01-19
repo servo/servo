@@ -1,4 +1,7 @@
-from .base import get_timeout_multiplier, maybe_add_args, certificate_domain_list  # noqa: F401
+from .base import (NullBrowser,  # noqa: F401
+                   certificate_domain_list,
+                   get_timeout_multiplier,  # noqa: F401
+                   maybe_add_args)
 from .webkit import WebKitBrowser
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
@@ -8,7 +11,8 @@ from ..executors.executorwebkit import WebKitDriverWdspecExecutor  # noqa: F401
 
 __wptrunner__ = {"product": "epiphany",
                  "check_args": "check_args",
-                 "browser": "EpiphanyBrowser",
+                 "browser": {None: "EpiphanyBrowser",
+                             "wdspec": "NullBrowser"},
                  "browser_kwargs": "browser_kwargs",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
@@ -49,12 +53,11 @@ def capabilities(server_config, **kwargs):
             "certificates": certificate_domain_list(server_config.domains_set, kwargs["host_cert_path"])}}
 
 
-def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
+def executor_kwargs(logger, test_type, test_environment, run_info_data,
                     **kwargs):
-    executor_kwargs = base_executor_kwargs(test_type, server_config,
-                                           cache_manager, run_info_data, **kwargs)
+    executor_kwargs = base_executor_kwargs(test_type, test_environment, run_info_data, **kwargs)
     executor_kwargs["close_after_done"] = True
-    executor_kwargs["capabilities"] = capabilities(server_config, **kwargs)
+    executor_kwargs["capabilities"] = capabilities(test_environment.config, **kwargs)
     return executor_kwargs
 
 

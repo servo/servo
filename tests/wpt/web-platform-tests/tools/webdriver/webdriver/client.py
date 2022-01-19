@@ -1,8 +1,10 @@
+from typing import Dict
+from urllib import parse as urlparse
+
 from . import error
 from . import protocol
 from . import transport
-
-from urllib import parse as urlparse
+from .bidi.client import BidiSession
 
 
 def command(func):
@@ -306,40 +308,53 @@ class Window(object):
 
         return handles
 
-    @property
+    # The many "type: ignore" comments here and below are to silence mypy's
+    # "Decorated property not supported" error, which is due to a limitation
+    # in mypy, see https://github.com/python/mypy/issues/1362.
+    @property  # type: ignore
     @command
     def rect(self):
         return self.session.send_session_command("GET", "window/rect")
 
-    @property
+    @property  # type: ignore
     @command
     def size(self):
         """Gets the window size as a tuple of `(width, height)`."""
         rect = self.rect
         return (rect["width"], rect["height"])
 
-    @size.setter
+    @size.setter  # type: ignore
     @command
     def size(self, new_size):
         """Set window size by passing a tuple of `(width, height)`."""
-        width, height = new_size
-        body = {"width": width, "height": height}
-        self.session.send_session_command("POST", "window/rect", body)
+        try:
+            width, height = new_size
+            body = {"width": width, "height": height}
+            self.session.send_session_command("POST", "window/rect", body)
+        except (error.UnknownErrorException, error.InvalidArgumentException):
+            # silently ignore this error as the command is not implemented
+            # for Android. Revert this once it is implemented.
+            pass
 
-    @property
+    @property  # type: ignore
     @command
     def position(self):
         """Gets the window position as a tuple of `(x, y)`."""
         rect = self.rect
         return (rect["x"], rect["y"])
 
-    @position.setter
+    @position.setter  # type: ignore
     @command
     def position(self, new_position):
         """Set window position by passing a tuple of `(x, y)`."""
-        x, y = new_position
-        body = {"x": x, "y": y}
-        self.session.send_session_command("POST", "window/rect", body)
+        try:
+            x, y = new_position
+            body = {"x": x, "y": y}
+            self.session.send_session_command("POST", "window/rect", body)
+        except error.UnknownErrorException:
+            # silently ignore this error as the command is not implemented
+            # for Android. Revert this once it is implemented.
+            pass
 
     @command
     def maximize(self):
@@ -372,7 +387,7 @@ class Frame(object):
 
 
 class ShadowRoot(object):
-    identifier = "shadow-075b-4da1-b6ba-e579c2d3230a"
+    identifier = "shadow-6066-11e4-a52e-4f735466cecf"
 
     def __init__(self, session, id):
         """
@@ -388,7 +403,7 @@ class ShadowRoot(object):
     @classmethod
     def from_json(cls, json, session):
         uuid = json[ShadowRoot.identifier]
-        return cls(uuid, session)
+        return cls(session, uuid)
 
     def send_shadow_command(self, method, uri, body=None):
         url = "shadow/{}/{}".format(self.id, uri)
@@ -453,12 +468,12 @@ class UserPrompt(object):
     def accept(self):
         self.session.send_session_command("POST", "alert/accept")
 
-    @property
+    @property  # type: ignore
     @command
     def text(self):
         return self.session.send_session_command("GET", "alert/text")
 
-    @text.setter
+    @text.setter  # type: ignore
     @command
     def text(self, value):
         body = {"text": value}
@@ -470,8 +485,16 @@ class Session(object):
                  host,
                  port,
                  url_prefix="/",
+                 enable_bidi=False,
                  capabilities=None,
                  extension=None):
+
+        if enable_bidi:
+            if capabilities is not None:
+                capabilities.setdefault("alwaysMatch", {}).update({"webSocketUrl": True})
+            else:
+                capabilities = {"alwaysMatch": {"webSocketUrl": True}}
+
         self.transport = transport.HTTPWireProtocol(host, port, url_prefix)
         self.requested_capabilities = capabilities
         self.capabilities = None
@@ -479,6 +502,8 @@ class Session(object):
         self.timeouts = None
         self.window = None
         self.find = None
+        self.enable_bidi = enable_bidi
+        self.bidi_session = None
         self.extension = None
         self.extension_cls = extension
 
@@ -527,8 +552,19 @@ class Session(object):
             body["capabilities"] = self.requested_capabilities
 
         value = self.send_command("POST", "session", body=body)
+        assert isinstance(value["sessionId"], str)
+        assert isinstance(value["capabilities"], Dict)
+
         self.session_id = value["sessionId"]
         self.capabilities = value["capabilities"]
+
+        if "webSocketUrl" in self.capabilities:
+            self.bidi_session = BidiSession.from_http(self.session_id,
+                                                      self.capabilities)
+        elif self.enable_bidi:
+            self.end()
+            raise error.SessionNotCreatedException(
+                "Requested bidi session, but webSocketUrl capability not found")
 
         if self.extension_cls:
             self.extension = self.extension_cls(self)
@@ -617,12 +653,12 @@ class Session(object):
         url = urlparse.urljoin("session/%s/" % self.session_id, uri)
         return self.send_command(method, url, body, timeout)
 
-    @property
+    @property  # type: ignore
     @command
     def url(self):
         return self.send_session_command("GET", "url")
 
-    @url.setter
+    @url.setter  # type: ignore
     @command
     def url(self, url):
         if urlparse.urlsplit(url).netloc is None:
@@ -642,12 +678,12 @@ class Session(object):
     def refresh(self):
         return self.send_session_command("POST", "refresh")
 
-    @property
+    @property  # type: ignore
     @command
     def title(self):
         return self.send_session_command("GET", "title")
 
-    @property
+    @property  # type: ignore
     @command
     def source(self):
         return self.send_session_command("GET", "source")
@@ -659,12 +695,12 @@ class Session(object):
 
         return value["handle"]
 
-    @property
+    @property  # type: ignore
     @command
     def window_handle(self):
         return self.send_session_command("GET", "window")
 
-    @window_handle.setter
+    @window_handle.setter  # type: ignore
     @command
     def window_handle(self, handle):
         body = {"handle": handle}
@@ -680,12 +716,12 @@ class Session(object):
 
         return self.send_session_command("POST", url, body)
 
-    @property
+    @property  # type: ignore
     @command
     def handles(self):
         return self.send_session_command("GET", "window/handles")
 
-    @property
+    @property  # type: ignore
     @command
     def active_element(self):
         return self.send_session_command("GET", "element/active")
@@ -813,12 +849,12 @@ class Element(object):
     def send_keys(self, text):
         return self.send_element_command("POST", "value", {"text": text})
 
-    @property
+    @property  # type: ignore
     @command
     def text(self):
         return self.send_element_command("GET", "text")
 
-    @property
+    @property  # type: ignore
     @command
     def name(self):
         return self.send_element_command("GET", "name")
@@ -827,12 +863,12 @@ class Element(object):
     def style(self, property_name):
         return self.send_element_command("GET", "css/%s" % property_name)
 
-    @property
+    @property  # type: ignore
     @command
     def rect(self):
         return self.send_element_command("GET", "rect")
 
-    @property
+    @property  # type: ignore
     @command
     def selected(self):
         return self.send_element_command("GET", "selected")
@@ -841,7 +877,7 @@ class Element(object):
     def screenshot(self):
         return self.send_element_command("GET", "screenshot")
 
-    @property
+    @property  # type: ignore
     @command
     def shadow_root(self):
         return self.send_element_command("GET", "shadow")

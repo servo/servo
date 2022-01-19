@@ -58,8 +58,8 @@ function reportload() {
             assert_equals( iframe.contentWindow.history.state, '' );
         }, 'history.state should update after a state is pushed');
         histlength = history.length;
+        iframe.contentWindow.addEventListener("popstate", tests2, {once: true});
         history.back();
-        setTimeout(tests2,50); //.back is queued to end of thread
     }
     function tests2() {
         test(function () {
@@ -68,18 +68,19 @@ function reportload() {
         test(function () {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test' );
         }, 'traversing history must traverse pushed states');
+        iframe.contentWindow.addEventListener("hashchange", tests3, {once: true});
         history.go(-1);
-        setTimeout(tests3,50); //.go is queued to end of thread
     }
     function tests3() {
         test(function () {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), '', '(this could cause other failures later on)' );
         }, 'traversing history must also traverse hash changes');
+
+        iframe.contentWindow.addEventListener("hashchange", tests4, {once: true});
         //Safari 5.0.3 fails here - it navigates *this* document to the *iframe's* location, instead of just navigating the iframe
         history.go(2);
-        setTimeout(tests4,50); //.go is queued to end of thread
     }
-    function tests4() {
+    async function tests4() {
         test(function () {
             //Firefox 4 beta 11 has a messed up error object, which does not have the right error type or .SECURITY_ERR property
             assert_throws_dom('SECURITY_ERR',function () { history.pushState('','','//exa mple'); });
@@ -96,12 +97,18 @@ function reportload() {
         test(function () {
             assert_throws_dom('SECURITY_ERR', iframe.contentWindow.DOMException, function () { iframe.contentWindow.history.pushState('','','http://www.example.com/'); });
         }, 'security errors are expected to be thrown in the context of the document that owns the history object');
+        let hashchange =
+          new Promise(function (resolve) {
+            iframe.contentWindow.addEventListener("hashchange", resolve, {once: true});
+          });
+
         test(function () {
             iframe.contentWindow.location.hash = 'test2';
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test2', 'location.hash did not change when told to' );
         }, 'location.hash must be allowed to change (part 1)');
+        await hashchange;
         history.go(-1);
-        setTimeout(tests5,50); //.go is queued to end of thread
+        iframe.contentWindow.addEventListener("hashchange", tests5, {once: true});
     }
     function tests5() {
         test(function () {
@@ -136,7 +143,7 @@ function reportload() {
     }
     function tests7() {
         iframe.contentWindow.history.go(-1); //must be queued, but should not be removed this time
-        setTimeout(tests8,50); //.go is queued to end of thread
+        iframe.contentWindow.addEventListener("popstate", tests8, {once: true});
     }
     function tests8() {
         test(function () {
@@ -229,7 +236,7 @@ function reportload() {
         }, 'pushState MIGHT set the document title');
         */
         history.go(-1);
-        setTimeout(tests10,50); //.go is queued to end of thread
+        iframe.contentWindow.addEventListener("popstate", tests10, {once: true});
     }
     function tests10() {
         var eventtime = setTimeout(function () { tests11(false); },500); //should be cleared by the event handler long before it has a chance to fire

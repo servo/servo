@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Same-document navigation after a same-document navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  These tests are kind of silly since it's hard to imagine any other result:
+  same-document navigations are always synchronous so of course two in a row
+  will succeed.
+
+  Nevertheless they're nice as a basis from which to write corresponding app
+  history tests, where the consequences aren't as obvious.
+-->
+
+<body>
+<script type="module">
+import { createIframe } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.location.hash = "#1";
+  assert_equals(iframe.contentWindow.location.hash, "#1");
+
+  iframe.contentWindow.location.hash = "#2";
+  assert_equals(iframe.contentWindow.location.hash, "#2");
+}, "fragment navigation then fragment navigation");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.history.pushState(null, "", "?1");
+  assert_equals(iframe.contentWindow.location.search, "?1");
+
+  iframe.contentWindow.history.pushState(null, "", "?2");
+  assert_equals(iframe.contentWindow.location.search, "?2");
+}, "pushState() then pushState()");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.history.pushState(null, "", "?1");
+  assert_equals(iframe.contentWindow.location.search, "?1");
+
+  iframe.contentWindow.location.hash = "#2";
+  assert_equals(iframe.contentWindow.location.search, "?1");
+  assert_equals(iframe.contentWindow.location.hash, "#2");
+}, "pushState() then fragment navigation");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.location.hash = "#1";
+  assert_equals(iframe.contentWindow.location.hash, "#1");
+
+  iframe.contentWindow.history.pushState(null, "", "?2");
+  assert_equals(iframe.contentWindow.location.search, "?2");
+  assert_equals(iframe.contentWindow.location.hash, "");
+}, "fragment navigation then pushState()");
+</script>

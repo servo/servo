@@ -505,7 +505,6 @@ function test16() {
       setup: observer => {
         observer.observe(target, {box: "device-pixel-content-box"});
         target.setAttribute('width', 50);
-        document.body.style.zoom = 0.1;
       },
       notify: (entries, observer) => {
         assert_equals(entries.length, 1);
@@ -515,15 +514,48 @@ function test16() {
         assert_equals(entries[0].contentBoxSize[0].blockSize, 20);
         assert_equals(entries[0].borderBoxSize[0].inlineSize, 50);
         assert_equals(entries[0].borderBoxSize[0].blockSize, 20);
-        assert_equals(entries[0].devicePixelContentBoxSize[0].inlineSize, 5);
-        assert_equals(entries[0].devicePixelContentBoxSize[0].blockSize, 2);
+        assert_equals(entries[0].devicePixelContentBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].devicePixelContentBoxSize[0].blockSize, 20);
         return true;  // Delay next step
       }
     },
     {
       setup: observer => {
-        observer.observe(target, {box: "device-pixel-content-box"});
         target.setAttribute('height', 30);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 50);
+        assert_equals(entries[0].contentRect.height, 30);
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 30);
+        assert_equals(entries[0].borderBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].borderBoxSize[0].blockSize, 30);
+        assert_equals(entries[0].devicePixelContentBoxSize[0].inlineSize, 50);
+        assert_equals(entries[0].devicePixelContentBoxSize[0].blockSize, 30);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test17() {
+  // zoom is not a standard css property, so we should check it first. If the
+  // browser doesn't support it, we skip this test.
+  if (!CSS.supports("zoom", "0.1")) {
+    return Promise.resolve();
+  }
+
+  let target = document.querySelector('#g_rect');
+  let helper = new ResizeTestHelper(
+    "test17: observe g:rect content, border and device-pixel-content boxes with zoom",
+  [
+    {
+      setup: observer => {
+        observer.observe(target, {box: "device-pixel-content-box"});
+        target.setAttribute('width', 50);
+        target.setAttribute('height', 30);
+        document.body.style.zoom = 0.1;
       },
       notify: (entries, observer) => {
         assert_equals(entries.length, 1);
@@ -581,6 +613,7 @@ test0()
   .then(() => { return test14(); })
   .then(() => { return test15(); })
   .then(() => { return test16(); })
+  .then(() => { return test17(); })
   .then(() => { guard.done(); });
 
 </script>

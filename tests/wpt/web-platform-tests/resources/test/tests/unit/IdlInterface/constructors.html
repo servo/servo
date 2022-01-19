@@ -8,9 +8,10 @@
 <script src="../../../idl-helper.js"></script>
 <script>
 "use strict";
+// [Constructor] extended attribute should not be supported:
 test(function() {
     var i = interfaceFrom('[Constructor] interface A { };');
-    assert_equals(i.constructors().length, 1);
+    assert_equals(i.constructors().length, 0);
 }, 'Interface with Constructor extended attribute.');
 
 test(function() {
@@ -19,7 +20,7 @@ test(function() {
 }, 'Interface with constructor method');
 
 test(function() {
-    var i = interfaceFrom('[Constructor] interface A { constructor(); };');
+    var i = interfaceFrom('interface A { constructor(); constructor(any value); };');
     assert_equals(i.constructors().length, 2);
-}, 'Interface with both');
+}, 'Interface with constructor overloads');
 </script>

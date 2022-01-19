@@ -24,6 +24,7 @@
                     ["event.currentTarget", event.currentTarget, target0],
                     ["event.eventPhase", event.eventPhase, Event.AT_TARGET],
                     ["event.clientX", event.clientX, 310],
+                    ["event.pointerType", event.pointerType, "pen"],
                     ["getCoalescedEvents()[0].clientX", event.getCoalescedEvents()[0].clientX, 300],
                     ["getCoalescedEvents()[1].clientX", event.getCoalescedEvents()[1].clientX, 310],
                     ["getPredictedEvents()[0].clientX", event.getPredictedEvents()[0].clientX, 320],
@@ -66,8 +67,14 @@
             }));
             on_event(target0, "pointerout", this.step_func(function(event) {
                 generate_tests(assert_equals, [
+                    ["default event.pointerType", event.pointerType, ""],
                     ["default getCoalescedEvents().length", event.getCoalescedEvents().length, 0],
                     ["default getPredictedEvents().length", event.getPredictedEvents().length, 0],
+                ]);
+            }));
+            on_event(target0, "pointerup", this.step_func(function(event) {
+                generate_tests(assert_equals, [
+                    ["type event.pointerType", event.pointerType, "foo"],
                 ]);
             }));
 
@@ -97,6 +104,9 @@
 
                 var pointerEventDefault = new PointerEvent("pointerout");
                 target0.dispatchEvent(pointerEventDefault);
+
+                var pointerEventType = new PointerEvent("pointerup", { pointerType: "foo" } );
+                target0.dispatchEvent(pointerEventType);
             }, "PointerEvent constructor"));
         })
     </script>

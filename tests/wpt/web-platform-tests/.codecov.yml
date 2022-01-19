@@ -1,6 +1,0 @@
-comment:
-  require_changes: yes
-
-ignore:
-  - "**"
-  - "!tools/.*"

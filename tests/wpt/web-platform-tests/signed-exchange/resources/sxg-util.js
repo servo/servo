@@ -1,12 +1,12 @@
 // Opens |url| in an iframe, establish a message channel with it, and waits for
 // a message from the frame content. Returns a promise that resolves with the
-// data of the message, or rejects on 10000ms timeout.
+// data of the message, or rejects on 15000ms timeout.
 // If the iframe load is expected to fail, the test should have
 // <meta name="timeout" content="long"> tag.
 function openSXGInIframeAndWaitForMessage(test_object, url, referrerPolicy) {
   return new Promise(async (resolve, reject) => {
     // We can't catch the network error on iframe. So we use the timer.
-    test_object.step_timeout(() => reject('timeout'), 10000);
+    test_object.step_timeout(() => reject('timeout'), 15000);
 
     const frame = await withIframe(url, 'sxg_iframe', referrerPolicy);
     const channel = new MessageChannel();

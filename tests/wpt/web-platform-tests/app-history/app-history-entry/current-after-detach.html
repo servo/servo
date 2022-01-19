@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func_done(() => {
+    let i_appHistory = i.contentWindow.appHistory;
+    assert_not_equals(i_appHistory, null);
+    assert_not_equals(i_appHistory.current, null);
+    assert_equals(i_appHistory.entries().length, 1);
+    i.remove();
+    assert_equals(i_appHistory.current, null);
+    assert_equals(i_appHistory.entries().length, 0);
+  });
+}, "appHistory.current should be null after iframe removal");
+</script>

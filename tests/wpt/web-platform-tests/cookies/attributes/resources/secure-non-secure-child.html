@@ -54,7 +54,24 @@
         cookie: "test=8;       Secure     ;",
         expected: "",
         name: "(non-secure) Ignore cookie for space Secure with ;",
-      }
+      },
+      {
+        cookie: "__Secure-test=9; Secure",
+        expected: "",
+        name: "(non-secure) Ignore cookie with __Secure- prefix and Secure",
+      },
+      {
+        cookie: "__Secure-test=10",
+        expected: "",
+        name: "(non-secure) Ignore cookie with __Secure- prefix and without Secure",
+      },
+      // This is really a test that the cookie name isn't URL-decoded, but this
+      // is here to be next to the other __Secure- prefix tests.
+      {
+        cookie: "__%53ecure-test=11",
+        expected: "__%53ecure-test=11",
+        name: "(non-secure) Cookie returned with __%53ecure- prefix and without Secure",
+      },
     ];
 
     for (const test of secureNonSecureTests) {

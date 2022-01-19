@@ -14,16 +14,16 @@
   window.addEventListener('securitypolicyviolation', function(e) {
     log("violated-directive=" + e.violatedDirective);
   });
-  
+
   var id = setInterval("alert_assert('FAIL')", 0);
   if (id != 0)
     log('FAIL: Return value for string (should be 0): ' + id);
-  
+
   var id = setInterval(function() {
     clearInterval(id);
     log('PASS');
   }, 0);
-  
+
   if (id == 0)
     log('FAIL');
 </script>

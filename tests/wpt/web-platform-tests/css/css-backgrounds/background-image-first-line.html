@@ -8,6 +8,8 @@
 <link rel="match" href="reference/background-image-first-line-ref.html">
 <meta name="flags" content="ahem image">
 <meta name="assert" content="background-image applicability to ::first-line">
+<script src="/common/reftest-wait.js"></script>
+<link rel="preload" as="image" href="support/cat.png" onload="takeScreenshot()" />
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style type="text/css">
 #content {
@@ -21,11 +23,4 @@
 </style>
 <p>Test passes if cat image is visible.</p>
 <div id="content">X</div>
-<script src="/common/reftest-wait.js"></script>
-<script>
-// Some browser may delay one frame to update the background-image in first-line.
-onload = () => {
-  requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
-};
-</script>
 </html>

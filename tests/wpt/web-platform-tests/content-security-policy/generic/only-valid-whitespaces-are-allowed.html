@@ -42,7 +42,7 @@
       // We can't test csp delivered in an HTTP header if we're testing CR/LF characters
       if (test.csp.indexOf("\u000A") == -1 && test.csp.indexOf("\u000D") == -1) {
         async_test(t => {
-          var url = "support/load_img_and_post_result_meta.sub.html?csp=" + encodeURIComponent(test.csp);
+          var url = "support/load_img_and_post_result_header.html?csp=" + encodeURIComponent(test.csp);
           test_image_loads_as_expected(test, t, url);
         }, test.name + " - HTTP header");
       }

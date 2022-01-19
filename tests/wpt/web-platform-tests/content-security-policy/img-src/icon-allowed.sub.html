@@ -10,7 +10,7 @@
   <script>
     var t = async_test("Test that image loads");
     window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have triggered any violation events"));
-    
+
     function createLink(rel, src) {
         var link = document.createElement('link');
         link.rel = rel;

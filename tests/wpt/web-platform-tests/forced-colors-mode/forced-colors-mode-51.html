@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - color-scheme.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #dark {
+    color-scheme: dark;
+  }
+  #light {
+    color-scheme: light;
+    forced-color-adjust: none;
+  }
+</style>
+<div id="dark"></div>
+<div id="light"></div>
+
+<script>
+  test(function(){
+    assert_equals(getComputedStyle(dark).colorScheme, "light dark");
+    assert_equals(getComputedStyle(light).colorScheme, "light");
+  }, "Color-scheme computes to 'light dark' in forced colors mode, unless forced-color-adjust is none.");
+</script>

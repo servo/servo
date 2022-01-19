@@ -73,7 +73,7 @@ for (const args of gTestArguments) {
                       'An animation sohuld be created');
     assert_equals(animation.effect, effect,
                   'Animation returns the same effect passed to ' +
-                  'the Constructor');
+                  'the constructor');
     assert_equals(animation.timeline, args.expectedTimeline,
                   'Animation timeline should be ' + args.expectedTimelineDescription);
     assert_equals(animation.playState, 'idle',

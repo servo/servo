@@ -14,6 +14,8 @@ def main(request, response):
         response.headers.set(b"dpr-received", request.headers.get(b"dpr"))
     if b"viewport-width" in request.headers:
         response.headers.set(b"viewport-width-received", request.headers.get(b"viewport-width"))
+    if b"sec-ch-viewport-height" in request.headers:
+        response.headers.set(b"viewport-height-received", request.headers.get(b"sec-ch-viewport-height"))
     if b"rtt" in request.headers:
         response.headers.set(b"rtt-received", request.headers.get(b"rtt"))
     if b"downlink" in request.headers:
@@ -24,3 +26,5 @@ def main(request, response):
         response.headers.set(b"lang-received", request.headers.get(b"Sec-CH-Lang"))
     if b"sec-ch-ua-mobile" in request.headers:
         response.headers.set(b"mobile-received", request.headers.get(b"sec-ch-ua-mobile"))
+    if b"sec-ch-prefers-color-scheme" in request.headers:
+        response.headers.set(b"prefers-color-scheme-received", request.headers.get(b"sec-ch-prefers-color-scheme"))

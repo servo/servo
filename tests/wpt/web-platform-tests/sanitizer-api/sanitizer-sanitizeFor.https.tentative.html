@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/testcases.sub.js"></script>
+</head>
+
+<body>
+<script>
+    function buildNode(element_name, markup) {
+      const e = document.createElement(element_name);
+      e.innerHTML = markup;
+      return e;
+    }
+
+    function assert_node_equals(node1, node2) {
+      assert_true(node1 instanceof Node && node1.isEqualNode(node2),
+          `Node[${node1.innerHTML}] == Node[${node2.innerHTML}]`);
+    }
+
+    test(t => {
+      let s = new Sanitizer();
+      assert_throws_js(TypeError, _ => s.sanitizeFor());
+      assert_throws_js(TypeError, _ => s.sanitizeFor(null));
+    }, "Sanitizer.sanitizeFor() should throw.");
+
+    test(t => {
+      let s = new Sanitizer();
+      assert_throws_js(TypeError, _ => s.sanitizeFor("xxx"));
+    }, "Sanitizer.sanitizeFor() with one argument should throw.");
+
+    for (const context of ["script", "iframe", "object", "div"]) {
+      const should_fail = context != "div";
+      test(t => {
+        let result = new Sanitizer().sanitizeFor(context, "<div>Hello!</div>");
+        if (should_fail) {
+          assert_equals(null, result);
+        } else {
+          assert_true(result instanceof HTMLElement);
+        }
+      }, `Sanitizer.sanitizeFor("${context}", ...) should ${should_fail ? "fail" : "pass"}.`);
+    }
+
+    async_test(t => {
+      let s = new Sanitizer();
+      s.sanitizeFor("div", "<img src='https://bla/'>");
+      t.step_timeout(_ => {
+        assert_equals(performance.getEntriesByName("https://bla/").length, 0);
+        t.done();
+      }, 1000);
+    }, "Sanitizer.sanitizeFor function shouldn't load the image.");
+
+    test(t => {
+      const probe = `<a href="about:blank">hello</a><script>con` +
+          `sole.log("world!");<` + `/script>`;
+      const expected = `<a href="about:blank">hello</a>`;
+      for (const element of ["div", "template", "span", "table", "td",
+                             "pumuckl", "custom-element", "linearGradient",
+                             "svg", "svg:img", "svg:linearGradient"]) {
+        assert_node_equals(
+            buildNode(element, expected),
+            new Sanitizer().sanitizeFor(element, probe));
+      }
+    }, `Sanitizer.sanitizeFor(element, ..)`);
+
+    for (const context of ["div", "template", "table"]) {
+      for (const probe of ["<em>Hello</em>", "<td>data</td>"]) {
+        test(t => {
+          assert_node_equals(
+              buildNode(context, probe),
+              new Sanitizer().sanitizeFor(context, probe));
+        }, `Sanitizer.sanitizeFor("${context}", "${probe}") obeys parse context.`);
+      }
+    }
+
+    for (const testcase of testcases) {
+      test(t => {
+        let s = new Sanitizer(testcase.config_input);
+        assert_node_equals(
+            buildNode("template", testcase.result),
+            s.sanitizeFor("template", testcase.value));
+      }, "Sanitizer.sanitizeFor with config: " + testcase.message);
+    }
+</script>
+</body>
+</html>

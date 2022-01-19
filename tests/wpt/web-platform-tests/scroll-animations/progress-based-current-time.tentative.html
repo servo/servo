@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline current time algorithm</title>
+<link rel="help" href="https://wicg.github.io/scroll-animations/#current-time-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="./testcommon.js"></script>
+
+<body></body>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const blockScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller
+  });
+
+  assert_equals(blockScrollTimeline.duration.unit, "percent",
+      "duration returns as a percent for scroll timelines");
+  assert_equals(blockScrollTimeline.duration.value, 100, "duration is 100%");
+}, "Scroll timeline correctly returns duration as 100%");
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
+  const blockScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block'
+  });
+  const inlineScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'inline'
+  });
+  const horizontalScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'horizontal'
+  });
+  const verticalScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'vertical'
+  });
+
+  // Unscrolled, all timelines should read a currentTime of 0.
+  assert_percents_equal(blockScrollTimeline.currentTime, 0,
+                        'Unscrolled block timeline');
+  assert_percents_equal(inlineScrollTimeline.currentTime, 0,
+                        'Unscrolled inline timeline');
+  assert_percents_equal(horizontalScrollTimeline.currentTime, 0,
+                        'Unscrolled horizontal timeline');
+  assert_percents_equal(verticalScrollTimeline.currentTime, 0,
+                        'Unscrolled vertical timeline');
+
+  // Do some scrolling and make sure that the ScrollTimelines update.
+  scroller.scrollTop = 50;
+  scroller.scrollLeft = 75;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+
+  assert_percents_equal(blockScrollTimeline.currentTime, 12.048,
+                        'Scrolled block timeline');
+  assert_percents_equal(inlineScrollTimeline.currentTime, 18.072,
+                        'Scrolled inline timeline');
+  assert_percents_equal(horizontalScrollTimeline.currentTime, 18.072,
+                        'Scrolled horizontal timeline');
+  assert_percents_equal(verticalScrollTimeline.currentTime, 12.048,
+                        'Scrolled vertical timeline');
+}, 'currentTime calculates the correct time based on scroll progress');
+
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
+  const lengthScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.px(20), 'auto']
+  });
+  const percentageScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.percent(20), 'auto']
+  });
+  const calcScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.percent(20).sub(CSS.px(5)), 'auto']
+  });
+
+  // Unscrolled all timelines should read a current time of 0, as the
+  // current offset (0) will be less than the startScrollOffset.
+  assert_percents_equal(lengthScrollTimeline.currentTime, 0,
+                        'Unscrolled length-based timeline current time');
+  assert_equals(lengthScrollTimeline.phase, "before",
+                'Unscrolled length-based timeline phase');
+  assert_percents_equal(percentageScrollTimeline.currentTime, 0,
+                        'Unscrolled percentage-based timeline current time');
+  assert_equals(percentageScrollTimeline.phase, "before",
+                'Unscrolled percentage-based timeline phase');
+  assert_percents_equal(calcScrollTimeline.currentTime, 0,
+                        'Unscrolled calc-based timeline current time');
+  assert_equals(calcScrollTimeline.phase, "before",
+                'Unscrolled calc-based timeline phase');
+
+  // Check the length-based ScrollTimeline.
+  scroller.scrollTop = 19;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  assert_percents_equal(lengthScrollTimeline.currentTime, 0,
+      'Length-based timeline current time before the startScrollOffset point');
+  assert_equals(lengthScrollTimeline.phase, "before",
+      'Length-based timeline phase before the startScrollOffset point');
+  scroller.scrollTop = 20;
+  await waitForNextFrame();
+  assert_percents_equal(lengthScrollTimeline.currentTime, 0,
+      'Length-based timeline current time at the startScrollOffset point');
+  assert_equals(lengthScrollTimeline.phase, "active",
+      'Length-based timeline phase at the startScrollOffset point');
+  scroller.scrollTop = 50;
+  await waitForNextFrame();
+  assert_percents_equal(
+      lengthScrollTimeline.currentTime,
+      calculateCurrentTime(50, 20, scrollerSize),
+      'Length-based timeline current time after the startScrollOffset point');
+  assert_equals(lengthScrollTimeline.phase, "active",
+      'Length-based timeline phase after the startScrollOffset point');
+
+  // Check the percentage-based ScrollTimeline.
+  scroller.scrollTop = 0.19 * scrollerSize;
+  await waitForNextFrame();
+  assert_percents_equal(percentageScrollTimeline.currentTime, 0,
+      'Percentage-based timeline current time before the startScrollOffset ' +
+      'point');
+  assert_equals(percentageScrollTimeline.phase, "before",
+      'Percentage-based timeline phase before the startScrollOffset point');
+  scroller.scrollTop = 0.20 * scrollerSize;
+  await waitForNextFrame();
+  assert_percents_equal(percentageScrollTimeline.currentTime, 0,
+      'Percentage-based timeline current time at the startScrollOffset point');
+  assert_equals(percentageScrollTimeline.phase, "active",
+      'Percentage-based timeline phase at the startScrollOffset point');
+  scroller.scrollTop = 0.50 * scrollerSize;
+  await waitForNextFrame();
+  assert_percents_equal(
+      percentageScrollTimeline.currentTime,
+      calculateCurrentTime(
+          scroller.scrollTop, 0.2 * scrollerSize, scrollerSize),
+      'Percentage-based timeline current time after the startScrollOffset ' +
+      'point');
+  assert_equals(percentageScrollTimeline.phase, "active",
+      'Percentage-based timeline phase after the startScrollOffset point');
+
+  // Check the calc-based ScrollTimeline.
+  scroller.scrollTop = 0.2 * scrollerSize - 10;
+  await waitForNextFrame();
+  assert_percents_equal(calcScrollTimeline.currentTime, 0,
+      'Calc-based timeline current time before the startScrollOffset point');
+  assert_equals(calcScrollTimeline.phase, "before",
+      'Calc-based timeline phase at the startScrollOffset point');
+  scroller.scrollTop = 0.2 * scrollerSize - 5;
+  await waitForNextFrame();
+  assert_percents_equal(calcScrollTimeline.currentTime, 0,
+      'Calc-based timeline current time at the startScrollOffset point');
+  assert_equals(calcScrollTimeline.phase, "active",
+      'Calc-based timeline phase at the startScrollOffset point');
+  scroller.scrollTop = 0.2 * scrollerSize;
+  await waitForNextFrame();
+  assert_percents_equal(
+      calcScrollTimeline.currentTime,
+      calculateCurrentTime(
+          scroller.scrollTop, 0.2 * scrollerSize - 5, scrollerSize),
+      'Calc-based timeline current time after the startScrollOffset point');
+  assert_equals(calcScrollTimeline.phase, "active",
+      'Calc-based timeline phase at the startScrollOffset point');
+}, 'currentTime handles startScrollOffset correctly');
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
+  // When the endScrollOffset is equal to the maximum scroll offset (and there
+  // are no fill modes), the endScrollOffset is treated as inclusive.
+  const inclusiveAutoScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+  });
+  const inclusiveLengthScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.px(scrollerSize)]
+  });
+  const inclusivePercentageScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.percent(100)]
+  });
+  const inclusiveCalcScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.percent(80).add(CSS.px(0.2 * scrollerSize))]
+  });
+
+  scroller.scrollTop = scrollerSize;
+  let expectedCurrentTime = calculateCurrentTime(
+      scroller.scrollTop, 0, scrollerSize);
+
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+
+  assert_percents_equal(
+      inclusiveAutoScrollTimeline.currentTime,
+      expectedCurrentTime,
+      'Inclusive auto timeline at the endScrollOffset point');
+  assert_percents_equal(
+      inclusiveLengthScrollTimeline.currentTime,
+      expectedCurrentTime,
+      'Inclusive length-based timeline at the endScrollOffset point');
+  assert_percents_equal(
+      inclusivePercentageScrollTimeline.currentTime,
+      expectedCurrentTime,
+      'Inclusive percentage-based timeline at the endScrollOffset point');
+  assert_percents_equal(
+      inclusiveCalcScrollTimeline.currentTime,
+      expectedCurrentTime,
+      'Inclusive calc-based timeline at the endScrollOffset point');
+}, 'currentTime handles endScrollOffset correctly (inclusive cases)');
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
+  const lengthScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.px(scrollerSize - 20)]
+  });
+  const percentageScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.percent(80)]
+  });
+  const calcScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.percent(80).add(CSS.px(5))]
+  });
+
+  // Check the length-based ScrollTimeline.
+  scroller.scrollTop = scrollerSize;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  assert_percents_equal(lengthScrollTimeline.currentTime, 100,
+      'Length-based timeline current time after the endScrollOffset point');
+  assert_equals(lengthScrollTimeline.phase, "after",
+      'Length-based timeline phase after the endScrollOffset point');
+  scroller.scrollTop = scrollerSize - 20;
+  await waitForNextFrame();
+  assert_percents_equal(lengthScrollTimeline.currentTime, 100,
+      'Length-based timeline current time at the endScrollOffset point');
+  assert_equals(lengthScrollTimeline.phase, "after",
+      'Length-based timeline phase at the endScrollOffset point');
+  scroller.scrollTop = scrollerSize - 50;
+  await waitForNextFrame();
+  assert_percents_equal(
+      lengthScrollTimeline.currentTime,
+      calculateCurrentTime(scrollerSize - 50, 0, scrollerSize - 20),
+      'Length-based timeline current time before the endScrollOffset point');
+  assert_equals(lengthScrollTimeline.phase, "active",
+      'Length-based timeline phase before the endScrollOffset point');
+
+  // Check the percentage-based ScrollTimeline.
+  scroller.scrollTop = 0.81 * scrollerSize;
+  await waitForNextFrame();
+  assert_percents_equal(percentageScrollTimeline.currentTime, 100,
+      'Percentage-based timeline current time after the endScrollOffset point');
+  assert_equals(percentageScrollTimeline.phase, "after",
+      'Percentage-based timeline phase after the endScrollOffset point');
+  scroller.scrollTop = 0.80 * scrollerSize;
+  await waitForNextFrame();
+  assert_percents_equal(percentageScrollTimeline.currentTime, 100,
+      'Percentage-based timeline current time at the endScrollOffset point');
+  assert_equals(percentageScrollTimeline.phase, "after",
+      'Percentage-based timeline phase at the endScrollOffset point');
+  scroller.scrollTop = 0.50 * scrollerSize;
+  await waitForNextFrame();
+  assert_percents_equal(
+      percentageScrollTimeline.currentTime,
+      calculateCurrentTime(scroller.scrollTop, 0, 0.8 * scrollerSize),
+      'Percentage-based timeline current time before the endScrollOffset ' +
+      'point');
+  assert_equals(percentageScrollTimeline.phase, "active",
+      'Percentage-based timeline phase before the endScrollOffset point');
+
+  // Check the calc-based ScrollTimeline.
+  scroller.scrollTop = 0.8 * scrollerSize + 6;
+  await waitForNextFrame();
+  assert_percents_equal(calcScrollTimeline.currentTime, 100,
+      'Calc-based timeline current time after the endScrollOffset point');
+  assert_equals(calcScrollTimeline.phase, "after",
+      'Calc-based timeline phase after the endScrollOffset point');
+  scroller.scrollTop = 0.8 * scrollerSize + 5;
+  await waitForNextFrame();
+  assert_percents_equal(calcScrollTimeline.currentTime, 100,
+      'Calc-based timeline current time at the endScrollOffset point');
+  assert_equals(calcScrollTimeline.phase, "after",
+      'Calc-based timeline phase at the endScrollOffset point');
+  scroller.scrollTop = 0.5 * scrollerSize;
+  await waitForNextFrame();
+  assert_percents_equal(
+      calcScrollTimeline.currentTime,
+      calculateCurrentTime(scroller.scrollTop, 0, 0.8 * scrollerSize + 5),
+      'Calc-based timeline current time before the endScrollOffset point');
+  assert_equals(calcScrollTimeline.phase, "active",
+      'Calc-based timeline phase before the endScrollOffset point');
+}, 'currentTime handles endScrollOffset correctly');
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
+  const scrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.px(20), CSS.px(scrollerSize - 50)]
+  });
+
+  scroller.scrollTop = 150;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime,
+      calculateCurrentTime(150, 20, scrollerSize - 50));
+}, 'currentTime handles startScrollOffset and endScrollOffset together ' +
+   'correctly');
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const scrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.px(20), CSS.px(20)]
+  });
+
+  scroller.scrollTop = 150;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, 100);
+}, 'currentTime handles startScrollOffset == endScrollOffset correctly');
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const scrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.px(50), CSS.px(10)]
+  });
+
+  scroller.scrollTop = 40;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, 0);
+  scroller.scrollTop = 60;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, 100);
+}, 'currentTime handles startScrollOffset > endScrollOffset correctly');
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  const scrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    orientation: 'block',
+    scrollOffsets: [CSS.px(10), CSS.px(20), CSS.px(40), CSS.px(70), CSS.px(90)],
+  });
+
+  var offset = 0;
+  var w = 1 / 4; // offset weight
+  var p = 0;         // progress within the offset
+
+  scroller.scrollTop = 10;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+
+  assert_percents_equal(scrollTimeline.currentTime, (offset + p) * w * 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+
+  p = (12 - 10) / (20 - 10);
+  scroller.scrollTop = 12;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, (offset + p) * w * 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+
+  offset = 1;
+  p = 0;
+  scroller.scrollTop = 20;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, (offset + p) * w * 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+
+  p = (35 - 20) / (40 - 20);
+  scroller.scrollTop = 35;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, (offset + p) * w * 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+
+  offset = 2;
+  p = 0;
+  scroller.scrollTop = 40;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, (offset + p) * w * 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+
+  p = (60 - 40) / (70 - 40);
+  scroller.scrollTop = 60;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, (offset + p) * w * 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+
+  offset = 3;
+  p = 0;
+  scroller.scrollTop = 70;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, (offset + p) * w * 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+
+  p = (80 - 70) / (90 - 70);
+  scroller.scrollTop = 80;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, (offset + p) * w * 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+
+  scroller.scrollTop = 90;
+  await waitForNextFrame();
+  assert_percents_equal(scrollTimeline.currentTime, 100,
+      "current time calculation when scroll = " + scroller.scrollTop);
+}, 'currentTime calculations when multiple scroll offsets are specified');
+
+</script>

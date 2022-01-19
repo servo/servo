@@ -63,42 +63,45 @@ window.addEventListener("message", msg => {
 });
 
 const iframe = document.createElement("iframe");
+
+iframe.addEventListener("load", function() {
+  const iframe_script = iframe.contentDocument.createElement('script');
+  iframe_script.textContent = `
+    // Test fetch() API with default "client" referrer.
+    fetch("${location.origin}/common/security-features/subresource/xhr.py?name=testFetchClientReferrer")
+      .then(r => r.json())
+      .then(j => {
+          top.postMessage({test: "testFetchClientReferrer", referrer: j.headers.referer}, "*")
+        }).catch(e => {
+          top.postMessage({test: "testFetchClientReferrer", referrer: "FAILURE"}, "*");
+        });
+
+    // Test fetch() API with custom URL referrer.
+    fetch("${location.origin}/common/security-features/subresource/xhr.py?name=URL",
+        {referrer: "${location.href}/custom"})
+      .then(r => r.json())
+      .then(j => {
+          top.postMessage({test: "testFetchURLReferrer", referrer: j.headers.referer}, "*")
+        }).catch(e => {
+          top.postMessage({test: "testFetchURLReferrer", referrer: "FAILURE"}, "*");
+        });
+
+    // Test document.referrer.
+    top.postMessage({test: "testDocumentReferrer", referrer: document.referrer}, "*");
+
+    // Test a subresource being fetched by the iframe.
+    const subresource_script = document.createElement('script');
+    subresource_script.src = "${location.origin}/common/security-features/subresource/referrer.py";
+    subresource_script.onload = e => {
+      top.postMessage({test: "testSubresource", referrer: window.referrer}, "*");
+    }
+    subresource_script.onerror = function(e) {
+      top.postMessage({test: "testSubresource", referrer: "FAILURE"}, "*");
+    };
+    document.head.appendChild(subresource_script);
+  `;
+  iframe.contentDocument.body.appendChild(iframe_script);
+});
+
 document.body.appendChild(iframe);
-
-const iframe_script = iframe.contentDocument.createElement('script');
-iframe_script.textContent = `
-  // Test fetch() API with default "client" referrer.
-  fetch("${location.origin}/common/security-features/subresource/xhr.py?name=testFetchClientReferrer")
-    .then(r => r.json())
-    .then(j => {
-        top.postMessage({test: "testFetchClientReferrer", referrer: j.headers.referer}, "*")
-      }).catch(e => {
-        top.postMessage({test: "testFetchClientReferrer", referrer: "FAILURE"}, "*");
-      });
-
-  // Test fetch() API with custom URL referrer.
-  fetch("${location.origin}/common/security-features/subresource/xhr.py?name=URL",
-      {referrer: "${location.href}/custom"})
-    .then(r => r.json())
-    .then(j => {
-        top.postMessage({test: "testFetchURLReferrer", referrer: j.headers.referer}, "*")
-      }).catch(e => {
-        top.postMessage({test: "testFetchURLReferrer", referrer: "FAILURE"}, "*");
-      });
-
-  // Test document.referrer.
-  top.postMessage({test: "testDocumentReferrer", referrer: document.referrer}, "*");
-
-  // Test a subresource being fetched by the iframe.
-  const subresource_script = document.createElement('script');
-  subresource_script.src = "${location.origin}/common/security-features/subresource/referrer.py";
-  subresource_script.onload = e => {
-    top.postMessage({test: "testSubresource", referrer: window.referrer}, "*");
-  }
-  subresource_script.onerror = function(e) {
-    top.postMessage({test: "testSubresource", referrer: "FAILURE"}, "*");
-  };
-  document.head.appendChild(subresource_script);
-`;
-iframe.contentDocument.body.appendChild(iframe_script);
 </script>

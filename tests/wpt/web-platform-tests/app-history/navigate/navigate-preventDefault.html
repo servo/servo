@@ -1,0 +1,9 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  appHistory.onnavigate = e => e.preventDefault();
+  await promise_rejects_dom(t, 'AbortError', appHistory.navigate("#"));
+}, "navigate() promise rejects when the navigation is aborted");
+</script>

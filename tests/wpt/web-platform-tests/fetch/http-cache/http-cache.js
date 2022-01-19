@@ -122,11 +122,13 @@ function fetchInit (requests, config) {
     'headers': []
   }
   if ('request_method' in config) init.method = config['request_method']
-  if ('request_headers' in config) init.headers = config['request_headers']
+  // Note: init.headers must be a copy of config['request_headers'] array,
+  // because new elements are added later.
+  if ('request_headers' in config) init.headers = [...config['request_headers']];
   if ('name' in config) init.headers.push(['Test-Name', config.name])
   if ('request_body' in config) init.body = config['request_body']
   if ('mode' in config) init.mode = config['mode']
-  if ('credentials' in config) init.mode = config['credentials']
+  if ('credentials' in config) init.credentials = config['credentials']
   if ('cache' in config) init.cache = config['cache']
   init.headers.push(['Test-Requests', btoa(JSON.stringify(requests))])
   return init

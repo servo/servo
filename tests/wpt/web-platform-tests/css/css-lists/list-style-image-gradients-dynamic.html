@@ -1,0 +1,33 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: Gradient list markers with dynamic font-size change</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#image-markers">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#typedef-gradient">
+<link rel="match" href="list-style-image-gradients-dynamic-ref.html">
+<meta name="assert" content="list-style-image:<gradient> with a single color renders the same as an image without an intrinsic size of the same color">
+<style>
+.larger-font ::marker {
+  font-size: 36px;
+}
+</style>
+<ul>
+  <li style="list-style-image: linear-gradient(blue, blue)">text</li>
+  <li style="list-style-image: repeating-linear-gradient(blue, blue 2px, blue 4px)">text</li>
+  <li style="list-style-image: radial-gradient(blue, blue)">text</li>
+  <li style="list-style-image: repeating-radial-gradient(blue, blue .2em, blue .4em)">text</li>
+</ul>
+<script src="/common/reftest-wait.js"></script>
+<script>
+addEventListener("load", () => {
+  document.body.offsetLeft;
+  document.body.classList.add("larger-font");
+  takeScreenshot();
+}, {once: true});
+</script>
+</html>

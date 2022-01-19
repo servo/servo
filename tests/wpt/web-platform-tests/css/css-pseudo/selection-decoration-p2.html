@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: interactions between ::selection and text-decoration</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-painting">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#painting">
+<link rel="help" href="https://www.w3.org/TR/CSS22/zindex.html#painting-order">
+<link rel="match" href="selection-decoration-p2-ref.html">
+<meta name="assert" value="originating line-through decorations are always painted over text, even when some of the text is selected">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+    /*
+        This test verifies that line-through decorations are correctly
+        “lifted” to paint over selected text.
+
+        Chromium fails this test before /c/2902289.
+    */
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+        width: min-content;
+        text-decoration: currentColor solid line-through;
+    }
+    main::selection {
+        background: white;
+    }
+</style>
+<p>Test passes if all of the text below is decorated with a line-through.
+<main class="highlight_reftest">quick</main>
+<script>
+    const target = document.querySelector("main");
+    selectRangeWith(range => {
+        range.selectNodeContents(target);
+        range.setStart(target.childNodes[0], 1);
+        range.setEnd(target.childNodes[0], 4);
+    });
+</script>

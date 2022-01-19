@@ -1,0 +1,29 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe" src="/common/blank.html"></iframe>
+
+<script>
+setup({ explicit_done: true });
+
+window.onload = () => {
+  test(() => {
+    assert_throws_dom("DataCloneError", iframe.contentWindow.DOMException, () => {
+      iframe.contentWindow.appHistory.updateCurrent({ state: new WritableStream() });
+    });
+    assert_equals(appHistory.current.getState(), undefined);
+  }, "updateCurrent() must throw if state is unserializable (WritableStream)");
+
+  test(() => {
+    // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+    const buffer = new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer;
+
+    assert_throws_dom("DataCloneError", iframe.contentWindow.DOMException, () => {
+      iframe.contentWindow.appHistory.updateCurrent({ state: buffer });
+    });
+    assert_equals(appHistory.current.getState(), undefined);
+  }, "updateCurrent() must throw if state is unserializable (SharedArrayBuffer)");
+
+  done();
+};
+</script>

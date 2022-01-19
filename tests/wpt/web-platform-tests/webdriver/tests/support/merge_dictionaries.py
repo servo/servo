@@ -1,5 +1,3 @@
-from six import iteritems
-
 def merge_dictionaries(first, second):
     """Given two dictionaries, create a third that defines all specified
     key/value pairs. This merge_dictionaries is performed "deeply" on any nested
@@ -7,7 +5,7 @@ def merge_dictionaries(first, second):
     an exception will be raised."""
     result = dict(first)
 
-    for key, value in iteritems(second):
+    for key, value in second.items():
         if key in result and result[key] != value:
             if isinstance(result[key], dict) and isinstance(value, dict):
                 result[key] = merge_dictionaries(result[key], value)

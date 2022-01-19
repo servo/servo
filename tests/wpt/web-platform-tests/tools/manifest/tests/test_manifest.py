@@ -1,6 +1,5 @@
 import os
-
-import mock
+from unittest import mock
 
 import hypothesis as h
 import hypothesis.strategies as hs

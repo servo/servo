@@ -1779,5 +1779,30 @@ var browserTests = [
     [["defaultparagraphseparator","p"],["formatblock","<h1>"]],
     "<h1>{foo<br>ba]r</h1>",
     [true,true],
-    {"defaultparagraphseparator":[false,false,"div",false,false,"p"],"formatblock":[true,false,"p",false,false,"h1"]}]
+    {"defaultparagraphseparator":[false,false,"div",false,false,"p"],"formatblock":[true,false,"p",false,false,"h1"]}],
+["<div><div contenteditable=false><span contenteditable>[foo]</span></div></div>",
+    [["formatblock","p"]],
+    "<div><div contenteditable=\"false\"><span contenteditable=\"\">[foo]</span></div></div>", // <span> cannot have <p>, so, do nothing
+    [false],
+    {"formatblock":[false,false,"",false,false,""]}],
+["<div><p contenteditable=false><span contenteditable>[foo]</span></p></div>",
+    [["formatblock","p"]],
+    "<div><p contenteditable=\"false\"><span contenteditable=\"\">[foo]</span></p></div>", // <span> cannot have <p>, so, do nothing
+    [false],
+    {"formatblock":[false,false,"",false,false,""]}],
+["<div><div contenteditable=false><p contenteditable>[foo]</p></div></div>",
+    [["formatblock","div"]],
+    "<div><div contenteditable=\"false\"><p contenteditable=\"\">[foo]</p></div></div>", // <p> cannot have <div>, so, do nothing
+    [false],
+    {"formatblock":[false,false,"",false,false,""]}],
+["<div><div contenteditable=false><div contenteditable>[foo]</div></div></div>",
+    [["formatblock","p"]],
+    "<div><div contenteditable=\"false\"><div contenteditable=\"\"><p>[foo]</p></div></div></div>", // <div> can have <p>, so, wrap it with <p>
+    [true],
+    {"formatblock":[false,false,"",false,false,"p"]}],
+["<div><div contenteditable=false><div contenteditable>[foo]</div></div></div>",
+    [["formatblock","div"]],
+    "<div><div contenteditable=\"false\"><div contenteditable=\"\"><div>[foo]</div></div></div></div>", // <div> can have <div>, so, wrap it with <div>
+    [true],
+    {"formatblock":[false,false,"",false,false,"div"]}],
 ]

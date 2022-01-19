@@ -1,7 +1,9 @@
-// META: script=../../websocket.sub.js
+// META: script=../../constants.sub.js
 // META: script=resources/url-constants.js
 // META: global=window,worker
 // META: timeout=long
+// META: variant=?wss
+// META: variant=?wpt_flags=h2
 
 // Allow for this much timer jitter.
 const JITTER_ALLOWANCE_MS = 200;

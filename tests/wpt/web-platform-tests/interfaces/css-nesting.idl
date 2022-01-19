@@ -1,0 +1,19 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Nesting Module (https://drafts.csswg.org/css-nesting-1/)
+
+partial interface CSSStyleRule {
+  [SameObject] readonly attribute CSSRuleList cssRules;
+  unsigned long insertRule(CSSOMString rule, optional unsigned long index = 0);
+  undefined deleteRule(unsigned long index);
+};
+
+[Exposed=Window]
+interface CSSNestingRule : CSSRule {
+  attribute CSSOMString selectorText;
+  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+  [SameObject] readonly attribute CSSRuleList cssRules;
+  unsigned long insertRule(CSSOMString rule, optional unsigned long index = 0);
+  undefined deleteRule(unsigned long index);
+};

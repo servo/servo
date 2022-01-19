@@ -301,6 +301,7 @@ for (const type of ["checkbox", "radio"]) {
         assert_equals(input.checked, true);
         t.done();
       });
+      dump.append(input);
       input.click();
     }, `disabling ${type} in onclick listener shouldn't suppress ${handler}`);
   }

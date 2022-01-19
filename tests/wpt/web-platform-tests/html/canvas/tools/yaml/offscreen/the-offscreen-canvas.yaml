@@ -27,18 +27,30 @@
     @assert offscreenCanvas2.getContext('2d') !== null;
     t.done();
 
-- name: 2d.getcontext.extraargs
-  desc: The 2D context ignores extra getContext arguments
+- name: 2d.getcontext.extraargs.create
+  desc: The 2D context doesn't throw with extra getContext arguments (new context)
   testing:
   - context.2d.extraargs
   code: |
-    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-    @assert offscreenCanvas2.getContext('2d', false, {}, [], 1, "2") !== null;
-    @assert offscreenCanvas2.getContext('2d', 123) !== null;
-    @assert offscreenCanvas2.getContext('2d', "test") !== null;
-    @assert offscreenCanvas2.getContext('2d', undefined) !== null;
-    @assert offscreenCanvas2.getContext('2d', null) !== null;
-    @assert offscreenCanvas2.getContext('2d', Symbol.hasInstance) !== null;
+    @assert (new OffscreenCanvas(100, 50)).getContext('2d', false, {}, [], 1, "2") !== null;
+    @assert (new OffscreenCanvas(100, 50)).getContext('2d', 123) !== null;
+    @assert (new OffscreenCanvas(100, 50)).getContext('2d', "test") !== null;
+    @assert (new OffscreenCanvas(100, 50)).getContext('2d', undefined) !== null;
+    @assert (new OffscreenCanvas(100, 50)).getContext('2d', null) !== null;
+    @assert (new OffscreenCanvas(100, 50)).getContext('2d', Symbol.hasInstance) !== null;
+    t.done();
+
+- name: 2d.getcontext.extraargs.cache
+  desc: The 2D context doesn't throw with extra getContext arguments (cached)
+  testing:
+  - context.2d.extraargs
+  code: |
+    @assert offscreenCanvas.getContext('2d', false, {}, [], 1, "2") !== null;
+    @assert offscreenCanvas.getContext('2d', 123) !== null;
+    @assert offscreenCanvas.getContext('2d', "test") !== null;
+    @assert offscreenCanvas.getContext('2d', undefined) !== null;
+    @assert offscreenCanvas.getContext('2d', null) !== null;
+    @assert offscreenCanvas.getContext('2d', Symbol.hasInstance) !== null;
     t.done();
 
 - name: 2d.getcontext.unique
@@ -264,10 +276,10 @@
     offscreenCanvas.height = 301.001;
     @assert offscreenCanvas.width === 301;
     @assert offscreenCanvas.height === 301;
-    offscreenCanvas.width = "400x";
-    offscreenCanvas.height = "foo";
-    @assert offscreenCanvas.width === 0;
-    @assert offscreenCanvas.height === 0;
+    @assert throws TypeError offscreenCanvas.width = "400x";
+    @assert throws TypeError offscreenCanvas.height = "foo";
+    @assert offscreenCanvas.width === 301;
+    @assert offscreenCanvas.height === 301;
     t.done();
 
 - name: size.attributes.default

@@ -20,7 +20,7 @@ idl_test(
     });
 
     await test_driver.set_permission(
-        { name: 'screen-wake-lock' }, 'granted', false);
+        { name: 'screen-wake-lock' }, 'granted');
     self.sentinel = await navigator.wakeLock.request('screen');
     self.sentinel.release();
   }

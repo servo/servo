@@ -25,10 +25,12 @@
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  animation.effect.updateTiming({ duration: 350 });
+  const effect_duration = 350;
+  animation.effect.updateTiming({ duration: effect_duration });
   const scroller = animation.timeline.scrollSource;
-  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  let maxScroll = scroller.scrollHeight - scroller.clientHeight;
   scroller.scrollTop = 0.2 * maxScroll;
+  const initial_progress = (scroller.scrollTop / maxScroll) * 100;
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
@@ -36,17 +38,27 @@ promise_test(async t => {
   animation.play();
   await animation.ready;
 
-  // Change scroller content size.
+  // Animation current time is at 20% because scroller was scrolled to 20%
+  // assert_equals(animation.currentTime.value, 20);
+  assert_equals(animation.currentTime.value, 20);
+  assert_equals(scroller.scrollTop, 180);
+  assert_equals(maxScroll, 900);
+
+  // Shrink scroller content size (from 1000 to 500).
+  // scroller.scrollTop maintains the same offset, which means shrinking the
+  // content has the effect of skipping the animation forward.
   scroller.firstChild.style.height = "500px";
+  maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
-  await animation.finished;
-  const newTime = animation.effect.getTiming().duration;
-  assert_times_equal(animation.currentTime, newTime,
-    'Animation current time is updated after scroller invalidation.');
+  assert_equals(scroller.scrollTop, 180);
+  assert_equals(maxScroll, 400);
+  await waitForNextFrame();
 
-  assert_times_equal(
-    animation.effect.getComputedTiming().localTime, newTime,
-    'Effect local time is updated after scroller invalidation.');
+  const expected_progress = (scroller.scrollTop / maxScroll) * 100;
+  assert_true(expected_progress > initial_progress)
+  assert_equals(animation.currentTime.value, expected_progress); // 45%
+  assert_equals(animation.timeline.currentTime.value, expected_progress); // 45%
+  assert_equals(animation.effect.getComputedTiming().localTime.value, expected_progress); // 45%
 }, 'Animation current time and effect local time are updated after scroller ' +
    'content size changes.');
 
@@ -54,8 +66,10 @@ promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
   animation.effect.updateTiming({ duration: 350 });
   const scroller = animation.timeline.scrollSource;
-  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-  scroller.scrollTop = 0.2 * maxScroll;
+  let maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  const scrollOffset = 0.2 * maxScroll
+  scroller.scrollTop = scrollOffset;
+  const initial_progress = (scroller.scrollTop / maxScroll) * 100;
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
@@ -63,17 +77,25 @@ promise_test(async t => {
   animation.play();
   await animation.ready;
 
+  // Animation current time is at 20% because scroller was scrolled to 20%
+  // assert_equals(animation.currentTime.value, 20);
+  assert_equals(animation.currentTime.value, 20);
+  assert_equals(scroller.scrollTop, scrollOffset);
+  assert_equals(maxScroll, 900);
+
   // Change scroller size.
   scroller.style.height = "500px";
+  maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
-  await animation.finished;
-  const newTime = animation.effect.getTiming().duration;
-  assert_times_equal(animation.currentTime, newTime,
-    'Animation current time is updated after scroller invalidation.');
+  assert_equals(scroller.scrollTop, scrollOffset);
+  assert_equals(maxScroll, 500);
+  await waitForNextFrame();
 
-  assert_times_equal(
-    animation.effect.getComputedTiming().localTime, newTime,
-    'Effect local time is updated after scroller invalidation.');
+  const expected_progress = (scroller.scrollTop / maxScroll) * 100;
+  assert_true(expected_progress > initial_progress);
+  assert_equals(animation.currentTime.value, expected_progress); // 45%
+  assert_equals(animation.timeline.currentTime.value, expected_progress); // 45%
+  assert_equals(animation.effect.getComputedTiming().localTime.value, expected_progress); // 45%
 }, 'Animation current time and effect local time are updated after scroller ' +
    'size changes.');
 
@@ -95,10 +117,10 @@ promise_test(async t => {
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
-  assert_times_equal(timeline.currentTime, 200,
+  assert_times_equal(timeline.currentTime.value, 20,
     'Timeline current time is updated after animation frame.');
   await waitForNextFrame();
-  assert_times_equal(timeline.currentTime, 163.636,
+  assert_times_equal(timeline.currentTime.value, 16.3636,
     'Timeline current time is updated after two animation frames and ' +
     'reflects single layout run.');
 }, 'If scroll animation resizes its scroll timeline scroller, ' +

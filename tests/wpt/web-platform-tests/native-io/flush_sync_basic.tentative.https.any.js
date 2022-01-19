@@ -13,9 +13,9 @@ test(testCase => {
   const file = createFileSync(testCase, 'test_file', longArray);
 
   file.flush();
-  const readBytes = readIoFileSync(file);
+  const readBuffer = readIoFileSync(file);
 
-  assert_array_equals(readBytes, longArray,
+  assert_array_equals(readBuffer, longArray,
     'the bytes read should match the bytes written');
 }, 'NativeIOFileSync.read returns bytes written by NativeIOFileSync.write' +
     ' after NativeIOFileSync.flush');

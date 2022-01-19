@@ -15,16 +15,16 @@
   window.addEventListener('securitypolicyviolation', function(e) {
     log("Fail");
   });
-  
+
   var id_string = setInterval("clearInterval(id_string); log('PASS 1 of 2')", 0);
   if (id_string == 0)
     log('FAIL: Return value for string (should not be 0): ' + id_string);
-  
+
   var id_function = setInterval(function() {
     clearInterval(id_function);
     log('PASS 2 of 2');
   }, 0);
-  
+
   if (id_function == 0)
     log('FAIL');
 </script>

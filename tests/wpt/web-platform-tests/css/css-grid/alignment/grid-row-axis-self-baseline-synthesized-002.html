@@ -48,10 +48,10 @@
   <div class="autoRowSpanning2AutoColumn width25"></div>
 </div>
 
-<pre>Horizontal grid and verticalRL item with fixed width</pre>
+<pre>Horizontal grid and verticalRL item with fixed width do not share a baseline context</pre>
 
 <div class="grid width300 justifyItemsBaseline">
-  <div class="firstRowFirstColumn fixedWidth"                        data-offset-x="60" data-offset-y="0"   data-expected-width="125" data-expected-height="100"></div>
+  <div class="firstRowFirstColumn fixedWidth"                        data-offset-x="0" data-offset-y="0"   data-expected-width="125" data-expected-height="100"></div>
   <div class="secondRowFirstColumn bigFont paddingRight verticalRL"  data-offset-x="0"  data-offset-y="100" data-expected-width="120" data-expected-height="200">É É ÉÉ</div>
   <div class="autoRowSpanning2AutoColumn width25"></div>
 </div>

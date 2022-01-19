@@ -84,10 +84,10 @@
 </div>
 <script>
   function hasHorizontalScrollbar(el) {
-    return (el.offsetHeight - el.clientHeight) > 0;
+    return (el.scrollWidth - el.offsetWidth) > 0;
   }
   function hasVerticalScrollbar(el) {
-    return (el.offsetWidth - el.clientWidth) > 0;
+    return (el.scrollHeight - el.offsetHeight) > 0;
   }
   // Tests needs to be run after load.
   function runTest() {

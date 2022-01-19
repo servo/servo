@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
 import os
 import re
 
@@ -72,7 +70,7 @@ class TestLoader(object):
                     paths.append(test)
                     continue
                 if test.endswith(".js"):
-                    for element in tests[test][1:]:
+                    for element in tests[test]:
                         paths.append(element[0])
                     continue
             return paths

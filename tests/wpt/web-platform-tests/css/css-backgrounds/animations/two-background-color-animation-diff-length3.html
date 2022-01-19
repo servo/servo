@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="two-background-color-animation-diff-length3-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  animation: bgcolor2 200s, bgcolor1 100s 0.001s;
+}
+@keyframes bgcolor1 {
+  0% { background-color: rgb(0, 199, 0); }
+  100% { background-color: rgb(0, 200, 0); }
+}
+@keyframes bgcolor2 {
+  0% { background-color: rgb(0, 0, 199); }
+  100% { background-color: rgb(0, 0, 200); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../web-animations/testcommon.js"></script>
+<body>
+<div class="container"></div>
+
+<script>
+// This test ensures that when there are two animations where one of them has
+// animation delays, we show the right color when the delayed animation is
+// started.
+const animations = document.getAnimations();
+Promise.all([animations[0].ready, animations[1].ready]).then(() => {
+  waitForAnimationFrames(3).then(() => {
+    takeScreenshot();
+  });
+});
+</script>
+</body>
+</html>

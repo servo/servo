@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: Test the text in an input is not clipped and reachable</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1715291">
+<link rel="match" href="scrollable-overflow-input-002-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+input {
+  box-sizing: border-box;
+  width: 160px;
+  padding-inline: 20px 60px;
+  background: yellow;
+  font: 20px/1 Ahem;
+  border: 0;
+  direction: rtl;
+}
+</style>
+
+<!-- The total width of the text (120px) must be less than the <input>'s
+     width (160px) to reproduce this bug.  -->
+<input id="input2" value="XpX  X">
+
+<script>
+document.getElementById('input2').scrollLeft = -1000;
+</script>

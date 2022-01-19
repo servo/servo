@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/is_uuid.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    i.onload = t.step_func_done(() => {
+      let entries = i.contentWindow.appHistory.entries();
+      assert_equals(entries.length, 2);
+      assert_not_equals(entries[1].key, entries[0].key);
+      assert_not_equals(entries[1].url, entries[0].url);
+      assert_equals(entries[1].url, "about:blank");
+      assert_not_equals(entries[1].id, entries[0].id);
+
+      assert_true(isUUID(entries[0].key));
+      assert_true(isUUID(entries[0].id));
+      assert_true(isUUID(entries[1].key));
+      assert_true(isUUID(entries[1].id));
+    });
+    i.src = "about:blank";
+  });
+}, "AppHistory behavior after navigation to about:blank");
+</script>

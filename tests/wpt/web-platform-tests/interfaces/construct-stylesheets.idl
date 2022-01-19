@@ -6,7 +6,7 @@
 partial interface CSSStyleSheet {
   constructor(optional CSSStyleSheetInit options = {});
   Promise<CSSStyleSheet> replace(USVString text);
-  void replaceSync(USVString text);
+  undefined replaceSync(USVString text);
 };
 
 dictionary CSSStyleSheetInit {

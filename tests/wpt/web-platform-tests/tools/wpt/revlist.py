@@ -1,29 +1,19 @@
 import argparse
-import logging
 import os
 import time
+from typing import Any, Iterator, Tuple
+
 from tools.wpt.testfiles import get_git_cmd
 
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
-logger = logging.getLogger()
 
-MYPY = False
-if MYPY:
-    # MYPY is set to True when run under Mypy.
-    from typing import Any
-    from typing import Dict
-    from typing import List
-    from typing import Text
-
-
-def calculate_cutoff_date(until, epoch, offset):
+def calculate_cutoff_date(until: int, epoch: int, offset: int) -> int:
     return ((((until - offset) // epoch)) * epoch) + offset
 
 
-def parse_epoch(string):
-    # type: (str) -> int
+def parse_epoch(string: str) -> int:
     UNIT_DICT = {"h": 3600, "d": 86400, "w": 604800}
     base = string[:-1]
     unit = string[-1:]
@@ -32,10 +22,9 @@ def parse_epoch(string):
     raise argparse.ArgumentTypeError('must be digits followed by h/d/w')
 
 
-def get_tagged_revisions(pattern):
-    # type: (Text) -> List[..., Dict]
+def get_tagged_revisions(pattern: str) -> Iterator[Tuple[str, str, int]]:
     '''
-    Returns the tagged revisions indexed by the committer date.
+    Iterates the tagged revisions as (tag name, commit sha, committer date) tuples.
     '''
     git = get_git_cmd(wpt_root)
     args = [
@@ -44,18 +33,16 @@ def get_tagged_revisions(pattern):
         u'--format=%(refname:lstrip=2) %(objectname) %(committerdate:raw)',
         u'--count=100000'
     ]
-    ref_list = git(u"for-each-ref", *args)
+    ref_list = git("for-each-ref", *args)  # type: ignore
     for line in ref_list.splitlines():
         if not line:
             continue
-        tag, commit, date, _ = line.split(u" ")
+        tag, commit, date, _ = line.split(" ")
         date = int(date)
         yield tag, commit, date
 
 
-def get_epoch_revisions(epoch, until, max_count):
-    # type: (**Any) -> List[Text]
-    logger.debug("get_epoch_revisions(%s, %s)" % (epoch, max_count))
+def get_epoch_revisions(epoch: int, until: int, max_count: int) -> Iterator[str]:
     # Set an offset to start to count the the weekly epoch from
     # Monday 00:00:00. This is particularly important for the weekly epoch
     # because fix the start of the epoch to Monday. This offset is calculated
@@ -84,7 +71,7 @@ def get_epoch_revisions(epoch, until, max_count):
     # Expected result: N,M,K,J,H,G,F,C,A
 
     cutoff_date = calculate_cutoff_date(until, epoch, epoch_offset)
-    for _, commit, date in get_tagged_revisions(u"refs/tags/merge_pr_*"):
+    for _, commit, date in get_tagged_revisions("refs/tags/merge_pr_*"):
         if count >= max_count:
             return
         if date < cutoff_date:
@@ -93,8 +80,7 @@ def get_epoch_revisions(epoch, until, max_count):
             cutoff_date = calculate_cutoff_date(date, epoch, epoch_offset)
 
 
-def get_parser():
-    # type: () -> argparse.ArgumentParser
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--epoch",
                         default="1d",
@@ -109,14 +95,10 @@ def get_parser():
                         type=int,
                         help="maximum number of revisions to be returned by "
                              "the command")
-    parser.add_argument("--verbose", action="store_true", help="debug logging")
     return parser
 
 
-def run_rev_list(**kwargs):
-    # type: (**Any) -> None
-    if kwargs.get('verbose'):
-        logger.setLevel(logging.DEBUG)
+def run_rev_list(**kwargs: Any) -> None:
     # "epoch_threshold" is a safety margin. After this time it is fine to
     # assume that any tags are created and pushed.
     epoch_threshold = 600

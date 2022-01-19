@@ -42,6 +42,17 @@
       padding-top: 1em; /* overriding default padding-start: 40px in several browsers */
     }
 
+  /*
+     This test depends on the blue ::marker image being placed inside the (blue)
+     padding area.  That depends on how the spacing between it and the list-item
+     box is calculated, which depends on font metrics.  The following rule is
+     to avoid these uncertainties and place it inside the padding for sure.
+  */
+  ::marker
+    {
+      font-size: 0;
+    }
+
   ul.right-border
     {
       border-right: blue solid 1em;

@@ -21,12 +21,18 @@ def main(request, response):
     </script>
 </head>
 <body>
+    <script nonce="123">
+        let img = document.createElement('img');
+        img.src = "../../support/pass.png";
+        img.onload = function() { window.top.postMessage("img loaded", '*'); }
+        document.body.appendChild(img);
+    </script>
     <style>
         body {
             background-color: maroon;
         }
     </style>
-    <script nonce="abc"> 
+    <script nonce="abc">
         var response = {};
         response["id"] = "%s";
         response["loaded"] = true;

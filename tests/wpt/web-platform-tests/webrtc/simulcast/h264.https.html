@@ -17,12 +17,12 @@ promise_test(async t => {
   assert_implements('getCapabilities' in RTCRtpSender, 'RTCRtpSender.getCapabilities not supported');
   assert_implements(RTCRtpSender.getCapabilities('video').codecs.find(c => c.mimeType === 'video/H264'), 'H264 not supported');
 
-  const rids = [0, 1, 2];
+  const rids = [0, 1];
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
   return negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, {mimeType: 'video/H264'});
-}, 'H264 simulcast setup with three spatial layers');
+}, 'H264 simulcast setup with two spatial layers');
 </script>

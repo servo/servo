@@ -1,52 +1,68 @@
-n<!DOCTYPE html>
+<!DOCTYPE html>
 <meta charset=utf-8>
 <title>Test that &lt;object&gt; renders its own fallback.</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
 <script>
-  // The host exists but the resource is unavailable.
-  const cross_origin_url_a = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/foo.html";
-  // The destination does not even exist and the navigation fails.
-  const cross_origin_url_b = "http://{{hosts[alt][nonexistent]}}:{{ports[http][0]}}/foo.html";
-
-  // Returns a promise which is resolved when |callback| returns true. The |callback| is invoked at
-  // every animation frame.
-  function for_each_animation_frame(callback) {
-    return new Promise((resolve) => {
-      function on_raf() {
-        if (!callback())
-          resolve();
-        window.requestAnimationFrame(on_raf);
-      }
-      window.requestAnimationFrame(on_raf);
-    });
-  }
+  const URIS = [
+    // The host exists but the resource is unavailable.
+    "http://{{hosts[alt][www]}}:{{ports[http][0]}}/foo.html",
+    // The destination does not even exist and the navigation fails.
+    "http://{{hosts[alt][nonexistent]}}:{{ports[http][0]}}/foo.html",
+  ];
 
   // Create an <object> with some fallback content.
-  function create_object_with_fallback(url) {
+  function create_object_with_fallback(url, t) {
     var object = document.createElement("object");
     var fallback = document.createElement("button");
     fallback.textContent = "FALLBACK CONTENT";
     object.appendChild(fallback);
     object.data = url;
     object.type = "text/html";
+    let promise = new Promise(resolve => {
+      object.addEventListener("load", t.unreached_func("Should never reach the load event"), {once: true});
+      object.addEventListener("error", () => resolve(object), {once: true});
+    });
     document.body.appendChild(object);
-    return object;
+    t.add_cleanup(() => object.remove());
+    return promise;
   }
 
   function area(el) {
     let bounds = el.getBoundingClientRect();
-    return el.width * el.height;
+    return bounds.width * bounds.height;
   }
 
-  promise_test(async() => {
-    var object = create_object_with_fallback(cross_origin_url_a);
-    await for_each_animation_frame(() => area(object.firstChild) > 0);
-    object.parentElement.removeChild(object);
-    object = create_object_with_fallback(cross_origin_url_b);
-    await for_each_animation_frame(() => area(object.firstChild) > 0);
-    object.parentElement.removeChild(object);
-  }, "Verify fallback content for failed cross-origin navigations is shown correctly.");
+  for (let uri of URIS) {
+    promise_test(async(t) => {
+      let object = await create_object_with_fallback(uri, t);
+
+      // XXX In Chrome this is needed, fallback doesn't seem to be ready after
+      // the error event, which seems weird/odd.
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      assert_true(area(object.firstChild) > 0, "Should be showing fallback");
+
+      // Per https://html.spec.whatwg.org/#the-object-element:
+      //
+      //     The object element can represent an external resource, which,
+      //     depending on the type of the resource, will either be treated as
+      //     image, as a child browsing context, or as an external resource to
+      //     be processed by a plugin.
+      //
+      //     [...]
+      //
+      //     If the load failed (e.g. there was an HTTP 404 error, there was a
+      //     DNS error), fire an event named error at the element, then jump to
+      //     the step below labeled fallback.
+      //
+      // (And that happens before "Determine the resource type" which is what
+      // sets the nested browsing context).
+      //
+      // So the expected window.length is 0.
+      assert_equals(window.length, 0);
+    }, `Verify fallback content for failed cross-origin navigations is shown correctly: ${uri}`);
+  }
 </script>
 </body>

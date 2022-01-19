@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<title>Reference: border-image-repeat:space</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+
+<style>
+  body > div { position: relative; margin-bottom: calc(27px * 2); }
+  body > div > div {
+    position: absolute;
+    width: 27px;
+    height: 27px;
+    background-image: url("support/border.png");
+  }
+
+  .outer1 { width: 26px; height: 26px; }
+  .outer2 { width: 53px; height: 53px; }
+  .outer3 { width: 70px; height: 70px; }
+
+  .outer1 > .inner2, .outer1 > .inner4, .outer1 > .inner5, .outer1 > .inner7,
+  .outer2 > .inner2, .outer2 > .inner4, .outer2 > .inner5, .outer2 > .inner7,
+  .outer3 > .inner2, .outer3 > .inner3, .outer3 > .inner5, .outer3 > .inner6,
+  .outer3 > .inner7, .outer3 > .inner8, .outer3 > .inner10, .outer3 > .inner11 {
+    background-position: -27px 0px;
+  }
+
+  /*
+  This mocks up the drawing algorithm for border-image, by hand,
+  with an absolutely-positioned innerN div for each tile of a border
+  image component. And the components are positioned using calc()
+  expressions that involve: the border's thickness, the element's
+  content-box size, and the expected number of tiled repetitions
+  (e.g. 2) and gaps-between-repetitions (e.g. 3).
+  */
+
+  .outer1 > .inner3, .outer1 > .inner8 { left: calc(27px + 26px); }
+  .outer1 > .inner6, .outer1 > .inner8 { top: calc(27px + 26px); }
+
+  .outer2 > .inner3, .outer2 > .inner5, .outer2 > .inner8 { left: calc(27px + 53px); }
+  .outer2 > .inner2, .outer2 > .inner7 { left: calc(27px + ((53px - 27px) / 2)); }
+  .outer2 > .inner4, .outer2 > .inner5 { top: calc(27px + ((53px - 27px) / 2)); }
+  .outer2 > .inner6, .outer2 > .inner7, .outer2 > .inner8 { top: calc(27px + 53px); }
+
+  .outer3 > .inner4, .outer3 > .inner6, .outer3 > .inner8, .outer3 > .inner12 { left: calc(27px + 70px); }
+  .outer3 > .inner2, .outer3 > .inner10 { left: calc(27px + ((70px - (27px * 2)) / 3)); }
+  .outer3 > .inner3, .outer3 > .inner11 { left: calc(70px - ((70px - (27px * 2)) / 3)); }
+  .outer3 > .inner5, .outer3 > .inner6 { top: calc(27px + ((70px - (27px * 2)) / 3)); }
+  .outer3 > .inner7, .outer3 > .inner8 { top: calc(70px - ((70px - (27px * 2)) / 3)); }
+  .outer3 > .inner9, .outer3 > .inner10, .outer3 > .inner11, .outer3 > .inner12 { top: calc(27px + 70px); }
+
+</style>
+
+<div class="outer1">
+  <div class="inner1"></div>
+  <div class="inner3"></div>
+  <div class="inner6"></div>
+  <div class="inner8"></div>
+</div>
+<div class="outer2">
+  <div class="inner1"></div>
+  <div class="inner2"></div>
+  <div class="inner3"></div>
+  <div class="inner4"></div>
+  <div class="inner5"></div>
+  <div class="inner6"></div>
+  <div class="inner7"></div>
+  <div class="inner8"></div>
+</div>
+
+<div class="outer3">
+  <div class="inner1"></div>
+  <div class="inner2"></div>
+  <div class="inner3"></div>
+  <div class="inner4"></div>
+  <div class="inner5"></div>
+  <div class="inner6"></div>
+  <div class="inner7"></div>
+  <div class="inner8"></div>
+  <div class="inner9"></div>
+  <div class="inner10"></div>
+  <div class="inner11"></div>
+  <div class="inner12"></div>
+</div>
+
+</html>

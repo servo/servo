@@ -12,6 +12,7 @@
   <meta content="may" name="flags">
   <meta name="assert" content="In this test, the 'c' and the 't' characters share the same level in the containment hierarchy but the space between these characters does not. Therefore, only the 'c' and the 't' characters themselves have an orange background color painting.">
 
+  <link rel="stylesheet" href="support/highlights.css">
   <style>
   div
     {
@@ -46,4 +47,4 @@
 
   <p>Test passes if the background of characters "c" and "t" is orange and if the space between those 2 characters is yellow (and not orange).
 
-  <div id="test">Sele<span>c</span> <span>t</span>ed</div>
+  <div id="test" class="highlight_reftest">Sele<span>c</span> <span>t</span>ed</div>

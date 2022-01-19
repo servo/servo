@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="timeout" content="long">
-<meta name="variant" content="">
-<meta name="variant" content="?legacy-samesite">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
@@ -54,28 +52,19 @@
               assert_cookie_present(target, "samesite_unsupported_lax", value),
             expectedStatus == SameSiteStatus.CROSS_SITE ?
               assert_cookie_absent(target, "samesite_strict_lax", value) :
-              assert_cookie_present(target, "samesite_strict_lax", value)
-          ];
-          if (isLegacySameSite()) {
-            // Legacy behavior: unsupported SameSite value acts like SameSite=None.
-            asserts.push(assert_cookie_present(target, "samesite_none_unsupported", value));
-            asserts.push(assert_cookie_present(target, "samesite_lax_unsupported", value));
-            asserts.push(assert_cookie_present(target, "samesite_strict_unsupported", value));
-            asserts.push(assert_cookie_present(target, "samesite_unsupported", value));
-          } else {
-            asserts.push(expectedStatus == SameSiteStatus.CROSS_SITE ?
-                           assert_cookie_absent(target, "samesite_none_unsupported", value) :
-                           assert_cookie_present(target, "samesite_none_unsupported", value));
-            asserts.push(expectedStatus == SameSiteStatus.CROSS_SITE ?
-                           assert_cookie_absent(target, "samesite_lax_unsupported", value) :
-                           assert_cookie_present(target, "samesite_lax_unsupported", value));
-            asserts.push(expectedStatus == SameSiteStatus.CROSS_SITE ?
-                           assert_cookie_absent(target, "samesite_strict_unsupported", value) :
-                           assert_cookie_present(target, "samesite_strict_unsupported", value));
-            asserts.push(expectedStatus == SameSiteStatus.CROSS_SITE ?
-                           assert_cookie_absent(target, "samesite_unsupported", value) :
-                           assert_cookie_present(target, "samesite_unsupported", value));
-          }
+              assert_cookie_present(target, "samesite_strict_lax", value),
+            expectedStatus == SameSiteStatus.CROSS_SITE ?
+              assert_cookie_absent(target, "samesite_none_unsupported", value) :
+              assert_cookie_present(target, "samesite_none_unsupported", value),
+            expectedStatus == SameSiteStatus.CROSS_SITE ?
+              assert_cookie_absent(target, "samesite_lax_unsupported", value) :
+              assert_cookie_present(target, "samesite_lax_unsupported", value),
+            expectedStatus == SameSiteStatus.CROSS_SITE ?
+              assert_cookie_absent(target, "samesite_strict_unsupported", value) :
+              assert_cookie_present(target, "samesite_strict_unsupported", value),
+            expectedStatus == SameSiteStatus.CROSS_SITE ?
+              assert_cookie_absent(target, "samesite_unsupported", value) :
+              assert_cookie_present(target, "samesite_unsupported", value)];
           return Promise.all(asserts);
         });
     }, title);

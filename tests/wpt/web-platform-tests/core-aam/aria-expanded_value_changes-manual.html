@@ -138,8 +138,11 @@
   </head>
   <body>
   <p>This test examines the ARIA properties for aria-expanded value changes.</p>
-    <div role='menu' id='test'>
-    <div role='menuitem'>content</div>
+    <div role='menu'>
+      <div role='menuitem' id='test'>content
+        <div role='menu'><div role='menuitem'>content</div></div>
+      </div>
+    </div>
   </div>then emit the platform accessibility events for changes to the value of aria-expanded.
 
   <div id="manualMode"></div>

@@ -95,7 +95,11 @@ const mandatory = {
   ],
   RTCCodecStats: [
     "payloadType",
-    "codecType",
+    /* codecType is part of MTI but is not systematically set
+       per https://www.w3.org/TR/webrtc-stats/#dom-rtccodecstats-codectype
+       If the dictionary member is not present, it means that
+      this media format can be both encoded and decoded. */
+    // "codecType",
     "mimeType",
     "clockRate",
     "channels",
@@ -130,7 +134,11 @@ const mandatory = {
     "fingerprint",
     "fingerprintAlgorithm",
     "base64Certificate",
-    "issuerCertificateId",
+    /* issuerCertificateId is part of MTI but is not systematically set
+       per https://www.w3.org/TR/webrtc-stats/#dom-rtccertificatestats-issuercertificateid
+       If the current certificate is at the end of the chain
+       (i.e. a self-signed certificate), this will not be set. */
+    // "issuerCertificateId",
   ],
 };
 

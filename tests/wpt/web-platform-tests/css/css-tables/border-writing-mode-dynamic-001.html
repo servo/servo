@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Collapsed borders track writing mode changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapsing">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  .bordermix {
+    border-top: 10px solid red;
+    border-bottom: 20px solid green;
+    border-left: 30px solid yellow;
+    border-right: 40px solid orange;
+  }
+
+  .vertical {
+    writing-mode: vertical-rl;
+  }
+
+  main td {
+    width:100px;
+    height:100px;
+  }
+  main table {
+    border-collapse: collapse;
+  }
+</style>
+
+<main>
+
+<table class="bordermix targettable">
+  <td>TABLE</td>
+</table>
+
+<table class="targettable">
+  <tbody class="bordermix">
+    <td>TBODY</td>
+  </tbody>
+</table>
+
+<table class="targettable">
+  <tr class="bordermix">
+    <td>TR</td>
+  </tr>
+</table>
+
+<table class="targettable">
+  <td class="bordermix">TD</td>
+</table>
+
+</main>
+<script>
+  var test = async_test("Table borders track writing mode changes");
+  let targets = Array.from(document.querySelectorAll(".targettable"));
+
+  function assertTargetSize() {
+    for (let target of targets) {
+      assert_equals(target.offsetWidth, 172);
+      assert_equals(target.offsetHeight, 132);
+    }
+  }
+  test.step(assertTargetSize);
+
+  waitForAtLeastOneFrame().then( _ => {
+    for (let target of targets)
+      target.classList.toggle("vertical");
+    document.body.offsetTop;
+    test.step(assertTargetSize);
+    test.done();
+  });
+
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<style>
+#backdrop {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    height: 100px;
+    width: 100px;
+    background: green;
+}
+</style>
+<body>
+Test that ::backdrop does not inherit from anything. The test passes if there is
+a green box and no red.
+<div id="backdrop"></div>
+</body>

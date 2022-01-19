@@ -269,9 +269,9 @@
     return expectations.map(function(expectation) {
       var actualTargetContainer = createTargetContainer(testContainer, 'actual');
       var expectedTargetContainer = createTargetContainer(testContainer, 'expected');
-      var expectedStr = expectation.option || expectation.expect;
-      if (!isNeutralKeyframe(expectedStr)) {
-        expectedTargetContainer.target.style.setProperty(property, expectedStr);
+      var expectedProperties = expectation.option || expectation.expect;
+      if (typeof expectedProperties !== "object") {
+        expectedProperties = {[property]: expectedProperties};
       }
       var target = actualTargetContainer.target;
       interpolationMethod.setup(property, from, target);
@@ -279,24 +279,33 @@
         interpolationMethod.interpolate(property, from, to, expectation.at, target);
       };
       target.measure = function() {
-        var expectedValue = getComputedStyle(expectedTargetContainer.target).getPropertyValue(property);
-        test(function() {
-          assert_true(interpolationMethod.isSupported(), `${interpolationMethod.name} should be supported`);
+        for (var [expectedProp, expectedStr] of Object.entries(expectedProperties)) {
+          if (!isNeutralKeyframe(expectedStr)) {
+            expectedTargetContainer.target.style.setProperty(expectedProp, expectedStr);
+          }
+          var expectedValue = getComputedStyle(expectedTargetContainer.target).getPropertyValue(expectedProp);
+          let testName = `${testText} at (${expectation.at}) should be [${sanitizeUrls(expectedStr)}]`;
+          if (property !== expectedProp) {
+            testName += ` for <${expectedProp}>`;
+          }
+          test(function() {
+            assert_true(interpolationMethod.isSupported(), `${interpolationMethod.name} should be supported`);
 
-          if (from && from !== neutralKeyframe) {
-            assert_true(CSS.supports(property, from), '\'from\' value should be supported');
-          }
-          if (to && to !== neutralKeyframe) {
-            assert_true(CSS.supports(property, to), '\'to\' value should be supported');
-          }
-          if (typeof underlying !== 'undefined') {
-            assert_true(CSS.supports(property, underlying), '\'underlying\' value should be supported');
-          }
+            if (from && from !== neutralKeyframe) {
+              assert_true(CSS.supports(property, from), '\'from\' value should be supported');
+            }
+            if (to && to !== neutralKeyframe) {
+              assert_true(CSS.supports(property, to), '\'to\' value should be supported');
+            }
+            if (typeof underlying !== 'undefined') {
+              assert_true(CSS.supports(property, underlying), '\'underlying\' value should be supported');
+            }
 
-          comparisonFunction(
-              getComputedStyle(target).getPropertyValue(property),
-              expectedValue);
-        }, `${testText} at (${expectation.at}) should be [${sanitizeUrls(expectedStr)}]`);
+            comparisonFunction(
+                getComputedStyle(target).getPropertyValue(expectedProp),
+                expectedValue);
+          }, testName);
+        }
       };
       return target;
     });

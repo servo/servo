@@ -1,5 +1,3 @@
-from six import text_type
-
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -13,7 +11,7 @@ def test_payload(session):
 
     response = get_title(session)
     value = assert_success(response)
-    assert isinstance(value, text_type)
+    assert isinstance(value, str)
 
 
 def test_no_top_browsing_context(session, closed_window):

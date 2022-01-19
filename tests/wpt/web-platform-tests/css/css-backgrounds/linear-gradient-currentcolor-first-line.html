@@ -1,0 +1,12 @@
+<!doctype html>
+<title>CSS Backgrounds and Borders Test: linear-gradient() with currentcolor on ::first-line</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#first-line-background">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-inheritance">
+<link rel="match" href="linear-gradient-currentcolor-first-line-ref.html">
+<style>
+  div { color: red; }
+  div::first-line { color: green; }
+  span { background-image: linear-gradient(currentcolor, currentcolor); }
+</style>
+<p>You should see no red below.</p>
+<div><span>Green</span></div>

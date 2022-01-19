@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Dynamic radical: paint invalidation</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radicals-msqrt-mroot">
+<link rel="help" href="https://w3c.github.io/mathml-core/#radicals-msqrt-mroot">
 <meta name="assert" content="">
 <link rel="match" href="dynamic-radical-paint-invalidation-001-ref.html">
 <style>
@@ -29,8 +29,9 @@
       margin: 5px;
   }
 </style>
+<script src="/mathml/support/fonts.js"></script>
 <script>
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
   function runTests() {
       // force initial layout so we're sure what we're testing against
       document.documentElement.getBoundingClientRect();

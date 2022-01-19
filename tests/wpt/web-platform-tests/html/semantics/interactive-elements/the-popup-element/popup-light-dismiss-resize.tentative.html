@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup light dismiss behavior</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button popup=popup>Popup 1</button>
+<popup id=popup><span>Inside popup 1</span></popup>
+
+<style>
+  popup { border: 5px solid red; top: 50px; }
+</style>
+
+<script>
+  const popup = document.querySelector('#popup');
+
+  function waitForHide() {
+    return new Promise(function(resolve) {
+      popup.addEventListener('hide', () => resolve(), {'once': true});
+    });
+  }
+
+  promise_test(async () => {
+    return new Promise(async resolve => {
+      popup.show();
+      assert_true(popup.open,'popup should be open');
+      popup.style.width = "250px";
+      assert_true(popup.open,'popup should be hidden asynchronously');
+      await waitForHide(); // Wait for the popup to be hidden
+      assert_false(popup.open,'popup should close when resized');
+      popup.style.width = ""; // Reset
+      resolve();
+    });
+  },'Popup should be closed by an explicit resize of the popup');
+
+  promise_test(async () => {
+    return new Promise(async resolve => {
+      popup.show();
+      assert_true(popup.open,'popup should be open');
+      const popupText = popup.querySelector('span');
+      const originalText = popupText.textContent;
+      popupText.textContent = "This is a test, which is longer than the original";
+      assert_true(popup.open,'popup should be hidden asynchronously');
+      await waitForHide(); // Wait for the popup to be hidden
+      assert_false(popup.open,'popup should close when text content forces its size to change');
+      popupText.textContent = originalText; // Reset
+      resolve();
+    });
+  },'Popup should be closed by an implicit resize of the popup');
+</script>

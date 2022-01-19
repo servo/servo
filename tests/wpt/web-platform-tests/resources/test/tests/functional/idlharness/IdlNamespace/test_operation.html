@@ -58,13 +58,13 @@ var idlArray = new IdlArray();
 idlArray.add_idls(`
 [Exposed=Window]
 namespace foo {
-  void Truth();
-  void Lies();
+  undefined Truth();
+  undefined Lies();
 };
 [Exposed=Window]
 namespace bar {
   [LegacyUnforgeable]
-  void Truth();
+  undefined Truth();
 };
 [Exposed=Window]
 namespace baz {

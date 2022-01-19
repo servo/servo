@@ -463,10 +463,10 @@
     @assert canvasTransform.m22 = 2 * sy;
     @assert canvasTransform.m33 = 2 * sz;
 
-- name: 2d.transformation.rotate3d.X
+- name: 2d.transformation.rotate3d.x
   desc: rotate3d() around the x axis results in the correct transformation matrix
   testing:
-  - 2d.transformation.rotate3d.X
+  - 2d.transformation.rotate3d.x
   code: |
     // angles are in radians, test something that is not a multiple of pi
     const angle = 2;
@@ -478,10 +478,10 @@
     domMatrix.rotateAxisAngleSelf(1, 0, 0, rad2deg(angle));
     _assertMatricesApproxEqual(domMatrix, ctx.getTransform())
 
-- name: 2d.transformation.rotate3d.Y
+- name: 2d.transformation.rotate3d.y
   desc: rotate3d() around the y axis results in the correct transformation matrix
   testing:
-  - 2d.transformation.rotate3d.Y
+  - 2d.transformation.rotate3d.y
   code: |
     // angles are in radians, test something that is not a multiple of pi
     const angle = 2;
@@ -493,10 +493,10 @@
     domMatrix.rotateAxisAngleSelf(0, 1, 0, rad2deg(angle));
     _assertMatricesApproxEqual(domMatrix, ctx.getTransform())
 
-- name: 2d.transformation.rotate3d.Z
+- name: 2d.transformation.rotate3d.z
   desc: rotate3d() around the z axis results in the correct transformation matrix
   testing:
-  - 2d.transformation.rotate3d.Z
+  - 2d.transformation.rotate3d.z
   code: |
     // angles are in radians, test something that is not a multiple of pi
     const angle = 2;
@@ -554,3 +554,45 @@
     ctx.rotateAxis(1, 2, 3, 4);
     domMatrix.rotateAxisAngleSelf(1, 2, 3, rad2deg(4));
     _assertMatricesApproxEqual(domMatrix, ctx.getTransform());
+
+- name: 2d.transformation.combined.3d.transforms
+  desc: perspective and rotate3d work together
+  testing:
+  - 2d.transformation.3d.transforms
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    // Create a perspective transform in combiation with fillRect to draw a red
+    // trapezoid then draw a smaller green trapezoid inside it.
+    ctx.translate(50, 5);
+    ctx.perspective(100);
+    ctx.rotate3d(Math.PI/4, 0, 0);
+    ctx.fillStyle = "#f00";
+    ctx.fillRect(-30, 0, 60, 40);
+    ctx.fillStyle = "#0f0";
+    ctx.fillRect(-15, 10, 30, 20);
+
+    // These are the expected points of those two trapezoids from putting
+    // the corners of the filled rectangles through the perspective transform.
+    const bigTrapezoid = [[81, 5], [93, 45], [7, 45], [19, 5]];
+    const smallTrapezoid = [[32, 31], [68, 31], [65, 13], [35, 13]];
+
+    // Now filling a shape with green at those exact points with an identity
+    // transform should result in a purely green image.
+    ctx.resetTransform();
+    ctx.beginPath();
+    ctx.moveTo(bigTrapezoid[3][0], bigTrapezoid[3][1]);
+    for (const point of bigTrapezoid) ctx.lineTo(point[0], point[1])
+    ctx.lineTo(smallTrapezoid[3][0], smallTrapezoid[3][1]);
+    for (const point of smallTrapezoid) ctx.lineTo(point[0], point[1])
+    ctx.fill();
+    @assert pixel 21,11 == 0,255,0,255;
+    @assert pixel 79,11 == 0,255,0,255;
+    @assert pixel 21,39 == 0,255,0,255;
+    @assert pixel 79,39 == 0,255,0,255;
+    @assert pixel 39,19 == 0,255,0,255;
+    @assert pixel 61,19 == 0,255,0,255;
+    @assert pixel 39,31 == 0,255,0,255;
+    @assert pixel 61,31 == 0,255,0,255;
+  expected: green

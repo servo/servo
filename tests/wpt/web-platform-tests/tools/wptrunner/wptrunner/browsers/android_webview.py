@@ -1,3 +1,4 @@
+from .base import NullBrowser   # noqa: F401
 from .base import require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
@@ -9,7 +10,8 @@ from ..executors.executorchrome import ChromeDriverWdspecExecutor  # noqa: F401
 
 __wptrunner__ = {"product": "android_webview",
                  "check_args": "check_args",
-                 "browser": "SystemWebViewShell",
+                 "browser": {None: "SystemWebViewShell",
+                             "wdspec": "NullBrowser"},
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
                               "wdspec": "ChromeDriverWdspecExecutor"},
@@ -31,20 +33,19 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "device_serial": kwargs["device_serial"],
             "webdriver_binary": kwargs["webdriver_binary"],
             "webdriver_args": kwargs.get("webdriver_args"),
-            "stackparser_script": kwargs.get("stackparser_script"),
-            "output_directory": kwargs.get("output_directory")}
+            "stackwalk_binary": kwargs.get("stackwalk_binary"),
+            "symbols_path": kwargs.get("symbols_path")}
 
 
-def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
+def executor_kwargs(logger, test_type, test_environment, run_info_data,
                     **kwargs):
     # Use update() to modify the global list in place.
     _wptserve_ports.update(set(
-        server_config['ports']['http'] + server_config['ports']['https'] +
-        server_config['ports']['ws'] + server_config['ports']['wss']
+        test_environment.config['ports']['http'] + test_environment.config['ports']['https'] +
+        test_environment.config['ports']['ws'] + test_environment.config['ports']['wss']
     ))
 
-    executor_kwargs = chrome_executor_kwargs(logger, test_type, server_config,
-                                             cache_manager, run_info_data,
+    executor_kwargs = chrome_executor_kwargs(logger, test_type, test_environment, run_info_data,
                                              **kwargs)
     del executor_kwargs["capabilities"]["goog:chromeOptions"]["prefs"]
     capabilities = executor_kwargs["capabilities"]
@@ -83,12 +84,12 @@ class SystemWebViewShell(ChromeAndroidBrowserBase):
                  remote_queue=None,
                  device_serial=None,
                  webdriver_args=None,
-                 stackparser_script=None,
-                 output_directory=None):
+                 stackwalk_binary=None,
+                 symbols_path=None):
         """Creates a new representation of Chrome.  The `binary` argument gives
         the browser binary to use for testing."""
         super(SystemWebViewShell, self).__init__(logger,
                 webdriver_binary, remote_queue, device_serial,
-                webdriver_args, stackparser_script, output_directory)
+                webdriver_args, stackwalk_binary, symbols_path)
         self.binary = binary
         self.wptserver_ports = _wptserve_ports

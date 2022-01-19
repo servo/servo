@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe" src="/common/blank.html"></iframe>
+<script>
+
+function waitOnLoad(target) {
+  return new Promise((resolve, reject) => {
+    target.onload = resolve;
+  });
+}
+
+promise_test(async t => {
+  await waitOnLoad(window);
+  iframe.contentWindow.appHistory.navigate("?1");
+  await waitOnLoad(iframe);
+  assert_equals(iframe.contentWindow.appHistory.entries().length, 2);
+  iframe.contentWindow.appHistory.back();
+  await waitOnLoad(iframe);
+  assert_equals(iframe.contentWindow.appHistory.canGoForward, true);
+  const cached_app_history = iframe.contentWindow.appHistory;
+  iframe.remove();
+  assert_equals(cached_app_history.canGoForward, false);
+}, "canGoForward should return false if the document is not fully active");
+
+</script>

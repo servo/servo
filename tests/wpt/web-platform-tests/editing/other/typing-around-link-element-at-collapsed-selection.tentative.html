@@ -18,6 +18,11 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="../include/editor-test-utils.js"></script>
+<style>
+.bold {
+  font-weight: bold;
+}
+</style>
 </head>
 <body>
 <div contenteditable></div>
@@ -522,6 +527,108 @@ addPromiseTest({
     `<p>${kNewContainerOfLink[0]}XY<a href="about:blank">abc</a>${kNewContainerOfLink[1]}<br></p>`,
   ],
 });
+
+// Don't create `<span>` element for preserving specified style of the link and
+// don't clone `class` nor `style` attribute of the link.
+addPromiseTest({
+  description: `Inserting "XY" at start of a link which has a class for bold text`,
+  innerHTML: `<p>${kParentTag[0]}<a href="about:blank" class="bold">${kChildTag[0]}[]abc${kChildTag[1]}</a>${kParentTag[1]}</p>`,
+  run: async (utils) => {
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+  },
+  expectedResult: [
+    `<p>${kNewContainerOfLink[0]}XY<a href="about:blank" class="bold">abc</a>${kNewContainerOfLink[1]}</p>`,
+    `<p>${kNewContainerOfLink[0]}XY<a href="about:blank" class="bold">abc</a>${kNewContainerOfLink[1]}<br></p>`,
+  ],
+});
+addPromiseTest({
+  description: `Inserting "XY" at end of a link which has a class for bold text`,
+  innerHTML: `<p>${kParentTag[0]}<a href="about:blank" class="bold">${kChildTag[0]}abc[]${kChildTag[1]}</a>${kParentTag[1]}</p>`,
+  run: async (utils) => {
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+  },
+  expectedResult: [
+    `<p>${kNewContainerOfLink[0]}<a href="about:blank" class="bold">abc</a>XY${kNewContainerOfLink[1]}</p>`,
+    `<p>${kNewContainerOfLink[0]}<a href="about:blank" class="bold">abc</a>XY${kNewContainerOfLink[1]}<br></p>`,
+  ],
+});
+addPromiseTest({
+  description: `Inserting "XY" at start of a link which has inline style for bold text`,
+  innerHTML: `<p>${kParentTag[0]}<a href="about:blank" style="font-weight: bold">${kChildTag[0]}[]abc${kChildTag[1]}</a>${kParentTag[1]}</p>`,
+  run: async (utils) => {
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+  },
+  expectedResult: [
+    `<p>${kNewContainerOfLink[0]}XY<a href="about:blank" style="font-weight: bold">abc</a>${kNewContainerOfLink[1]}</p>`,
+    `<p>${kNewContainerOfLink[0]}XY<a href="about:blank" style="font-weight: bold">abc</a>${kNewContainerOfLink[1]}<br></p>`,
+  ],
+});
+addPromiseTest({
+  description: `Inserting "XY" at end of a link which has inline style for bold text`,
+  innerHTML: `<p>${kParentTag[0]}<a href="about:blank" style="font-weight: bold">${kChildTag[0]}abc[]${kChildTag[1]}</a>${kParentTag[1]}</p>`,
+  run: async (utils) => {
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+  },
+  expectedResult: [
+    `<p>${kNewContainerOfLink[0]}<a href="about:blank" style="font-weight: bold">abc</a>XY${kNewContainerOfLink[1]}</p>`,
+    `<p>${kNewContainerOfLink[0]}<a href="about:blank" style="font-weight: bold">abc</a>XY${kNewContainerOfLink[1]}<br></p>`,
+  ],
+});
+document.execCommand("styleWithCSS", false, "true");
+addPromiseTest({
+  description: `Inserting "XY" at start of a link which has a class for bold text (in CSS mode)`,
+  innerHTML: `<p>${kParentTag[0]}<a href="about:blank" class="bold">${kChildTag[0]}[]abc${kChildTag[1]}</a>${kParentTag[1]}</p>`,
+  run: async (utils) => {
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+  },
+  expectedResult: [
+    `<p>${kNewContainerOfLink[0]}XY<a href="about:blank" class="bold">abc</a>${kNewContainerOfLink[1]}</p>`,
+    `<p>${kNewContainerOfLink[0]}XY<a href="about:blank" class="bold">abc</a>${kNewContainerOfLink[1]}<br></p>`,
+  ],
+});
+addPromiseTest({
+  description: `Inserting "XY" at end of a link which has a class for bold text (in CSS mode)`,
+  innerHTML: `<p>${kParentTag[0]}<a href="about:blank" class="bold">${kChildTag[0]}abc[]${kChildTag[1]}</a>${kParentTag[1]}</p>`,
+  run: async (utils) => {
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+  },
+  expectedResult: [
+    `<p>${kNewContainerOfLink[0]}<a href="about:blank" class="bold">abc</a>XY${kNewContainerOfLink[1]}</p>`,
+    `<p>${kNewContainerOfLink[0]}<a href="about:blank" class="bold">abc</a>XY${kNewContainerOfLink[1]}<br></p>`,
+  ],
+});
+addPromiseTest({
+  description: `Inserting "XY" at start of a link which has inline style for bold text (in CSS mode)`,
+  innerHTML: `<p>${kParentTag[0]}<a href="about:blank" style="font-weight: bold">${kChildTag[0]}[]abc${kChildTag[1]}</a>${kParentTag[1]}</p>`,
+  run: async (utils) => {
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+  },
+  expectedResult: [
+    `<p>${kNewContainerOfLink[0]}XY<a href="about:blank" style="font-weight: bold">abc</a>${kNewContainerOfLink[1]}</p>`,
+    `<p>${kNewContainerOfLink[0]}XY<a href="about:blank" style="font-weight: bold">abc</a>${kNewContainerOfLink[1]}<br></p>`,
+  ],
+});
+document.execCommand("styleWithCSS", false, "false");
+addPromiseTest({
+  description: `Inserting "XY" at end of a link which has inline style for bold text (in CSS mode)`,
+  innerHTML: `<p>${kParentTag[0]}<a href="about:blank" style="font-weight: bold">${kChildTag[0]}abc[]${kChildTag[1]}</a>${kParentTag[1]}</p>`,
+  run: async (utils) => {
+    await utils.sendKey("X", utils.kShiftKey);
+    await utils.sendKey("Y", utils.kShiftKey);
+  },
+  expectedResult: [
+    `<p>${kNewContainerOfLink[0]}<a href="about:blank" style="font-weight: bold">abc</a>XY${kNewContainerOfLink[1]}</p>`,
+    `<p>${kNewContainerOfLink[0]}<a href="about:blank" style="font-weight: bold">abc</a>XY${kNewContainerOfLink[1]}<br></p>`,
+  ],
+});
+document.execCommand("styleWithCSS", false, "false");
 
 </script>
 </body>

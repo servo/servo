@@ -13,7 +13,7 @@
 const ENTER = '\uE007';
 
 promise_test(async () => {
-  let form = populateForm('<input name=text value=abc><input name=submiButton type=submit>');
+  let form = populateForm('<input name=text value=abc><input name=submitButton type=submit>');
   let event;
   form.text.focus();
   form.addEventListener('submit', e => { event = e; });

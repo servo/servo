@@ -89,3 +89,9 @@ gen-bundle \
   -har cross-origin-no-cors.har \
   -primaryURL $wpt_test_remote_origin/web-bundle/resources/wbn/no-cors/resource.cors.js \
   -o wbn/no-cors/cross-origin.wbn
+
+gen-bundle \
+  -version b1 \
+  -har non-utf8-query-encoding.har \
+  -primaryURL $wpt_test_origin/web-bundle/resources/wbn/static-element/resources/script.js?x=%A4%A2 \
+  -o wbn/non-utf8-query-encoding.wbn

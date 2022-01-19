@@ -130,24 +130,6 @@ function test5() {
   img.style.height = "15px";
   img.src = "resources/image.png";
 
-  let helper = new ResizeTestHelper("test5: observe img",[
-    {
-      setup: observer => {
-        observer.observe(img);
-      },
-      notify: entries => {
-      }
-    },
-    {
-      setup: observer => {
-        img.style.width = "15.5px";
-      },
-      notify: entries => {
-        assert_equals(entries.length, 1);
-        assert_equals(entries[0].contentRect.width, 15.5);
-      }
-    }
-  ]);
   return img.decode().then(() => {
     return new Promise(resolve => {
       requestAnimationFrame(() => {
@@ -155,52 +137,79 @@ function test5() {
         resolve();
       });
     });
-  }).catch(error => {
-    assert_unreached("decode image failed");
   }).then(() => {
+    let helper = new ResizeTestHelper("test5: observe img",[
+      {
+        setup: observer => {
+          observer.observe(img);
+        },
+        notify: entries => {
+        }
+      },
+      {
+        setup: observer => {
+          img.style.width = "15.5px";
+        },
+        notify: entries => {
+          assert_equals(entries.length, 1);
+          assert_equals(entries[0].contentRect.width, 15.5);
+        }
+      }
+    ]);
     return helper.start(() => img.remove());
+  }, () => {
+    // dummy test for dumping the error message.
+    test(_ => {
+      assert_unreached("decode image failed");
+    }, "test5: observe img");
   });
 }
 
 function test6() {
   let iframe = createAndAppendElement("iframe");
-  iframe.src = "./resources/iframe.html";
   iframe.width = "300px";
   iframe.height = "100px";
   iframe.style.display = "block";
 
+  let resolvePromise;
+  let promise = new Promise((resolve) => {
+    resolvePromise = resolve;
+  });
+  let test = async_test('test6: iframe notifications');
+  let testRequested = false;
+  test.add_cleanup(() => iframe.remove());
+
+  window.addEventListener('message', event => {
+    switch(event.data) {
+    case 'readyToTest':
+      if (!testRequested) {
+        iframe.contentWindow.postMessage('startTest', '*');
+        testRequested = true;
+      }
+    break;
+    case 'success':
+    case 'fail':
+      window.requestAnimationFrame(() => {
+        resolvePromise();
+        test.step(() => {
+          assert_equals(event.data, 'success');
+          test.done();
+        });
+      });
+    break;
+    }
+  }, false);
+
+  iframe.src = "./resources/iframe.html";
   return new Promise(function(resolve, reject) {
     iframe.onload = () => resolve();
+    iframe.onerror = () => reject();
   }).then(() => {
-    let resolvePromise;
-    let promise = new Promise((resolve) => {
-      resolvePromise = resolve;
-    });
-    let test = async_test('test6: iframe notifications');
-    let testRequested = false;
-    test.add_cleanup(() => iframe.remove());
-
-    window.addEventListener('message', event => {
-      switch(event.data) {
-      case 'readyToTest':
-        if (!testRequested) {
-          iframe.contentWindow.postMessage('startTest', '*');
-          testRequested = true;
-        }
-      break;
-      case 'success':
-      case 'fail':
-        window.requestAnimationFrame(() => {
-          test.step( () => {
-            assert_equals(event.data, 'success');
-            test.done();
-            resolvePromise();
-          });
-        });
-      break;
-      }
-    }, false);
     return promise;
+  }).catch(error => {
+    test.step(() => {
+      assert_unreached("loading iframe is error");
+    });
   });
 }
 
@@ -878,6 +887,34 @@ function test18() {
                       "target device-pixel-content-box block size");
       }
     },
+  ]);
+
+  return helper.start(() => t.remove());
+}
+
+function test19() {
+  // zoom is not a standard css property, so we should check it first. If the
+  // browser doesn't support it, we skip this test.
+  if (!CSS.supports("zoom", "3")) {
+    return Promise.resolve();
+  }
+
+  let t = createAndAppendElement("div");
+  t.style.height = "100px";
+  t.style.width = "50px";
+
+  let helper = new ResizeTestHelper(
+    "test19: an observation is fired when device-pixel-content-box is being " +
+    "observed and zoom change",
+  [
+    {
+      setup: observer => {
+        observer.observe(t, {box: "device-pixel-content-box"});
+      },
+      notify: entries => {
+        // No need to test again (see test18), so skip this event loop.
+      }
+    },
     {
       setup: observer => {
         document.body.style.zoom = 3;
@@ -931,6 +968,7 @@ test0()
   .then(() => test16())
   .then(() => test17())
   .then(() => test18())
+  .then(() => test19())
   .then(() => guard.done());
 
 </script>

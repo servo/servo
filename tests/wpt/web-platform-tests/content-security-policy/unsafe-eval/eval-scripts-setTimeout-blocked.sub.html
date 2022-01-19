@@ -14,15 +14,15 @@
   window.addEventListener('securitypolicyviolation', function(e) {
     log("violated-directive=" + e.violatedDirective);
   });
-  
+
   var id = setTimeout("alert_assert('FAIL')", 0);
   if (id != 0)
     log('FAIL');
-    
+
   var id = setTimeout(function() {
     log('PASS');
   }, 0);
-  
+
   if (id == 0)
     log('FAIL');
 </script>

@@ -15,9 +15,7 @@
 <script>
   test(() => {
     const effect = new KeyframeEffect(box, []);
-    const timeline = new ScrollTimeline({
-      timeRange: 1000
-    });
+    const timeline = new ScrollTimeline();
     const animation = new Animation(effect, timeline);
     assert_equals(document.scrollingElement, null,
       "This test relies on scrolling element being nil");

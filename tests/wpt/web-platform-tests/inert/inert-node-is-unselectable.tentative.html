@@ -13,7 +13,7 @@
 <script>
 test(function() {
     document.execCommand('SelectAll');
-    assert_equals(window.getSelection().toString(), "I'm selectable.");
+    assert_equals(window.getSelection().toString().trim(), "I'm selectable.");
 }, "Inert nodes cannot be selected.");
 </script>
 </body>

@@ -15,7 +15,8 @@ test(function(){
     c1.endTime = c1.endTime;
     assert_equals(c1.endTime, -1);
     assert_throws_js(TypeError, function(){ c1.endTime = NaN; });
-    assert_throws_js(TypeError, function(){ c1.endTime = +Infinity; });
+    c1.endTime = +Infinity;
+    assert_equals(c1.endTime, +Infinity);
     assert_throws_js(TypeError, function(){ c1.endTime = -Infinity; });
 }, document.title+', script-created cue');
 

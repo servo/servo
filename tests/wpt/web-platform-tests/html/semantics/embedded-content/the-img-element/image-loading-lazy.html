@@ -97,10 +97,10 @@
   <!-- |in_viewport| takes 2 seconds to load, so that in browsers that don't
        support lazy loading, |below_viewport| finishes before |in_viewport|, and
        the test will dependably fail without relying on a timeout. -->
-  <img id="in_viewport" loading="lazy" src="resources/image.png?first&pipe=trickle(d2)"
+  <img id="in_viewport" loading="lazy" src="resources/image.png?image-loading-lazy-first&pipe=trickle(d2)"
        onload="in_viewport_img_onload()">
   <div style="height:1000vh;"></div>
-  <img id="below_viewport" loading="lazy" src="resources/image.png?second"
+  <img id="below_viewport" loading="lazy" src="resources/image.png?image-loading-lazy-second"
        onload="below_viewport_img_onload()">
   <img id="below_viewport_data_url" loading="lazy"
        src="data:image/png;base64,R0lGODlhDAAMAKIFAF5LAP/zxAAAANyuAP/gaP///wAAAAAAACH5BAEAAAUALAAAAAAMAAwAAAMlWLPcGjDKFYi9lxKBOaGcF35DhWHamZUW0K4mAbiwWtuf0uxFAgA"

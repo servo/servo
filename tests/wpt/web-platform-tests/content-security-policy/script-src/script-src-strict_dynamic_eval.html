@@ -20,6 +20,7 @@
             window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
                 assert_false(evalScriptRan);
                 assert_equals(e.effectiveDirective, 'script-src');
+                assert_equals(e.blockedURI, 'eval');
             }));
 
             assert_throws_js(Error,

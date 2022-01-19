@@ -22,6 +22,10 @@ function test_length_equals(value, expected) {
 test_length_equals('clamp(10px, 20px, 30px)', '20px');
 test_length_equals('clamp(10px, 5px, 30px)', '10px');
 test_length_equals('clamp(10px, 35px, 30px)', '30px');
+test_length_equals('clamp(10px, 35px , 30px)', '30px');
+test_length_equals('clamp(10px, 35px /*foo*/, 30px)', '30px');
+test_length_equals('clamp(10px /* foo */ , 35px, 30px)', '30px');
+test_length_equals('clamp(10px , 35px, 30px)', '30px');
 
 // clamp(MIN, VAL, MAX) is identical to max(MIN, min(VAL, MAX)),
 // so MIN wins over MAX if they are in the wrong order.

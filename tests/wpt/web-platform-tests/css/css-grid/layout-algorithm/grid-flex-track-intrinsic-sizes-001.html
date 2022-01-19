@@ -74,8 +74,8 @@ checkTrackSizes(2, "1fr auto", "100px 0px");
 checkTrackSizes(2, "1fr max-content", "100px 0px");
 
 // Item spanning a fixed flexible track and an intrinsic non-flexible track
-checkTrackSizes(2, "minmax(0, 0fr) auto", "0px 100px");
-checkTrackSizes(2, "minmax(0, 1fr) auto", "0px 100px");
-checkTrackSizes(2, "minmax(25px, 0fr) auto", "25px 75px");
-checkTrackSizes(2, "minmax(25px, 1fr) auto", "25px 75px");
+checkTrackSizes(2, "minmax(0, 0fr) auto", "0px 50px");
+checkTrackSizes(2, "minmax(0, 1fr) auto", "50px 0px");
+checkTrackSizes(2, "minmax(25px, 0fr) auto", "25px 25px");
+checkTrackSizes(2, "minmax(25px, 1fr) auto", "50px 0px");
 </script>

@@ -1,4 +1,3 @@
-from six import PY3
 from wptserve.utils import isomorphic_encode
 
 # Outputs the request body, with controls and non-ASCII bytes escaped
@@ -6,10 +5,8 @@ from wptserve.utils import isomorphic_encode
 # As a convenience, CRLF newlines are left as is.
 
 def escape_byte(byte):
-    # We want a single-char binary string, but in Python 3 we may get an int
-    # from iterating over bytes.
-    if PY3:
-        byte = bytes([byte])
+    # Convert int byte into a single-char binary string.
+    byte = bytes([byte])
     if b"\0" <= byte <= b"\x1F" or byte >= b"\x7F":
         return b"\\x%02x" % ord(byte)
     if byte == b"\\":

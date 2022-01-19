@@ -1,3 +1,6 @@
+import pytest
+from webdriver import error
+
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -123,3 +126,27 @@ def test_removed_iframe(session, url, inline):
     assert_success(response)
 
     assert session.url == page
+
+
+# Capability needed as long as no valid certificate is available:
+#   https://github.com/web-platform-tests/wpt/issues/28847
+@pytest.mark.capabilities({"acceptInsecureCerts": True})
+def test_cross_origin(session, url):
+    base_path = ("/webdriver/tests/support/html/subframe.html" +
+                 "?pipe=header(Cross-Origin-Opener-Policy,same-origin")
+    first_page = url(base_path, protocol="https")
+    second_page = url(base_path, protocol="https", domain="alt")
+
+    session.url = first_page
+    session.url = second_page
+
+    elem = session.find.css("#delete", all=False)
+
+    response = back(session)
+    assert_success(response)
+
+    assert session.url == first_page
+
+    with pytest.raises(error.StaleElementReferenceException):
+        elem.click()
+    elem = session.find.css("#delete", all=False)

@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  let i = document.createElement("iframe");
+  document.body.appendChild(i);
+  let navigate_event_count = 0;
+  i.contentWindow.appHistory.onnavigate = t.unreached_func('onnavigate should not be called');
+  i.contentWindow.appHistory.onnavigatesuccess = t.unreached_func('onnavigatesuccess should not be called');
+  i.contentWindow.appHistory.onnavigateerror = t.unreached_func('onnavigateerror should not be called');
+  await i.contentWindow.appHistory.navigate("#");
+}, "navigate in initial about:blank document");
+</script>
+</body>

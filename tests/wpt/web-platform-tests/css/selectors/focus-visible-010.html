@@ -8,7 +8,7 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
-    @supports not (selector(:focus-visible)) {
+    @supports not selector(:focus-visible) {
       :focus {
         outline: red solid 5px;
         background-color: red;
@@ -31,7 +31,7 @@
     <li>If the element that says "I will be focused automatically" has a red background, then the test result is FAILURE. If the element has a green outline, then the test result is SUCCESS.</li>
   </ul>
   <br />
-  <div id="el" tabindex="-1">I will be focused automatically.</el>
+  <div id="el" tabindex="-1">I will be focused automatically.</div>
   <script>
     window.addEventListener('load', () => {
       el.focus();

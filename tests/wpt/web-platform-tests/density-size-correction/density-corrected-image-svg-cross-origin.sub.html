@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <title>Density Corrected Size: SVG (cross-origin)</title>
+    <link rel="match" href="density-corrected-image-svg-ref.html" />
+    <meta name="assert" content="Assert that density-corrected size in EXIF is taken into account for SVG <image>">
+  </head>
+  <body>
+    <svg width="200" height="200">
+      <image href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-none.jpg" />
+    </svg>
+    <svg width="200" height="200">
+      <image href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg" />
+    </svg>
+    <svg width="200" height="200">
+      <image href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-lores.jpg" />
+    </svg>
+    <svg width="200" height="200">
+      <image href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-non-uniform.jpg" />
+    </svg>
+    <svg width="200" height="200">
+      <image href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-with-orientation.jpg" />
+    </svg>
+    </div>
+  </body>
+</html>

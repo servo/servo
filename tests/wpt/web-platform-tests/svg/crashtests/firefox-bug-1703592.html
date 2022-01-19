@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1703592">
+<style>
+* {
+  font-size: 1237818528.6247747em;
+}
+</style>
+<script>
+  window.addEventListener('load', async () => {
+    const svg_1 = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    const svg_2 = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    const anchor = document.createElementNS('http://www.w3.org/2000/svg', 'a')
+    svg_2.setAttribute('width', '14em')
+    anchor.appendChild(svg_2)
+    svg_1.appendChild(anchor)
+    document.documentElement.appendChild(svg_1)
+    const selection = window.getSelection()
+    selection.selectAllChildren(svg_1)
+  })
+</script>

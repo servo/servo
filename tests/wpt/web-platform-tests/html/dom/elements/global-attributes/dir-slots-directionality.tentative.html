@@ -31,7 +31,7 @@ let root5 = host5.attachShadow({mode:"open"});
 test(() => {
   assert_equals(getComputedStyle(host1.firstChild).direction, "rtl");
   assert_equals(getComputedStyle(root2.querySelector("span")).direction, "rtl");
-  assert_equals(getComputedStyle(host3).direction, "rtl");
+  assert_equals(getComputedStyle(host3).direction, "ltr");
   assert_equals(getComputedStyle(root4.querySelector("span")).direction, "rtl");
   assert_equals(getComputedStyle(root5.querySelector("span")).direction, "rtl");
 }, 'Slots: Directionality');

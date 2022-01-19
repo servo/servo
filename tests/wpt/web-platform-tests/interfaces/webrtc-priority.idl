@@ -1,0 +1,24 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebRTC Priority Control API (https://w3c.github.io/webrtc-priority/)
+
+enum RTCPriorityType {
+  "very-low",
+  "low",
+  "medium",
+  "high"
+};
+
+partial dictionary RTCRtpEncodingParameters {
+  RTCPriorityType priority = "low";
+  RTCPriorityType networkPriority;
+};
+
+partial interface RTCDataChannel {
+  readonly attribute RTCPriorityType priority;
+};
+
+partial dictionary RTCDataChannelInit {
+  RTCPriorityType priority = "low";
+};

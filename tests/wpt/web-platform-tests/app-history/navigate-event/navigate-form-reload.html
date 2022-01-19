@@ -1,0 +1,28 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe" name="i" src="/common/blank.html"></iframe>
+<form id="form" action="/common/blank.html?1" method="post" target="i"></form>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    appHistory.onnavigate = t.step_func_done(() => {
+      assert_unreached("onnavigate should not have fired in source window");
+    });
+    iframe.contentWindow.appHistory.onnavigate = t.step_func(e => {
+      assert_equals(e.navigationType, "push");
+      assert_not_equals(e.formData, null);
+
+      iframe.onload = t.step_func(() => {
+        iframe.contentWindow.appHistory.onnavigate = t.step_func_done(e => {
+          assert_equals(e.navigationType, "reload");
+          assert_equals(e.formData, null);
+        });
+
+        iframe.contentWindow.location.reload();
+      });
+    });
+    form.submit();
+  });
+}, "reloading a page created from form submission results in formData of null, not the original form data");
+</script>

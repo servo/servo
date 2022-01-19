@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test "screen-wake-lock" Permission.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+
+<script>
+promise_test(async () => {
+  const result = await navigator.permissions.query({
+    name: "screen-wake-lock",
+  });
+  assert_true(result instanceof PermissionStatus);
+});
+</script>

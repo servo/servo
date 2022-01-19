@@ -128,9 +128,10 @@ being called and the promise settling.
 
 Usage: `test_driver.delete_all_cookies(context=null)`
  * _context_: an optional WindowProxy for the browsing context in which to
-              perform the call.
+              perform the call. Defaults to the current browsing context.
 
-This function deletes all cookies for the current browsing context.
+This function returns a promise that resolves after all the cookies have
+been deleted from the provided browsing context.
 
 ### send_keys
 
@@ -159,7 +160,7 @@ For example, to send the tab key you would send "\uE004".
 
 ### set_permission
 
-Usage: `test_driver.set_permission(descriptor, state, one_realm, context=null)`
+Usage: `test_driver.set_permission(descriptor, state, one_realm=false, context=null)`
  * _descriptor_: a
    [PermissionDescriptor](https://w3c.github.io/permissions/#dictdef-permissiondescriptor)
    or derived object

@@ -7,25 +7,36 @@
 <script src="mediasource-util.js"></script>
 <script>
     var subType = MediaSourceUtil.getSubType(MediaSourceUtil.AUDIO_ONLY_TYPE);
-    var manifestFilenameAudio = subType + "/test-a-128k-44100Hz-1ch-manifest.json";
+    var manifestFilenameAudio = subType + '/test-a-128k-44100Hz-1ch-manifest.json';
 
     // Fill up a given SourceBuffer by appending data repeatedly via doAppendDataFunc until
     // an exception is thrown. The thrown exception is passed to onCaughtExceptionCallback.
     function fillUpSourceBuffer(test, sourceBuffer, doAppendDataFunc, onCaughtExceptionCallback) {
+        assert_false(sourceBuffer.updating, 'updating should be false before attempting an append operation');
+
         // We are appending data repeatedly in sequence mode, there should be no gaps.
-        assert_false(sourceBuffer.buffered.length > 1, "unexpected gap in buffered ranges.");
+        let sbLength = sourceBuffer.buffered.length;
+        assert_false(sbLength > 1, 'unexpected gap in buffered ranges.');
+
+        let previousBufferedStart = sbLength == 0 ? -Infinity : sourceBuffer.buffered.start(0);
+        let previousBufferedEnd = sbLength == 0 ? -Infinity : sourceBuffer.buffered.end(0);
+        let appendSucceeded = true;
         try {
             doAppendDataFunc();
         } catch(ex) {
-            onCaughtExceptionCallback(ex);
+            onCaughtExceptionCallback(ex, previousBufferedStart, previousBufferedEnd);
+            appendSucceeded = false;
         }
-        test.expectEvent(sourceBuffer, 'updateend', 'append ended.');
-        test.waitForExpectedEvents(function() { fillUpSourceBuffer(test, sourceBuffer, doAppendDataFunc, onCaughtExceptionCallback); });
+        if (appendSucceeded) {
+          assert_true(sourceBuffer.updating, 'updating should be true if synchronous portion of appendBuffer succeeded');
+          test.expectEvent(sourceBuffer, 'updateend', 'append ended.');
+          test.waitForExpectedEvents(function() { fillUpSourceBuffer(test, sourceBuffer, doAppendDataFunc, onCaughtExceptionCallback); });
+        }
     }
 
     mediasource_test(function(test, mediaElement, mediaSource)
     {
-        mediaElement.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
+        mediaElement.addEventListener('error', test.unreached_func('Unexpected media element error event'));
         MediaSourceUtil.fetchManifestAndData(test, manifestFilenameAudio, function(typeAudio, dataAudio)
         {
             var sourceBuffer = mediaSource.addSourceBuffer(typeAudio);
@@ -34,9 +45,30 @@
                 function () { // doAppendDataFunc
                     sourceBuffer.appendBuffer(dataAudio);
                 },
-                function (ex) { // onCaughtExceptionCallback
+                function (ex, previousBufferedStart, previousBufferedEnd) { // onCaughtExceptionCallback
                     assert_equals(ex.name, 'QuotaExceededError');
-                    test.done();
+                    // Verify that the state looks like appendBuffer stops executing its steps if the prepare append
+                    // algorithm aborts after throwing `QuotaExceededError`.
+
+                    assert_false(sourceBuffer.updating, 'updating should be false if appendBuffer throws QuotaExceededError');
+
+                    sourceBuffer.onupdatestart = test.unreached_func('buffer append, signalled by updatestart, should not be in progress');
+                    sourceBuffer.onupdate = test.unreached_func('buffer append, signalled by update, should not be in progress');
+                    sourceBuffer.onupdateend = test.unreached_func('buffer append, signalled by updateend, should not be in progress');
+
+                    // Ensure the async append was not actually run by letting their event handlers have some time before we proceed.
+                    test.step_timeout(function() {
+                        // At least the first doAppendDataFunc call shouldn't throw QuotaExceededError, unless the audio
+                        // test media itself is too large for one append. If that's the case, then many other tests should
+                        // fail and the choice of test media may need to be changed.
+                        assert_equals(sourceBuffer.buffered.length, 1, 'test expects precisely one buffered range here');
+                        assert_equals(sourceBuffer.buffered.start(0), previousBufferedStart, 'QuotaExceededError should not update buffered media');
+                        assert_equals(sourceBuffer.buffered.end(0), previousBufferedEnd, 'QuotaExceededError should not update buffered media');
+
+                        // Note, it's difficult to verify that the user agent does not "Add |data| to the end of the |input buffer|" if
+                        // the attempted appendBuffer() of that |data| caused QuotaExceededError.
+                        test.done();
+                    }, 1000 /* 1 second, modifiable by harness multiplier */ );
                 });
         });
     }, 'Appending data repeatedly should fill up the buffer and throw a QuotaExceededError when buffer is full.');

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<<title>Canceling an animation</title>
+<title>Canceling an animation</title>
 <link rel="help"
     href="https://drafts.csswg.org/web-animations/#canceling-an-animation-section">
 <script src="/resources/testharness.js"></script>
@@ -75,7 +75,7 @@ promise_test(async t => {
   animation.cancel();
 
   await promise_rejects_dom(t, 'AbortError', originalPromise,
-                        'Cancel should abort ready promise');
+                            'Cancel should abort ready promise');
 }, 'A pause-pending ready promise should be rejected when the animation is'
    + ' canceled');
 
@@ -99,7 +99,8 @@ promise_test(async t => {
   const promise = animation.ready;
   animation.cancel();
   assert_not_equals(animation.ready, promise);
-  promise_rejects_dom(t, 'AbortError', promise, 'Cancel should abort ready promise');
+  promise_rejects_dom(t, 'AbortError', promise,
+                      'Cancel should abort ready promise');
 }, 'The ready promise should be replaced when the animation is canceled');
 
 promise_test(async t => {
@@ -137,8 +138,7 @@ promise_test(async t => {
   animation.cancel();
 
   return waitForAnimationFrames(3);
-}, 'The cancel event should NOT be fired if the animation is already'
-   + ' idle');
+}, 'The cancel event should NOT be fired if the animation is already idle');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -156,7 +156,7 @@ promise_test(async t => {
   await eventWatcher.wait_for('cancel');
 
   assert_equals(animation.effect.target.parentNode, null,
-    'cancel event should be fired for the animation on an orphaned element');
+      'cancel event should be fired for the animation on an orphaned element');
 }, 'Canceling an animation should fire cancel event on orphaned element');
 
 promise_test(async t => {

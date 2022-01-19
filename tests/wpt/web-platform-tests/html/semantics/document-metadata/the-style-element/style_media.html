@@ -28,11 +28,11 @@
         var style = document.getElementById("style");
         var width1, width2;
 
-        width1 = window.getComputedStyle(testElement, false)["width"];
+        width1 = window.getComputedStyle(testElement)["width"];
         assert_equals(width1, "50px", "The style should be applied.");
 
         style.media = "print";
-        width2 = window.getComputedStyle(testElement, false)["width"];
+        width2 = window.getComputedStyle(testElement)["width"];
         assert_equals(width2, "100px", "The style should not be applied.");
       }, "The style information must be applied to the environment specified by the media attribute");
     </script>

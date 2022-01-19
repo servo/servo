@@ -7,11 +7,8 @@ import sys
 import tempfile
 import time
 
-try:
-    from urllib.request import urlopen
-    from urllib.error import URLError
-except ImportError:
-    from urllib2 import urlopen, URLError
+from urllib.request import urlopen
+from urllib.error import URLError
 
 import pytest
 
@@ -23,7 +20,7 @@ def is_port_8000_in_use():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.bind(("127.0.0.1", 8000))
-    except socket.error as e:
+    except OSError as e:
         if e.errno == errno.EADDRINUSE:
             return True
         else:
@@ -97,14 +94,18 @@ def test_help():
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="https://github.com/web-platform-tests/wpt/issues/28745")
 def test_list_tests(manifest_dir):
     """The `--list-tests` option should not produce an error under normal
     conditions."""
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--metadata", manifest_dir, "--list-tests",
-                       "--channel", "dev", "--yes", "chrome",
-                       "/dom/nodes/Element-tagName.html"])
+                       "--channel", "dev", "--yes",
+                       # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+                       "--enable-swiftshader",
+                       "chrome", "/dom/nodes/Element-tagName.html"])
     assert excinfo.value.code == 0
 
 
@@ -161,6 +162,8 @@ def test_list_tests_invalid_manifest(manifest_dir):
 
 @pytest.mark.slow
 @pytest.mark.remote_network
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="https://github.com/web-platform-tests/wpt/issues/28745")
 def test_run_zero_tests():
     """A test execution describing zero tests should be reported as an error
     even in the presence of the `--no-fail-on-unexpected` option."""
@@ -169,18 +172,24 @@ def test_run_zero_tests():
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--no-pause", "--channel", "dev",
+                       # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+                       "--enable-swiftshader",
                        "chrome", "/non-existent-dir/non-existent-file.html"])
     assert excinfo.value.code != 0
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--no-pause", "--no-fail-on-unexpected",
-                       "--channel", "dev", "chrome",
-                       "/non-existent-dir/non-existent-file.html"])
+                       "--channel", "dev",
+                       # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+                       "--enable-swiftshader",
+                       "chrome", "/non-existent-dir/non-existent-file.html"])
     assert excinfo.value.code != 0
 
 
 @pytest.mark.slow
 @pytest.mark.remote_network
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="https://github.com/web-platform-tests/wpt/issues/28745")
 def test_run_failing_test():
     """Failing tests should be reported with a non-zero exit status unless the
     `--no-fail-on-unexpected` option has been specified."""
@@ -192,17 +201,24 @@ def test_run_failing_test():
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--no-pause", "--channel", "dev",
+                       # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+                       "--enable-swiftshader",
                        "chrome", failing_test])
     assert excinfo.value.code != 0
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--no-pause", "--no-fail-on-unexpected",
-                       "--channel", "dev", "chrome", failing_test])
+                       "--channel", "dev",
+                       # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+                       "--enable-swiftshader",
+                       "chrome", failing_test])
     assert excinfo.value.code == 0
 
 
 @pytest.mark.slow
 @pytest.mark.remote_network
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="https://github.com/web-platform-tests/wpt/issues/28745")
 def test_run_verify_unstable(temp_test):
     """Unstable tests should be reported with a non-zero exit status. Stable
     tests should be reported with a zero exit status."""
@@ -220,6 +236,8 @@ def test_run_verify_unstable(temp_test):
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--verify", "--channel", "dev",
+                       # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+                       "--enable-swiftshader",
                        "chrome", unstable_test])
     assert excinfo.value.code != 0
 
@@ -227,6 +245,8 @@ def test_run_verify_unstable(temp_test):
 
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["run", "--yes", "--verify", "--channel", "dev",
+                       # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+                       "--enable-swiftshader",
                        "chrome", stable_test])
     assert excinfo.value.code == 0
 
@@ -314,8 +334,9 @@ def test_tests_affected_idlharness(capsys, manifest_dir):
         wpt.main(argv=["tests-affected", "--metadata", manifest_dir, "%s~..%s" % (commit, commit)])
     assert excinfo.value.code == 0
     out, err = capsys.readouterr()
-    assert ("webrtc-identity/idlharness.https.window.js\n" +
-            "webrtc-insertable-streams/idlharness.https.window.js\n" +
+    assert ("mst-content-hint/idlharness.window.js\n" +
+            "webrtc-encoded-transform/idlharness.https.window.js\n" +
+            "webrtc-identity/idlharness.https.window.js\n" +
             "webrtc-stats/idlharness.window.js\n" +
             "webrtc-stats/supported-stats.html\n" +
             "webrtc/idlharness.https.window.js\n") == out

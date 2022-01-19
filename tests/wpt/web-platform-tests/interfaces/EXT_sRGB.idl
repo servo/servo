@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL EXT_sRGB Extension Specification (https://www.khronos.org/registry/webgl/extensions/EXT_sRGB/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface EXT_sRGB {
+  const GLenum SRGB_EXT                                     = 0x8C40;
+  const GLenum SRGB_ALPHA_EXT                               = 0x8C42;
+  const GLenum SRGB8_ALPHA8_EXT                             = 0x8C43;
+  const GLenum FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING_EXT    = 0x8210;
+};

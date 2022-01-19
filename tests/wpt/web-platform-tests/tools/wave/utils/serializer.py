@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 def serialize_session(session):
     return {
         "token": session.token,

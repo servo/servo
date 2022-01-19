@@ -155,10 +155,10 @@ test(t => {
   var anim = target.animate({fontStretch: ['normal', 'inherit']}, 1000);
   anim.pause();
   anim.currentTime = 500;
-  assert_equals(getComputedStyle(target).fontStretch, '150%');
+  assert_equals(getComputedStyle(target).fontStretch, 'extra-expanded');
 
   container.setAttribute('class', 'container2');
-  assert_equals(getComputedStyle(target).fontStretch, '75%');
+  assert_equals(getComputedStyle(target).fontStretch, 'condensed');
 }, "An interpolation to inherit updates correctly on a parent style change.");
 
 </script>

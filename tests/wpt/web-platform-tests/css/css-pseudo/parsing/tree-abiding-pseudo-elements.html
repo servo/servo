@@ -31,6 +31,18 @@ test_valid_selector("*::placeholder", "::placeholder");
 test_valid_selector("foo.bar[baz]::placeholder");
 test_invalid_selector("::placeholder *");
 
+// ::file-selector-button
+test_valid_selector("::file-selector-button");
+test_valid_selector("::file-selector-button:hover");
+test_valid_selector("::file-selector-button:focus");
+test_valid_selector("::file-selector-button:active");
+test_valid_selector("::file-selector-button:is(:hover)");
+
+test_invalid_selector("::file-selector-button::before");
+test_invalid_selector("::file-selector-button#id");
+test_invalid_selector("::file-selector-button#class");
+test_invalid_selector("::file-selector-button:host");
+
 // Combinations of the above
 test_invalid_selector("::before::before");
 test_invalid_selector("::after::before");

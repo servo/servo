@@ -30,25 +30,22 @@ def main(request, response):
     """
     headers = setNoCacheAndCORSHeaders(request, response)
 
-    try:
-        if b'drop' in request.GET:
-            cookie = request.GET[b'drop']
-            cookie = json.loads(cookie)
-            cookies = cookie if isinstance(cookie, list) else [cookie]
-            for c in cookies:
-                set_cookie(headers, c, drop=True)
+    if b'drop' in request.GET:
+        cookie = request.GET[b'drop']
+        cookie = json.loads(cookie)
+        cookies = cookie if isinstance(cookie, list) else [cookie]
+        for c in cookies:
+            set_cookie(headers, c, drop=True)
 
-        if b'set' in request.GET:
-            cookie = isomorphic_decode(request.GET[b'set'])
-            cookie = json.loads(cookie)
-            cookies = cookie if isinstance(cookie, list) else [cookie]
-            for c in cookies:
-                set_cookie(headers, c)
+    if b'set' in request.GET:
+        cookie = isomorphic_decode(request.GET[b'set'])
+        cookie = json.loads(cookie)
+        cookies = cookie if isinstance(cookie, list) else [cookie]
+        for c in cookies:
+            set_cookie(headers, c)
 
-        if b'location' in request.GET:
-            headers.append((b'Location', request.GET[b'location']))
-            return 302, headers, b'{"redirect": true}'
+    if b'location' in request.GET:
+        headers.append((b'Location', request.GET[b'location']))
+        return 302, headers, b'{"redirect": true}'
 
-        return headers, b'{"success": true}'
-    except Exception as e:
-          return 500, headers, bytes({'error': '{}'.format(e)})
+    return headers, b'{"success": true}'

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup keyboard focus behaviors</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button id=firstfocus>Button 1</button>
+<popup>
+  <p>This is a popup without a focusable element</p>
+</popup>
+<button id=secondfocus>Button 2</button>
+
+<script>
+promise_test(async () => {
+  const b1 = document.getElementById('firstfocus');
+  const b2 = document.getElementById('secondfocus');
+  const popup = document.querySelector('popup');
+  b1.focus();
+  assert_equals(document.activeElement,b1);
+  popup.show();
+  assert_true(popup.open);
+  assert_equals(document.activeElement,b1);
+  // Tab once
+  await new test_driver.send_keys(document.body,'\uE004'); // Tab
+  assert_equals(document.activeElement, b2, 'Keyboard focus should skip the open popup');
+  popup.hide();
+
+  // Add a focusable button to the popup and make sure we can focus that
+  const button = document.createElement('button');
+  popup.appendChild(button);
+  b1.focus();
+  popup.show();
+  assert_equals(document.activeElement,b1);
+  // Tab once
+  await new test_driver.send_keys(document.body,'\uE004'); // Tab
+  assert_equals(document.activeElement, button, 'Keyboard focus should go to the contained button');
+  popup.hide();
+}, "Popup should not be keyboard focusable");
+</script>

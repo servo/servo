@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-overview">
+<meta name="assert" content="An element with an aspect-ratio and stretch alignment stretches to the definite row, and transfers its size.">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="display: inline-grid; grid-template-rows: 100px; background: green;">
+  <img src="support/50x50-green.png" style="align-self: stretch; opacity: 0;">
+</div>

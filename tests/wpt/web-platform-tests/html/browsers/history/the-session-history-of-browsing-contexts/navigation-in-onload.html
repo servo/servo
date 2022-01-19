@@ -1,0 +1,37 @@
+
+<!doctype html>
+<meta charset=utf-8>
+<title>Navigation in onload handler</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  var testFiles = [
+    "navigation-in-onload_form-submission-1.html",
+    "navigation-in-onload_form-submission-iframe.html",
+    "navigation-in-onload_form-submission-dynamic-iframe.html"
+  ]
+
+  var t = async_test();
+
+  function scheduleNextTest() {
+    setTimeout(runNextTest, 0);
+  }
+
+  function runNextTest() {
+    var file = testFiles.shift();
+    if (!file) {
+      t.done();
+      return;
+    }
+
+    window.open(file);
+  }
+
+  function verify(actual, expected, desc) {
+    setTimeout(t.step_func(function() {
+      assert_equals(actual, expected, desc);
+    }), 0);
+  }
+
+</script>
+<body onload="scheduleNextTest();"></body>

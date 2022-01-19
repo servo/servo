@@ -22,7 +22,7 @@ def main(request, response):
     # The stash is accessed concurrently by many clients. A lock is used to
     # avoid unterleaved read/write from different clients.
     with stash.lock:
-        queue = stash.take(uuid) or [];
+        queue = stash.take(uuid, '/coep-credentialless') or [];
 
         # Push into the |uuid| queue, the requested headers.
         if b"show-headers" in request.GET:
@@ -45,5 +45,5 @@ def main(request, response):
             else:
                 ret = queue.pop(0)
 
-        stash.put(uuid, queue)
+        stash.put(uuid, queue, '/coep-credentialless')
     return ret;

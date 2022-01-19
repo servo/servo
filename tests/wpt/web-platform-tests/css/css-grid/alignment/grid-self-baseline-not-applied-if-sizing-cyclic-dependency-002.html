@@ -29,12 +29,14 @@
 .fit-content-columns { grid-template-columns: fit-content; }
 .flex-columns        { grid-template-columns: 1fr; }
 .max-flex-columns    { grid-template-columns: minmax(0px, 1fr); }
+.auto-columns        { grid-template-columns: auto 100px; }
 
 .min-content-rows { grid-template-rows: min-content; }
 .max-content-rows { grid-template-rows: max-content; }
 .fit-content-rows { grid-template-rows: fit-content; }
 .flex-rows        { grid-template-rows: 1fr; }
 .max-flex-rows    { grid-template-rows: minmax(0px, 1fr); }
+.auto-rows        { grid-template-rows: auto 100px; }
 
 .height25  { height: 25px; }
 .height50  { height: 50px; }
@@ -93,8 +95,8 @@
 
 <pre>max-flex-sized rows - horizonal grid and verticalLR item - column-axis baseline<br>baseline is not applied initially, but orthogonal items force repeating the track sizing and height is not indefinite in that phase.</pre>
 <!-- https://github.com/w3c/csswg-drafts/issues/3046 -->
-<div class="inline-grid alignItemsBaseline columns max-flex-rows">
-  <div class="firstRowFirstColumn bigFont paddingBottom" data-offset-x="0"   data-offset-y="376" data-expected-width="100" data-expected-height="75">É</div>
+<div class="inline-grid alignItemsBaseline columns auto-rows">
+  <div class="firstRowFirstColumn bigFont paddingBottom" data-offset-x="0"   data-offset-y="0"   data-expected-width="100" data-expected-height="75">É</div>
   <div class="firstRowSecondColumn verticalLR"           data-offset-x="100" data-offset-y="0"   data-expected-width="100" data-expected-height="416">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
   <div class="autoRowAutoColumnSpanning2 height25"       data-offset-x="0"   data-offset-y="416" data-expected-width="200" data-expected-height="25"></div>
 </div>
@@ -136,10 +138,10 @@
 
 <pre>max-flex-sized columns - horizontal grid item - row-axis baseline<br>baseline is not applied initially, but orthogonal items force repeating the track sizing and height is not indefinite in that phase.</pre>
 <!-- https://github.com/w3c/csswg-drafts/issues/3046 -->
-<div class="inline-grid justifyItemsBaseline rows max-flex-columns">
-  <div class="firstRowFirstColumn bigFont verticalLR paddingLeft" data-offset-x="0"   data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
-  <div class="secondRowFirstColumn"                               data-offset-x="35"  data-offset-y="100" data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="firstRowSpanning2AutoColumn width25"                data-offset-x="416" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<div class="inline-grid justifyItemsBaseline auto-rows max-flex-columns">
+  <div class="firstRowFirstColumn bigFont verticalLR paddingLeft" data-offset-x="0"   data-offset-y="0"   data-expected-width="75"  data-expected-height="50">É</div>
+  <div class="secondRowFirstColumn verticalLR"                    data-offset-x="32"  data-offset-y="50"  data-expected-width="80"  data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="firstRowSpanning2AutoColumn width25"                data-offset-x="112" data-offset-y="0"   data-expected-width="25"  data-expected-height="150"></div>
 </div>
 
 <pre>auto-sized rows - verticalLR grid and horizontal item - column-axis baseline</pre>
@@ -179,13 +181,14 @@
 
 <pre>max-flex-sized rows - verticalLR grid and horizontal item - column-axis baseline<br>baseline is not applied initially, but orthogonal items force repeating the track sizing and height is not indefinite in that phase.</pre>
 <!-- https://github.com/w3c/csswg-drafts/issues/3046 -->
-<div class="inline-grid verticalLR alignItemsBaseline columns max-flex-rows">
-  <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="0"   data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
-  <div class="firstRowSecondColumn horizontalTB"       data-offset-x="35"  data-offset-y="100" data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="autoRowAutoColumnSpanning2 width25"      data-offset-x="416" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<div class="inline-grid verticalLR alignItemsBaseline auto-columns max-flex-rows">
+  <div class="firstRowFirstColumn bigFont"        data-offset-x="0"   data-offset-y="0"   data-expected-width="50"  data-expected-height="50">É</div>
+  <div class="firstRowSecondColumn horizontalBT"  data-offset-x="7"  data-offset-y="50"   data-expected-width="80"  data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="autoRowAutoColumnSpanning2 width25" data-offset-x="87" data-offset-y="0"    data-expected-width="25"  data-expected-height="150"></div>
 </div>
 
 <pre>auto-sized rows - verticalRL grid and horizontal item - column-axis baseline</pre>
+<pre>baseline alignment is not supported, because the RL items do not share an alignment context with the LR items</pre>
 <div class="inline-grid verticalRL alignItemsBaseline columns width200">
   <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="125" data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
   <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25"  data-offset-y="100" data-expected-width="175" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
@@ -193,6 +196,7 @@
 </div>
 
 <pre>min-content-sized rows - verticalRL grid and horizontal item - column-axis baseline</pre>
+<pre>baseline alignment is not supported, because the RL items do not share an alignment context with the LR items</pre>
 <div class="inline-grid verticalRL alignItemsBaseline columns min-content-rows">
   <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="25" data-offset-y="0"   data-expected-width="75" data-expected-height="100">É</div>
   <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25" data-offset-y="100" data-expected-width="75" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
@@ -200,6 +204,7 @@
 </div>
 
 <pre>max-content-sized rows - verticalRL grid and horizontal item - column-axis baseline</pre>
+<pre>baseline alignment is not supported, because the RL items do not share an alignment context with the LR items</pre>
 <div class="inline-grid verticalRL alignItemsBaseline columns max-content-rows">
   <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="366" data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
   <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25"  data-offset-y="100" data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
@@ -207,25 +212,27 @@
 </div>
 
 <pre>fit-content-sized rows - verticalRL grid and horizontal item - column-axis baseline</pre>
-<div class="inline-grid verticalRL alignItemsBaseline columns fit-content-rows">
-  <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="366" data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
-  <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25"  data-offset-y="100" data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="autoRowAutoColumnSpanning2 width25"      data-offset-x="0"   data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<pre>baseline alignment is not supported, because the RL items do not share an alignment context with the LR items</pre>
+<div class="inline-grid verticalRL alignItemsBaseline auto-columns fit-content-rows">
+  <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="366" data-offset-y="0"   data-expected-width="75"  data-expected-height="50">É</div>
+  <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25"  data-offset-y="50" data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="autoRowAutoColumnSpanning2 width25"      data-offset-x="0"   data-offset-y="0"   data-expected-width="25"  data-expected-height="150"></div>
 </div>
 
 <pre>flex-sized rows - verticalRL grid and horizontal item - column-axis baseline</pre>
-<div class="inline-grid verticalRL alignItemsBaseline columns flex-rows">
-  <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="366" data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
-  <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25"  data-offset-y="100" data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="autoRowAutoColumnSpanning2 width25"      data-offset-x="0"   data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<pre>baseline alignment is not supported, because the RL items do not share an alignment context with the LR items</pre>
+<div class="inline-grid verticalRL alignItemsBaseline auto-columns flex-rows">
+  <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="366" data-offset-y="0"   data-expected-width="75"  data-expected-height="50">É</div>
+  <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25"  data-offset-y="50" data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="autoRowAutoColumnSpanning2 width25"      data-offset-x="0"   data-offset-y="0"   data-expected-width="25"  data-expected-height="150"></div>
 </div>
 
-<pre>max-flex-sized rows - verticalRL grid and horizontal item - column-axis baseline<br>baseline is not applied initially, but orthogonal items force repeating the track sizing and height is not indefinite in that phase.</pre>
-<!-- https://github.com/w3c/csswg-drafts/issues/3046 -->
-<div class="inline-grid verticalRL alignItemsBaseline columns max-flex-rows">
-  <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="-10" data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
-  <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25"  data-offset-y="100" data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="autoRowAutoColumnSpanning2 width25"      data-offset-x="0"   data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<pre>max-flex-sized rows - verticalRL grid and horizontal item - column-axis baseline</pre>
+<pre>baseline alignment is not supported, because the RL items do not share an alignment context with the LR items</pre>
+<div class="inline-grid verticalRL alignItemsBaseline auto-columns max-flex-rows">
+  <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="366"  data-offset-y="0"   data-expected-width="75"  data-expected-height="50">É</div>
+  <div class="firstRowSecondColumn horizontalTB"       data-offset-x="25"   data-offset-y="50"  data-expected-width="416" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="autoRowAutoColumnSpanning2 width25"      data-offset-x="0"    data-offset-y="0"   data-expected-width="25"  data-expected-height="150"></div>
 </div>
 
 </body>

@@ -46,7 +46,7 @@ import tempfile
 import zipfile
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from wpt.utils import get_download_to_descriptor
+from wpt.utils import get_download_to_descriptor  # type: ignore
 
 root = os.path.abspath(
     os.path.join(os.path.dirname(__file__),
@@ -419,4 +419,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main()  # type: ignore

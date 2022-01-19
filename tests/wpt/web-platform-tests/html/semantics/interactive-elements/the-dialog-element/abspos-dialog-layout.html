@@ -40,11 +40,6 @@ dialog {
 <script>
 "use strict";
 
-function checkNotVerticallyCentered(dialog) {
-    var centeredTop = (document.documentElement.clientHeight - dialog.offsetHeight) / 2;
-    assert_not_equals(dialog.getBoundingClientRect().top, centeredTop);
-}
-
 function checkVerticallyCentered(dialog) {
     var centeredTop = (document.documentElement.clientHeight - dialog.offsetHeight) / 2;
     // Using approx equals because getBoundingClientRect() and centeredTop
@@ -155,8 +150,8 @@ test(function() {
     dialog.remove();
 
     relativeContainer.appendChild(dialog);
-    checkVerticallyCentered(dialog);
-}, "Dialog should still be centered when removed, and re-added to the document.");
+    assert_equals(relativeContainer.getBoundingClientRect().top, dialog.getBoundingClientRect().top);
+}, "Dialog should not still be centered when removed, and re-added to the document.");
 
 test(function() {
     this.add_cleanup(reset);

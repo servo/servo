@@ -13,35 +13,24 @@ promise_test(async test => {
   const cookie_same_origin = "same_origin";
   const cookie_cross_origin = "cross_origin";
 
-  // Set cookie on the same_origin.
-  document.cookie = `${cookie_key}=${cookie_same_origin}`;
-
-  // Set cookie on a different origin.
-  {
-    const w_token = token();
-    const w_url = cross_origin + executor_path + `&uuid=${w_token}`;
-    const w = window.open(w_url);
-
-    const reply_token = token();
-    send(w_token, `
-      document.cookie = "${cookie_key}=${cookie_cross_origin}";
-      send("${reply_token}", "done");
-    `);
-    assert_equals(await receive(reply_token), "done");
-    w.close();
-  }
+  await Promise.all([
+    setCookie(same_origin, cookie_key, cookie_same_origin),
+    setCookie(cross_origin, cookie_key, cookie_cross_origin),
+  ]);
 
   // One window with COEP:none. (control)
   const w_control_token = token();
   const w_control_url = same_origin + executor_path +
     coep_none + `&uuid=${w_control_token}`
   const w_control = window.open(w_control_url);
+  add_completion_callback(() => w_control.close());
 
   // One window with COEP:credentialless. (experiment)
   const w_credentialless_token = token();
   const w_credentialless_url = same_origin + executor_path +
     coep_credentialless + `&uuid=${w_credentialless_token}`;
   const w_credentialless = window.open(w_credentialless_url);
+  add_completion_callback(() => w_credentialless.close());
 
   const fetchTest = function(
     description, origin, mode, credentials,
@@ -136,10 +125,6 @@ promise_test(async test => {
     cross_origin, 'no-cors', 'same-origin',
     undefined,
     undefined);
-
-  // Cleanup. Safe, because scheduled after every requests from `fetchTest`.
-  send(w_control_token, `close()`);
-  send(w_credentialless_token, `close()`);
 }, "");
 
 </script>

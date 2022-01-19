@@ -10,6 +10,10 @@
     //  Set-Cookie: domain-attribute-missing=b; Path=/
     //
     const cookieName = "domain-attribute-missing";
+    // Clean up cookie at the end to avoid interfering with subsequent tests.
+    add_completion_callback(tests => document.cookie =
+      `${cookieName}=0; Path=/; expires=01-jan-1970 00:00:00 GMT`);
+
     test(t => {
       assert_dom_cookie(cookieName, "b", true);
     }, "No domain attribute => available via `document.cookie`");

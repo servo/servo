@@ -77,7 +77,7 @@ const elements = [
 ];
 
 idl_test(
-  ['SVG'],
+  ['SVG', 'svg-animations'],
   ['cssom', 'web-animations', 'html', 'dom'],
   idlArray => {
     const svgUrl = 'http://www.w3.org/2000/svg';

@@ -3,13 +3,18 @@
 <head>
 <meta charset="utf-8">
 <title>Verify that one can override the layout of MathML elements with the CSS display property</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
 <meta name="assert" content="Verify that one can override the display of a MathML element.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/layout-comparison.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
+<script src="/mathml/support/fonts.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
+  math {
+      font-family: inherit;
+  }
   mfrac {
       padding: 0;
   }
@@ -97,7 +102,7 @@
   };
 
   setup({ explicit_done: true });
-  window.addEventListener("load", runTests);
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function runTests() {
 
@@ -108,7 +113,7 @@
               replace(/X/g, `<mspace style="display: inline-block; width: ${Xsize}px; height: ${Xsize}px; background: black"></mspace>`);
           let reference = mathtest.
               replace(/maction|math|mfrac|mmultiscripts|mover|mover|mpadded|mrow|mspace|msubsup|msub|msup|mtable|munderover|munder/g, "div");
-          document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\
+          document.body.insertAdjacentHTML("beforeend", `<div style="font: 20px/1 Ahem; position: absolute;">\
 <div><span>${key}:</span>${mathtest}</div>\
 <div><span>${key}:</span>${reference}</div>\
 </div>`);

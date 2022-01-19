@@ -27,4 +27,17 @@
     d2.open = false;
     assert_false(d2.hasAttribute("open"));
   }, "On setting, the content open attribute must be removed if the IDL open attribute is set to false, and must be present if the IDL open attribute is set to true.");
+
+  async_test(function(t){
+    d2.open = true;
+    assert_true(d2.hasAttribute("open"));
+    d2.onclose = t.unreached_func("close event should not be fired when just setting the open attribute");
+    d2.open = false;
+    assert_false(d2.hasAttribute("open"));
+
+    // close event is async, give it a chance to be fired
+    t.step_timeout(function() {
+      t.done();
+    }, 0);
+  }, "On setting it to false, the close event should not be fired");
 </script>

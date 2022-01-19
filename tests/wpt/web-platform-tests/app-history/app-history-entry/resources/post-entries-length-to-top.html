@@ -1,0 +1,7 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script>
+// Wait for after the load event so that the navigation doesn't get converted
+// into a replace navigation.
+window.onload = () => step_timeout(() => top.postMessage(appHistory.entries().length, "*"), 0);
+</script>

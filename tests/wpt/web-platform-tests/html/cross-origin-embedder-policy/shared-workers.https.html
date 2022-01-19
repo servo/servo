@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>COEP - policy derivation for Shared Workers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<p>Verify the Cross-Origin Embedder Policy for Shared Workers by performing a
+cross-domain "fetch" request for a resource that does not specify a COEP. Only
+Shared Workers with the default COEP should be able to successfully perform
+this operation.</p>
+<script>
+'use strict';
+
+const {ORIGIN, REMOTE_ORIGIN} = get_host_info();
+const BASE = new URL("resources", location).pathname
+const testUrl = `${REMOTE_ORIGIN}${BASE}/empty-coep.py`;
+const workerHttpUrl = `${ORIGIN}${BASE}/shared-worker-fetch.js.py`;
+let workerBlobUrl;
+let workerDataUrl;
+
+promise_setup(() => {
+  return fetch(workerHttpUrl)
+    .then((response) => response.text())
+    .then((text) => {
+      workerDataUrl = 'data:text/javascript;base64,' + btoa(text);
+      workerBlobUrl = URL.createObjectURL(
+        new Blob([text], { 'Content-Type': 'text/javascript' })
+      );
+    });
+});
+
+/**
+ * Create a Shared Worker within an iframe
+ *
+ * @param {object} t - a testharness.js subtest instance (used to reset global
+ *                     state)
+ * @param {string} ownerCoep - the Cross-Origin Embedder Policy of the iframe
+ * @param {string} workerUrl - the URL from which the Shared Worker should be
+ *                             created
+ */
+function create(t, ownerCoep, workerUrl) {
+  const iframe = document.createElement('iframe');
+  iframe.src = 'resources/empty-coep.py' +
+    (ownerCoep ? '?value=' + ownerCoep : '');
+
+  return new Promise((resolve, reject) => {
+      document.body.appendChild(iframe);
+      t.add_cleanup(() => iframe.remove());
+      iframe.onload = () => resolve(iframe);
+    })
+    .then((iframe) => {
+      const sw = new iframe.contentWindow.SharedWorker(workerUrl);
+
+      return new Promise((resolve) => {
+        sw.port.addEventListener('message', () => resolve(sw), { once: true });
+        sw.port.start();
+      });
+    });
+}
+
+/**
+ * Instruct a Shared Worker to fetch from a specified URL and report on the
+ * success of the operation.
+ *
+ * @param {SharedWorker} worker
+ * @param {string} url - the URL that the worker should fetch
+ */
+function fetchFromWorker(worker, url) {
+  return new Promise((resolve) => {
+    worker.port.postMessage(url);
+    worker.port.addEventListener(
+      'message', (event) => resolve(event.data), { once: true }
+    );
+  });
+};
+
+promise_test((t) => {
+  return create(t, null, workerHttpUrl)
+    .then((worker) => fetchFromWorker(worker, testUrl))
+    .then((result) => assert_equals(result, 'success'));
+}, 'default policy (derived from response)');
+
+promise_test((t) => {
+  return create(t, null, workerHttpUrl + '?value=require-corp')
+    .then((worker) => fetchFromWorker(worker, testUrl))
+    .then((result) => assert_equals(result, 'failure'));
+}, '"require-corp" (derived from response)');
+
+promise_test((t) => {
+  return Promise.all([
+      create(t, null, workerBlobUrl),
+      create(t, null, workerBlobUrl),
+      create(t, null, workerBlobUrl)
+    ])
+    .then((workers) => fetchFromWorker(workers[0], testUrl))
+    .then((result) => assert_equals(result, 'success'));
+}, 'default policy (derived from owner set due to use of local scheme - blob URL)');
+
+promise_test((t) => {
+  return Promise.all([
+      create(t, null, workerBlobUrl),
+      create(t, 'require-corp', workerBlobUrl),
+      create(t, null, workerBlobUrl)
+    ])
+    .then((workers) => fetchFromWorker(workers[0], testUrl))
+    .then((result) => assert_equals(result, 'failure'));
+}, '"require-corp" (derived from owner set due to use of local scheme - blob URL)');
+
+promise_test((t) => {
+  return Promise.all([
+      create(t, null, workerDataUrl),
+      create(t, null, workerDataUrl),
+      create(t, null, workerDataUrl)
+    ])
+    .then((workers) => fetchFromWorker(workers[0], testUrl))
+    .then((result) => assert_equals(result, 'success'));
+}, 'default policy (derived from owner set due to use of local scheme - data URL)');
+
+promise_test((t) => {
+  return Promise.all([
+      create(t, null, workerDataUrl),
+      create(t, 'require-corp', workerDataUrl),
+      create(t, null, workerDataUrl)
+    ])
+    .then((workers) => fetchFromWorker(workers[0], testUrl))
+    .then((result) => assert_equals(result, 'failure'));
+}, '"require-corp" (derived from owner set due to use of local scheme - data URL)');
+</script>
+</body>
+</html>

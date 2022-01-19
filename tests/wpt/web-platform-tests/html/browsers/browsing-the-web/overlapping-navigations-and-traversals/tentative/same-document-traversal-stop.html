@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Stop during same-document traversals</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  The spec currently says that stop() must stop traverals, but this does not
+  match browsers: https://github.com/whatwg/html/issues/6905. This test assumes
+  browser behavior.
+-->
+
+<body>
+<script type="module">
+import { createIframe, delay } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.location.hash = "#1";
+  await delay(t, 0);
+  iframe.contentWindow.location.hash = "#2";
+  await delay(t, 0);
+
+  iframe.contentWindow.history.back();
+
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not go back synchronously");
+
+  window.stop();
+
+  // Does go back eventually
+  await t.step_wait(() => iframe.contentWindow.location.hash === "#1");
+}, "same-document traversals are not stopped by stop()");
+</script>

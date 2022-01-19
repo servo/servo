@@ -74,13 +74,13 @@ function deferTest() {
   _deferred = true;
 }
 
-function _addTest(testFn)
+function _addTest(testFn, attributes={})
 {
     on_event(window, "load", function()
     {
         t.step(function() {
             var canvas = document.getElementById('c');
-            var ctx = canvas.getContext('2d');
+            var ctx = canvas.getContext('2d', attributes);
             t.step(testFn, window, canvas, ctx);
         });
 

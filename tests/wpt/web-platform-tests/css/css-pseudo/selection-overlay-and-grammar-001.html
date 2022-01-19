@@ -13,21 +13,7 @@
   <meta content="" name="flags">
   <meta name="assert" content="In this test, the div::selection pseudo-element must be drawn over the div::grammar-error overlay.">
 
-  <!--
-
-  The initial version of this test was relying on color
-  composition and was predicting a lime-green-ish (#7FBF80:
-  slightly desaturated lime green) background color for "thing".
-
-  "#7fbf80 color description : Slightly desaturated lime green"
-  https://www.colorhexa.com/7fbf80
-
-  This test does not rely on color composition but the
-  test nevertheless verifies the ::selection overlay drawn
-  over the ::grammar-error overlay.
-
-  -->
-
+  <link rel="stylesheet" href="support/highlights.css">
   <style>
   div
     {
@@ -74,7 +60,7 @@
     • spellcheck tries to enable spelling and grammar checking (subject to user preferences)
     • lang tries to guide the UA towards checking the text in English (but the UA may ignore this)
   -->
-  <div id="test" contenteditable="true" spellcheck="true" lang="en">The fox jumps over the dog.the fox jumps over the dog.</div>
+  <div id="test" class="highlight_reftest" contenteditable="true" spellcheck="true" lang="en">Many thing can happen.</div>
 
   <script>
   const test = document.querySelector("#test");

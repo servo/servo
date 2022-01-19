@@ -3,13 +3,14 @@
   <head>
     <title>displaystyle</title>
     <meta charset="utf-8">
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#style-change-mstyle">
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#table-or-matrix-mtable">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#style-change-mstyle">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#table-or-matrix-mtable">
     <link rel="match" href="displaystyle-013-ref.html"/>
     <meta name="assert" content="Test dynamic change of displaystyle">
+    <script src="/mathml/support/fonts.js"></script>
     <script type="text/javascript">
       function doTest() {
         document.body.offsetTop; // Update layout
@@ -21,7 +22,7 @@
         document.getElementById("m6").removeAttribute("displaystyle");
         document.documentElement.removeAttribute("class");
       }
-      window.addEventListener("load", () => { document.fonts.ready.then(doTest); });
+      window.addEventListener("load", () => { loadAllFonts().then(doTest); });
     </script>
     <link rel="stylesheet" href="/fonts/ahem.css">
     <style>

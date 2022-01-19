@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scrollbars: scrollbar-width:none on the root element</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com" />
+<link rel="help" href="https://www.w3.org/TR/css-scrollbars-1/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  :root {
+    /* CSS scrollbar properties applied to the root element
+       will be propagated to the viewport. */
+    scrollbar-width: none;
+    /* Use scrollbar-gutter to reserve space for the scrollbar. */
+    scrollbar-gutter: stable;
+  }
+
+  :root,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #content {
+    height: 10vh;
+    width: 100%;
+    background: lightsalmon;
+  }
+
+  #expander {
+    /* force vertical scroll */
+    height: 200vh;
+    width: 300px;
+    background: gray;
+  }
+</style>
+
+<body>
+
+  <div id="content"></div>
+
+  <div id="expander"></div>
+
+  <script type="text/javascript">
+    setup({ explicit_done: true });
+
+    test(function () {
+      let root = document.documentElement;
+      let body = document.body;
+      let content = document.getElementById('content');
+
+      assert_equals(root.offsetWidth, window.innerWidth, "viewport does not show a scrollbar");
+      assert_equals(body.offsetWidth, root.offsetWidth, "body matches root");
+      assert_equals(content.offsetWidth, body.offsetWidth, "content matches body");
+    }, "viewport does not display a scrollbar");
+
+    done();
+
+  </script>
+</body>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Test the 'connect-src' directive on dedicated workers -->
+<script>
+  let reportCookieName = location.pathname.split('/')[
+    location.pathname.split('/').length - 1].split('.')[0];
+  let reportID = document.cookie.split('; ')
+      .find(cookie => cookie.startsWith(reportCookieName + '='))
+      .split('=')[1].trim();
+
+  promise_test(async t => {
+    // Dedicated workers honor CSP received in their response headers.
+    await fetch_tests_from_worker(
+      new Worker(
+        `./support/connect-src-self.sub.js?id=${reportID}` +
+          `&test-name=connect-src 'self'` +
+          `&pipe=sub|header(Content-Security-Policy,` +
+          `connect-src 'self' ; report-uri ` +
+          `/reporting/resources/report.py?op=put%26reportID=${reportID})`));
+
+
+    let blob = await fetch(`./support/connect-src-self.sub.js?id=${reportID}` +
+                        `&test-name=connect-src 'self'`)
+        .then(r => r.blob());
+
+    // 'blob:' URL workers inherit CSP.
+    let blob_url = URL.createObjectURL(blob);
+    await fetch_tests_from_worker(new Worker(blob_url));
+
+    if (window.webkitRequestFileSystem) {
+      // 'filesystem:' URL workers inherit CSP.
+      let fs = await new Promise(resolve =>
+        window.webkitRequestFileSystem(window.TEMPORARY, 1024*1024, resolve));
+
+      let fs_entry = await new Promise(resolve =>
+        fs.root.getFile('dedicated-connect-src.js',
+                        { create: true }, resolve));
+
+      let writer = await new Promise(resolve => fs_entry.createWriter(resolve));
+
+      writer.onerror = t.unreached_func("Could not write to filesystem entry");
+
+      writer.write(blob);
+      await new Promise(resolve => writer.onwriteend = resolve);
+
+      let fs_url = fs_entry.toURL();
+      await fetch_tests_from_worker(new Worker(fs_url));
+
+      await new Promise(resolve => fs_entry.remove(resolve));
+    }
+
+    // Dedicated workers do not inherit CSP in general.
+    // We put this at the end since chrome is failing this at the moment, and
+    // this sends reports which would make the report checks in the other tests
+    // fail.
+    await fetch_tests_from_worker(
+      new Worker("./support/connect-src-allow.sub.js"));
+  });
+</script>

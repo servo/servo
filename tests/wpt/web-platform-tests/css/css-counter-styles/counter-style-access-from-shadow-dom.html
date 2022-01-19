@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Counter styles defined in the document tree scope should be globally accessible</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#the-counter-style-rule">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="counter-style-access-from-shadow-dom-ref.html">
+
+<style>
+@counter-style foo {
+  system: fixed;
+  symbols: A B C;
+}
+</style>
+
+<div id="host"></div>
+
+<script>
+document.getElementById("host").attachShadow({mode: 'open'}).innerHTML = `
+<ol style="list-style-type: foo; list-style-position: inside">
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+`
+</script>

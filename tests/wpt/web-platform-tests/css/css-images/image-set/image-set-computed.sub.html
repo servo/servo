@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Image set computed value</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#serialization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target"></div>
+<script>
+function test_computed_value_variants(property, specified, computed) {
+  if (!computed) computed = specified;
+  test_computed_value(property, specified, computed);
+  test_computed_value(property, "-webkit-" + specified, computed);
+}
+
+test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) 1x)", 'image-set(url("http://{{host}}/example.png") 1dppx)');
+test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) 1x, 'http://{{host}}/example.png' 2x)", 'image-set(url("http://{{host}}/example.png") 1dppx, url("http://{{host}}/example.png") 2dppx)');
+test_computed_value_variants('background-image', 'image-set(url("http://{{host}}/example.png") 1dppx)');
+test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) 48dpi)", 'image-set(url("http://{{host}}/example.png") 0.5dppx)');
+test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) 2400dpcm, 'http://{{host}}/example.png' 2x)", 'image-set(url("http://{{host}}/example.png") 63.5dppx, url("http://{{host}}/example.png") 2dppx)');
+test_computed_value_variants('background-image', "image-set('http://{{host}}/example.jpeg' 240dpi, url(http://{{host}}/example.png) 3.5x)", 'image-set(url("http://{{host}}/example.jpeg") 2.5dppx, url("http://{{host}}/example.png") 3.5dppx)');
+test_computed_value_variants('background-image', "image-set(linear-gradient(black, white) 1x)", "image-set(linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255)) 1dppx)");
+test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) 1x type('image/png'))", 'image-set(url("http://{{host}}/example.png") 1dppx type("image/png"))');
+test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) type('image/png'))", 'image-set(url("http://{{host}}/example.png") 1dppx type("image/png"))');
+test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) type('image/png') 1x)", 'image-set(url("http://{{host}}/example.png") 1dppx type("image/png"))');
+test_computed_value_variants('content', "image-set(url('http://{{host}}/example.png') 192dpi, linear-gradient(black, white) 1x)", 'image-set(url("http://{{host}}/example.png") 2dppx, linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255)) 1dppx)');
+</script>

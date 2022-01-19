@@ -1,0 +1,43 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(() => {
+    assert_equals(appHistory.entries().length, 1);
+
+    let onnavigate_count = 0;
+    appHistory.onnavigate = () => onnavigate_count++;
+
+    let key = appHistory.current.key;
+    appHistory.navigate("#")
+      .then(t.step_func(() => {
+        assert_equals(appHistory.entries().length, 2);
+        assert_equals(appHistory.current, appHistory.entries()[1]);
+        assert_not_equals(key, appHistory.current.key);
+        return appHistory.goTo(key);
+      }))
+      .then(t.step_func(() => {
+        assert_equals(appHistory.entries().length, 2);
+        assert_equals(appHistory.current, appHistory.entries()[0]);
+        assert_equals(key, appHistory.current.key);
+        assert_true(appHistory.canGoForward);
+        return appHistory.forward();
+      }))
+      .then(t.step_func(() => {
+        assert_equals(appHistory.entries().length, 2);
+        assert_equals(appHistory.current, appHistory.entries()[1]);
+        assert_true(appHistory.canGoBack);
+        return appHistory.back();
+      }))
+      .then(t.step_func_done(() => {
+        assert_equals(appHistory.entries().length, 2);
+        assert_equals(appHistory.current, appHistory.entries()[0]);
+        assert_equals(key, appHistory.current.key);
+        assert_equals(onnavigate_count, 4);
+      }));
+  }, 0);
+}, "same-document navigate.goTo(), back(), and forward()");
+</script>

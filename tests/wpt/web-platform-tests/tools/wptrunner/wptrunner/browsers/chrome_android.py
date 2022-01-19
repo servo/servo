@@ -3,6 +3,7 @@ import subprocess
 
 from .base import Browser, ExecutorBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
+from .base import NullBrowser  # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
 from ..webdriver_server import ChromeDriverServer
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
@@ -12,7 +13,8 @@ from ..executors.executorchrome import ChromeDriverWdspecExecutor  # noqa: F401
 
 __wptrunner__ = {"product": "chrome_android",
                  "check_args": "check_args",
-                 "browser": "ChromeAndroidBrowser",
+                 "browser": {None: "ChromeAndroidBrowser",
+                             "wdspec": "NullBrowser"},
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
                               "wdspec": "ChromeDriverWdspecExecutor"},
@@ -35,20 +37,19 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "device_serial": kwargs["device_serial"],
             "webdriver_binary": kwargs["webdriver_binary"],
             "webdriver_args": kwargs.get("webdriver_args"),
-            "stackparser_script": kwargs.get("stackparser_script"),
-            "output_directory": kwargs.get("output_directory")}
+            "stackwalk_binary": kwargs.get("stackwalk_binary"),
+            "symbols_path": kwargs.get("symbols_path")}
 
 
-def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
+def executor_kwargs(logger, test_type, test_environment, run_info_data,
                     **kwargs):
     # Use update() to modify the global list in place.
     _wptserve_ports.update(set(
-        server_config['ports']['http'] + server_config['ports']['https'] +
-        server_config['ports']['ws'] + server_config['ports']['wss']
+        test_environment.config['ports']['http'] + test_environment.config['ports']['https'] +
+        test_environment.config['ports']['ws'] + test_environment.config['ports']['wss']
     ))
 
-    executor_kwargs = chrome_executor_kwargs(logger, test_type, server_config,
-                                             cache_manager, run_info_data,
+    executor_kwargs = chrome_executor_kwargs(logger, test_type, test_environment, run_info_data,
                                              **kwargs)
     # Remove unsupported options on mobile.
     del executor_kwargs["capabilities"]["goog:chromeOptions"]["prefs"]
@@ -70,6 +71,7 @@ def env_extras(**kwargs):
 def env_options():
     # allow the use of host-resolver-rules in lieu of modifying /etc/hosts file
     return {"server_host": "127.0.0.1"}
+
 
 class LogcatRunner(object):
     def __init__(self, logger, browser, remote_queue):
@@ -115,11 +117,13 @@ class LogcatRunner(object):
 
     def on_output(self, line):
         data = {
+            "action": "process_output",
             "process": "LOGCAT",
             "command": "logcat",
             "data": line
         }
-        self._send_message("log", "process_output", data)
+        self._send_message("log", data)
+
 
 class ChromeAndroidBrowserBase(Browser):
     def __init__(self, logger,
@@ -127,12 +131,12 @@ class ChromeAndroidBrowserBase(Browser):
                  remote_queue = None,
                  device_serial=None,
                  webdriver_args=None,
-                 stackparser_script=None,
-                 output_directory=None):
+                 stackwalk_binary=None,
+                 symbols_path=None):
         super(ChromeAndroidBrowserBase, self).__init__(logger)
         self.device_serial = device_serial
-        self.stackparser_script = stackparser_script
-        self.output_directory = output_directory
+        self.stackwalk_binary = stackwalk_binary
+        self.symbols_path = symbols_path
         self.remote_queue = remote_queue
         self.server = ChromeDriverServer(self.logger,
                                          binary=webdriver_binary,
@@ -189,15 +193,21 @@ class ChromeAndroidBrowserBase(Browser):
         cmd.extend(['logcat', '*:D'])
         return cmd
 
-    def maybe_parse_tombstone(self, logger):
-        if self.stackparser_script:
-            cmd = [self.stackparser_script, "-a", "-w"]
+    def check_crash(self, process, test):
+        self.maybe_parse_tombstone()
+        # Existence of a tombstone does not necessarily mean test target has
+        # crashed. Always return False so we don't change the test results.
+        return False
+
+    def maybe_parse_tombstone(self):
+        if self.stackwalk_binary:
+            cmd = [self.stackwalk_binary, "-a", "-w"]
             if self.device_serial:
                 cmd.extend(["--device", self.device_serial])
-            cmd.extend(["--output-directory", self.output_directory])
+            cmd.extend(["--output-directory", self.symbols_path])
             raw_output = subprocess.check_output(cmd)
             for line in raw_output.splitlines():
-                logger.process_output("TRACE", line, "logcat")
+                self.logger.process_output("TRACE", line, "logcat")
 
     def setup_adb_reverse(self):
         self._adb_run(['wait-for-device'])
@@ -217,10 +227,10 @@ class ChromeAndroidBrowser(ChromeAndroidBrowserBase):
                  remote_queue = None,
                  device_serial=None,
                  webdriver_args=None,
-                 stackparser_script=None,
-                 output_directory=None):
+                 stackwalk_binary=None,
+                 symbols_path=None):
         super(ChromeAndroidBrowser, self).__init__(logger,
                 webdriver_binary, remote_queue, device_serial,
-                webdriver_args, stackparser_script, output_directory)
+                webdriver_args, stackwalk_binary, symbols_path)
         self.package_name = package_name
         self.wptserver_ports = _wptserve_ports

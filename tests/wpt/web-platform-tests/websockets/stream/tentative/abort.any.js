@@ -1,7 +1,9 @@
-// META: script=../../websocket.sub.js
+// META: script=../../constants.sub.js
 // META: script=resources/url-constants.js
 // META: script=/common/utils.js
 // META: global=window,worker
+// META: variant=?wss
+// META: variant=?wpt_flags=h2
 
 promise_test(async t => {
   const controller = new AbortController();

@@ -1,6 +1,6 @@
 from os.path import join, dirname
+from unittest import mock
 
-import mock
 import pytest
 
 from .base import all_products, active_products
@@ -14,7 +14,7 @@ environment.do_delayed_imports(None, test_paths)
 @active_products("product")
 def test_load_active_product(product):
     """test we can successfully load the product of the current testenv"""
-    products.load_product({}, product)
+    products.Product({}, product)
     # test passes if it doesn't throw
 
 
@@ -22,7 +22,7 @@ def test_load_active_product(product):
 def test_load_all_products(product):
     """test every product either loads or throws ImportError"""
     try:
-        products.load_product({}, product)
+        products.Product({}, product)
     except ImportError:
         pass
 
@@ -31,12 +31,9 @@ def test_load_all_products(product):
     "sauce": pytest.mark.skip("needs env extras kwargs"),
 })
 def test_server_start_config(product):
-    (check_args,
-     target_browser_cls, get_browser_kwargs,
-     executor_classes, get_executor_kwargs,
-     env_options, get_env_extras, run_info_extras) = products.load_product({}, product)
+    product_data = products.Product({}, product)
 
-    env_extras = get_env_extras()
+    env_extras = product_data.get_env_extras()
 
     with mock.patch.object(environment.serve, "start") as start:
         with environment.TestEnvironment(test_paths,
@@ -44,14 +41,14 @@ def test_server_start_config(product):
                                          False,
                                          False,
                                          None,
-                                         env_options,
+                                         product_data.env_options,
                                          {"type": "none"},
                                          env_extras):
             start.assert_called_once()
             args = start.call_args
-            config = args[0][0]
-            if "server_host" in env_options:
-                assert config["server_host"] == env_options["server_host"]
+            config = args[0][1]
+            if "server_host" in product_data.env_options:
+                assert config["server_host"] == product_data.env_options["server_host"]
             else:
                 assert config["server_host"] == config["browser_host"]
             assert isinstance(config["bind_address"], bool)

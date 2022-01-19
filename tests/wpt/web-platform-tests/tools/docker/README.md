@@ -1,7 +1,7 @@
 This docker images is used for testing Chrome, Firefox, WebKitGTK and running
 other tasks on Taskcluster. When any of the files in this directory change, the
 images must be updated as well. Doing this requires you be part of the
-'webplatformtests' organization on Docker Hub; ping @Hexcles or @stephenmcgruer
+'webplatformtests' organization on Docker Hub; ping @foolip or @jpchase
 if you are not a member.
 
 The tag for a new docker image is of the form

@@ -8,6 +8,7 @@
 <link rel="help" title="5.2. Breaking Rules for Letters: the word-break property" href="https://drafts.csswg.org/css-text-3/#word-break-property">
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-word-break-break-all">
 <link rel="match" href="reference/white-space-pre-wrap-trailing-spaces-004-ref.html">
+<link rel="match" href="reference/white-space-pre-wrap-trailing-spaces-alt-004-ref.html">
 <meta name="assert" content="Preserved white space at the end of a soft-wrapped line is hanged when white-space is pre-wrap.">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
 <style>
@@ -20,6 +21,7 @@ div {
   white-space: pre-wrap;
   word-break: break-all;
 }
+span { background: blue; } /* If the space is removed instead of hanging, there will be no blue box*/
 </style>
 
 <p>This test passes if there is a green square and no red.

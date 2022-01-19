@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>Space-like elements</title>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#definition-of-space-like-elements">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#layout-of-mrow">
+<link rel="help" href="https://w3c.github.io/mathml-core/#definition-of-space-like-elements">
+<link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-mrow">
 <meta name="assert" content="Verify definition of space-like elements">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -119,6 +119,18 @@
           assert_approx_equals(spaceBefore("merror2"), 0, epsilon);
           assert_approx_equals(spaceAfter("merror2"), 2 * emToPx, epsilon);
       }, "non-space-like merror");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_operator_spacing());
+          assert_approx_equals(spaceBefore("menclose1"), emToPx, epsilon);
+          assert_approx_equals(spaceAfter("menclose1"), emToPx, epsilon);
+      }, "space-like menclose");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_operator_spacing());
+          assert_approx_equals(spaceBefore("menclose2"), 0, epsilon);
+          assert_approx_equals(spaceAfter("menclose2"), 2 * emToPx, epsilon);
+      }, "non-space-like menclose");
 
       done();
   }
@@ -289,6 +301,36 @@
           <mn>X</mn>
           <mspace width="25px" height="10px"></mspace>
         </merror>
+        <mo lspace="1em" rspace="0em">X</mo>
+      </mrow>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mrow>
+        <!-- menclose is space-like when it contains only space-like
+             elements. -->
+        <menclose id="menclose1" class="testedElement">
+          <mtext>X</mtext>
+          <mspace width="25px" height="10px"></mspace>
+        </menclose>
+        <mo lspace="1em" rspace="0em">X</mo>
+      </mrow>
+      <mn>X</mn>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mn>X</mn>
+      <mrow>
+        <!-- menclose is not space-like when it contains a non space-like
+             element such as "mn". -->
+        <menclose id="menclose2" class="testedElement">
+          <mn>X</mn>
+          <mspace width="25px" height="10px"></mspace>
+        </menclose>
         <mo lspace="1em" rspace="0em">X</mo>
       </mrow>
       <mn>X</mn>

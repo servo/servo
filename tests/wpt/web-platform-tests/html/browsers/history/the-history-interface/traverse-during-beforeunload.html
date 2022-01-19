@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Traversing the history during beforeunload</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+async_test(t => {
+  const w = window.open("resources/message-opener.sub.html?id=start");
+  t.add_cleanup(() => w.close());
+
+  const messages = [];
+  window.addEventListener("message", t.step_func(({ data }) => {
+    messages.push(data);
+
+    if (messages.length === 1) {
+      assert_array_equals(messages, ["start"]);
+      w.location.href = "resources/traverse-during-beforeunload.html";
+    } else if (messages.length === 2) {
+      assert_array_equals(messages, ["start", "destination"]);
+      t.done();
+    }
+  }));
+});
+</script>

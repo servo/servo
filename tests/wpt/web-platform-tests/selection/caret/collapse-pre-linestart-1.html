@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>selection.collapse() to line start</title>
+<link rel="author" title="Kagami Sascha Rosylight" href="mailto:krosylight@mozilla.com">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-collapse">
+<link rel="match" href="collapse-pre-linestart-ref.html">
+<meta name="assert" content="The caret must appear at the start of the second line.">
+<pre id=target contenteditable>ABC
+<br></pre>
+<script>
+  getSelection().collapse(target.childNodes[0], 4);
+</script>

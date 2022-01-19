@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Web OTP API (https://wicg.github.io/web-otp/)
+// Source: WebOTP API (https://wicg.github.io/web-otp/)
 
 [Exposed=Window, SecureContext]
 interface OTPCredential : Credential {

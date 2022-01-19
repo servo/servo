@@ -8,6 +8,6 @@ partial interface Navigator {
 };
 
 [SecureContext, Exposed=Window] interface Keyboard {
-  Promise<void> lock(optional sequence<DOMString> keyCodes = []);
-  void unlock();
+  Promise<undefined> lock(optional sequence<DOMString> keyCodes = []);
+  undefined unlock();
 };

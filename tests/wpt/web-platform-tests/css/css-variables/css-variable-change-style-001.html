@@ -58,8 +58,8 @@
             initializeStyles();
             inner.style.cssText = testcase.property + ': var(--x)';
             testcase.values.forEach(function (value) {
-                outer.style.cssText = "--x:" + value.outer;
-                inbetween.style.cssText = "--x:" + value.inbetween;
+                outer.style.cssText = value.outer ? "--x:" + value.outer : "";
+                inbetween.style.cssText = value.inbetween ? "--x:" + value.inbetween : "";
                 let computedStyle = getComputedStyle(inner);
                 let actualValue = computedStyle.getPropertyValue(testcase.property);
                 assert_equals(actualValue, value.expected, value.Id);

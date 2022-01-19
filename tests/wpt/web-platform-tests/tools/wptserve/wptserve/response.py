@@ -2,7 +2,6 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from io import BytesIO
 import json
-import socket
 import uuid
 
 from hpack.struct import HeaderTuple
@@ -243,7 +242,13 @@ class Response(object):
                         ("Content-Length", len(data))]
         self.content = data
         if code == 500:
-            self.logger.error(message)
+            if isinstance(message, str) and message:
+                first_line = message.splitlines()[0]
+            else:
+                first_line = "<no message given>"
+            self.logger.error("Exception loading %s: %s" % (self.request.url,
+                                                            first_line))
+            self.logger.info(message)
 
 
 class MultipartContent(object):
@@ -776,7 +781,7 @@ class ResponseWriter(object):
         try:
             self._wfile.write(self.encode(data))
             return True
-        except socket.error:
+        except OSError:
             # This can happen if the socket got closed by the remote end
             return False
 
@@ -791,7 +796,7 @@ class ResponseWriter(object):
                 break
             try:
                 self._wfile.write(buf)
-            except socket.error:
+            except OSError:
                 success = False
                 break
         data.close()

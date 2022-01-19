@@ -25,7 +25,8 @@ var data = {
   "script-async-false" : [],
   "iframe-src" : [],
   "cross-origin" : [null],
-  "document-write" : []
+  "document-write" : [],
+  "microtask": [],
 };
 
 var expected = {};
@@ -207,4 +208,12 @@ document.body.appendChild(s);
 <!-- Testing document.write -->
 <script>
 document.write('<script id="document-write">verify("document-write"); finish("document-write");</' + 'script>');
+</script>
+
+<!-- Testing microtask -->
+<script id="microtask">
+  Promise.resolve().then(() => {
+    verify("microtask");
+    finish("microtask");
+  });
 </script>

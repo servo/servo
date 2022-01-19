@@ -31,8 +31,11 @@ async_test(function() {
 async_test(function() {
   window.addEventListener("pageshow", this.step_func_done(function(e) {
     assert_equals(e.type, "pageshow");
-    assert_false(e.bubbles, "bubbles should be false");
-    assert_false(e.cancelable, "cancelable should be false");
+
+    // https://github.com/whatwg/html/issues/6794
+    assert_true(e.bubbles, "bubbles should be true");
+    assert_true(e.cancelable, "cancelable should be true");
+
     assert_equals(e.target, document, "target should be document");
     assert_true(e.isTrusted, "isTrusted should be true");
     assert_class_string(e, "PageTransitionEvent");

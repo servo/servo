@@ -8,7 +8,7 @@
 <canvas id="canvas"></canvas>
 <script>
   promise_test(async (t) => {
-    const presenter = await navigator.ink.requestPresenter('delegated-ink-trail', canvas);
+    const presenter = await navigator.ink.requestPresenter({presentationArea: canvas});
     const style = { color: "bad-color", diameter: 6 };
 
     canvas.addEventListener("pointermove", evt => {

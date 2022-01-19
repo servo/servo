@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>FormData: set (with form element)</title>
+<link rel="help" href="https://xhr.spec.whatwg.org/#dom-formdata-set">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form id="form"></form>
+<script>
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.set('key', 'value1');
+        assert_equals(fd.get('key'), "value1");
+    }, 'testFormDataSetToForm1');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.set('key', 'value2');
+        fd.set('key', 'value1');
+        assert_equals(fd.get('key'), "value1");
+    }, 'testFormDataSetToForm2');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.set('key', undefined);
+        assert_equals(fd.get('key'), "undefined");
+    }, 'testFormDataSetToFormUndefined1');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.set('key', undefined);
+        fd.set('key', 'value1');
+        assert_equals(fd.get('key'), "value1");
+    }, 'testFormDataSetToFormUndefined2');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.set('key', null);
+        assert_equals(fd.get('key'), "null");
+    }, 'testFormDataSetToFormNull1');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.set('key', null);
+        fd.set('key', 'value1');
+        assert_equals(fd.get('key'), "value1");
+    }, 'testFormDataSetToFormNull2');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        assert_throws_js(TypeError, () => {fd.set('name', "string", 'filename')});
+    }, 'testFormDataSetToFormString');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        assert_throws_js(TypeError, () => {fd.set('name', new URLSearchParams(), 'filename')});
+    }, 'testFormDataSetToFormWrongPlatformObject');
+</script>

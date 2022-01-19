@@ -46,7 +46,7 @@ explicitly-managed secret.
 - [Google Domains](https://domains.google/): https://wpt.fyi
   - smcgruer@google.com
   - foolip@google.com
-- (Google internal): https://wpt.live https://wptpr.live
+- (Google internal): https://wpt.live
   - smcgruer@google.com
   - foolip@google.com
 - [GitHub](https://github.com/): web-platform-tests
@@ -76,9 +76,6 @@ explicitly-managed secret.
   - boaz@bocoup.com
   - mike@bocoup.com
   - simon@bocoup.com
-
-[web-platform-tests]: https://github.com/e3c/web-platform-tests
-[wpt.fyi]: https://github.com/web-platform-tests/wpt.fyi
 
 ## Emergency playbook
 

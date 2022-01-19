@@ -1,0 +1,8 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  await promise_rejects_dom(t, 'InvalidStateError', appHistory.goTo("not-a-real-key"));
+}, "goTo() with invalid key");
+</script>

@@ -66,6 +66,7 @@ interface Memory {
 };
 
 enum TableKind {
+  "externref",
   "anyfunc",
   // Note: More values may be added in future iterations,
   // e.g., typed function references, typed GC references
@@ -79,10 +80,10 @@ dictionary TableDescriptor {
 
 [LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
 interface Table {
-  constructor(TableDescriptor descriptor);
-  unsigned long grow([EnforceRange] unsigned long delta);
-  Function? get([EnforceRange] unsigned long index);
-  undefined set([EnforceRange] unsigned long index, Function? value);
+  constructor(TableDescriptor descriptor, optional any value);
+  unsigned long grow([EnforceRange] unsigned long delta, optional any value);
+  any get([EnforceRange] unsigned long index);
+  undefined set([EnforceRange] unsigned long index, optional any value);
   readonly attribute unsigned long length;
 };
 
@@ -90,7 +91,9 @@ enum ValueType {
   "i32",
   "i64",
   "f32",
-  "f64"
+  "f64",
+  "externref",
+  "anyfunc",
 };
 
 dictionary GlobalDescriptor {

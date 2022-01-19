@@ -12,6 +12,14 @@
 <body>
 <script>
 test_invalid_value("contain", "auto");
+test_invalid_value("contain", "layout layout");
+test_invalid_value("contain", "strict layout");
+test_invalid_value("contain", "paint strict");
+test_invalid_value("contain", "paint layout style paint");
+test_invalid_value("contain", "none none");
+test_invalid_value("contain", "none strict");
+test_invalid_value("contain", "strict strict");
+test_invalid_value("contain", "strict none");
 test_invalid_value("contain", "strict content");
 test_invalid_value("contain", "size layout size");
 test_invalid_value("contain", "paint content");

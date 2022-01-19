@@ -1,13 +1,8 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
 import json
 import sys
 import traceback
 import logging
-try:
-    from urllib.parse import parse_qsl
-except ImportError:
-    from urlparse import parse_qsl
+from urllib.parse import parse_qsl
 
 global logger
 logger = logging.getLogger("wave-api-handler")

@@ -1,7 +1,6 @@
 import re
 import os
 import itertools
-from six import ensure_binary
 from collections import defaultdict
 
 MYPY = False
@@ -230,8 +229,9 @@ class PathFilter(object):
         empty = {}  # type: Dict[Any, Any]
         for dirpath, dirnames, filenames in iterator:
             orig_dirpath = dirpath
-            if ensure_binary(os.path.sep) != b"/":
-                dirpath = dirpath.replace(ensure_binary(os.path.sep), b"/")
+            path_sep = os.path.sep.encode()
+            if path_sep != b"/":
+                dirpath = dirpath.replace(path_sep, b"/")
 
             keep_dirs = []  # type: List[Tuple[bytes, T]]
             keep_files = []  # type: List[Tuple[bytes, T]]

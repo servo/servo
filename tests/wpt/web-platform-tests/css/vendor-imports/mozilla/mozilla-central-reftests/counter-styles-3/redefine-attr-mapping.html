@@ -11,9 +11,6 @@
     symbols: \2023;
     suffix: "";
   }
-  @counter-style disc {
-    system: extends triangle;
-  }
   @counter-style circle {
     system: extends triangle;
   }
@@ -32,6 +29,7 @@
   @counter-style upper-alpha {
     system: extends katakana-iroha;
   }
+  ::marker { font-family: inherit; }
 </style>
 <ul type="circle"><li></ul>
 <ul type="square"><li></ul>

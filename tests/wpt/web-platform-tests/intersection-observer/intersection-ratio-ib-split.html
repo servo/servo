@@ -18,6 +18,10 @@
   <block></block>
 </inline>
 <script>
+
+// Account for rounding differences when viewport sizes can't cleanly divide.
+const epsilon = 1;
+
 promise_test(async function() {
   for (let element of document.querySelectorAll("inline, block")) {
     let entries = await new Promise(resolve => {
@@ -28,10 +32,10 @@ promise_test(async function() {
     assert_equals(entries[0].intersectionRatio, 1, element.nodeName + ": Should be fully intersecting");
 
     function assert_rects_equal(r1, r2, label) {
-      assert_equals(r1.top, r2.top, label + ": top should be equal");
-      assert_equals(r1.right, r2.right, label + ": right should be equal");
-      assert_equals(r1.bottom, r2.bottom, label + ": bottom should be equal");
-      assert_equals(r1.left, r2.left, label + ": left should be equal");
+      assert_approx_equals(r1.top, r2.top, epsilon, label + ": top should be equal");
+      assert_approx_equals(r1.right, r2.right, epsilon, label + ": right should be equal");
+      assert_approx_equals(r1.bottom, r2.bottom, epsilon, label + ": bottom should be equal");
+      assert_approx_equals(r1.left, r2.left, epsilon, label + ": left should be equal");
     }
 
     assert_rects_equal(entries[0].boundingClientRect, element.getBoundingClientRect(), element.nodeName + ": boundingClientRect should match");

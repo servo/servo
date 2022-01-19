@@ -103,8 +103,7 @@
     let timeline4 = new ScrollTimeline({
       scrollSource: scroller4,
       timeRange: 1e13,
-      startScrollOffset: CSS.px(0),
-      endScrollOffset: CSS.px(100)
+      scrollOffsets: [CSS.px(0), CSS.px(100)]
     });
 
     element.getAnimations()[0].timeline = timeline4;

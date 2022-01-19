@@ -10,6 +10,11 @@ font-family: underline-variable;
 src: url(../resources/UnderlineTest-VF.ttf);
 }
 
+.test_red {
+font-family: underline-variable;
+font-size: 64px;
+}
+
 .test_green {
 text-decoration: underline;
 font-family: underline-variable;
@@ -29,6 +34,7 @@ top: 25px;
 <body>
 <p>Test passes if no blips of red underline show near the descender of the g glyph.</p>
 <div class="test">
+<div class="test_red overlap">aaaaagaaaaa</div>
 <div class="test_green overlap">aaaaagaaaaa</div>
 </div>
 </div>

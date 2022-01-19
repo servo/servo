@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Fraction parameters (display gap between bar and denominator)</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+<link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
 <link rel="match" href="frac-parameters-gap-001-ref.html"/>
 <meta name="assert" content="Element mfrac correctly uses the FractionDenomDisplayStyleGapMin parameter from the MATH table when denominator contains text.">
 <style>
@@ -39,6 +39,7 @@
     width: 100%;
   }
 </style>
+<script src="/mathml/support/fonts.js"></script>
 <script>
   function runTests() {
     var div = document.getElementById("frame");
@@ -47,7 +48,7 @@
     div.style.height = `${refBox.height-4}px`;
     document.documentElement.classList.remove('reftest-wait');
   }
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 </script>
 </head>
 <body>

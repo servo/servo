@@ -1,10 +1,10 @@
 import time
 
 import pytest
-
-from tests.support import platform_name
+from webdriver import error
 from webdriver.transport import Response
 
+from tests.support import platform_name
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -55,6 +55,31 @@ def test_file_protocol(session, server_config):
     if session.url.endswith('/'):
         url += '/'
     assert session.url == url
+
+
+# Capability needed as long as no valid certificate is available:
+#   https://github.com/web-platform-tests/wpt/issues/28847
+@pytest.mark.capabilities({"acceptInsecureCerts": True})
+def test_cross_origin(session, inline, url):
+    base_path = ("/webdriver/tests/support/html/subframe.html" +
+                 "?pipe=header(Cross-Origin-Opener-Policy,same-origin")
+    first_page = url(base_path, protocol="https")
+    second_page = url(base_path, protocol="https", domain="alt")
+
+    response = navigate_to(session, first_page)
+    assert_success(response)
+
+    assert session.url == first_page
+    elem = session.find.css("#delete", all=False)
+
+    response = navigate_to(session, second_page)
+    assert_success(response)
+
+    assert session.url == second_page
+    with pytest.raises(error.StaleElementReferenceException):
+        elem.click()
+
+    session.find.css("#delete", all=False)
 
 
 @pytest.mark.capabilities({"pageLoadStrategy": "eager"})

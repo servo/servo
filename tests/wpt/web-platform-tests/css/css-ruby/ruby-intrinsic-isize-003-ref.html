@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="utf-8">
+<title>Intrinsic ISize calculation of ruby</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<style>
+  .ruby {
+    border-left: 5px solid blue;
+    border-right: 10px solid blue;
+    padding: 0 20px 0 10px;
+    margin: 0 10px 0 20px;
+  }
+  div {
+    display: inline-block;
+    border: 1px solid black;
+    font-kerning: none; /* disable kerning, because in the reference file
+                            it might occur across <span> boundaries */
+  }
+  .ruby > span {
+    white-space: nowrap;
+  }
+</style>
+
+<div style="width: min-content">
+  <span class="ruby"><span>ABC</span><span>DEF</span></span>
+</div>
+<div style="width: max-content">
+  <span class="ruby"><span>ABC</span><span>DEF</span></span>
+</div>
+<br>
+
+<div style="width: min-content">
+  XYZ<span class="ruby"><span>ABC</span><span>DEF</span></span>XYZ
+</div>
+<div style="width: max-content">
+  XYZ<span class="ruby"><span>ABC</span><span>DEF</span></span>XYZ
+</div>
+<br>
+
+<div style="width: min-content">
+  <span class="ruby"><span>あい</span><span>うえ</span></span>
+</div>
+<div style="width: max-content">
+  <span class="ruby"><span>あい</span><span>うえ</span></span>
+</div>
+<br>
+
+<div style="width: min-content">
+  お<span class="ruby"><span>あい</span><span>うえ</span></span>お
+</div>
+<div style="width: max-content">
+  お<span class="ruby"><span>あい</span><span>うえ</span></span>お
+</div>
+<br>

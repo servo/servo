@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+dialog {
+    background: green;
+    border-color: green;
+}
+div {
+    content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPAQMAAAABGAcJAAAAA1BMVEUAgACc+aWRAAAADElEQVR42mNgIAEAAAAtAAH7KhMqAAAAAElFTkSuQmCC);
+}
+</style>
+</head>
+<body>
+<p>Bug <a href="http://webkit.org/b/103477">103477</a>: Make
+NodeRenderingContext::parentRenderer and nextRenderer top layer aware
+<p>The test passes if you see a green square near the top and green rectangle in the center of the viewport.
+<div></div>
+<dialog id="dialog"></dialog>
+<script>
+document.getElementById('dialog').showModal();
+</script>
+</body>
+</html>

@@ -8,13 +8,14 @@
     <meta name="assert" content="This tests that when two boxes intersect in a
     simple fashion, they're rendered according to Newell's algorithm.">
     <link rel="match" href="transform3d-sorting-006-ref.html">
+    <meta name=fuzzy content="0-100;0-500">
   </head>
   <body>
     <div style="transform-style: preserve-3d">
       <div style="height: 100px; width: 100px; background: red;
-        transform: rotateX(45deg) rotateY(45deg)"></div>
+        transform: rotateX(-45deg) rotateY(-45deg)"></div>
       <div style="height: 100px; width: 100px; background: green;
-        transform: translateY(-100px) rotateX(45deg) rotateY(-45deg)"></div>
+        transform: translateY(-100px) rotateX(-45deg) rotateY(45deg)"></div>
     </div>
   </body>
 </html>

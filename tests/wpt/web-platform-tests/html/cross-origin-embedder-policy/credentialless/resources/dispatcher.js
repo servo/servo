@@ -13,33 +13,65 @@ const concurrencyLimiter = (max_concurrency) => {
     pending++;
     if (pending > max_concurrency)
       await new Promise(resolve => waiting.push(resolve));
-    await task();
+    let result = await task();
     pending--;
     waiting.shift()?.();
+    return result;
   };
 }
 
-// The official web-platform-test runner sometimes drop POST requests when
-// too many are requested in parallel. Limiting this document to send only one
-// at a time fixes the issue.
-const sendLimiter = concurrencyLimiter(1);
+// Wait for a random amount of time in the range [10ms,100ms].
+const randomDelay = () => {
+  return new Promise(resolve => setTimeout(resolve, 10 + 90*Math.random()));
+}
+
+// Sending too many requests in parallel causes congestion. Limiting it improves
+// throughput.
+//
+// Note: The following table has been determined on the test:
+// ../cache-storage.tentative.https.html
+// using Chrome with a 64 core CPU / 64GB ram, in release mode:
+// ┌───────────┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬────┐
+// │concurrency│ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 10│ 15│ 20│ 30│ 50│ 100│
+// ├───────────┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼────┤
+// │time (s)   │ 54│ 38│ 31│ 29│ 26│ 24│ 22│ 22│ 22│ 22│ 34│ 36 │
+// └───────────┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴────┘
+const limiter = concurrencyLimiter(6);
 
 const send = async function(uuid, message) {
-  await sendLimiter(async () => {
-    await fetch(dispatcher_url + `?uuid=${uuid}`, {
-      method: 'POST',
-      body: message
-    });
+  await limiter(async () => {
+    // Requests might be dropped. Retry until getting a confirmation it has been
+    // processed.
+    while(1) {
+      try {
+        let response = await fetch(dispatcher_url + `?uuid=${uuid}`, {
+          method: 'POST',
+          body: message
+        })
+        if (await response.text() == "done")
+          return;
+      } catch (fetch_error) {}
+      await randomDelay();
+    };
   });
 }
 
 const receive = async function(uuid) {
   while(1) {
-    let response = await fetch(dispatcher_url + `?uuid=${uuid}`);
-    let data = await response.text();
-    if (data != 'not ready')
-      return data;
-    await new Promise(r => setTimeout(r, 10 + 100*Math.random()));
+    let data = "not ready";
+    try {
+      data = await limiter(async () => {
+        let response = await fetch(dispatcher_url + `?uuid=${uuid}`);
+        return await response.text();
+      });
+    } catch (fetch_error) {}
+
+    if (data == "not ready") {
+      await randomDelay();
+      continue;
+    }
+
+    return data;
   }
 }
 

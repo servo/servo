@@ -140,10 +140,10 @@ async_test(t => {
 async_test(t => {
   const stream = new ReadableStream({
     pull: t.step_func_done(c => {
+      c.close();
+
       // Detach it by reading into it
       reader.read(c.byobRequest.view);
-
-      c.close();
 
       assert_throws_js(TypeError, () => c.byobRequest.respond(0),
         'respond() must throw if the corresponding view has become detached');
@@ -191,7 +191,7 @@ async_test(t => {
 async_test(t => {
   const stream = new ReadableStream({
     pull: t.step_func_done(c => {
-      const view = new Uint8Array(new ArrayBuffer(10), 0, 0);
+      const view = new Uint8Array(c.byobRequest.view.buffer, 0, 0);
 
       assert_throws_js(TypeError, () => c.byobRequest.respondWithNewView(view));
     }),
@@ -206,11 +206,50 @@ async_test(t => {
 async_test(t => {
   const stream = new ReadableStream({
     pull: t.step_func_done(c => {
+      const view = new Uint8Array(new ArrayBuffer(10), 0, 3);
+
+      assert_throws_js(RangeError, () => c.byobRequest.respondWithNewView(view));
+    }),
+    type: 'bytes'
+  });
+  const reader = stream.getReader({ mode: 'byob' });
+
+  reader.read(new Uint8Array([4, 5, 6]));
+}, 'ReadableStream with byte source: respondWithNewView() throws if the supplied view\'s buffer has a ' +
+   'different length (in the readable state)');
+
+async_test(t => {
+  const stream = new ReadableStream({
+    pull: t.step_func_done(c => {
+      const view = new Uint8Array(c.byobRequest.view.buffer, 0, 4);
+      view[0] = 20;
+      view[1] = 21;
+      view[2] = 22;
+      view[3] = 23;
+
+      assert_throws_js(RangeError, () => c.byobRequest.respondWithNewView(view));
+    }),
+    type: 'bytes'
+  });
+  const reader = stream.getReader({ mode: 'byob' });
+
+  const buffer = new ArrayBuffer(10);
+  const view = new Uint8Array(buffer, 0, 3);
+  view[0] = 10;
+  view[1] = 11;
+  view[2] = 12;
+  reader.read(view);
+}, 'ReadableStream with byte source: respondWithNewView() throws if the supplied view has a larger length ' +
+   '(in the readable state)');
+
+async_test(t => {
+  const stream = new ReadableStream({
+    pull: t.step_func_done(c => {
+      c.close();
+
       // Detach it by reading into it
       const view = new Uint8Array([1, 2, 3]);
       reader.read(view);
-
-      c.close();
 
       assert_throws_js(TypeError, () => c.byobRequest.respondWithNewView(view));
     }),
@@ -229,7 +268,7 @@ async_test(t => {
 
       c.close();
 
-      assert_throws_js(TypeError, () => c.byobRequest.respondWithNewView(view));
+      assert_throws_js(RangeError, () => c.byobRequest.respondWithNewView(view));
     }),
     type: 'bytes'
   });
@@ -242,7 +281,7 @@ async_test(t => {
 async_test(t => {
   const stream = new ReadableStream({
     pull: t.step_func_done(c => {
-      const view = new Uint8Array(new ArrayBuffer(10), 0, 0);
+      const view = new Uint8Array(c.byobRequest.view.buffer, 0, 1);
 
       c.close();
 
@@ -253,5 +292,58 @@ async_test(t => {
   const reader = stream.getReader({ mode: 'byob' });
 
   reader.read(new Uint8Array([4, 5, 6]));
-}, 'ReadableStream with byte source: respondWithNewView() throws if the supplied view is zero-length on a ' +
-    'non-zero-length buffer (in the closed state)');
+}, 'ReadableStream with byte source: respondWithNewView() throws if the supplied view is non-zero-length ' +
+   '(in the closed state)');
+
+async_test(t => {
+  const stream = new ReadableStream({
+    pull: t.step_func_done(c => {
+      const view = new Uint8Array(new ArrayBuffer(10), 0, 0);
+
+      c.close();
+
+      assert_throws_js(RangeError, () => c.byobRequest.respondWithNewView(view));
+    }),
+    type: 'bytes'
+  });
+  const reader = stream.getReader({ mode: 'byob' });
+
+  reader.read(new Uint8Array([4, 5, 6]));
+}, 'ReadableStream with byte source: respondWithNewView() throws if the supplied view\'s buffer has a ' +
+   'different length (in the closed state)');
+
+async_test(t => {
+  const stream = new ReadableStream({
+    pull: t.step_func_done(c => {
+      // Detach it by reading into it
+      reader.read(c.byobRequest.view);
+
+      assert_throws_js(TypeError, () => c.enqueue(new Uint8Array([1])),
+        'enqueue() must throw if the BYOB request\'s buffer has become detached');
+    }),
+    type: 'bytes'
+  });
+  const reader = stream.getReader({ mode: 'byob' });
+
+  reader.read(new Uint8Array([4, 5, 6]));
+}, 'ReadableStream with byte source: enqueue() throws if the BYOB request\'s buffer has been detached (in the ' +
+  'readable state)');
+
+async_test(t => {
+  const stream = new ReadableStream({
+    pull: t.step_func_done(c => {
+      c.close();
+
+      // Detach it by reading into it
+      reader.read(c.byobRequest.view);
+
+      assert_throws_js(TypeError, () => c.enqueue(new Uint8Array([1])),
+        'enqueue() must throw if the BYOB request\'s buffer has become detached');
+    }),
+    type: 'bytes'
+  });
+  const reader = stream.getReader({ mode: 'byob' });
+
+  reader.read(new Uint8Array([4, 5, 6]));
+}, 'ReadableStream with byte source: enqueue() throws if the BYOB request\'s buffer has been detached (in the ' +
+  'closed state)');

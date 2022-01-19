@@ -19,8 +19,7 @@ test(() => {
   const computedStyle = [...getComputedStyle(target)].sort();
   const properties = [...styleMap.keys()];
 
-  // Two extra entries for custom properties
-  assert_equals(properties.length, computedStyle.length + 2);
+  assert_equals(properties.length, computedStyle.length);
   for (let i = 0; i < computedStyle.length; i++) {
     assert_true(properties.includes(computedStyle[i]));
     assert_not_equals(styleMap.get(computedStyle[i]), null);

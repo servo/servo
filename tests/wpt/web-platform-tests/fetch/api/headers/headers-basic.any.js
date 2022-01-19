@@ -1,6 +1,8 @@
 // META: title=Headers structure
 // META: global=window,worker
 
+"use strict";
+
 test(function() {
   new Headers();
 }, "Create headers from no parameter");
@@ -144,14 +146,14 @@ test(function() {
   checkIteratorProperties(actual);
 
   sortedHeaderKeys.forEach(function(key) {
-      entry = actual.next();
+      const entry = actual.next();
       assert_false(entry.done);
       assert_equals(entry.value, key);
   });
   assert_true(actual.next().done);
   assert_true(actual.next().done);
 
-  for (key of headers.keys())
+  for (const key of headers.keys())
       assert_true(sortedHeaderKeys.indexOf(key) != -1);
 }, "Check keys method");
 
@@ -161,14 +163,14 @@ test(function() {
   checkIteratorProperties(actual);
 
   sortedHeaderKeys.forEach(function(key) {
-      entry = actual.next();
+      const entry = actual.next();
       assert_false(entry.done);
       assert_equals(entry.value, sortedHeaderDict[key]);
   });
   assert_true(actual.next().done);
   assert_true(actual.next().done);
 
-  for (value of headers.values())
+  for (const value of headers.values())
       assert_true(headerValues.indexOf(value) != -1);
 }, "Check values method");
 
@@ -178,7 +180,7 @@ test(function() {
   checkIteratorProperties(actual);
 
   sortedHeaderKeys.forEach(function(key) {
-      entry = actual.next();
+      const entry = actual.next();
       assert_false(entry.done);
       assert_equals(entry.value[0], key);
       assert_equals(entry.value[1], sortedHeaderDict[key]);
@@ -186,7 +188,7 @@ test(function() {
   assert_true(actual.next().done);
   assert_true(actual.next().done);
 
-  for (entry of headers.entries())
+  for (const entry of headers.entries())
       assert_equals(entry[1], sortedHeaderDict[entry[0]]);
 }, "Check entries method");
 
@@ -195,7 +197,7 @@ test(function() {
   var actual = headers[Symbol.iterator]();
 
   sortedHeaderKeys.forEach(function(key) {
-      entry = actual.next();
+      const entry = actual.next();
       assert_false(entry.done);
       assert_equals(entry.value[0], key);
       assert_equals(entry.value[1], sortedHeaderDict[key]);
@@ -209,7 +211,7 @@ test(function() {
   var reference = sortedHeaderKeys[Symbol.iterator]();
   headers.forEach(function(value, key, container) {
       assert_equals(headers, container);
-      entry = reference.next();
+      const entry = reference.next();
       assert_false(entry.done);
       assert_equals(key, entry.value);
       assert_equals(value, sortedHeaderDict[entry.value]);

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+
+<selectmenu id="selectMenu0">
+  <popup slot="listbox" part="listbox">
+    <option>
+      option with image displayed
+      <img src="support/cat.png" alt="Image download support must be enabled" />
+    </option>
+  </popup>
+</selectmenu>
+<div>
+  option with image displayed
+  <img src="support/cat.png" alt="Image download support must be enabled" />
+</div>
+
+<style>
+  div {
+    /* Per spec: */
+    display: block;
+    position: fixed;
+    top: 20px;
+    left: 0;
+    /* Per settings in test file: */
+    width: fit-content;
+    height: fit-content;
+    border: 1px solid;
+    padding: 1em;
+    background: -internal-light-dark(white, black);
+    color: -internal-light-dark(black, white);
+  }
+
+  selectmenu {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 20px;
+  }
+</style>

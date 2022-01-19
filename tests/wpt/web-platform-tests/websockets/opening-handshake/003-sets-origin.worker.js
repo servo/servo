@@ -1,6 +1,5 @@
 importScripts("/resources/testharness.js");
-importScripts('../constants.js?pipe=sub');
-importScripts('../websocket.sub.js');
+importScripts('../constants.sub.js');
 
 async_test(function(t) {
   var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/origin');

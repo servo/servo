@@ -37,7 +37,7 @@ drive two animations">
 <div id="box"></div>
 <div id="covered"></div>
 <div id="scroller">
-  <div id="contents"></div>
+  <div id="contents"><p>Scrolling Contents</p></div>
 </div>
 
 <script>
@@ -60,7 +60,8 @@ drive two animations">
   );
 
   const scroller = document.getElementById('scroller');
-  const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+  const timeline = new ScrollTimeline(
+      { scrollSource: scroller, orientation: 'block' });
   const transform_animation = new Animation(transform_effect, timeline);
   transform_animation.play();
   const opacity_animation = new Animation(opacity_effect, timeline);
@@ -72,7 +73,7 @@ drive two animations">
     scroller.scrollTop = 0.5 * maxScroll;
 
     waitForAnimationFrames(2).then(_ => {
-        takeScreenshot();
+      takeScreenshot();
     });
   });
 </script>

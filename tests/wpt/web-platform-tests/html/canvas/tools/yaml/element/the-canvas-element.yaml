@@ -20,8 +20,20 @@
     @assert canvas.getContext('null') === null;
     @assert canvas.getContext('undefined') === null;
 
-- name: 2d.getcontext.extraargs
-  desc: The 2D context ignores extra getContext arguments
+- name: 2d.getcontext.extraargs.create
+  desc: The 2D context doesn't throw with extra getContext arguments (new context)
+  testing:
+  - context.2d.extraargs
+  code: |
+    @assert document.createElement("canvas").getContext('2d', false, {}, [], 1, "2") !== null;
+    @assert document.createElement("canvas").getContext('2d', 123) !== null;
+    @assert document.createElement("canvas").getContext('2d', "test") !== null;
+    @assert document.createElement("canvas").getContext('2d', undefined) !== null;
+    @assert document.createElement("canvas").getContext('2d', null) !== null;
+    @assert document.createElement("canvas").getContext('2d', Symbol.hasInstance) !== null;
+
+- name: 2d.getcontext.extraargs.cache
+  desc: The 2D context doesn't throw with extra getContext arguments (cached)
   testing:
   - context.2d.extraargs
   code: |

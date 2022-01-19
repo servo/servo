@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test reference</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+
+<style>
+html::before {
+    content: "";
+    width: 100px;
+    height: 100px;
+    background: orange;
+    display: block;
+}
+body { margin: 0; }
+p {
+    margin: 0;
+    width: 200px;
+    height: 200px;
+}
+</style>
+
+<p>Test passes if the orange square is in the upper-left corner.

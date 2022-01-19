@@ -13,7 +13,7 @@ const CROSS_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
 const CROSS_SITE = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
 
 const blank_path = "/common/blank.html"
-const redirect = url => 
+const redirect = url =>
   `/content-security-policy/reporting/support/redirect-throw-function.sub.py?token=${token()}`;
 
 const script_path = "/content-security-policy/reporting/support/throw-function.js"

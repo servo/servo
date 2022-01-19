@@ -44,6 +44,11 @@
           );
         });
       }, "share with a dictionary containing only surplus fields");
+
+      promise_test(async t => {
+        await test_driver.bless("web share");
+        await promise_rejects_js(t, TypeError, navigator.share({ files: [] }));
+      }, "share with an empty files member")
     </script>
   </body>
 </html>

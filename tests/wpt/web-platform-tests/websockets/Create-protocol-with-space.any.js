@@ -1,4 +1,7 @@
-// META: script=websocket.sub.js
+// META: script=constants.sub.js
+// META: variant=
+// META: variant=?wpt_flags=h2
+// META: variant=?wss
 
 test(function() {
   var wsocket;

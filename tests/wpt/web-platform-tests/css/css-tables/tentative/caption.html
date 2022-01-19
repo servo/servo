@@ -72,6 +72,12 @@ Percent width is resolved wrt to table width.</p>
   <td data-expected-width=200>auto</td>
 </table>
 
+<p class="testdesc">Caption and size of empty table
+  Larger of table borders, and caption min size.</p>
+<table style="border:50px solid green;border-spacing:10px" data-expected-width=100>
+  <caption><div style="width:50px">c</div><div style="width:50px">c</div></caption>
+</table>
+
 <p class="testdesc">Caption height:80%
 github spec <a href="https://github.com/w3c/csswg-drafts/issues/4676">issue</a>.
 TablesNG will not resolve percentage heights per spec. FF agrees.

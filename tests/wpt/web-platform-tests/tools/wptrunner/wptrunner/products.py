@@ -33,14 +33,18 @@ class Product(object):
         module = product_module(config, product)
         data = module.__wptrunner__
         self.name = product
+        if isinstance(data["browser"], str):
+            self._browser_cls = {None: getattr(module, data["browser"])}
+        else:
+            self._browser_cls = {key: getattr(module, value)
+                                 for key, value in data["browser"].items()}
         self.check_args = getattr(module, data["check_args"])
-        self.browser_cls = getattr(module, data["browser"])
         self.get_browser_kwargs = getattr(module, data["browser_kwargs"])
         self.get_executor_kwargs = getattr(module, data["executor_kwargs"])
         self.env_options = getattr(module, data["env_options"])()
         self.get_env_extras = getattr(module, data["env_extras"])
         self.run_info_extras = (getattr(module, data["run_info_extras"])
-                           if "run_info_extras" in data else lambda **kwargs:{})
+                                if "run_info_extras" in data else lambda **kwargs:{})
         self.get_timeout_multiplier = getattr(module, data["timeout_multiplier"])
 
         self.executor_classes = {}
@@ -48,19 +52,10 @@ class Product(object):
             cls = getattr(module, cls_name)
             self.executor_classes[test_type] = cls
 
-
-def load_product(config, product, load_cls=False):
-    rv = Product(config, product)
-    if not load_cls:
-        return (rv.check_args,
-                rv.browser_cls,
-                rv.get_browser_kwargs,
-                rv.executor_classes,
-                rv.get_executor_kwargs,
-                rv.env_options,
-                rv.get_env_extras,
-                rv.run_info_extras)
-    return rv
+    def get_browser_cls(self, test_type):
+        if test_type in self._browser_cls:
+            return self._browser_cls[test_type]
+        return self._browser_cls[None]
 
 
 def load_product_update(config, product):

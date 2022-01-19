@@ -21,12 +21,12 @@ function listenForCaptureTimestamp(t, receiver) {
         assert_equals(ssrcs.length, 1);
         if (ssrcs[0].captureTimestamp != undefined) {
           resolve(ssrcs[0].captureTimestamp);
-          return;
+          return true;
         }
       }
-      t.step_timeout(listen, 0);
+      return false;
     };
-    listen();
+    t.step_wait(listen, 'No abs-capture-time capture time header extension.');
   });
 }
 
@@ -35,7 +35,8 @@ function listenForCaptureTimestamp(t, receiver) {
 for (const kind of ['audio', 'video']) {
   promise_test(async t => {
     const [caller, callee] = await initiateSingleTrackCall(
-        t, {[kind]: true}, false, false);
+        t, /* caps=  */{[kind]: true}, /* absCaptureTimeOffered= */false,
+        /* absCaptureTimeAnswered= */false);
     const receiver = callee.getReceivers()[0];
 
     for (const ssrc of await listenForSSRCs(t, receiver)) {
@@ -47,7 +48,8 @@ for (const kind of ['audio', 'video']) {
 
   promise_test(async t => {
     const [caller, callee] = await initiateSingleTrackCall(
-        t, {[kind]: true}, false, false);
+        t, /* caps=  */{[kind]: true}, /* absCaptureTimeOffered= */false,
+        /* absCaptureTimeAnswered= */false);
     const receiver = callee.getReceivers()[0];
 
     for (const ssrc of await listenForSSRCs(t, receiver)) {
@@ -59,7 +61,8 @@ for (const kind of ['audio', 'video']) {
 
   promise_test(async t => {
     const [caller, callee] = await initiateSingleTrackCall(
-        t, {[kind]: true}, true, true);
+        t, /* caps=  */{[kind]: true}, /* absCaptureTimeOffered= */true,
+        /* absCaptureTimeAnswered= */true);
     const receiver = callee.getReceivers()[0];
     await listenForCaptureTimestamp(t, receiver);
   }, '[' + kind + '] getSynchronizationSources() should contain ' +
@@ -72,7 +75,8 @@ for (const kind of ['audio', 'video']) {
 // `callee`.
 promise_test(async t => {
   const [caller, callee] = await initiateSingleTrackCall(
-      t, {audio: true, video: true}, true, true);
+      t, /* caps=  */{audio: true, video: true},
+      /* absCaptureTimeOffered= */true, /* absCaptureTimeAnswered= */true);
   const receivers = callee.getReceivers();
   assert_equals(receivers.length, 2);
 

@@ -62,7 +62,7 @@ function validateStreamFromString(reader, expectedValue, retrievedArrayBuffer) {
       assert_true(data.value instanceof Uint8Array, "Fetch ReadableStream chunks should be Uint8Array");
       var newBuffer;
       if (retrievedArrayBuffer) {
-        newBuffer =  new ArrayBuffer(data.value.length + retrievedArrayBuffer.length);
+        newBuffer =  new Uint8Array(data.value.length + retrievedArrayBuffer.length);
         newBuffer.set(retrievedArrayBuffer, 0);
         newBuffer.set(data.value, retrievedArrayBuffer.length);
       } else {
@@ -80,7 +80,7 @@ function validateStreamFromPartialString(reader, expectedValue, retrievedArrayBu
       assert_true(data.value instanceof Uint8Array, "Fetch ReadableStream chunks should be Uint8Array");
       var newBuffer;
       if (retrievedArrayBuffer) {
-        newBuffer =  new ArrayBuffer(data.value.length + retrievedArrayBuffer.length);
+        newBuffer =  new Uint8Array(data.value.length + retrievedArrayBuffer.length);
         newBuffer.set(retrievedArrayBuffer, 0);
         newBuffer.set(data.value, retrievedArrayBuffer.length);
       } else {

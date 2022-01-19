@@ -34,6 +34,13 @@
             <div class="test" style="background-color: red; background-image: image-set('/images/green.png')" ></div>
             <div class="test" style="background-color: lime; background-image: image-set('/images/red.png' 0x)" ></div>
             <div class="test" style="background-color: lime; background-image: image-set('/images/red.png' 0x, url('/images/red.png') 2x)" ></div>
+            <div class="test" style="background-image: image-set('/images/green.png' type('image/png') 1x)"></div>
+            <div class="test" style="background-image: image-set('/images/green.png' 1x type('image/png'))"></div>
+            <div class="test" style="background-image: image-set('/images/green.png' type('image/png'))"></div>
+            <div class="test" style="background-image: image-set('/images/red.png' type('image/png'), '/images/green.png' type('image/png'))"></div>
+            <div class="test" style="background-image: image-set('/images/red.png' type('image/unsupported'), '/images/green.png' type('image/png'))"></div>
+            <div class="test" style="background-image: image-set('/images/red.png' type('image/unsupported'), '/images/green.png' type('image/unsupported'))"></div>
+            <div class="test" style="background-image: image-set('/images/red.png' 2x type('image/png'), '/images/green.png' 1x type('image/png'))"></div>
         </main>
     </body>
 </html>

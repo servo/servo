@@ -32,6 +32,10 @@ onmessage = (e) => {
 }
 </script>"></iframe>
 <script>
+  // Tests with '\x0A' (i.e., '\n') don't conform to the URL Standard as of the
+  // time of writing, as according to spec they should be ignored.
+  // See https://github.com/whatwg/url/issues/609.
+
   let broken = [
     '\x00',
     '\x01',
@@ -93,7 +97,7 @@ onmessage = (e) => {
   async_test((t) => {
     self.onload = t.step_func(() => {
       self.onmessage = t.step_func((e) => {
-        assert_array_equals(e.data, ("SyntaxError ".repeat(49) + "SyntaxError").split(" "))
+        assert_array_equals(e.data, broken.map(() => "SyntaxError"))
         c++
         if(c === 2) {
           t.done()

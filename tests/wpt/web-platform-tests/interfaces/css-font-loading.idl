@@ -56,8 +56,6 @@ interface FontFaceSetLoadEvent : Event {
 
 enum FontFaceSetLoadStatus { "loading", "loaded" };
 
-callback ForEachCallback = undefined (FontFace font, long index, FontFaceSet self);
-
 [Exposed=(Window,Worker)]
 interface FontFaceSet : EventTarget {
   constructor(sequence<FontFace> initialFaces);

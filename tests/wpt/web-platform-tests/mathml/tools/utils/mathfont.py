@@ -1,4 +1,3 @@
-from __future__ import print_function
 import fontforge
 
 em = 1000
@@ -170,6 +169,27 @@ def createGlyphFromValue(aFont, aCodePoint):
         value /= 16
     g.width = 5 * em / 2
     g.stroke("circular", em / 10, "square", "miter", "cleanup")
+
+def createSizeVariants(aFont):
+    for size in (0, 1, 2, 3):
+        g = aFont.createChar(-1, "v%d" % size)
+        drawRectangleGlyph(g, em, (size + 1) * em, 0)
+        g = aFont.createChar(-1, "h%d" % size)
+        drawRectangleGlyph(g, (size + 1) * em, em, 0)
+
+def createStretchy(aFont, codePoint, isHorizontal):
+    if isHorizontal:
+        aFont[codePoint].horizontalVariants = "h0 h1 h2 h3"
+        # Part: (glyphName, isExtender, startConnector, endConnector, fullAdvance)
+        aFont[codePoint].horizontalComponents = \
+            (("h2", False, 0, em, 3 * em), \
+             ("h1", True, em, em, 2 * em))
+    else:
+        aFont[codePoint].verticalVariants = "v0 v1 v2 v3"
+        # Part: (glyphName, isExtender, startConnector, endConnector, fullAdvance)
+        aFont[codePoint].verticalComponents = \
+            (("v2", False, 0, em, 3 * em), \
+             ("v1", True, em, em, 2 * em))
 
 def save(aFont):
     aFont.em = em

@@ -3,7 +3,7 @@
 
 <head>
     <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' blob:; connect-src 'self';">    
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' blob:; connect-src 'self';">
     <title>blob-urls-match-blob</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
@@ -19,7 +19,7 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             log("FAIL");
         });
-    
+
         function pass() {
             log("PASS (1/1)");
         }

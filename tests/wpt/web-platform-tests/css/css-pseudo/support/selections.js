@@ -1,6 +1,15 @@
 /**
  * Replaces the current selection (if any) with a new range, after
  * it’s configured by the given function.
+ *
+ * See also: selectNodeContents
+ * Example:
+ *
+ * selectRangeWith(range => {
+ *     range.selectNodeContents(foo);
+ *     range.setStart(foo.childNodes[0], 3);
+ *     range.setEnd(foo.childNodes[0], 5);
+ * });
  */
 function selectRangeWith(fun) {
     const selection = getSelection();
@@ -37,17 +46,20 @@ function selectNodeContents(node) {
 }
 
 /**
- * Tries to convince a UA with lazy spellcheck to check and mark the
- * contents of the given nodes (form fields or @contenteditables).
+ * Tries to convince a UA with lazy spellcheck to check and highlight
+ * the contents of the given nodes (form fields or @contenteditables).
  *
- * Both focus and selection can be used for this purpose, but only
- * focus works for @contenteditables.
+ * Each node is focused then immediately unfocused. Both focus and
+ * selection can be used for this purpose, but only focus works for
+ * @contenteditables.
  */
 function trySpellcheck(...nodes) {
     // This is inherently a flaky test risk, but Chromium (as of 87)
     // seems to cancel spellcheck on a node if it wasn’t the last one
     // focused for “long enough” (though immediate unfocus is ok).
-    // setInterval(0) is usually not long enough.
+    // Using requestAnimationFrame or setInterval(0) are usually not
+    // long enough (see <https://bucket.daz.cat/work/igalia/0/0.html>
+    // under “trySpellcheck strategy” for an example).
     const interval = setInterval(() => {
         if (nodes.length > 0) {
             const node = nodes.shift();

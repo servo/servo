@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexible Box Layout Test: Test flex container's overflow rect</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1712496">
+  <link rel="match" href="reference/overflow-area-003-ref.html">
+  <meta name="assert" content="This test verifies that a flex container's padding rect should not not affect its overflow rect at all.">
+
+  <style>
+  .set {
+    clear: both;
+    margin: 1em;
+  }
+
+  .test {
+    display: flex;
+    overflow: auto;
+    padding: 10px;
+    width: 60px;
+    height: 60px;
+    background: teal;
+    margin: 1em 0.5em;
+    float: left;
+  }
+
+  .item {
+    width: 10px;
+    height: 10px;
+  }
+
+  .absolute {
+    position: absolute;
+  }
+
+  .center {
+    justify-content: center;
+    align-items: center
+  }
+
+  .relative {
+    position: relative;
+  }
+
+  .relative > .item {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+  }
+
+  .top-left {
+    left: -10px;
+    top: -10px;
+  }
+
+  .bottom-right {
+    bottom: -10px;
+    right: -10px;
+  }
+  </style>
+
+  <p>Test passes if all the teal boxes have no scrollbars.</p>
+
+  <!-- This set tests empty flex containers. -->
+  <div class="set">
+    <div class="test" style="flex-direction: row;"></div>
+    <div class="test" style="flex-direction: column;"></div>
+    <div class="test" style="flex-direction: row-reverse;"></div>
+    <div class="test" style="flex-direction: column-reverse;"></div>
+  </div>
+
+  <!-- This set tests flex containers having only a abs-pos child, but no flex items. -->
+  <div class="set">
+    <div class="test" style="flex-direction: row;">
+      <div class="absolute item"></div>
+    </div>
+    <div class="test" style="flex-direction: column;">
+      <div class="absolute item"></div>
+    </div>
+    <div class="test" style="flex-direction: row-reverse;">
+      <div class="absolute item"></div>
+    </div>
+    <div class="test" style="flex-direction: column-reverse;">
+      <div class="absolute item"></div>
+    </div>
+  </div>
+
+  <!-- This set tests flex containers having a small centered flex item. -->
+  <div class="set">
+    <div class="test center" style="flex-direction: row;">
+      <div class="item"></div>
+    </div>
+    <div class="test center" style="flex-direction: column;">
+      <div class="item"></div>
+    </div>
+    <div class="test center" style="flex-direction: row-reverse;">
+      <div class="item"></div>
+    </div>
+    <div class="test center" style="flex-direction: column-reverse;">
+      <div class="item"></div>
+    </div>
+  </div>
+
+  <!-- This set tests flex containers having a relative positioned flex item. -->
+  <div class="set">
+    <div class="test relative" style="flex-direction: row;">
+      <div class="item relative bottom-right"></div>
+    </div>
+    <div class="test relative" style="flex-direction: column;">
+      <div class="item relative bottom-right"></div>
+    </div>
+    <div class="test relative" style="flex-direction: row-reverse;">
+      <div class="item relative top-left"></div>
+    </div>
+    <div class="test relative" style="flex-direction: column-reverse;">
+      <div class="item relative top-left"></div>
+    </div>
+  </div>
+
+</html>

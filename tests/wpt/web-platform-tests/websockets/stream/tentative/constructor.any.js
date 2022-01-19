@@ -1,6 +1,8 @@
-// META: script=../../websocket.sub.js
+// META: script=../../constants.sub.js
 // META: script=resources/url-constants.js
 // META: global=window,worker
+// META: variant=?wss
+// META: variant=?wpt_flags=h2
 
 test(() => {
   assert_throws_js(TypeError, () => new WebSocketStream(),

@@ -1,5 +1,5 @@
 import os, sys
-from six.moves.urllib.parse import unquote
+from urllib.parse import unquote
 
 from wptserve.utils import isomorphic_decode
 import importlib

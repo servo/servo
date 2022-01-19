@@ -8,7 +8,7 @@
 
 <script>
   var t = async_test("<iframe src='javascript:...'> not blocked by 'frame-src'");
-  
+
   var i = document.createElement('iframe');
   i.src = "javascript:window.top.t.done();";
 

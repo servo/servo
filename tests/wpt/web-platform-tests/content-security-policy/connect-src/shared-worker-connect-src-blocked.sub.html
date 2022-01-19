@@ -8,7 +8,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src='../support/logTest.sub.js?logs=["xhr blocked","TEST COMPLETE"]'></script>
-    <script src='../support/alertAssert.sub.js?alerts=[]'></script>    
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
 </head>
 
 <body>
@@ -22,7 +22,7 @@
        window.addEventListener('securitypolicyviolation', function(e) {
             log("Fail");
        });
-    
+
       if(typeof SharedWorker != 'function') {
           t_log.set_status(t_log.NOTRUN, "No SharedWorker, cannot run test.");
           t_log.phase = t_log.phases.HAS_RESULT;

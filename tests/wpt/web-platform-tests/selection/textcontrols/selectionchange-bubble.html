@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test selectionchange events bubbling from text controls</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input id="input" width="200" value="foo"><br>
+<textarea id="textarea" width="200">foo</textarea>
+
+<script>
+  function untilEvent(element, eventName) {
+    return new Promise(resolve => {
+      element.addEventListener(eventName, resolve, { once: true });
+    });
+  }
+
+  for (const element of [input, textarea]) {
+    const name = element.localName;
+    for (const focus of [false, true]) {
+      let focused = focus ? " when focused" : "";
+      let offset = focus ? 2 : 1;
+      promise_test(async () => {
+        if (focus) {
+          element.focus();
+        }
+
+        element.setSelectionRange(offset, offset);
+        const ev = await untilEvent(element, "selectionchange");
+        assert_equals(ev.bubbles, true);
+      }, `selectionchange bubbles from ${name}${focused}`);
+    }
+  }
+</script>

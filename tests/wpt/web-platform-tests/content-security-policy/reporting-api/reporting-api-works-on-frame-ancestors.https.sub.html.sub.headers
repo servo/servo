@@ -1,0 +1,5 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: reporting-api-works-on-frame-ancestors={{$id:uuid()}}; Path=/content-security-policy/reporting-api
+Report-To: { "group": "csp-group", "max_age": 10886400, "endpoints": [{ "url": "https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?op=put&reportID={{$id}}" }] }

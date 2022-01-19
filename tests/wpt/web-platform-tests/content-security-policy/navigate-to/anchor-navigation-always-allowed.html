@@ -11,9 +11,9 @@
 
 <script>
   var t = async_test("Test that anchor navigation is allowed regardless of the `navigate-to` directive");
-  
+
   window.addEventListener('securitypolicyviolation', t.unreached_func("Should not have triggered any violation"));
-  
+
   try {
     window.location.hash = "anchor";
     t.done();

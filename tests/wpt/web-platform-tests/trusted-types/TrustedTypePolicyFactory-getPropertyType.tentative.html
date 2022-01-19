@@ -86,7 +86,7 @@
     assert_equals(trustedTypes.getTypeMapping()["*"].attributes["foo"], undefined);
 ;
     // Unknown namespaces:
-    assert_equals(trustedTypes.getTypeMapping("http://foo/bar"), undefined);
+    assert_equals(trustedTypes.getTypeMapping("http://foo/bar"), null);
   }, "getTypeMapping tests adapted from WICG/trusted-types polyfill");
 
   // Test case handling for both attributes and properties.

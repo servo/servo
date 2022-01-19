@@ -7,11 +7,12 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=/common/get-host-info.sub.js></script>
 <script src="/common/utils.js"></script>
-<script src="../resources/dispatcher.js"></script>
-<script src="../resources/try-access.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/try-access.js"></script>
 <script>
 
-const directory = "/html/cross-origin-opener-policy/reporting";
+const directory = "/html/cross-origin-opener-policy";
 const executor_path = directory + "/resources/executor.html?pipe=";
 const redirect_path = directory + "/resources/redirect.py?";
 const same_origin = get_host_info().HTTPS_ORIGIN;
@@ -50,9 +51,10 @@ let runTest = (openee_redirect, name) => promise_test(async t => {
   t.add_cleanup(() => send(openee_token, "window.close()"));
 
   // 3. The openee tries to access its opener.
-  send(openee_token, `
-    tryAccess(opener);
-  `);
+  send(openee_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js",
+    "tryAccess(opener);")
+  );
 
   // 4. Check a report sent to the opener.
   let report =

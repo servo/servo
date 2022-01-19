@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      These tests require a USB device to be connected.
+    </p>
+    <script>
+      const kGetDescriptorRequest = 0x06;
+
+      const kDeviceDescriptorType = 0x01;
+      const kDeviceDescriptorLength = 18;
+
+      const kConfigurationDescriptorType = 0x02;
+      const kConfigurationDescriptorLength = 9;
+
+      const kStringDescriptorType = 0x03;
+      const kStringDescriptorMaxLength = 0xFF;
+
+      const kInterfaceDescriptorType = 0x04;
+      const kInterfaceDescriptorLength = 9;
+
+      const kEndpointDescriptorType = 0x05;
+      const kEndpointDescriptorLength = 7;
+
+      let device = null;
+      let pending_subtests = 0;
+      const string_tests = new Set();
+      const string_languages = [];
+
+      async function subtest_complete() {
+        if (--pending_subtests == 0) {
+          await device.close();
+        }
+      }
+
+      function manual_usb_subtest(func, name, properties) {
+        pending_subtests++;
+        promise_test(async (test) => {
+          test.add_cleanup(subtest_complete);
+          await func(test);
+        }, name, properties);
+      }
+
+      function read_string(index, expected) {
+        // A device may use the same string in multiple places. Don't bother
+        // repeating the test.
+        if (string_tests.has(index)) {
+          return;
+        }
+        string_tests.add(index);
+
+        const string_values = new Set();
+        const decoder = new TextDecoder('utf-16le');
+
+        for (const language of string_languages) {
+          const language_string = language.toString(16).padStart(4, '0');
+          manual_usb_subtest(async (t) => {
+            if (expected != undefined) {
+              t.add_cleanup(() => {
+                if (string_values.size == string_languages.length) {
+                  assert_true(string_values.has(expected));
+                }
+              });
+            }
+
+            const result = await device.controlTransferIn({
+              requestType: 'standard',
+              recipient: 'device',
+              request: kGetDescriptorRequest,
+              value: kStringDescriptorType << 8 | index,
+              index: language
+            }, kStringDescriptorMaxLength);
+
+            assert_equals(result.status, 'ok', 'transfer status');
+            const length = result.data.getUint8(0);
+            assert_greater_than_equal(length, 2, 'descriptor length');
+            assert_equals(result.data.byteLength, length, 'transfer length');
+            assert_equals(result.data.getUint8(1), kStringDescriptorType,
+                          'descriptor type');
+            const string_buffer = new Uint8Array(
+                result.data.buffer, result.data.byteOffset + 2, length - 2);
+            string_values.add(decoder.decode(string_buffer));
+          },
+          `Read string descriptor ${index} in language 0x${language_string}`);
+        }
+      }
+
+      function check_interface_descriptor(configuration, data) {
+        assert_greater_than_equal(
+            data.getUint8(0), kInterfaceDescriptorLength, 'descriptor length');
+
+        const interface_number = data.getUint8(2);
+        const iface = configuration.interfaces.find((iface) => {
+          return iface.interfaceNumber == interface_number;
+        });
+        assert_not_equals(
+            iface, undefined, `unknown interface ${interface_number}`);
+
+        const alternate_setting = data.getUint8(3);
+        const alternate = iface.alternates.find((alternate) => {
+          return alternate.alternateSetting == alternate_setting;
+        });
+        assert_not_equals(
+            alternate, undefined, `unknown alternate ${alternate_setting}`);
+
+        assert_equals(data.getUint8(4), alternate.endpoints.length,
+                      'number of endpoints');
+        assert_equals(
+            data.getUint8(5), alternate.interfaceClass, 'interface class');
+        assert_equals(data.getUint8(6), alternate.interfaceSubclass,
+                      'interface subclass');
+        assert_equals(data.getUint8(7), alternate.interfaceProtocol,
+                      'interface protocol');
+
+        const interface_string = data.getUint8(8);
+        if (interface_string != 0) {
+          // TODO(crbug.com/727819): Check that the string descriptor matches
+          // iface.interfaceName.
+          read_string(interface_string);
+        }
+
+        return alternate;
+      }
+
+      function check_endpoint_descriptor(alternate, data) {
+        assert_greater_than_equal(
+            data.getUint8(0), kEndpointDescriptorLength, 'descriptor length');
+
+        const endpoint_address = data.getUint8(2);
+        const direction = endpoint_address & 0x80 ? 'in' : 'out';
+        const endpoint_number = endpoint_address & 0x0f;
+        const endpoint = alternate.endpoints.find((endpoint) => {
+          return endpoint.direction == direction &&
+                 endpoint.endpointNumber == endpoint_number;
+        });
+        assert_not_equals(
+            endpoint, undefined, `unknown endpoint ${endpoint_number}`);
+
+        const attributes = data.getUint8(3);
+        switch (attributes & 0x03) {
+          case 0:
+            assert_equals(endpoint.type, 'control', 'endpoint type');
+            break;
+          case 1:
+            assert_equals(endpoint.type, 'isochronous', 'endpoint type');
+            break;
+          case 2:
+            assert_equals(endpoint.type, 'bulk', 'endpoint type');
+            break;
+          case 3:
+            assert_equals(endpoint.type, 'interrupt', 'endpoint type');
+            break;
+        }
+
+        assert_equals(data.getUint16(4, /*littleEndian=*/true),
+                      endpoint.packetSize, 'packet size');
+      }
+
+      function read_config_descriptor(config_value) {
+        manual_usb_subtest(async (t) => {
+          const configuration = device.configurations.find((config) => {
+            return config.configurationValue == config_value;
+          });
+          assert_not_equals(configuration, undefined);
+
+          let result = await device.controlTransferIn({
+            requestType: 'standard',
+            recipient: 'device',
+            request: kGetDescriptorRequest,
+            value: kConfigurationDescriptorType << 8 | (config_value - 1),
+            index: 0
+          }, kConfigurationDescriptorLength);
+
+          assert_equals(result.status, 'ok', 'transfer status');
+          let length = result.data.getUint8(0);
+          assert_greater_than_equal(
+              length, kConfigurationDescriptorLength, 'descriptor length');
+          assert_equals(result.data.byteLength, length, 'transfer length');
+          const total_length = result.data.getUint16(2, /*littleEndian=*/true);
+
+          result = await device.controlTransferIn({
+            requestType: 'standard',
+            recipient: 'device',
+            request: kGetDescriptorRequest,
+            value: kConfigurationDescriptorType << 8 | (config_value - 1),
+            index: 0
+          }, total_length);
+
+          assert_equals(result.status, 'ok', 'transfer status');
+          assert_equals(
+              result.data.byteLength, total_length, 'transfer length');
+          assert_equals(result.data.getUint8(0), length, 'descriptor length');
+          assert_equals(result.data.getUint8(1), kConfigurationDescriptorType,
+                        'descriptor type');
+          assert_equals(result.data.getUint16(2, /*littleEndian=*/true),
+                        total_length, 'total length');
+          assert_equals(
+              result.data.getUint8(4), configuration.interfaces.length,
+              'number of interfaces');
+          assert_equals(
+              result.data.getUint8(5), config_value, 'configuration value');
+
+          const configuration_string = result.data.getUint8(6);
+          if (configuration_string != 0) {
+            // TODO(crbug.com/727819): Check that the string descriptor matches
+            // configuration.configurationName.
+            read_string(configuration_string);
+          }
+
+          let offset = length;
+          let alternate = undefined;
+          while (offset < total_length) {
+            length = result.data.getUint8(offset);
+            assert_less_than_equal(offset + length, total_length);
+
+            const view = new DataView(
+                result.data.buffer, result.data.byteOffset + offset, length);
+            switch (view.getUint8(1)) {
+              case kConfigurationDescriptorType:
+                assert_unreached('cannot contain multiple config descriptors');
+                break;
+              case kInterfaceDescriptorType:
+                alternate = check_interface_descriptor(configuration, view);
+                break;
+              case kEndpointDescriptorType:
+                assert_not_equals(alternate, undefined,
+                                  'endpoint not defined after interface');
+                check_endpoint_descriptor(alternate, view);
+                break;
+            }
+
+            offset += length;
+          }
+        }, `Read config descriptor ${config_value}`);
+      }
+
+      function read_string_descriptor_languages(device_descriptor) {
+        manual_usb_subtest(async (t) => {
+          const result = await device.controlTransferIn({
+            requestType: 'standard',
+            recipient: 'device',
+            request: kGetDescriptorRequest,
+            value: kStringDescriptorType << 8,
+            index: 0
+          }, kStringDescriptorMaxLength);
+
+          assert_equals(result.status, 'ok', 'transfer status');
+          assert_equals(result.data.getUint8(1), kStringDescriptorType,
+                        'descriptor type');
+          const length = result.data.getUint8(0);
+          assert_greater_than_equal(length, 2, 'descriptor length')
+          assert_greater_than_equal(
+              result.data.byteLength, length, 'transfer length');
+
+          for (let index = 2; index < length; index += 2) {
+            string_languages.push(
+                result.data.getUint16(index, /*littleEndian=*/true));
+          }
+
+          const manufacturer_string = device_descriptor.getUint8(14);
+          if (manufacturer_string != 0) {
+            assert_not_equals(device.manufacturerName, undefined);
+            read_string(manufacturer_string, device.manufacturerName);
+          }
+
+          const product_string = device_descriptor.getUint8(15);
+          if (product_string != 0) {
+            assert_not_equals(device.productName, undefined);
+            read_string(product_string, device.productName);
+          }
+
+          const serial_number_string = device_descriptor.getUint8(16);
+          if (serial_number_string != 0) {
+            assert_not_equals(device.serialNumber, undefined);
+            read_string(serial_number_string, device.serialNumber);
+          }
+
+          const num_configurations = device_descriptor.getUint8(17);
+          for (let config_value = 1; config_value <= num_configurations;
+               ++config_value) {
+            read_config_descriptor(config_value);
+          }
+        }, `Read supported languages`);
+      }
+
+      promise_test(async (t) => {
+        device = await getDeviceForManualTest();
+        await device.open();
+
+        const result = await device.controlTransferIn({
+          requestType: 'standard',
+          recipient: 'device',
+          request: kGetDescriptorRequest,
+          value: kDeviceDescriptorType << 8,
+          index: 0,
+        }, kDeviceDescriptorLength);
+
+        assert_equals(result.status, 'ok', 'transfer status');
+        assert_equals(
+            result.data.byteLength, kDeviceDescriptorLength, 'transfer length');
+        assert_greater_than_equal(
+            result.data.getUint8(0),
+            kDeviceDescriptorLength, 'descriptor length');
+        assert_equals(result.data.getUint8(1), kDeviceDescriptorType,
+                      'descriptor type');
+        const bcd_usb = result.data.getUint16(2, /*littleEndian=*/true);
+        assert_equals(
+            bcd_usb >> 8, device.usbVersionMajor, 'USB version major');
+        assert_equals(
+            (bcd_usb & 0xf0) >> 4, device.usbVersionMinor, 'USB version minor');
+        assert_equals(
+            bcd_usb & 0xf, device.usbVersionSubminor, 'USV version subminor');
+        assert_equals(
+            result.data.getUint8(4), device.deviceClass, 'device class');
+        assert_equals(
+            result.data.getUint8(5), device.deviceSubclass, 'device subclass');
+        assert_equals(
+            result.data.getUint8(6), device.deviceProtocol, 'device protocol');
+        assert_equals(result.data.getUint16(8, /*littleEndian=*/true),
+                      device.vendorId, 'vendor id');
+        assert_equals(result.data.getUint16(10, /*littleEndian=*/true),
+                      device.productId, 'product id');
+        const bcd_device = result.data.getUint16(12, /*littleEndian=*/true);
+        assert_equals(
+            bcd_device >> 8, device.deviceVersionMajor, 'device version major');
+        assert_equals((bcd_device & 0xf0) >> 4, device.deviceVersionMinor,
+                      'device version minor');
+        assert_equals(bcd_device & 0xf, device.deviceVersionSubminor,
+                      'device version subminor');
+        assert_equals(result.data.getUint8(17), device.configurations.length,
+                      'number of configurations');
+
+        read_string_descriptor_languages(result.data);
+
+        if (pending_subtests == 0) {
+          await device.close();
+        }
+      }, 'Read device descriptor');
+    </script>
+  </body>
+</html>

@@ -9,6 +9,7 @@ query_should_be_css_parseable("(prefers-contrast)");
 query_should_be_css_parseable("(prefers-contrast: no-preference)");
 query_should_be_css_parseable("(prefers-contrast: more)");
 query_should_be_css_parseable("(prefers-contrast: less)");
+query_should_be_css_parseable("(prefers-contrast: custom)");
 
 query_should_not_be_css_parseable("(prefers-contrast: increase)");
 query_should_not_be_css_parseable("(prefers-contrast: none)");
@@ -25,6 +26,7 @@ query_should_be_js_parseable("(prefers-contrast)");
 query_should_be_js_parseable("(prefers-contrast: no-preference)");
 query_should_be_js_parseable("(prefers-contrast: more)");
 query_should_be_js_parseable("(prefers-contrast: less)");
+query_should_be_js_parseable("(prefers-contrast: custom)");
 
 query_should_not_be_js_parseable("(prefers-contrast: increase)");
 query_should_not_be_js_parseable("(prefers-contrast: none)");

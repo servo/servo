@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Test controlsList attribute</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/6715">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const allowedValues = [
+  "nodownload",
+  "nofullscreen",
+  "noplaybackrate",
+  "noremoteplayback",
+];
+
+function testControlsList(tagName) {
+  const element = document.createElement(tagName);
+
+  // Test that supports() is returning true for allowed values.
+  for (const value of allowedValues) {
+    assert_true(
+      element.controlsList.supports(value),
+      `tag = ${element.tagName}, value = ${value} must be supported`
+    );
+  }
+}
+
+["audio", "video"].forEach((tagName) => {
+  test(
+    () => testControlsList(tagName),
+    `Test controlsList allowed values for <${tagName}>`
+  );
+});
+</script>

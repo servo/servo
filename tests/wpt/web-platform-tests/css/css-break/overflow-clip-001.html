@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-properties">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #multicol {
+      writing-mode: vertical-lr;
+      columns: 4;
+      column-fill: auto;
+      column-gap: 0;
+      inline-size: 100px;
+      block-size: 200px;
+  }
+  #clipper {
+      /* Take up all of the first three columns and the half of the last one. */
+      block-size: 700px;
+      overflow: clip;
+  }
+  .filler {
+      /* Take us from one fragmentainer and 50px into the next. */
+      block-size: 150px;
+  }
+  .visible {
+      block-size: 100px;
+      background: green;
+  }
+  .before-fragmentainer-start {
+      /* This is before the block-start of a fragmentainer, and should therefore
+         be clipped by #clipper. */
+      margin-block-start: -100px;
+      block-size: 50px;
+      background: red;
+  }
+  .after-container-end {
+      block-size: 100px;
+      background: red;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="multicol">
+  <div id="clipper">
+    <div class="visible"></div>
+    <div class="filler"></div>
+    <div class="before-fragmentainer-start"></div>
+    <div class="visible"></div>
+    <div class="filler"></div>
+    <div class="before-fragmentainer-start"></div>
+    <div class="visible"></div>
+    <div class="filler"></div>
+    <div class="before-fragmentainer-start"></div>
+    <div class="visible"></div>
+    <div class="after-container-end"></div>
+  </div>
+</div>

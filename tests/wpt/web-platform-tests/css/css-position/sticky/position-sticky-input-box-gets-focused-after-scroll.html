@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Focusing on visible sticky input box should not scroll the page.</title>
+<title>Focusing on visible sticky input box should scroll to unshifted sticky position.</title>
 <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
 <meta name="assert" content="This test checks that focusing on visible sticky
 positioned input box should not scroll the page." />
@@ -25,6 +25,6 @@ test(() => {
   var input = document.getElementById('input');
   window.scrollTo(0, 100);
   input.focus();
-  assert_equals(window.scrollY, 100);
-}, 'Focusing on visible sticky input box should not scroll the page.');
+  assert_equals(window.scrollY, 0);
+}, 'Focusing on visible sticky input box should reset the scroll to unshifted sticky position.');
 </script>

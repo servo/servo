@@ -250,4 +250,13 @@ promise_test(t => {
     assert_false(ability.supported);
   });
 }, "Test that supported=false when keySystemConfiguration is unsupported.");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'webrtc',
+    video: minimalVideoConfiguration,
+    keySystemConfiguration: minimalKeySystemConfiguration,
+  }));
+}, "Test that decodingInfo() with type webrtc rejects key system configuration.");
+
 </script>

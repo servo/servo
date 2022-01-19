@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1206654" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html" />
+<style>
+table {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  line-height: 0;
+  border-spacing: 0;
+}
+td {
+  vertical-align: baseline;
+  width: 50px;
+  padding: 0;
+}
+div {
+  width: 50px;
+  height: 100px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<table>
+  <td>
+    <div style="display: inline-block;"></div> <!-- Creates a baseline at 100px. -->
+  </td>
+  <td>
+    <div style="position: absolute;"></div> <!-- Static-position shouldn't shift to the baseline. -->
+  </td>
+</table>

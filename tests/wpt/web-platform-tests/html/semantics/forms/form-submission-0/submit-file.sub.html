@@ -16,10 +16,10 @@ async_test(t => {
   testinput.files = dataTransfer.files;
   testform.submit();
 
-  onmessage = e => {
+  onmessage = t.step_func(e => {
     if (e.source !== testframe) return;
-    assert_equals("FieldStorage('testinput', 'name', 'foobar')", e.data);
+    assert_equals(e.data, "foobar");
     t.done();
-  };
+  });
 }, 'Posting a File');
 </script>

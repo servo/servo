@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import abc
 import inspect
 import os
@@ -357,6 +355,14 @@ class DuplicateBasenamePath(Rule):
             other file(s) (found extensions: %s)
     """)
     to_fix = "rename files so they have unique basename paths"
+
+
+class DuplicatePathCaseInsensitive(Rule):
+    name = "DUPLICATE-CASE-INSENSITIVE-PATH"
+    description = collapse("""
+            Path differs from path %s only in case
+    """)
+    to_fix = "rename files so they are unique irrespective of case"
 
 
 class TentativeDirectoryName(Rule):

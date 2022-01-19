@@ -136,6 +136,9 @@
             if (testharness_context === null) {
                 throw new Error("Tried to run in a non-testharness window without a call to set_test_context");
             }
+            if (action_msg.context === null) {
+                action_msg.context = get_window_id(window);
+            }
             cmd_id = ctx_cmd_id++;
             action_msg.cmd_id = cmd_id;
             window.test_driver.message_test({type: "testdriver-command",

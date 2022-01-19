@@ -58,6 +58,12 @@ test_no_interpolation({
   to: '2',
 });
 
+test_no_interpolation({
+  property: 'font-size-adjust',
+  from: 'initial',
+  to: 'cap-height 2',
+});
+
 test_interpolation({
   property: 'font-size-adjust',
   from: 'inherit',
@@ -101,10 +107,30 @@ test_interpolation({
     {at: 1.5, expect: '1.8'},
 ]);
 
+test_interpolation({
+    property: 'font-size-adjust',
+    from: 'cap-height 0',
+    to: 'cap-height 1.2'
+}, [
+    {at: -2, expect: 'cap-height 0'},
+    {at: -0.3, expect: 'cap-height 0'},
+    {at: 0, expect: 'cap-height 0'},
+    {at: 0.3, expect: 'cap-height 0.36'},
+    {at: 0.6, expect: 'cap-height 0.72'},
+    {at: 1, expect: 'cap-height 1.2'},
+    {at: 1.5, expect: 'cap-height 1.8'},
+]);
+
 test_no_interpolation({
     property: 'font-size-adjust',
     from: 'none',
     to: '1.2'
+});
+
+test_no_interpolation({
+    property: 'font-size-adjust',
+    from: 'none',
+    to: 'cap-height 1.2'
 });
 
 test_interpolation({
@@ -120,4 +146,24 @@ test_interpolation({
     {at: 1, expect: '1.2'},
     {at: 1.5, expect: '1.7'},
 ]);
+
+test_interpolation({
+    property: 'font-size-adjust',
+    from: 'ch-width 0.2',
+    to: 'ch-width 1.2'
+}, [
+    {at: -2, expect: 'ch-width 0'},  // CSS font-size-adjust can't be negative.
+    {at: -0.3, expect: 'ch-width 0'},
+    {at: 0, expect: 'ch-width 0.2'},
+    {at: 0.3, expect: 'ch-width 0.5'},
+    {at: 0.6, expect: 'ch-width 0.8'},
+    {at: 1, expect: 'ch-width 1.2'},
+    {at: 1.5, expect: 'ch-width 1.7'},
+]);
+
+test_no_interpolation({  // can't interpolate between different adjustment basis
+    property: 'font-size-adjust',
+    from: 'ex-height 0.2',
+    to: 'cap-height 1.2'
+});
 </script>

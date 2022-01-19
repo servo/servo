@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>hasFocus inner</title>
+<script>
+var seenFocus = false;
+var seenBlur = false;
+window.onmessage = function(e) {
+    if (e.data == "focus") {
+        let input = document.getElementsByTagName("input")[0];
+        input.onblur = function() {
+            seenBlur = true;
+        }
+        input.onfocus = function() {
+            if (seenFocus) {
+                if (seenBlur) {
+                    window.parent.postMessage("restored", "*");
+                } else {
+                    window.parent.postMessage("noblur", "*");
+                }
+            } else {
+                seenFocus = true;
+                window.parent.postMessage("focused", "*");
+            }
+        }
+        input.focus();
+    } else if (e.data == "hasfocus") {
+        if (document.hasFocus()) {
+            window.parent.postMessage("wrongfocus", "*");
+        } else {
+            window.parent.postMessage("close", "*");
+        }
+    }
+}
+</script>
+</head>
+<body>
+<input>
+</body>
+</html>

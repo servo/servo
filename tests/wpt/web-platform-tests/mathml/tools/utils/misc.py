@@ -1,13 +1,9 @@
-from __future__ import print_function
 import os
 import progressbar
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen
+from urllib.request import urlopen
 
-UnicodeXMLURL = "https://mathml-refresh.github.io/xml-entities/unicode.xml"
-InlineAxisOperatorsURL = "https://mathml-refresh.github.io/mathml-core/tables/inline-axis-operators.txt"
+UnicodeXMLURL = "https://github.com/w3c/xml-entities/blob/u14/unicode.xml?raw=true"
+InlineAxisOperatorsURL = "https://w3c.github.io/mathml-core/tables/inline-axis-operators.txt"
 
 def downloadWithProgressBar(url, outputDirectory="./", forceDownload=False):
 
@@ -18,7 +14,7 @@ def downloadWithProgressBar(url, outputDirectory="./", forceDownload=False):
         return fileName
 
     request = urlopen(url)
-    totalSize = int(request.info().getheader('Content-Length').strip())
+    totalSize = int(request.info().get('Content-Length').strip())
     bar = progressbar.ProgressBar(maxval=totalSize).start()
 
     chunkSize = 16 * 1024

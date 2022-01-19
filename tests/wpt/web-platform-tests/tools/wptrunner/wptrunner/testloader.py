@@ -5,7 +5,6 @@ from urllib.parse import urlsplit
 from abc import ABCMeta, abstractmethod
 from queue import Empty
 from collections import defaultdict, deque
-from six import ensure_binary
 
 from . import manifestinclude
 from . import manifestexpected
@@ -21,9 +20,9 @@ download_from_github = None
 def do_delayed_imports():
     # This relies on an already loaded module having set the sys.path correctly :(
     global manifest, manifest_update, download_from_github
-    from manifest import manifest
+    from manifest import manifest  # type: ignore
     from manifest import update as manifest_update
-    from manifest.download import download_from_github
+    from manifest.download import download_from_github  # type: ignore
 
 
 class TestGroupsFile(object):
@@ -102,7 +101,7 @@ class HashChunker(TestChunker):
     def __call__(self, manifest):
         chunk_index = self.chunk_number - 1
         for test_type, test_path, tests in manifest:
-            h = int(hashlib.md5(ensure_binary(test_path)).hexdigest(), 16)
+            h = int(hashlib.md5(test_path.encode()).hexdigest(), 16)
             if h % self.total_chunks == chunk_index:
                 yield test_type, test_path, tests
 
@@ -121,7 +120,7 @@ class DirectoryHashChunker(TestChunker):
                 hash_path = os.path.sep.join(os.path.dirname(test_path).split(os.path.sep, depth)[:depth])
             else:
                 hash_path = os.path.dirname(test_path)
-            h = int(hashlib.md5(ensure_binary(hash_path)).hexdigest(), 16)
+            h = int(hashlib.md5(hash_path.encode()).hexdigest(), 16)
             if h % self.total_chunks == chunk_index:
                 yield test_type, test_path, tests
 
@@ -218,7 +217,7 @@ class TestLoader(object):
                  chunk_number=1,
                  include_https=True,
                  include_h2=True,
-                 include_quic=False,
+                 include_webtransport_h3=False,
                  skip_timeout=False,
                  skip_implementation_status=None,
                  chunker_kwargs=None):
@@ -233,7 +232,7 @@ class TestLoader(object):
         self.disabled_tests = None
         self.include_https = include_https
         self.include_h2 = include_h2
-        self.include_quic = include_quic
+        self.include_webtransport_h3 = include_webtransport_h3
         self.skip_timeout = skip_timeout
         self.skip_implementation_status = skip_implementation_status
 
@@ -321,8 +320,6 @@ class TestLoader(object):
             if not self.include_https and test.environment["protocol"] == "https":
                 enabled = False
             if not self.include_h2 and test.environment["protocol"] == "h2":
-                enabled = False
-            if not self.include_quic and test.environment["quic"]:
                 enabled = False
             if self.skip_timeout and test.expected() == "TIMEOUT":
                 enabled = False

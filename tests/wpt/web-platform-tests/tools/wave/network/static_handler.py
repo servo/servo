@@ -1,8 +1,4 @@
-from __future__ import with_statement
-from __future__ import absolute_import
-from __future__ import unicode_literals
 import os
-from io import open
 
 
 class StaticHandler(object):

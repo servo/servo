@@ -5,10 +5,16 @@ def main(request, response):
     verify_navigation_state() in accept-ch-test.js
     """
 
-    if b"device-memory" in request.headers and b"sec-ch-ua" in request.headers and b"sec-ch-ua-mobile" in request.headers:
-      result = u"PASS"
+    if b"device-memory" not in request.headers:
+      result = u"DEVICE-MEMORY"
+    elif b"sec-ch-ua" not in request.headers:
+      result = u"UA"
+    elif b"sec-ch-ua-mobile" not in request.headers:
+      result = u"MOBILE"
+    elif b"sec-ch-ua-platform" not in request.headers:
+      result = u"PLATFORM"
     else:
-      result = u"FAIL"
+      result = u"PASS"
 
     content = u'''
 <script>

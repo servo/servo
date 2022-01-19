@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>RTCPeerConnection Insertable Streams Audio</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="./RTCPeerConnection-insertable-streams.js"></script>
+</head>
+<body>
+<script>
+async function testAudioFlow(t, negotiationFunction) {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => callee.close());
+
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const audioTrack = stream.getAudioTracks()[0];
+  t.add_cleanup(() => audioTrack.stop());
+
+  const audioSender = caller.addTrack(audioTrack)
+  const senderStreams = audioSender.createEncodedStreams();
+  const senderReader = senderStreams.readable.getReader();
+  const senderWriter = senderStreams.writable.getWriter();
+
+  const frameInfos = [];
+  const numFramesPassthrough = 5;
+  const numFramesReplaceData = 5;
+  const numFramesModifyData = 5;
+  const numFramesToSend = numFramesPassthrough + numFramesReplaceData + numFramesModifyData;
+
+  const ontrackPromise = new Promise(resolve => {
+    callee.ontrack = t.step_func(() => {
+      const audioReceiver = callee.getReceivers().find(r => r.track.kind === 'audio');
+      assert_not_equals(audioReceiver, undefined);
+
+      const receiverStreams =
+          audioReceiver.createEncodedStreams();
+      const receiverReader = receiverStreams.readable.getReader();
+      const receiverWriter = receiverStreams.writable.getWriter();
+
+      const maxFramesToReceive = numFramesToSend;
+      let numVerifiedFrames = 0;
+      for (let i = 0; i < maxFramesToReceive; i++) {
+        receiverReader.read().then(t.step_func(result => {
+          if (frameInfos[numVerifiedFrames] &&
+              areFrameInfosEqual(result.value, frameInfos[numVerifiedFrames])) {
+            numVerifiedFrames++;
+          } else {
+            // Receiving unexpected frames is an indication that
+            // frames are not passed correctly between sender and receiver.
+            assert_unreached("Incorrect frame received");
+          }
+
+          if (numVerifiedFrames == numFramesToSend)
+            resolve();
+        }));
+      }
+    });
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await negotiationFunction(caller, callee);
+
+  // Pass frames as they come from the encoder.
+  for (let i = 0; i < numFramesPassthrough; i++) {
+    const result = await senderReader.read()
+    frameInfos.push({
+      data: result.value.data,
+      timestamp: result.value.timestamp,
+      type: result.value.type,
+      metadata: result.value.getMetadata(),
+      getMetadata() { return this.metadata; }
+    });
+    senderWriter.write(result.value);
+  }
+
+  // Replace frame data with arbitrary buffers.
+  for (let i = 0; i < numFramesReplaceData; i++) {
+    const result = await senderReader.read()
+
+    const buffer = new ArrayBuffer(100);
+    const int8View = new Int8Array(buffer);
+    int8View.fill(i);
+
+    result.value.data = buffer;
+    frameInfos.push({
+      data: result.value.data,
+      timestamp: result.value.timestamp,
+      type: result.value.type,
+      metadata: result.value.getMetadata(),
+      getMetadata() { return this.metadata; }
+    });
+    senderWriter.write(result.value);
+  }
+
+  // Modify frame data.
+  for (let i = 0; i < numFramesReplaceData; i++) {
+    const result = await senderReader.read()
+    const int8View = new Int8Array(result.value.data);
+    int8View.fill(i);
+
+    frameInfos.push({
+      data: result.value.data,
+      timestamp: result.value.timestamp,
+      type: result.value.type,
+      metadata: result.value.getMetadata(),
+      getMetadata() { return this.metadata; }
+    });
+    senderWriter.write(result.value);
+  }
+
+  return ontrackPromise;
+}
+
+promise_test(async t => {
+  return testAudioFlow(t, exchangeOfferAnswer);
+}, 'Frames flow correctly using insertable streams');
+
+promise_test(async t => {
+  return testAudioFlow(t, exchangeOfferAnswerReverse);
+}, 'Frames flow correctly using insertable streams when receiver starts negotiation');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const audioTrack = stream.getAudioTracks()[0];
+  t.add_cleanup(() => audioTrack.stop());
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
+
+  const audioSender = caller.addTrack(audioTrack);
+  assert_throws_dom("InvalidStateError", () => audioSender.createEncodedStreams());
+}, 'RTCRtpSender.createEncodedStream() throws if not requested in PC configuration');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const audioTrack = stream.getAudioTracks()[0];
+  t.add_cleanup(() => audioTrack.stop());
+
+  const audioSender = caller.addTrack(audioTrack);
+  const ontrackPromise = new Promise(resolve => {
+    callee.ontrack = t.step_func(() => {
+      const audioReceiver = callee.getReceivers().find(r => r.track.kind === 'audio');
+      assert_not_equals(audioReceiver, undefined);
+      assert_throws_dom("InvalidStateError", () => audioReceiver.createEncodedStreams());
+      resolve();
+    });
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
+  return ontrackPromise;
+}, 'RTCRtpReceiver.createEncodedStream() throws if not requested in PC configuration');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const track = stream.getTracks()[0];
+  t.add_cleanup(() => track.stop());
+
+  const sender = caller.addTrack(track)
+  const streams = sender.createEncodedStreams();
+  const transformer = new TransformStream({
+    transform(frame, controller) {
+      // Inserting the same frame twice will result in failure since the frame
+      // will be neutered after the first insertion is processed.
+      controller.enqueue(frame);
+      controller.enqueue(frame);
+    }
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
+
+  await promise_rejects_dom(
+      t, 'OperationError',
+      streams.readable.pipeThrough(transformer).pipeTo(streams.writable));
+}, 'Enqueuing the same frame twice fails');
+
+</script>
+</body>
+</html>

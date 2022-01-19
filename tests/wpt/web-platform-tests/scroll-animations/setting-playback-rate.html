@@ -20,7 +20,8 @@
 </style>
 <body>
 <script>
-'use strict';
+  'use strict';
+
   promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
@@ -33,8 +34,8 @@
     animation.playbackRate = 0.5;
     animation.play();
 
-    assert_equals(animation.currentTime, 0,
-      'Zero current time is not affected by playbackRate change.');
+    assert_percents_equal(animation.currentTime, 0,
+        'Zero current time is not affected by playbackRate change.');
   }, 'Zero current time is not affected by playbackRate set while the ' +
        'animation is in idle state.');
 
@@ -50,8 +51,8 @@
     animation.play();
     animation.playbackRate = 0.5;
 
-    assert_equals(animation.currentTime, 0,
-      'Zero current time is not affected by playbackRate change.');
+    assert_percents_equal(animation.currentTime, 0,
+        'Zero current time is not affected by playbackRate change.');
   }, 'Zero current time is not affected by playbackRate set while the ' +
       'animation is in play-pending state.');
 
@@ -59,7 +60,6 @@
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-    const timeRange = animation.timeline.timeRange;
     scroller.scrollTop = 0.2 * maxScroll;
     // Wait for new animation frame  which allows the timeline to compute new
     // current time.
@@ -68,8 +68,8 @@
     animation.playbackRate = 0.5;
     animation.play();
     await animation.ready;
-    assert_equals(animation.currentTime, 0.2 * timeRange * 0.5,
-      'Initial current time is scaled by playbackRate change.');
+    assert_percents_equal(animation.currentTime, 10,
+        'Initial current time is scaled by playbackRate change.');
   }, 'Initial current time is scaled by playbackRate set while ' +
       'scroll-linked animation is in running state.');
 
@@ -77,7 +77,6 @@
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-    const timeRange = animation.timeline.timeRange;
     const playbackRate = 2;
 
     scroller.scrollTop = 0.2 * maxScroll;
@@ -89,8 +88,8 @@
     await animation.ready;
     // Set playback rate while the animation is playing.
     animation.playbackRate = playbackRate;
-    assert_times_equal(animation.currentTime, 0.2 * timeRange,
-      'The current time should stay unaffected by setting playback rate.');
+    assert_percents_equal(animation.currentTime, 20,
+        'The current time should stay unaffected by setting playback rate.');
   }, 'The current time is not affected by playbackRate set while the ' +
       'scroll-linked animation is in play state.');
 
@@ -98,7 +97,6 @@
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-    const timeRange = animation.timeline.timeRange;
 
     // Set playback rate while the animation is in 'idle' state.
     animation.playbackRate = 2;
@@ -109,8 +107,9 @@
     // current time.
     await waitForNextFrame();
 
-    assert_times_equal(animation.currentTime, 0.2 * timeRange * 2,
-      'The current time should increase two times faster than timeline time.');
+    assert_percents_equal(animation.currentTime, 40,
+                          'The current time should increase two times faster ' +
+                          'than timeline time.');
   }, 'The playback rate set before scroll-linked animation started playing ' +
       'affects the rate of progress of the current time');
 
@@ -128,13 +127,12 @@
     // current time.
     await waitForNextFrame();
 
-    assert_times_equal(
-      animation.currentTime,
-      animation.timeline.currentTime * animation.playbackRate,
-      'The current time should increase two times faster than timeline time'
-    );
+    assert_percents_equal(
+        animation.currentTime,
+        animation.timeline.currentTime.value * animation.playbackRate,
+        'The current time should increase two times faster than timeline time');
   }, 'The playback rate affects the rate of progress of the current time' +
-    ' when scrolling');
+     ' when scrolling');
 
     promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
@@ -150,19 +148,20 @@
 
     assert_equals(animation.playState, "running");
     assert_true(animation.pending);
-    assert_times_equal(animation.currentTime, animation.timeline.currentTime);
+    assert_percents_equal(
+        animation.currentTime, animation.timeline.currentTime);
   }, 'Setting the playback rate while play-pending preserves the current time' +
     ' from scrollTimeline.');
 
   test(t => {
     const animation = createScrollLinkedAnimation(t);
     animation.play();
-    animation.currentTime = 250;
+    animation.currentTime = CSSNumericValue.parse("25%");
     animation.playbackRate = 2;
 
     assert_equals(animation.playState, "running");
     assert_true(animation.pending);
-    assert_times_equal(animation.currentTime, 250);
+    assert_percents_equal(animation.currentTime, 25);
   }, 'Setting the playback rate while play-pending preserves the set current' +
     ' time.');
 
@@ -179,7 +178,8 @@
     await animation.ready;
     animation.playbackRate = 2;
 
-    assert_times_equal(animation.currentTime, animation.timeline.currentTime);
+    assert_percents_equal(
+        animation.currentTime, animation.timeline.currentTime);
   }, 'Setting the playback rate while playing preserves the current time' +
     ' from scrollTimeline.');
 
@@ -192,18 +192,17 @@
 
     animation.play();
 
-    animation.currentTime = 250;
+    animation.currentTime = CSSNumericValue.parse("25%");
     await animation.ready;
     animation.playbackRate = 2;
 
-    assert_times_equal(animation.currentTime, 250);
+    assert_percents_equal(animation.currentTime, 25);
   }, 'Setting the playback rate while playing preserves the set current time.');
 
   promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-    const range = animation.timeline.timeRange;
     animation.playbackRate = -1;
     scroller.scrollTop = 0.3 * maxScroll;
     // Wait for new animation frame  which allows the timeline to compute new
@@ -212,8 +211,8 @@
     animation.play();
 
     await animation.ready;
-    const expectedCurrentTime = range - animation.timeline.currentTime;
-    assert_times_equal(animation.currentTime, expectedCurrentTime);
+    const expectedCurrentTime = 100 - animation.timeline.currentTime.value;
+    assert_percents_equal(animation.currentTime, expectedCurrentTime);
   }, 'Negative initial playback rate should correctly modify initial current' +
     ' time.');
 
@@ -230,25 +229,27 @@
     await animation.ready;
     const startingTimelineTime = animation.timeline.currentTime;
     const startingCurrentTime = animation.currentTime;
-    assert_times_equal(startingCurrentTime, startingTimelineTime);
+    assert_percents_equal(startingCurrentTime, startingTimelineTime);
 
     animation.playbackRate = -1;
 
     scroller.scrollTop = 0.8 * maxScroll;
     await waitForNextFrame();
     // -300 = 500 - 800
-    let timelineDiff = startingTimelineTime - animation.timeline.currentTime;
+    let timelineDiff =
+        startingTimelineTime.value - animation.timeline.currentTime.value;
     // 200 = 500 + (-300)
-    let expected = startingCurrentTime + timelineDiff;
-    assert_times_equal(animation.currentTime, expected);
+    let expected = startingCurrentTime.value + timelineDiff;
+    assert_percents_equal(animation.currentTime, expected);
 
     scroller.scrollTop = 0.2 * maxScroll;
     await waitForNextFrame();
     // 300 = 500 - 200
-    timelineDiff = startingTimelineTime - animation.timeline.currentTime;
+    timelineDiff =
+        startingTimelineTime.value - animation.timeline.currentTime.value;
     // 800 = 500 + 300
-    expected = startingCurrentTime + timelineDiff;
-    assert_times_equal(animation.currentTime, expected);
+    expected = startingCurrentTime.value + timelineDiff;
+    assert_percents_equal(animation.currentTime, expected);
   }, 'Reversing the playback rate while playing correctly impacts current' +
     ' time during future scrolls');
 
@@ -265,7 +266,7 @@
     animation.play();
 
     await animation.ready;
-    assert_times_equal(animation.currentTime, 0);
+    assert_percents_equal(animation.currentTime, 0);
   }, 'Zero initial playback rate should correctly modify initial current' +
     ' time.');
 
@@ -280,14 +281,14 @@
     animation.play();
 
     await animation.ready;
-    assert_times_equal(animation.currentTime, 200);
+    assert_percents_equal(animation.currentTime, 20);
     animation.playbackRate = 0;
     scroller.scrollTop = 0.5 * maxScroll;
     await waitForNextFrame();
 
     // Ensure that current time does not change.
-    assert_time_equals_literal(animation.timeline.currentTime, 500);
-    assert_time_equals_literal(animation.currentTime, 200);
+    assert_percents_equal(animation.timeline.currentTime, 50);
+    assert_percents_equal(animation.currentTime, 20);
   }, 'Setting a zero playback rate while running preserves the current time');
 </script>
 </body>

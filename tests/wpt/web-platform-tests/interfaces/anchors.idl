@@ -7,7 +7,7 @@
 interface XRAnchor {
   readonly attribute XRSpace anchorSpace;
 
-  void delete();
+  undefined delete();
 };
 
 partial interface XRFrame {
@@ -18,6 +18,7 @@ partial interface XRHitTestResult {
   Promise<XRAnchor> createAnchor();
 };
 
+[Exposed=Window]
 interface XRAnchorSet {
   readonly setlike<XRAnchor>;
 };

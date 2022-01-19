@@ -16,10 +16,10 @@ p {
 }
 p {
   color: orange;
-  --a: green;
+  --a: red;
   --b: crimson;
-  --a: var(--b) <!--;
-  color: var(--a);
+  --a: var(--b) <!--; /* valid at parse */
+  color: var(--a);    /* but IACVT at substitution */
 }
 </style>
 <p>This text must be green.</p>

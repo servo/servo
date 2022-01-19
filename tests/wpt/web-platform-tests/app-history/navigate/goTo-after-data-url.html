@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+  let i = document.createElement("iframe");
+  i.src = "data:text/html,";
+  document.body.appendChild(i);
+  let start_length = history.length;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(() => {
+    i.contentWindow.location = "/common/blank.html";
+    i.onload = () => t.step_timeout(() => {
+      assert_equals(history.length, start_length + 1);
+      assert_equals(i.contentWindow.appHistory.entries().length, 1);
+      i.contentWindow.appHistory.navigate("#fragment");
+      assert_equals(i.contentWindow.appHistory.entries().length, 2);
+      i.contentWindow.appHistory.back().then(t.step_func(() => {
+        assert_equals(i.contentWindow.appHistory.entries().length, 2);
+        assert_equals(i.contentWindow.appHistory.current.index, 0);
+        return i.contentWindow.appHistory.forward();
+      })).then(t.step_func_done(() => {
+        assert_equals(i.contentWindow.appHistory.entries().length, 2);
+        assert_equals(i.contentWindow.appHistory.current.index, 1);
+      }));
+    }, 0);
+  }, 0);
+}, "appHistory.goTo() should work in an iframe that started at a data: url");
+</script>
+</body>

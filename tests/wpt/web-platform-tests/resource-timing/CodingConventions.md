@@ -26,6 +26,12 @@ with recurring patterns.
 *   Consistent use of anonymous functions
     *   prefer
         ```
+        const func1 = param1 => {
+          body();
+        }
+        const func2 = (param1, param2) => {
+          body();
+        }
         fn(param => {
             body();
         });
@@ -34,6 +40,12 @@ with recurring patterns.
         over
 
         ```
+        function func1(param1) {
+          body();
+        }
+        function func2(param1, param2) {
+          body();
+        }
         fn(function(param) {
             body();
         });

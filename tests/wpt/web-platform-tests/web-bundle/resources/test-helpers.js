@@ -28,8 +28,22 @@ function fetchAndWaitForReject(url) {
   });
 }
 
+function isValidCrossOriginAttribute(crossorigin) {
+  if (crossorigin === undefined)
+    return true;
+  if ((typeof crossorigin) != 'string')
+    return false;
+  const lower_crossorigin = crossorigin.toLowerCase();
+  return (lower_crossorigin === 'anonymous') ||
+         (lower_crossorigin  === 'use-credentials');
+}
+
 function addLinkAndWaitForLoad(url, resources, crossorigin) {
   return new Promise((resolve, reject) => {
+    if (!isValidCrossOriginAttribute(crossorigin)) {
+      reject('invalid crossorigin attribute: ' + crossorigin);
+      return;
+    }
     const link = document.createElement("link");
     link.rel = "webbundle";
     link.href = url;
@@ -47,6 +61,10 @@ function addLinkAndWaitForLoad(url, resources, crossorigin) {
 
 function addLinkAndWaitForError(url, resources, crossorigin) {
   return new Promise((resolve, reject) => {
+    if (!isValidCrossOriginAttribute(crossorigin)) {
+      reject('invalid crossorigin attribute: ' + crossorigin);
+      return;
+    }
     const link = document.createElement("link");
     link.rel = "webbundle";
     link.href = url;

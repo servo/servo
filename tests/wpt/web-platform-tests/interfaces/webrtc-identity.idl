@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Identity for WebRTC 1.0 (https://w3c.github.io/webrtc-identity/identity.html)
+// Source: Identity for WebRTC 1.0 (https://w3c.github.io/webrtc-identity/)
 
 [Global,
  Exposed=RTCIdentityProviderGlobalScope]

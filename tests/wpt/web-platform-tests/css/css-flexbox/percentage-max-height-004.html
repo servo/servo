@@ -1,0 +1,29 @@
+<!doctype quirks>
+<title>CSS Flexbox Test: replaced element in nested flexboxes has correct height to resolve percentage against </title>
+<link rel="author" title="Ziran Sun" href="mailto:zsun@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-containers">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<link href="support/flexbox.css" rel="stylesheet">
+<link rel="match" href="percentage-max-height-004-ref.html">
+<meta name="assert" content="Replaced children with % max-height are sized correctly when their parents are flex items with percentage heights in quirks mode." />
+
+
+<style>
+.flex {
+  display:flex;
+  flex-direction:column;
+}
+.percent-height {
+  height: 100%;
+}
+.max-sizes {
+  max-height: 100%;
+  max-width: 100%;
+}
+</style>
+<div class="percent-height flex">
+  <div class="percent-height">
+    <img class="max-sizes" src="support/100x100-green.png" alt="Image download support must be enabled">
+  </div>
+</div>
+

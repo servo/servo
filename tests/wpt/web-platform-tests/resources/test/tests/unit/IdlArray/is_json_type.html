@@ -37,7 +37,10 @@
         assert_false(idl.is_json_type(typeFrom("Uint16Array")));
         assert_false(idl.is_json_type(typeFrom("Uint32Array")));
         assert_false(idl.is_json_type(typeFrom("Uint8ClampedArray")));
+        assert_false(idl.is_json_type(typeFrom("BigInt64Array")));
+        assert_false(idl.is_json_type(typeFrom("BigUint64Array")));
         assert_false(idl.is_json_type(typeFrom("Float32Array")));
+        assert_false(idl.is_json_type(typeFrom("Float64Array")));
         assert_false(idl.is_json_type(typeFrom("ArrayBuffer")));
         assert_false(idl.is_json_type(typeFrom("DataView")));
     }, 'should return false for all buffer source types');
@@ -131,14 +134,9 @@
     test(function() {
         var idl = new IdlArray();
         idl.add_untested_idls('interface Foo { }; interface mixin Bar { DOMString toJSON(); }; Foo includes Bar;');
+        idl.merge_mixins();
         assert_true(idl.is_json_type(typeFrom("Foo")));
     }, 'should return true for interfaces which mixin an interface which declare a toJSON operation');
-
-//    test(function() {
-//        var idl = new IdlArray();
-//        idl.add_untested_idls('interface Foo { }; interface Bar { }; interface Baz { DOMString toJSON(); }; Foo implements Bar; Bar implements Baz;');
-//        assert_true(idl.is_json_type(typeFrom("Foo")));
-//    }, 'should return true for interfaces which mixin an interface which itself mixes in an interface which declares a toJSON operation');
 
     test(function() {
         var idl = new IdlArray();

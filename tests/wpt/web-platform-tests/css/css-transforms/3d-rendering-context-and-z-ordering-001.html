@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Sorting outside of the 3-D Rendering Context</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2/#3d-transform-rendering">
+<meta name="assert" content="The #wrapper element is the root of the 3-D rendering context, so #tooltip should render on top of it per normal CSS z-ordering rules.">
+<link rel="match" href="transform-lime-square-ref.html">
+<style>
+
+#contain {
+  position: relative;
+  padding-top: 5px;
+}
+
+#wrapper {
+  width: 30px;
+  height: 30px;
+  margin-top: 20px;
+  margin-left: 20px;
+}
+
+#cube {
+  width: 15px;
+  height: 15px;
+  transform-style: preserve-3d;
+}
+
+#face {
+  width: 15px;
+  height: 15px;
+  transform: translateZ(75px);
+  background: red;
+}
+
+#tooltip {
+  position: absolute;
+  background: lime;
+  width: 100px;
+  height: 100px;
+  top: 0;
+  left: 0;
+}
+
+</style>
+
+<div id="contain">
+  <div id="wrapper">
+    <div id="cube">
+      <div id="face"></div>
+    </div>
+  </div>
+
+  <div id="tooltip"></div>
+</div>

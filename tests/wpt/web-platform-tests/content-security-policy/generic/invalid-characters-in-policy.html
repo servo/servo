@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      // Make sure that csp works properly in normal situations
+      {
+        "csp": "",
+        "expected": true,
+        "name": "Should load image without any CSP",
+      },
+      {
+        "csp": "img-src 'none';",
+        "expected": false,
+        "name": "Should not load image with 'none' CSP",
+      },
+
+      // Now test with non-ASCII characters.
+      {
+        "csp": "img-src 'none' \u00A1invalid-source; style-src 'none'",
+        "expected": true,
+        "name": "Non-ASCII character in directive value should drop the whole directive.",
+      },
+      {
+        "csp": "img-src 'none'; style-src \u00A1invalid-source 'none'",
+        "expected": false,
+        "name": "Non-ASCII character in directive value should not affect other directives.",
+      },
+      {
+        "csp": "img-src 'none'; style\u00A1-src 'none'",
+        "expected": false,
+        "name": "Non-ASCII character in directive name should not affect other directives.",
+      },
+    ];
+
+    tests.forEach(test => {
+      async_test(t => {
+        var url = "support/load_img_and_post_result_meta.sub.html?csp="
+            + encodeURIComponent(test.csp);
+        test_image_loads_as_expected(test, t, url);
+      }, test.name + " - meta tag");
+
+      async_test(t => {
+        var url = "support/load_img_and_post_result_header.html?csp="
+            + encodeURIComponent(test.csp);
+        test_image_loads_as_expected(test, t, url);
+      }, test.name + " - HTTP header");
+    });
+
+    function test_image_loads_as_expected(test, t, url) {
+      var i = document.createElement('iframe');
+      i.src = url;
+      window.addEventListener('message', t.step_func(function(e) {
+        if (e.source != i.contentWindow) return;
+        if (test.expected) {
+          assert_equals(e.data, "img loaded");
+        } else {
+          assert_equals(e.data, "img not loaded");
+        }
+        t.done();
+      }));
+      document.body.appendChild(i);
+    }
+  </script>
+</body>
+</html>

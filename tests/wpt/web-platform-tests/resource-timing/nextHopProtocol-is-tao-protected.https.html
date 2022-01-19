@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing - Check that nextHopProtocol is TAO protected</title>
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/entry-invariants.js"></script>
+<script src="resources/resource-loaders.js"></script>
+</head>
+<body>
+<script>
+
+const {HTTPS_REMOTE_ORIGIN} = get_host_info();
+const remote_resources = `${HTTPS_REMOTE_ORIGIN}/resource-timing/resources`;
+
+// Add iframe to remote origin - page without TAO
+attribute_test(
+  load.iframe, `${remote_resources}/green.htm`,
+  entry => assert_equals(entry.nextHopProtocol, "",
+    "nextHopProtocol should be the empty string"),
+  "Add TAO-less iframe from remote origin. Make sure nextHopProtocol is the " +
+  "empty string"
+);
+
+// Add iframe to remote origin - page with TAO
+attribute_test(
+  load.iframe, `${remote_resources}/blank-with-tao.html`,
+  entry => assert_not_equals(entry.nextHopProtocol, "",
+    "nextHopProtocol should not be the empty string"),
+  "Add TAO'd iframe from remote origin. Make sure nextHopProtocol is not " +
+  "the empty string"
+);
+</script>
+</body>
+</html>

@@ -12,9 +12,12 @@ must be ignored if the word contains a conditional hyphen (&shy; or U+00AD), in 
 conditional hyphen(s).">
 <style>
 code {
-  display:block;
-  hyphens:auto;
+  display: block;
+  hyphens: auto;
   border: 1px solid black;
+  /* Prefer Courier New if available, as otherwise Menlo may be used,
+     and its HYPHEN and HYPHEN-MINUS glyphs don't match. */
+  font-family: Courier New, Courier, monospace;
 }
 </style>
 </head>

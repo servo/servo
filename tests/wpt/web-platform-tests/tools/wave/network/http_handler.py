@@ -1,8 +1,4 @@
-from __future__ import unicode_literals
-try:
-    import http.client as httplib
-except ImportError:
-    import httplib
+import http.client as httplib
 import sys
 import traceback
 
@@ -83,12 +79,17 @@ class HttpHandler(object):
         port = str(self._http_port)
         uri = request.url_parts.path
         uri = uri + "?" + request.url_parts.query
-        data = request.raw_input.read(request.headers.get('Content-Length'))
+        data = request.raw_input.read(int(request.headers.get('Content-Length', -1)))
         method = request.method
+        # HTTPConnection expects values to be a comma separated string instead
+        # of a list of values.
+        headers = {}
+        for k, v in request.headers.items():
+            headers[k] = b",".join(list(v))
 
         try:
             proxy_connection = httplib.HTTPConnection(host, port)
-            proxy_connection.request(method, uri, data, request.headers)
+            proxy_connection.request(method, uri, data, headers)
             proxy_response = proxy_connection.getresponse()
             response.content = proxy_response.read()
             response.headers = proxy_response.getheaders()

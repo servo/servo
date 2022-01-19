@@ -1,6 +1,3 @@
-# Copyright (c) 2016 W3C
-# Released under the W3C Test Suite License: see LICENSE.txt
-
 # This tool creates .html test files for the WPT harness from corresponding .test
 # files that it finds in the tree for this test collection.
 

@@ -6,15 +6,12 @@ import asyncio
 import pytest
 import webdriver
 
-from six import string_types
-
-from six.moves.urllib.parse import urlunsplit
+from urllib.parse import urlunsplit
 
 from tests.support import defaults
 from tests.support.helpers import cleanup_session, deep_update
 from tests.support.inline import build_inline
 from tests.support.http_request import HTTPRequest
-from tests.support.sync import Poll
 
 
 _current_session = None
@@ -23,8 +20,10 @@ _custom_session = False
 
 def pytest_configure(config):
     # register the capabilities marker
-    config.addinivalue_line("markers",
-        "capabilities: mark test to use capabilities")
+    config.addinivalue_line(
+        "markers",
+        "capabilities: mark test to use capabilities"
+    )
 
 
 @pytest.fixture
@@ -40,9 +39,9 @@ def pytest_generate_tests(metafunc):
             metafunc.parametrize("capabilities", marker.args, ids=None)
 
 
-# Ensure that the event loop is restarted once per session rather than the default  of once per test
-# if we don't do this, tests will try to reuse a closed event loop and fail with an error that the "future
-# belongs to a different loop"
+# Ensure that the event loop is restarted once per session rather than the default
+# of once per test. If we don't do this, tests will try to reuse a closed event
+# loop and fail with an error that the "future belongs to a different loop".
 @pytest.fixture(scope="session")
 def event_loop():
     """Change event_loop fixture to session level."""
@@ -52,62 +51,14 @@ def event_loop():
 
 
 @pytest.fixture
-def add_event_listeners(session):
-    """Register listeners for tracked events on element."""
-    def add_event_listeners(element, tracked_events):
-        element.session.execute_script("""
-            let element = arguments[0];
-            let trackedEvents = arguments[1];
-
-            if (!("events" in window)) {
-              window.events = [];
-            }
-
-            for (var i = 0; i < trackedEvents.length; i++) {
-              element.addEventListener(trackedEvents[i], function (event) {
-                window.events.push(event.type);
-              });
-            }
-            """, args=(element, tracked_events))
-    return add_event_listeners
-
-
-@pytest.fixture
-def create_cookie(session, url):
-    """Create a cookie"""
-    def create_cookie(name, value, **kwargs):
-        if kwargs.get("path", None) is not None:
-            session.url = url(kwargs["path"])
-
-        session.set_cookie(name, value, **kwargs)
-        return session.cookies(name)
-
-    return create_cookie
-
-
-@pytest.fixture
-def create_frame(session):
-    """Create an `iframe` element in the current browsing context and insert it
-    into the document. Return a reference to the newly-created element."""
-    def create_frame():
-        append = """
-            var frame = document.createElement('iframe');
-            document.body.appendChild(frame);
-            return frame;
-        """
-        return session.execute_script(append)
-
-    return create_frame
-
-
-@pytest.fixture
 def http(configuration):
     return HTTPRequest(configuration["host"], configuration["port"])
 
 
 @pytest.fixture
 def server_config():
-    return json.loads(os.environ.get("WD_SERVER_CONFIG"))
+    with open(os.environ.get("WD_SERVER_CONFIG_FILE"), "r") as f:
+        return json.load(f)
 
 
 @pytest.fixture(scope="session")
@@ -123,14 +74,14 @@ def configuration():
     }
 
 
-async def reset_current_session_if_necessary(caps, request_bidi):
+async def reset_current_session_if_necessary(caps):
     global _current_session
 
-    # If there is a session with different capabilities active or the current session
-    # is of different type than the one we would like to create, end it now.
+    # If there is a session with different requested capabilities active than
+    # the one we would like to create, end it now.
     if _current_session is not None:
-        is_bidi = isinstance(_current_session, webdriver.BidiSession)
-        if is_bidi != request_bidi or not _current_session.match(caps):
+        if not _current_session.match(caps):
+            is_bidi = isinstance(_current_session, webdriver.BidiSession)
             if is_bidi:
                 await _current_session.end()
             else:
@@ -145,7 +96,8 @@ async def session(capabilities, configuration, request):
     By default the session will stay open after each test, but we always try to start a
     new one and assume that if that fails there is already a valid session. This makes it
     possible to recover from some errors that might leave the session in a bad state, but
-    does not demand that we start a new session per test."""
+    does not demand that we start a new session per test.
+    """
     global _current_session
 
     # Update configuration capabilities with custom ones from the
@@ -154,23 +106,20 @@ async def session(capabilities, configuration, request):
     deep_update(caps, capabilities)
     caps = {"alwaysMatch": caps}
 
-    await reset_current_session_if_necessary(caps, False)
+    await reset_current_session_if_necessary(caps)
 
     if _current_session is None:
         _current_session = webdriver.Session(
             configuration["host"],
             configuration["port"],
             capabilities=caps)
-    try:
-        _current_session.start()
 
-    except webdriver.error.SessionNotCreatedException:
-        if not _current_session.session_id:
-            raise
+    _current_session.start()
 
     # Enforce a fixed default window size and position
-    _current_session.window.size = defaults.WINDOW_SIZE
-    _current_session.window.position = defaults.WINDOW_POSITION
+    if _current_session.capabilities.get("setWindowRect"):
+        _current_session.window.size = defaults.WINDOW_SIZE
+        _current_session.window.position = defaults.WINDOW_POSITION
 
     yield _current_session
 
@@ -179,40 +128,43 @@ async def session(capabilities, configuration, request):
 
 @pytest.fixture(scope="function")
 async def bidi_session(capabilities, configuration, request):
-    """Create and start a bidi session for a test that does not itself test
-    bidi session creation.
+    """Create and start a bidi session.
+
+    Can be used for a test that does not itself test bidi session creation.
+
     By default the session will stay open after each test, but we always try to start a
     new one and assume that if that fails there is already a valid session. This makes it
     possible to recover from some errors that might leave the session in a bad state, but
-    does not demand that we start a new session per test."""
+    does not demand that we start a new session per test.
+    """
     global _current_session
 
     # Update configuration capabilities with custom ones from the
     # capabilities fixture, which can be set by tests
     caps = copy.deepcopy(configuration["capabilities"])
+    caps.update({"webSocketUrl": True})
     deep_update(caps, capabilities)
     caps = {"alwaysMatch": caps}
 
-    await reset_current_session_if_necessary(caps, True)
+    await reset_current_session_if_necessary(caps)
 
     if _current_session is None:
-        _current_session = webdriver.BidiSession(
+        _current_session = webdriver.Session(
             configuration["host"],
             configuration["port"],
-            capabilities=caps)
-    try:
-        await _current_session.start()
+            capabilities=caps,
+            enable_bidi=True)
 
-    except webdriver.error.SessionNotCreatedException:
-        if not _current_session.session_id:
-            raise
+    _current_session.start()
+    await _current_session.bidi_session.start()
 
     # Enforce a fixed default window size and position
     _current_session.window.size = defaults.WINDOW_SIZE
     _current_session.window.position = defaults.WINDOW_POSITION
 
-    yield _current_session
+    yield _current_session.bidi_session
 
+    await _current_session.bidi_session.end()
     cleanup_session(_current_session)
 
 
@@ -233,93 +185,8 @@ def url(server_config):
 
 
 @pytest.fixture
-def create_dialog(session):
-    """Create a dialog (one of "alert", "prompt", or "confirm") and provide a
-    function to validate that the dialog has been "handled" (either accepted or
-    dismissed) by returning some value."""
-
-    def create_dialog(dialog_type, text=None):
-        assert dialog_type in ("alert", "confirm", "prompt"), (
-            "Invalid dialog type: '%s'" % dialog_type)
-
-        if text is None:
-            text = ""
-
-        assert isinstance(text, string_types), "`text` parameter must be a string"
-
-        # Script completes itself when the user prompt has been opened.
-        # For prompt() dialogs, add a value for the 'default' argument,
-        # as some user agents (IE, for example) do not produce consistent
-        # values for the default.
-        session.execute_async_script("""
-            let dialog_type = arguments[0];
-            let text = arguments[1];
-
-            setTimeout(function() {
-              if (dialog_type == 'prompt') {
-                window.dialog_return_value = window[dialog_type](text, '');
-              } else {
-                window.dialog_return_value = window[dialog_type](text);
-              }
-            }, 0);
-            """, args=(dialog_type, text))
-
-        wait = Poll(
-            session,
-            timeout=15,
-            ignored_exceptions=webdriver.NoSuchAlertException,
-            message="No user prompt with text '{}' detected".format(text))
-        wait.until(lambda s: s.alert.text == text)
-
-    return create_dialog
-
-
-@pytest.fixture
-def closed_frame(session, url):
-    original_handle = session.window_handle
-    new_handle = session.new_window()
-
-    session.window_handle = new_handle
-
-    session.url = url("/webdriver/tests/support/html/frames.html")
-
-    subframe = session.find.css("#sub-frame", all=False)
-    session.switch_frame(subframe)
-
-    deleteframe = session.find.css("#delete-frame", all=False)
-    session.switch_frame(deleteframe)
-
-    button = session.find.css("#remove-parent", all=False)
-    button.click()
-
-    yield
-
-    session.window.close()
-    assert new_handle not in session.handles, "Unable to close window {}".format(new_handle)
-
-    session.window_handle = original_handle
-
-
-@pytest.fixture
-def closed_window(session, inline):
-    original_handle = session.window_handle
-    new_handle = session.new_window()
-
-    session.window_handle = new_handle
-    session.url = inline("<input id='a' value='b'>")
-    element = session.find.css("input", all=False)
-
-    session.window.close()
-    assert new_handle not in session.handles, "Unable to close window {}".format(new_handle)
-
-    yield (original_handle, element)
-
-    session.window_handle = original_handle
-
-
-@pytest.fixture
 def inline(url):
-    """Takes a source extract and produces well-formed documents.
+    """Take a source extract and produces well-formed documents.
 
     Based on the desired document type, the extract is embedded with
     predefined boilerplate in order to produce well-formed documents.
@@ -347,7 +214,7 @@ def inline(url):
 
 @pytest.fixture
 def iframe(inline):
-    """Inlines document extract as the source document of an <iframe>."""
+    """Inline document extract as the source document of an <iframe>."""
     def iframe(src, **kwargs):
         return "<iframe src='{}'></iframe>".format(inline(src, **kwargs))
 

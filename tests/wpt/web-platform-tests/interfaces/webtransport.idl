@@ -1,0 +1,90 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebTransport (https://w3c.github.io/webtransport/)
+
+interface mixin UnidirectionalStreamsTransport {
+  Promise<SendStream> createUnidirectionalStream(optional SendStreamParameters parameters = {});
+  /* a ReadableStream of ReceiveStream objects */
+  readonly attribute ReadableStream incomingUnidirectionalStreams;
+};
+
+dictionary SendStreamParameters {
+};
+
+[Exposed=(Window,Worker)]
+interface DatagramDuplexStream {
+  readonly attribute ReadableStream readable;
+  readonly attribute WritableStream writable;
+};
+
+[Exposed=(Window,Worker)]
+interface WebTransport {
+  constructor(USVString url, optional WebTransportOptions options = {});
+
+  Promise<WebTransportStats> getStats();
+  readonly attribute WebTransportState state;
+  readonly attribute Promise<undefined> ready;
+  readonly attribute Promise<WebTransportCloseInfo> closed;
+  undefined close(optional WebTransportCloseInfo closeInfo = {});
+  attribute EventHandler onstatechange;
+
+  readonly attribute unsigned short maxDatagramSize;
+  readonly attribute DatagramDuplexStream datagrams;
+
+  Promise<BidirectionalStream> createBidirectionalStream();
+  /* a ReadableStream of BidirectionalStream objects */
+  readonly attribute ReadableStream incomingBidirectionalStreams;
+};
+
+WebTransport includes UnidirectionalStreamsTransport;
+
+dictionary WebTransportOptions {
+  boolean allowPooling;
+  sequence<RTCDtlsFingerprint> serverCertificateFingerprints;
+};
+
+enum WebTransportState {
+  "connecting",
+  "connected",
+  "closed",
+  "failed"
+};
+
+dictionary WebTransportCloseInfo {
+  unsigned long long errorCode = 0;
+  DOMString reason = "";
+};
+
+dictionary WebTransportStats {
+  DOMHighResTimeStamp timestamp;
+  unsigned long long bytesSent;
+  unsigned long long packetsSent;
+  unsigned long numOutgoingStreamsCreated;
+  unsigned long numIncomingStreamsCreated;
+  unsigned long long bytesReceived;
+  unsigned long long packetsReceived;
+  DOMHighResTimeStamp minRtt;
+  unsigned long numReceivedDatagramsDropped;
+};
+
+[ Exposed=(Window,Worker) ]
+interface SendStream : WritableStream /* of Uint8Array */ {
+  readonly attribute Promise<StreamAbortInfo> remoteCanceled;
+  undefined reset(optional StreamAbortInfo abortInfo = {});
+};
+
+dictionary StreamAbortInfo {
+  [EnforceRange] octet errorCode = 0;
+};
+
+[ Exposed=(Window,Worker) ]
+interface ReceiveStream : ReadableStream /* of Uint8Array */ {
+  readonly attribute Promise<StreamAbortInfo> remoteReset;
+};
+
+[ Exposed=(Window,Worker) ]
+interface BidirectionalStream {
+  readonly attribute ReceiveStream readable;
+  readonly attribute SendStream writable;
+};

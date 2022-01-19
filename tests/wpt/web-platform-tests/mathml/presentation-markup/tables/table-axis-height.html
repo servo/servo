@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>table axis height</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#table-or-matrix-mtable">
+<link rel="help" href="https://w3c.github.io/mathml-core/#table-or-matrix-mtable">
 <meta name="assert" content="Element mtable correctly uses the axis height parameter from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -26,7 +27,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function runTests() {
     test(function() {

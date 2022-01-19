@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<meta charset=utf-8>
+<meta name="variant" content="?b">
+<meta name="variant" content="?i">
+<meta name="variant" content="?u">
+<title>Test removing inline style which is specified by parent block</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<div contenteditable></div>
+</body>
+<script>
+"use strict";
+
+const tag = location.search.substring(1);
+const style = (() => {
+  switch (tag) {
+    case "b":
+      return "font-weight: bold";
+    case "i":
+      return "font-style: italic";
+    case "u":
+      return "text-decoration: underline";
+  }
+})();
+const cancelingStyle = (() => {
+  switch (tag) {
+    case "b":
+      return "font-weight: normal";
+    case "i":
+      return "font-style: normal";
+    case "u":
+      return "";  // Cannot delete parent underline
+  }
+})();
+const command = (() => {
+  switch (tag) {
+    case "b":
+      return "bold";
+    case "i":
+      return "italic";
+    case "u":
+      return "underline";
+  }
+})();
+const editor = document.querySelector("div[contenteditable]");
+
+promise_test(async () => {
+  await new Promise(resolve => {
+    addEventListener("load", () => {
+      assert_true(true, "The document is loaded");
+      resolve();
+    }, { once: true });
+  });
+}, "Waiting for load...");
+
+promise_test(async () => {
+  document.execCommand("styleWithCSS", false, "false");
+  editor.innerHTML = `<p style="${style}">foo</p>`;
+  editor.focus();
+  getSelection().selectAllChildren(editor.querySelector("p"));
+  document.execCommand(command);
+  assert_in_array(
+    editor.innerHTML,
+    [
+      "<p>foo</p>",
+      "<p>foo<br></p>",
+      "<p style=\"\">foo</p>",
+      "<p style=\"\">foo<br></p>",
+    ]);
+}, "Disabling style to text, it's applied to the parent block");
+
+promise_test(async () => {
+  document.execCommand("styleWithCSS", false, "false");
+  editor.innerHTML = `<p>foo</p>`;
+  editor.setAttribute("style", style);
+  editor.focus();
+  getSelection().selectAllChildren(editor.querySelector("p"));
+  document.execCommand(command);
+  if (cancelingStyle !== "") {
+    assert_in_array(
+      editor.innerHTML,
+      [
+        `<p><span style="${cancelingStyle};">foo</span></p>`,
+        `<p><span style="${cancelingStyle};">foo</span><br></p>`,
+      ]);
+  } else {
+    assert_in_array(
+      editor.innerHTML,
+      [
+        "<p>foo</p>",
+        "<p>foo<br></p>",
+      ]);
+  }
+  assert_equals(editor.getAttribute("style"), style);
+  editor.removeAttribute("style");
+}, "Disabling style to text, it's applied to the editing host");
+
+promise_test(async () => {
+  document.execCommand("styleWithCSS", false, "false");
+  editor.innerHTML = `<p>foo</p>`;
+  document.body.setAttribute("style", style);
+  editor.focus();
+  getSelection().selectAllChildren(editor.querySelector("p"));
+  document.execCommand(command);
+  if (cancelingStyle !== "") {
+    assert_in_array(
+      editor.innerHTML,
+      [
+        `<p><span style="${cancelingStyle};">foo</span></p>`,
+        `<p><span style="${cancelingStyle};">foo</span><br></p>`,
+      ]);
+  } else {
+    assert_in_array(
+      editor.innerHTML,
+      [
+        "<p>foo</p>",
+        "<p>foo<br></p>",
+      ]);
+  }
+  assert_equals(document.body.getAttribute("style"), style);
+  document.body.removeAttribute("style");
+}, "Disabling style to text, it's applied to the body");
+</script>

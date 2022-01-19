@@ -8,6 +8,7 @@ interface Profiler : EventTarget {
   readonly attribute DOMHighResTimeStamp sampleInterval;
   readonly attribute boolean stopped;
 
+  constructor(ProfilerInitOptions options);
   Promise<ProfilerTrace> stop();
 };
 
@@ -40,9 +41,4 @@ dictionary ProfilerFrame {
 dictionary ProfilerInitOptions {
   required DOMHighResTimeStamp sampleInterval;
   required unsigned long maxBufferSize;
-};
-
-[Exposed=(Window,Worker)]
-partial interface Performance {
-  Promise<Profiler> profile(ProfilerInitOptions options);
 };

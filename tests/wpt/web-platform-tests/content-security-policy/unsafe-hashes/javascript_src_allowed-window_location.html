@@ -18,7 +18,7 @@
           assert_equals(e.data, "pass");
         });
 
-        window.open('support/child_window_location_navigate.sub.html' + 
+        window.open('support/child_window_location_navigate.sub.html' +
               '?csp=' + encodeURI("script-src 'unsafe-hashes' 'nonce-abc' 'sha256-IIiAJ8UuliU8o1qAv6CV4P3R8DeTf/v3MrsCwXW171Y='") +
               '&url=' + encodeURI("javascript:opener.postMessage('pass', '*')"));
     </script>

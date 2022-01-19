@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: summary with 'display: flex'</title>
+<link rel="author" title="Xing Xu" href="mailto:xing.xu@intel.com">
+<link rel="match" href="summary-display-flex-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements">
+<meta name="assert" content="Checks that styling a <summary> with 'display: flex' makes it a flex container.">
+<style>
+.flex-container {
+  background: #333;
+  border: 0px;
+  display: flex;
+  margin: 0px;
+  padding: 0px;
+}
+
+.flex-container.flex-direction-row {
+  flex-direction : row;
+}
+
+.flex-container.flex-direction-row-reverse {
+  flex-direction : row-reverse;
+}
+
+.flex-container.flex-direction-column {
+  flex-direction : column;
+}
+
+.flex-container.flex-direction-column-reverse {
+  flex-direction : column-reverse;
+}
+
+.flex-container.flex-direction-column-reverse {
+  flex-direction : column-reverse;
+}
+
+.flex-container.justify-content-center {
+  justify-content: center;
+}
+
+.flex-container.justify-content-space-around {
+  justify-content: space-around;
+}
+
+.flex-container.justify-content-space-between {
+  justify-content: space-between;
+}
+
+.flex-item {
+  width:50px;
+  height:50px;
+  margin:20px;
+  background: #eee;
+  line-height: 50px;
+  text-align: center;
+}
+</style>
+
+<summary style="display: flex;">
+  <div>these fields</div>
+  <div>shouldn't be</div>
+  <div>stacked vertically</div>
+</summary>
+
+<h1>flex-direction: row</h1>
+<summary class="flex-container flex-direction-row">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</summary>
+
+<h1>flex-direction: row-reverse</h1>
+<summary class="flex-container flex-direction-row-reverse">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</summary>
+
+<h1>flex-direction: column</h1>
+<summary class="flex-container flex-direction-column">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</summary>
+
+<h1>flex-direction: column-reverse</h1>
+<summary class="flex-container flex-direction-column-reverse">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</summary>
+
+<h1>justify-content: center</h1>
+<summary class="flex-container justify-content-center">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</summary>
+
+<h1>justify-content: space-around</h1>
+<summary class="flex-container justify-content-space-around">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</summary>
+
+<h1>justify-content: space-between</h1>
+<summary class="flex-container justify-content-space-between">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</summary>

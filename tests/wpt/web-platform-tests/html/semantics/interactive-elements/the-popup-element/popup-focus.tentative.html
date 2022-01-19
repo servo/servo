@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup focus behaviors</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<popup data-test='default behavior - popup is not focused' data-no-focus>
+  <p>This is a popup</p>
+  <button>first button</button>
+</popup>
+
+<popup data-test='autofocus popup' autofocus class=should-be-focused>
+  <p>This is a popup</p>
+</popup>
+
+<popup data-test='autofocus empty popup' autofocus class=should-be-focused></popup>
+
+<popup data-test='autofocus popup with button' autofocus class=should-be-focused>
+  <p>This is a popup</p>
+  <button>button</button>
+</popup>
+
+<popup data-test='autofocus child'>
+  <p>This is a popup</p>
+  <button autofocus class=should-be-focused>autofocus button</button>
+</popup>
+
+<popup data-test='autofocus on tabindex=0 element'>
+  <p autofocus tabindex=0 class=should-be-focused>This is a popup with autofocus on a tabindex=0 element</p>
+  <button>button</button>
+</popup>
+
+<popup data-test='autofocus multiple children'>
+  <p>This is a popup</p>
+  <button autofocus class=should-be-focused>autofocus button</button>
+  <button autofocus>second autofocus button</button>
+</popup>
+
+<popup autofocus data-test='autofocus popup and multiple autofocus children' class=should-be-focused>
+  <p>This is a popup</p>
+  <button autofocus>autofocus button</button>
+  <button autofocus>second autofocus button</button>
+</popup>
+
+<popup delegatesfocus data-test='delegatesfocus popup'>
+  <p>This is a popup</p>
+  <button class=should-be-focused>first button should be focused</button>
+  <button>second button</button>
+</popup>
+
+<popup delegatesfocus data-test='delegatesfocus takes precedence over autofocus'>
+  <p>This is a popup</p>
+  <button class=should-be-focused>first button</button>
+  <button autofocus>autofocus button should NOT be focused</button>
+</popup>
+
+<popup delegatesfocus autofocus data-test='delegatesfocus takes precedence over autofocus 2'>
+  <p>This is a popup</p>
+  <button class=should-be-focused>first button</button>
+  <button>autofocus button should NOT be focused</button>
+</popup>
+
+<popup delegatesfocus data-test='delegatesfocus on empty popup has no effect' data-no-focus></popup>
+
+<popup data-test='delegatesfocus on child has no effect' data-no-focus>
+  <p>This is a popup</p>
+  <button delegatesfocus>first button</button>
+</popup>
+
+<popup delegatesfocus data-test='delegatesfocus skips contained popups'>
+  <p>This is a popup</p>
+  <popup>
+    <button>Contained popup button</button>
+  </popup>
+  <button class=should-be-focused>first button</button>
+  <button>autofocus button should NOT be focused</button>
+</popup>
+
+<popup delegatesfocus data-test='delegatesfocus skips contained dialogs'>
+  <p>This is a popup</p>
+  <dialog>
+    <button>Contained dialog button</button>
+  </dialog>
+  <button class=should-be-focused>first button</button>
+  <button>autofocus button should NOT be focused</button>
+</popup>
+
+<style>
+  popup {
+    border: 2px solid black;
+    top:150px;
+    left:150px;
+  }
+  :focus-within { border: 5px dashed red; }
+  :focus { border: 5px solid lime; }
+</style>
+
+<script>
+  function activateAndVerify(popup) {
+    const testName = popup.getAttribute('data-test');
+    const priorFocus = document.createElement('button');
+    priorFocus.id = 'prior-focus';
+    document.body.appendChild(priorFocus);
+    let expectedFocusedElement = popup.matches('.should-be-focused') ? popup : popup.querySelector('.should-be-focused');
+    if (popup.hasAttribute('data-no-focus')) {
+      expectedFocusedElement = priorFocus;
+    }
+    test(t => {
+      t.add_cleanup(() => priorFocus.remove());
+      assert_true(!!expectedFocusedElement);
+      assert_false(popup.open);
+      priorFocus.focus();
+      assert_equals(document.activeElement,priorFocus);
+
+      // Directly show the popup:
+      popup.show();
+      assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by popup.show()`);
+      popup.hide();
+
+      // Use an activating element:
+      const button = document.createElement('button');
+      const popupId = 'popup-id';
+      assert_equals(document.querySelectorAll('#' + popupId).length,0);
+      document.body.appendChild(button);
+      t.add_cleanup(function() {
+        popup.removeAttribute('id');
+        button.remove();
+      });
+      popup.id = popupId;
+      button.setAttribute('popup', popupId);
+      priorFocus.focus();
+      button.click();
+      assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by button.click()`);
+
+      // Make sure we can directly focus the (already open) popup:
+      popup.focus();
+      assert_equals(document.activeElement, popup.hasAttribute('delegatesfocus') ? expectedFocusedElement : popup, `${testName} directly focus with popup.focus()`);
+      popup.hide();
+    }, "Popup focus test: " + testName);
+  }
+
+  document.querySelectorAll('body > popup').forEach(popup => activateAndVerify(popup));
+</script>

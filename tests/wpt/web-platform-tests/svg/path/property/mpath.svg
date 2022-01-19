@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:h="http://www.w3.org/1999/xhtml" width="200" height="100">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+    <h:link rel="match" href="mpath-ref.svg"/>
+    <h:meta name="assert" content="d property is used for SVG mpath ref path."/>
+  </metadata>
+  <path style='d: path("M20,50 h100");' fill="none" stroke="black" id="path_ref"/>
+
+  <circle r="5" fill="red">
+    <!-- The red circle should always be in the middle of the path -->
+    <animateMotion dur="10s" repeatCount="indefinite" keyPoints="0.5;0.5" keyTimes="0;1">
+       <mpath xlink:href="#path_ref"/>
+    </animateMotion>
+  </circle>
+</svg>

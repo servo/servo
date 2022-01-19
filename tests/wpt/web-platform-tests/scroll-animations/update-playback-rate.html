@@ -32,19 +32,19 @@ promise_test(async t => {
   animation.play();
   await animation.ready;
 
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
 
   animation.updatePlaybackRate(0.5);
   await animation.ready;
-  assert_times_equal(animation.currentTime, 500,
-    'Reducing the playback rate should not change the current time ' +
-    'of a playing animation');
+  assert_percents_equal(animation.currentTime, 50,
+                        'Reducing the playback rate should not change the ' +
+                        'current time of a playing animation');
 
   animation.updatePlaybackRate(2);
   await animation.ready;
-  assert_times_equal(animation.currentTime, 500,
-    'Increasing the playback rate should not change the current time ' +
-    'of a playing animation');
+  assert_percents_equal(animation.currentTime, 50,
+                        'Increasing the playback rate should not change the ' +
+                        'current time of a playing animation');
 }, 'Updating the playback rate maintains the current time');
 
 promise_test(async t => {
@@ -66,23 +66,23 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   animation.play();
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
   assert_true(animation.pending);
 
   animation.updatePlaybackRate(0.5);
 
   // Check that the hold time is updated as expected
-  assert_times_equal(animation.currentTime, 500);
+  assert_percents_equal(animation.currentTime, 50);
 
   await animation.ready;
 
   // As above, check that the currentTime is not calculated by simply
   // substituting in the updated playbackRate without updating the startTime.
-  assert_times_equal(animation.currentTime, 500,
-    'Reducing the playback rate should not change the current time ' +
-    'of a play-pending animation');
-}, 'Updating the playback rate on a play-pending animation maintains'
-   + ' the current time');
+  assert_percents_equal(animation.currentTime, 50,
+                        'Reducing the playback rate should not change the ' +
+                        'current time of a play-pending animation');
+}, 'Updating the playback rate on a play-pending animation maintains the ' +
+   'current time');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -90,15 +90,15 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   animation.play();
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
   await animation.ready;
 
   animation.pause();
   animation.updatePlaybackRate(0.5);
 
-  assert_times_equal(animation.currentTime, 500);
-}, 'Updating the playback rate on a pause-pending animation maintains'
-   + ' the current time');
+  assert_percents_equal(animation.currentTime, 50);
+}, 'Updating the playback rate on a pause-pending animation maintains the ' +
+   'current time');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -150,15 +150,15 @@ promise_test(async t => {
   await waitForNextFrame();
   animation.play();
   animation.finish();
-  assert_time_equals_literal(animation.currentTime, 1000);
+  assert_percents_equal(animation.currentTime, 100);
   assert_false(animation.pending);
 
   animation.updatePlaybackRate(2);
   assert_equals(animation.playbackRate, 2);
-  assert_time_equals_literal(animation.currentTime, 1000);
+  assert_percents_equal(animation.currentTime, 100);
   assert_false(animation.pending);
-}, 'Updating the playback rate on a finished animation maintains'
-   + ' the current time');
+}, 'Updating the playback rate on a finished animation maintains the current ' +
+   'time');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -167,15 +167,15 @@ promise_test(async t => {
   await waitForNextFrame();
   animation.play();
   animation.finish();
-  assert_time_equals_literal(animation.currentTime, 1000);
+  assert_percents_equal(animation.currentTime, 100);
   assert_false(animation.pending);
 
   animation.updatePlaybackRate(0);
   assert_equals(animation.playbackRate, 0);
-  assert_time_equals_literal(animation.currentTime, 1000);
+  assert_percents_equal(animation.currentTime, 100);
   assert_false(animation.pending);
-}, 'Updating the playback rate to zero on a finished animation maintains'
-   + ' the current time');
+}, 'Updating the playback rate to zero on a finished animation maintains the ' +
+   'current time');
 
 </script>
 </body>

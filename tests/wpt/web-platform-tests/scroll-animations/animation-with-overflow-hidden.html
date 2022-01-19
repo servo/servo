@@ -44,13 +44,12 @@
     [
       {transform: 'translateY(0)', opacity: 1},
       {transform: 'translateY(200px)', opacity: 0}
-    ], {
-      duration: 1000,
-    }
+    ]
   );
 
   const scroller = document.getElementById('scroller');
-  const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+  const timeline = new ScrollTimeline(
+      { scrollSource: scroller, orientation: 'block' });
   const animation = new Animation(effect, timeline);
   animation.play();
 

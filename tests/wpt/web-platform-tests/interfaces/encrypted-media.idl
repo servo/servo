@@ -38,8 +38,7 @@ dictionary MediaKeySystemMediaCapability {
 
 enum MediaKeySessionType {
     "temporary",
-    "persistent-license",
-    "persistent-usage-record"
+    "persistent-license"
 };
 
 [Exposed=Window, SecureContext] interface MediaKeys {

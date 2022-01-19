@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ur">
+<meta charset="utf-8">
+<title>Tests that system-ui font-family works for Urdu</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#system-ui-def">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="mismatch" href="system-ui-ur-notref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+@font-face {
+  font-family: noto-naskh;
+  src: url(/fonts/noto/NotoNaskhArabic-regular.woff2),
+       url(/fonts/noto/NotoNaskhArabic-regular.ttf);
+  size-adjust: 0.5; /* cause mismatch even if system-ui maps to Noto Naskh */
+}
+p {
+  font-family: Ahem, system-ui, noto-naskh, serif;
+  font-size: 4em;
+}
+</style>
+<p>سلام</p>

@@ -119,6 +119,8 @@ testReadableStreamClone(new Uint8Array(arrayBuffer), "Uint8Array");
 testReadableStreamClone(new Uint8ClampedArray(arrayBuffer), "Uint8ClampedArray");
 testReadableStreamClone(new Uint16Array(arrayBuffer, 2), "Uint16Array");
 testReadableStreamClone(new Uint32Array(arrayBuffer), "Uint32Array");
+testReadableStreamClone(typeof BigInt64Array === "function" ? new BigInt64Array(arrayBuffer) : undefined, "BigInt64Array");
+testReadableStreamClone(typeof BigUint64Array === "function" ? new BigUint64Array(arrayBuffer) : undefined, "BigUint64Array");
 testReadableStreamClone(new Float32Array(arrayBuffer), "Float32Array");
 testReadableStreamClone(new Float64Array(arrayBuffer), "Float64Array");
 testReadableStreamClone(new DataView(arrayBuffer, 2, 8), "DataView");

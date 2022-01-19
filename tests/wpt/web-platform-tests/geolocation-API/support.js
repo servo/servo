@@ -5,7 +5,7 @@ setup(function() {
 });
 
 // The spec states that an implementation SHOULD acquire user permission before
-// beggining the position acquisition steps. If an implementation follows this
+// beginning the position acquisition steps. If an implementation follows this
 // advice, set the following flag to aid debugging.
 var isUsingPreemptivePermission = false;
 

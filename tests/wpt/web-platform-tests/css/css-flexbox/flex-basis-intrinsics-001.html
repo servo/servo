@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-basis-property">
+<meta name="assert" content="flex-basis:min/max/fit-content works in row and column flexboxes when the items have either parallel or orthogonal writing modes" />
+
+<style>
+.inline-block {
+  float: left;
+  height: 50px;
+  width: 50px;
+  background: blue;
+}
+
+.flexbox {
+  display: flex;
+  width: 75px;
+  height: 75px;
+  margin-bottom: 50px;
+}
+
+.flex-item {
+  flex-shrink: 0;
+  min-width: 0px;
+  min-height: 0px;
+  background: green;
+}
+
+.ortho-item {
+  writing-mode: vertical-rl;
+}
+
+</style>
+
+<div id=log></div>
+
+<div class=flexbox>
+  <div class=flex-item style="flex-basis: min-content;" data-expected-width=50>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox>
+  <div class=flex-item style="flex-basis: max-content; width: 300px;" data-expected-width=100>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox>
+  <div class=flex-item style="flex-basis: -moz-fit-content; flex-basis: fit-content;" data-expected-width=75>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox style="flex-flow: column;">
+  <div class=flex-item style="flex-basis: min-content;" data-expected-height=100>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox style="flex-flow: column;">
+  <div class=flex-item style="flex-basis: max-content;" data-expected-height=100>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox style="flex-flow: column;">
+  <div class=flex-item style="flex-basis: -moz-fit-content; flex-basis: fit-content;" data-expected-height=100>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox>
+  <div class="flex-item ortho-item" style="flex-basis: min-content;" data-expected-width=100>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox>
+  <div class="flex-item ortho-item" style="flex-basis: max-content; width: 300px;" data-expected-width=100>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox>
+  <div class="flex-item ortho-item" style="flex-basis: -moz-fit-content; flex-basis: fit-content;" data-expected-width=100>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox style="flex-flow: column;">
+  <div class="flex-item ortho-item" style="flex-basis: min-content;" data-expected-height=50>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox style="flex-flow: column;">
+  <div class="flex-item ortho-item" style="flex-basis: max-content;" data-expected-height=100>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<div class=flexbox style="flex-flow: column;">
+  <div class="flex-item ortho-item" style="flex-basis: -moz-fit-content; flex-basis: fit-content;" data-expected-height=75>
+    <div class=inline-block></div><div class=inline-block></div>
+  </div>
+</div>
+
+<script>
+checkLayout('.flex-item');
+</script>

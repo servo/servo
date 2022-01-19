@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Credential Management API: create() basics.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(function(t) {
+    // Throws a not implemented error.
+    return promise_rejects_dom(t, "NotSupportedError",
+        navigator.credentials.get({
+              federated: {
+                providers: [{
+                  provider: "https://accounts.idp.example",
+                  clientId: "1234",
+                  nonce: "5678",
+                }]
+              }
+            })
+    );
+}, "navigator.credentials.get() with a FederatedIdentityProvider.");
+
+promise_test(function(t) {
+  // Revocation API not supported yet.
+  return promise_rejects_dom(t, "NotSupportedError",
+    FederatedCredential.revoke("1234")
+  );
+}, "navigator.credentials.revoke() basic.");
+
+</script>

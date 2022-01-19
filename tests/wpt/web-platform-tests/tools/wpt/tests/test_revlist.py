@@ -1,4 +1,5 @@
-import mock
+from unittest import mock
+
 from tools.wpt import revlist
 
 

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>TextTrack's cue onenter handler called when seeked onto</title>
+<meta name="timeout" content="long">
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/cues-chrono-order.vtt" kind="captions" default>
+    <script>
+    // Check that the onenter event is called for the right cue when seeking on the video element.
+    // Based on the spec step 4 [1], after a seek happens, the missed cues should be empty,
+    // so any cues before the target time should not receive enter event.
+    // [1] https://html.spec.whatwg.org/multipage/media.html#time-marches-on
+    async_test(function(t) {
+        var video = document.querySelector("video");
+        var testTrack = document.querySelector("track");
+
+        video.src = getVideoURI("/media/test");
+
+        video.oncanplaythrough = t.step_func(attemptTests);
+
+        function attemptTests() {
+            assert_equals(testTrack.track.cues.length, 3);
+            const targetTime = 4.0000000004;
+
+            for (let cue of testTrack.track.cues) {
+                if (cue.endTime > targetTime) {
+                    cue.onenter = t.step_func(_=>t.done());
+                } else {
+                    cue.onenter = t.unreached_func("onenter called for wrong cue");
+                }
+            }
+
+            video.currentTime = targetTime;
+        }
+    });
+    </script>
+</video>

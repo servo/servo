@@ -23,7 +23,9 @@ test_valid_value("padding-left", "40px");
 test_valid_value("padding", "20%");
 test_valid_value("padding", "10px 20% 30% 40px");
 test_valid_value("padding-right", "20%");
-test_valid_value("padding-right", "calc(2em + 3%)");
+
+// https://drafts.csswg.org/css-values-4/#sort-a-calculations-children
+test_valid_value("padding-right", "calc(2em + 3%)", "calc(3% + 2em)");
 </script>
 </body>
 </html>

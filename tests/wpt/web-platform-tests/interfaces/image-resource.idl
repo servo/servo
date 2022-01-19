@@ -1,0 +1,11 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Image Resource (https://w3c.github.io/image-resource/)
+
+dictionary ImageResource {
+  required USVString src;
+  DOMString sizes;
+  DOMString type;
+  DOMString label;
+};

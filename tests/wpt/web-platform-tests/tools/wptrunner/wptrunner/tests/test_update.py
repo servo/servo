@@ -1,11 +1,12 @@
 import json
-import mock
 import os
-import pytest
 import sys
 from io import BytesIO
+from unittest import mock
 
-from .. import metadata, manifestupdate
+import pytest
+
+from .. import metadata, manifestupdate, wptmanifest
 from ..update.update import WPTUpdate
 from ..update.base import StepRunner, Step
 from mozlog import structuredlog, handlers, formatters
@@ -1672,3 +1673,105 @@ def test_update_pickle():
     wptupdate = WPTUpdate(logger, **args2)
     wptupdate = WPTUpdate(logger, runner_cls=UpdateRunner, **args)
     wptupdate.run()
+
+
+def test_update_serialize_quoted():
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              b"""[test.htm]
+  expected: "ERROR"
+  [test1]
+    expected:
+     if os == "linux": ["PASS", "FAIL"]
+     "ERROR"
+""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "PASS",
+                                        "known_intermittent": ["FAIL"]}),
+                       ("test_end", {"test": test_id,
+                                     "expected": "ERROR",
+                                     "status": "OK"})],
+                      run_info={"os": "linux"})
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "FAIL",
+                                        "expected": "PASS",
+                                        "known_intermittent": ["FAIL"]}),
+                       ("test_end", {"test": test_id,
+                                     "expected": "ERROR",
+                                     "status": "OK"})],
+                      run_info={"os": "linux"})
+    log_2 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "ERROR"}),
+                       ("test_end", {"test": test_id,
+                                     "expected": "ERROR",
+                                     "status": "OK"})],
+                      run_info={"os": "win"})
+
+    updated = update(tests, log_0, log_1, log_2, full_update=True, update_intermittent=True)
+
+
+    manifest_str = wptmanifest.serialize(updated[0][1].node,
+                                         skip_empty_data=True)
+    assert manifest_str == """[test.htm]
+  [test1]
+    expected:
+      if os == "linux": [PASS, FAIL]
+      ERROR
+"""
+
+
+def test_update_serialize_unquoted():
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              b"""[test.htm]
+  expected: ERROR
+  [test1]
+    expected:
+     if os == "linux": [PASS, FAIL]
+     ERROR
+""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "PASS",
+                                        "known_intermittent": ["FAIL"]}),
+                       ("test_end", {"test": test_id,
+                                     "expected": "ERROR",
+                                     "status": "OK"})],
+                      run_info={"os": "linux"})
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "FAIL",
+                                        "expected": "PASS",
+                                        "known_intermittent": ["FAIL"]}),
+                       ("test_end", {"test": test_id,
+                                     "expected": "ERROR",
+                                     "status": "OK"})],
+                      run_info={"os": "linux"})
+    log_2 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "ERROR"}),
+                       ("test_end", {"test": test_id,
+                                     "expected": "ERROR",
+                                     "status": "OK"})],
+                      run_info={"os": "win"})
+
+    updated = update(tests, log_0, log_1, log_2, full_update=True, update_intermittent=True)
+
+
+    manifest_str = wptmanifest.serialize(updated[0][1].node,
+                                         skip_empty_data=True)
+    assert manifest_str == """[test.htm]
+  [test1]
+    expected:
+      if os == "linux": [PASS, FAIL]
+      ERROR
+"""

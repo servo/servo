@@ -1,0 +1,9 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL OES_standard_derivatives Khronos Ratified Extension Specification (https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface OES_standard_derivatives {
+    const GLenum FRAGMENT_SHADER_DERIVATIVE_HINT_OES = 0x8B8B;
+};

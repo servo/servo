@@ -53,10 +53,10 @@ test_interpolation({
   to: 'left 20px top 20px',
 }, [
   {at: 0, expect: '0% 0%'},
-  {at: 0.25, expect: '5px 5px'},
-  {at: 0.5, expect: '10px 10px'},
-  {at: 0.75, expect: '15px 15px'},
-  {at: 1, expect: '20px 20px'},
+  {at: 0.25, expect: 'calc(0% + 5px) calc(0% + 5px)'},
+  {at: 0.5, expect: 'calc(0% + 10px) calc(0% + 10px)'},
+  {at: 0.75, expect: 'calc(0% + 15px) calc(0% + 15px)'},
+  {at: 1, expect: 'calc(0% + 20px) calc(0% + 20px)'},
 ]);
 
 // inherit
@@ -79,10 +79,10 @@ test_interpolation({
   to: 'left 20px top 20px',
 }, [
   {at: 0, expect: '0% 0%'},
-  {at: 0.25, expect: '5px 5px'},
-  {at: 0.5, expect: '10px 10px'},
-  {at: 0.75, expect: '15px 15px'},
-  {at: 1, expect: '20px 20px'},
+  {at: 0.25, expect: 'calc(0% + 5px) calc(0% + 5px)'},
+  {at: 0.5, expect: 'calc(0% + 10px) calc(0% + 10px)'},
+  {at: 0.75, expect: 'calc(0% + 15px) calc(0% + 15px)'},
+  {at: 1, expect: 'calc(0% + 20px) calc(0% + 20px)'},
 ]);
 
 // left-top
@@ -95,7 +95,7 @@ test_interpolation({
   {at: 0.25, expect: 'calc(5px + 37.5%) calc(5px + 37.5%)'},
   {at: 0.5, expect: 'calc(10px + 25%) calc(10px + 25%)'},
   {at: 0.75, expect: 'calc(15px + 12.5%) calc(15px + 12.5%)'},
-  {at: 1, expect: '20px 20px'},
+  {at: 1, expect: 'calc(0% + 20px) calc(0% + 20px)'},
 ]);
 
 // center-top
@@ -108,7 +108,7 @@ test_interpolation({
   {at: 0.25, expect: '50% calc(5px + 37.5%)'},
   {at: 0.5, expect: '50% calc(10px + 25%)'},
   {at: 0.75, expect: '50% calc(15px + 12.5%)'},
-  {at: 1, expect: '50% 20px'},
+  {at: 1, expect: '50% calc(0% + 20px)'},
 ]);
 
 // right-top
@@ -121,7 +121,7 @@ test_interpolation({
   {at: 0.25, expect: 'calc(-5px + 62.5%) calc(5px + 37.5%)'},
   {at: 0.5, expect: 'calc(-10px + 75%) calc(10px + 25%)'},
   {at: 0.75, expect: 'calc(-15px + 87.5%) calc(15px + 12.5%)'},
-  {at: 1, expect: 'calc(-20px + 100%) 20px'},
+  {at: 1, expect: 'calc(-20px + 100%) calc(0% + 20px)'},
 ]);
 
 // left-center
@@ -134,7 +134,7 @@ test_interpolation({
   {at: 0.25, expect: 'calc(5px + 37.5%) 50%'},
   {at: 0.5, expect: 'calc(10px + 25%) 50%'},
   {at: 0.75, expect: 'calc(15px + 12.5%) 50%'},
-  {at: 1, expect: '20px 50%'},
+  {at: 1, expect: 'calc(0% + 20px) 50%'},
 ]);
 
 // center-center
@@ -173,7 +173,7 @@ test_interpolation({
   {at: 0.25, expect: 'calc(5px + 37.5%) calc(-5px + 62.5%)'},
   {at: 0.5, expect: 'calc(10px + 25%) calc(-10px + 75%)'},
   {at: 0.75, expect: 'calc(15px + 12.5%) calc(-15px + 87.5%)'},
-  {at: 1, expect: '20px calc(-20px + 100%)'},
+  {at: 1, expect: 'calc(0% + 20px) calc(-20px + 100%)'},
 ]);
 
 // center-bottom

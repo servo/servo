@@ -51,7 +51,7 @@ promise_test(async t => {
   for (let payloadType = 64; payloadType <= 95; payloadType++) {
     const pc = new RTCPeerConnection();
     await promise_rejects_dom(t, 'InvalidAccessError',
-      pc.setRemoteDescription({type: 'offer', sdp: createOfferSdp(64)}));
+      pc.setRemoteDescription({type: 'offer', sdp: createOfferSdp(payloadType)}));
     pc.close();
   }
 }, 'setRemoteDescription with a codec in the range 64-95 throws an InvalidAccessError');

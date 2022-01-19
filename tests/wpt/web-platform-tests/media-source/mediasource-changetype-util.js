@@ -116,10 +116,12 @@ function appendBuffer(test, sourceBuffer, data) {
   sourceBuffer.appendBuffer(data);
 }
 
-function trimBuffered(test, mediaElement, sourceBuffer, minimumPreviousDuration, newDuration, skip_duration_prechecks) {
+function trimBuffered(test, mediaSource, sourceBuffer, minimumPreviousDuration, newDuration, skip_duration_prechecks) {
   if (!skip_duration_prechecks) {
-    assert_less_than(newDuration, minimumPreviousDuration);
-    assert_less_than(minimumPreviousDuration, mediaElement.duration);
+    assert_less_than(newDuration, minimumPreviousDuration,
+        "trimBuffered newDuration must be less than minimumPreviousDuration");
+    assert_less_than(minimumPreviousDuration, mediaSource.duration,
+        "trimBuffered minimumPreviousDuration must be less than mediaSource.duration");
   }
   test.expectEvent(sourceBuffer, "update");
   test.expectEvent(sourceBuffer, "updateend");
@@ -128,7 +130,8 @@ function trimBuffered(test, mediaElement, sourceBuffer, minimumPreviousDuration,
 
 function trimDuration(test, mediaElement, mediaSource, newDuration, skip_duration_prechecks) {
   if (!skip_duration_prechecks) {
-    assert_less_than(newDuration, mediaElement.duration);
+    assert_less_than(newDuration, mediaSource.duration,
+        "trimDuration newDuration must be less than mediaSource.duration");
   }
   test.expectEvent(mediaElement, "durationchange");
   mediaSource.duration = newDuration;
@@ -158,7 +161,8 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, typeA, da
   // implicit_changetype and negative_test.
 
   function findSafeOffset(targetTime, overlappedMediaMetadata, overlappedStartTime, overlappingMediaMetadata) {
-    assert_greater_than_equal(targetTime, overlappedStartTime);
+    assert_greater_than_equal(targetTime, overlappedStartTime,
+        "findSafeOffset targetTime must be greater than or equal to overlappedStartTime");
 
     let offset = targetTime;
     if ("start_time" in overlappingMediaMetadata) {
@@ -177,7 +181,8 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, typeA, da
     let gopsToRetain = Math.ceil((targetTime - overlappedStartTime) / overlappedMediaMetadata["keyframe_interval"]);
     let adjustedTime = overlappedStartTime + gopsToRetain * overlappedMediaMetadata["keyframe_interval"];
 
-    assert_greater_than_equal(adjustedTime, targetTime);
+    assert_greater_than_equal(adjustedTime, targetTime,
+        "findSafeOffset adjustedTime must be greater than or equal to targetTime");
     offset += adjustedTime - targetTime;
     return { "offset": offset, "adjustedTime": adjustedTime };
   }
@@ -221,7 +226,8 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, typeA, da
   // changeType B->B and append B starting at 1.0 seconds (or at the first
   // keyframe in B at or after 1.0 seconds if it has keyframe_interval defined).
   test.waitForExpectedEvents(() => {
-    assert_less_than(lastStart, 1.0);
+    assert_less_than(lastStart, 1.0,
+        "changeType B->B lastStart must be less than 1.0");
     let safeOffset = findSafeOffset(1.0, metadataB, lastStart, metadataB);
     lastStart = safeOffset["adjustedTime"];
     if (!implicit_changetype) {
@@ -239,7 +245,8 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, typeA, da
   // changeType B->A and append A starting at 1.5 seconds (or at the first
   // keyframe in B at or after 1.5 seconds if it has keyframe_interval defined).
   test.waitForExpectedEvents(() => {
-    assert_less_than(lastStart, 1.5);
+    assert_less_than(lastStart, 1.5,
+        "changeType B->A lastStart must be less than 1.5");
     let safeOffset = findSafeOffset(1.5, metadataB, lastStart, metadataA);
     // Retain the previous lastStart because the next block will append data
     // which begins between that start time and this block's start time.
@@ -258,7 +265,8 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, typeA, da
   // changeType A->A and append A starting at 1.3 seconds (or at the first
   // keyframe in B at or after 1.3 seconds if it has keyframe_interval defined).
   test.waitForExpectedEvents(() => {
-    assert_less_than(lastStart, 1.3);
+    assert_less_than(lastStart, 1.3,
+        "changeType A->A lastStart must be less than 1.3");
     // Our next append will begin by overlapping some of metadataB, then some of
     // metadataA.
     let safeOffset = findSafeOffset(1.3, metadataB, lastStart, metadataA);
@@ -277,7 +285,7 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, typeA, da
   // Trim duration to 2 seconds, then play through to end.
   test.waitForExpectedEvents(() => {
     // If negative testing, then skip fragile assertions.
-    trimBuffered(test, mediaElement, sourceBuffer, 2.1, 2, negative_test);
+    trimBuffered(test, mediaSource, sourceBuffer, 2.1, 2, negative_test);
   });
 
   test.waitForExpectedEvents(() => {
@@ -286,7 +294,7 @@ function runChangeTypeTest(test, mediaElement, mediaSource, metadataA, typeA, da
   });
 
   test.waitForExpectedEvents(() => {
-    assert_equals(mediaElement.currentTime, 0);
+    assert_equals(mediaElement.currentTime, 0, "currentTime must be 0");
     test.expectEvent(mediaSource, "sourceended");
     test.expectEvent(mediaElement, "play");
     test.expectEvent(mediaElement, "ended");

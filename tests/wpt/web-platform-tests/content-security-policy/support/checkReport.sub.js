@@ -63,30 +63,38 @@
 
     var report = new XMLHttpRequest();
     report.onload = reportTest.step_func(function () {
+      var data = JSON.parse(report.responseText);
 
-        var data = JSON.parse(report.responseText);
-
-        if (data.error) {
-          assert_equals("false", reportExists, data.error);
+      if (data.error) {
+        assert_equals("false", reportExists, data.error);
+      } else {
+        if (reportExists === "false") {
+          assert_equals(data.length, 0,
+                        "CSP report sent, but not expecting one.");
         } else {
-          if(reportExists != "" && reportExists == "false" && data["csp-report"]) {
-              assert_unreached("CSP report sent, but not expecting one");
-          }
+          // With the 'report-uri' directive, the report is contained in
+          // `data[0]["csp-report"]`. With the 'report-to' directive, the report
+          // is contained in `data[0]["body"]`.
+          const reportBody = data[0]["body"]
+                ? data[0]["body"]
+                : data[0]["csp-report"];
+
+          assert_true(reportBody !== undefined,
+                      "No CSP report sent, but expecting one.");
           // Firefox expands 'self' or origins in a policy to the actual origin value
           // so "www.example.com" becomes "http://www.example.com:80".
           // Accomodate this by just testing that the correct directive name
           // is reported, not the details...
 
-          if(data["csp-report"] != undefined && data["csp-report"][reportField] != undefined) {
-            assert_field_value(data["csp-report"][reportField], reportValue, reportField);
-          } else if (data[0] != undefined && data[0]["body"] != undefined && data[0]["body"][reportField] != undefined) {
-            assert_field_value(data[0]["body"][reportField], reportValue, reportField);
+          if (reportBody[reportField] !== undefined) {
+            assert_field_value(reportBody[reportField], reportValue, reportField);
           } else {
-            assert_equals("", reportField, "Expected report field could not be found in report");
+            assert_equals(reportField, "", "Expected report field could not be found in report.");
           }
         }
+      }
 
-        reportTest.done();
+      reportTest.done();
     });
 
     report.open("GET", reportLocation, true);

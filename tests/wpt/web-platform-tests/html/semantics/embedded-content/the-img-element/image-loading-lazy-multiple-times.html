@@ -11,7 +11,7 @@
        below-viewport image out-of-view later in the test -->
   <div id="top_div"></div>
   <div style="height:1000vh;"></div>
-  <img id="below_viewport" loading="lazy" src="resources/image.png?first">
+  <img id="below_viewport" loading="lazy" src="resources/image.png?image-loading-lazy-multiple-times-first">
 
 <script>
   const t = async_test("Images with loading='lazy' can be lazy loaded multiple times");
@@ -38,7 +38,7 @@
     top_div.scrollIntoView();
 
     // Lazily load a "different" image.
-    image.src = 'resources/image.png?second';
+    image.src = 'resources/image.png?image-loading-lazy-multiple-times-second';
     image.onload =
       t.unreached_func("The loading=lazy below-viewport image should lazily " +
                        "load its second image, and not load it eagerly when " +

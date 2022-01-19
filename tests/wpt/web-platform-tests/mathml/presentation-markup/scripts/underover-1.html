@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>Underscripts and Overscripts parameters</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+<link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
 <meta name="assert" content="Elements munder, mover, munderover correctly .">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
   math, mspace, mo {
@@ -28,7 +29,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function runTests() {
     test(function() {

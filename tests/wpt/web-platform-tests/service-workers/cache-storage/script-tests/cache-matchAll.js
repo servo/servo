@@ -158,23 +158,30 @@ prepopulated_cache_test(simple_entries, function(cache, entries) {
       .then(function(result) {
           assert_response_array_equals(
             result,
-            [
-              entries.a.response,
-              entries.b.response,
-              entries.a_with_query.response,
-              entries.A.response,
-              entries.a_https.response,
-              entries.a_org.response,
-              entries.cat.response,
-              entries.catmandu.response,
-              entries.cat_num_lives.response,
-              entries.cat_in_the_hat.response,
-              entries.non_2xx_response.response,
-              entries.error_response.response
-            ],
+            simple_entries.map(entry => entry.response),
             'Cache.matchAll without parameters should match all entries.');
         });
   }, 'Cache.matchAll without parameters');
+
+prepopulated_cache_test(simple_entries, function(cache, entries) {
+    return cache.matchAll(undefined)
+      .then(result => {
+          assert_response_array_equals(
+            result,
+            simple_entries.map(entry => entry.response),
+            'Cache.matchAll with undefined request should match all entries.');
+        });
+  }, 'Cache.matchAll with explicitly undefined request');
+
+prepopulated_cache_test(simple_entries, function(cache, entries) {
+  return cache.matchAll(undefined, {})
+      .then(result => {
+          assert_response_array_equals(
+            result,
+            simple_entries.map(entry => entry.response),
+            'Cache.matchAll with undefined request should match all entries.');
+        });
+  }, 'Cache.matchAll with explicitly undefined request and empty options');
 
 prepopulated_cache_test(vary_entries, function(cache, entries) {
     return cache.matchAll('http://example.com/c')

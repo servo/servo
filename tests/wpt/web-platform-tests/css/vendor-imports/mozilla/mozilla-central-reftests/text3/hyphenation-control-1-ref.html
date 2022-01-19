@@ -7,9 +7,12 @@
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
 <style>
 code {
-  display:block;
-  hyphens:manual;
+  display: block;
+  hyphens: manual;
   border: 1px solid black;
+  /* Prefer Courier New if available, as otherwise Menlo may be used,
+     and its HYPHEN and HYPHEN-MINUS glyphs don't match. */
+  font-family: Courier New, Courier, monospace;
 }
 </style>
 </head>

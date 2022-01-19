@@ -743,50 +743,66 @@
   testing:
   - 2d.text.drawing.style.spacing
   code: |
-    @assert ctx.textLetterSpacing === 0;
-    @assert ctx.textWordSpacing === 0;
+    @assert ctx.letterSpacing === 0;
+    @assert ctx.wordSpacing === 0;
 
-    ctx.textLetterSpacing = 3;
-    @assert ctx.textLetterSpacing === 3;
-    @assert ctx.textWordSpacing === 0;
+    ctx.letterSpacing = 3;
+    @assert ctx.letterSpacing === 3;
+    @assert ctx.wordSpacing === 0;
 
-    ctx.textWordSpacing = 5;
-    @assert ctx.textLetterSpacing === 3;
-    @assert ctx.textWordSpacing === 5;
+    ctx.wordSpacing = 5;
+    @assert ctx.letterSpacing === 3;
+    @assert ctx.wordSpacing === 5;
 
-    ctx.textLetterSpacing = -1;
-    ctx.textWordSpacing = -1;
-    @assert ctx.textLetterSpacing === -1;
-    @assert ctx.textWordSpacing === -1;
+    ctx.letterSpacing = -1;
+    ctx.wordSpacing = -1;
+    @assert ctx.letterSpacing === -1;
+    @assert ctx.wordSpacing === -1;
+
+- name: 2d.text.drawing.style.nonfinite.spacing
+  desc: Testing letter spacing and word spacing with nonfinite inputs
+  testing:
+  - 2d.text.drawing.style.spacing
+  code: |
+    @assert ctx.letterSpacing === 0;
+    @assert ctx.wordSpacing === 0;
+
+    function test_word_spacing(value) {
+      ctx.wordSpacing = value;
+      ctx.letterSpacing = value;
+      @assert ctx.wordSpacing === 0;
+      @assert ctx.letterSpacing === 0;
+    }
+    @nonfinite test_word_spacing(<0 NaN Infinity -Infinity>);
 
 - name: 2d.text.drawing.style.spacing.measure
   desc: Testing letter spacing and word spacing
   testing:
   - 2d.text.drawing.style.spacing
   code: |
-    @assert ctx.textLetterSpacing === 0;
-    @assert ctx.textWordSpacing === 0;
+    @assert ctx.letterSpacing === 0;
+    @assert ctx.wordSpacing === 0;
     var width_normal = ctx.measureText('Hello World').width;
 
-    ctx.textLetterSpacing = 3;
-    @assert ctx.textLetterSpacing === 3;
-    @assert ctx.textWordSpacing === 0;
+    ctx.letterSpacing = 3;
+    @assert ctx.letterSpacing === 3;
+    @assert ctx.wordSpacing === 0;
     var width_with_spacing = ctx.measureText('Hello World').width;
     // Add letter spacing after each letter, so 11 * 3 = 33px longer.
     @assert width_with_spacing === width_normal + 33;
 
-    ctx.textWordSpacing = 5;
-    ctx.textLetterSpacing = 0;
-    @assert ctx.textLetterSpacing === 0;
-    @assert ctx.textWordSpacing === 5;
+    ctx.wordSpacing = 5;
+    ctx.letterSpacing = 0;
+    @assert ctx.letterSpacing === 0;
+    @assert ctx.wordSpacing === 5;
     // Add Word Spacing between "Hello" and "World", so it's 5px longer.
     width_with_spacing = ctx.measureText('Hello World').width;
     @assert width_with_spacing === width_normal + 5;
 
-    ctx.textLetterSpacing = -2;
-    ctx.textWordSpacing = -1;
-    @assert ctx.textLetterSpacing === -2;
-    @assert ctx.textWordSpacing === -1;
+    ctx.letterSpacing = -2;
+    ctx.wordSpacing = -1;
+    @assert ctx.letterSpacing === -2;
+    @assert ctx.wordSpacing === -1;
     // Add Word Spacing and letter spacing, so it's -11*2 = -22px from
     // letter spacing and -1px from word spacing.
     width_with_spacing = ctx.measureText('Hello World').width;
@@ -797,12 +813,12 @@
   testing:
   - 2d.text.drawing.style.fontKerning
   code: |
-    @assert ctx.fontKerning === "Auto";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "Normal";
-    @assert ctx.fontKerning === "Normal";
+    @assert ctx.fontKerning === "normal";
     width_normal = ctx.measureText("TAWATAVA").width;
     ctx.fontKerning = "None";
-    @assert ctx.fontKerning === "None";
+    @assert ctx.fontKerning === "none";
     width_none = ctx.measureText("TAWATAVA").width;
     @assert width_normal < width_none;
 
@@ -811,36 +827,36 @@
   testing:
   - 2d.text.drawing.style.fontKerning
   code: |
-    @assert ctx.fontKerning === "Auto";
+    @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "Normal";
-    @assert ctx.fontKerning === "Normal";
+    @assert ctx.fontKerning === "normal";
     ctx.fontKerning = "Auto";
     ctx.fontKerning = "normal";
-    @assert ctx.fontKerning === "Normal";
+    @assert ctx.fontKerning === "normal";
     ctx.fontKerning = "Auto";
     ctx.fontKerning = "noRmal";
-    @assert ctx.fontKerning === "Normal";
+    @assert ctx.fontKerning === "normal";
     ctx.fontKerning = "Auto";
     ctx.fontKerning = "NoRMal";
-    @assert ctx.fontKerning === "Normal";
+    @assert ctx.fontKerning === "normal";
     ctx.fontKerning = "Auto";
     ctx.fontKerning = "NORMAL";
-    @assert ctx.fontKerning === "Normal";
+    @assert ctx.fontKerning === "normal";
 
     ctx.fontKerning = "None";
-    @assert ctx.fontKerning === "None";
+    @assert ctx.fontKerning === "none";
     ctx.fontKerning = "Auto";
     ctx.fontKerning = "none";
-    @assert ctx.fontKerning === "None";
+    @assert ctx.fontKerning === "none";
     ctx.fontKerning = "Auto";
     ctx.fontKerning = "nOne";
-    @assert ctx.fontKerning === "None";
+    @assert ctx.fontKerning === "none";
     ctx.fontKerning = "Auto";
     ctx.fontKerning = "nonE";
-    @assert ctx.fontKerning === "None";
+    @assert ctx.fontKerning === "none";
     ctx.fontKerning = "Auto";
     ctx.fontKerning = "NONE";
-    @assert ctx.fontKerning === "None";
+    @assert ctx.fontKerning === "none";
 
 - name: 2d.text.drawing.style.fontVariant.settings
   desc: Testing basic functionalities of fontKerning for canvas
@@ -848,54 +864,54 @@
   - 2d.text.drawing.style.fontVariantCaps
   code: |
     // Setting fontVariantCaps with lower cases
-    @assert ctx.fontVariantCaps === "Normal";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "normal";
-    @assert ctx.fontVariantCaps === "Normal";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "small-caps";
-    @assert ctx.fontVariantCaps === "SmallCaps";
+    @assert ctx.fontVariantCaps === "small-caps";
 
     ctx.fontVariantCaps = "all-small-caps";
-    @assert ctx.fontVariantCaps === "AllSmallCaps";
+    @assert ctx.fontVariantCaps === "all-small-caps";
 
     ctx.fontVariantCaps = "petite-caps";
-    @assert ctx.fontVariantCaps === "PetiteCaps";
+    @assert ctx.fontVariantCaps === "petite-caps";
 
     ctx.fontVariantCaps = "all-petite-caps";
-    @assert ctx.fontVariantCaps === "AllPetiteCaps";
+    @assert ctx.fontVariantCaps === "all-petite-caps";
 
     ctx.fontVariantCaps = "unicase";
-    @assert ctx.fontVariantCaps === "Unicase";
+    @assert ctx.fontVariantCaps === "unicase";
 
     ctx.fontVariantCaps = "titling-caps";
-    @assert ctx.fontVariantCaps === "TitlingCaps";
+    @assert ctx.fontVariantCaps === "titling-caps";
 
     // Setting fontVariantCaps with lower cases and upper cases word.
     ctx.fontVariantCaps = "nORmal";
-    @assert ctx.fontVariantCaps === "Normal";
+    @assert ctx.fontVariantCaps === "normal";
 
     ctx.fontVariantCaps = "smaLL-caps";
-    @assert ctx.fontVariantCaps === "SmallCaps";
+    @assert ctx.fontVariantCaps === "small-caps";
 
     ctx.fontVariantCaps = "all-small-CAPS";
-    @assert ctx.fontVariantCaps === "AllSmallCaps";
+    @assert ctx.fontVariantCaps === "all-small-caps";
 
     ctx.fontVariantCaps = "pEtitE-caps";
-    @assert ctx.fontVariantCaps === "PetiteCaps";
+    @assert ctx.fontVariantCaps === "petite-caps";
 
     ctx.fontVariantCaps = "All-Petite-Caps";
-    @assert ctx.fontVariantCaps === "AllPetiteCaps";
+    @assert ctx.fontVariantCaps === "all-petite-caps";
 
     ctx.fontVariantCaps = "uNIcase";
-    @assert ctx.fontVariantCaps === "Unicase";
+    @assert ctx.fontVariantCaps === "unicase";
 
     ctx.fontVariantCaps = "titling-CAPS";
-    @assert ctx.fontVariantCaps === "TitlingCaps";
+    @assert ctx.fontVariantCaps === "titling-caps";
 
     // Setting fontVariantCaps with non-existing font variant.
     ctx.fontVariantCaps = "abcd";
-    @assert ctx.fontVariantCaps === "TitlingCaps";
+    @assert ctx.fontVariantCaps === "titling-caps";
 
 - name: 2d.text.drawing.style.textRendering.settings
   desc: Testing basic functionalities of textRendering in Canvas
@@ -903,35 +919,35 @@
   - 2d.text.drawing.style.textRendering
   code: |
     // Setting textRendering with lower cases
-    @assert ctx.textRendering === "Auto";
+    @assert ctx.textRendering === "auto";
 
     ctx.textRendering = "auto";
-    @assert ctx.textRendering === "Auto";
+    @assert ctx.textRendering === "auto";
 
     ctx.textRendering = "optimizespeed";
-    @assert ctx.textRendering === "OptimizeSpeed";
+    @assert ctx.textRendering === "optimizeSpeed";
 
     ctx.textRendering = "optimizelegibility";
-    @assert ctx.textRendering === "OptimizeLegibility";
+    @assert ctx.textRendering === "optimizeLegibility";
 
     ctx.textRendering = "geometricprecision";
-    @assert ctx.textRendering === "GeometricPrecision";
+    @assert ctx.textRendering === "geometricPrecision";
 
     // Setting textRendering with lower cases and upper cases word.
     ctx.textRendering = "aUto";
-    @assert ctx.textRendering === "Auto";
+    @assert ctx.textRendering === "auto";
 
     ctx.textRendering = "OPtimizeSpeed";
-    @assert ctx.textRendering === "OptimizeSpeed";
+    @assert ctx.textRendering === "optimizeSpeed";
 
     ctx.textRendering = "OPtimizELEgibility";
-    @assert ctx.textRendering === "OptimizeLegibility";
+    @assert ctx.textRendering === "optimizeLegibility";
 
     ctx.textRendering = "GeometricPrecision";
-    @assert ctx.textRendering === "GeometricPrecision";
+    @assert ctx.textRendering === "geometricPrecision";
 
     // Setting textRendering with non-existing font variant.
     ctx.textRendering = "abcd";
-    @assert ctx.textRendering === "GeometricPrecision";
+    @assert ctx.textRendering === "geometricPrecision";
 
 # TODO: shadows, alpha, composite, clip

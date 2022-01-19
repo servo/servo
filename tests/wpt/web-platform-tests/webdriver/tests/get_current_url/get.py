@@ -1,5 +1,4 @@
 import pytest
-from six import text_type
 
 from tests.support import platform_name
 from tests.support.asserts import assert_error, assert_success
@@ -39,7 +38,7 @@ def test_get_current_url_payload(session):
 
     response = get_current_url(session)
     value = assert_success(response)
-    assert isinstance(value, text_type)
+    assert isinstance(value, str)
 
 
 def test_get_current_url_special_pages(session):

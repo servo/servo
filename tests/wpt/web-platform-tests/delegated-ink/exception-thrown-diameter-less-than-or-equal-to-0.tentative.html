@@ -9,7 +9,7 @@
 <script>
   function RunTest(d, move) {
     promise_test(async (t) => {
-      const presenter = await navigator.ink.requestPresenter('delegated-ink-trail', canvas);
+      const presenter = await navigator.ink.requestPresenter({presentationArea: canvas});
       const style = { color: "green", diameter: d };
 
       canvas.addEventListener("pointermove", evt => {

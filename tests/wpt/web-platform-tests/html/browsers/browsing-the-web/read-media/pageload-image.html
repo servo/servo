@@ -14,6 +14,7 @@
   function frameLoaded() {
     var testframe = document.getElementById('testframe');
     assert_equals(testframe.contentDocument.contentType, "image/png");
+    assert_equals(testframe.contentDocument.compatMode, "CSS1Compat", "Media documents should be in standards mode");
     var testframeChildren = testframe.contentDocument.body.childNodes;
     assert_equals(testframeChildren.length, 1, "Body of image document has 1 child");
     assert_equals(testframeChildren[0].nodeName, "IMG", "Only child of body must be an <img> element");

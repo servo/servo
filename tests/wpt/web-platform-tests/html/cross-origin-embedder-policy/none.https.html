@@ -1,4 +1,3 @@
-<!doctype html>
 <meta name="timeout" content="long">
 <title>Cross-Origin-Embedder-Policy header and nested navigable resource without such header</title>
 <script src=/resources/testharness.js></script>
@@ -7,6 +6,7 @@
 <script src="/common/get-host-info.sub.js"></script>
 <div id=log></div>
 <script>
+
 const HOST = get_host_info();
 const BASE = new URL("resources", location).pathname;
 
@@ -42,38 +42,10 @@ async_test(t => {
 }, `"none" top-level: navigating a frame from "require-corp" to "none" should succeed`);
 
 async_test(t => {
-  Promise.resolve().then(async () => {
-    const bc = new BroadcastChannel(token());
-    const futureMessage = () => {
-      return new Promise(resolve => {
-        bc.onmessage = event => resolve(event.data);
-      });
-    };
-
-    const prefix = document.URL.substr(0, document.URL.lastIndexOf('/'))
-    const attribute = `?channelName=${bc.name}`;
-    const url_1 = prefix + "/resources/navigate-none.sub.html" + attribute;
-    const url_2 = prefix + "/resources/navigate-require-corp.sub.html" + attribute;
-
-    const w = window.open(url_1, "window_name");
-    t.add_cleanup(() => w.close());
-    assert_equals(await futureMessage(), "loaded");
-    assert_equals(w.location.href, url_1);
-
-    w.location.href = url_2;
-    assert_equals(await futureMessage(), "loaded");
-    assert_equals(w.location.href, url_2);
-
-    w.history.back();
-    assert_equals(await futureMessage(), "loaded");
-    assert_equals(w.location.href, url_1);
-
-    t.done();
-  }).catch((e) => t.unreached_func(e));
-}, `"none" top-level: navigating a frame back from "require-corp" should succeed`);
-
-async_test(t => {
   let pageLoaded = false;
+  // TODO(arthursonzogni): Consider switching toward another message passing
+  // API like:
+  // /html/cross-origin-embedder-policy/credentialless/resources/dispatcher.js
   const bc = new BroadcastChannel(token());
   let finished = false;
   let doneCheck = _ => {

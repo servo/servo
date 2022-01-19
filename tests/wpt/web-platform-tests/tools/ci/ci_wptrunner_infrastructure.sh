@@ -6,8 +6,7 @@ WPT_ROOT=$SCRIPT_DIR/../..
 cd $WPT_ROOT
 
 test_infrastructure() {
-    PY2_FLAG="$2"
-    TERM=dumb ./wpt $PY2_FLAG run --log-mach - --yes --manifest ~/meta/MANIFEST.json --metadata infrastructure/metadata/ --install-fonts --install-webdriver $1 $PRODUCT infrastructure/
+    TERM=dumb ./wpt run --log-mach - --yes --manifest ~/meta/MANIFEST.json --metadata infrastructure/metadata/ --install-fonts --install-webdriver $1 $PRODUCT infrastructure/
 }
 
 main() {
@@ -15,7 +14,8 @@ main() {
     ./wpt manifest --rebuild -p ~/meta/MANIFEST.json
     for PRODUCT in "${PRODUCTS[@]}"; do
         if [[ "$PRODUCT" == "chrome" ]]; then
-            test_infrastructure "--binary=$(which google-chrome-unstable) --channel dev" "$1"
+            # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+            test_infrastructure "--binary=$(which google-chrome-unstable) --enable-swiftshader --channel dev" "$1"
         else
             test_infrastructure "--binary=~/build/firefox/firefox" "$1"
         fi

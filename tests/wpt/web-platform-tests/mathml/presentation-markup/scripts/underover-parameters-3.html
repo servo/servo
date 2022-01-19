@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>Underscripts and Overscripts parameters</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+<link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
 <meta name="assert" content="Elements munder, mover, munderover correctly use underbar/overbar and AccentBaseHeight parameters from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <style>
   math, mspace, mo {
     font-size: 10px;
@@ -41,7 +42,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function getBooleanValue(element, name) {
       return (element.getAttribute(name) || "").toLowerCase() === "true";

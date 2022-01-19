@@ -11,7 +11,7 @@
         window.addEventListener("message", function(event) {
             alert_assert(event.data);
         }, false);
-        
+
         window.addEventListener("securitypolicyviolation", function(e) {
             alert_assert("Fail");
         });

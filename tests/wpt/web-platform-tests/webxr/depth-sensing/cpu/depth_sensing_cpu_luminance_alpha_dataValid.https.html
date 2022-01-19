@@ -37,6 +37,10 @@ const assert_depth_valid_at = function(depthInformation, row, column, deltaRow, 
 }
 
 const assert_depth_valid = function(depthInformation) {
+
+  assert_true(depthInformation.data instanceof ArrayBuffer,
+              "XRCpuDepthInformation.data must be of type `ArrayBuffer`!");
+
   for(let row = 0; row < depthInformation.height; row++) {
     for(let column = 0; column < depthInformation.width; column++) {
       // middle of the pixel:

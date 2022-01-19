@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>
+  Nested fixedpos in a multicol with viewport containing block.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    width: 50px;
+    height: 100px;
+    margin-top: -100px;
+    margin-left: -50px;
+  }
+  .rel {
+    position: relative;
+    height: 300px;
+  }
+  .abs {
+    position: absolute;
+    width: 25px;
+  }
+  .fixed {
+    position: fixed;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="rel">
+    <div style="height: 100px;"></div>
+    <div class="abs">
+      <div style="height: 200px;"></div>
+      <div class="fixed" style="background: green;"></div>
+    </div>
+  </div>
+</div>
+<div class="fixed" style="background: red; z-index: -1;"></div>

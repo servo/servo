@@ -54,7 +54,7 @@ def test_detached_shadow_root(session, get_shadow_page):
     shadow_root = custom_element.shadow_root
     session.refresh()
 
-    response = find_element(session, shadow_root.id, "css", "input")
+    response = find_element(session, shadow_root.id, "css selector", "input")
     assert_error(response, "detached shadow root")
 
 
@@ -64,7 +64,7 @@ def test_found_element_equivalence(session, get_shadow_page):
     expected = session.execute_script("return arguments[0].shadowRoot.querySelector('input')",
                                       args=(custom_element,))
     shadow_root = custom_element.shadow_root
-    response = find_element(session, shadow_root.id, "css", "input")
+    response = find_element(session, shadow_root.id, "css selector", "input")
     value = assert_success(response)
     assert_same_element(session, value, expected)
 
@@ -83,7 +83,7 @@ def test_find_element(session, get_shadow_page, using, value):
                                       args=(custom_element,))
     shadow_root = custom_element.shadow_root
     response = find_element(session, shadow_root.id, using, value)
-    assert_success(response)
+    value = assert_success(response)
     assert_same_element(session, value, expected)
 
 
@@ -104,7 +104,7 @@ def test_find_element_link_text(session, get_shadow_page, document, value):
     shadow_root = custom_element.shadow_root
 
     response = find_element(session, shadow_root.id, "link text", value)
-    assert_success(response)
+    value = assert_success(response)
     assert_same_element(session, value, expected)
 
 
@@ -126,7 +126,7 @@ def test_find_element_partial_link_text(session, get_shadow_page, document, valu
     shadow_root = custom_element.shadow_root
 
     response = find_element(session, shadow_root.id, "partial link text", value)
-    assert_success(response)
+    value = assert_success(response)
     assert_same_element(session, value, expected)
 
 

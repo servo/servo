@@ -13,43 +13,11 @@
   <meta content="" name="flags">
   <meta name="assert" content="In this test, the div::selection pseudo-element must be drawn over the div::spelling-error overlay.">
 
-  <!--
-
-  The initial version of this test was relying on color
-  composition and was predicting a lime-green-ish (#7FBF80:
-  slightly desaturated lime green) background color for "Txet".
-
-  "#7fbf80 color description : Slightly desaturated lime green"
-  https://www.colorhexa.com/7fbf80
-
-  This test does not rely on color composition but the
-  test nevertheless verifies the ::selection overlay drawn
-  over the ::grammar-error overlay.
-
-  Chromium 83+'s selection highlight will vertically
-  extend to line box top and bottom... which is
-  under an eventual discussion in
-  https://github.com/w3c/csswg-drafts/issues/5395
-  One easy way to work around this issue
-  would be to set 'line-height' to '1' instead of
-  '90px'.
-
-  -->
-
+  <link rel="stylesheet" href="support/highlights.css">
   <style>
   div
     {
       font-size: 60px;
-      line-height: 1;
-      /*
-      We deliberately set line-height to 1 in order
-      to avoid/work around a possible difference
-      of rendering of highlight overlay among browsers.
-      In Chrome 80+, the selection highlight
-      overlay will extent vertically to include line
-      box top and line box bottom. This is not
-      the case in Firefox 68+.
-      */
     }
 
   div::selection
@@ -91,7 +59,7 @@
     • spellcheck tries to enable spelling and grammar checking (subject to user preferences)
     • lang tries to guide the UA towards checking the text in English (but the UA may ignore this)
   -->
-  <div id="test" contenteditable="true" spellcheck="true" lang="en">Txet sample</div>
+  <div id="test" class="highlight_reftest" contenteditable="true" spellcheck="true" lang="en">Txet sample</div>
 
   <script>
   const test = document.querySelector("#test");

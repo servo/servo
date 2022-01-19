@@ -32,7 +32,7 @@ promise_test(async t => {
   animation.play();
   await animation.ready;
 
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
   const previousPlaybackRate = animation.playbackRate;
   animation.reverse();
   assert_equals(animation.playbackRate, previousPlaybackRate,
@@ -49,12 +49,12 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   animation.play();
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
   animation.reverse();
 
-  assert_equals(animation.currentTime, 500,
-    'The current time should not change it is in the middle of ' +
-    'the animation duration');
+  assert_percents_equal(animation.currentTime, 50,
+                        'The current time should not change it is in the ' +
+                        'middle of the animation duration');
 }, 'Reversing an animation maintains the same current time');
 
 promise_test(async t => {
@@ -94,14 +94,15 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   animation.play();
-  animation.currentTime = 2000;
+  animation.currentTime = CSSNumericValue.parse("200%");
   animation.reverse();
 
-  assert_equals(animation.currentTime, 1000,
-    'reverse() should start playing from the animation effect end ' +
-    'if the playbackRate > 0 and the currentTime > effect end');
-}, 'Reversing an animation when playbackRate > 0 and currentTime > ' +
-   'effect end should make it play from the end');
+  assert_percents_equal(animation.currentTime, 100,
+                        'reverse() should start playing from the animation ' +
+                        'effect end if the playbackRate > 0 and the ' +
+                        'currentTime > effect end');
+}, 'Reversing an animation when playbackRate > 0 and currentTime > effect ' +
+   'end should make it play from the end');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -110,30 +111,15 @@ promise_test(async t => {
   await waitForNextFrame();
   animation.play();
 
-  animation.currentTime = -2000;
+  animation.currentTime = CSSNumericValue.parse("-200%");
   animation.reverse();
 
-  assert_equals(animation.currentTime, 1000,
-    'reverse() should start playing from the animation effect end ' +
-    'if the playbackRate > 0 and the currentTime < 0');
-}, 'Reversing an animation when playbackRate > 0 and currentTime < 0 ' +
-   'should make it play from the end');
-
-promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
-  animation.play();
-  animation.playbackRate = -1;
-  animation.currentTime = -2000;
-  animation.reverse();
-
-  assert_times_equal(animation.currentTime, 0,
-    'reverse() should start playing from the start of animation time ' +
-    'if the playbackRate < 0 and the currentTime < 0');
-}, 'Reversing an animation when playbackRate < 0 and currentTime < 0 ' +
-   'should make it play from the start');
+  assert_percents_equal(animation.currentTime, 100,
+                        'reverse() should start playing from the animation ' +
+                        'effect end if the playbackRate > 0 and the ' +
+                        'currentTime < 0');
+}, 'Reversing an animation when playbackRate > 0 and currentTime < 0 should ' +
+   'make it play from the end');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -142,108 +128,50 @@ promise_test(async t => {
   await waitForNextFrame();
   animation.play();
   animation.playbackRate = -1;
-  animation.currentTime = 2000;
+  animation.currentTime = CSSNumericValue.parse("-200%");
   animation.reverse();
 
-  assert_times_equal(animation.currentTime, 0,
-    'reverse() should start playing from the start of animation time ' +
-    'if the playbackRate < 0 and the currentTime > effect end');
+  assert_percents_equal(animation.currentTime, 0,
+                        'reverse() should start playing from the start of ' +
+                        'animation time if the playbackRate < 0 and the ' +
+                        'currentTime < 0');
+}, 'Reversing an animation when playbackRate < 0 and currentTime < 0 should ' +
+   'make it play from the start');
+
+promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
+  // Wait for new animation frame which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  animation.play();
+  animation.playbackRate = -1;
+  animation.currentTime = CSSNumericValue.parse("200%");
+  animation.reverse();
+
+  assert_percents_equal(animation.currentTime, 0,
+                        'reverse() should start playing from the start of ' +
+                        'animation time if the playbackRate < 0 and the ' +
+                        'currentTime > effect end');
 }, 'Reversing an animation when playbackRate < 0 and currentTime > effect ' +
    'end should make it play from the start');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  animation.effect.updateTiming({ iterations: Infinity });
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
-  animation.play();
-
-  animation.currentTime = -2000;
-
-  assert_throws_dom('InvalidStateError',
-    () => { animation.reverse(); },
-    'reverse() should throw InvalidStateError ' +
-    'if the playbackRate > 0 and the currentTime < 0 ' +
-    'and the target effect is positive infinity');
-}, 'Reversing an animation when playbackRate > 0 and currentTime < 0 ' +
-   'and the target effect end is positive infinity should throw an exception');
-
-promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
-  animation.effect.updateTiming({ iterations: Infinity });
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
-  animation.play();
-
-  animation.currentTime = -2000;
-
-  try { animation.reverse(); } catch(e) { }
-
-  assert_equals(animation.playbackRate, 1, 'playbackRate is unchanged');
-
-  await animation.ready;
-  assert_equals(animation.playbackRate, 1, 'playbackRate remains unchanged');
-}, 'When reversing throws an exception, the playback rate remains unchanged');
-
-promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
-  animation.effect.updateTiming({ iterations: Infinity });
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
-  animation.play();
-
-  animation.currentTime = -2000;
-  animation.playbackRate = 0;
-
-  try {
-    animation.reverse();
-  } catch (e) {
-    assert_unreached(`Unexpected exception when calling reverse(): ${e}`);
-  }
-}, 'Reversing animation when playbackRate = 0 and currentTime < 0 ' +
-   'and the target effect end is positive infinity should NOT throw an ' +
-   'exception');
-
-promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
-  animation.effect.updateTiming({ iterations: Infinity });
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
-  animation.play();
-
-  animation.playbackRate = -1;
-  animation.currentTime = -2000;
-  animation.reverse();
-
-  assert_times_equal(animation.currentTime, 0,
-    'reverse() should start playing from the start of animation time ' +
-    'if the playbackRate < 0 and the currentTime < 0 ' +
-    'and the target effect is positive infinity');
-}, 'Reversing an animation when playbackRate < 0 and currentTime < 0 ' +
-   'and the target effect end is positive infinity should make it play ' +
-   'from the start');
-
-promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
   // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
   animation.play();
   animation.playbackRate = 0;
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
   animation.reverse();
 
   await animation.ready;
   assert_equals(animation.playbackRate, 0,
-    'reverse() should preserve playbackRate if the playbackRate == 0');
-  assert_times_equal(animation.currentTime, 500,
-    'reverse() should not affect the currentTime if the playbackRate == 0');
-}, 'Reversing when when playbackRate == 0 should preserve the current ' +
-   'time and playback rate');
+      'reverse() should preserve playbackRate if the playbackRate == 0');
+  assert_percents_equal(animation.currentTime, 50,
+      'reverse() should not affect the currentTime if the playbackRate == 0');
+}, 'Reversing when when playbackRate == 0 should preserve the current time ' +
+   'and playback rate');
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -255,10 +183,10 @@ promise_test(async t => {
   animation.reverse();
   await animation.ready;
 
-  assert_times_equal(animation.startTime, 1000,
-    'animation.startTime should be at its effect end');
-  assert_times_equal(animation.currentTime, 1000,
-    'animation.currentTime should be at its effect end');
+  assert_percents_equal(animation.startTime, 100,
+                        'animation.startTime should be at its effect end');
+  assert_percents_equal(animation.currentTime, 100,
+                        'animation.currentTime should be at its effect end');
 }, 'Reversing an idle animation from starts playing the animation');
 
 promise_test(async t => {
@@ -281,7 +209,7 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   animation.play();
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
   animation.pause();
 
   await animation.ready;
@@ -290,7 +218,7 @@ promise_test(async t => {
   await animation.ready;
 
   assert_equals(animation.playState, 'running',
-    'Animation.playState should be "running" after reverse()');
+                'Animation.playState should be "running" after reverse()');
 }, 'Reversing an animation plays a pausing animation');
 
 promise_test(async t => {
@@ -308,23 +236,5 @@ promise_test(async t => {
   assert_equals(animation.playbackRate, -2);
 }, 'Reversing should use the negative pending playback rate');
 
-promise_test(async t => {
-  const animation = createScrollLinkedAnimation(t);
-  animation.effect.updateTiming({ iterations: Infinity });
-  // Wait for new animation frame which allows the timeline to compute new
-  // current time.
-  await waitForNextFrame();
-  animation.play();
-  animation.currentTime = -200 * MS_PER_SEC;
-  await animation.ready;
-
-  animation.updatePlaybackRate(2);
-  assert_throws_dom('InvalidStateError', () => { animation.reverse(); });
-  assert_equals(animation.playbackRate, 1);
-
-  await animation.ready;
-  assert_equals(animation.playbackRate, 2);
-}, 'When reversing fails, it should restore any previous pending playback'
-   + ' rate');
 </script>
 </body>

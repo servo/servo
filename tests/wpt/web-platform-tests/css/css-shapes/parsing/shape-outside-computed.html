@@ -20,6 +20,7 @@
 // TODO: Add inset() tests
 
 test_computed_value("shape-outside", "circle(at 10% 20%)");
+test_computed_value("shape-outside", "circle(at calc(75% + 0px) calc(75% + 0px))", "circle(at 75% 75%)");
 test_computed_value("shape-outside", "circle(calc(10px + 0.5em) at -50% 50%) border-box", "circle(30px at -50% 50%) border-box");
 test_computed_value("shape-outside", "circle(calc(10px - 0.5em) at 50% -50%) border-box", "circle(0px at 50% -50%) border-box");
 

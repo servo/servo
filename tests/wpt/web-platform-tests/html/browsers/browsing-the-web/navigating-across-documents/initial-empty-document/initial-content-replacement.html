@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>
+  Content synchronously added to iframe/opened window's document after creation
+  won't get replaced asynchronously when staying on the initial empty document
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<body></body>
+<script>
+"use strict";
+
+// Asserts the document on |w| stays the same after waiting 100ms.
+function assertDocumentStaysTheSame(t, w) {
+  const initialDocument = w.document;
+  initialDocument.body.innerHTML = "foo";
+  return new Promise((resolve) => {
+    t.step_timeout(() => {
+      assert_equals(w.document.body.innerHTML, "foo");
+      assert_equals(w.document, initialDocument);
+      resolve();
+    }, 100);
+  });
+}
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  await assertDocumentStaysTheSame(t, iframe.contentWindow);
+}, "Content synchronously added to <iframe> with no src won't get replaced");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "";
+  document.body.appendChild(iframe);
+  await assertDocumentStaysTheSame(t, iframe.contentWindow);
+}, "Content synchronously added to <iframe> with src='' won't get replaced");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "about:blank";
+  document.body.appendChild(iframe);
+  await assertDocumentStaysTheSame(t, iframe.contentWindow);
+}, "Content synchronously added to <iframe> with src='about:blank' won't get replaced");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "about:blank#foo";
+  document.body.appendChild(iframe);
+  await assertDocumentStaysTheSame(t, iframe.contentWindow);
+}, "Content synchronously added to <iframe> with src='about:blank#foo' won't get replaced");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "about:blank?foo";
+  document.body.appendChild(iframe);
+  await assertDocumentStaysTheSame(t, iframe.contentWindow);
+}, "Content synchronously added to <iframe> with src='about:blank?foo' won't get replaced");
+
+promise_test(async t => {
+  const w = window.open();
+  await assertDocumentStaysTheSame(t, w);
+}, "Content synchronously added to window.open()-ed document won't get replaced");
+
+promise_test(async t => {
+  const w = window.open("");
+  await assertDocumentStaysTheSame(t, w);
+}, "Content synchronously added to window.open('')-ed document won't get replaced");
+
+promise_test(async t => {
+  const w = window.open("about:blank");
+  await assertDocumentStaysTheSame(t, w);
+}, "Content synchronously added to window.open('about:blank')-ed document won't get replaced");
+
+promise_test(async t => {
+  const w = window.open("about:blank#foo");
+  await assertDocumentStaysTheSame(t, w);
+}, "Content synchronously added to window.open('about:blank#foo')-ed document won't get replaced");
+
+promise_test(async t => {
+  const w = window.open("about:blank?foo");
+  await assertDocumentStaysTheSame(t, w);
+}, "Content synchronously added to window.open('about:blank?foo')-ed document won't get replaced");
+
+</script>

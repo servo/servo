@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Positioned grid items reference file</title>
+<style>
+  #grid {
+    display: inline-grid;
+    grid-template-columns: 50px 50px;
+    grid-template-rows: 50px 50px;
+    background-color: blue;
+  }
+  #child {
+    grid-area: 2 / 2 / 2 / 2;
+    width: 50px;
+    height: 50px;
+    background-color: green;
+  }
+  #grandchild {
+    width: 25px;
+    height: 25px;
+    background-color: red;
+  }
+</style>
+
+  <p>Test passes if it matches the reference.</p>
+
+  <div id="grid">
+    <div id="child">
+      <div id="grandchild"></div>
+    </div>
+  </div>

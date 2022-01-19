@@ -27,4 +27,4 @@ If you want to enable a specific [runtime enabled feature][1], use
 ./wpt run --binary-arg=--enable-blink-features=AsyncClipboard chrome clipboard-apis/
 ```
 
-[1]: https://www.chromium.org/blink/runtime-enabled-features
+[1]: https://chromium.googlesource.com/chromium/src/+/master/third_party/blink/renderer/platform/RuntimeEnabledFeatures.md

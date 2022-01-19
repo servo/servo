@@ -25,11 +25,6 @@ dictionary DeviceOrientationEventInit : EventInit {
     boolean absolute = false;
 };
 
-enum PermissionState {
-    "granted",
-    "denied",
-};
-
 partial interface Window {
     [SecureContext] attribute EventHandler ondeviceorientationabsolute;
 };

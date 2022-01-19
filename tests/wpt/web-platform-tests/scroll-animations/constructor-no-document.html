@@ -12,7 +12,7 @@ test(function() {
   document.documentElement.remove();
   assert_equals(document.scrollingElement, null);
 
-  const timeline = new ScrollTimeline({timeRange: 100});
+  const timeline = new ScrollTimeline();
   assert_equals(timeline.scrollSource, null);
   assert_equals(timeline.currentTime, null);
 }, 'The scrollSource can be null if the document.scrollingElement does not exist');

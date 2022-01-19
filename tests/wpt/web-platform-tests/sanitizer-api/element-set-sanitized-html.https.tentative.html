@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/testcases.sub.js"></script>
+</head>
+<body>
+<script>
+  function buildNode(element_name, markup) {
+    const e = document.createElement(element_name);
+    e.innerHTML = markup;
+    return e;
+  }
+
+  function assert_node_equals(node1, node2) {
+    assert_true(node1 instanceof Node && node1.isEqualNode(node2),
+        `Node[${node1.innerHTML}] == Node[${node2.innerHTML}]`);
+  }
+
+  test(t => {
+    const div = document.createElement("div");
+    assert_throws_js(TypeError, _ => div.setHTML());
+    assert_throws_js(TypeError, _ => div.setHTML("abc"));
+    assert_throws_js(TypeError, _ => div.setHTML("abc", null));
+  }, "Sanitizer: Element.setHTML throws with insufficient arguments.");
+
+  for (const context of ["script", "iframe", "object", "div"]) {
+    const should_fail = context != "div";
+    test(t => {
+      let elem = document.createElement(context);
+      let probe_fn = _ => elem.setHTML("<div>Hello!</div>", new Sanitizer());
+      if (should_fail) {
+        assert_throws_js(TypeError, probe_fn);
+      } else {
+        probe_fn();
+      }
+      assert_equals(should_fail, !elem.firstChild);
+    }, `${context}.setHTML should ${should_fail ? "fail" : "pass"}.`);
+  }
+
+  for(const context of ["div", "template", "table"]) {
+    const elem1 = document.createElement(context);
+    const elem2 = document.createElement(context);
+    for (const probe of ["<em>Hello</em>", "<td>data</td>"]) {
+      elem1.setHTML(probe, new Sanitizer());
+      elem2.innerHTML = probe;
+      test(t => {
+        assert_node_equals(elem2, elem1);
+      }, `Sanitizer: <${context}>.setHTML("${probe}", ...) obeys parse context.`);
+    }
+  }
+
+  for (const testcase of testcases) {
+    const element = document.createElement("template");
+    test(t => {
+      let s = new Sanitizer(testcase.config_input);
+      element.setHTML(testcase.value, s);
+      assert_node_equals(buildNode(element.localName, testcase.result), element);
+    }, "Sanitizer: Element.setHTML with config: " + testcase.message);
+  }
+</script>
+</body>
+</html>

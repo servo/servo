@@ -17,10 +17,6 @@
   test_invalid_selector("::slotted(*):host");
   test_invalid_selector("::slotted(*):host(div)");
   test_invalid_selector("::slotted(*):hover");
-  test_invalid_selector("::slotted(*):is(:hover)");
-  test_invalid_selector("::slotted(*):where(:hover)");
-  test_invalid_selector("::slotted(*):is(#id)");
-  test_invalid_selector("::slotted(*):where(#id)");
   test_invalid_selector("::slotted(*):read-only");
   test_invalid_selector("::slotted(*)::slotted(*)");
   test_invalid_selector("::slotted(*)::before::slotted(*)");
@@ -30,6 +26,14 @@
   test_valid_selector("::slotted(div)");
   test_valid_selector("::slotted([attr]:hover)");
   test_valid_selector("::slotted(:not(.a))");
+
+  test_valid_selector("::slotted(*):is()");
+  test_valid_selector("::slotted(*):is(:hover)", "::slotted(*):is()");
+  test_valid_selector("::slotted(*):is(#id)", "::slotted(*):is()");
+
+  test_valid_selector("::slotted(*):where()");
+  test_valid_selector("::slotted(*):where(:hover)", "::slotted(*):where()");
+  test_valid_selector("::slotted(*):where(#id)", "::slotted(*):where()");
 
   // Allow tree-abiding pseudo elements after ::slotted
   test_valid_selector("::slotted(*)::before");

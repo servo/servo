@@ -61,7 +61,7 @@ _dict_ should be an object whose keys are the names of interfaces or exceptions,
 are arrays of strings.  When an interface or exception is tested, every string registered for it
 with `add_objects()` will be evaluated, and tests will be run on the result to verify that it
 correctly implements that interface or exception.  This is the only way to test anything about
-`[NoInterfaceObject]` interfaces, and there are many tests that can't be run on any interface
+`[LegacyNoInterfaceObject]` interfaces, and there are many tests that can't be run on any interface
 without an object to fiddle with.
 
 The interface has to be the *primary* interface of all the objects provided.  For example, don't

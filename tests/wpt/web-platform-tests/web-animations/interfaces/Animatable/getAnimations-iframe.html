@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>getAnimations in dirty iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  iframe {
+    width: 200px;
+    height: 40px;
+  }
+</style>
+<iframe id=iframe srcdoc="
+  <style>
+    div { color: red; }
+    @keyframes test {
+      from { color: green; }
+      to { color: green; }
+    }
+    @media (min-width: 300px) {
+      div { animation: test 1s linear forwards; }
+    }
+  </style>
+  <div id=div>Green</div>
+"></iframe>
+<script>
+
+  function waitForLoad(w) {
+    return new Promise(resolve => w.addEventListener('load', resolve));
+  }
+
+  promise_test(async () => {
+    await waitForLoad(window);
+    let inner_div = iframe.contentDocument.getElementById('div');
+    assert_equals(getComputedStyle(inner_div).color, 'rgb(255, 0, 0)');
+
+    iframe.style.width = '400px';
+    assert_equals(inner_div.getAnimations().length, 1);
+    assert_equals(getComputedStyle(inner_div).color, 'rgb(0, 128, 0)');
+  }, 'Calling getAnimations updates layout of parent frame if needed');
+</script>

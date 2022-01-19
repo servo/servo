@@ -103,6 +103,22 @@ function add_message_event_handlers(receiver, target, target_origin) {
             { targetOrigin: target_origin });
           break;
 
+        case 'create-sync-access-handle':
+          // Receive a file and create a sync access handle out of it. Report
+          // success to the sender.
+          let success = true;
+          try {
+            const access_handle = await message_data.file_handle.createSyncAccessHandle();
+            await access_handle.close();
+          } catch (error) {
+            success = false;
+          }
+
+          message_source.postMessage(
+            { type: 'receive-sync-access-handle-result', success },
+            { targetOrigin: target_origin });
+          break;
+
         default:
           throw `Unknown message type: '${message_data.type}'`;
       }

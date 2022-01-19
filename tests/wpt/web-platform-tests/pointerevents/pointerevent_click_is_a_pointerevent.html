@@ -2,6 +2,7 @@
 <title>click is a PointerEvent</title>
 <meta name="variant" content="?mouse">
 <meta name="variant" content="?pen">
+<meta name="variant" content="?touch">
 <link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -54,5 +55,4 @@ function run_test(pointerType){
 }
 
 run_test(inputSource);
-// TODO(crbug.com/1150593): Add wpt test for touch (reuse run_test)
 </script>

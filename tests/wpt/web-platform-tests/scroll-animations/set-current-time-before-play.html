@@ -51,9 +51,10 @@
   );
 
   const scroller = document.getElementById('scroller');
-  const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+  const timeline = new ScrollTimeline(
+      { scrollSource: scroller, orientation: 'block' });
   const animation = new Animation(effect, timeline);
-  animation.currentTime = 0;
+  animation.currentTime = CSS.percent(0);
   animation.play();
 
   animation.ready.then(() => {
@@ -62,7 +63,7 @@
     scroller.scrollTop = 0.5 * maxScroll;
 
     waitForAnimationFrames(2).then(_ => {
-        takeScreenshot();
+      takeScreenshot();
     });
   });
 </script>

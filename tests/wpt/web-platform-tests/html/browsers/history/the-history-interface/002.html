@@ -36,9 +36,12 @@ function reportload() {
     var iframe = document.getElementsByTagName('iframe')[0], hashchng = false;
     var canvassup = false, cloneobj;
 
-    function tests1() {
+    async function tests1() {
         test(function () { assert_equals( history.length, histlength + 1, 'make sure that you loaded the test in a new tab/window' ); }, 'history.length should update when loading pages in an iframe');
         histlength = history.length;
+        let hashchange = new Promise(function(resolve) {
+          iframe.contentWindow.addEventListener("hashchange", resolve, {once: true});
+        });
         iframe.contentWindow.location.hash = 'test'; //should be synchronous **SEE COMMENT AT TOP OF FILE
         test(function () {
             assert_equals( history.length, histlength + 1, 'make sure that you loaded the test in a new tab/window' );
@@ -48,9 +51,16 @@ function reportload() {
         test(function () {
             assert_equals( iframe.contentWindow.history.state, null );
         }, 'initial history.state should be null');
+
+        await hashchange;
+        hashchange = new Promise(function(resolve) {
+          iframe.contentWindow.addEventListener("hashchange", resolve, {once: true});
+        });
         iframe.contentWindow.location.hash = 'test2';
+        await hashchange;
+
+        iframe.contentWindow.addEventListener("hashchange", tests2, {once: true});
         history.back();
-        setTimeout(tests2,50); //.go is queued to end of thread
     }
     function tests2() {
         test(function () {
@@ -72,15 +82,15 @@ function reportload() {
         test(function () {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test3' );
         }, 'hash should change when replaceState is called with a URL');
+        iframe.contentWindow.addEventListener("hashchange", tests3, {once: true});
         history.go(-1);
-        setTimeout(tests3,50); //.go is queued to end of thread
     }
     function tests3() {
         test(function () {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), '' );
         }, 'replaceState must replace the existing state and not add an extra one');
+        iframe.contentWindow.addEventListener("hashchange", tests4, {once: true});
         history.go(2);
-        setTimeout(tests4,50); //.go is queued to end of thread
     }
     function tests4() {
         test(function () {
@@ -111,22 +121,23 @@ function reportload() {
             iframe.contentWindow.history.replaceState('','',newURL);
             assert_equals( iframe.contentWindow.location.href, newURL );
         }, 'replaceState must be able to set absolute URLs to the same host');
+
+        //allow the browser to run the .go
+        iframe.contentWindow.addEventListener("popstate", tests5, {once: true});
         //begin setup for "[must not] remove any tasks queued by the history traversal task source"
         iframe.contentWindow.history.go(-1); //must be queued so the next command takes place *beforehand*
         try {
             //must not remove the queued navigation in the same browsing context
             iframe.contentWindow.history.replaceState('','',iframe.contentWindow.location.pathname+'#test5');
         } catch(unsuperr2) {}
-        //allow the browser to run the .go
-        setTimeout(tests5,50);
     }
     function tests5() {
         test(function () {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test3' );
         }, 'replaceState must not remove any tasks queued by the history traversal task source');
+        iframe.contentWindow.addEventListener("popstate", tests6, {once: true});
         //Safari 5.0.3 fails here - it navigates *this* document to the *iframe's* location, instead of just navigating the iframe
         history.go(1);
-        setTimeout(tests6,50); //.go is queued to end of thread
     }
     function tests6() {
         test(function () {
@@ -203,8 +214,8 @@ function reportload() {
         test(function () {
             assert_not_equals( cloneobj, iframe.contentWindow.history.state );
         }, 'history.state should be a clone of the original object, not a reference to it');
+        iframe.contentWindow.addEventListener("popstate", tests8, {once: true});
         history.go(-1);
-        setTimeout(tests8,50); //.go is queued to end of thread
     }
     function tests8() {
         var eventtime = setTimeout(function () { tests9(false); },500); //should be cleared by the event handler long before it has a chance to fire

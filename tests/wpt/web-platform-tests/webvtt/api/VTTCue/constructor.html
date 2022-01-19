@@ -39,6 +39,13 @@ test(function() {
 }, document.title + ', bad end time');
 
 test(function() {
+    var cue = new VTTCue(2, +Infinity, 'foo bar');
+
+    assert_equals(cue.startTime, 2);
+    assert_equals(cue.endTime, +Infinity);
+}, document.title + ', unbounded end time');
+
+test(function() {
     var cue = new VTTCue(3, 12, '<i>foo bar</i>');
 
     var frag = cue.getCueAsHTML();

@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let start_key = i.contentWindow.appHistory.current.key;
+    let start_url = i.contentWindow.appHistory.current.url;
+    let start_id = i.contentWindow.appHistory.current.id;
+    window.onmessage = t.step_func_done(e => {
+      assert_equals(e.data.length, 1);
+      assert_not_equals(e.data.key, start_key);
+      assert_equals(e.data.protocol, "data:");
+      assert_not_equals(e.data.id, start_id);
+    });
+    i.src = "data:text/html,<script>top.postMessage({ length: appHistory.entries().length, " +
+        "key: appHistory.current.key, protocol: new URL(appHistory.current.url).protocol," +
+        "id: appHistory.current.id}, '*')</sc" +
+        "ript>";
+  });
+}, "AppHistory behavior after navigation to a data: url");
+</script>

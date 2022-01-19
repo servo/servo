@@ -1,53 +1,71 @@
 importScripts("{{location[server]}}/resources/testharness.js");
 importScripts("{{location[server]}}/content-security-policy/support/testharness-helper.js");
 
+let base_same_origin_url =
+      "{{location[server]}}/content-security-policy/support/resource.py";
+let base_cross_origin_url =
+      "https://{{hosts[][www]}}:{{ports[https][1]}}" +
+      "/content-security-policy/support/resource.py";
+
 // Same-origin
-async_test(t => {
-  var url = "{{location[server]}}/content-security-policy/support/resource.py?same-origin-fetch";
+promise_test(t => {
+  let url = `${base_same_origin_url}?same-origin-fetch`;
   assert_no_csp_event_for_url(t, url);
 
-  fetch(url)
-    .then(t.step_func_done(r => assert_equals(r.status, 200)));
-}, "Same-origin 'fetch()' in " + self.location.protocol + self.location.search);
+  return fetch(url)
+    .then(t.step_func(r => assert_equals(r.status, 200)));
+}, "Same-origin 'fetch()' in " + self.location.protocol + " without CSP");
 
-async_test(t => {
-  var url = "{{location[server]}}/content-security-policy/support/resource.py?same-origin-xhr";
-  assert_no_csp_event_for_url(t, url);
+// XHR is not available in service workers.
+if (self.XMLHttpRequest) {
+  promise_test(t => {
+    let url = `${base_same_origin_url}?same-origin-xhr`;
+    assert_no_csp_event_for_url(t, url);
 
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", url);
-  xhr.onload = t.step_func_done();
-  xhr.onerror = t.unreached_func();
-  xhr.send();
-}, "Same-origin XHR in " + self.location.protocol + self.location.search);
+    return new Promise((resolve, reject) => {
+      let xhr = new XMLHttpRequest();
+      xhr.open("GET", url);
+      xhr.onload = resolve;
+      xhr.onerror = _ => reject("xhr.open should success.");
+      xhr.send();
+    });
+  }, "Same-origin XHR in " + self.location.protocol + " without CSP");
+}
 
 // Cross-origin
-async_test(t => {
-  var url = "http://{{domains[www]}}:{{ports[http][1]}}/content-security-policy/support/resource.py?cross-origin-fetch";
+promise_test(t => {
+  let url = `${base_cross_origin_url}?cross-origin-fetch`;
   assert_no_csp_event_for_url(t, url);
 
-  fetch(url)
-    .then(t.step_func_done(r => assert_equals(r.status, 200)));
-}, "Cross-origin 'fetch()' in " + self.location.protocol + self.location.search);
+  return fetch(url)
+    .then(t.step_func(r => assert_equals(r.status, 200)));
+}, "Cross-origin 'fetch()' in " + self.location.protocol + " without CSP");
 
-async_test(t => {
-  var url = "http://{{domains[www]}}:{{ports[http][1]}}/content-security-policy/support/resource.py?cross-origin-xhr";
-  assert_no_csp_event_for_url(t, url);
+// XHR is not available in service workers.
+if (self.XMLHttpRequest) {
+  promise_test(t => {
+    let url = `${base_cross_origin_url}?cross-origin-xhr`;
+    assert_no_csp_event_for_url(t, url);
 
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", url);
-  xhr.onload = t.step_func_done();
-  xhr.onerror = t.unreached_func();
-  xhr.send();
-}, "Cross-origin XHR in " + self.location.protocol + self.location.search);
+    return new Promise((resolve, reject) => {
+      let xhr = new XMLHttpRequest();
+      xhr.open("GET", url);
+      xhr.onload = resolve;
+      xhr.onerror = _ => reject("xhr.open should success.");
+      xhr.send();
+    });
+  }, "Cross-origin XHR in " + self.location.protocol + " without CSP");
+}
 
 // Same-origin redirecting to cross-origin
-async_test(t => {
-  var url = "{{location[server]}}/common/redirect-opt-in.py?status=307&location=http://{{domains[www]}}:{{ports[http][1]}}/content-security-policy/support/resource.py?cross-origin-fetch";
+promise_test(t => {
+  let url = `{{location[server]}}/common/redirect-opt-in.py?` +
+      `status=307&location=${base_cross_origin_url}?cross-origin-fetch`;
   assert_no_csp_event_for_url(t, url);
 
-  fetch(url)
-    .then(t.step_func_done(r => assert_equals(r.status, 200)));
-}, "Same-origin => cross-origin 'fetch()' in " + self.location.protocol + self.location.search);
+  return fetch(url)
+    .then(t.step_func(r => assert_equals(r.status, 200)));
+}, "Same-origin => cross-origin 'fetch()' in " + self.location.protocol +
+           " without CSP");
 
 done();

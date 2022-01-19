@@ -76,12 +76,10 @@
 
 // ----------------------
 
-// [NoInterfaceObject]
-// interface EventRecorderRegistration {
+// partial interface Node {
 //    void addRecordedEventListener(SupportedEventTypes type, EventListener? handler, optional boolean capturePhase = false);
 //    void removeRecordedEventListener(SupportedEventTypes type, EventListener? handler, optional boolean capturePhase = false);
 // };
-// Node implements EventRecorderRegistration;
 //
 // enum SupportedEventTypes = {
 //    "mousemove",

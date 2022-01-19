@@ -2,15 +2,16 @@
 <title>CSS aspect-ratio: Column flexbox min-height</title>
 <link rel="author" title="Google LLC" href="https://www.google.com/">
 <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
 <link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto">
 <link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
 
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 
 <div style="display: flex; flex-direction: column;">
-  <!-- transferred size: 100px. content size suggestion: 200px.
-       min-height: min(100, 200). -->
-  <div style="background: green; width: 100px; aspect-ratio: 1/1; flex-basis: 0;">
-    <div style="height: 200px;"></div>
+  <!-- No transferred size suggestion since the flex item is non-replaced.
+       Content size suggestion is 100px. -->
+  <div style="background: green; width: 100px; aspect-ratio: 2/1; flex-basis: 0;">
+    <div style="height: 100px;"></div>
   </div>
 </div>

@@ -1,0 +1,28 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Content: content:none on a :root table</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1699964">
+  <link rel="help" href="https://drafts.csswg.org/css-content/#valdef-content-none">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1699964">
+  <meta name="assert" content="content:none should inhibit the :root's children from having boxes.  Its pseudos should not be affected though.">
+  <link rel="match" href="content-none-root-table-ref.html">
+  <style>
+:root {
+  content: none;
+  display: table;
+  border: 1px solid;
+  border-spacing: 10px;
+}
+*::after { content: 'A'; }
+*::before { content: 'B'; }
+
+  </style>
+</head>
+<x style="display:table-cell">FAIL</x>
+</html>
+

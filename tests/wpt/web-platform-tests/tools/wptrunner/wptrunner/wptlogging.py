@@ -1,4 +1,5 @@
 import logging
+from threading import Thread
 
 from mozlog import commandline, stdadapter, set_default_logger
 from mozlog.structuredlog import StructuredLogger, log_levels
@@ -65,3 +66,42 @@ class LoggedAboveLevelHandler(object):
             not self.has_log and
             log_levels[data["level"]] <= self.min_level):
             self.has_log = True
+
+
+class QueueHandler(logging.Handler):
+    def __init__(self, queue, level=logging.NOTSET):
+        self.queue = queue
+        logging.Handler.__init__(self, level=level)
+
+    def createLock(self):
+        # The queue provides its own locking
+        self.lock = None
+
+    def emit(self, record):
+        msg = self.format(record)
+        data = {"action": "log",
+                "level": record.levelname,
+                "thread": record.threadName,
+                "pid": record.process,
+                "source": self.name,
+                "message": msg}
+        self.queue.put(data)
+
+
+class LogQueueThread(Thread):
+    """Thread for handling log messages from a queue"""
+    def __init__(self, queue, logger):
+        self.queue = queue
+        self.logger = logger
+        super().__init__(name="Thread-Log")
+
+    def run(self):
+        while True:
+            try:
+                data = self.queue.get()
+            except (EOFError, IOError):
+                break
+            if data is None:
+                # A None message is used to shut down the logging thread
+                break
+            self.logger.log_raw(data)

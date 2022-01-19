@@ -1,0 +1,29 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation (which would defeat the point of the test).
+  window.onload = () => t.step_timeout(() => {
+    let start_history_length = history.length;
+    let start_entry_top = appHistory.current;
+    let start_entry_iframe_id = i.contentWindow.appHistory.current.id;
+    let start_entry_iframe_key = i.contentWindow.appHistory.current.key;
+
+    i.contentWindow.appHistory.navigate("?1", { replace: true });
+    i.onload = t.step_func_done(() => {
+      assert_equals(history.length, start_history_length);
+
+      assert_equals(appHistory.entries().length, 1);
+      assert_equals(appHistory.current, start_entry_top);
+
+      assert_equals(i.contentWindow.appHistory.entries().length, 1);
+      let iframe_entry = i.contentWindow.appHistory.current;
+      assert_not_equals(start_entry_iframe_id, iframe_entry.id);
+      assert_equals(start_entry_iframe_key, iframe_entry.key);
+    });
+  }, 0);
+}, "navigate() with replace option");
+</script>

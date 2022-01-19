@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>Test Script and Limit Schemata</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#script-and-limit-schemata">
+<link rel="help" href="https://w3c.github.io/mathml-core/#script-and-limit-schemata">
 <meta name="assert" content="Script and Limit Schemata should not render anything when empty.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <script>
   var epsilon = 1;
 
@@ -16,7 +17,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function runTests() {
     test(function() {

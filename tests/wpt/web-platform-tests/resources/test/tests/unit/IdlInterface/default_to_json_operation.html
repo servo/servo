@@ -10,44 +10,6 @@
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 <script src="../../../idl-helper.js"></script>
-<pre id=fragments>
-    interface A : B {
-      attribute DOMString a;
-    };
-
-    interface B : C {
-      [Default] object toJSON();
-      attribute long b;
-    };
-
-    interface C {
-      attribute DOMString c;
-    };
-
-    interface mixin D {
-      [Default] object toJSON();
-      attribute float d;
-    };
-
-    interface mixin G {
-      [Default] object toJSON();
-      attribute octet g;
-    };
-
-    interface mixin H {
-      [Default] object toJSON();
-      attribute DOMString h;
-    };
-
-    interface mixin I {
-      [Default] object toJSON();
-      attribute boolean i;
-    };
-
-    A includes G;
-    A includes H;
-    B includes D;
-</pre>
 <script>
     "use strict";
     test(function() {
@@ -128,45 +90,24 @@
 
     test(function() {
         var context = new IdlArray();
-        context.add_idls("interface A : B { [Default] object toJSON(); attribute DOMString a; };");
-        context.add_idls("interface B { object toJSON(); attribute long b; };");
-        var map = context.members.A.default_to_json_operation();
-        assert_equals(map.size, 1);
-        assert_true(map.has("a"));
-        assert_false(map.has("b"));
-        assert_equals(map.get("a").idlType, "DOMString");
+        context.add_idls("interface A { [Default] object toJSON(); attribute DOMString a; };");
+        context.add_idls("interface B : A { attribute any b; };");
+        context.add_idls("interface C : B { [Default] object toJSON(); attribute long c; };");
+        var map = context.members.C.default_to_json_operation();
+        assert_array_equals([...map.keys()], ["a", "c"]);
+        assert_array_equals([...map.values()].map(v => v.idlType), ["DOMString", "long"]);
     }, 'should return an ordered map that ignores attributes of inherited interfaces which do not declare a [Default] toJSON operation.');
 
     test(function() {
         var context = new IdlArray();
-        context.add_idls("interface A { [Default] object toJSON(); attribute DOMString a; };");
-        context.add_idls("interface mixin N { [Default] object toJSON(); attribute long n; };");
-        context.add_idls("A includes N;");
-        var map = context.members.A.default_to_json_operation();
-        assert_array_equals([...map.keys()], ["a", "n"]);
+        context.add_idls("interface D { attribute DOMString d; };");
+        context.add_idls("interface mixin M { [Default] object toJSON(); attribute long m; };");
+        context.add_idls("D includes M;");
+        context.merge_mixins();
+        var map = context.members.D.default_to_json_operation();
+        assert_array_equals([...map.keys()], ["d", "m"]);
         assert_array_equals([...map.values()].map(v => v.idlType), ["DOMString", "long"]);
     }, 'should return a properly ordered map that accounts for mixed-in interfaces which declare a [Default] toJSON operation.');
-
-    test(function() {
-        var context = new IdlArray();
-        context.add_idls("interface A { [Default] object toJSON(); attribute DOMString a; };");
-        context.add_idls("interface mixin N { attribute long n; };");
-        context.add_idls("A includes N;");
-        var map = context.members.A.default_to_json_operation();
-        assert_equals(map.size, 1);
-        assert_true(map.has("a"));
-        assert_false(map.has("n"));
-        assert_equals(map.get("a").idlType, "DOMString");
-    }, 'should return a properly ordered map that ignores mixed-in interfaces which do not declare a [Default] toJSON operation.');
-
-
-    test(function() {
-        var context = new IdlArray();
-        context.add_idls(document.getElementById('fragments').textContent);
-        var map = context.members.A.default_to_json_operation();
-        assert_array_equals([...map.keys()], ["b", "d", "g", "h"]);
-        assert_array_equals([...map.values()].map(v => v.idlType), ["long", "float", "octet", "DOMString"]);
-    }, 'should return a properly ordered map of name/type pairs handling inherited and consequential interfaces as specified.');
 </script>
 </body>
 </html>

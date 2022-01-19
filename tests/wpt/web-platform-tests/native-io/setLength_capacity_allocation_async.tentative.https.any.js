@@ -8,7 +8,7 @@ promise_test(async testCase => {
     await storageFoundation.delete('test_file');
   });
   await promise_rejects_dom(testCase, 'QuotaExceededError', file.setLength(4));
-}, 'setLength() fails without any capacity request.');
+}, 'NativeIOFile.setLength() fails without any capacity request.');
 
 promise_test(async testCase => {
   const file = await storageFoundation.open('test_file');
@@ -18,11 +18,11 @@ promise_test(async testCase => {
   testCase.add_cleanup(async () => {
     await file.close();
     await storageFoundation.delete('test_file');
-    await storageFoundation.releaseCapacity(1);
+    await storageFoundation.releaseCapacity(granted_capacity);
   });
 
-  file.setLength(granted_capacity - 1);
-}, 'setLength() succeeds when given the granted capacity - 1');
+  await file.setLength(granted_capacity - 1);
+}, 'NativeIOFile.setLength() succeeds when given the granted capacity - 1');
 
 promise_test(async testCase => {
   const file = await storageFoundation.open('test_file');
@@ -32,10 +32,11 @@ promise_test(async testCase => {
   testCase.add_cleanup(async () => {
     await file.close();
     await storageFoundation.delete('test_file');
+    await storageFoundation.releaseCapacity(granted_capacity);
   });
 
-  file.setLength(granted_capacity);
-}, 'setLength() succeeds when given the granted capacity');
+  await file.setLength(granted_capacity);
+}, 'NativeIOFile.setLength() succeeds when given the granted capacity');
 
 promise_test(async testCase => {
   const file = await storageFoundation.open('test_file');
@@ -50,4 +51,4 @@ promise_test(async testCase => {
 
   await promise_rejects_dom(
     testCase, 'QuotaExceededError', file.setLength(granted_capacity + 1));
-}, 'setLength() fails when given the granted capacity + 1');
+}, 'NativeIOFile.setLength() fails when given the granted capacity + 1');

@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  let events = [];
+  function finish() {
+    assert_array_equals(events, ["onnavigate", "onnavigatesuccess", "promisefulfilled", "onpopstate", "onhashchange"]);
+    t.done();
+  }
+
+  appHistory.onnavigate = () => events.push("onnavigate");
+  appHistory.onnavigatesuccess = () => events.push("onnavigatesuccess");
+  appHistory.onnavigateerror = () => events.push("onnavigateerror");
+  window.onhashchange = t.step_func(() => {
+    events.push("onhashchange");
+    t.step_timeout(finish, 0);
+  });
+  window.onpopstate = () => events.push("onpopstate");
+  appHistory.navigate("#1").then(
+      () => events.push("promisefulfilled"), () => events.push("promiserejected"));
+}, "navigate() event ordering for same-document navigation");
+</script>

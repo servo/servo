@@ -12,7 +12,7 @@
     <div id='log'></div>
     <script nonce='abc'>
         var t1 = async_test("Test that the inline event handler is allowed to run");
-        
+
         window.addEventListener('securitypolicyviolation', t1.unreached_func("Should have not raised any event"));
     </script>
     <img src='../support/pass.png'

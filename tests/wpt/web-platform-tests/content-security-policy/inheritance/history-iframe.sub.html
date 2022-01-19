@@ -16,24 +16,27 @@
     });
   };
 
-  const function_messageBack_string = `
-    function messageBack(msg) {
-      top.postMessage(msg ,"*");
-    }
-  `;
-
   const img_url = window.origin + "/content-security-policy/support/fail.png";
+
   const img_tag_string = `
     <img src="${img_url}"
-         onload="messageBack('img loaded');"
-         onerror="messageBack('img blocked');"
+         onload="top.postMessage('img loaded', '*');"
+         onerror="top.postMessage('img blocked', '*');"
     >
    `;
 
   const html_test_payload = `
     <!doctype html>
-    <script>${function_messageBack_string}</scr`+`ipt>
-    <div>${img_tag_string}</div>
+    <script>
+      function add_image() {
+        let img = document.createElement('img');
+        img.onload = () => top.postMessage('img loaded', '*');
+        img.onerror = () => top.postMessage('img blocked', '*');
+        img.src = '${img_url}';
+        document.body.appendChild(img);
+      }
+    </scr`+`ipt>
+    <body onpageshow="add_image();"></body>
   `;
   let blob_url = URL.createObjectURL(
     new Blob([html_test_payload], { type: 'text/html' }));
@@ -50,9 +53,6 @@
       timeout=6000,
       interval=50);
 
-    let script = iframe.contentDocument.createElement('script');
-    script.innerText = function_messageBack_string;
-    iframe.contentDocument.head.appendChild(script);
     let div = iframe.contentDocument.createElement('div');
     div.innerHTML = img_tag_string;
     iframe.contentDocument.body.appendChild(div);

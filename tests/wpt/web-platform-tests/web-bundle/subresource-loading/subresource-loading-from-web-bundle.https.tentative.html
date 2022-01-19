@@ -79,6 +79,56 @@
         'classic script from network');
     }, 'Dynamically loading classic script from web bundle with link.resources');
 
+    promise_test(async (t) => {
+      // To avoid caching mechanism, this test is using fetch() API with
+      // { cache: 'no-store' } to load the resource.
+      const classic_script_url = 'https://web-platform.test:8444/web-bundle/resources/wbn/dynamic/classic_script.js';
+
+      assert_equals(
+        await (await fetch(classic_script_url)).text(),
+        'window.report_result(\'classic script from network\');\n');
+
+      const link1 = document.createElement("link");
+      link1.rel = "webbundle";
+      link1.href = "../resources/wbn/dynamic1.wbn";
+      link1.resources.add(classic_script_url);
+      document.body.appendChild(link1);
+      t.add_cleanup(() => {
+        if (link1.parentElement)
+          link1.parentElement.removeChild(link1);
+      });
+
+      assert_equals(
+        await (await fetch(classic_script_url, { cache: 'no-store' })).text(),
+        'window.report_result(\'classic script from dynamic1.wbn\');\n');
+
+      const link2 = document.createElement("link");
+      link2.rel = "webbundle";
+      link2.href = "../resources/wbn/dynamic2.wbn";
+      link2.resources.add(classic_script_url);
+      document.body.appendChild(link2);
+      t.add_cleanup(() => {
+        if (link2.parentElement)
+          link2.parentElement.removeChild(link2);
+      });
+
+      assert_equals(
+        await (await fetch(classic_script_url, { cache: 'no-store' })).text(),
+        'window.report_result(\'classic script from dynamic2.wbn\');\n');
+
+      document.body.removeChild(link2);
+
+      assert_equals(
+        await (await fetch(classic_script_url, { cache: 'no-store' })).text(),
+        'window.report_result(\'classic script from dynamic1.wbn\');\n');
+
+      document.body.removeChild(link1);
+
+      assert_equals(
+        await (await fetch(classic_script_url, { cache: 'no-store' })).text(),
+        'window.report_result(\'classic script from network\');\n');
+    }, 'Multiple web bundle links. The last added link must be refered.');
+
     promise_test(async () => {
       const classic_script_url = 'https://web-platform.test:8444/web-bundle/resources/wbn/dynamic/classic_script.js';
       const scope = 'https://web-platform.test:8444/web-bundle/resources/wbn/dynamic/';

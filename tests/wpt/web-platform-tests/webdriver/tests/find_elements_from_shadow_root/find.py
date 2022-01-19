@@ -13,8 +13,8 @@ def find_elements(session, shadow_id, using, value):
         {"using": using, "value": value})
 
 
-def test_null_parameter_value(session, http, inline):
-    session.url = inline("<div><a href=# id=linkText>full link text</a></div>")
+def test_null_parameter_value(session, http, get_shadow_page):
+    session.url = get_shadow_page("<div><a href=# id=linkText>full link text</a></div>")
     custom_element = session.find.css("custom-shadow-element", all=False)
     shadow_root = custom_element.shadow_root
 
@@ -54,7 +54,7 @@ def test_detached_shadow_root(session, get_shadow_page):
     shadow_root = custom_element.shadow_root
     session.refresh()
 
-    response = find_elements(session, shadow_root.id, "css", "input")
+    response = find_elements(session, shadow_root.id, "css selector", "input")
     assert_error(response, "detached shadow root")
 
 
@@ -62,7 +62,7 @@ def test_find_elements_equivalence(session, get_shadow_page):
     session.url = get_shadow_page("<div><input id='check' type='checkbox'/><input id='text'/></div>")
     custom_element = session.find.css("custom-shadow-element", all=False)
     shadow_root = custom_element.shadow_root
-    response = find_elements(session, shadow_root.id, "css", "input")
+    response = find_elements(session, shadow_root.id, "css selector", "input")
     assert_success(response)
 
 
@@ -92,7 +92,6 @@ def test_find_elements(session, get_shadow_page, using, value):
 def test_find_elements_link_text(session, get_shadow_page, document, value):
     # Step 8 - 9
     session.url = get_shadow_page("<div><a href=#>not wanted</a><br/>{0}</div>".format(document))
-    element = session.find.css("div", all=False)
     custom_element = session.find.css("custom-shadow-element", all=False)
     shadow_root = custom_element.shadow_root
     expected = session.execute_script("return arguments[0].shadowRoot.querySelectorAll('a')[1]",
@@ -119,7 +118,6 @@ def test_find_elements_link_text(session, get_shadow_page, document, value):
 def test_find_elements_partial_link_text(session, get_shadow_page, document, value):
     # Step 8 - 9
     session.url = get_shadow_page("<div><a href=#>not wanted</a><br/>{0}</div>".format(document))
-    element = session.find.css("div", all=False)
     custom_element = session.find.css("custom-shadow-element", all=False)
     shadow_root = custom_element.shadow_root
     expected = session.execute_script("return arguments[0].shadowRoot.querySelectorAll('a')[1]",

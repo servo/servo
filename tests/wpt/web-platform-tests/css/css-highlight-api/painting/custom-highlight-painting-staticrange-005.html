@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: </title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-001-ref.html">
+<meta name="assert" value="Highlight is repainted correctly after a node crossed by a StaticRange is not a containment anymore (so the range should be painted now)">
+<script src="resources/run-after-layout-and-paint.js"></script>
+<style>
+  ::highlight(example-highlight) {
+    background-color: yellow;
+    color: blue;
+  }
+  #contained {
+    contain: style;
+  }
+</style>
+<body><span>One </span><span id="contained"><span>two </span><span>three…</span></span>
+<script>
+  let r = new StaticRange({startContainer: document.body, startOffset: 0, endContainer: document.querySelector("#contained"), endOffset: 1});
+  CSS.highlights.set("example-highlight", new Highlight(r));
+
+  const targetSpan = document.querySelector("#contained");
+  // Force frame paint before changing targetSpan's id.
+  runAfterLayoutAndPaint(()=>{
+    targetSpan.id = "not-contained";
+    document.documentElement.removeAttribute("class");
+  });
+</script>
+</html>

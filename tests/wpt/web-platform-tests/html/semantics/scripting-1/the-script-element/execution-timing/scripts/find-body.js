@@ -1,2 +1,4 @@
-log('document.body: '+(document.body?'<BODY>':null));
+log(
+  'document.body: ' +
+  (document.body ? '<' + document.body.localName.toUpperCase() + '>' : null));
 var findBodyLoaded=true;

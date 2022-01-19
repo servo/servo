@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
+<link rel="stylesheet" href="support/highlights.css">
 <style>
     :root {
         writing-mode: vertical-rl;
@@ -9,14 +10,6 @@
         text-shadow: 0.1250em 0.1250em #C0C000C0;
         position: relative;
         color: transparent;
-
-        /*
-            https://drafts.csswg.org/css-pseudo-4/#highlight-bounds
-            For text, the corresponding overlay must cover at least
-            the entire em box and may extend further above/below the
-            em box to the line box edges.
-        */
-        line-height: 1;
     }
     p > span {
         color: #E03838C0;
@@ -31,4 +24,4 @@
         position: relative;
     }
 </style>
-<p><span>q<span>uic</span>k</span>quick
+<p class="highlight_reftest"><span>q<span>uic</span>k</span>quick

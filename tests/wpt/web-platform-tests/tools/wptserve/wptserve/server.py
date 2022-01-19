@@ -10,7 +10,7 @@ import time
 import traceback
 import uuid
 from collections import OrderedDict
-from queue import Queue
+from queue import Empty, Queue
 
 from h2.config import H2Configuration
 from h2.connection import H2Connection
@@ -22,7 +22,7 @@ from h2.utilities import extract_method_header
 from urllib.parse import urlsplit, urlunsplit
 
 from mod_pywebsocket import dispatch
-from mod_pywebsocket.handshake import HandshakeException
+from mod_pywebsocket.handshake import HandshakeException, AbortedByUserException
 
 from . import routes as default_routes
 from .config import ConfigBuilder
@@ -193,7 +193,8 @@ class WebTestServer(ThreadingMixIn, http.server.HTTPServer):
             Server.config = config
         else:
             self.logger.debug("Using default configuration")
-            with ConfigBuilder(browser_host=server_address[0],
+            with ConfigBuilder(self.logger,
+                               browser_host=server_address[0],
                                ports={"http": [self.server_address[1]]}) as config:
                 assert config["ssl_config"] is None
                 Server.config = config
@@ -222,14 +223,16 @@ class WebTestServer(ThreadingMixIn, http.server.HTTPServer):
     def handle_error(self, request, client_address):
         error = sys.exc_info()[1]
 
-        if ((isinstance(error, socket.error) and
+        if ((isinstance(error, OSError) and
              isinstance(error.args, tuple) and
              error.args[0] in self.acceptable_errors) or
             (isinstance(error, IOError) and
              error.errno in self.acceptable_errors)):
             pass  # remote hang up before the result is sent
         else:
-            self.logger.error(traceback.format_exc())
+            msg = traceback.format_exc()
+            self.logger.error("%s %s" % (type(error), error))
+            self.logger.info(msg)
 
 
 class BaseWebTestRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -282,7 +285,7 @@ class BaseWebTestRequestHandler(http.server.BaseHTTPRequestHandler):
             try:
                 handler(request, response)
             except HTTPException as e:
-                response.set_error(e.code, e.message)
+                response.set_error(e.code, str(e))
             except Exception as e:
                 self.respond_with_error(response, e)
         self.logger.debug("%i %s %s (%s) %i" % (response.status[0],
@@ -408,16 +411,15 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
                         if isinstance(frame, StreamEnded) or (hasattr(frame, "stream_ended") and frame.stream_ended):
                             del stream_queues[frame.stream_id]
 
-        except (socket.timeout, socket.error) as e:
+        except OSError as e:
             self.logger.error('(%s) Closing Connection - \n%s' % (self.uid, str(e)))
             if not self.close_connection:
                 self.close_connection = True
-                for stream_id, (thread, queue) in stream_queues.items():
-                    queue.put(None)
         except Exception as e:
             self.logger.error('(%s) Unexpected Error - \n%s' % (self.uid, str(e)))
         finally:
             for stream_id, (thread, queue) in stream_queues.items():
+                queue.put(None)
                 thread.join()
 
     def _is_extended_connect_frame(self, frame):
@@ -459,6 +461,9 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
     def _stream_ws_thread(self, stream_id, queue):
         frame = queue.get(True, None)
 
+        if frame is None:
+            return
+
         rfile, wfile = os.pipe()
         rfile, wfile = os.fdopen(rfile, 'rb'), os.fdopen(wfile, 'wb', 0)  # needs to be unbuffer for websockets
         stream_handler = H2HandlerCopy(self, frame, rfile)
@@ -480,6 +485,9 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         except HandshakeException as e:
             self.logger.info('Handshake failed for error: %s' % e)
             h2response.set_error(e.status)
+            h2response.write()
+            return
+        except AbortedByUserException:
             h2response.write()
             return
 
@@ -508,7 +516,10 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         t.start()
 
         while not self.close_connection:
-            frame = queue.get(True, None)
+            try:
+                frame = queue.get(True, 1)
+            except Empty:
+                continue
 
             if isinstance(frame, DataReceived):
                 wfile.write(frame.data)
@@ -555,8 +566,11 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         response = None
         req_handler = None
         while not self.close_connection:
-            # Wait for next frame, blocking
-            frame = queue.get(True, None)
+            try:
+                frame = queue.get(True, 1)
+            except Empty:
+                # Restart to check for close_connection
+                continue
 
             self.logger.debug('(%s - %s) %s' % (self.uid, stream_id, str(frame)))
 
@@ -595,17 +609,23 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
                 request.frames.append(frame)
 
             if hasattr(frame, "stream_ended") and frame.stream_ended:
-                self.finish_handling(request, response, req_handler)
+                try:
+                    self.finish_handling(request, response, req_handler)
+                except StreamClosedError:
+                    self.logger.debug('(%s - %s) Unable to write response; stream closed' %
+                                      (self.uid, stream_id))
+                    break
 
     def frame_handler(self, request, response, handler):
         try:
             return handler.frame_handler(request)
         except HTTPException as e:
-            response.set_error(e.code, e.message)
+            response.set_error(e.code, str(e))
             response.write()
         except Exception as e:
             self.respond_with_error(response, e)
             response.write()
+
 
 class H2ConnectionGuard(object):
     """H2Connection objects are not threadsafe, so this keeps thread safety"""
@@ -688,12 +708,11 @@ class Http1WebTestRequestHandler(BaseWebTestRequestHandler):
             if response:
                 response.set_error(500, err)
                 response.write()
-            self.logger.error(err)
 
     def get_request_line(self):
         try:
             self.raw_requestline = self.rfile.readline(65537)
-        except socket.error:
+        except OSError:
             self.close_connection = True
             return False
         if len(self.raw_requestline) > 65536:
@@ -810,7 +829,7 @@ class WebTestHttpd(object):
                                  "is something already using that port?" % port)
             raise
 
-    def start(self, block=False):
+    def start(self):
         """Start the server.
 
         :param block: True to run the server on the current thread, blocking,
@@ -818,12 +837,9 @@ class WebTestHttpd(object):
         http_type = "http2" if self.http2 else "https" if self.use_ssl else "http"
         self.logger.info("Starting %s server on %s:%s" % (http_type, self.host, self.port))
         self.started = True
-        if block:
-            self.httpd.serve_forever()
-        else:
-            self.server_thread = threading.Thread(target=self.httpd.serve_forever)
-            self.server_thread.setDaemon(True)  # don't hang on exit
-            self.server_thread.start()
+        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
+        self.server_thread.setDaemon(True)  # don't hang on exit
+        self.server_thread.start()
 
     def stop(self):
         """
@@ -883,6 +899,7 @@ class _WebSocketRequest(object):
         """
 
         self.connection = _WebSocketConnection(request_handler, response)
+        self.protocol = "HTTP/2"
         self._response = response
 
         self.uri = request_handler.path

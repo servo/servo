@@ -8,6 +8,7 @@
       position: relative;
       width: 300px;
       height: 100px;
+      background: blue;
     }
 
     /* Disable the button's focus ring, which otherwise expands its visual rect by
@@ -57,12 +58,12 @@
         observer.observe({ entryTypes: ['layout-shift'] });
         // User input event
         clickAndBlockMain('button').then(() => {
-          // 500ms delay
+          // 600ms delay
           step_timeout(function() {
             timeAfterClick = performance.now();
             // Modify the position of the div.
             document.getElementById('myDiv').style = "top: 60px";
-          }, 500);
+          }, 600);
         });
       });
     }, 'Layout shift right after user input is observable via PerformanceObserver.');

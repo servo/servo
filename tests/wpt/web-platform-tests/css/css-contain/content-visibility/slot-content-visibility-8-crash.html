@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1222408">
+
+<div id=details>
+  <template shadowroot=open>
+    <slot style="content-visibility: hidden; display: block"></slot>
+  </template>
+</div>
+
+<div id="clear-left">
+<div>X</div>
+<script>
+document.head.appendChild(document.createElement("style"));
+var styleSheet = document.styleSheets[document.styleSheets.length-1];
+styleSheet.insertRule(":root{}"); styleSheet.disabled=false;
+var styleSheet0 = document.styleSheets[0];
+var test0=document.getElementById("clear-left");
+var test5=test0.appendChild(details);
+var test6=test5.appendChild(document.createElement("figure"));
+var test7=test5.appendChild(document.createElement("cite"));
+requestAnimationFrame(function() {
+  styleSheet0.insertRule('p:checked, #clear-left:before {-ms-transform:perspective(45in) rotateX(90deg); -ms-flex-wrap:wrap; }',styleSheet0.cssRules.length);
+  document.execCommand(null);
+  styleSheet0.insertRule('hgroup:link, #clear-left:link {-webkit-animation-name:test; padding-bottom:$grid-padding; }',styleSheet0.cssRules.length);
+  test6.style.setProperty('font-Weight','bold');
+});
+window.scrollTo();
+test7.style.transform = 'scale(1)';
+</script>

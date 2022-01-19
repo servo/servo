@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCRtpEncodingParameters adaptivePtime property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  function getFirstEncoding(param) {
+    const { encodings } = param;
+    assert_equals(encodings.length, 1);
+    return encodings[0];
+  }
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio', {
+      sendEncodings: [{adaptivePtime: true}],
+    });
+
+    let param = sender.getParameters();
+    let encoding = getFirstEncoding(param);
+
+    assert_true(encoding.adaptivePtime);
+
+    encoding.adaptivePtime = false;
+    await sender.setParameters(param);
+    param = sender.getParameters();
+    encoding = getFirstEncoding(param);
+
+    assert_false(encoding.adaptivePtime);
+
+  }, `Setting adaptivePtime should be accepted`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio', { sendEncodings: [{}] });
+
+    const param = sender.getParameters();
+    const encoding = getFirstEncoding(param);
+
+    assert_false(encoding.adaptivePtime);
+
+  }, `adaptivePtime should be default false`);
+
+</script>

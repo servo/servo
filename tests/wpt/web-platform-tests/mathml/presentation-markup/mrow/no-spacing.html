@@ -4,21 +4,22 @@
 <meta charset="utf-8">
 <title>No spacing in elements</title>
 <meta name="assert" content="Spacing is not added around operators when an element does not use mrow layout. However, when the element is embellished, spacing of the core mo is added around it.">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#embellished-operators">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#prescripts-and-tensor-indices-mmultiscripts">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radicals-msqrt-mroot">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#subscripts-and-superscripts-msub-msup-msubsup">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+<link rel="help" href="https://w3c.github.io/mathml-core/#embellished-operators">
+<link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+<link rel="help" href="https://w3c.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
+<link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+<link rel="help" href="https://w3c.github.io/mathml-core/#prescripts-and-tensor-indices-mmultiscripts">
+<link rel="help" href="https://w3c.github.io/mathml-core/#radicals-msqrt-mroot">
+<link rel="help" href="https://w3c.github.io/mathml-core/#subscripts-and-superscripts-msub-msup-msubsup">
+<link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <script type="text/javascript">
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
   function runTests()
   {
       Array.from(document.getElementsByClassName("testedElement")).forEach((e) => {

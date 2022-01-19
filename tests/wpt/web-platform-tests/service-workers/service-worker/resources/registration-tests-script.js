@@ -64,8 +64,26 @@ function registration_tests_script(register_method, type) {
         return promise_rejects_js(t,
             TypeError,
             register_method(script, {scope: scope}),
-            'Registration of script with await top-level await should fail.');
+            'Registration of script with top-level await should fail.');
       }, 'Registering script with top-level await');
+
+    promise_test(function(t) {
+        var script = 'resources/malformed-worker.py?instantiation-error';
+        var scope = 'resources/scope/instantiation-error';
+        return promise_rejects_js(t,
+            TypeError,
+            register_method(script, {scope: scope}),
+            'Registration of script with module instantiation error should fail.');
+      }, 'Registering script with module instantiation error');
+
+    promise_test(function(t) {
+        var script = 'resources/malformed-worker.py?instantiation-error-and-top-level-await';
+        var scope = 'resources/scope/instantiation-error-and-top-level-await';
+        return promise_rejects_js(t,
+            TypeError,
+            register_method(script, {scope: scope}),
+            'Registration of script with module instantiation error and top-level await should fail.');
+      }, 'Registering script with module instantiation error and top-level await');
   }
 
   promise_test(function(t) {

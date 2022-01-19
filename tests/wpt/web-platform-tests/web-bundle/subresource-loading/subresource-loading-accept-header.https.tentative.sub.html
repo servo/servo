@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Accept: request header in webbundle requests</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+<body>
+  <script>
+    promise_test(async () => {
+      const link = document.createElement("link");
+      link.rel = "webbundle";
+      link.href = "../resources/check-accept-header-and-return-bundle.py";
+      await addElementAndWaitForLoad(link);
+      link.remove();
+    }, '"Accept:" header in a request for a bundle should contain application/webbundle MIME type');
+
+  </script>
+</body>

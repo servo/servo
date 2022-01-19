@@ -32,10 +32,10 @@ offscreenCanvas.width = 301.999;
 offscreenCanvas.height = 301.001;
 _assertSame(offscreenCanvas.width, 301, "offscreenCanvas.width", "301");
 _assertSame(offscreenCanvas.height, 301, "offscreenCanvas.height", "301");
-offscreenCanvas.width = "400x";
-offscreenCanvas.height = "foo";
-_assertSame(offscreenCanvas.width, 0, "offscreenCanvas.width", "0");
-_assertSame(offscreenCanvas.height, 0, "offscreenCanvas.height", "0");
+assert_throws_js(TypeError, function() { offscreenCanvas.width = "400x"; });
+assert_throws_js(TypeError, function() { offscreenCanvas.height = "foo"; });
+_assertSame(offscreenCanvas.width, 301, "offscreenCanvas.width", "301");
+_assertSame(offscreenCanvas.height, 301, "offscreenCanvas.height", "301");
 t.done();
 
 });

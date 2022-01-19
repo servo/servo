@@ -25,6 +25,12 @@
 @page{
 	size: landscape;
 }
+@page{
+    size: letter portrait;
+}
+@page{
+    size: legal landscape;
+}
 </style>
 
 <script>
@@ -37,7 +43,9 @@ const expectedSizes = [
     "3in 10in",
     "jis-b5",
     "auto",
-    "landscape"
+    "landscape",
+    "letter",
+    "legal landscape"
 ];
 const sizePrefix = "size: ";
 

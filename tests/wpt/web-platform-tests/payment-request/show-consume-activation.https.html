@@ -38,7 +38,7 @@
         const pr = new PaymentRequest(defaultMethods, defaultDetails);
 
         // Not activated by user gesture, so not allowed!
-        await promise_rejects_dom(t, "NotAllowedError", pr.show());
+        await promise_rejects_dom(t, "SecurityError", pr.show());
 
         await test_driver.bless("Calls show() method");
 
@@ -47,7 +47,7 @@
 
         // The activation has been consumed, so calling show() again would require
         // a new gesture.
-        await promise_rejects_dom(t, "NotAllowedError", pr.show());
+        await promise_rejects_dom(t, "InvalidStateError", pr.show());
 
         // Abort the payment request
         pr.abort()

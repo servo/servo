@@ -1,32 +1,15 @@
-from six import PY3
-
 from wptserve.utils import isomorphic_encode
 
 def get_response(raw_headers, filter_value, filter_name):
     result = b""
-    # Type of raw_headers is <httplib.HTTPMessage> in Python 2 and <http.client.HTTPMessage> in
-    # Python 3. <http.client.HTTPMessage> doesn't have 'headers" attribute or equivalent
-    # [https://bugs.python.org/issue4773].
-    # In Python 2, variable raw_headers.headers returns a completely uninterpreted list of lines
-    # contained in the header. In Python 3, raw_headers.raw_items() returns the (name, value)
-    # header pairs without modification. Here is to construct an equivalent "headers" variable to
-    # support tests in Python 3.
-    if PY3:
-        header_list = []
-        for field in raw_headers.raw_items():
-            header = b"%s: %s\r\n" % (isomorphic_encode(field[0]), isomorphic_encode(field[1]))
-            header_list.append(header)
-    else:
-        header_list = raw_headers.headers
-    for line in header_list:
-        if line[-2:] != b'\r\n':
-            return b"Syntax error: missing CRLF: " + line
-        line = line[:-2]
-
-        if b': ' not in line:
-            return b"Syntax error: no colon and space found: " + line
-        name, value = line.split(b': ', 1)
-
+    # raw_headers.raw_items() returns the (name, value) header pairs as
+    # tuples of strings. Convert them to bytes before comparing.
+    # TODO: Get access to the raw headers, so that whitespace between
+    # name, ":" and value can also be checked:
+    # https://github.com/web-platform-tests/wpt/issues/28756
+    for field in raw_headers.raw_items():
+        name = isomorphic_encode(field[0])
+        value = isomorphic_encode(field[1])
         if filter_value:
             if value == filter_value:
                 result += name + b","

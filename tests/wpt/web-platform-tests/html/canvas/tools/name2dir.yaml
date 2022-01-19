@@ -1,4 +1,5 @@
 2d.transformation:                    "transformations"
+2d.color.space:                       'wide-gamut-canvas'
 2d.composite:                         "compositing"
 2d.coordinatespace:                   "conformance-requirements"
 2d.missingargs:                       "conformance-requirements"
@@ -21,6 +22,7 @@
 2d.imageData:                         "pixel-manipulation"
 2d.reset:                             "reset"
 2d.shadow:                            "shadows"
+2d.filter:                            "filters"
 2d.text.align:                        "text-styles"
 2d.text.baseline:                     "text-styles"
 2d.text.font:                         "text-styles"

@@ -98,7 +98,7 @@ class UpdateManifest(Step):
     provides = ["manifest_path", "test_manifest"]
 
     def create(self, state):
-        from manifest import manifest
+        from manifest import manifest  # type: ignore
         state.manifest_path = os.path.join(state.metadata_path, "MANIFEST.json")
         state.test_manifest = manifest.load_and_update(state.sync["path"],
                                                        state.manifest_path,

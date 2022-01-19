@@ -78,13 +78,11 @@
             label: 'FFT scaling tests',
             description: 'Test Scaling of FFT in AnalyserNode'
           },
-          function(task, should) {
+          async function(task, should) {
             let tests = [];
             for (let k = 5; k <= 15; ++k)
-              tests.push(runTest(k, should));
-
-            // The order in which the tests finish is not important.
-            Promise.all(tests).then(task.done.bind(task));
+              await runTest(k, should);
+            task.done();
           });
 
       function runTest(order, should) {

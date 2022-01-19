@@ -20,7 +20,7 @@
         assert_equals(e.columnNumber, 4);
         assert_equals(e.statusCode, 200);
       }));
-    
+
     var i = document.createElement("img");
     i.src = "{{location[scheme]}}://{{domains[www]}}:{{location[port]}}/content-security-policy/support/fail.png";
   }, "Non-redirected cross-origin URLs are not stripped.");

@@ -1074,6 +1074,7 @@ const transformListType = {
       const target = createTestElement(t, setup);
       const animation = target.animate(
         {
+          // perspective(0) is treated as perspective(1px)
           [idlName]: ['perspective(0)', 'perspective(10px)'],
         },
         1000
@@ -1081,7 +1082,7 @@ const transformListType = {
       testAnimationSampleMatrices(animation, idlName,
         [{ time: 500,  expected: [ 1, 0, 0, 0,
                                    0, 1, 0, 0,
-                                   0, 0, 1, -0.05,
+                                   0, 0, 1, -0.55,
                                    0, 0, 0, 1 ] }]);
     }, `${property}: perspective`);
 

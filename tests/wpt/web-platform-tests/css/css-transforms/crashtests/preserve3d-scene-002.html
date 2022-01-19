@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<style>
+
+.outer {
+  column-count:16384;
+  -webkit-mask-box-image:url('?') 10% 90% repeat;
+}
+button {
+  font:icon;
+}
+.inner {
+  border-top:solid 1000000000px;
+  transform-style:preserve-3d;
+  display:list-item;
+}
+table {
+  height:7.1px;
+  padding-right:4em;
+  transform:matrix3d(0,7.8,9,2,-3.6,3.4,6,8.8,9.5,7,7.3,5.3,6.4,3.7,8.3,8);
+  border-left:outset black;
+  font-size:120%;
+}
+
+</style>
+
+<div class="outer"><button><div class="inner"><table border></table></div></button></div>

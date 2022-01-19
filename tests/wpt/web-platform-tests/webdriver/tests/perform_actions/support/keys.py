@@ -21,7 +21,6 @@ import sys
 
 from collections import OrderedDict
 from inspect import getmembers
-from six import text_type
 
 class Keys(object):
     """
@@ -107,7 +106,7 @@ class Keys(object):
     R_DELETE = u"\uE05D"
 
 
-ALL_KEYS = getmembers(Keys, lambda x: type(x) == text_type)
+ALL_KEYS = getmembers(Keys, lambda x: type(x) == str)
 
 ALL_EVENTS = OrderedDict(
     [

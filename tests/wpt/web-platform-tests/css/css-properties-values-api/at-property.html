@@ -200,7 +200,7 @@ test_with_at_property({
 }, (name, rule) => {
   try {
     target.style = `${name}: calc(1px + 1px);`;
-    assert_equals(getComputedStyle(target).getPropertyValue(name), ' calc(1px + 1px)');
+    assert_equals(getComputedStyle(target).getPropertyValue(name), 'calc(1px + 1px)');
   } finally {
     target.style = '';
   }

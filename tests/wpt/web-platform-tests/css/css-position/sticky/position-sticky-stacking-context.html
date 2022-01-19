@@ -35,11 +35,12 @@ window.addEventListener('load', function() {
    createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
 })
 </script>
+
+<div>You should see a single green box below. No red or blue should be visible.</div>
+
 <div class="indicator box"></div>
 <div class="sticky box">
   <!-- Because sticky forms a stacking context, this child remains on bottom
        even though it has a higher z-index than the indicator box. -->
   <div class="child box"></div>
 </div>
-
-<div>You should see a single green box above. No red or blue should be visible.</div>

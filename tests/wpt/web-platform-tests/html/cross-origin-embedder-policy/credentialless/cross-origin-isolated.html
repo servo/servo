@@ -1,0 +1,54 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/common.js"></script>
+<script src="./resources/dispatcher.js"></script>
+<script>
+
+const http  = get_host_info().HTTP_ORIGIN;
+const https = get_host_info().HTTPS_ORIGIN;
+
+let crossOriginIsolatedTest = (
+    description,
+    origin ,
+    headers,
+    expect_crossOriginIsolated) => {
+  promise_test_parallel(async test => {
+    const w_token = token();
+    const w_url = origin + executor_path + headers + `&uuid=${w_token}`;
+    const w = window.open(w_url)
+    add_completion_callback(() => w.close());
+
+    const this_token = token();
+    send(w_token, `
+      if (window.crossOriginIsolated)
+        send("${this_token}", "crossOriginIsolated");
+      else
+        send("${this_token}", "not isolated")
+    `);
+    assert_equals(await receive(this_token), expect_crossOriginIsolated);
+  }, description);
+}
+
+crossOriginIsolatedTest("Main crossOriginIsolated case:",
+  https,  coop_same_origin +
+          coep_credentialless, "crossOriginIsolated");
+
+crossOriginIsolatedTest("Missing HTTPS:",
+  http,  coop_same_origin +
+         coep_credentialless, "not isolated");
+
+crossOriginIsolatedTest("Missing COOP:same-origin:",
+  https,  coep_credentialless, "not isolated");
+
+crossOriginIsolatedTest("Report-only:",
+  https, coop_same_origin +
+         coep_report_only_credentialless, "not isolated");
+
+crossOriginIsolatedTest("Report-only + enforced:",
+  https, coop_same_origin +
+         coep_credentialless +
+         coep_report_only_credentialless, "crossOriginIsolated");
+
+</script>

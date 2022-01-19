@@ -1,5 +1,7 @@
 // META: global=window,worker
 
+"use strict";
+
 var log = [];
 function clearLog() {
   log = [];

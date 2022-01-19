@@ -1,0 +1,11 @@
+<!doctype html>
+<title>HTML Test: object - crash removing a param after changing its style</title>
+<link rel="help" href="https://crbug.com/1195633">
+<object type="text/html">
+  <param id="param"></param>
+</object>
+<script>
+  getComputedStyle(param).color;
+  param.style.color = "red";
+  param.remove();
+</script>

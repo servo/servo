@@ -19,9 +19,8 @@ def get_browser_args(product, channel):
     if product == "servo":
         return ["--install-browser", "--processes=12"]
     if product == "chrome":
-        # Taskcluster machines do not have proper GPUs, so we need to use
-        # software rendering for webgl: https://crbug.com/1130585
-        args = ["--binary-arg=--use-gl=swiftshader-webgl"]
+        # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
+        args = ["--enable-swiftshader"]
         if channel == "nightly":
             args.extend(["--install-browser", "--install-webdriver"])
         return args
@@ -118,4 +117,4 @@ if __name__ == "__main__":
                         help="Channel of the browser")
     parser.add_argument("wpt_args", nargs="*",
                         help="Arguments to forward to `wpt run` command")
-    main(**vars(parser.parse_args()))
+    main(**vars(parser.parse_args()))  # type: ignore

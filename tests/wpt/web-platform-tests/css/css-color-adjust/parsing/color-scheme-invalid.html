@@ -16,4 +16,8 @@
   test_invalid_value("color-scheme", "light revert");
   test_invalid_value("color-scheme", "default");
   test_invalid_value("color-scheme", "light default");
+  test_invalid_value("color-scheme", "only");
+  test_invalid_value("color-scheme", "only only");
+  test_invalid_value("color-scheme", "light only dark");
+  test_invalid_value("color-scheme", "only light only");
 </script>

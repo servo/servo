@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout Test: Test column-span:all inside a transform</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#the-multi-column-model">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+<link rel="match" href="multicol-span-all-017-ref.html">
+<meta name="assert" content="This test checks that the spanner propagates past the transform to the multicol.">
+
+<style>
+  article {
+    column-count: 3;
+    column-rule: 6px solid;
+    width: 400px;
+    outline: 1px solid black;
+  }
+  h3 {
+    column-span: all;
+    outline: 1px solid blue;
+  }
+</style>
+
+<article>
+  <!-- "transform" doesn't create a new block formatting context, so
+      column-span:all still works. -->
+  <div style="transform: scale(1)">
+    <h3>spanner</h3>
+  </div>
+</article>

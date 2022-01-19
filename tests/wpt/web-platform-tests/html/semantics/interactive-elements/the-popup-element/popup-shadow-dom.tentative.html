@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
-<link rel=help href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Popup/explainer.md">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -69,18 +69,15 @@
   <popup anchor=t2b1 style="top: 400px;">
     <p>Popup 1</p>
     <button id=t2b2 onclick='showPopup("test2",1)'>Test 2 Popup 2</button>
-    <my-element>
-      <template shadowroot=open>
-        <popup anchor=t2b2 style="top: 400px;">
-          <p>This popup can never be visible:</p>
-          <p>Hiding this popup will hide *all* open popups,</p>
-          <p>because t2b2 doesn't exist in this context.</p>
-          <p>And since popup 1 is not shown, it is display:none,</p>
-          <p>which means no child content is shown at all.</p>
-        </popup>
-      </template>
-    </my-element>
   </popup>
+  <my-element>
+    <template shadowroot=open>
+      <popup anchor=t2b2 style="top: 400px;">
+        <p>Hiding this popup will hide *all* open popups,</p>
+        <p>because t2b2 doesn't exist in this context.</p>
+      </popup>
+    </template>
+  </my-element>
 </div>
 
 <script>
@@ -90,10 +87,10 @@
     assert_true(popup1.open);
     assert_true(popupVisible(popup1));
     popup2.show();
-    assert_false(popup1.open); // P1 was closed by P2
-    assert_true(popup2.open); // P2 thinks it is open
-    assert_false(popupVisible(popup1)); // But neither is visible
-    assert_false(popupVisible(popup2));
+    assert_false(popup1.open, 'popup1 open'); // P1 was closed by P2
+    assert_false(popupVisible(popup1), 'popup1 visible');
+    assert_true(popup2.open, 'popup2 open'); // P2 is open
+    assert_true(popupVisible(popup2), 'popup2 visible');
   }, "anchor references do not cross shadow boundaries");
 </script>
 
@@ -103,7 +100,7 @@
     <template shadowroot=open>
       <button id=t3b1 onclick='showPopup("test3",0)'>Test 3 Popup 1</button>
       <popup anchor=t3b1>
-        <p>This popup will be hidden when popup2 shows.</p>
+        <p>This popup will stay open when popup2 shows.</p>
         <slot></slot>
       </popup>
     </template>
@@ -118,15 +115,17 @@
     popup1.show();
     assert_true(popup1.open);
     assert_true(popupVisible(popup1));
-    // Showing popup2 will close popup1, since it is not a DOM
+    // Showing popup2 should not close popup1, since it is a flat
     // tree ancestor of popup2's anchor button.
     popup2.show();
     assert_true(popup2.open);
     assert_true(popupVisible(popup2));
+    assert_true(popup1.open);
+    assert_true(popupVisible(popup1));
+    popup1.hide();
+    assert_false(popup2.open);
     assert_false(popup1.open);
-    assert_false(popupVisible(popup1));
-    popup2.hide();
-  }, "anchor references use the DOM tree not the flat tree");
+  }, "anchor references use the flat tree not the DOM tree");
 </script>
 
 
@@ -151,9 +150,9 @@
     popup1.show();
     popup2.show();
     // Both 1 and 2 should be open at this point.
-    assert_true(popup1.open);
+    assert_true(popup1.open, 'popup1 not open');
     assert_true(popupVisible(popup1));
-    assert_true(popup2.open);
+    assert_true(popup2.open, 'popup2 not open');
     assert_true(popupVisible(popup2));
     // This should hide both of them.
     popup1.hide();

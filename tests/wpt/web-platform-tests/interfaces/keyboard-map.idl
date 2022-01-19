@@ -4,15 +4,10 @@
 // Source: Keyboard Map (https://wicg.github.io/keyboard-map/)
 
 [Exposed=Window]
-partial interface Navigator {
-  [SecureContext, SameObject] readonly attribute Keyboard keyboard;
-};
-
-[Exposed=Window]
 interface KeyboardLayoutMap {
   readonly maplike<DOMString, DOMString>;
 };
 
-[SecureContext, Exposed=Window] interface Keyboard {
+partial interface Keyboard {
   Promise<KeyboardLayoutMap> getLayoutMap();
 };

@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe" src="/common/blank.html"></iframe>
+
+<script>
+async_test(t => {
+  window.onload = t.step_func_done(() => {
+    const wAppHistory = iframe.contentWindow.appHistory;
+    const wDOMException = iframe.contentWindow.DOMException;
+
+    iframe.remove();
+
+    assert_throws_dom("InvalidStateError", wDOMException, () => {
+      wAppHistory.updateCurrent({ state: 1 });
+    });
+    assert_equals(appHistory.current.getState(), undefined);
+  });
+}, "updateCurrent() must throw if the document is not fully active");
+</script>

@@ -714,5 +714,17 @@ var browserTests = [
     [["indent",""]],
     "<ul><ul><li>a<br>{<br>}</li></ul><li>b</li></ul>",
     [true],
-    {"indent":[false,false,"",false,false,""]}]
+    {"indent":[false,false,"",false,false,""]}],
+["<p>[abc]</p>",
+    [["stylewithcss","true"],["indent",""]],
+    ["<p style=\"margin-left:40px\">abc</p>",
+     "<blockquote style=\"margin:0 0 0 40px; border:none; padding:0px\"><p>abc</p></blockquote>"],
+    [true,true],
+    {"indent":[false,false,"",false,false,""]}],
+["<div contenteditable=false><div contenteditable>[abc]</div></div>",
+    [["stylewithcss","true"],["indent",""]],
+    ["<div contenteditable=\"false\"><div contenteditable=\"\"><div style=\"margin-left:40px\">abc</div></div></div>",
+     "<div contenteditable=\"false\"><div contenteditable=\"\"><blockquote style=\"margin:0 0 0 40px; border:none; padding:0px\">abc</blockquote></div></div>"],
+    [true,true],
+    {"indent":[false,false,"",false,false,""]}],
 ]

@@ -24,15 +24,10 @@
 <script>
 'use strict';
 
-// TODO(smcgruer): In many of the tests below, timeRange is specified when it
-// should not need to be. This is an artifact of the initial Chrome
-// implementation which doesn't support timeRange: 'auto'. These should be
-// removed in the future.
-
 test(function() {
   const scroller = document.querySelector('#inlineScroller');
   const scrollTimeline = new ScrollTimeline(
-      { scrollSource: scroller, timeRange: 100, orientation: 'block' });
+      { scrollSource: scroller, orientation: 'block' });
 
   assert_equals(scrollTimeline.currentTime, null);
 }, 'currentTime should be null for a display: inline scrollSource');
@@ -45,7 +40,7 @@ test(function() {
 test(function() {
   const scroller = document.querySelector('#displayNoneScroller');
   const scrollTimeline = new ScrollTimeline(
-      { scrollSource: scroller, timeRange: 100, orientation: 'block' });
+      { scrollSource: scroller, orientation: 'block' });
 
   assert_equals(scrollTimeline.currentTime, null);
 }, 'currentTime should be null for a display: none scrollSource');
@@ -65,7 +60,7 @@ test(function() {
   scroller.appendChild(content);
 
   const scrollTimeline = new ScrollTimeline(
-      { scrollSource: scroller, timeRange: 100, orientation: 'block' });
+      { scrollSource: scroller, orientation: 'block' });
 
   assert_equals(scrollTimeline.currentTime, null);
 }, 'currentTime should be null for an unattached scrollSource');
@@ -78,7 +73,7 @@ test(function() {
 test(function() {
   const scroller = document.querySelector('#notAScroller');
   const scrollTimeline = new ScrollTimeline(
-      { scrollSource: scroller, timeRange: 100, orientation: 'block' });
+      { scrollSource: scroller, orientation: 'block' });
 
   assert_equals(scrollTimeline.currentTime, null);
 }, 'currentTime should be null when the scrollSource is not a scroller');

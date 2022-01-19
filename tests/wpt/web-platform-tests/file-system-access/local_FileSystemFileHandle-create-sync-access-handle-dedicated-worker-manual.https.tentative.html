@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/test-helpers.js"></script>
+<script src="resources/local-fs-test-helpers.js"></script>
+<script src="resources/messaging-helpers.js"></script>
+<script src="script-tests/FileSystemFileHandle-create-sync-access-handle-dedicated-worker.js"></script>
+
+<script>
+  //This variable allows the test to differentiate between local and sandboxed
+  //file systems, since createSyncAccessHandle() behavior is different each one.
+  const file_system_type = "local";
+</script>

@@ -48,20 +48,30 @@ const iframeTest = function(
     const child_url = child_origin + executor_path + child_headers +
       `&uuid=${child_token}`;
 
-    send(parent_token, `
+    await send(parent_token, `
       let iframe = document.createElement("iframe");
       iframe.src = "${child_url}";
       document.body.appendChild(iframe);
     `);
 
-    send(child_token, `
+    await send(child_token, `
       send("${test_token}", "load");
     `);
 
     // There are no interoperable ways to check an iframe failed to load. So a
     // timeout is being used.
     // See https://github.com/whatwg/html/issues/125
-    step_timeout(()=>send(test_token, "block"), 3000);
+    // Use a shorter timeout when it is expected to be reached.
+    // - The long delay reduces the false-positive rate. False-positive causes
+    //   stability problems on bot, so a big delay is used to vanish them.
+    //   https://crbug.com/1215956.
+    // - The short delay avoids delaying too much the test(s) for nothing and
+    //   timing out. False-negative are not a problem, they just need not to
+    //   overwhelm the true-negative, which is trivial to get.
+    step_timeout(()=>send(test_token, "block"), expectation == EXPECT_BLOCK
+      ? 2000
+      : 6000
+    );
 
     assert_equals(await receive(test_token), expectation);
   }, description);

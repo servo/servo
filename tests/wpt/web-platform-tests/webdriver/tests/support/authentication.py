@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 
 def basic_authentication(url, username=None, password=None, protocol="http"):

@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>displaystyle</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-style-property">
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-math-style-property">
 <meta name="assert" content="Verify the displaystyle of the underover element is considered (not the one of its base) to determine whether to move limits.">
 <link rel="stylesheet" href="/fonts/ahem.css">
 <style>
@@ -17,9 +17,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <script>
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
   function runTests() {
       ["munder", "mover", "munderover"].forEach((tag) => {
           Array.from(document.getElementsByTagName(tag)).forEach(e => {

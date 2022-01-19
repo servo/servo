@@ -14,7 +14,7 @@
   window.addEventListener('securitypolicyviolation', function(e) {
     log("Fail");
   });
-  
+
   var id = setTimeout("log('PASS 1 of 2')", 0);
   if (id == 0)
     log('FAIL');

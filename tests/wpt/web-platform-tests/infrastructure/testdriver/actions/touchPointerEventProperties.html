@@ -45,8 +45,8 @@ async_test(t => {
   let actions = new test_driver.Actions()
     .addPointer("touchPointer1", "touch")
     .pointerMove(0, 0, {origin: test})
-    .pointerDown({width:23, height:31, pressure:0.78, tiltX:21, tiltY:-8, twist:355})
-    .pointerMove(15, 0, {origin: test, width:39, height:35, pressure:0.91, tiltX:-19, tiltY:62, twist:345})
+    .pointerDown({width:23, height:31, pressure:0.78})
+    .pointerMove(15, 0, {origin: test, width:39, height:35, pressure:0.91})
     .pointerUp()
     .send()
     .then(t.step_func_done(() => {
@@ -55,17 +55,17 @@ async_test(t => {
       assert_equals(pointerDownEvent.width, 23);
       assert_equals(pointerDownEvent.height, 31);
       assert_equals(Math.round(pointerDownEvent.pressure * 100) / 100, 0.78);
-      assert_equals(pointerDownEvent.tiltX, 21);
-      assert_equals(pointerDownEvent.tiltY, -8);
-      assert_equals(pointerDownEvent.twist, 355);
+      assert_equals(pointerDownEvent.tiltX, 0);
+      assert_equals(pointerDownEvent.tiltY, 0);
+      assert_equals(pointerDownEvent.twist, 0);
       assert_equals(pointerMoveEvent.type, "pointermove");
       assert_equals(pointerMoveEvent.pointerType, "touch");
       assert_equals(pointerMoveEvent.width, 39);
       assert_equals(pointerMoveEvent.height, 35);
       assert_equals(Math.round(pointerMoveEvent.pressure * 100) / 100, 0.91);
-      assert_equals(pointerMoveEvent.tiltX, -19);
-      assert_equals(pointerMoveEvent.tiltY, 62);
-      assert_equals(pointerMoveEvent.twist, 345);
+      assert_equals(pointerMoveEvent.tiltX, 0);
+      assert_equals(pointerMoveEvent.tiltY, 0);
+      assert_equals(pointerMoveEvent.twist, 0);
   })).catch(e => t.step_func(() => assert_unreached("Actions sequence failed " + e)));
 });
 </script>

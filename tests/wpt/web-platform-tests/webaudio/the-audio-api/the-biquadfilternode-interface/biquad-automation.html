@@ -218,7 +218,7 @@
 
         context.startRendering()
             .then(createFilterVerifier(
-                should, createBandpassFilter, 9.8348e-7, parameters,
+                should, createBandpassFilter, 1.0133e-6, parameters,
                 b.getChannelData(0),
                 'Output of bandpass filter with Q automation'))
             .then(() => task.done());

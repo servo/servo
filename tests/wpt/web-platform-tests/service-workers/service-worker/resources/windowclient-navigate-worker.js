@@ -1,34 +1,33 @@
 importScripts('/resources/testharness.js');
 
-function match_query(query_string) {
-  return self.location.search.substr(1) == query_string;
+function matchQuery(queryString) {
+  return self.location.search.substr(1) === queryString;
 }
 
-async function navigate_test(t, e) {
-  var port = e.data.port;
-  var url = e.data.url;
-  var expected = e.data.expected;
+async function navigateTest(t, e) {
+  const port = e.data.port;
+  const url = e.data.url;
+  const expected = e.data.expected;
 
-  var p = clients.matchAll({ includeUncontrolled : true })
-    .then(function(client_list) {
-        for (var i = 0; i < client_list.length; i++) {
-          var client = client_list[i];
-          if (client.frameType == 'nested') {
-            return client.navigate(url);
-          }
+  let p = clients.matchAll({ includeUncontrolled : true })
+    .then(function(clients) {
+      for (const client of clients) {
+        if (client.url === e.data.clientUrl) {
+          assert_equals(client.frameType, e.data.frameType);
+          return client.navigate(url);
         }
-        throw 'Could not locate window client.';
-      })
-    .then(function(new_client) {
-        // If we didn't reject, we better get resolved with the right thing.
-        if (new_client === null) {
-          assert_equals(new_client, expected);
-        } else {
-          assert_equals(new_client.url, expected);
-        }
-      });
+      }
+      throw 'Could not locate window client.';
+    }).then(function(newClient) {
+      // If we didn't reject, we better get resolved with the right thing.
+      if (newClient === null) {
+        assert_equals(newClient, expected);
+      } else {
+        assert_equals(newClient.url, expected);
+      }
+    });
 
-  if (typeof self[expected] == "function") {
+  if (typeof self[expected] === "function") {
     // It's a JS error type name.  We are expecting our promise to be rejected
     // with that error.
     p = promise_rejects_js(t, self[expected], p);
@@ -40,39 +39,37 @@ async function navigate_test(t, e) {
 
 function getTestClient() {
   return clients.matchAll({ includeUncontrolled: true })
-    .then(function(client_list) {
-        for (var i = 0; i < client_list.length; i++) {
-          var client = client_list[i];
-
-          if (/windowclient-navigate\.https\.html/.test(client.url)) {
-            return client;
-          }
+    .then(function(clients) {
+      for (const client of clients) {
+        if (client.url.includes('windowclient-navigate.https.html')) {
+          return client;
         }
+      }
 
-        throw new Error('Service worker was unable to locate test client.');
-      });
+      throw new Error('Service worker was unable to locate test client.');
+    });
 }
 
 function waitForMessage(client) {
-  var channel = new MessageChannel();
+  const channel = new MessageChannel();
   client.postMessage({ port: channel.port2 }, [channel.port2]);
 
   return new Promise(function(resolve) {
-        channel.port1.onmessage = resolve;
-      });
+    channel.port1.onmessage = resolve;
+  });
 }
 
 // The worker must remain in the "installing" state for the duration of some
 // sub-tests. In order to achieve this coordination without relying on global
 // state, the worker must create a message channel with the client from within
 // the "install" event handler.
-if (match_query('installing')) {
+if (matchQuery('installing')) {
   self.addEventListener('install', function(e) {
-      e.waitUntil(getTestClient().then(waitForMessage));
-    });
+    e.waitUntil(getTestClient().then(waitForMessage));
+  });
 }
 
 self.addEventListener('message', function(e) {
-    e.waitUntil(promise_test(t => navigate_test(t, e),
-                             e.data.description + " worker side"));
-  });
+  e.waitUntil(promise_test(t => navigateTest(t, e),
+                           e.data.description + " worker side"));
+});

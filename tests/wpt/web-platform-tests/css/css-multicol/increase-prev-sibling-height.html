@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
 <link rel="help" href="https://www.w3.org/TR/css-multicol-1/">
 <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1066640">
@@ -11,7 +12,9 @@
 <script>
   requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{
-	  elm.style.height = "2em";
+          elm.style.height = "2em";
+          document.documentElement.classList.remove("reftest-wait");
       });
   });
 </script>
+</html>

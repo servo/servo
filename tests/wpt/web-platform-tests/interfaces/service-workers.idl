@@ -62,7 +62,7 @@ interface ServiceWorkerContainer : EventTarget {
 
   [NewObject] Promise<ServiceWorkerRegistration> register(USVString scriptURL, optional RegistrationOptions options = {});
 
-  [NewObject] Promise<any> getRegistration(optional USVString clientURL = "");
+  [NewObject] Promise<(ServiceWorkerRegistration or undefined)> getRegistration(optional USVString clientURL = "");
   [NewObject] Promise<FrozenArray<ServiceWorkerRegistration>> getRegistrations();
 
   undefined startMessages();
@@ -137,7 +137,7 @@ enum FrameType {
 [Exposed=ServiceWorker]
 interface Clients {
   // The objects returned will be new instances every time
-  [NewObject] Promise<any> get(DOMString id);
+  [NewObject] Promise<(Client or undefined)> get(DOMString id);
   [NewObject] Promise<FrozenArray<Client>> matchAll(optional ClientQueryOptions options = {});
   [NewObject] Promise<WindowClient?> openWindow(USVString url);
   [NewObject] Promise<undefined> claim();
@@ -211,7 +211,7 @@ partial interface mixin WindowOrWorkerGlobalScope {
 
 [SecureContext, Exposed=(Window,Worker)]
 interface Cache {
-  [NewObject] Promise<any> match(RequestInfo request, optional CacheQueryOptions options = {});
+  [NewObject] Promise<(Response or undefined)> match(RequestInfo request, optional CacheQueryOptions options = {});
   [NewObject] Promise<FrozenArray<Response>> matchAll(optional RequestInfo request, optional CacheQueryOptions options = {});
   [NewObject] Promise<undefined> add(RequestInfo request);
   [NewObject] Promise<undefined> addAll(sequence<RequestInfo> requests);
@@ -228,7 +228,7 @@ dictionary CacheQueryOptions {
 
 [SecureContext, Exposed=(Window,Worker)]
 interface CacheStorage {
-  [NewObject] Promise<any> match(RequestInfo request, optional MultiCacheQueryOptions options = {});
+  [NewObject] Promise<(Response or undefined)> match(RequestInfo request, optional MultiCacheQueryOptions options = {});
   [NewObject] Promise<boolean> has(DOMString cacheName);
   [NewObject] Promise<Cache> open(DOMString cacheName);
   [NewObject] Promise<boolean> delete(DOMString cacheName);

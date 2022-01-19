@@ -636,7 +636,7 @@ class BinaryCookieParser(BaseCookie):
 class Cookies(MultiDict):
     """MultiDict specialised for Cookie values
 
-    Keys and values are binary strings.
+    Keys are binary strings and values are CookieValue objects.
     """
     def __init__(self):
         pass

@@ -1,0 +1,59 @@
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/webauthn/helpers.js"></script>
+<script>
+'use strict';
+
+const textEncoder = new TextEncoder();
+let authenticatorArgs = {
+  protocol: 'ctap2_1',
+  transport: 'internal',
+  hasResidentKey: true,
+  hasUserVerification: true,
+  isUserVerified: true,
+};
+
+window.onload = async function() {
+  await window.test_driver.add_virtual_authenticator(authenticatorArgs);
+  let enabled = true;
+  let message = `OK`;
+  try {
+    const publicKey = {
+      rp: {
+        id: window.location.hostname,
+        name: 'Joe',
+      },
+      user: {
+        name: 'user@domain',
+        id: Uint8Array.from('id', c => c.charCodeAt(0)),
+        displayName: 'User',
+      },
+      challenge: textEncoder.encode('Enrollment challenge'),
+      pubKeyCredParams: [{
+        type: 'public-key',
+        alg: -7, // ECDSA, not supported on Windows.
+      }, {
+        type: 'public-key',
+        alg: -257, // RSA, supported on Windows.
+      }],
+      authenticatorSelection: {
+        userVerification: 'required',
+        residentKey: 'required',
+        authenticatorAttachment: 'platform',
+      },
+      extensions: {
+        payment: {
+          isPayment: true,
+        },
+      }
+    };
+    await navigator.credentials.create({
+      publicKey
+    });
+  } catch (e) {
+    enabled = false;
+    message = e.name + '#' + e.message;
+  }
+  parent.postMessage({ type: 'availability-result', enabled, message }, '*');
+}
+</script>

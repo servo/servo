@@ -108,3 +108,14 @@ def test_global_boolean_attributes(session, inline):
     element = session.find.css("p", all=False)
     result = get_element_attribute(session, element.id, "itemscope")
     assert_success(result, None)
+
+
+@pytest.mark.parametrize("is_relative", [True, False], ids=["relative", "absolute"])
+def test_anchor_href(session, inline, url, is_relative):
+    href = "/foo.html" if is_relative else url("/foo.html")
+
+    session.url = inline("<a href='{}'>foo</a>".format(href))
+    element = session.find.css("a", all=False)
+
+    response = get_element_attribute(session, element.id, "href")
+    assert_success(response, href)

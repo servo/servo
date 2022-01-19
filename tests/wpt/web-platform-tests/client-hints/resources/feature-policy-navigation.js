@@ -2,7 +2,6 @@ const test_frame = (origin, hints, allow, message, url = "/client-hints/resource
   promise_test(() => {
     return new Promise((resolve, reject) => {
       let frame = document.createElement('iframe');
-      frame.src = get_host_info()[origin] + url + hints;
       frame.allow = allow;
       window.addEventListener('message', function(e) {
         try {
@@ -14,6 +13,9 @@ const test_frame = (origin, hints, allow, message, url = "/client-hints/resource
         resolve();
       });
       document.body.appendChild(frame);
+      // Writing to |frame.src| triggers the navigation, so
+      // everything else need to happen first.
+      frame.src = get_host_info()[origin] + url + hints;
     });
   }, message);
 }

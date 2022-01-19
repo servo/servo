@@ -138,7 +138,7 @@ def fuzzy_prop(node):
       maxDifferences=10;totalPixels=10-20
 
       specifies that for any test/ref pair for which no other rule is supplied,
-      there must be a maximum pixel difference of exactly 10, and betwen 10 and
+      there must be a maximum pixel difference of exactly 10, and between 10 and
       20 total pixels different.
 
       test.html==ref.htm:10;20

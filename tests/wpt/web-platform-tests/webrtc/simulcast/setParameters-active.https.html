@@ -22,7 +22,7 @@ async function queryReceiverStats(pc) {
 }
 
 promise_test(async t => {
-  const rids = [0, 1, 2];
+  const rids = [0, 1];
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
   const pc2 = new RTCPeerConnection();

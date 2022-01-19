@@ -139,7 +139,8 @@ def create_release(manifest_path, owner, repo, sha, tag, body):
 
     release_id = create_resp["id"]
     edit_url = "https://api.github.com/repos/%s/%s/releases/%s" % (owner, repo, release_id)
-    edit_data = {"draft": False}
+    edit_data = create_data.copy()
+    edit_data["draft"] = False
     edit_resp = request(edit_url, "Release publishing", method=requests.patch, json_data=edit_data)
     if not edit_resp:
         return False
@@ -192,6 +193,6 @@ def main():
 
 
 if __name__ == "__main__":
-    code = main()
+    code = main()  # type: ignore
     assert isinstance(code, int)
     sys.exit(code)

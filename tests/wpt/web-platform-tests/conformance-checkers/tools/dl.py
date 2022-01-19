@@ -84,11 +84,11 @@ for key in errors.keys():
     template_error = template
     template_error += '<title>invalid %s</title>\n' % key
     template_error += errors[key]
-    file = open(os.path.join(ccdir, "html/elements/dl/%s-novalid.html" % key), 'wb')
+    file = open(os.path.join(ccdir, "html/elements/dl/%s-novalid.html" % key), 'w')
     file.write(template_error)
     file.close()
 
-file = open(os.path.join(ccdir, "html/elements/dl/dl-isvalid.html"), 'wb')
+file = open(os.path.join(ccdir, "html/elements/dl/dl-isvalid.html"), 'w')
 file.write(template + '<title>valid dl</title>\n')
 for key in non_errors_in_head.keys():
     file.write('%s <!-- %s -->\n' % (non_errors_in_head[key], key))

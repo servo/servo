@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<link rel="author" title="Xing Xu" href="mailto:xing.xu@intel.com">
+<style>
+.flex-container {
+  background: #333;
+  border: 0px;
+  display: inline-flex;
+  margin: 0px;
+  padding: 0px;
+}
+
+.flex-container.flex-direction-row {
+  flex-direction : row;
+}
+
+.flex-container.flex-direction-row-reverse {
+  flex-direction : row-reverse;
+}
+
+.flex-container.flex-direction-column {
+  flex-direction : column;
+}
+
+.flex-container.flex-direction-column-reverse {
+  flex-direction : column-reverse;
+}
+
+.flex-container.flex-direction-column-reverse {
+  flex-direction : column-reverse;
+}
+
+.flex-container.justify-content-center {
+  justify-content: center;
+}
+
+.flex-container.justify-content-space-around {
+  justify-content: space-around;
+}
+
+.flex-container.justify-content-space-between {
+  justify-content: space-between;
+}
+
+.flex-item {
+  width:50px;
+  height:50px;
+  margin:20px;
+  background: #eee;
+  line-height: 50px;
+  text-align: center;
+}
+</style>
+
+<summary>
+  <div>these fieldsshouldn't bestacked vertically</div>
+</summary>
+
+<h1>flex-direction: row</h1>
+<div class="flex-container flex-direction-row">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</div>
+
+<h1>flex-direction: row-reverse</h1>
+<div class="flex-container flex-direction-row-reverse">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</div>
+
+<h1>flex-direction: column</h1>
+<div class="flex-container flex-direction-column">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</div>
+
+<h1>flex-direction: column-reverse</h1>
+<div class="flex-container flex-direction-column-reverse">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</div>
+
+<h1>justify-content: center</h1>
+<div class="flex-container justify-content-center">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</div>
+
+<h1>justify-content: space-around</h1>
+<div class="flex-container justify-content-space-around">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</div>
+
+<h1>justify-content: space-between</h1>
+<div class="flex-container justify-content-space-between">
+  <div class="flex-item">1</div>
+  <div class="flex-item">2</div>
+  <div class="flex-item">3</div>
+</div>

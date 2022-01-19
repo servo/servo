@@ -28,12 +28,9 @@ testNodeDisconnector(function (customElement) {
     customElement.parentNode.innerText = '';
 }, 'innerText on HTMLElement');
 
-if ('outerText' in HTMLElement.prototype) {
-    // Not yet to be in the standard but all but Gecko supports this property: https://github.com/whatwg/html/issues/668
-    testNodeDisconnector(function (customElement) {
-        customElement.outerText = '';
-    }, 'outerText on HTMLElement');
-}
+testNodeDisconnector(function (customElement) {
+    customElement.outerText = '';
+}, 'outerText on HTMLElement');
 
 </script>
 </body>

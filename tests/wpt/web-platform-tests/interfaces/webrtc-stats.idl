@@ -184,6 +184,9 @@ dictionary RTCRemoteOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString           localId;
              DOMHighResTimeStamp remoteTimestamp;
              unsigned long long  reportsSent;
+             double              roundTripTime;
+             double              totalRoundTripTime;
+             unsigned long long  roundTripTimeMeasurements;
 };
 
 dictionary RTCMediaSourceStats : RTCStats {

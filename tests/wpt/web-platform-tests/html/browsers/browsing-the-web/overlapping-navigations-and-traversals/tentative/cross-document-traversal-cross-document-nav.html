@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cross-document navigations during cross-document traversals</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  Apparently if a cross-document traversal is in progress, a cross-document
+  navigation just gets ignored. (Instead of, as you might expect, a race.)
+  This does not match the spec. This test instead asserts browser behavior.
+-->
+
+<body>
+<script type="module">
+import { createIframe, waitForLoad, delay, waitForPotentialNetworkLoads } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+  const slowURL = (new URL("resources/slow.py", location.href)).href;
+
+  // Setup
+  // Extra delay()s are necessary because if we navigate "inside" the load
+  // handler (i.e. in a promise reaction for the load handler) then it will
+  // be a replace navigation.
+  iframe.contentWindow.location.href = slowURL;
+  await waitForLoad(iframe);
+  await delay(t, 0);
+  iframe.contentWindow.location.href = "/common/blank.html?2";
+  await waitForLoad(iframe);
+  await delay(t, 0);
+
+  iframe.contentWindow.history.back();
+
+  assert_equals(iframe.contentWindow.location.search, "?2", "must not go back synchronously");
+
+  iframe.contentWindow.location.href = "/common/blank.html?3";
+  assert_equals(iframe.contentWindow.location.search, "?2", "must not navigate synchronously");
+
+  // We end up at slow.py and never at /common/blank.html?3
+  await waitForLoad(iframe);
+  assert_equals(iframe.contentWindow.location.href, slowURL, "first load after the nav");
+
+  await waitForPotentialNetworkLoads(t);
+  assert_equals(iframe.contentWindow.location.href, slowURL, "must stay on slow.py");
+}, "slow cross-document traversal and then fast cross-document navigation: traversal wins and nav is ignored");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+  const slowURL = (new URL("resources/slow.py", location.href)).href;
+
+  // Setup
+  // Extra delay()s are necessary because if we navigate "inside" the load
+  // handler (i.e. in a promise reaction for the load handler) then it will
+  // be a replace navigation.
+  iframe.contentWindow.location.search = "?1";
+  await waitForLoad(iframe);
+  await delay(t, 0);
+  iframe.contentWindow.location.search = "?2";
+  await waitForLoad(iframe);
+  await delay(t, 0);
+
+  iframe.contentWindow.history.back();
+
+  assert_equals(iframe.contentWindow.location.search, "?2", "must not go back synchronously");
+
+  iframe.contentWindow.location.href = slowURL;
+  assert_equals(iframe.contentWindow.location.search, "?2", "must not navigate synchronously");
+
+  // We end up at ?1 and never at slowURL
+  await waitForLoad(iframe);
+  assert_equals(iframe.contentWindow.location.search, "?1", "first load after the nav");
+
+  // The long timeout is because slow.py would take 2 seconds, if it did load.
+  await delay(t, 3000);
+  assert_equals(iframe.contentWindow.location.search, "?1", "must stay on ?1");
+}, "fast cross-document traversal and then slow cross-document navigation: traversal wins and nav is ignored");
+</script>

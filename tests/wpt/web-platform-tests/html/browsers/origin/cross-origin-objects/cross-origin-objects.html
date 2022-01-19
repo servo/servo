@@ -232,7 +232,10 @@ addTest(function(win) {
   }
   for (var prop of windowAllowlists.namedFrames) {
     win[prop]; // Shouldn't throw.
-    Object.getOwnPropertyDescriptor(win, prop); // Shouldn't throw.
+    var desc = Object.getOwnPropertyDescriptor(win, prop);
+    assert_false(desc.writable, "[[Writable]] for named frame " + String(prop));
+    assert_false(desc.enumerable, "[[Enumerable]] for named frame " + String(prop));
+    assert_true(desc.configurable, "[[Configurable]] for named frame " + String(prop));
     assert_true(Object.prototype.hasOwnProperty.call(win, prop), "hasOwnProperty for " + String(prop));
   }
   for (var prop in location) {

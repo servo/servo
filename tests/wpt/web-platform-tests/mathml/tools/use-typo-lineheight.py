@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-from __future__ import print_function
 import fontforge
 
 font = fontforge.font()
@@ -30,15 +29,15 @@ font.os2_typodescent = -200
 font.os2_typolinegap = typoLineHeight - \
                        (font.os2_typoascent - font.os2_typodescent)
 
-font.hhea_ascent = winHeight / 2
+font.hhea_ascent = winHeight // 2
 font.hhea_ascent_add = False
-font.hhea_descent = -winHeight / 2
+font.hhea_descent = -winHeight // 2
 font.hhea_descent_add = False
 font.hhea_linegap = 0
 
-font.os2_winascent = winHeight / 2
+font.os2_winascent = winHeight // 2
 font.os2_winascent_add = False
-font.os2_windescent = winHeight / 2
+font.os2_windescent = winHeight // 2
 font.os2_windescent_add = False
 
 font.os2_use_typo_metrics = True

@@ -10,7 +10,7 @@ jobs:
   displayName: 'wpt.fyi hook: ${{ parameters.artifactName }}'
   dependsOn: ${{ parameters.dependsOn }}
   pool:
-    vmImage: 'ubuntu-18.04'
+    vmImage: 'ubuntu-20.04'
   steps:
   - checkout: none
   - script: curl -f -s -S -d "artifact=${{ parameters.artifactName }}" -X POST https://wpt.fyi/api/checks/azure/$(Build.BuildId)

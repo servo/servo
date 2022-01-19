@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexible Box Layout Reference: Test flex container's overflow rect</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+  <style>
+   .set {
+     clear: both;
+     margin: 1em;
+   }
+
+   .test {
+     display: flex;
+     padding: 10px;
+     width: 60px;
+     height: 60px;
+     background: teal;
+     margin: 1em 0.5em;
+     float: left;
+   }
+  </style>
+
+  <p>Test passes if all the teal boxes have no scrollbars.</p>
+
+  <!-- This set tests emply flex containers. -->
+  <div class="set">
+    <div class="test"></div>
+    <div class="test"></div>
+    <div class="test"></div>
+    <div class="test"></div>
+  </div>
+
+  <!-- This set tests flex containers having only abs-pos children, but no flex items. -->
+  <div class="set">
+    <div class="test"></div>
+    <div class="test"></div>
+    <div class="test"></div>
+    <div class="test"></div>
+  </div>
+
+  <!-- This set tests flex containers having a small centered flex item. -->
+  <div class="set">
+    <div class="test"></div>
+    <div class="test"></div>
+    <div class="test"></div>
+    <div class="test"></div>
+  </div>
+
+  <!-- This set tests flex containers having a relative positioned flex item. -->
+  <div class="set">
+    <div class="test"></div>
+    <div class="test"></div>
+    <div class="test"></div>
+    <div class="test"></div>
+  </div>
+</html>

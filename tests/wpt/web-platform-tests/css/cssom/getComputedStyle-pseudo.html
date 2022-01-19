@@ -138,7 +138,14 @@ test(function() {
 }, "Dynamically change to display: contents on pseudo-elements");
 test(function() {
   var div = document.getElementById('test');
-  assert_throws_js(TypeError, () => getComputedStyle(div, "totallynotapseudo"),
-                   "getComputedStyle with an unknown pseudo-element throws");
-}, "Unknown pseudo-elements throw");
+  assert_not_equals(
+    getComputedStyle(div, "totallynotapseudo").length, 0,
+    "Should return the element's style for unknown pseudo-elements that don't start with a colon");
+  assert_equals(
+    getComputedStyle(div, "::totallynotapseudo").length, 0,
+    "Should return an empty style for unknown pseudo-elements starting with double-colon");
+  assert_equals(
+    getComputedStyle(div, ":totallynotapseudo").length, 0,
+    "Should return an empty style for unknown pseudo-elements starting with colon");
+}, "Unknown pseudo-elements");
 </script>

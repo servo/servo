@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>text-indent in anonymous flex and grid items</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="match" href="reference/anonymous-flex-grid-item-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property" title="Anonymous flex/grid items aren't anonymous block boxes.">
+<link rel="help" href="https://crbug.com/1159311">
+<meta name="flags" content="ahem">
+<meta name="assert" content="text-indent applies to the first line of an anonymous grid item that is not the first item in the flex/grid container.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+main {
+  font: 10px/1 Ahem;
+  color: orange;
+}
+</style>
+
+<p>
+Pass conditions:
+<ul>
+  <li>The top left quadrant of the black-bordered rectangle is white.
+  <li>Only the top left quadrant of the black-bordered rectangle is white.
+  <li>The rest of the black-bordered rectangle is orange.
+  <li>No orange is outside the black-bordered rectangle.
+</ul>
+</p>
+
+<main>
+<div style="text-indent: 50px; border: 3px solid black; width: 100px; display: grid; grid-template-columns: auto auto;">
+  <div style="width: 0px;"></div>
+  ABCDE
+  ABCDEABCDE
+</div>
+</main>

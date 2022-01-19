@@ -1,5 +1,3 @@
-from six import text_type
-
 def main(request, response):
   if b"clear-vary-value-override-cookie" in request.GET:
     response.unset_cookie(b"vary-value-override")
@@ -15,9 +13,9 @@ def main(request, response):
   # for the VARY header no matter what the query string is set to.  This
   # override is necessary to test the case when two URLs are identical
   # (including query), but differ by VARY header.
-  cookie_vary = request.cookies.get(b"vary-value-override");
+  cookie_vary = request.cookies.get(b"vary-value-override")
   if cookie_vary:
-    response.headers.set(b"vary", text_type(cookie_vary))
+    response.headers.set(b"vary", str(cookie_vary))
   else:
     # If there is no cookie, then use the query string value, if present.
     query_vary = request.GET.first(b"vary", default=b"")

@@ -1,106 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Parse, store, and serialize CSS variable references</title>
+    <title>Variables work in ::before/::after pseudos</title>
 
     <meta rel="author" title="Kevin Babbitt">
     <meta rel="author" title="Greg Whitworth">
     <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
-    <!-- This is not directly specified in the spec but should work -->
+    <link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact/">
     <link rel="help" href="http://www.w3.org/TR/css-variables-1/#defining-variables">
 
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
 
-    <!--
-        https://drafts.csswg.org/css-syntax/#error-handling
-        If the stylesheet ends while any rule, declaration, function, string, etc. are still open, everything is automatically closed.
-    -->
-    <style id="variable-reference-left-open">
-        div
-        {
-            color: var(--my-color);
-            --my-color: blue;
-            --my-color2: red;
+    <style>
+        :root {
+            --color: green;
+            --color2: red;
         }
-
-        #div1::after
-        {
-            content: '[after]';
-            color: var(--my-color);
-            --my-color: orange;
-        }
-
-        #div2::after
-        {
-            content: '[after]';
-            color: var(--my-color2);
-        }
-
-        #div3::after
-        {
-            content: '[after]';
-            --my-color: orange;
-        }
-
-        #div4::after
-        {
-            content: '[after]';
-            color: var(--my-color);
-            --my-color: pink;
-        }
-
-        #div1::before
-        {
+        div::before {
             content: '[before]';
-            color: var(--my-color);
-            --my-color: orange;
+        }
+        div::after {
+            content: '[after]';
         }
 
-        #div2::before
-        {
-            content: '[before]';
-            color: var(--my-color2);
+        #div1 {
+            color: red;
+        }
+        #div1::before, #div1::after {
+            color: var(--color2);
+            --color2: green;
         }
 
-        #div3::before
-        {
-            content: '[before]';
-            --my-color: orange;
+        #div2 {
+            color: var(--color2);
+        }
+        #div2::before, #div2::after {
+            color: var(--color);
         }
 
-        #div4::before
-        {
-            content: '[before]';
-            color: var(--my-color);
-            --my-color: purple;
+        #div3 {
+            color: var(--color);
+        }
+        #div3::before, #div3::after {
+            --color: red;
         }
     </style>
-</head>
-<body>
+
     <div id="div1">div1</div>
     <div id="div2">div2</div>
     <div id="div3">div3</div>
-    <div id="div4">div4</div>
+    <span id="control" style="color: green;"></span>
 
-<script type="text/javascript">
+<script>
     "use strict";
 
-    var testcases = [
-        { ID: "div1", expectedAfterColor: "rgb(255, 165, 0)", expectedBeforeColor: "rgb(255, 165, 0)" },
-        { ID: "div2", expectedAfterColor: "rgb(255, 0, 0)", expectedBeforeColor: "rgb(255, 0, 0)" },
-        { ID: "div3", expectedAfterColor: "rgb(0, 0, 255)", expectedBeforeColor: "rgb(0, 0, 255)" },
-        { ID: "div4", expectedAfterColor: "rgb(255, 192, 203)", expectedBeforeColor: "rgb(128, 0, 128)" },
-    ];
-
-    testcases.forEach(function (testcase) {
+    [...document.querySelectorAll("div")].forEach(function (div) {
         test( function () {
-            var div = document.getElementById(testcase.ID);
-            var actualAfterColor = window.getComputedStyle(div, ':after').getPropertyValue('color');
+            const expectedColor = getComputedStyle(document.querySelector("#control")).color;
             var actualBeforeColor = window.getComputedStyle(div, ':before').getPropertyValue('color');
-            assert_equals(actualBeforeColor, testcase.expectedBeforeColor, "The color of the before pseudo element should match the expected color");
-            assert_equals(actualAfterColor, testcase.expectedAfterColor, "The color of the after pseudo element should match the expected color");
-        }, testcase.ID);
+            var actualAfterColor = window.getComputedStyle(div, ':after').getPropertyValue('color');
+            assert_equals(actualBeforeColor, expectedColor);
+            assert_equals(actualAfterColor, expectedColor);
+        }, div.getAttribute("id"));
     });
 </script>
 

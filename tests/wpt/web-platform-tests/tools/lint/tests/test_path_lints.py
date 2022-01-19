@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
-import mock
 import os
+from unittest import mock
 
-from ..lint import check_path
+from ..lint import check_path, check_unique_case_insensitive_paths
 from .base import check_errors
 import pytest
 
@@ -153,3 +151,15 @@ def test_gitignore_negative(path):
     errors = check_path("/foo/", path)
 
     assert errors == []
+
+
+@pytest.mark.parametrize("paths,errors",
+                         [(["a/b.html", "a/B.html"], ["a/B.html"]),
+                          (["A/b.html", "a/b.html"], ["a/b.html"]),
+                          (["a/b.html", "a/c.html"], [])])
+def test_unique_case_insensitive_paths(paths, errors):
+    got_errors = check_unique_case_insensitive_paths(None, paths)
+    assert len(got_errors) == len(errors)
+    for (name, _, path, _), expected_path in zip(got_errors, errors):
+        assert name == "DUPLICATE-CASE-INSENSITIVE-PATH"
+        assert path == expected_path

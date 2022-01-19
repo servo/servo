@@ -14,10 +14,26 @@ var minimalVideoConfiguration = {
   framerate: 24,
 };
 
+// Minimal WebRTC VideoConfiguration that will be allowed per spec. All optional
+// properties are missing.
+var minimalWebrtcVideoConfiguration = {
+  contentType: 'video/VP9',
+  width: 800,
+  height: 600,
+  bitrate: 3000,
+  framerate: 24,
+};
+
 // Minimal AudioConfiguration that will be allowed per spec. All optional
 // properties are missing.
 var minimalAudioConfiguration = {
   contentType: 'audio/webm; codecs="opus"',
+};
+
+// Minimal WebRTC AudioConfiguration that will be allowed per spec. All optional
+// properties are missing.
+var minimalWebrtcAudioConfiguration = {
+  contentType: 'audio/opus',
 };
 
 promise_test(t => {
@@ -263,20 +279,8 @@ promise_test(t => {
   });
 }, "Test that encodingInfo returns a valid MediaCapabilitiesInfo objects for record type");
 
-promise_test(t => {
-  return navigator.mediaCapabilities.encodingInfo({
-    type: 'transmission',
-    video: minimalVideoConfiguration,
-    audio: minimalAudioConfiguration,
-  }).then(ability => {
-    assert_equals(typeof ability.supported, "boolean");
-    assert_equals(typeof ability.smooth, "boolean");
-    assert_equals(typeof ability.powerEfficient, "boolean");
-  });
-}, "Test that encodingInfo returns a valid MediaCapabilitiesInfo objects for transmission type");
-
 async_test(t => {
-  var validTypes = [ 'record', 'transmission' ];
+  var validTypes = [ 'record', 'webrtc' ];
   var invalidTypes = [ undefined, null, '', 'foobar', 'mse', 'MediaSource',
                        'file', 'media-source', ];
 
@@ -286,8 +290,8 @@ async_test(t => {
   validTypes.forEach(type => {
     validPromises.push(navigator.mediaCapabilities.encodingInfo({
       type: type,
-      video: minimalVideoConfiguration,
-      audio: minimalAudioConfiguration,
+      video: type != "webrtc" ? minimalVideoConfiguration : minimalWebrtcVideoConfiguration,
+      audio: type != "webrtc" ? minimalAudioConfiguration : minimalWebrtcAudioConfiguration,
     }));
   });
 

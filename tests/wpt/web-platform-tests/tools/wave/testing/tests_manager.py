@@ -1,6 +1,3 @@
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import unicode_literals
 import re
 from threading import Timer
 
@@ -8,6 +5,32 @@ from .event_dispatcher import TEST_COMPLETED_EVENT
 
 from ..data.exceptions.not_found_exception import NotFoundException
 from ..data.session import COMPLETED, ABORTED
+
+# Helper class used to adapt a specific compare function to a Python 3
+# key function.
+class CmpWrapper:
+    def __init__(self, test_manager, compare_function, obj):
+        self.obj = obj
+        self.test_manager = test_manager
+        self.compare_function = compare_function
+
+    def __lt__(self, other):
+        return self.compare_function(self.test_manager, self.obj, other.obj) < 0
+
+    def __gt__(self, other):
+        return self.compare_function(self.test_manager, self.obj, other.obj) > 0
+
+    def __eq__(self, other):
+        return self.compare_function(self.test_manager, self.obj, other.obj) == 0
+
+    def __le__(self, other):
+        return self.compare_function(self.test_manager, self.obj, other.obj) <= 0
+
+    def __ge__(self, other):
+        return self.compare_function(self.test_manager, self.obj, other.obj) >= 0
+
+    def __ne__(self, other):
+        return self.compare_function(self.test_manager, self.obj, other.obj) != 0
 
 
 class TestsManager(object):
@@ -143,9 +166,7 @@ class TestsManager(object):
                 return -1
             return 1
 
-        sorted_tests.sort(cmp=lambda test_a,
-                          test_b: compare(self, test_a, test_b))
-        return sorted_tests
+        return sorted(sorted_tests, key=lambda x:CmpWrapper(self, compare, x))
 
     def _get_next_test_from_list(self, tests):
         test = None

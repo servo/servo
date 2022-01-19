@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-with-images-ref.html">
+<style>
+.container1 {
+  width: 200px;
+  height: 200px;
+  /* Test the case where images partially occludes the background color */
+  background-image: url("../support/green.png"), url("../support/red.png");
+  background-size: 100px 100px;
+  background-repeat: no-repeat;
+  animation: blue-anim 100s;
+}
+.container2 {
+  width: 200px;
+  height: 200px;
+  /* Test the case where images partially occludes the background color */
+  background-image: url("../support/green.png"), url("../support/red.png");
+  background-size: 100px 100px;
+  background-repeat: no-repeat;
+  animation: transparent-anim 100s;
+}
+.container3 {
+  width: 100px;
+  height: 100px;
+  /* Test the case where images occludes the background color */
+  background-image: url("../support/green.png"), url("../support/red.png");
+  animation: transparent-anim 100s;
+}
+.container4 {
+  width: 100px;
+  height: 100px;
+  /* Test the case where images occludes the background color */
+  background-image: url("../support/green.png"), url("../support/red.png");
+  animation: blue-anim 100s;
+}
+@keyframes blue-anim {
+  0% { background-color: rgb(0, 0, 199); }
+  100% { background-color: rgb(0, 0, 200); }
+}
+@keyframes transparent-anim {
+  0% { background-color: rgba(0, 200, 0, 0); }
+  100% { background-color: rgba(200, 0, 0, 0); }
+}
+</style>
+<body>
+  <div class="container1"></div>
+  <div class="container2"></div>
+  <div class="container3"></div>
+  <div class="container4"></div>
+</body>

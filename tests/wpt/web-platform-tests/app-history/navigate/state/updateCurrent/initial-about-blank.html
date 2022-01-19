@@ -1,0 +1,13 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe"></iframe>
+
+<script>
+test(() => {
+  assert_throws_dom("InvalidStateError", iframe.contentWindow.DOMException, () => {
+    iframe.contentWindow.appHistory.updateCurrent({ state: 1 });
+  });
+  assert_equals(appHistory.current.getState(), undefined);
+}, "updateCurrent() must throw if the document is still on the initial about:blank");
+</script>

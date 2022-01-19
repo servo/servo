@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Density corrected size: background images with border-radius (Reference)</title>
+<style>
+  body {
+    --default: url(resources/exif-resolution-none.jpg);
+  }
+  .default-bg { background-image: var(--default); }
+  .lores-bg { background-image: var(--default); background-size: 200px 100px; }
+  .hires-bg { background-image: var(--default); background-size: 50px 25px; }
+  .non-uniform-bg { background-image: var(--default); background-size: 50px 100px; }
+  .box {
+    width: 200px;
+    height: 200px;
+    display: inline-block;
+    border-radius: 5px;
+  }
+  .tiled { background-repeat: repeat; }
+  .stretch { background-repeat: no-repeat; background-size: contain; }
+  .non-uniform-bg.stretch { background-size: 100px 200px; }
+</style>
+<div class="default-bg tiled box"></div>
+<div class="lores-bg tiled box"></div>
+<div class="hires-bg tiled box"></div>
+<div class="non-uniform-bg tiled box"></div>
+<br/>
+<div class="default-bg stretch box"></div>
+<div class="default-bg stretch box"></div>
+<div class="non-uniform-bg stretch box"></div>

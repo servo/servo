@@ -35,9 +35,9 @@ import unittest
 
 import set_sys_path  # Update sys.path to locate mod_pywebsocket module.
 from mod_pywebsocket import common
-from mod_pywebsocket.handshake._base import AbortedByUserException
-from mod_pywebsocket.handshake._base import HandshakeException
-from mod_pywebsocket.handshake._base import VersionException
+from mod_pywebsocket.handshake.base import AbortedByUserException
+from mod_pywebsocket.handshake.base import HandshakeException
+from mod_pywebsocket.handshake.base import VersionException
 from mod_pywebsocket.handshake.hybi import Handshaker
 
 from test import mock

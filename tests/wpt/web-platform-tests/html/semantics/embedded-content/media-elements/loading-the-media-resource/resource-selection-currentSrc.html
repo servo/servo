@@ -18,6 +18,7 @@ function next() {
   let testcase = tests.shift();
   if (!testcase) {
     t.done();
+    return;
   }
   step_timeout(testcase, 0);
 }
@@ -33,8 +34,20 @@ let tests = [
   function() {
     v.src = URL.createObjectURL(new MediaSource());
     queueTaskAndStep(function() {
-      assert_equals(v.currentSrc, "", "currentSrc must be equal to the empty string after load if playing a MediaSource");
+      assert_not_equals(v.currentSrc, "", "currentSrc must not be equal to the empty string after load if playing a MediaSource from the src attribute");
       next();
+    });
+  },
+  function() {
+    fetch('/media/sound_0.mp3')
+      .then(function(response) {
+        return response.arrayBuffer();
+      }).then((b) => {
+        v.src = URL.createObjectURL(new Blob([new Uint8Array(b)], ["audio/mpeg"]));
+        queueTaskAndStep(function() {
+          assert_not_equals(v.currentSrc, "", "currentSrc must be not equal to the empty string after load if playing a Blob from the src attribute");
+          next();
+        });
     });
   },
   function() {

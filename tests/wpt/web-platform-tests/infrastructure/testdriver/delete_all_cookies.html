@@ -17,21 +17,11 @@ promise_test(async t => {
 }, "DOM-set cookies get deleted");
 
 promise_test(async t => {
-  const cookie = "test1=1";
-  const encoded = encodeURIComponent(cookie);
-  await fetch(`/cookies/resources/cookie.py?set=${encoded}`)
-
-  const cookie2 = "test2=2; path=/";
-  const encoded2 = encodeURIComponent(cookie2);
-  await fetch(`/cookies/resources/cookie.py?set=${encoded2}`)
-
-  const cookie3 = "test3=3; path=/cookies/resources";
-  const encoded3 = encodeURIComponent(cookie3);
-  await fetch(`/cookies/resources/cookie.py?set=${encoded3}`)
-
-  const cookie4 = "test4=4; HttpOnly";
-  const encoded4 = encodeURIComponent(cookie4);
-  await fetch(`/cookies/resources/cookie.py?set=${encoded4}`)
+  const cookies = ["test1=1", "test2=2; path=/", "test3=3; path=/cookies/resources", "test4=4; HttpOnly"];
+  for (const cookie of cookies) {
+      const encoded = encodeURIComponent(JSON.stringify(cookie));
+      await fetch(`/cookies/resources/cookie.py?set=${encoded}`)
+  }
 
   return test_driver.delete_all_cookies().then(() => {
     assert_true(document.cookie === "");

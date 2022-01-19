@@ -1,5 +1,5 @@
 
-const directory = "/html/cross-origin-opener-policy/reporting/resources";
+const directory = "/html/cross-origin-opener-policy/resources";
 const executor_path = directory + "/executor.html?pipe=";
 const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
 

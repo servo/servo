@@ -35,7 +35,7 @@
           <iframe src='data:text/html,blocked_iframe'></iframe>
         `);
         if (window.async_test) {
-            async_test(t => { 
+            async_test(t => {
                 window.addEventListener("message", e => {
                     if (e.data == "Test PASS")
                       t.done();
