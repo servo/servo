@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d', {colorSpace: "display-p3"});
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d', {colorSpace: "display-p3"});
 
 var color_style = 'rgb(50, 100, 150)';
 var pixel_expected = [50, 100, 150, 255];

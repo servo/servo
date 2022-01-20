@@ -94,6 +94,7 @@ async function negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, codec) {
   };
 
   // Use getUserMedia as getNoiseStream does not have enough entropy to ramp-up.
+  await setMediaPermission();
   const stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}});
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   const transceiver = pc1.addTransceiver(stream.getVideoTracks()[0], {

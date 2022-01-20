@@ -16,7 +16,7 @@
 <body></body>
 
 <script>
-// auto doesn't interpolate
+// none doesn't interpolate
 test_interpolation({
   property: 'contain-intrinsic-size',
   from: neutralKeyframe,
@@ -50,14 +50,45 @@ test_no_interpolation({
 
 test_no_interpolation({
   property: 'contain-intrinsic-size',
-  from: 'auto',
+  from: 'none',
   to: '20px 20px',
 });
 
 test_no_interpolation({
   property: 'contain-intrinsic-size',
   from: '10px 15px',
-  to: 'auto',
+  to: 'none',
+});
+
+test_interpolation({
+  property: 'contain-intrinsic-size',
+  from: 'auto 0px 0px',
+  to: 'auto 10px 10px'
+}, [
+  {at: -0.3, expect: 'auto 0px 0px'}, // contain-intrinsic-size can't be negative.
+  {at: 0, expect: 'auto 0px 0px'},
+  {at: 0.3, expect: 'auto 3px 3px'},
+  {at: 0.6, expect: 'auto 6px 6px'},
+  {at: 1, expect: 'auto 10px 10px'},
+  {at: 1.5, expect: 'auto 15px 15px'}
+]);
+
+test_no_interpolation({
+  property: 'contain-intrinsic-size',
+  from: 'auto 10px 15px',
+  to: '20px 15px',
+});
+
+test_no_interpolation({
+  property: 'contain-intrinsic-size',
+  from: 'none 15px',
+  to: '20px 15px',
+});
+
+test_no_interpolation({
+  property: 'contain-intrinsic-size',
+  from: 'none 15px',
+  to: 'auto 20px 15px',
 });
 
 test_interpolation({

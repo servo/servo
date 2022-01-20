@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>Test that reports are sent to multiple named endpoints</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='resources/report-helper.js'></script>
+</head>
+
+<body>
+  <iframe name="report1"></iframe>
+  <iframe name="report2"></iframe>
+  <script>
+    const base_url = `${location.protocol}//${location.host}`;
+    const endpoint = `${base_url}/reporting/resources/report.py`;
+    const report_id = '204d2fb2-018b-4e35-964c-5e298e89d4e2';
+    promise_test(async t => {
+      const w = window.open(`resources/generate-report.https.sub.html?pipe=header(Reporting-Endpoints,default="/reporting/resources/report.py?reportID=${report_id}")`, "report1");
+      const w2 = window.open(`resources/generate-csp-report.https.sub.html?pipe=header(Reporting-Endpoints,default="/reporting/resources/report.py?reportID=${report_id}")`, "report2");
+      await wait(3000);
+      // Verify that each iframe generated and sent one report.
+      const reports = await pollReports(endpoint, report_id);
+      assert_equals(reports.length, 2, "Number of reports");
+      checkReportExists(reports, 'deprecation', w.location.href);
+      checkReportExists(reports, 'csp-violation', w2.location.href);
+      const request_count = await pollNumResults(endpoint, report_id);
+      // Verify that requests are sent separately.
+      assert_equals(request_count, 2, "Count of requests");
+    }, "Reports are not batched for same url in different document.");
+  </script>
+
+</body>
+
+</html>

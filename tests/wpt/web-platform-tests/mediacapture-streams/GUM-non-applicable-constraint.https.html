@@ -4,6 +4,9 @@
 <link rel="help" href="https://w3c.github.io/mediacapture-main/#methods-5">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+  <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 
 <p class="instructions">When prompted, accept to share your audio and video stream.</p>
 
@@ -50,6 +53,8 @@ let audio_only_invalid_constraints = {
 }
 
 promise_test(async () => {
+  // Both permissions are needed at some point, asking for both at once
+  await setMediaPermission();
   let stream = await navigator.mediaDevices.getUserMedia({audio: video_only_valid_constraints})
   assert_equals(stream.getAudioTracks().length, 1, "the media stream has exactly one audio track");
 }, 'Test that setting video-only valid constraints inside of "audio" is simply ignored');

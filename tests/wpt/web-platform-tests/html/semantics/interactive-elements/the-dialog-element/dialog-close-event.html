@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=276785">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog></dialog>
+
+<script>
+async_test(t => {
+  document.addEventListener('close', t.step_func_done(() => {
+    t.assert_unreached(`The 'close' event unexpectedly bubbled.`);
+  }));
+
+  closedCount = 0;
+  dialog = document.querySelector('dialog');
+  dialog.addEventListener('close', function(event) {
+    const selfDialog = this;
+    t.step(() => {
+      closedCount++;
+      assert_equals(selfDialog, dialog);
+      assert_false(dialog.open);
+      assert_false(event.cancelable);
+      event.preventDefault();
+
+      if (closedCount == 1) {
+        dialog.show();
+        dialog.close();
+        assert_equals(closedCount, 1, `dialog's close event handler shouldn't be called synchronously.`);
+      } else if (closedCount == 2) {
+        t.done();
+      }
+    });
+  });
+
+  dialog.show();
+  dialog.close();
+
+  // Verify that preventDefault() didn't cancel closing.
+  assert_false(dialog.open);
+
+  // dialog's close event handler shouldn't be called synchronously.
+  assert_equals(closedCount, 0);
+}, "Test that dialog receives a close event upon closing.");
+</script>

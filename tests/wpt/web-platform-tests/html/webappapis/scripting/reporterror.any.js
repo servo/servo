@@ -23,3 +23,27 @@ setup({ allow_uncaught_exception:true });
 test(() => {
   assert_throws_js(TypeError, () => self.reportError());
 }, `self.reportError() (without arguments) throws`);
+
+test(() => {
+  // Workaround for https://github.com/web-platform-tests/wpt/issues/32105
+  let invoked = false;
+  self.reportError({
+    get name() {
+      invoked = true;
+      assert_unreached('get name')
+    },
+    get message() {
+      invoked = true;
+      assert_unreached('get message');
+    },
+    get fileName() {
+      invoked = true;
+      assert_unreached('get fileName');
+    },
+    get lineNumber() {
+      invoked = true;
+      assert_unreached('get lineNumber');
+    }
+  });
+  assert_false(invoked);
+}, `self.reportError() doesn't invoke getters`);

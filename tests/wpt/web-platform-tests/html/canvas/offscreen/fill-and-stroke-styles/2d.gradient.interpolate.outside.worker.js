@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#f00';
 ctx.fillRect(0, 0, 100, 50);
@@ -23,9 +23,9 @@ g.addColorStop(0.4, '#0f0');
 g.addColorStop(0.6, '#0f0');
 ctx.fillStyle = g;
 ctx.fillRect(0, 0, 100, 50);
-_assertPixelApprox(offscreenCanvas, 20,25, 0,255,0,255, "20,25", "0,255,0,255", 2);
-_assertPixelApprox(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
-_assertPixelApprox(offscreenCanvas, 80,25, 0,255,0,255, "80,25", "0,255,0,255", 2);
+_assertPixelApprox(canvas, 20,25, 0,255,0,255, "20,25", "0,255,0,255", 2);
+_assertPixelApprox(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
+_assertPixelApprox(canvas, 80,25, 0,255,0,255, "80,25", "0,255,0,255", 2);
 t.done();
 
 });

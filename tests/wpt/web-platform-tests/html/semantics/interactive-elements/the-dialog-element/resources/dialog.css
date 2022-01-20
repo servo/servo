@@ -4,9 +4,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    width: -moz-fit-content;
     width: fit-content;
-    height: -moz-fit-content;
     height: fit-content;
     margin: auto;
     border: solid;

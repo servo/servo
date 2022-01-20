@@ -1,0 +1,32 @@
+<!doctype html>
+<title></title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<meta name="assert" content="The last counter-increment value determines the start value.">
+<style>
+:root {
+  color:black; background-color:white; font:10px/1 monospace;
+}
+ol::before {
+  content: counters(list-item,".");
+}
+</style>
+<ol reversed start="7">
+ <li style="counter-increment: list-item -2">6
+ <li style="counter-increment: list-item -2">4
+ <li style="counter-increment: list-item -2">2
+</ol>
+<ol reversed start="19">
+ <li style="counter-increment: list-item -3">17
+ <li style="counter-increment: list-item -1">16
+ <li style="counter-increment: list-item -8">8
+</ol>
+<ol reversed start="-9">
+ <li style="counter-increment: list-item 2">-6
+ <li style="counter-increment: list-item 2">-4
+ <li style="counter-increment: list-item 2">-2
+</ol>
+<ol reversed start="-21">
+ <li style="counter-increment: list-item 3">-17
+ <li style="counter-increment: list-item 1">-16
+ <li style="counter-increment: list-item 8">-8
+</ol>

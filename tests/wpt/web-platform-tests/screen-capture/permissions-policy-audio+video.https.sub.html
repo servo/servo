@@ -22,8 +22,8 @@
     try {
       stream = await getDisplayMedia({audio, video});
       if (stream.getVideoTracks().length == 0) {
-        throw {name: `requested video track must be present with ` +
-                     `audio ${audio} and video ${video}, or fail`};
+        throw Error(`requested video track must be present with ` +
+                    `audio ${audio} and video ${video}, or fail`);
       }
     } finally {
       if (stream) {

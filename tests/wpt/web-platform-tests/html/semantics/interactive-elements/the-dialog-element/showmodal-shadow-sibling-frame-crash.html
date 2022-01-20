@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class=test-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:noel@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=804047">
+
+<template>
+  <custom-dialog></custom-dialog>
+</template>
+<div id=shadow></div>
+<iframe id=sibling></iframe>
+
+<script>
+customElements.define('custom-dialog',class extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({mode: 'open'}).innerHTML = '<dialog></dialog>';
+  }
+  show() {
+    this.shadowRoot.querySelector('dialog').showModal();
+  }
+});
+
+onload = () => {
+  const template = document.querySelector('template');
+  const content = document.importNode(template.content, true);
+  const dialog = content.querySelector('custom-dialog');
+  document.querySelector('div').appendChild(dialog);
+  dialog.show();
+  document.documentElement.classList.remove('test-wait');
+};
+</script>

@@ -39,9 +39,9 @@
         assert_true(data.sameOriginNoCORPSuccess, "Same-origin without CORP did not succeed");
         assert_true(data.crossOriginNoCORPFailure, "Cross-origin without CORP did not fail");
         if (type === "<a rel=noopener>") {
-          assert_false(data.opener);
+          assert_false(data.opener, 'opener');
         } else {
-          assert_true(data.opener);
+          assert_true(data.opener, 'opener');
         }
         resolve();
       });

@@ -23,7 +23,7 @@
         <h1 class="title is-spaced">
           WAVE WMAS Test Suite
         </h1>
-				<p class="subtitle">
+        <p class="subtitle">
           <a href="https://github.com/w3c/webmediaapi/">GitHub</a> -
         </p>
       </div>
@@ -32,23 +32,29 @@
         <h2 class="title is-5">
           New test session
         </h2>
-        <div class="columns is-vcentered" style="margin-top: 20px">
+        <div class="columns is-vcentered" style="margin-top: 20px;">
           <div class="column is-narrow">
             <div
               id="qr-code"
-              style="width: 256px; height: 256px; padding: 5px; border: 1px gray solid; border-radius: 3px;"
+              style="
+                width: 256px;
+                height: 256px;
+                padding: 5px;
+                border: 1px gray solid;
+                border-radius: 3px;
+              "
             ></div>
           </div>
           <div class="column">
-            <table style="margin-bottom: 1.5em">
+            <table style="margin-bottom: 1.5em;">
               <tr>
-                <td class="has-text-weight-bold" style="padding-right: 1rem">
+                <td class="has-text-weight-bold" style="padding-right: 1rem;">
                   Token:
                 </td>
                 <td id="session-token" class="is-family-monospace"></td>
               </tr>
               <tr>
-                <td class="has-text-weight-bold" style="padding-right: 1rem">
+                <td class="has-text-weight-bold" style="padding-right: 1rem;">
                   Expires:
                 </td>
                 <td id="expiary-date"></td>
@@ -87,7 +93,7 @@
         </h2>
         <article
           id="unknown_token_error"
-          style="max-width: 30em; display: none"
+          style="max-width: 30em; display: none;"
           class="message is-danger"
         >
           <div class="message-body">
@@ -112,148 +118,146 @@
       </div>
     </section>
 
-		<script>
-			var selectedTabbable = -1;
+    <script>
+      var selectedTabbable = -1;
 
-			function removeClass(element, className) {
-				var elementClass = element.className;
-				var index = elementClass.indexOf(className);
-				if (index !== -1) {
-					element.className = elementClass.replace(className, "");
-				}
-			}
+      function removeClass(element, className) {
+        var elementClass = element.className;
+        var index = elementClass.indexOf(className);
+        if (index !== -1) {
+          element.className = elementClass.replace(className, "");
+        }
+      }
 
-			function addClass(element, className) {
-				element.className += " " + className;
-			}
+      function addClass(element, className) {
+        element.className += " " + className;
+      }
 
-			function skipFocus(steps) {
-				var tabbables = document.getElementsByClassName("tabbable");
-				if (selectedTabbable === -1) {
-					selectedTabbable = 0;
-				} else {
-					removeClass(tabbables[selectedTabbable], "focused");
-					selectedTabbable += steps;
-				}
+      function skipFocus(steps) {
+        var tabbables = document.getElementsByClassName("tabbable");
+        if (selectedTabbable === -1) {
+          selectedTabbable = 0;
+        } else {
+          removeClass(tabbables[selectedTabbable], "focused");
+          selectedTabbable += steps;
+        }
 
-				if (selectedTabbable >= tabbables.length) {
-					selectedTabbable = 0;
-				}
+        if (selectedTabbable >= tabbables.length) {
+          selectedTabbable = 0;
+        }
 
-				if (selectedTabbable < 0) {
-					selectedTabbable = tabbables.length - 1;
-				}
+        if (selectedTabbable < 0) {
+          selectedTabbable = tabbables.length - 1;
+        }
 
-				tabbables[selectedTabbable].focus();
-				addClass(tabbables[selectedTabbable], "focused");
-			}
+        tabbables[selectedTabbable].focus();
+        addClass(tabbables[selectedTabbable], "focused");
+      }
 
-			function focusNext() {
-				skipFocus(1);
-			}
+      function focusNext() {
+        skipFocus(1);
+      }
 
-			function focusPrevious() {
-				skipFocus(-1);
-			}
+      function focusPrevious() {
+        skipFocus(-1);
+      }
 
-			// Resume
-			var resumeToken = "";
-			var cookies = document.cookie.split(";");
-			for (var i = 0; i < cookies.length; i++) {
-				var cookie = cookies[i];
-				if (cookie.split("=")[0].replace(/ /g, "") === "resume_token") {
-					resumeToken = cookie.split("=")[1];
-					break;
-				}
-			}
-			if (!resumeToken) resumeToken = "";
+      // Resume
+      var resumeToken = "";
+      var cookies = document.cookie.split(";");
+      for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i];
+        if (cookie.split("=")[0].replace(/ /g, "") === "resume_token") {
+          resumeToken = cookie.split("=")[1];
+          break;
+        }
+      }
+      if (!resumeToken) resumeToken = "";
 
-			var resumeButton = document.getElementById("resume-button");
+      var resumeButton = document.getElementById("resume-button");
 
-			var tokenText = document.getElementById("resume_token");
-			if (resumeToken) {
-				tokenText.innerText = "Last session: " + resumeToken;
-			} else {
-				tokenText.innerText = "No recent session.";
-				resumeButton.setAttribute("disabled", "");
-			}
-			var unknownTokenError = document.getElementById("unknown_token_error");
-			resumeButton.onclick = function(event) {
-				location.href = WEB_ROOT + "next.html?token=" + resumeToken;
-			};
+      var tokenText = document.getElementById("resume_token");
+      if (resumeToken) {
+        tokenText.innerText = "Last session: " + resumeToken;
+      } else {
+        tokenText.innerText = "No recent session.";
+        resumeButton.setAttribute("disabled", "");
+      }
+      var unknownTokenError = document.getElementById("unknown_token_error");
+      resumeButton.onclick = function (event) {
+        location.href = WEB_ROOT + "next.html?token=" + resumeToken;
+      };
 
-			resumeButton.onkeydown = function(event) {
-				var charCode =
-					typeof event.which === "number" ? event.which : event.keyCode;
-				if (ACTION_KEYS.indexOf(charCode) === -1) return;
-				location.href = WEB_ROOT + "next.html?token=" + resumeToken;
-			};
+      resumeButton.onkeydown = function (event) {
+        var charCode =
+          typeof event.which === "number" ? event.which : event.keyCode;
+        if (ACTION_KEYS.indexOf(charCode) === -1) return;
+        location.href = WEB_ROOT + "next.html?token=" + resumeToken;
+      };
 
-			document.onkeydown = function(event) {
-				event = event || window.event;
-				var charCode =
-					typeof event.which === "number" ? event.which : event.keyCode;
+      document.onkeydown = function (event) {
+        event = event || window.event;
+        var charCode =
+          typeof event.which === "number" ? event.which : event.keyCode;
 
-				if (ACTION_KEYS.indexOf(charCode) !== -1) {
-					event.preventDefault();
-					var tabbables = document.getElementsByClassName("tabbable");
-					var element = tabbables[selectedTabbable];
-					if (!element) return;
-					if (element.type === "checkbox") {
-						element.checked = !element.checked;
-					} else {
-						element.click();
-					}
-				}
+        if (ACTION_KEYS.indexOf(charCode) !== -1) {
+          event.preventDefault();
+          var tabbables = document.getElementsByClassName("tabbable");
+          var element = tabbables[selectedTabbable];
+          if (!element) return;
+          if (element.type === "checkbox") {
+            element.checked = !element.checked;
+          } else {
+            element.click();
+          }
+        }
 
-				if (PREV_KEYS.indexOf(charCode) !== -1) {
-					focusPrevious();
-				}
+        if (PREV_KEYS.indexOf(charCode) !== -1) {
+          focusPrevious();
+        }
 
-				if (NEXT_KEYS.indexOf(charCode) !== -1) {
-					focusNext();
-				}
-			};
+        if (NEXT_KEYS.indexOf(charCode) !== -1) {
+          focusNext();
+        }
+      };
 
-			var lifeTime = 30 * 60 * 1000; // 30min
-			WaveService.createSession(
-				{ expirationDate: new Date().getTime() + lifeTime },
-				function(token) {
-					var sessionTokenElement = document.getElementById("session-token");
-					sessionTokenElement.innerText = token;
+      var lifeTime = 30 * 60 * 1000; // 30min
+      WaveService.createSession(
+        { expirationDate: new Date().getTime() + lifeTime },
+        function (token) {
+          var sessionTokenElement = document.getElementById("session-token");
+          sessionTokenElement.innerText = token;
 
-					WaveService.readSession(token, function(config) {
-						var expiaryDateElement = document.getElementById("expiary-date");
-						expiaryDateElement.innerText = new Date(
-							config.expirationDate
-						).toLocaleString();
-					});
+          WaveService.readSessionStatus(token, function (config) {
+            var expiaryDateElement = document.getElementById("expiary-date");
+            expiaryDateElement.innerText = config.expirationDate.toLocaleString();
+          });
 
-					var configurationUrl =
-						location.origin +
-						WEB_ROOT + "configuration.html?token=" +
-						token +
-						"&resume=" +
-						resumeToken;
-					new QRCode(document.getElementById("qr-code"), configurationUrl);
-					document.getElementById("configure-button").onclick = function() {
-						window.open(configurationUrl, "_blank");
-					};
+          var configurationUrl =
+            location.origin +
+            WEB_ROOT +
+            "configuration.html?token=" +
+            token +
+            "&resume=" +
+            resumeToken;
+          new QRCode(document.getElementById("qr-code"), configurationUrl);
+          document.getElementById("configure-button").onclick = function () {
+            window.open(configurationUrl, "_blank");
+          };
 
-					WaveService.connectHttpPolling(token);
-					WaveService.onMessage(function(message) {
-						if (message.type === "resume") {
-							var resumeToken = message.data;
-							location.href = WEB_ROOT + "next.html?token=" + resumeToken;
-						}
+          WaveService.addSessionEventListener(token, function (message) {
+            if (message.type === "resume") {
+              var resumeToken = message.data;
+              location.href = WEB_ROOT + "next.html?token=" + resumeToken;
+            }
 
-						if (message.type !== "status") return;
-						if (message.data === "pending") return;
-						location.href = WEB_ROOT + "next.html?token=" + token;
-					});
-				}
-			);
-			document.getElementById("resume-button").focus();
-		</script>
+            if (message.type !== "status") return;
+            if (message.data === "pending") return;
+            location.href = WEB_ROOT + "next.html?token=" + token;
+          });
+        }
+      );
+      document.getElementById("resume-button").focus();
+    </script>
   </body>
 </html>

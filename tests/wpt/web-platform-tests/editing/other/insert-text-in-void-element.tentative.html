@@ -57,6 +57,36 @@ for (const tag of voidElements) {
   }, `Inserting text when selection is collapsed in <${tag}> which is only child`);
 
   test(() => {
+    editor.innerHTML = `<div></div>`;
+    const element = document.createElement(tag);
+    editor.firstChild.appendChild(element);
+    editor.focus();
+    const selection = getSelection();
+    selection.collapse(element, 0);
+    element.getBoundingClientRect();
+    document.execCommand("insertText", false, "abc");
+    if (tag == "br") {
+      assert_in_array(
+        editor.innerHTML,
+        [
+          "<div>abc</div>",
+          "<div>abc<br></div>",
+        ],
+        `The text should be inserted before the <br> element`
+      );
+    } else {
+      assert_in_array(
+        editor.innerHTML,
+        [
+          `<div>abc<${tag}></div>`,
+          `<div>abc<${tag}><br></div>`,
+        ],
+        `The text should be inserted before the <${tag}> element`
+      );
+    }
+  }, `Inserting text when selection is collapsed in <${tag}> which is only child (explicitly flushes maybe pending layout)`);
+
+  test(() => {
     editor.innerHTML = `<div>abc</div>`;
     const element = document.createElement(tag);
     editor.firstChild.appendChild(element);

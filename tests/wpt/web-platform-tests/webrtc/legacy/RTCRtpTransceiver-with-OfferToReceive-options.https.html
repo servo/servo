@@ -3,6 +3,9 @@
 <title>RTCRtpTransceiver with OfferToReceive legacy options</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='/mediacapture-streams/permission-helper.js'></script>
 <script src="../RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
@@ -37,7 +40,7 @@
   const checkAddTransceiverWithStream = async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-
+    await setMediaPermission();
     const audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
     const videoStream = await navigator.mediaDevices.getUserMedia({video: true});
     t.add_cleanup(() => stopTracks(audioStream, videoStream));

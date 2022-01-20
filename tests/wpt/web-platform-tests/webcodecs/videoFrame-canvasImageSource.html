@@ -89,12 +89,7 @@ test(t => {
   frame.close();
 }, 'SVGImageElement constructed VideoFrame');
 
-test(t => {
-  let canvas = document.querySelector('canvas');
-  canvas.width = 320;
-  canvas.height = 240;
-
-  // Draw and verify four colors image.
+function drawFourColors(canvas) {
   let ctx = canvas.getContext('2d');
   ctx.fillStyle = '#FFFF00'; // yellow
   ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
@@ -105,6 +100,16 @@ test(t => {
   ctx.fillStyle = '#00FF00'; // green
   ctx.fillRect(canvas.width / 2, canvas.height / 2, canvas.width / 2,
                canvas.height / 2);
+}
+
+test(t => {
+  let canvas = document.querySelector('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+
+  // Draw and verify four colors image.
+  drawFourColors(canvas);
+  let ctx = canvas.getContext('2d');
   verifyFourColorsImage(canvas.width, canvas.height, ctx);
 
   let frame = new VideoFrame(canvas);
@@ -113,4 +118,25 @@ test(t => {
   verifyFourColorsImage(canvas.width, canvas.height, ctx);
   frame.close();
 }, 'Canvas element constructed VideoFrame');
+
+test(t => {
+  let canvas = document.querySelector('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+
+  // Draw and verify four colors image.
+  drawFourColors(canvas);
+  let ctx = canvas.getContext('2d');
+  verifyFourColorsImage(canvas.width, canvas.height, ctx);
+
+  // Set a different timestamp to try and ensure the same frame isn't reused.
+  let frame = new VideoFrame(canvas, {timestamp: 0});
+  let frame_copy = new VideoFrame(frame, {timestamp: 1});
+  frame.close();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(frame_copy, 0, 0);
+  verifyFourColorsImage(canvas.width, canvas.height, ctx);
+  frame_copy.close();
+}, 'Copy of canvas element constructed VideoFrame');
 </script>

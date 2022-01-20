@@ -26,11 +26,18 @@
 <script src="/resources/check-layout-th.js"></script>
 <body onload="checkLayout('.flexitem')">
 
-This should be Blue to the left of Orange.
+Both should be Blue to the left of Orange.
 <div class=flexbox style="justify-content: left; writing-mode: vertical-rl;">
   <div class=flexitem data-offset-x=0></div>
 </div>
-This should be Orange to the left of Blue.
+<div class=flexbox style="justify-content: left; writing-mode: vertical-lr;">
+  <div class=flexitem data-offset-x=0></div>
+</div>
+
+Both should be Orange to the left of Blue.
+<div class=flexbox style="justify-content: right; writing-mode: vertical-rl;">
+  <div class=flexitem data-offset-x=50></div>
+</div>
 <div class=flexbox style="justify-content: right; writing-mode: vertical-lr;">
   <div class=flexitem data-offset-x=50></div>
 </div>

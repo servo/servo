@@ -1,0 +1,26 @@
+<head>
+    <link rel="match" href="canvas-filter-object-blur-expected.html">
+</head>
+<body>
+</body>
+<script>
+  const testCases = [
+    {baseFrequency: 0.025},
+    {baseFrequency: [0.025, 0.1]},
+    {baseFrequency: 0.05},
+    {baseFrequency: 0.025, seed: 100},
+    {baseFrequency: 0.025, numOctaves: 2},
+    {},
+    {baseFrequency: 0.025, type: "fractalNoise"},
+    {baseFrequency: 0.025, stitchTiles: "stitch"},
+  ]
+
+  for (tc of testCases) {
+    const canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext("2d");
+    const filterOptions = {...{filter: "turbulence"}, ...tc};
+    ctx.filter = new CanvasFilter(filterOptions);
+    ctx.fillRect(0, 0, 1, 1);
+  }
+</script>

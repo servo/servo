@@ -16,6 +16,15 @@ class MyControl extends HTMLElement {
 }
 customElements.define('my-control', MyControl);
 
+class NotFormAssociatedElement extends HTMLElement {
+  constructor() {
+    super();
+    this.internals_ = this.attachInternals();
+  }
+  get i() { return this.internals_; }
+}
+customElements.define('not-form-associated-element', NotFormAssociatedElement);
+
 test(() => {
   const control = new MyControl();
   assert_true(control.i.willValidate, 'default value is true');
@@ -23,17 +32,63 @@ test(() => {
   const datalist = document.createElement('datalist');
   datalist.appendChild(control);
   assert_false(control.i.willValidate, 'false in DATALIST');
+  datalist.removeChild(control);
+  assert_true(control.i.willValidate, 'remove from DATALIST');
 
   const fieldset = document.createElement('fieldset');
-  fieldset.appendChild(control);
-  assert_true(control.i.willValidate, 'In enabled FIELDSET');
   fieldset.disabled = true;
-  assert_false(control.i.willValidate, 'In disabled FIELDSET');
+  fieldset.appendChild(control);
+  assert_false(control.i.willValidate, 'append to disabled FIELDSET');
+  fieldset.disabled = false;
+  assert_true(control.i.willValidate, 'FIELDSET becomes enabled');
+  fieldset.disabled = true;
+  assert_false(control.i.willValidate, 'FIELDSET becomes disabled');
   fieldset.removeChild(control);
+  assert_true(control.i.willValidate, 'remove from disabled FIELDSET');
 
   control.setAttribute('disabled', '');
   assert_false(control.i.willValidate, 'with disabled attribute');
+  control.removeAttribute('disabled');
+  assert_true(control.i.willValidate, 'without disabled attribute');
+
+  control.setAttribute('readonly', '');
+  assert_false(control.i.willValidate, 'with readonly attribute');
+  control.removeAttribute('readonly');
+  assert_true(control.i.willValidate, 'without readonly attribute');
 }, 'willValidate');
+
+test(() => {
+  const container = document.getElementById("container");
+  container.innerHTML = '<will-be-defined></will-be-defined>' +
+                        '<will-be-defined disabled></will-be-defined>' +
+                        '<will-be-defined readonly></will-be-defined>' +
+                        '<datalist><will-be-defined></will-be-defined></datalist>' +
+                        '<fieldset disabled><will-be-defined></will-be-defined></fieldset>';
+
+  class WillBeDefined extends HTMLElement {
+    static get formAssociated() { return true; }
+
+    constructor() {
+      super();
+      this.internals_ = this.attachInternals();
+    }
+    get i() { return this.internals_; }
+  }
+  customElements.define('will-be-defined', WillBeDefined);
+  customElements.upgrade(container);
+
+  const controls = document.querySelectorAll('will-be-defined');
+  assert_true(controls[0].i.willValidate, 'default value');
+  assert_false(controls[1].i.willValidate, 'with disabled attribute');
+  assert_false(controls[2].i.willValidate, 'with readOnly attribute');
+  assert_false(controls[3].i.willValidate, 'in datalist');
+  assert_false(controls[4].i.willValidate, 'in disabled fieldset');
+}, 'willValidate after upgrade');
+
+test(() => {
+  const element = new NotFormAssociatedElement();
+  assert_throws_dom('NotSupportedError', () => element.i.willValidate);
+}, "willValidate should throw NotSupportedError if the target element is not a form-associated custom element");
 
 test(() => {
   const control = document.createElement('my-control');
@@ -133,6 +188,13 @@ test(() => {
     control.i.setValidity(flags, m, control);
   }, 'Self');
 
+  let notHTMLElement = document.createElementNS('some-random-namespace', 'foo');
+  control.appendChild(notHTMLElement);
+  assert_throws_js(TypeError, () => {
+    control.i.setValidity(flags, m, notHTMLElement);
+  }, 'Not a HTMLElement');
+  notHTMLElement.remove();
+
   // A descendant
   control.i.setValidity(flags, m, control.querySelector('light-child'));
 
@@ -150,6 +212,11 @@ test(() => {
 }, '"anchor" argument of setValidity()');
 
 test(() => {
+  const element = new NotFormAssociatedElement();
+  assert_throws_dom('NotSupportedError', () => element.i.checkValidity());
+}, "checkValidity() should throw NotSupportedError if the target element is not a form-associated custom element");
+
+test(() => {
   const control = document.createElement('my-control');
   let invalidCount = 0;
   control.addEventListener('invalid', e => {
@@ -165,6 +232,11 @@ test(() => {
   assert_false(control.i.checkValidity());
   assert_equals(invalidCount, 1);
 }, 'checkValidity()');
+
+test(() => {
+  const element = new NotFormAssociatedElement();
+  assert_throws_dom('NotSupportedError', () => element.i.reportValidity());
+}, "reportValidity() should throw NotSupportedError if the target element is not a form-associated custom element");
 
 test(() => {
   const control = document.createElement('my-control');

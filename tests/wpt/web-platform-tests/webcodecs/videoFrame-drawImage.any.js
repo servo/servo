@@ -73,3 +73,32 @@ test(_ => {
   frame2.close();
   frame3.close();
 }, 'drawImage of nested frame works properly');
+
+test(_ => {
+  const width = 128;
+  const height = 128;
+  let vfInit = {format: 'RGBA', timestamp: 0,
+                codedWidth: width, codedHeight: height,
+                displayWidth: width / 2, displayHeight: height / 2};
+  let data = new Uint32Array(vfInit.codedWidth * vfInit.codedHeight);
+  data.fill(0xFF966432);  // 'rgb(50, 100, 150)';
+  let frame = new VideoFrame(data, vfInit);
+  let canvas = new OffscreenCanvas(width, height);
+  let ctx = canvas.getContext('2d');
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(frame, 0, 0);
+  frame.close();
+
+  function peekPixel(ctx, x, y) {
+    return ctx.getImageData(x, y, 1, 1).data;
+  }
+
+  assert_array_equals(peekPixel(ctx, 0, 0), [50, 100, 150, 255]);
+  assert_array_equals(peekPixel(ctx, width / 2 - 1, height / 2 - 1),
+                                [50, 100, 150, 255]);
+  assert_array_equals(peekPixel(ctx, width / 2 + 1, height / 2 + 1),
+                                [255, 255, 255, 255]);
+  assert_array_equals(peekPixel(ctx, width - 1, height - 1),
+                                [255, 255, 255, 255]);
+}, 'drawImage with display size != visible size');

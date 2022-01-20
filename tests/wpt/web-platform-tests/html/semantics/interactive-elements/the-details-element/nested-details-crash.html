@@ -1,0 +1,26 @@
+<!doctype HTML>
+<link rel=author href="mailto:vmpstr@chromium.org">
+<link rel=help href="https://crbug.com/1270206">
+
+<script type="text/javascript">
+function eventHandler1() {
+  document.getElementById('target').insertAdjacentText("afterEnd", "");
+  document.getElementById('target').focus();
+  document.getElementById('target').hidden = "true";
+}
+function operate() {
+  document.addEventListener('DOMNodeInsertedIntoDocument', eventHandler1, true);
+}
+function exec_event() {
+  event = new Event('DOMNodeInsertedIntoDocument')
+  document.dispatchEvent(event)
+}
+function go(){
+  operate();
+  exec_event();
+}
+</script>
+<body onload="go();" contentEditable="true">
+<details onselectstart='eventHandler2();'>
+<dfn id='target' class=onload='eventHandler1();'>
+<details id= onmsgesturehold='eventHandler2();'>

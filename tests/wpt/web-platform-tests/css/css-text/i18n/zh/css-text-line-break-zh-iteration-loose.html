@@ -44,10 +44,6 @@ for (var i=0;i<lines.length;i++) {
 	 '<div class="ref" id="ref'+i+'" lang="zh">文文文文文文<br/>&#x'+hex+';字<span id="refSpan'+i+'">字</span></div>' +
 	 '</div>'
 	}
-function spansNearEnough(counter) {
-  return Math.abs( document.getElementById('testSpan'+counter).getBoundingClientRect().left
-           - document.getElementById('refSpan'+counter).getBoundingClientRect().left ) < 1;
-}
 
 document.querySelector('body').innerHTML = out
 setup({explicit_done: true});
@@ -57,10 +53,12 @@ document.fonts.ready.then(validate);
 function validate() {
   for (i=0;i<lines.length;i++) {
     test(function() {
-      assert_true(spansNearEnough(i));
+      assert_approx_equals(
+        document.getElementById('testSpan'+i).getBoundingClientRect().left,
+        document.getElementById('refSpan'+i).getBoundingClientRect().left, 1);
+      // Hide successful tests.
+      document.getElementById('test'+i).parentNode.style.display = 'none';
     }, lines[i]+' may appear at line start if zh and loose');
-    // Hide successful tests.
-    if (spansNearEnough(i)) document.getElementById('test'+i).parentNode.style.display = 'none'
   }
   done();
 }

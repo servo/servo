@@ -81,7 +81,7 @@ class Poll(object):
 
         exceptions = []
         if ignored_exceptions is not None:
-            if isinstance(ignored_exceptions, collections.Iterable):
+            if isinstance(ignored_exceptions, collections.abc.Iterable):
                 exceptions.extend(iter(ignored_exceptions))
             else:
                 exceptions.append(ignored_exceptions)

@@ -5,17 +5,6 @@
 // META: script=../resources/rs-test-templates.js
 'use strict';
 
-function assert_typed_array_equals(actual, expected, message) {
-  const prefix = message === undefined ? '' : `${message} `;
-  assert_equals(typeof actual, 'object', `${prefix}type is object`);
-  assert_equals(actual.constructor, expected.constructor, `${prefix}constructor`);
-  assert_equals(actual.byteOffset, expected.byteOffset, `${prefix}byteOffset`);
-  assert_equals(actual.byteLength, expected.byteLength, `${prefix}byteLength`);
-  assert_equals(actual.buffer.byteLength, expected.buffer.byteLength, `${prefix}buffer.byteLength`);
-  assert_array_equals([...actual], [...expected], `${prefix}contents`);
-  assert_array_equals([...new Uint8Array(actual.buffer)], [...new Uint8Array(expected.buffer)], `${prefix}buffer contents`);
-}
-
 test(() => {
 
   const rs = new ReadableStream({ type: 'bytes' });
@@ -892,3 +881,56 @@ promise_test(async () => {
   assert_typed_array_equals(result2.value, new Uint8Array([0x22]).subarray(0, 0), 'second read');
 
 }, 'ReadableStream teeing with byte source: close when both branches have pending BYOB reads');
+
+promise_test(async () => {
+
+  const rs = recordingReadableStream({ type: 'bytes' });
+
+  const [reader1, reader2] = rs.tee().map(branch => branch.getReader());
+  const branch1Reads = [reader1.read(), reader1.read()];
+  const branch2Reads = [reader2.read(), reader2.read()];
+
+  await flushAsyncEvents();
+  rs.controller.enqueue(new Uint8Array([0x11]));
+  rs.controller.close();
+
+  const result1 = await branch1Reads[0];
+  assert_equals(result1.done, false, 'first read() from branch1 should be not done');
+  assert_typed_array_equals(result1.value, new Uint8Array([0x11]), 'first chunk from branch1 should be correct');
+  const result2 = await branch2Reads[0];
+  assert_equals(result2.done, false, 'first read() from branch2 should be not done');
+  assert_typed_array_equals(result2.value, new Uint8Array([0x11]), 'first chunk from branch2 should be correct');
+
+  assert_object_equals(await branch1Reads[1], { value: undefined, done: true }, 'second read() from branch1 should be done');
+  assert_object_equals(await branch2Reads[1], { value: undefined, done: true }, 'second read() from branch2 should be done');
+
+}, 'ReadableStream teeing with byte source: enqueue() and close() while both branches are pulling');
+
+promise_test(async () => {
+
+  const rs = recordingReadableStream({ type: 'bytes' });
+
+  const [reader1, reader2] = rs.tee().map(branch => branch.getReader({ mode: 'byob' }));
+  const branch1Reads = [reader1.read(new Uint8Array(1)), reader1.read(new Uint8Array(1))];
+  const branch2Reads = [reader2.read(new Uint8Array(1)), reader2.read(new Uint8Array(1))];
+
+  await flushAsyncEvents();
+  rs.controller.byobRequest.view[0] = 0x11;
+  rs.controller.byobRequest.respond(1);
+  rs.controller.close();
+
+  const result1 = await branch1Reads[0];
+  assert_equals(result1.done, false, 'first read() from branch1 should be not done');
+  assert_typed_array_equals(result1.value, new Uint8Array([0x11]), 'first chunk from branch1 should be correct');
+  const result2 = await branch2Reads[0];
+  assert_equals(result2.done, false, 'first read() from branch2 should be not done');
+  assert_typed_array_equals(result2.value, new Uint8Array([0x11]), 'first chunk from branch2 should be correct');
+
+  const result3 = await branch1Reads[1];
+  assert_equals(result3.done, true, 'second read() from branch1 should be done');
+  assert_typed_array_equals(result3.value, new Uint8Array([0]).subarray(0, 0), 'second chunk from branch1 should be correct');
+  const result4 = await branch2Reads[1];
+  assert_equals(result4.done, true, 'second read() from branch2 should be done');
+  assert_typed_array_equals(result4.value, new Uint8Array([0]).subarray(0, 0), 'second chunk from branch2 should be correct');
+
+}, 'ReadableStream teeing with byte source: respond() and close() while both branches are pulling');

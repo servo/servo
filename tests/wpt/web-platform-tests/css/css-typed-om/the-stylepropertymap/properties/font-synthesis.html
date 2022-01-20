@@ -13,12 +13,12 @@
 <script>
 'use strict';
 
-runPropertyTests('font-synthesis', [
-  { syntax: 'none' },
-  { syntax: 'weight' },
-  { syntax: 'style' },
-  { syntax: 'small-caps' },
-]);
+  for (const suffix of ['weight', 'style', 'small-caps']) {
+  runPropertyTests('font-synthesis-' + suffix, [
+    { syntax: 'auto' },
+    { syntax: 'none' },
+  ]);
+}
 
 runUnsupportedPropertyTests('font-synthesis', [
   'weight style', 'style small-caps', 'small-caps weight style'

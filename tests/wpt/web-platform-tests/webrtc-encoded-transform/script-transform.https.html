@@ -2,8 +2,11 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <script src="/resources/testharness.js"></script>
+<script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
     </head>
     <body>
         <video id="video1" autoplay></video>
@@ -67,6 +70,8 @@ promise_test(async (test) => {
     worker = new Worker('script-transform-worker.js');
     const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
     assert_equals(data, "registered");
+    // Video is needed in a later test, so we ask for both permissions
+    await setMediaPermission();
     const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
 
     const senderChannel = new MessageChannel;

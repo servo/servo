@@ -12,8 +12,9 @@ promise_test(async t => {
   t.add_cleanup(() => pc1.close());
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver('audio', { direction: 'recvonly' });
   await initialOfferAnswerWithIceGatheringStateTransitions(
-      pc1, pc2, {offerToReceiveAudio: true});
+      pc1, pc2);
   await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
   await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
   expectNoMoreGatheringStateChanges(t, pc1);
@@ -24,8 +25,9 @@ promise_test(async t => {
 promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
+  pc.addTransceiver('audio', { direction: 'recvonly' });
   await pc.setLocalDescription(
-    await pc.createOffer({offerToReceiveAudio: true}));
+    await pc.createOffer());
   await iceGatheringStateTransitions(pc, 'gathering', 'complete');
   await pc.setLocalDescription({type: 'rollback'});
   await iceGatheringStateTransitions(pc, 'new');
@@ -34,8 +36,9 @@ promise_test(async t => {
 promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
+  pc.addTransceiver('audio', { direction: 'recvonly' });
   await pc.setLocalDescription(
-    await pc.createOffer({offerToReceiveAudio: true}));
+    await pc.createOffer());
   await iceGatheringStateTransitions(pc, 'gathering');
   await pc.setLocalDescription({type: 'rollback'});
   // We might go directly to 'new', or we might go to 'complete' first,

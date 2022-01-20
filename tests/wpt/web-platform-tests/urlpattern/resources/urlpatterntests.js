@@ -39,7 +39,7 @@ function runTests(data) {
           // First determine if there is a baseURL present in the pattern
           // input.  A baseURL can be the source for many component patterns.
           let baseURL = null;
-          if (entry.pattern[0].baseURL) {
+          if (entry.pattern.length > 0 && entry.pattern[0].baseURL) {
             baseURL = new URL(entry.pattern[0].baseURL);
           } else if (entry.pattern.length > 1 &&
                      typeof entry.pattern[1] === 'string') {

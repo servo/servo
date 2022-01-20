@@ -19,21 +19,21 @@
   }, 'visible should be false');
 
   test(function(){
-    assert_idl_attribute(navigator.windowControlsOverlay, 'getBoundingClientRect');
-  }, 'getBoundingClientRect should be a method of the windowControlsOverlay object');
+    assert_idl_attribute(navigator.windowControlsOverlay, 'getTitlebarAreaRect');
+  }, 'getTitlebarAreaRect should be a method of the windowControlsOverlay object');
 
   test(function(){
-    var rect = navigator.windowControlsOverlay.getBoundingClientRect();
+    var rect = navigator.windowControlsOverlay.getTitlebarAreaRect();
     assert_true(rect instanceof DOMRect);
-  }, 'getBoundingClientRect return type should be DOMRect');
+  }, 'getTitlebarAreaRect return type should be DOMRect');
 
   test(function(){
-    var rect = navigator.windowControlsOverlay.getBoundingClientRect();
+    var rect = navigator.windowControlsOverlay.getTitlebarAreaRect();
     assert_equals(rect.x, 0);
     assert_equals(rect.y, 0);
     assert_equals(rect.width, 0);
     assert_equals(rect.height, 0);
-  }, 'getBoundingClientRect should return a empty DOMRect');
+  }, 'getTitlebarAreaRect should return a empty DOMRect');
 
   test(function(){
     assert_idl_attribute(navigator.windowControlsOverlay, 'ongeometrychange');

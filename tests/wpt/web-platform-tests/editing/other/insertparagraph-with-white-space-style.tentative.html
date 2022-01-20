@@ -1,10 +1,14 @@
 <!doctype html>
 <meta charset=utf-8>
 <meta name="timeout" content="long">
-<meta name="variant" content="?pre">
-<meta name="variant" content="?pre-wrap">
-<meta name="variant" content="?pre-line">
-<meta name="variant" content="?nowrap">
+<meta name="variant" content="?white-space=pre&command=insertParagraph">
+<meta name="variant" content="?white-space=pre-wrap&command=insertParagraph">
+<meta name="variant" content="?white-space=pre-line&command=insertParagraph">
+<meta name="variant" content="?white-space=nowrap&command=insertParagraph">
+<meta name="variant" content="?white-space=pre&command=insertText">
+<meta name="variant" content="?white-space=pre-wrap&command=insertText">
+<meta name="variant" content="?white-space=pre-line&command=insertText">
+<meta name="variant" content="?white-space=nowrap&command=insertText">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../include/editor-test-utils.js"></script>
@@ -15,9 +19,19 @@
 /**
  * The expected behavior is based on Chrome 91.
  */
-const style = location.search.substr(1);
+const params = new URLSearchParams(location.search);
+const style = params.get("white-space");
 const isNewLineSignificant = style == "pre" || style == "pre-wrap" || style == "pre-line";
+const command = params.get("command");
 const editingHost = document.querySelector("div[contenteditable]");
+function doIt() {
+  if (command == "insertParagraph") {
+    document.execCommand(command);
+  } else {
+    // Inserting a linefeed by insertText command should be equivalent of insertParagraph
+    document.execCommand(command, false, "\n");
+  }
+}
 for (const defaultParagraphSeparator of ["div", "p"]) {
   document.execCommand("defaultparagraphseparator", false, defaultParagraphSeparator);
   for (const display of ["block", "inline", "inline-block"]) {
@@ -30,7 +44,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
       const utils = new EditorTestUtils(editingHost);
       utils.setupEditingHost(`abc[]`);
       editingHost.getBoundingClientRect();
-      document.execCommand("insertparagraph");
+      doIt();
       if (display == "block") {
         assert_in_array(
           editingHost.innerHTML,
@@ -64,7 +78,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
       const utils = new EditorTestUtils(editingHost);
       utils.setupEditingHost(`[]abc`);
       editingHost.getBoundingClientRect();
-      document.execCommand("insertparagraph");
+      doIt();
       if (display == "block") {
         assert_in_array(
           editingHost.innerHTML,
@@ -101,7 +115,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
       const utils = new EditorTestUtils(editingHost);
       utils.setupEditingHost(`a[]bc`);
       editingHost.getBoundingClientRect();
-      document.execCommand("insertparagraph");
+      doIt();
       if (display == "block") {
         assert_in_array(
           editingHost.innerHTML,
@@ -140,7 +154,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
       utils.setupEditingHost(`abc[]`);
       editingHost.getBoundingClientRect();
       document.execCommand("italic");
-      document.execCommand("insertparagraph");
+      doIt();
       document.execCommand("inserttext", false, "def");
       if (display == "block") {
         assert_in_array(
@@ -184,7 +198,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
       const utils = new EditorTestUtils(editingHost);
       utils.setupEditingHost(`<b>abc[]</b>`);
       editingHost.getBoundingClientRect();
-      document.execCommand("insertparagraph");
+      doIt();
       document.execCommand("inserttext", false, "def");
       if (display == "block") {
         assert_in_array(
@@ -232,7 +246,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph} style="white-space:${style}">abc[]</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         assert_equals(
           editingHost.innerHTML,
           `<${paragraph} style="white-space:${style}">abc</${paragraph}><${paragraph} style="white-space:${style}"><br></${paragraph}>`,
@@ -246,7 +260,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph} style="white-space:${style}">[]abc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -263,7 +277,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph} style="white-space:${style}">a[]bc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -283,7 +297,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph}>abc[]</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         assert_equals(
           editingHost.innerHTML,
           `<${paragraph}>abc</${paragraph}><${paragraph}><br></${paragraph}>`,
@@ -297,7 +311,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph}>[]abc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -314,7 +328,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph}>a[]bc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -336,7 +350,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const styleAttr = `style="display:${display}; white-space:${style}"`;
         utils.setupEditingHost(`<${paragraph} ${styleAttr}>abc[]</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         if (display != "block") {
           assert_equals(
             editingHost.innerHTML,
@@ -359,7 +373,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const styleAttr = `style="display:${display}; white-space:${style}"`;
         utils.setupEditingHost(`<${paragraph} ${styleAttr}>[]abc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         if (display != "block") {
           assert_in_array(
             editingHost.innerHTML,
@@ -388,7 +402,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph} ${styleAttr}>a[]bc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        document.execCommand("insertparagraph");
+        doIt();
         if (display != "block") {
           assert_in_array(
             editingHost.innerHTML,

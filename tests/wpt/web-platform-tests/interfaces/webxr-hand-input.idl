@@ -4,7 +4,7 @@
 // Source: WebXR Hand Input Module - Level 1 (https://immersive-web.github.io/webxr-hand-input/)
 
 partial interface XRInputSource {
-   readonly attribute XRHand? hand;
+   [SameObject] readonly attribute XRHand? hand;
 };
 
 enum XRHandJoint {

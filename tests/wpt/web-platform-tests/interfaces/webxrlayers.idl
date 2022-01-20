@@ -143,6 +143,7 @@ dictionary XRCubeLayerInit : XRLayerInit {
   constructor(XRSession session, XRWebGLRenderingContext context);
 
   readonly attribute double nativeProjectionScaleFactor;
+  readonly attribute boolean usesDepthValues;
 
   XRProjectionLayer createProjectionLayer(optional XRProjectionLayerInit init = {});
   XRQuadLayer createQuadLayer(optional XRQuadLayerInit init = {});

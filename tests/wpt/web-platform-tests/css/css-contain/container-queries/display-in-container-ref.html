@@ -1,0 +1,47 @@
+<!doctype html>
+<title>CSS Test Reference</title>
+<style>
+  .container, .not_a_container {
+    width: auto;
+    height: 100px;
+    border: 1px solid black;
+    margin-bottom: 10px;
+  }
+  span {
+    border: 1px solid green;
+    margin: 2px;
+  }
+</style>
+<div style="width:150px">
+  <div class=container>
+    <main>
+      <div style="display:flex">
+        <span style="flex:1">Test1</span>
+        <span style="flex:1">Test2</span>
+        <span style="flex:1">Test3</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div style="width:200px">
+  <div class=container>
+    <main>
+      <div>
+        <span style="display:block">Test1</span>
+        <span style="display:block">Test2</span>
+        <span style="display:block">Test3</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div style="width:150px">
+  <div class=not_a_container>
+    <main>
+      <div>
+        <span>Test1</span>
+        <span>Test2</span>
+        <span>Test3</span>
+      </div>
+    </main>
+  </div>
+</div>

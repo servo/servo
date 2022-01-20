@@ -96,12 +96,15 @@ def get_parser():
     p.add_argument("--xvfb",
                    action="store_true",
                    help="Start xvfb")
-    p.add_argument("--checkout",
-                   help="Revision to checkout before starting job")
     p.add_argument("--install-certificates", action="store_true", default=None,
                    help="Install web-platform.test certificates to UA store")
     p.add_argument("--no-install-certificates", action="store_false", default=None,
                    help="Don't install web-platform.test certificates to UA store")
+    p.add_argument("--no-setup-repository", action="store_false", dest="setup_repository",
+                   help="Don't run any repository setup steps, instead use the existing worktree. "
+                        "This is useful for local testing.")
+    p.add_argument("--checkout",
+                   help="Revision to checkout before starting job")
     p.add_argument("--ref",
                    help="Git ref for the commit that should be run")
     p.add_argument("--head-rev",
@@ -398,7 +401,8 @@ def main():
     if event:
         set_variables(event)
 
-    setup_repository(args)
+    if args.setup_repository:
+        setup_repository(args)
 
     # Hack for backwards compatibility
     if args.script in ["run-all", "lint", "update_built", "tools_unittest",

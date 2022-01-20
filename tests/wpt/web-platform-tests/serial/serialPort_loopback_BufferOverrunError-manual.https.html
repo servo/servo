@@ -14,7 +14,7 @@
       "loopback" device, with the transmit and receive pins wired together.
     </p>
     <script>
-      manual_loopback_serial_test(async (t, port) => {
+      manual_serial_test(async (t, port) => {
         await port.open({baudRate: 115200, bufferSize: 1024});
 
         // Create something much larger than bufferSize above.

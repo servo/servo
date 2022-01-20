@@ -1,1 +1,1 @@
-Accept-CH: device-memory
+Accept-CH: sec-ch-device-memory, device-memory

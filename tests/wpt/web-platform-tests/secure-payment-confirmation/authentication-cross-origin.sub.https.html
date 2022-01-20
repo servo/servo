@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for the 'secure-payment-confirmation' payment method authentication - cross origin</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation#client-extension-processing-authentication">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="utils.sub.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  // Make sure that we are testing a cross-origin authentication ceremony.
+  assert_not_equals(window.location.hostname, '{{hosts[alt][]}}',
+      'This test must not be run on the alt hostname.');
+
+  const authenticator = await window.test_driver.add_virtual_authenticator(
+      AUTHENTICATOR_OPTS);
+  t.add_cleanup(() => {
+    return window.test_driver.remove_virtual_authenticator(authenticator);
+  });
+
+  await window.test_driver.set_spc_transaction_mode("autoaccept");
+  t.add_cleanup(() => {
+    return window.test_driver.set_spc_transaction_mode("none");
+  });
+
+  // Create a credential for the WPT alt domain.
+  const credential = await createCredentialForAltDomain();
+
+  const challenge = 'server challenge';
+  const payeeOrigin = 'https://merchant.com';
+  const displayName = 'Troycard ***1234';
+  const request = new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      credentialIds: [credential.rawId],
+      challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+      payeeOrigin,
+      timeout: 60000,
+      instrument: {
+        displayName,
+        icon: ICON_URL,
+      },
+    }
+  }], PAYMENT_DETAILS);
+
+  const responsePromise = request.show();
+
+  const response = await responsePromise;
+  await response.complete('success');
+
+  const cred = response.details;
+  assert_equals(cred.id, credential.id);
+
+  const clientDataJSON = JSON.parse(arrayBufferToString(cred.response.clientDataJSON));
+
+  // The origin should be ourselves, whilst the RP should be the alt hostname
+  // (as the owner of the credential).
+  assert_equals(clientDataJSON.origin, window.location.origin);
+  assert_equals(clientDataJSON.payment.rp, '{{hosts[alt][]}}');
+}, 'Cross-origin SPC authentication ceremony');
+</script>

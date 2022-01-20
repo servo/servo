@@ -1,0 +1,483 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web Neural Network API (https://webmachinelearning.github.io/webnn/)
+
+interface mixin NavigatorML {
+  [SecureContext, SameObject] readonly attribute ML ml;
+};
+Navigator includes NavigatorML;
+WorkerNavigator includes NavigatorML;
+
+enum MLDevicePreference {
+  "default",
+  "gpu",
+  "cpu"
+};
+
+enum MLPowerPreference {
+  // Let the user agent select the most suitable behavior.
+  "default",
+
+  // Prioritizes execution speed over power consumption.
+  "high-performance",
+
+  // Prioritizes power consumption over other considerations such as execution speed.
+  "low-power"
+};
+
+dictionary MLContextOptions {
+  // Preferred kind of device used
+  MLDevicePreference devicePreference = "default";
+
+  // Preference as related to power consumption
+  MLPowerPreference powerPreference = "default";
+};
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface ML {
+  // Create a context with options
+  MLContext createContext(optional MLContextOptions options = {});
+
+  // Create a context from WebGL rendering context
+  MLContext createContext(WebGLRenderingContext glContext);
+
+  // Create a context from WebGPU device
+  MLContext createContext(GPUDevice gpuDevice);
+};
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLContext {};
+
+enum MLInputOperandLayout {
+  "nchw",
+  "nhwc"
+};
+
+enum MLOperandType {
+  "float32",
+  "float16",
+  "int32",
+  "uint32",
+  "int8",
+  "uint8"
+};
+
+dictionary MLOperandDescriptor {
+  // The operand type.
+  required MLOperandType type;
+
+  // The dimensions field is only required for tensor operands.
+  // The negative value means an unknown dimension.
+  sequence<long> dimensions;
+};
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLOperand {};
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLOperator {};
+
+typedef record<DOMString, MLOperand> MLNamedOperands;
+
+dictionary MLBufferResourceView {
+  required (WebGLBuffer or GPUBuffer) resource;
+  unsigned long long offset = 0;
+  unsigned long long size;
+};
+
+typedef (ArrayBufferView or MLBufferResourceView) MLBufferView;
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLGraphBuilder {
+  // Construct the graph builder from the context.
+  constructor(MLContext context);
+
+  // Create an operand for a graph input.
+  MLOperand input(DOMString name, MLOperandDescriptor desc);
+
+  // Create an operand for a graph constant.
+  MLOperand constant(MLOperandDescriptor desc, MLBufferView bufferView);
+
+  // Create a single-value operand from the specified number of the specified type.
+  MLOperand constant(double value, optional MLOperandType type = "float32");
+
+  // Compile the graph up to the specified output operands
+  MLGraph build(MLNamedOperands outputs);
+};
+
+dictionary MLBatchNormalizationOptions {
+  MLOperand scale;
+  MLOperand bias;
+  long axis = 1;
+  float epsilon = 1e-5;
+  MLOperator activation;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand batchNormalization(MLOperand input, MLOperand mean, MLOperand variance,
+                             optional MLBatchNormalizationOptions options = {});
+};
+
+dictionary MLClampOptions {
+  float minValue;
+  float maxValue;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand clamp(MLOperand x, optional MLClampOptions options = {});
+  MLOperator clamp(optional MLClampOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand concat(sequence<MLOperand> inputs, long axis);
+};
+
+enum MLConv2dFilterOperandLayout {
+  "oihw",
+  "hwio",
+  "ohwi",
+  "ihwo"
+};
+
+enum MLAutoPad {
+  "explicit",
+  "same-upper",
+  "same-lower"
+};
+
+dictionary MLConv2dOptions {
+  sequence<long> padding;
+  sequence<long> strides;
+  sequence<long> dilations;
+  MLAutoPad autoPad = "explicit";
+  long groups = 1;
+  MLInputOperandLayout inputLayout = "nchw";
+  MLConv2dFilterOperandLayout filterLayout = "oihw";
+  MLOperand bias;
+  MLOperator activation;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
+};
+
+enum MLConvTranspose2dFilterOperandLayout {
+  "iohw",
+  "hwoi",
+  "ohwi"
+};
+
+dictionary MLConvTranspose2dOptions {
+  sequence<long> padding;
+  sequence<long> strides;
+  sequence<long> dilations;
+  sequence<long> outputPadding;
+  sequence<long> outputSizes;
+  MLAutoPad autoPad = "explicit";
+  long groups = 1;
+  MLInputOperandLayout inputLayout = "nchw";
+  MLConvTranspose2dFilterOperandLayout filterLayout = "iohw";
+  MLOperand bias;
+  MLOperator activation;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand convTranspose2d(MLOperand input, MLOperand filter,
+                            optional MLConvTranspose2dOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand add(MLOperand a, MLOperand b);
+  MLOperand sub(MLOperand a, MLOperand b);
+  MLOperand mul(MLOperand a, MLOperand b);
+  MLOperand div(MLOperand a, MLOperand b);
+  MLOperand max(MLOperand a, MLOperand b);
+  MLOperand min(MLOperand a, MLOperand b);
+  MLOperand pow(MLOperand a, MLOperand b);
+};
+
+partial interface MLGraphBuilder {
+  MLOperand abs(MLOperand x);
+  MLOperand ceil(MLOperand x);
+  MLOperand cos(MLOperand x);
+  MLOperand exp(MLOperand x);
+  MLOperand floor(MLOperand x);
+  MLOperand log(MLOperand x);
+  MLOperand neg(MLOperand x);
+  MLOperand sin(MLOperand x);
+  MLOperand tan(MLOperand x);
+};
+
+dictionary MLEluOptions {
+  float alpha = 1;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand elu(MLOperand x, optional MLEluOptions options = {});
+  MLOperator elu(optional MLEluOptions options = {});
+};
+
+dictionary MLGemmOptions {
+  MLOperand c;
+  float alpha = 1.0;
+  float beta = 1.0;
+  boolean aTranspose = false;
+  boolean bTranspose = false;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
+};
+
+enum MLRecurrentNetworkWeightLayout {
+  "zrn",  // update-reset-new gate ordering
+  "rzn"   // reset-update-new gate ordering
+};
+
+enum MLRecurrentNetworkDirection {
+  "forward",
+  "backward",
+  "both"
+};
+
+dictionary MLGruOptions {
+  MLOperand bias;
+  MLOperand recurrentBias;
+  MLOperand initialHiddenState;
+  boolean resetAfter = true;
+  boolean returnSequence = false;
+  MLRecurrentNetworkDirection direction = "forward";
+  MLRecurrentNetworkWeightLayout layout = "zrn";
+  sequence<MLOperator> activations;
+};
+
+partial interface MLGraphBuilder {
+  sequence<MLOperand> gru(MLOperand input, MLOperand weight, MLOperand recurrentWeight,
+
+                        long steps, long hiddenSize, optional MLGruOptions options = {});
+};
+
+dictionary MLGruCellOptions {
+  MLOperand bias;
+  MLOperand recurrentBias;
+  boolean resetAfter = true;
+  MLRecurrentNetworkWeightLayout layout = "zrn";
+  sequence<MLOperator> activations;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand gruCell(MLOperand input, MLOperand weight, MLOperand recurrentWeight,
+
+                  MLOperand hiddenState, long hiddenSize, optional MLGruCellOptions options = {});
+};
+
+dictionary MLHardSigmoidOptions {
+  float alpha = 0.2;
+  float beta = 0.5;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand hardSigmoid(MLOperand x, optional MLHardSigmoidOptions options = {});
+  MLOperator hardSigmoid(optional MLHardSigmoidOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand hardSwish(MLOperand x);
+  MLOperator hardSwish();
+};
+
+dictionary MLInstanceNormalizationOptions {
+  MLOperand scale;
+  MLOperand bias;
+  float epsilon = 1e-5;
+  MLInputOperandLayout layout = "nchw";
+};
+
+partial interface MLGraphBuilder {
+  MLOperand instanceNormalization(MLOperand input,
+
+                                optional MLInstanceNormalizationOptions options = {});
+};
+
+dictionary MLLeakyReluOptions {
+  float alpha = 0.01;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand leakyRelu(MLOperand x, optional MLLeakyReluOptions options = {});
+  MLOperator leakyRelu(optional MLLeakyReluOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand matmul(MLOperand a, MLOperand b);
+};
+
+dictionary MLLinearOptions {
+  float alpha = 1;
+  float beta = 0;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand linear(MLOperand x, optional MLLinearOptions options = {});
+  MLOperator linear(optional MLLinearOptions options = {});
+};
+
+enum MLPaddingMode {
+  "constant",
+  "edge",
+  "reflection",
+  "symmetric"
+};
+
+dictionary MLPadOptions {
+  MLPaddingMode mode = "constant";
+  float value = 0;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand pad(MLOperand input, MLOperand padding, optional MLPadOptions options = {});
+};
+
+enum MLRoundingType {
+  "floor",
+  "ceil"
+};
+
+dictionary MLPool2dOptions {
+  sequence<long> windowDimensions;
+  sequence<long> padding;
+  sequence<long> strides;
+  sequence<long> dilations;
+  MLAutoPad autoPad = "explicit";
+  MLInputOperandLayout layout = "nchw";
+  MLRoundingType roundingType = "floor";
+  sequence<long> outputSizes;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand averagePool2d(MLOperand input, optional MLPool2dOptions options = {});
+  MLOperand l2Pool2d(MLOperand input, optional MLPool2dOptions options = {});
+  MLOperand maxPool2d(MLOperand input, optional MLPool2dOptions options = {});
+};
+
+dictionary MLReduceOptions {
+  sequence<long> axes = null;
+  boolean keepDimensions = false;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand reduceL1(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceL2(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceLogSum(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceLogSumExp(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceMax(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceMean(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceMin(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceProduct(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceSum(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceSumSquare(MLOperand input, optional MLReduceOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand relu(MLOperand x);
+  MLOperator relu();
+};
+
+enum MLInterpolationMode {
+  "nearest-neighbor",
+  "linear"
+};
+
+dictionary MLResample2dOptions {
+  MLInterpolationMode mode = "nearest-neighbor";
+  sequence<float> scales;
+  sequence<long> sizes;
+  sequence<long> axes;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand resample2d(MLOperand input, optional MLResample2dOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand reshape(MLOperand input, sequence<long> newShape);
+};
+
+partial interface MLGraphBuilder {
+  MLOperand sigmoid(MLOperand x);
+  MLOperator sigmoid();
+};
+
+dictionary MLSliceOptions {
+  sequence<long> axes;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand slice(MLOperand input, sequence<long> starts, sequence<long> sizes,
+                optional MLSliceOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand softmax(MLOperand x);
+};
+
+dictionary MLSoftplusOptions {
+  float steepness = 1;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand softplus(MLOperand x, optional MLSoftplusOptions options = {});
+  MLOperator softplus(optional MLSoftplusOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand softsign(MLOperand x);
+  MLOperator softsign();
+};
+
+dictionary MLSplitOptions {
+  long axis = 0;
+};
+
+partial interface MLGraphBuilder {
+  sequence<MLOperand> split(MLOperand input,
+                          (unsigned long or sequence<unsigned long>) splits,
+                          optional MLSplitOptions options = {});
+};
+
+dictionary MLSqueezeOptions {
+  sequence<long> axes;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand squeeze(MLOperand input, optional MLSqueezeOptions options = {});
+};
+
+partial interface MLGraphBuilder {
+  MLOperand tanh(MLOperand x);
+  MLOperator tanh();
+};
+
+dictionary MLTransposeOptions {
+  sequence<long> permutation;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
+};
+
+typedef (MLBufferView or WebGLTexture or GPUTexture) MLResource;
+
+dictionary MLInput {
+  required MLResource resource;
+  required sequence<long> dimensions;
+};
+
+typedef record<DOMString, (MLResource or MLInput)> MLNamedInputs;
+typedef record<DOMString, MLResource> MLNamedOutputs;
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLGraph {
+  undefined compute(MLNamedInputs inputs, MLNamedOutputs outputs);
+};

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>
+  Contenteditable flex container fragmentation.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 50px;
+    width: 100px;
+  }
+  .flexbox {
+    display: flex;
+    padding-top: 20px;
+    padding-bottom: 100px;
+    line-height: 80px;
+    background-color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="multicol">
+  <div class="flexbox" contenteditable="true"></div>
+</div>

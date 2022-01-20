@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: Support for font-stretch: auto in @font-face</title>
+<link rel="match" href="font-face-style-auto-static-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-prop-desc" />
+<meta name="assert" content="font-style: auto applies initial value for non-variable fonts in @font-face descriptor">
+<style>
+    @font-face {
+        font-family: "Lato";
+        src: url('support/fonts/Lato-Medium.ttf') format('truetype');
+        font-display: swap;
+        font-style: auto;
+    }
+    .test {
+        font-family: "Lato";
+        font-size: 3em;
+        font-style: oblique 10deg;
+    }
+</style>
+
+<p class="test">text</p>

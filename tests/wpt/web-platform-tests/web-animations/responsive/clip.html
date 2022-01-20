@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    var keyframes = [
+        {clip: 'inherit'},
+        {clip: 'rect(10px, 20px, 30px, 40px)'}
+    ];
+
+    container.style.clip = 'rect(10px, 20px, 30px, 40px)';
+    var player = element.animate(keyframes, 20);
+
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).clip, 'rect(10px, 20px, 30px, 40px)');
+
+    container.style.clip = 'rect(10px, 20px, 430px, 440px)';
+    assert_equals(getComputedStyle(element).clip, 'rect(10px, 20px, 330px, 340px)');
+}, 'clip responsive to inherited clip changes');
+
+test(function() {
+    var keyframes = [
+        {clip: 'inherit'},
+        {clip: 'rect(10px, 20px, 30px, auto)'}
+    ];
+
+    container.style.clip = 'auto';
+    var player = element.animate(keyframes, 20);
+
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).clip, 'auto');
+
+    container.style.clip = 'rect(410px, 420px, 30px, auto)';
+    assert_equals(getComputedStyle(element).clip, 'rect(310px, 320px, 30px, auto)');
+}, 'clip responsive to inherited clip changes from auto');
+</script>

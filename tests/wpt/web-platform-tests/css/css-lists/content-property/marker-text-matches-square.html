@@ -4,12 +4,20 @@
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=787382">
 <link rel=match href="marker-text-matches-square-ref.html">
 <style>
+/*
+    Avoid using list-style:square directly, because the spec allows the
+    rendering to deviate from the element's font.
+    https://drafts.csswg.org/css-counter-styles-3/#simple-symbolic
+*/
+@counter-style my-square {
+    system: extends square;
+}
 * {
     padding: 0;
     margin: 0;
 }
 ol {
-    list-style: square inside;
+    list-style: my-square inside;
 }
 </style>
 

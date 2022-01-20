@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// Computed value: the keyword none, a pair of keywords representing the shape
+// and fill, or a string
+test_computed_value('text-emphasis-style', 'none');
+test_computed_value('text-emphasis-style', 'dot', 'dot');
+test_computed_value('text-emphasis-style', 'filled circle', 'circle');
+test_computed_value('text-emphasis-style', 'double-circle', 'double-circle');
+test_computed_value('text-emphasis-style', 'triangle', 'triangle');
+test_computed_value('text-emphasis-style', 'open sesame');
+test_computed_value('text-emphasis-style', '"*"');
+</script>

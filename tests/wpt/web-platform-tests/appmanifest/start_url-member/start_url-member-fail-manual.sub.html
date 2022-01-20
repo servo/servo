@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <title>Test that start_url member is supported</title>
 <link rel="help" href="https://w3c.github.io/manifest/#start_url-member" />
-<link rel="manifest" href="https://{{host}}:{{ports[https][0]}}/appmanifest/start_url-member/start_url-member-fail.sub.webmanifest" />
+<link rel="manifest" href="https://{{host}}:{{ports[https][0]}}/appmanifest/start_url-member/resources/start_url-member-fail.sub.webmanifest" />
+<script src="resources/start_url-member-manual.js"></script>
 <h1>Cross-origin start URLs are invalid</h1>
 <script>
   // Force the port of the origin to be ports[https][0] (likely :8443)
@@ -10,16 +11,6 @@
     window.location = new URL(window.location.pathname, "https://{{host}}:{{ports[https][0]}}")
   }
 </script>
-
-<style>
-@media all and (display-mode: fullscreen) {
-  body {
-    background-color: green;
-  }
-}
-</style>
-
 <p>
   To pass, the start URL must not be fail.html because it's not same origin.
-  It will use this page as the start URL and the background will be green.
 </p>

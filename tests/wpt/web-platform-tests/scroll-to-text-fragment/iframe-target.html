@@ -13,6 +13,8 @@
       position = 'top';
     else if (isInView(document.getElementById('target')))
       position = 'target';
+    else if (isInView(document.getElementById('elementid')))
+      position = 'elementid';
 
     let results = {
       scrollPosition: position,
@@ -29,6 +31,10 @@
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(postResult);
       })
+    } else if (e.data == 'reset') {
+      window.location.hash = '';
+      window.scrollTo(0, 0);
+      window.top.postMessage('', "*");
     }
   });
 </script>
@@ -40,4 +46,5 @@
 </style>
 <body>
   <p id="target">Target Text</p>
+  <div id="elementid">DIV</div>
 </body>

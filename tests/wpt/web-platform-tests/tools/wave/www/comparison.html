@@ -65,7 +65,7 @@
         tokens = tokens ? tokens.split(",") : [];
         const refTokens = reftokens ? reftokens.split(",") : [];
         if (tokens) {
-          WaveService.readResultsConfig(function(config) {
+          WaveService.readStatus(function(config) {
             comparisonUi.state.reportsEnabled = config.reportsEnabled;
             comparisonUi.render();
           });

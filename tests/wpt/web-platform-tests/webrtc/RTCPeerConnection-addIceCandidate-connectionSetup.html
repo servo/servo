@@ -1,4 +1,5 @@
 <!doctype html>
+<meta name="timeout" content="long">
 <title>Test RTCPeerConnection.prototype.addIceCandidate</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -50,10 +51,11 @@ promise_test(async t => {
   await pc2.setLocalDescription(answer);
   await pc2GatheredCandidates;
   // Add candidates to pc1, ensuring that it goes to "connecting" state before "connected".
-  for (let candidate of candidates2to1) {
-    await pc1.addIceCandidate(candidate);
-  }
+  // We do not iterate/await because repeatedly awaiting while we serially add
+  // the candidates opens the opportunity to miss the 'connecting' transition.
+  const addCandidatesDone = Promise.all(candidates2to1.map(c => pc1.addIceCandidate(c)));
   await waitForState(transceiver.sender.transport, 'connecting');
+  await addCandidatesDone;
   await waitForState(transceiver.sender.transport, 'connected');
 }, 'Candidates are added at PC1; connection should work');
 
@@ -81,9 +83,9 @@ promise_test(async t => {
   await pc2.setLocalDescription(answer);
   await pc1GatheredCandidates;
   // Add candidates to pc2
-  for (let candidate of candidates1to2) {
-    await pc2.addIceCandidate(candidate);
-  }
+  // We do not iterate/await because repeatedly awaiting while we serially add
+  // the candidates opens the opportunity to miss the ICE state transitions.
+  await Promise.all(candidates1to2.map(c => pc2.addIceCandidate(c)));
   await waitForState(transceiver.sender.transport, 'connected');
 }, 'Candidates are added at PC2; connection should work');
 

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Verify timeline time, animation time, effect time, and effect progress for all timeline states: before start, at start, in range, at end, after end while using various effect delay values</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="testcommon.js"></script>
+<style>
+  .scroller {
+    overflow: hidden;
+    height: 200px;
+    width: 200px;
+  }
+  .contents {
+    /* Make scroll range 1000 to simplify the math and avoid rounding errors */
+    height: 1200px;
+    width: 100%;
+  }
+</style>
+<div id="log"></div>
+<script>
+  'use strict';
+  // Test cases are included where effect delay causes the effect iteration to
+  // overlap with the timeline start time and also the timeline end time.
+  //                  Timeline
+  //   BEFORE   +-----------------+     AFTER
+  //   time:    0                 timeline.duration
+  //   1)       +-----------------+
+  //   2)            +------------+
+  //   3)   +---------------------+
+  //   4)       +---------------------+
+  //   5)       +-------------+
+  //   6)           +---------+
+  //   7)           +-----------------+
+  //   8)   +-----------------+
+  //   9)   +-------------------------+
+
+  // Note: effects are scaled to fill the timeline so that the start of the
+  // effect is after the start offset of the timeline, and that the end of the
+  // effect is at the beginning of the end offset of the timeline.
+
+  // Each entry is [[test input], [test expectations]]
+  // test input = ["description", delay, end_delay, scroll percent]
+  // test expectations = [timeline time, animation current time,
+  //                      effect local time, effect progress, effect phase]
+
+  /* All interesting transitions:
+      before timeline start
+      at timeline start
+      before effect delay
+      at effect start
+      in timeline range
+      at effect end
+      after effect endDelay
+      at timeline end
+      after timeline end
+  */
+  const test_cases = [
+    // Case 1: No delays. Effect starts at the same time as the timeline.
+    [["before timeline start", 0, 0, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     0, 0, 0.25], [0, 0, 0, 0, "active"]],
+    [["in timeline range",     0, 0, 0.50], [50, 50, 50, 0.5, "active"]],
+    [["at timeline end",       0, 0, 0.75], [100, 100, 100, null, "after"]],
+    [["after timeline end",    0, 0, 0.90], [100, 100, 100, null, "after"]],
+
+    // Case 2: Positive delay, no endDelay.
+    // effect start = 100% * start / (start + duration + end)
+    //              = 100% * 500 / (500 + 500 + 0) = 50%
+    [["before timeline start", 500, 0, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     500, 0, 0.25], [0, 0, 0, null, "before"]],
+    [["before effect delay",   500, 0, 0.30], [10, 10, 10, null, "before"]],
+    [["at effect start",       500, 0, 0.50], [50, 50, 50, 0, "active"]],
+    [["in timeline range",     500, 0, 0.65], [80, 80, 80, 0.6, "active"]],
+    [["at timeline end",       500, 0, 0.75], [100, 100, 100, null, "after"]],
+    [["after timeline end",    500, 0, 0.90], [100, 100, 100, null, "after"]],
+
+    // Case 3: Negative delay, no endDelay.
+    [["before timeline start", -250, 0, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     -250, 0, 0.25], [0, 0, 0, 0.5, "active"]],
+    [["in timeline range",     -250, 0, 0.50], [50, 50, 50, 0.75, "active"]],
+    [["at timeline end",       -250, 0, 0.75], [100, 100, 100, null, "after"]],
+    [["after timeline end",    -250, 0, 0.90], [100, 100, 100, null,  "after"]],
+
+    // Case 4: No delay, negative endDelay. Effect will never progress to 100%
+    [["before timeline start", 0, -250, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     0, -250, 0.25], [0, 0, 0, 0, "active"]],
+    [["in timeline range",     0, -250, 0.50], [50, 50, 50, 0.25, "active"]],
+    [["at timeline end",       0, -250, 0.75], [100, 100, 100, null, "after"]],
+    [["after timeline end",    0, -250, 0.90], [100, 100, 100, null, "after"]],
+
+    // Case 5: No delay, positive endDelay.
+    // effect end = 100% * (start + duration) / (start + duration + end)
+    //            = 100% * (0 + 500) / (0 + 500 + 500) = 50%
+    [["before timeline start", 0, 500, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     0, 500, 0.25], [0, 0, 0, 0, "active"]],
+    [["in timeline range",     0, 500, 0.40], [30, 30, 30, 0.6, "active"]],
+    [["at effect end",         0, 500, 0.50], [50, 50, 50, null, "after"]],
+    [["after effect endDelay", 0, 500, 0.60], [70, 70, 70, null, "after"]],
+    [["at timeline end",       0, 500, 0.75], [100, 100, 100, null,"after"]],
+    [["after timeline end",    0, 500, 0.90], [100, 100, 100, null, "after"]],
+
+    // Case 6: Positive delay, positive endDelay.
+    // Delays chosen to make timeline an integer percentage at the effect start
+    // and end boundaries.
+    // effect start = 100% * start / (start + duration + end)
+    //              = 100% * 375 / (375 + 500 + 375) = 30%
+    // effect end = 100% * (start + duration) / (start + duration + end)
+    //            = 100% * (375 + 500) / (375 + 500 + 375) = 70%
+    [["before timeline start", 375, 375, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     375, 375, 0.25], [0, 0, 0, null, "before"]],
+    [["before effect delay",   375, 375, 0.27], [4, 4, 4, null, "before"]],
+    [["at effect start",       375, 375, 0.40], [30, 30, 30, 0, "active"]],
+    [["in timeline range",     375, 375, 0.50], [50, 50, 50, 0.5,  "active"]],
+    [["at effect end",         375, 375, 0.60], [70, 70, 70, null, "after"]],
+    [["after effect endDelay", 375, 375, 0.70], [90, 90, 90, null, "after"]],
+    [["at timeline end",       375, 375, 0.75], [100, 100, 100, null, "after"]],
+    [["after timeline end",    375, 375, 0.90], [100, 100, 100, null, "after"]],
+
+    // Case 7: Positive delay, negative endDelay.
+    // effect start = 100% * start / (start + duration + end)
+    //              = 100% * 600 / (600 + 500 - 100) = 60%
+    [["before timeline start", 600, -100, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     600, -100, 0.25], [0, 0, 0, null, "before"]],
+    [["before effect delay",   600, -100, 0.40], [30, 30, 30, null, "before"]],
+    [["at effect start",       600, -100, 0.55], [60, 60, 60, 0, "active"]],
+    [["in timeline range",     600, -100, 0.70], [90, 90, 90, 0.6, "active"]],
+    [["at timeline end",       600, -100, 0.75], [100, 100, 100, null, "after"]],
+    [["after timeline end",    600, -100, 0.90], [100, 100, 100, null, "after"]],
+
+    // Case 8: Negative delay, positive endDelay.
+    // effect end = 100% * (start + duration) / (start + duration + end)
+    //            = (-100 + 500) / (-100 + 500 + 600) = 40%
+    [["before timeline start", -100, 600, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     -100, 600, 0.25], [0, 0, 0, 0.2,  "active"]],
+    [["in timeline range",     -100, 600, 0.30], [10, 10, 10, 0.4, "active"]],
+    [["at effect end",         -100, 600, 0.45], [40, 40, 40, null, "after"]],
+    [["after effect endDelay", -100, 600, 0.70], [90, 90, 90, null, "after"]],
+    [["at timeline end",       -100, 600, 0.75], [100, 100, 100, null, "after"]],
+    [["after timeline end",    -100, 600, 0.90], [100, 100, 100, null, "after"]],
+
+    // Case 9: Negative delay, negative endDelay.
+    [["before timeline start", -200, -200, 0.10], [0, 0, 0, null, "before"]],
+    [["at timeline start",     -200, -200, 0.25], [0, 0, 0, 0.4,  "active"]],
+    [["in timeline range",     -200, -200, 0.50], [50, 50, 50, 0.5,  "active"]],
+    [["at timeline end",       -200, -200, 0.75], [100, 100, 100, null, "after"]],
+    [["after timeline end",    -200, -200, 0.90], [100, 100, 100, null, "after"]],
+  ];
+
+  for (const test_case of test_cases) {
+    const [inputs, expected] = test_case;
+    const [test_name, delay, end_delay, scroll_percentage] = inputs;
+
+    const description = `Current times and effect phase ${test_name} when` +
+      ` delay = ${delay} and endDelay = ${end_delay} |`;
+
+    promise_test(
+        create_scroll_timeline_delay_test(
+            delay, end_delay, scroll_percentage, expected),
+        description);
+  }
+
+  function create_scroll_timeline_delay_test(
+      delay, end_delay, scroll_percentage, expected){
+    return async t => {
+      const target = createDiv(t);
+      // timetime time is:
+      // 100% * (scroll - start)/(end - start)  if (start <= scroll <= end).
+      // Choose convenient offsets to avoid fractional percentages with timeline
+      // time. Choosing the offset range [25%, 75%] results in:
+      // timeline time = 2 * (scroll% - start%) when 25% < scroll% < 75%.
+      const timeline =
+          createScrollTimelineWithOffsets(t, CSS.percent(25), CSS.percent(75));
+      const effect = new KeyframeEffect(
+        target,
+        {
+          opacity: [0.3, 0.7]
+        },
+        {
+          duration: 500,
+          delay: delay,
+          endDelay: end_delay
+        }
+      );
+      const animation = new Animation(effect, timeline);
+      const scroller = timeline.source;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+      animation.play();
+
+      await animation.ready;
+
+      scroller.scrollTop = scroll_percentage * maxScroll;
+
+      // Wait for new animation frame which allows the timeline to compute
+      // new current time.
+      await waitForNextFrame();
+
+      const [expected_timeline_current_time,
+          expected_animation_current_time,
+          expected_effect_local_time,
+          expected_effect_progress,
+          expected_effect_phase] = expected;
+
+      assert_percents_equal(
+          animation.timeline.currentTime,
+          expected_timeline_current_time,
+          "timeline current time");
+      assert_percents_equal(
+          animation.currentTime,
+          expected_animation_current_time,
+          "animation current time");
+      assert_percents_equal(
+          animation.effect.getComputedTiming().localTime,
+          expected_effect_local_time,
+          "animation effect local time");
+      assert_approx_equals_or_null(
+          animation.effect.getComputedTiming().progress,
+          expected_effect_progress,
+          0.001,
+          "animation effect progress");
+      assert_phase_at_time(
+          animation, expected_effect_phase, animation.currentTime);
+    }
+  }
+
+  function createKeyframeEffectOpacity(test){
+    return new KeyframeEffect(
+      createDiv(test),
+      {
+        opacity: [0.3, 0.7]
+      },
+      {
+        duration: 1000
+      }
+    );
+  }
+
+  function verifyTimelineBeforePhase(animation){
+    assert_equals(animation.timeline.phase, "before");
+    assert_percents_equal(animation.timeline.currentTime, 0);
+    assert_percents_equal(animation.currentTime, 0);
+    assert_percents_equal(animation.effect.getComputedTiming().localTime, 0,
+        "effect local time in timeline before phase");
+  }
+
+  function verifyEffectBeforePhase(animation){
+    // progress == null AND opacity == 1 implies we are in the effect before
+    // phase
+    assert_equals(animation.effect.getComputedTiming().progress, null);
+    assert_equals(
+        window.getComputedStyle(animation.effect.target)
+            .getPropertyValue("opacity"),
+        "1");
+  }
+
+  promise_test(async t => {
+    const animation = new Animation(
+      createKeyframeEffectOpacity(t),
+      createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80))
+    );
+
+    const scroller = animation.timeline.source;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    animation.play();
+    await animation.ready;
+
+    verifyTimelineBeforePhase(animation);
+    verifyEffectBeforePhase(animation);
+
+    animation.pause();
+    await waitForNextFrame();
+
+    verifyTimelineBeforePhase(animation);
+    verifyEffectBeforePhase(animation);
+
+    animation.play();
+    await waitForNextFrame();
+
+    verifyTimelineBeforePhase(animation);
+    verifyEffectBeforePhase(animation);
+  }, 'Verify that (play -> pause -> play) doesn\'t change phase/progress.');
+
+  promise_test(async t => {
+    const animation = new Animation(
+        createKeyframeEffectOpacity(t),
+        createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80)));
+
+    const scroller = animation.timeline.source;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    animation.play();
+    await animation.ready;
+
+    verifyTimelineBeforePhase(animation);
+    verifyEffectBeforePhase(animation);
+
+    animation.pause();
+    await waitForNextFrame();
+
+    verifyTimelineBeforePhase(animation);
+    verifyEffectBeforePhase(animation);
+
+    // Scrolling should not cause the animation effect to change.
+    scroller.scrollTop = 0.5 * maxScroll;
+    await waitForNextFrame();
+
+    // Check timeline phase
+    assert_equals(animation.timeline.phase, "active");
+    assert_percents_equal(animation.timeline.currentTime, 50);
+    assert_percents_equal(animation.currentTime, 0);
+    assert_percents_equal(animation.effect.getComputedTiming().localTime, 0,
+        "effect local time");
+
+    // Make sure the effect is still in the before phase even though the
+    // timeline is not.
+    verifyEffectBeforePhase(animation);
+  }, 'Pause in before phase, scroll timeline into active phase, animation ' +
+     'should remain in the before phase');
+
+  promise_test(async t => {
+    const animation = new Animation(
+        createKeyframeEffectOpacity(t),
+        createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80)));
+
+    const scroller = animation.timeline.source;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    animation.play();
+    await animation.ready;
+
+    verifyTimelineBeforePhase(animation);
+    verifyEffectBeforePhase(animation);
+
+    animation.pause();
+    await waitForNextFrame();
+
+    verifyTimelineBeforePhase(animation);
+    verifyEffectBeforePhase(animation);
+
+    // Setting the current time should force the animation into effect.
+    const expected_time = 50;
+    animation.currentTime = CSS.percent(expected_time);
+    await waitForNextFrame();
+
+    // Check timeline phase
+    assert_equals(animation.timeline.phase, "before");
+    assert_percents_equal(animation.timeline.currentTime, 0);
+
+    // Make sure the effect is in the active phase even though the timeline is
+    // still in the before phase.
+    assert_percents_equal(animation.currentTime, expected_time);
+    assert_percents_equal(
+        animation.effect.getComputedTiming().localTime,
+        expected_time,
+        "effect local time in timeline before phase");
+
+    assert_equals(animation.effect.getComputedTiming().progress, 0.5);
+    assert_equals(
+        window.getComputedStyle(animation.effect.target)
+            .getPropertyValue("opacity"),
+        "0.5");
+
+    // Scrolling should not cause the animation effect to change.
+    scroller.scrollTop = 0.65 * maxScroll; // scroll so that timeline is 75%
+    await waitForNextFrame();
+
+    assert_equals(animation.timeline.phase, "active");
+    assert_percents_equal(animation.timeline.currentTime, 75);
+
+    // animation and effect timings are unchanged.
+    assert_percents_equal(animation.currentTime, expected_time);
+    assert_percents_equal(
+        animation.effect.getComputedTiming().localTime,
+        expected_time,
+        "effect local time");
+    assert_equals(animation.effect.getComputedTiming().progress, 0.5);
+    assert_equals(
+        window.getComputedStyle(animation.effect.target)
+            .getPropertyValue("opacity"),
+        "0.5");
+  }, 'Pause in before phase, set animation current time to be in active ' +
+     'range, animation should become active. Scrolling should have no effect.');
+
+  promise_test(async t => {
+    const animation = new Animation(
+        createKeyframeEffectOpacity(t),
+        createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80)));
+    const scroller = animation.timeline.source;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    animation.play();
+    await animation.ready;
+
+    // Causes the timeline to be inactive
+    scroller.style.overflow = "visible";
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    // Check timeline phase
+    assert_equals(animation.timeline.phase, "inactive");
+    assert_equals(animation.timeline.currentTime, null);
+    assert_equals(animation.currentTime, null);
+    assert_equals(animation.effect.getComputedTiming().localTime, null,
+        "effect local time with inactive timeline");
+
+    verifyEffectBeforePhase(animation);
+
+    // Setting the current time while timeline is inactive should cause hold phase
+    // and hold time to be populated
+    animation.currentTime = CSS.percent(50);
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    // Check timeline phase
+    assert_equals(animation.timeline.phase, "inactive");
+    assert_equals(animation.timeline.currentTime, null);
+    assert_percents_equal(animation.currentTime, 50);
+    assert_percents_equal(animation.effect.getComputedTiming().localTime, 50,
+        "effect local time after setting animation current time");
+
+    // Check effect phase
+    // progress == 0.5 AND opacity == 0.5 shows we are in the effect active phase
+    assert_equals(animation.effect.getComputedTiming().progress, 0.5,
+        "effect progress");
+    assert_equals(
+        window.getComputedStyle(animation.effect.target)
+            .getPropertyValue("opacity"),
+        "0.5",
+        "effect opacity after setting animation current time");
+  }, 'Make scroller inactive, then set current time to an in range time');
+
+  promise_test(async t => {
+    const animation = new Animation(
+        createKeyframeEffectOpacity(t),
+        createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80)));
+    const scroller = animation.timeline.source;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.5 * maxScroll;
+    // allow the scroll to finish.
+    await waitForNextFrame();
+
+    animation.pause();
+    await animation.ready;
+    // verify effect is applied.
+    const expected_progress = 0.5;
+    assert_equals(
+        animation.effect.getComputedTiming().progress,
+        expected_progress,
+        "Verify effect progress after pausing.");
+
+    // cause the timeline to become inactive
+    scroller.style.overflow = 'visible';
+    await waitForAnimationFrames(2);
+    assert_equals(animation.timeline.currentTime, null,
+        'Sanity check the timeline is inactive.');
+    assert_equals(
+        animation.effect.getComputedTiming().progress,
+        expected_progress,
+        "Verify effect progress after the timeline goes inactive.");
+  }, 'Animation effect is still applied after pausing and making timeline ' +
+     'inactive.');
+
+    promise_test(async t => {
+    const animation = new Animation(
+        createKeyframeEffectOpacity(t),
+        createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80)));
+
+    const scroller = animation.timeline.source;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    animation.play();
+    await animation.ready;
+
+    // cause the timeline to become inactive
+    scroller.style.overflow = 'visible';
+
+    scroller.scrollTop;
+
+    animation.pause();
+  }, 'Make timeline inactive, force style update then pause the animation. ' +
+     'No crashing indicates test success.');
+
+  /* Scroll Animations have a special inclusive end so that when using default
+     timing settings if you scroll to the bottom of a scroller, its animation
+     will remain in effect. This is only true if there are no effect delays
+     and no timeline offsets being used. */
+  promise_test(async t => {
+    const animation = new Animation(
+        createKeyframeEffectOpacity(t),
+        createScrollTimeline(t));
+
+    const scroller = animation.timeline.source;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    animation.play();
+    await animation.ready;
+    scroller.scrollTop = maxScroll;
+
+    // Wait for new animation frame which allows the timeline to compute
+    // new current time.
+    await waitForNextFrame();
+
+    assert_percents_equal(
+        animation.timeline.currentTime,
+        100,
+        "timeline current time");
+    assert_percents_equal(
+        animation.currentTime,
+        100,
+        "animation current time");
+    assert_percents_equal(
+        animation.effect.getComputedTiming().localTime,
+        100,
+        "animation effect local time");
+    assert_approx_equals_or_null(
+        animation.effect.getComputedTiming().progress,
+        1,
+        0.001,
+        "animation effect progress");
+    assert_phase_at_time(
+        animation, "active", animation.currentTime);
+
+  }, 'If no timeline offsets are specified and no effect delays, when ' +
+     'reaching the end of the scroll animation, effect should still be ' +
+     'applied.');
+</script>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>
+  Single-line row flex fragmentation with nested OOF.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 4;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .flex {
+    display: flex;
+    position: relative;
+    height: 400px;
+    width: 25px;
+  }
+  .abs {
+    background: green;
+    position: absolute;
+    width: 25px;
+    top: 0;
+    bottom: 0;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flex">
+    <div>
+      <div class="abs"></div>
+    </div>
+  </div>
+</div>

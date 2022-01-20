@@ -28,8 +28,11 @@
   desc: Test exceptions on CanvasFilter() blur.object
   code: |
     @assert throws TypeError ctx.filter = new CanvasFilter({filter: "gaussianBlur"});
-    @assert throws TypeError ctx.filter = new CanvasFilter({filter: "gaussianBlur", stdDevation: null});
+    @assert throws TypeError ctx.filter = new CanvasFilter({filter: "gaussianBlur", stdDeviation: undefined});
     @assert throws TypeError ctx.filter = new CanvasFilter({filter: "gaussianBlur", stdDeviation: "foo"});
+    @assert throws TypeError ctx.filter = new CanvasFilter({filter: "gaussianBlur", stdDeviation: [1,2]});
+    @assert throws TypeError ctx.filter = new CanvasFilter({filter: "gaussianBlur", stdDeviation: NaN});
+    @assert throws TypeError ctx.filter = new CanvasFilter({filter: "gaussianBlur", stdDeviation: {}});
     t.done();
 
 - name: 2d.filter.canvasFilterObject.colorMatrix
@@ -128,7 +131,7 @@
         let outputColor = getColor(color, slopes, intercepts);
         ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
         ctx.fillRect(0, 0, 10, 10);
-        _assertPixelApprox(offscreenCanvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
+        _assertPixelApprox(canvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
     }
     t.done();
 
@@ -152,7 +155,7 @@
     for (const color of inputColors) {
         ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 1)`,
         ctx.fillRect(0, 0, 10, 10);
-        _assertPixel(offscreenCanvas, 5, 5, color[0],color[1],color[2],255, "5,5", `${color[0]},${color[1]},${color[2]}`);
+        _assertPixel(canvas, 5, 5, color[0],color[1],color[2],255, "5,5", `${color[0]},${color[1]},${color[2]}`);
     }
     t.done();
 
@@ -189,7 +192,7 @@
         let outputColor = getColor(color, amplitudes, exponents, offsets);
         ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
         ctx.fillRect(0, 0, 10, 10);
-        _assertPixelApprox(offscreenCanvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
+        _assertPixelApprox(canvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
     }
     t.done();
 
@@ -235,7 +238,7 @@
         let outputColor = getColor(color, [tableValuesR, tableValuesG, tableValuesB]);
         ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
         ctx.fillRect(0, 0, 10, 10);
-        _assertPixelApprox(offscreenCanvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
+        _assertPixelApprox(canvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
     }
     t.done()
 
@@ -281,6 +284,6 @@
         let outputColor = getColor(color, [tableValuesR, tableValuesG, tableValuesB]);
         ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
         ctx.fillRect(0, 0, 10, 10);
-        _assertPixelApprox(offscreenCanvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
+        _assertPixelApprox(canvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
     }
     t.done();

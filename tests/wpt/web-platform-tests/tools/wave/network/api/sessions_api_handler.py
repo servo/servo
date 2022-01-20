@@ -6,121 +6,187 @@ from .api_handler import ApiHandler
 from ...utils.serializer import serialize_session
 from ...data.exceptions.not_found_exception import NotFoundException
 from ...data.exceptions.invalid_data_exception import InvalidDataException
-from ...data.http_polling_client import HttpPollingClient
+from ...data.http_polling_event_listener import HttpPollingEventListener
 
 TOKEN_LENGTH = 36
 
 
 class SessionsApiHandler(ApiHandler):
-    def __init__(self, sessions_manager, results_manager, event_dispatcher, web_root):
+    def __init__(
+        self,
+        sessions_manager,
+        results_manager,
+        event_dispatcher,
+        web_root,
+        read_sessions_enabled
+    ):
         super(SessionsApiHandler, self).__init__(web_root)
         self._sessions_manager = sessions_manager
         self._results_manager = results_manager
         self._event_dispatcher = event_dispatcher
+        self._read_sessions_enabled = read_sessions_enabled
 
-    def create_session(self, request, response):
+    def create_session(self, body, headers):
         try:
             config = {}
-            body = request.body.decode("utf-8")
+            body = body.decode("utf-8")
             if body != "":
                 config = json.loads(body)
             tests = {}
             if "tests" in config:
                 tests = config["tests"]
-            types = None
+            test_types = None
             if "types" in config:
-                types = config["types"]
+                test_types = config["types"]
             timeouts = {}
             if "timeouts" in config:
                 timeouts = config["timeouts"]
             reference_tokens = []
             if "reference_tokens" in config:
                 reference_tokens = config["reference_tokens"]
-            webhook_urls = []
-            if "webhook_urls" in config:
-                webhook_urls = config["webhook_urls"]
-            user_agent = request.headers[b"user-agent"].decode("utf-8")
+            user_agent = headers[b"user-agent"].decode("utf-8")
             labels = []
             if "labels" in config:
                 labels = config["labels"]
             expiration_date = None
             if "expiration_date" in config:
                 expiration_date = config["expiration_date"]
+            type = None
+            if "type" in config:
+                type = config["type"]
 
             session = self._sessions_manager.create_session(
                 tests,
-                types,
+                test_types,
                 timeouts,
                 reference_tokens,
-                webhook_urls,
                 user_agent,
                 labels,
-                expiration_date
+                expiration_date,
+                type
             )
 
-            self.send_json({"token": session.token}, response)
+            return {
+                "format": "application/json",
+                "data": {"token": session.token}
+            }
+
         except InvalidDataException:
             self.handle_exception("Failed to create session")
-            self.send_json({"error": "Invalid input data!"}, response, 400)
+            return {
+                "format": "application/json",
+                "data": {"error": "Invalid input data!"},
+                "status": 400
+            }
 
         except Exception:
             self.handle_exception("Failed to create session")
-            response.status = 500
+            return {"status": 500}
 
-    def read_session(self, request, response):
+    def read_session(self, token):
         try:
-            uri_parts = self.parse_uri(request)
-            token = uri_parts[2]
 
             session = self._sessions_manager.read_session(token)
             if session is None:
-                response.status = 404
-                return
+                return {"status": 404}
 
             data = serialize_session(session)
 
-            del data["pending_tests"]
-            del data["running_tests"]
-            del data["malfunctioning_tests"]
-            del data["test_state"]
-            del data["date_started"]
-            del data["date_finished"]
-            del data["status"]
-
-            self.send_json(data, response)
+            return {
+                "format": "application/json",
+                "data": {
+                    "token": data["token"],
+                    "tests": data["tests"],
+                    "types": data["types"],
+                    "timeouts": data["timeouts"],
+                    "reference_tokens": data["reference_tokens"],
+                    "user_agent": data["user_agent"],
+                    "browser": data["browser"],
+                    "is_public": data["is_public"],
+                    "date_created": data["date_created"],
+                    "labels": data["labels"]
+                }
+            }
         except Exception:
             self.handle_exception("Failed to read session")
-            response.status = 500
+            return {"status": 500}
 
-    def read_session_status(self, request, response):
+    def read_sessions(self, query_parameters, uri_path):
         try:
-            uri_parts = self.parse_uri(request)
-            token = uri_parts[2]
+            index = 0
+            if "index" in query_parameters:
+                index = int(query_parameters["index"])
+            count = 10
+            if "count" in query_parameters:
+                count = int(query_parameters["count"])
+            expand = []
+            if "expand" in query_parameters:
+                expand = query_parameters["expand"].split(",")
 
+            session_tokens = self._sessions_manager.read_sessions(index=index, count=count)
+            total_sessions = self._sessions_manager.get_total_sessions()
+
+            embedded = {}
+
+            for relation in expand:
+                if relation == "configuration":
+                    configurations = []
+                    for token in session_tokens:
+                        result = self.read_session(token)
+                        if "status" in result and result["status"] != 200:
+                            continue
+                        configurations.append(result["data"])
+                    embedded["configuration"] = configurations
+
+                if relation == "status":
+                    statuses = []
+                    for token in session_tokens:
+                        result = self.read_session_status(token)
+                        if "status" in result and result["status"] != 200:
+                            continue
+                        statuses.append(result["data"])
+                    embedded["status"] = statuses
+
+            uris = {
+                "self": uri_path,
+                "configuration": self._web_root + "api/sessions/{token}",
+                "status": self._web_root + "api/sessions/{token}/status"
+            }
+
+            data = self.create_hal_list(session_tokens, uris, index, count, total=total_sessions)
+
+            if len(embedded) > 0:
+                data["_embedded"] = embedded
+
+            return {
+                "format": "application/json",
+                "data": data
+            }
+        except Exception:
+            self.handle_exception("Failed to read session")
+            return {"status": 500}
+
+    def read_session_status(self, token):
+        try:
             session = self._sessions_manager.read_session_status(token)
             if session is None:
-                response.status = 404
-                return
+                return {"status": 404}
+
             data = serialize_session(session)
 
-            del data["tests"]
-            del data["pending_tests"]
-            del data["running_tests"]
-            del data["malfunctioning_tests"]
-            del data["types"]
-            del data["test_state"]
-            del data["last_completed_test"]
-            del data["user_agent"]
-            del data["timeouts"]
-            del data["browser"]
-            del data["is_public"]
-            del data["reference_tokens"]
-            del data["webhook_urls"]
-
-            self.send_json(data, response)
+            return {
+                "format": "application/json",
+                "data": {
+                    "token": data["token"],
+                    "status": data["status"],
+                    "date_started": data["date_started"],
+                    "date_finished": data["date_finished"],
+                    "expiration_date": data["expiration_date"]
+                }
+            }
         except Exception:
             self.handle_exception("Failed to read session status")
-            response.status = 500
+            return {"status": 500}
 
     def read_public_sessions(self, request, response):
         try:
@@ -144,26 +210,26 @@ class SessionsApiHandler(ApiHandler):
             tests = {}
             if "tests" in config:
                 tests = config["tests"]
-            types = None
+            test_types = None
             if "types" in config:
-                types = config["types"]
+                test_types = config["types"]
             timeouts = {}
             if "timeouts" in config:
                 timeouts = config["timeouts"]
             reference_tokens = []
             if "reference_tokens" in config:
                 reference_tokens = config["reference_tokens"]
-            webhook_urls = []
-            if "webhook_urls" in config:
-                webhook_urls = config["webhook_urls"]
+            type = None
+            if "type" in config:
+                type = config["type"]
 
             self._sessions_manager.update_session_configuration(
                 token,
                 tests,
-                types,
+                test_types,
                 timeouts,
                 reference_tokens,
-                webhook_urls
+                type
             )
         except NotFoundException:
             self.handle_exception("Failed to update session configuration")
@@ -268,27 +334,56 @@ class SessionsApiHandler(ApiHandler):
             uri_parts = self.parse_uri(request)
             token = uri_parts[2]
 
+            query_parameters = self.parse_query_parameters(request)
+            last_event_number = None
+            if ("last_event" in query_parameters):
+                last_event_number = int(query_parameters["last_event"])
+
             event = threading.Event()
-            http_polling_client = HttpPollingClient(token, event)
-            self._event_dispatcher.add_session_client(http_polling_client)
+            http_polling_event_listener = HttpPollingEventListener(token, event)
+            event_listener_token = self._event_dispatcher.add_event_listener(http_polling_event_listener, last_event_number)
 
             event.wait()
 
-            message = http_polling_client.message
+            message = http_polling_event_listener.message
             self.send_json(data=message, response=response)
+            self._event_dispatcher.remove_event_listener(event_listener_token)
         except Exception:
             self.handle_exception("Failed to register event listener")
             response.status = 500
 
+    def push_event(self, request, response):
+        try:
+            uri_parts = self.parse_uri(request)
+            token = uri_parts[2]
+            message = None
+            body = request.body.decode(u"utf-8")
+            if body != u"":
+                message = json.loads(body)
+
+            self._event_dispatcher.dispatch_event(
+                token,
+                message["type"],
+                message["data"])
+        except Exception:
+            self.handle_exception("Failed to push session event")
+
     def handle_request(self, request, response):
         method = request.method
         uri_parts = self.parse_uri(request)
+        body = request.body
+        headers = request.headers
+        query_parameters = self.parse_query_parameters(request)
+        uri_path = request.url_parts.path
 
+        result = None
         # /api/sessions
         if len(uri_parts) == 2:
             if method == "POST":
-                self.create_session(request, response)
-                return
+                result = self.create_session(body, headers)
+            if method == "GET":
+                if self._read_sessions_enabled:
+                    result = self.read_sessions(query_parameters, uri_path)
 
         # /api/sessions/<token>
         if len(uri_parts) == 3:
@@ -300,8 +395,7 @@ class SessionsApiHandler(ApiHandler):
                 if len(function) != TOKEN_LENGTH:
                     self.find_session(request, response)
                     return
-                self.read_session(request, response)
-                return
+                result = self.read_session(token=uri_parts[2])
             if method == "PUT":
                 self.update_session_configuration(request, response)
                 return
@@ -314,8 +408,7 @@ class SessionsApiHandler(ApiHandler):
             function = uri_parts[3]
             if method == "GET":
                 if function == "status":
-                    self.read_session_status(request, response)
-                    return
+                    result = self.read_session_status(token=uri_parts[2])
                 if function == "events":
                     self.register_event_listener(request, response)
                     return
@@ -332,9 +425,32 @@ class SessionsApiHandler(ApiHandler):
                 if function == "resume":
                     self.resume_session(request, response)
                     return
+                if function == "events":
+                    self.push_event(request, response)
+                    return
             if method == "PUT":
                 if function == "labels":
                     self.update_labels(request, response)
                     return
 
-        response.status = 404
+        if result is None:
+            response.status = 404
+            return
+
+        format = None
+        if "format" in result:
+            format = result["format"]
+            if format == "application/json":
+                data = None
+                if "data" in result:
+                    data = result["data"]
+                status = 200
+                if "status" in result:
+                    status = result["status"]
+                self.send_json(data, response, status)
+                return
+
+        status = 404
+        if "status" in result:
+            status = result["status"]
+        response.status = status

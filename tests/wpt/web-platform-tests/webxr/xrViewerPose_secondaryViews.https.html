@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+let nonImmersiveNoSecondaryTestName =
+  "Only primary views are returned if secondary views are not requested for non-immersive";
+let immersiveNoSecondaryTestName =
+  "Only primary views are returned if secondary views are not requested for immersive";
+let nonImmersiveSecondaryTestName =
+  "Requesting secondary views only returns primary views for non-immersive";
+let immersiveSecondaryTestName =
+  "Requesting secondary views returns both primary and secondary views for immersive";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let verifyView = function(view, eye, isFirstPersonObserver) {
+  assert_equals(view.eye, eye);
+  assert_equals(view.isFirstPersonObserver, isFirstPersonObserver);
+};
+
+let verifyInlineViews = function(views) {
+  // Inline sessions should never have secondary views regardless of whether
+  // it was requested or not.
+  assert_equals(views.length, 1);
+  verifyView(views[0], "none", false);
+};
+
+let verifyImmersiveViews = function(views, secondaryViewsEnabled) {
+  verifyView(views[0], "left", false);
+  verifyView(views[1], "right", false);
+
+  if (secondaryViewsEnabled) {
+    assert_equals(views.length, 3);
+    verifyView(views[2], "none", true);
+  } else {
+    assert_equals(views.length, 2);
+  }
+};
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return session.requestReferenceSpace('local')
+    .then((referenceSpace) => new Promise((resolve, reject) => {
+      function onFrame(time, xrFrame) {
+        t.step(() => {
+          let pose = xrFrame.getViewerPose(referenceSpace);
+          if (!pose) {
+            // For inline sessions, the window may have triggered this frame,
+            // instead of the session. This frame has no frame data which
+            // results in a null pose.
+            assert_true(session.mode == 'inline');
+            session.requestAnimationFrame(onFrame);
+            return;
+          }
+
+          if (session.mode == 'inline') {
+            verifyInlineViews(pose.views);
+          } else {
+            verifyImmersiveViews(
+              pose.views,
+              session.sessionInit['optionalFeatures'].includes('secondary-views'));
+          }
+
+          resolve();
+        });
+      }
+      session.requestAnimationFrame(onFrame);
+    }));
+};
+
+xr_session_promise_test(
+  nonImmersiveNoSecondaryTestName, testFunction, fakeDeviceInitParams, 'inline',
+  {'requiredFeatures': ['local'],
+    'optionalFeatures': []});
+xr_session_promise_test(
+  immersiveNoSecondaryTestName, testFunction, fakeDeviceInitParams, 'immersive-vr',
+  {'requiredFeatures': ['local'],
+    'optionalFeatures': []});
+xr_session_promise_test(
+  nonImmersiveSecondaryTestName, testFunction, fakeDeviceInitParams, 'inline',
+  {'requiredFeatures': ['local'],
+    'optionalFeatures': ['secondary-views']});
+xr_session_promise_test(
+  immersiveSecondaryTestName, testFunction, fakeDeviceInitParams, 'immersive-vr',
+  {'requiredFeatures': ['local'],
+    'optionalFeatures': ['secondary-views']});
+
+</script>
+</body>

@@ -85,4 +85,21 @@ promise_test(async () => {
   assert_equals(typeof result, 'string');
 }, 'navigator.clipboard.readText() succeeds');
 
+promise_test(async () => {
+  await getPermissions();
+  const promise_blob = Promise.resolve(new Blob(['hello'], {type: 'text/plain'}));
+  const item = new ClipboardItem({'text/plain': promise_blob});
+
+  await navigator.clipboard.write([item]);
+}, 'navigator.clipboard.write(Promise<Blob>) succeeds');
+
+promise_test(async () => {
+  await getPermissions();
+  const promise_text_blob = Promise.resolve(new Blob(['hello'], {type: 'text/plain'}));
+  const promise_html_blob = Promise.resolve(new Blob(["<p style='color: red; font-style: oblique;'>Test</p>"], {type: 'text/html'}));
+  const item = new ClipboardItem({'text/plain': promise_text_blob, 'text/html': promise_html_blob});
+
+  await navigator.clipboard.write([item]);
+}, 'navigator.clipboard.write(Promise<Blob>s) succeeds');
+
 </script>

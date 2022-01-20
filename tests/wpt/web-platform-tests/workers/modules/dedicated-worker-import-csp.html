@@ -13,16 +13,22 @@ async function openWindow(url) {
 }
 
 function import_csp_test(
-    cspHeader, scriptURL, expectedImportedModules, description) {
-  const windowURL =
-      `resources/new-worker-window.html?pipe=header(` +
-          `Content-Security-Policy, ${cspHeader})`;
+    cspHeader, importType, expectedImportedModules, description) {
+  // Append CSP header to windowURL for static import tests since static import
+  // scripts should obey Window's CSP.
+  const windowURL = `resources/new-worker-window.html` +
+      `${importType === 'static'
+          ? '?pipe=header(Content-Security-Policy, ' + cspHeader + ')'
+          : ''}`;
+  // Append CSP header to scriptURL for dynamic import tests since dynamic
+  // import scripts should obey Worker script's responce's CSP.
+  const scriptURL = `${importType}-import-remote-origin-script-worker.sub.js` +
+      `${importType === 'dynamic'
+          ? '?pipe=header(Content-Security-Policy, ' + cspHeader + ')'
+          : ''}`;
   promise_test(async () => {
-    // Open a window that has the given CSP header.
     const win = await openWindow(windowURL);
-    // Ask the window to start a dedicated worker. The worker inherits the
-    // window's CSP header.
-    // https://w3c.github.io/webappsec-csp/#initialize-global-object-csp
+    // Ask the window to start a dedicated worker.
     win.postMessage(scriptURL, '*');
     const msg_event = await new Promise(resolve => window.onmessage = resolve);
     assert_array_equals(msg_event.data, expectedImportedModules);
@@ -44,38 +50,38 @@ function import_csp_test(
 
 import_csp_test(
     "worker-src 'self' 'unsafe-inline'",
-    "static-import-remote-origin-script-worker.sub.js",
+    "static",
     ['ERROR'],
     "worker-src 'self' directive should disallow cross origin static import.");
 
 import_csp_test(
     "worker-src * 'unsafe-inline'",
-    "static-import-remote-origin-script-worker.sub.js",
+    "static",
     ["export-on-load-script.js"],
     "worker-src * directive should allow cross origin static import.")
 
 import_csp_test(
     "script-src 'self' 'unsafe-inline'",
-    "static-import-remote-origin-script-worker.sub.js",
+    "static",
     ['ERROR'],
     "script-src 'self' directive should disallow cross origin static import.");
 
 import_csp_test(
     "script-src * 'unsafe-inline'",
-    "static-import-remote-origin-script-worker.sub.js",
+    "static",
     ["export-on-load-script.js"],
     "script-src * directive should allow cross origin static import.")
 
 import_csp_test(
     "worker-src *; script-src 'self' 'unsafe-inline'",
-    "static-import-remote-origin-script-worker.sub.js",
+    "static",
     ["export-on-load-script.js"],
     "worker-src * directive should override script-src 'self' directive and " +
         "allow cross origin static import.");
 
 import_csp_test(
     "worker-src 'self'; script-src * 'unsafe-inline'",
-    "static-import-remote-origin-script-worker.sub.js",
+    "static",
     ['ERROR'],
     "worker-src 'self' directive should override script-src * directive and " +
         "disallow cross origin static import.");
@@ -95,19 +101,19 @@ import_csp_test(
 
 import_csp_test(
     "script-src 'self' 'unsafe-inline'",
-    "dynamic-import-remote-origin-script-worker.sub.js",
+    "dynamic",
     ['ERROR'],
     "script-src 'self' directive should disallow cross origin dynamic import.");
 
 import_csp_test(
     "script-src * 'unsafe-inline'",
-    "dynamic-import-remote-origin-script-worker.sub.js",
+    "dynamic",
     ["export-on-load-script.js"],
     "script-src * directive should allow cross origin dynamic import.")
 
 import_csp_test(
     "worker-src 'self' 'unsafe-inline'",
-    "dynamic-import-remote-origin-script-worker.sub.js",
+    "dynamic",
     ["export-on-load-script.js"],
     "worker-src 'self' directive should not take effect on dynamic import.");
 

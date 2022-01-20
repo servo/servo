@@ -1,0 +1,28 @@
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1255406">
+<script type="text/javascript">
+var nodes = Array();
+var text = Array();
+ {
+ nodes[9] = document.createElement('textarea');
+ nodes[11] = document.createElement('legend');
+ nodes[44] = document.createElement('details');
+ document.documentElement.appendChild(nodes[44]);
+ nodes[68] = document.createElement('fieldset');
+ nodes[81] = document.createElement('option');
+
+
+
+ nodes[85] = document.createElement('img');
+ text[42] = document.createTextNode('744879385');
+ nodes[44].appendChild(text[42]);
+ nodes[68].appendChild(nodes[11]);
+ nodes[44].appendChild(nodes[68]);
+ requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+   try { nodes[85].appendChild(nodes[68]); } catch(e) {}
+  });
+ });
+ nodes[44].appendChild(nodes[9]);
+ requestAnimationFrame(() => { document.execCommand("SelectAll", false, ""); });
+}
+</script>

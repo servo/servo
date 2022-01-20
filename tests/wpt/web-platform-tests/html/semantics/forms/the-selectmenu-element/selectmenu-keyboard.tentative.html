@@ -6,7 +6,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
   <selectmenu id="selectMenu0">
-    <div id="selectMenu0-button0" slot="button" part="button" tabindex="0">button</div>
+    <div id="selectMenu0-button0" slot="button" behavior="button" tabindex="0">button</div>
     <option>one</option>
     <option>two</option>
     <option>three</option>
@@ -14,6 +14,20 @@
 
   <selectmenu id="selectMenu1">
     <option id="selectMenu1-child0">one</option>
+  </selectmenu>
+
+  <selectmenu id="selectMenu2" disabled>
+    <div id="selectMenu2-button0" slot="button" behavior="button" tabindex="0">button</div>
+    <option disabled>one</option>
+    <option>two</option>
+    <option>three</option>
+  </selectmenu>
+
+  <selectmenu id="selectMenu3">
+    <div id="selectMenu3-button0" slot="button" behavior="button" tabindex="0">button</div>
+    <option>one</option>
+    <option disabled>two</option>
+    <option>three</option>
   </selectmenu>
 <script>
 // See https://w3c.github.io/webdriver/#keyboard-actions
@@ -72,7 +86,7 @@ promise_test(async t => {
 
   await test_driver.send_keys(selectMenu, KEY_CODE_MAP.Enter);
   assert_false(selectMenu.open, "Enter key should close selectmenu");
-}, "Validate Enter, Up/Down Arrow, and Space keyboard accessibility support for <selecmenu>");
+}, "Validate Enter, Up/Down Arrow, and Space keyboard accessibility support for <selectmenu>");
 
 promise_test(async t => {
   const selectMenuOption = document.getElementById("selectMenu1-child0");
@@ -80,4 +94,30 @@ promise_test(async t => {
   event.initEvent("keydown");
   selectMenuOption.dispatchEvent(event);
 }, "Firing a synthetic event at a selectmenu's option doesn't crash");
+
+promise_test(async t => {
+  const selectMenu2 = document.querySelector("#selectMenu2");
+  const selectMenu2Button = document.querySelector("#selectMenu2-button0");
+  assert_false(selectMenu2.open, "selectmenu should not be initially open");
+
+  await test_driver.send_keys(selectMenu2Button, KEY_CODE_MAP.Enter);
+  assert_false(selectMenu2.open, "Enter key should not open a disabled selectmenu");
+  await clickOn(selectMenu2);
+  assert_false(selectMenu2.open, "Click should not open a disabled selectmenu");
+  assert_equals(selectMenu2.value, "one");
+
+  const selectMenu3 = document.querySelector("#selectMenu3");
+  const selectMenu3Button = document.querySelector("#selectMenu3-button0");
+  assert_false(selectMenu3.open, "selectmenu should not be initially open");
+
+  await test_driver.send_keys(selectMenu3Button, KEY_CODE_MAP.Enter);
+  assert_true(selectMenu3.open, "Enter key should open selectmenu");
+  assert_equals(selectMenu3.value, "one");
+
+  await test_driver.send_keys(selectMenu3, KEY_CODE_MAP.ArrowDown);
+  assert_equals(selectMenu3.value, "three", "Down arrow should go to next non-disabled option");
+
+  await test_driver.send_keys(selectMenu3, KEY_CODE_MAP.ArrowUp);
+  assert_equals(selectMenu3.value, "one", "Up arrow should go to the previous non-disabled option");
+}, "Validate Enter, Up/Down Arrow keyboard accessibility support for disabled <selectmenu>");
 </script>

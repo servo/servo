@@ -31,32 +31,55 @@ const topRight = document.getElementById("top-right");
 scrollLeft = () => scroller.scrollLeft;
 scrollTop = () => scroller.scrollTop;
 
+function ScrollCounter(test, eventTarget) {
+  this.count = 0;
+  const scrollListener = () => {
+    this.count++;
+  }
+  eventTarget.addEventListener('scroll', scrollListener);
+  test.add_cleanup(() => {
+    eventTarget.removeEventListener('scroll', scrollListener);
+  });
+}
+
 promise_test(async t => {
   scroller.scrollTo(0, 0);
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
+  const scrollCounter = new ScrollCounter(t, scroller);
   await keyPress(scroller, "ArrowDown");
   await waitForScrollEnd(scroller, scrollTop, 400);
+  // Make sure we don't jump directly to the new snap position.
+  assert_greater_than(scrollCounter.count, 2);
 }, "Snaps to bottom-left after pressing ArrowDown");
 
 promise_test(async t => {
   scroller.scrollTo(0, 400);
   assert_equals(scroller.scrollTop, 400, "verify test pre-condition");
+  const scrollCounter = new ScrollCounter(t, scroller);
   await keyPress(scroller, "ArrowUp");
   await waitForScrollEnd(scroller, scrollTop, 0);
+  // Make sure we don't jump directly to the new snap position.
+  assert_greater_than(scrollCounter.count, 2);
 }, "Snaps to top-left after pressing ArrowUp");
 
 promise_test(async t => {
   scroller.scrollTo(0, 0);
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
+  const scrollCounter = new ScrollCounter(t, scroller);
   await keyPress(scroller, "ArrowRight");
   await waitForScrollEnd(scroller, scrollLeft, 400);
+  // Make sure we don't jump directly to the new snap position.
+  assert_greater_than(scrollCounter.count, 2);
 }, "Snaps to top-right after pressing ArrowRight");
 
 promise_test(async t => {
   scroller.scrollTo(400, 0);
   assert_equals(scroller.scrollLeft, 400, "verify test pre-condition");
+  const scrollCounter = new ScrollCounter(t, scroller);
   await keyPress(scroller, "ArrowLeft");
   await waitForScrollEnd(scroller, scrollLeft, 0);
+  // Make sure we don't jump directly to the new snap position.
+  assert_greater_than(scrollCounter.count, 2);
 }, "Snaps to top-left after pressing ArrowLeft");
 
 promise_test(async t => {

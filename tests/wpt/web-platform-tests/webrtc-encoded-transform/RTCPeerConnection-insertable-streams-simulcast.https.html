@@ -3,6 +3,9 @@
 <title>RTCPeerConnection Insertable Streams Simulcast</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
 <script src="../webrtc/RTCPeerConnection-helper.js"></script>
 <script src="../webrtc/third_party/sdp/sdp.js"></script>
 <script src="../webrtc/simulcast/simulcast.js"></script>
@@ -21,11 +24,11 @@ promise_test(async t => {
   let receiverSSRCs = []
   pc2.ontrack = t.step_func(e => {
     const receiverTransformer = new TransformStream({
-      async transform(chunk, controller) {
-        let ssrc = chunk.getMetadata().synchronizationSource;
+      async transform(encodedFrame, controller) {
+        let ssrc = encodedFrame.getMetadata().synchronizationSource;
         if (receiverSSRCs.indexOf(ssrc) == -1)
           receiverSSRCs.push(ssrc);
-        controller.enqueue(chunk);
+        controller.enqueue(encodedFrame);
       }
     });
     const receiverStreams = e.receiver.createEncodedStreams();
@@ -45,6 +48,7 @@ promise_test(async t => {
     }));
   });
 
+  await setMediaPermission("granted", ["camera"]);
   const stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}});
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   const transceiver = pc1.addTransceiver(stream.getVideoTracks()[0], {
@@ -54,10 +58,10 @@ promise_test(async t => {
   const senderStreams = transceiver.sender.createEncodedStreams();
   let senderSSRCs = [];
   const senderTransformer = new TransformStream({
-    async transform(chunk, controller) {
-      if (senderSSRCs.indexOf(chunk.getMetadata().synchronizationSource) == -1)
-        senderSSRCs.push(chunk.getMetadata().synchronizationSource);
-      controller.enqueue(chunk);
+    async transform(encodedFrame, controller) {
+      if (senderSSRCs.indexOf(encodedFrame.getMetadata().synchronizationSource) == -1)
+        senderSSRCs.push(encodedFrame.getMetadata().synchronizationSource);
+      controller.enqueue(encodedFrame);
     }
   });
   senderStreams.readable

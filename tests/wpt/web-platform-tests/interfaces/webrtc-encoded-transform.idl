@@ -36,8 +36,30 @@ typedef (SmallCryptoKeyID or bigint) CryptoKeyID;
 interface SFrameTransform {
     constructor(optional SFrameTransformOptions options = {});
     Promise<undefined> setEncryptionKey(CryptoKey key, optional CryptoKeyID keyID);
+    attribute EventHandler onerror;
 };
 SFrameTransform includes GenericTransformStream;
+
+enum SFrameTransformErrorEventType {
+    "authentication",
+    "keyID",
+    "syntax"
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface SFrameTransformErrorEvent : Event {
+    constructor(DOMString type, SFrameTransformErrorEventInit eventInitDict);
+
+    readonly attribute SFrameTransformErrorEventType errorType;
+    readonly attribute CryptoKeyID? keyID;
+    readonly attribute any frame;
+};
+
+dictionary SFrameTransformErrorEventInit : EventInit {
+    required SFrameTransformErrorEventType errorType;
+    required any frame;
+    CryptoKeyID? keyID;
+};
 
 // New enum for video frame types. Will eventually re-use the equivalent defined
 // by WebCodecs.

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!-- Conceptually this is just a crashtest, but we need testharness.js so that testdriver works as expected, see https://github.com/web-platform-tests/wpt/issues/31739 -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1739079">
+<span id="outer"></span>
+<script>
+  const t = async_test("Shouldn't crash when dragging disabled textarea in shadow dom");
+  const outer = document.getElementById("outer");
+  outer.attachShadow({ mode: "open" }).innerHTML = `
+    <span id="inner" style="pointer-events: none">
+      <textarea disabled></textarea>
+    </span>
+  `;
+  const inner = outer.shadowRoot.getElementById("inner");
+  inner.attachShadow({ mode: "open" }).innerHTML = `
+    <div style="display: flex">
+      <slot></slot>
+    </div>
+  `;
+  const textarea = outer.shadowRoot.querySelector("textarea");
+  window.addEventListener("load", t.step_func(function() {
+    const rect = textarea.getBoundingClientRect();
+    new test_driver.Actions()
+        .pointerMove(rect.left + 5, rect.top + 5)
+        .pointerDown()
+        .pointerMove(rect.left, + 50, rect.top + 50)
+        .pointerMove(0, 0)
+        .pointerUp()
+        .send()
+        .then(t.step_func_done(function() {
+          assert_true(true, "Didn't crash nor hang");
+        }));
+  }));
+</script>

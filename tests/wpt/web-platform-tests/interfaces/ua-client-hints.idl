@@ -11,12 +11,13 @@ dictionary NavigatorUABrandVersion {
 dictionary UADataValues {
   sequence<NavigatorUABrandVersion> brands;
   boolean mobile;
-  DOMString platform;
   DOMString architecture;
   DOMString bitness;
   DOMString model;
+  DOMString platform;
   DOMString platformVersion;
-  DOMString uaFullVersion;
+  DOMString uaFullVersion; // deprecated in favor of fullVersionList
+  sequence<NavigatorUABrandVersion> fullVersionList;
 };
 
 dictionary UALowEntropyJSON {

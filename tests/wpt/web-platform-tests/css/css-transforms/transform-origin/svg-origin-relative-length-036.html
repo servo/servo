@@ -8,11 +8,14 @@
   <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-user-coordinate-space">
   <link rel="match" href="reference/svg-origin-relative-length-ref.html">
   <meta name="flags" content="svg">
-  <meta name="assert" content="The initial point of origin gets translated to 75,75 since 'left 75' is relative to the bounding box of the object.">
+  <meta name="assert" content="The initial point of origin gets translated to 75,75 since 'left 0' is relative to the bounding box of the object.">
   <style type="text/css">
     svg {
       width: 200px;
       height: 200px;
+    }
+    rect {
+      transform-box: fill-box;
     }
   </style>
  </head>
@@ -27,7 +30,7 @@
        </linearGradient>
      </defs>
      <rect x="1" y="1" width="148" height="148" fill="red"/>
-     <rect x="75" y="75" width="150" height="150" fill="url(#grad)" transform="rotate(90deg) translate(-75,-75)" transform-origin="left 75"/>
+     <rect x="75" y="75" width="150" height="150" fill="url(#grad)" transform="rotate(90) translate(-75,-75)" transform-origin="left 0"/>
    </svg>
  </body>
 </html>

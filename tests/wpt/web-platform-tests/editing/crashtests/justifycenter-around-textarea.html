@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+function go() {
+  a.replaceWith(undefined)
+  window.getSelection().modify("move", "right", "word")
+  document.execCommand("justifyCenter", false)
+}
+</script>
+<div contenteditable="true">a</div>
+<textarea>23</textarea>
+<li dir="RTL">
+<strong id="a">
+<svg onload="go()">

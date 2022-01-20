@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1280134">
+
+<html contenteditable=true>
+  X<div style="content-visibility:hidden">Y</div>Z
+<script>
+document.execCommand("selectall");
+document.execCommand("fontSize", false, 6);
+</script>

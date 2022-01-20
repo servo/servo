@@ -12,7 +12,7 @@
 // of client hints it receives in the request headers.
 
 fetch(get_host_info()["HTTPS_REMOTE_ORIGIN"] + "/client-hints/accept-ch-stickiness/resources/echo-client-hints-received.py").then(r => {
-  if(r.status == 200 && r.headers.has("device-memory-received")) {
+  if(r.status == 200 && r.headers.has("device-memory-received") && r.headers.has("device-memory-deprecated-received")) {
     window.top.opener.postMessage('PASS', '*');
   }
   else {

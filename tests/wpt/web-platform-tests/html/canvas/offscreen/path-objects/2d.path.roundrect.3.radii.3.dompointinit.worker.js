@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#f00';
 ctx.fillRect(0, 0, 100, 50);
@@ -23,15 +23,15 @@ ctx.fillStyle = '#0f0';
 ctx.fill();
 
 // bottom-right corner
-_assertPixel(offscreenCanvas, 79,48, 255,0,0,255, "79,48", "255,0,0,255");
-_assertPixel(offscreenCanvas, 58,48, 0,255,0,255, "58,48", "0,255,0,255");
-_assertPixel(offscreenCanvas, 98,39, 255,0,0,255, "98,39", "255,0,0,255");
-_assertPixel(offscreenCanvas, 98,28, 0,255,0,255, "98,28", "0,255,0,255");
+_assertPixel(canvas, 79,48, 255,0,0,255, "79,48", "255,0,0,255");
+_assertPixel(canvas, 58,48, 0,255,0,255, "58,48", "0,255,0,255");
+_assertPixel(canvas, 98,39, 255,0,0,255, "98,39", "255,0,0,255");
+_assertPixel(canvas, 98,28, 0,255,0,255, "98,28", "0,255,0,255");
 
 // other corners
-_assertPixel(offscreenCanvas, 1,1, 0,255,0,255, "1,1", "0,255,0,255");
-_assertPixel(offscreenCanvas, 98,1, 0,255,0,255, "98,1", "0,255,0,255");
-_assertPixel(offscreenCanvas, 1,48, 0,255,0,255, "1,48", "0,255,0,255");
+_assertPixel(canvas, 1,1, 0,255,0,255, "1,1", "0,255,0,255");
+_assertPixel(canvas, 98,1, 0,255,0,255, "98,1", "0,255,0,255");
+_assertPixel(canvas, 1,48, 0,255,0,255, "1,48", "0,255,0,255");
 t.done();
 
 });

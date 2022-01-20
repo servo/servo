@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+
+<title>CSS Conditional Test: Unknown Functional Notation as False in @supports</title>
+<meta name="assert"
+      content="Test passes if unknown but grammatical functional notations are treated as false in @supports.">
+<link rel="help" href="https://www.w3.org/TR/css3-conditional/#at-supports">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="match" href="at-supports-001-ref.html">
+
+<style>
+  div {
+    background: green;
+    height: 10px;
+    width: 100px;
+  }
+
+  div {
+    background: red;
+  }
+
+  @supports not unknown() {
+    .test1.bare { background: green; }
+  }
+  @supports (not (unknown())) {
+    .test1.wrapped { background: green; }
+  }
+
+  @supports not unknown(with stuff) {
+    .test2.bare { background: green; }
+  }
+  @supports (not (unknown(with stuff))) {
+    .test2.wrapped { background: green; }
+  }
+
+  @supports not unknown(!@#% { ... } more() @stuff [ ]) {
+    .test3.bare { background: green; }
+  }
+  @supports (not (unknown(!@#% { ... } more() @stuff [ ]))) {
+    .test3.wrapped { background: green; }
+  }
+
+  .test4, .test5 { background: green; }
+
+  @supports unknown() {
+    .test4.bare { background: red; }
+  }
+  @supports (unknown()) {
+    .test4.wrapped { background: red; }
+  }
+
+  @supports unknown(with stuff) {
+    .test5.bare { background: red; }
+  }
+  @supports (unknown(with stuff)) {
+    .test5.wrapped { background: red; }
+  }
+</style>
+
+<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+
+<div class="test1 bare"></div>
+<div class="test2 bare"></div>
+<div class="test3 bare"></div>
+<div class="test4 bare"></div>
+<div class="test5 bare"></div>
+<div class="test1 wrapped"></div>
+<div class="test2 wrapped"></div>
+<div class="test3 wrapped"></div>
+<div class="test4 wrapped"></div>
+<div class="test5 wrapped"></div>

@@ -47,8 +47,7 @@ function createScroller(test) {
 
 function createScrollLinkedWorkletAnimation(test) {
   const timeline = new ScrollTimeline({
-    scrollSource: createScroller(test),
-    timeRange: 1000
+    scrollSource: createScroller(test)
   });
   const DURATION = 10000; // ms
   const KEYFRAMES = { transform: ['translateY(100px)', 'translateY(200px)'] };
@@ -210,7 +209,6 @@ function setupAndRegisterTests() {
       const animation = createScrollLinkedWorkletAnimation(t);
       const scroller = animation.timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-      const timeRange = animation.timeline.timeRange;
       scroller.scrollTop = 0.2 * maxScroll;
 
       animation.playbackRate = 0.5;
@@ -218,7 +216,7 @@ function setupAndRegisterTests() {
       await waitForAnimationFrameWithCondition(_=> {
         return animation.playState == "running"
       });
-      assert_equals(animation.currentTime, 0.2 * timeRange * 0.5,
+      assert_percents_equal(animation.currentTime, 10,
         'Initial current time is scaled by playbackRate.');
     }, 'Initial current time is scaled by playbackRate set while ' +
        'scroll-linked animation is in idle state.');
@@ -227,13 +225,12 @@ function setupAndRegisterTests() {
       const animation = createScrollLinkedWorkletAnimation(t);
       const scroller = animation.timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-      const timeRange = animation.timeline.timeRange;
       scroller.scrollTop = 0.2 * maxScroll;
 
       animation.play();
       animation.playbackRate = 0.5;
 
-      assert_equals(animation.currentTime, 0.2 * timeRange,
+      assert_percents_equal(animation.currentTime, 20,
         'Initial current time is not affected by playbackRate.');
     }, 'Initial current time is not affected by playbackRate set while '+
        'scroll-linked animation is in play-pending state.');
@@ -242,7 +239,6 @@ function setupAndRegisterTests() {
       const animation = createScrollLinkedWorkletAnimation(t);
       const scroller = animation.timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-      const timeRange = animation.timeline.timeRange;
       const playbackRate = 2;
 
       animation.play();
@@ -252,7 +248,7 @@ function setupAndRegisterTests() {
       });
       // Set playback rate while the animation is playing.
       animation.playbackRate = playbackRate;
-      assert_times_equal(animation.currentTime, 0.2 * timeRange,
+      assert_percents_equal(animation.currentTime, 20,
         'The current time should stay unaffected by setting playback rate.');
     }, 'The current time is not affected by playbackRate set while the ' +
        'scroll-linked animation is in play state.');
@@ -262,7 +258,6 @@ function setupAndRegisterTests() {
       const scroller = animation.timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
       const playbackRate = 2;
-      const timeRange = animation.timeline.timeRange;
 
       animation.play();
       await waitForAnimationFrameWithCondition(_=> {
@@ -275,8 +270,8 @@ function setupAndRegisterTests() {
 
       scroller.scrollTop = 0.2 * maxScroll;
 
-      assert_times_equal(
-        animation.currentTime - 0.1 * timeRange, 0.1 * timeRange * playbackRate,
+      assert_equals(
+        animation.currentTime.value - 10, 10 * playbackRate,
         'The current time should increase twice faster than scroll timeline.');
     }, 'Scroll-linked animation playback rate affects the rate of progress ' +
        'of the current time.');
@@ -285,7 +280,6 @@ function setupAndRegisterTests() {
       const animation = createScrollLinkedWorkletAnimation(t);
       const scroller = animation.timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-      const timeRange = animation.timeline.timeRange;
       const playbackRate = 2;
 
       // Set playback rate while the animation is in 'idle' state.
@@ -296,7 +290,7 @@ function setupAndRegisterTests() {
       });
       scroller.scrollTop = 0.2 * maxScroll;
 
-      assert_times_equal(animation.currentTime, 0.2 * timeRange * playbackRate,
+      assert_percents_equal(animation.currentTime, 20 * playbackRate,
         'The current time should increase two times faster than timeline.');
     }, 'The playback rate set before scroll-linked animation started playing ' +
        'affects the rate of progress of the current time');
@@ -304,8 +298,7 @@ function setupAndRegisterTests() {
     promise_test(async t => {
       const scroller = createScroller(t);
       const timeline = new ScrollTimeline({
-        scrollSource: scroller,
-        timeRange: 1000
+        scrollSource: scroller
       });
       const timing = { duration: 1000,
                       easing: 'linear',
@@ -319,7 +312,6 @@ function setupAndRegisterTests() {
         'passthrough', keyframeEffect, timeline);
       const playbackRate = 2;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-      const timeRange = timeline.timeRange;
 
       animation.play();
       animation.playbackRate = playbackRate;
@@ -333,14 +325,14 @@ function setupAndRegisterTests() {
         return getComputedStyle(target).opacity != '1';
       });
 
-      assert_times_equal(
+      assert_percents_equal(
         keyframeEffect.getComputedTiming().localTime,
-        0.2 * timeRange * playbackRate,
+        20 * playbackRate,
         'When playback rate is set on WorkletAnimation, the underlying ' +
         'effect\'s timing should be properly updated.');
       assert_approx_equals(
         Number(getComputedStyle(target).opacity),
-        1 - 0.2 * timeRange * playbackRate / 1000, 0.001,
+        1 - 20 * playbackRate / 1000, 0.001,
         'When playback rate is set on WorkletAnimation, the underlying ' +
         'effect should produce correct visual result.');
     }, 'When playback rate is updated, the underlying effect is properly ' +

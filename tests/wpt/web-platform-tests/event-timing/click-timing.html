@@ -24,7 +24,7 @@
     assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
     new PerformanceObserver(t.step_func(entryList => {
       observedEntries = observedEntries.concat(entryList.getEntries().filter(
-        entry => entry.name === 'mousedown'));
+        entry => entry.name === 'pointerdown'));
       if (observedEntries.length < 2)
         return;
 

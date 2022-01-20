@@ -7,9 +7,9 @@ async function clickOnElementAndDelay(id, delay, callback) {
     mainThreadBusy(delay);
     if (callback)
       callback();
-    element.removeEventListener("mousedown", clickHandler);
+    element.removeEventListener("pointerdown", clickHandler);
   };
-  element.addEventListener("mousedown", clickHandler);
+  element.addEventListener("pointerdown", clickHandler);
   await test_driver.click(element);
 }
 
@@ -52,8 +52,8 @@ function verifyEvent(entry, eventType, targetId, isFirst=false, minDuration=104,
     assert_equals(entry.target, document.getElementById(targetId));
 }
 
-function verifyClickEvent(entry, targetId, isFirst=false, minDuration=104) {
-  verifyEvent(entry, 'mousedown', targetId, isFirst, minDuration);
+function verifyClickEvent(entry, targetId, isFirst=false, minDuration=104, event='pointerdown') {
+  verifyEvent(entry, event, targetId, isFirst, minDuration);
 }
 
 function wait() {
@@ -99,13 +99,13 @@ async function testDuration(t, id, numEntries, dur, fastDur, slowDur) {
     minDuration = Math.max(minDuration, 16);
     let numEntriesReceived = 0;
     new PerformanceObserver(list => {
-      const mouseDowns = list.getEntriesByName('mousedown');
-      mouseDowns.forEach(e => {
+      const pointerDowns = list.getEntriesByName('pointerdown');
+      pointerDowns.forEach(e => {
         t.step(() => {
           verifyClickEvent(e, id, false /* isFirst */, minDuration);
         });
       });
-      numEntriesReceived += mouseDowns.length;
+      numEntriesReceived += pointerDowns.length;
       // Note that we may receive more entries if the 'fast' click events turn out slower
       // than expected.
       if (numEntriesReceived >= numEntries)

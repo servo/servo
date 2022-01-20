@@ -251,34 +251,27 @@ self.templatedRSEmptyReader = (label, factory) => {
 
   }, label + ': getReader() again on the stream should fail');
 
-  promise_test(t => {
+  promise_test(async t => {
 
     const streamAndReader = factory();
     const stream = streamAndReader.stream;
     const reader = streamAndReader.reader;
 
-    reader.read().then(
-      t.unreached_func('first read() should not fulfill'),
-      t.unreached_func('first read() should not reject')
-    );
+    const read1 = reader.read();
+    const read2 = reader.read();
+    const closed = reader.closed;
 
-    reader.read().then(
-      t.unreached_func('second read() should not fulfill'),
-      t.unreached_func('second read() should not reject')
-    );
+    reader.releaseLock();
 
-    reader.closed.then(
-      t.unreached_func('closed should not fulfill'),
-      t.unreached_func('closed should not reject')
-    );
+    assert_false(stream.locked, 'the stream should be unlocked');
 
-    assert_throws_js(TypeError, () => reader.releaseLock(), 'releaseLock should throw a TypeError');
+    await Promise.all([
+      promise_rejects_js(t, TypeError, read1, 'first read should reject'),
+      promise_rejects_js(t, TypeError, read2, 'second read should reject'),
+      promise_rejects_js(t, TypeError, closed, 'closed should reject')
+    ]);
 
-    assert_true(stream.locked, 'the stream should still be locked');
-
-    return delay(500);
-
-  }, label + ': releasing the lock with pending read requests should throw but the read requests should stay pending');
+  }, label + ': releasing the lock should reject all pending read requests');
 
   promise_test(t => {
 

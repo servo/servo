@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 var imgdata = { width: 1, height: 1, data: [255, 0, 0, 255] };
 assert_throws_js(TypeError, function() { ctx.putImageData(imgdata, 0, 0); });

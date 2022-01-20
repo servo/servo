@@ -13,6 +13,9 @@
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
 test(function () {
   assert_not_equals(navigator.mediaDevices.getUserMedia, undefined, "navigator.mediaDevices.getUserMedia exists.");
@@ -38,6 +41,8 @@ test(function () {
   }, "mediaDevices.getUserMedia() is present on navigator");
 
 promise_test(async t => {
+  // Both permissions are needed at some point, asking both at once
+  await setMediaPermission();
   assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
     "groupId should be supported");
   const devices = await navigator.mediaDevices.enumerateDevices();

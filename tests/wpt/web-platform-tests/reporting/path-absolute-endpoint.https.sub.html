@@ -53,7 +53,7 @@
   <script>
     promise_test(async t => {
       const endpoint = `${base_url}/reporting/resources/report.py`;
-      const id = 'd0d517bf-891b-457a-b970-8b2b2c81a0bf';
+      const id = '33444bb6-e444-4978-9d62-d3825844041f';
       await wait(3000);
       const reports = await pollReports(endpoint, id);
       checkReportExists(reports, 'csp-violation', location.href);

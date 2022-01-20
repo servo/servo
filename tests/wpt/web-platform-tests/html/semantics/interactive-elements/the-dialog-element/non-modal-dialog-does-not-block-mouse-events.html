@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.webkit.org/show_bug.cgi?id=110952">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<p>
+To test manually, click the red box. The test succeeds if the red box turns green.
+</p>
+
+<style>
+#div {
+    height: 100px;
+    width: 100px;
+    background: red;
+}
+</style>
+
+<div id="div"></div>
+<dialog id="dialog"></dialog>
+
+<script>
+promise_test(async () => {
+  async function clickOn(element) {
+    const actions = new test_driver.Actions()
+      .pointerMove(0, 0, {origin: element})
+      .pointerDown()
+      .pointerUp()
+      .pointerMove(0, 0);
+    await actions.send();
+  }
+
+  const dialog = document.getElementById('dialog');
+  dialog.show();
+
+  const div = document.getElementById('div');
+  div.firedOn = false;
+  div.addEventListener('click', function(event) {
+    div.firedOn = true;
+    div.style.backgroundColor = 'green';
+  });
+
+  await clickOn(div);
+
+  assert_true(div.firedOn);
+}, 'Ensure that non-modal dialogs do not block mouse events.');
+</script>

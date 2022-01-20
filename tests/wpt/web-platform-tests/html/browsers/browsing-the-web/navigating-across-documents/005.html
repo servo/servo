@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <iframe id="test" name="test"></iframe>
-<a target="test" onclick="document.getElementById('test').contentWindow.location='click.html'" href="href.html">Test</a>
+<a target="test" onclick="document.getElementById('test').contentWindow.location='resources/click.html'" href="resources/href.html">Test</a>
 <script>
 var t = async_test();
 t.step(function() {document.links[0].click()});

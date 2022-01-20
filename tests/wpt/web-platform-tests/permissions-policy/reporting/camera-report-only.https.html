@@ -5,6 +5,7 @@
     <script src='/resources/testharnessreport.js'></script>
     <script src='/resources/testdriver.js'></script>
     <script src="/resources/testdriver-vendor.js"></script>
+    <script src="../../mediacapture-streams/permission-helper.js"></script>
   </head>
   <body>
     <script>
@@ -21,6 +22,7 @@ promise_test(async t => {
                           {types: ['permissions-policy-violation']}).observe();
   });
   await test_driver.bless('Activate document for user media');
+  await setMediaPermission("granted", ["camera"]);
   await navigator.mediaDevices.getUserMedia({video: true});
   check_report_format(await report);
 }, "Camera report only mode");

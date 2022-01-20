@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    var keyframes = [
+        {columnCount: 'inherit'},
+        {columnCount: '6'}
+    ];
+
+    container.style.columnCount = 'auto';
+    var player = element.animate(keyframes, 20);
+
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).columnCount, 'auto');
+
+    container.style.columnCount = '2';
+    assert_equals(getComputedStyle(element).columnCount, '3');
+
+    player.currentTime = 10;
+    container.style.columnCount = '8';
+    assert_equals(getComputedStyle(element).columnCount, '7');
+}, 'column-count responsive to inherited column-count changes');
+</script>

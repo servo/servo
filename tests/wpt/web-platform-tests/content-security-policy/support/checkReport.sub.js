@@ -126,7 +126,7 @@
       reportCountReport.onload = reportCountTest.step_func(function () {
         var data = JSON.parse(reportCountReport.responseText);
 
-        assert_equals(data.report_count, reportCount, "Report count was not what was expected.");
+        assert_equals(data.report_count, +reportCount, "Report count was not what was expected.");
 
         reportCountTest.done();
       });

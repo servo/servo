@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <title>Resource Timing object refresh</title>
+</head>
+<body>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="nested-contexts.js"></script>
 <script>
-    setup_refresh_test();
+  setup_refresh_test();
 </script>
-<div id=log></div>
-<object type="text/html"></object>
+<object id="target" type="text/html"></object>
 <script>
-    document.getElementsByTagName("object")[0].data = pre_refresh_url;
+  target.data = pre_refresh_url;
 </script>
+</body>
+</html>

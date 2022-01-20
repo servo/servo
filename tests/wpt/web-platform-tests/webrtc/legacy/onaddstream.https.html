@@ -3,6 +3,9 @@
 <title>onaddstream tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='/mediacapture-streams/permission-helper.js'></script>
 <script>
   'use strict';
 
@@ -90,6 +93,7 @@
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
+    await setMediaPermission();
     const stream1 = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
     t.add_cleanup(() => stopTracks(stream1));
     const audio1 = stream1.getAudioTracks()[0];

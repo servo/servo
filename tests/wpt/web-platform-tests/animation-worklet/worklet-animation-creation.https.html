@@ -103,7 +103,7 @@ function CreateKeyframeEffect(element) {
     let effect = CreateKeyframeEffect(document.querySelector('#element'));
     let scroller = document.querySelector('.scroller');
     let scrollTimeline = new ScrollTimeline(
-        { scrollSource: scroller, timeRange: 100, orientation: 'inline' });
+        { scrollSource: scroller, orientation: 'inline' });
     let workletAnimation = new WorkletAnimation(
         'test-animator', effect, scrollTimeline);
     assert_equals(workletAnimation.playState, 'idle');

@@ -21,7 +21,7 @@ promise_test(async t => {
     assert_equals(appHistory.transition, null);
   }));
 
-  await promise_rejects_dom(t, "AbortError", appHistory.reload());
+  await promise_rejects_dom(t, "AbortError", appHistory.reload().committed);
   assert_equals(appHistory.transition, null);
   assert_array_equals(events, ["navigate", "navigateerror"]);
 }, "canceled reload()");

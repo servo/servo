@@ -5,7 +5,7 @@
 'use strict';
 
 font_access_test(async t => {
-  const fonts = await navigator.fonts.query({persistentAccess: true});
+  const fonts = await navigator.fonts.query();
   assert_true(Array.isArray(fonts), 'Result of query() should be an Array');
   assert_greater_than_equal(fonts.length, 1, 'Need a least one font');
 
@@ -24,15 +24,6 @@ font_access_test(async t => {
     assert_equals(typeof font.fullName, 'string', 'fullName attribute type');
     assert_equals(typeof font.family, 'string', 'family attribute type');
     assert_equals(typeof font.style, 'string', 'style attribute type');
-
-    assert_equals(typeof font.italic, 'boolean', 'italic attribute type');
-    assert_equals(typeof font.weight, 'number', 'weight attribute type');
-    assert_between_inclusive(
-      font.weight, 1, 1000, `${font.postscriptName}: weight attribute range`);
-
-    assert_equals(typeof font.stretch, 'number');
-    assert_between_inclusive(
-      font.stretch, 0.5, 2, `${font.postscriptName}: stretch attribute range`);
   });
 }, 'FontMetadata property types and value ranges');
 
@@ -42,7 +33,7 @@ font_access_test(async t => {
   const testSet = getEnumerationTestSet();
 
   // Get the system fonts.
-  let fonts = await navigator.fonts.query({persistentAccess: true});
+  let fonts = await navigator.fonts.query();
   assert_true(Array.isArray(fonts), 'Result of query() should be an Array');
 
   // Filter to the ones we care about.
@@ -65,12 +56,5 @@ font_access_test(async t => {
                   `${font.postscriptName}: family should match`);
     assert_equals(font.style, expectation.style,
                   `${font.postscriptName}: style should match`);
-
-    assert_equals(font.italic, expectation.italic,
-                  `${font.postscriptName}: italic should match`);
-    assert_equals(font.stretch, expectation.stretch,
-                  `${font.postscriptName}: stretch should match`);
-    assert_equals(font.weight, expectation.weight,
-                  `${font.postscriptName}: weight should match`);
   });
 }, 'Expected FontMetadata values for for well-known system fonts');

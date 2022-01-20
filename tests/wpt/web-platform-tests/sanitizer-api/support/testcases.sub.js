@@ -11,6 +11,8 @@ const testcases = [
   {config_input: {}, value: "<html><head></head><body>test</body></html>", result: "test", message: "document"},
   {config_input: {}, value: "<div>test", result: "<div>test</div>", message: "html without close tag"},
   {config_input: {}, value: "<script>alert('i am a test')<\/script>", result: "", message: "scripts for default configs"},
+  {config_input: {}, value: "hello<script>alert('i am a test')<\/script>", result: "hello", message: "script not as root"},
+  {config_input: {}, value: "<div><b>hello<script>alert('i am a test')<\/script>", result: "<div><b>hello</b></div>", message: "script deeper in the tree"},
   {config_input: {}, value: "<p onclick='a= 123'>Click.</p>", result: "<p>Click.</p>", message: "onclick scripts"},
   {config_input: {}, value: "<plaintext><p>text</p>", result: "&lt;p&gt;text&lt;/p&gt;", message: "plaintext"},
   {config_input: {}, value: "<xmp>TEXT</xmp>", result: "TEXT", message: "xmp"},

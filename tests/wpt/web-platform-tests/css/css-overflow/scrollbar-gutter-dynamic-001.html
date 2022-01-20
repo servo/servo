@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: scrollbar-gutter changing dynamically</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="scrollbar-gutter-dynamic-001-ref.html">
+
+<style>
+  #scroller {
+    font: 100px/1 Ahem;
+    color: green;
+    overflow-y: auto;
+    width: 300px;
+    height: 300px;
+  }
+</style>
+<div id="scroller">X X</div>
+<script>
+  scroller.offsetTop;
+  scroller.style.scrollbarGutter = "stable";
+</script>

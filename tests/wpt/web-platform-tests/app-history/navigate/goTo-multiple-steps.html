@@ -8,16 +8,16 @@ promise_test(async t => {
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
   assert_equals(appHistory.entries().length, 1);
   let key0 = appHistory.current.key;
-  await appHistory.navigate("#1");
-  await appHistory.navigate("#2");
+  await appHistory.navigate("#1").committed;
+  await appHistory.navigate("#2").committed;
   let key2 = appHistory.current.key;
   assert_equals(appHistory.entries().length, 3);
 
-  await appHistory.goTo(key0);
+  await appHistory.goTo(key0).committed;
   assert_equals(appHistory.entries().length, 3);
   assert_equals(appHistory.current, appHistory.entries()[0]);
   assert_equals(key0, appHistory.current.key);
-  await appHistory.goTo(key2);
+  await appHistory.goTo(key2).committed;
   assert_equals(appHistory.entries().length, 3);
   assert_equals(appHistory.current, appHistory.entries()[2]);
   assert_equals(key2, appHistory.current.key);

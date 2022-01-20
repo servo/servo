@@ -40,10 +40,43 @@ preflightTest(true, false, "*", "x-test", "SUPER", ["X-Test", "1"])
 preflightTest(true, false, "*", "*", "OK", ["X-Test", "1"])
 preflightTest(false, true, "*", "*", "OK", ["X-Test", "1"])
 preflightTest(false, true, "*", "", "PUT", [])
-preflightTest(true, true, "PUT", "*", "PUT", [])
 preflightTest(false, true, "get", "*", "GET", ["X-Test", "1"])
 preflightTest(false, true, "*", "*", "GET", ["X-Test", "1"])
 // Exact character match works even for "*" with credentials.
 preflightTest(true, true, "*", "*", "*", ["*", "1"])
-// "PUT" does not pass the case-sensitive method check, and not in the safe list.
-preflightTest(false, true, "put", "*", "PUT", [])
+
+// The following methods are upper-cased for init["method"] by
+// https://fetch.spec.whatwg.org/#concept-method-normalize
+// but not in Access-Control-Allow-Methods response.
+// But they are https://fetch.spec.whatwg.org/#cors-safelisted-method,
+// CORS anyway passes regardless of the cases.
+for (const METHOD of ['GET', 'HEAD', 'POST']) {
+  const method = METHOD.toLowerCase();
+  preflightTest(true, true, METHOD, "*", METHOD, [])
+  preflightTest(true, true, METHOD, "*", method, [])
+  preflightTest(true, true, method, "*", METHOD, [])
+  preflightTest(true, true, method, "*", method, [])
+}
+
+// The following methods are upper-cased for init["method"] by
+// https://fetch.spec.whatwg.org/#concept-method-normalize
+// but not in Access-Control-Allow-Methods response.
+// As they are not https://fetch.spec.whatwg.org/#cors-safelisted-method,
+// Access-Control-Allow-Methods should contain upper-cased methods,
+// while init["method"] can be either in upper or lower case.
+for (const METHOD of ['DELETE', 'PUT']) {
+  const method = METHOD.toLowerCase();
+  preflightTest(true, true, METHOD, "*", METHOD, [])
+  preflightTest(true, true, METHOD, "*", method, [])
+  preflightTest(false, true, method, "*", METHOD, [])
+  preflightTest(false, true, method, "*", method, [])
+}
+
+// "PATCH" is NOT upper-cased in both places because it is not listed in
+// https://fetch.spec.whatwg.org/#concept-method-normalize.
+// So Access-Control-Allow-Methods value and init["method"] should match
+// case-sensitively.
+preflightTest(true, true, "PATCH", "*", "PATCH", [])
+preflightTest(false, true, "PATCH", "*", "patch", [])
+preflightTest(false, true, "patch", "*", "PATCH", [])
+preflightTest(true, true, "patch", "*", "patch", [])

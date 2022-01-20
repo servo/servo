@@ -6,7 +6,18 @@
 <body>
 <script>
 promise_test(async (t) => {
-  const location_promise = new Promise((resolve, reject) => {
+  // 'b1' version
+  assert_equals(
+      await getLocationPromise("-b1"),
+      get_host_info().HTTPS_ORIGIN + '/web-bundle/resources/wbn/location.html');
+  // 'b2' version
+  assert_equals(
+      await getLocationPromise(""),
+      get_host_info().HTTPS_ORIGIN + '/web-bundle/resources/wbn/location.html');
+}, 'Location of a page in a Web Bundle');
+
+function getLocationPromise(version_suffix) {
+  return new Promise((resolve, reject) => {
     let win = null;
     window.addEventListener(
         'message',
@@ -15,15 +26,12 @@ promise_test(async (t) => {
           resolve(event.data.location);
         }, false);
     win = window.open(
-        get_host_info().HTTPS_ORIGIN + '/web-bundle/resources/wbn/location.wbn',
+        get_host_info().HTTPS_ORIGIN + '/web-bundle/resources/wbn/location' + version_suffix + '.wbn',
         '_blank');
     if (!win) {
       reject('Popup could not be opened');
     }
   });
-  assert_equals(
-      await location_promise,
-      get_host_info().HTTPS_ORIGIN + '/web-bundle/resources/wbn/location.html');
-}, 'Location of a page in a Web Bundle');
+}
 </script>
 </body>

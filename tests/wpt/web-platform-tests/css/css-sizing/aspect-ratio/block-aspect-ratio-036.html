@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: div block size aspect ratio precision</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="Verify the calculations are correct for a fractional aspect ratio.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: inline-block;background: green; height: 100px; aspect-ratio: 0.7;"></div><div style="display: inline-block;background: green; height: 100px; width: 30px;"></div>

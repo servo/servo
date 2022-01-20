@@ -1,4 +1,11 @@
-# Usage Guide - [WAVE Test Suite](../README.md)
+# Usage Guide - [WAVE Test Runner](../README.md)
+
+With WAVE Test Runner v1.0.0 all files and REST API endpoints are served under 
+a configurable namespace, by default `/_wave/`, which will be used in this 
+usage guide.
+
+In this document the usage is explained using screenshots from the context of 
+the WMAS project. However, practices can be applied to different contexts as well.
 
 ## Contents
 
@@ -26,7 +33,7 @@ Each new session is configured using several parameters before the run starts.
 Every new session is created from the landing page.
 It is recommended to create a new session from the device that is tested, as the user agent is part of the displayed information, as well as the browser and version, which gets parsed from it.
 However, this does not influence the execution of tests or the creation of test results.  
-To create a new session, open the landing page on the URI path `/`.
+To create a new session, open the landing page on the URI path `/_wave/index.html`.
 
 ![landing_page]
 
@@ -56,7 +63,7 @@ Only tests that have passed the reference test session in all selected browsers 
 The reference browsers represent the status of implementation of all WAVE APIs in modern desktop browsers, at about the time the WAVE specification was published.  
 To start the session press "Start Session", note that the landing page has to stay opened, as the test are going to be execute in the same window.
 
-[To the top](#usage-guide---wave-test-suite)
+[To the top](#usage-guide---wave-test-runner)
 
 ## 1.3 Exclude tests
 
@@ -96,11 +103,11 @@ Enter the first eight characters or more into the text field labelled "Session T
 Click "Add" to confirm.
 The tests should now appear in the list below.
 
-[To the top](#usage-guide---wave-test-suite)
+[To the top](#usage-guide---wave-test-runner)
 
 # 2. Resuming test sessions
 
-Certain test cases may cause some devices to crash, which makes the test suite unable to automatically run the next test.
+Certain test cases may cause some devices to crash, which makes the test runner unable to automatically run the next test.
 In this case, external interaction is necessary.
 To alleviate the process of resuming the test session, the are two mechanisms integrated into the web interface that reduce interaction with the device to a minimum.
 There is also a mechanism that can be useful if a test framework with access to the tested browser is utilized.
@@ -132,9 +139,9 @@ To load the next test of a specific session, simply open the following URL:
 
 For example:
 
-`/next.html?token=24fcd360-ef4d-11e9-a95f-d6e1ad4c5fdb`
+`/_wave/next.html?token=24fcd360-ef4d-11e9-a95f-d6e1ad4c5fdb`
 
-[To the top](#usage-guide---wave-test-suite)
+[To the top](#usage-guide---wave-test-runner)
 
 # 3. Monitoring test sessions
 
@@ -167,18 +174,18 @@ Once all test files of an API have received a result, it is possible to download
 
 Below the table of API results, there are more options to download the results of the session.
 The first option downloads the results the same way it is persisted on the serverside, along with some meta data.
-This form is especially useful if you want to import the session details with the results into other instances of the WAVE Test Suite.  
+This form is especially useful if you want to import the session details with the results into other instances of the WAVE Test Runner.  
 Furthermore, there is the option to download the raw result in JSON format of all finished APIs.
 This the same JSON you get by clicking on the "JSON" button in the API results column, but of all finished APIs in a ZIP file.
 Lastly, you can download a static HTML page, similiar to the results view.  
 Finally, at the bottom of the page you can find the list of malfunctioning tests that have been added from the list of last timed-out test files.
 Remove tests by clicking their corresponding button with the trashcan icon.
 
-[To the top](#usage-guide---wave-test-suite)
+[To the top](#usage-guide---wave-test-runner)
 
 # 4. Managing test sessions
 
-The overview page provides features that help to manage and organize multiple sessions. You can access it from the URL `/overview.html`.
+The overview page provides features that help to manage and organize multiple sessions. You can access it from the URL `/_wave/overview.html`.
 
 ![overview_page]
 
@@ -205,7 +212,7 @@ Sort the list of sessions by clicking on the column to filter them by.
 
 Add one or more tags to the filter to conveniently find the sessions you are looking for. Add labels to session when creating them or in their corresponding results page.
 
-[To the top](#usage-guide---wave-test-suite)
+[To the top](#usage-guide---wave-test-runner)
 
 [landing_page]: ../res/landing_page.jpg "Landing Page"
 [configuration_page]: ../res/configuration_page_top.jpg "Configuration Page"

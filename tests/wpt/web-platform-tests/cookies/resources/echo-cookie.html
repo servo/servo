@@ -4,20 +4,29 @@
   <meta charset=utf-8>
   <title>helper iframe for matching cookie path tests</title>
   <meta name=help href="http://tools.ietf.org/html/rfc6265#section-5.1.4">
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
 </head>
 <body>
 <script>
 window.setCookie = function (name, path) {
   document.cookie = name + '=1; Path=' + path + ';';
-}
+};
 window.fetchCookieThen = function (name, path) {
   return fetch("/cookies/resources/set-cookie.py?name=" + encodeURIComponent(name) + "&path=" + encodeURIComponent(path), {'credentials': 'include'});
 };
 window.isCookieSet = function (name, path) {
   return document.cookie.match(name + '=1');
 };
-window.expireCookie = function (name, path) {
-  document.cookie = name + '=0; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=' + path + ';';
+// Note: this function has a dependency on testdriver.js. Any test files calling
+// it should include testdriver.js and testdriver-vendor.js
+window.expireCookies = async () => {
+  let test_window = window.top;
+  while (test_window.opener && !test_window.opener.closed) {
+    test_window = test_window.opener.top;
+  }
+  test_driver.set_test_context(test_window);
+  await test_driver.delete_all_cookies();
 };
 window.getCookies = () => document.cookie;
 </script>

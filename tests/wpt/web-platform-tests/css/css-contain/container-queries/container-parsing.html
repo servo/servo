@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Parsing of container</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#container-name">
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#container-type">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<div id="target"></div>
+<script>
+setup(() => assert_implements_container_queries());
+
+test_valid_value('container', 'initial');
+test_valid_value('container', 'inherit');
+test_valid_value('container', 'unset');
+test_valid_value('container', 'revert');
+test_valid_value('container', 'none');
+test_valid_value('container', 'none / none', 'none');
+test_valid_value('container', 'inline-size');
+test_valid_value('container', 'inline-size / none', 'inline-size');
+test_valid_value('container', 'size');
+test_valid_value('container', 'size / block-size');
+test_valid_value('container', 'inline-size / inline-size');
+test_valid_value('container', 'size / size');
+test_valid_value('container', 'size state / none', 'size state');
+
+test_invalid_value('container', 'none none');
+test_invalid_value('container', 'none inline-size');
+test_invalid_value('container', 'inline-size none');
+test_invalid_value('container', 'inline-size inline-size');
+test_invalid_value('container', 'inline-size block-size unknown');
+test_invalid_value('container', 'inline-size block-size');
+test_invalid_value('container', 'size block-size');
+test_invalid_value('container', 'none, none');
+test_invalid_value('container', 'foo');
+test_invalid_value('container', 'foo, bar');
+test_invalid_value('container', '#fff');
+test_invalid_value('container', '1px');
+test_invalid_value('container', 'default');
+test_invalid_value('container', 'inline-size / 10px');
+test_invalid_value('container', 'inline-size / #fefefe');
+test_invalid_value('container', 'inline-size / calc(3px)');
+test_invalid_value('container', 'size 1 / name');
+test_invalid_value('container', 'block-size');
+test_invalid_value('container', 'block-size / name');
+test_invalid_value('container', 'block-size /  NAME', 'block-size / NAME');
+test_invalid_value('container', 'block-size/NAME','block-size / NAME');
+test_invalid_value('container', 'block-size / block-size');
+</script>

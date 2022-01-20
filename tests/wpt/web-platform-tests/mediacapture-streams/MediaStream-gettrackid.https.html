@@ -13,20 +13,17 @@
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
-var t = async_test("Tests that MediaStream.getTrackById works as expected");
-t.step(function () {
-  navigator.mediaDevices.getUserMedia({video: true})
-      .then(t.step_func(gotVideo), t.step_func(function (error) {
-        assert_unreached('Unexpected getUserMedia error: ' + error);
-      }));
-  function gotVideo(stream) {
-    var track = stream.getVideoTracks()[0];
-    assert_equals(track, stream.getTrackById(track.id), "getTrackById returns track of given id");
-    assert_equals(stream.getTrackById(track.id + "foo"), null, "getTrackById of inexistant id  returns null");
-    t.done();
-  }
-});
+promise_test(async () => {
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await  navigator.mediaDevices.getUserMedia({video: true});
+  var track = stream.getVideoTracks()[0];
+  assert_equals(track, stream.getTrackById(track.id), "getTrackById returns track of given id");
+  assert_equals(stream.getTrackById(track.id + "foo"), null, "getTrackById of inexistant id  returns null");
+}, "Tests that MediaStream.getTrackById works as expected");
 </script>
 </body>
 </html>

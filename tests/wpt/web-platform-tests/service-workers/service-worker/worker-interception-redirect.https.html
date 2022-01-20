@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<title>Service Worker: controlling a SharedWorker</title>
+<title>Service Worker: controlling Worker/SharedWorker</title>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
@@ -34,18 +35,15 @@
 //   was served from (service worker or network).
 // 5. The worker does an importScripts() and fetch(), and posts back the
 //   responses, which describe where the responses where served from.
-//
-// Currently this only tests shared worker but dedicated worker tests should be
-// added in a future patch.
 
 // Globals for easier cleanup.
 const scope1 = 'resources/scope1';
 const scope2 = 'resources/scope2';
 let frame;
 
-function get_message_from_worker(worker) {
+function get_message_from_worker(port) {
   return new Promise(resolve => {
-      worker.port.onmessage = evt => {
+      port.onmessage = evt => {
         resolve(evt.data);
       }
     });
@@ -107,77 +105,108 @@ promise_test(async t => {
   }, 'cleanup global state');
 }, 'initialize global state');
 
-function worker_redirect_test(worker_request_url,
+async function worker_redirect_test(worker_request_url,
                               worker_expected_url,
                               expected_main_resource_message,
                               expected_import_scripts_message,
                               expected_fetch_message,
                               description) {
-  promise_test(async t => {
-    // Create a frame to load the worker from. This way we can remove the frame
-    // to destroy the worker client when the test is done.
-    frame = await with_iframe('resources/blank.html');
-    t.add_cleanup(() => { frame.remove(); });
+  for (const workerType of ['DedicatedWorker', 'SharedWorker']) {
+    for (const type of ['classic', 'module']) {
+      promise_test(async t => {
+        // Create a frame to load the worker from. This way we can remove the
+        // frame to destroy the worker client when the test is done.
+        frame = await with_iframe('resources/blank.html');
+        t.add_cleanup(() => { frame.remove(); });
 
-    // Start the worker.
-    const w = new frame.contentWindow.SharedWorker(worker_request_url);
-    w.port.start();
+        // Start the worker.
+        let w;
+        let port;
+        if (workerType === 'DedicatedWorker') {
+          w = new frame.contentWindow.Worker(worker_request_url, {type});
+          port = w;
+        } else {
+          w = new frame.contentWindow.SharedWorker(worker_request_url, {type});
+          port = w.port;
+          w.port.start();
+        }
+        w.onerror = t.unreached_func('Worker error');
 
-    // Expect a message from the worker indicating which service worker
-    // provided the response for the worker script request, if any.
-    const data = await get_message_from_worker(w);
-    assert_equals(data, expected_main_resource_message);
+        // Expect a message from the worker indicating which service worker
+        // provided the response for the worker script request, if any.
+        const data = await get_message_from_worker(port);
 
-    // The worker does an importScripts(). Expect a message from the worker
-    // indicating which service worker provided the response for the
-    // importScripts(), if any.
-    const import_scripts_message = await get_message_from_worker(w);
-    assert_equals(import_scripts_message, expected_import_scripts_message);
+        // The worker does an importScripts(). Expect a message from the worker
+        // indicating which service worker provided the response for the
+        // importScripts(), if any.
+        const import_scripts_message = await get_message_from_worker(port);
+        test(() => {
+          if (type === 'classic') {
+            assert_equals(import_scripts_message,
+                          expected_import_scripts_message);
+          } else {
+            assert_equals(import_scripts_message, 'importScripts failed');
+          }
+        }, `${description} (${type} ${workerType}, importScripts())`);
 
-    // The worker does a fetch(). Expect a message from the worker indicating
-    // which service worker provided the response for the fetch(), if any.
-    const fetch_message = await get_message_from_worker(w);
-    assert_equals(fetch_message, expected_fetch_message);
+        // The worker does a fetch(). Expect a message from the worker
+        // indicating which service worker provided the response for the
+        // fetch(), if any.
+        const fetch_message = await get_message_from_worker(port);
+        test(() => {
+          assert_equals(fetch_message, expected_fetch_message);
+        }, `${description} (${type} ${workerType}, fetch())`);
 
-    // Expect a message from the worker indicating |self.location|.
-    const worker_actual_url = await get_message_from_worker(w);
-    assert_equals(
-      worker_actual_url,
-      (new URL(worker_expected_url, location.href)).toString(),
-      'location.href');
-  }, description);
+        // Expect a message from the worker indicating |self.location|.
+        const worker_actual_url = await get_message_from_worker(port);
+        test(() => {
+          assert_equals(
+            worker_actual_url,
+            (new URL(worker_expected_url, location.href)).toString(),
+            'location.href');
+        }, `${description} (${type} ${workerType}, location.href)`);
+
+        assert_equals(data, expected_main_resource_message);
+
+      }, `${description} (${type} ${workerType})`);
+    }
+  }
 }
 
+// request to sw1 scope gets network redirect to sw2 scope
 worker_redirect_test(
     build_worker_url('network', 'scope2'),
     'resources/scope2/worker_interception_redirect_webworker.py',
-    'the shared worker script was served from network',
-    'sw1 saw importScripts from the worker',
-    'fetch(): sw1 saw the fetch from the worker',
-    'request to sw1 scope gets network redirect to sw2 scope');
+    'the worker script was served from network',
+    'sw1 saw importScripts from the worker: /service-workers/service-worker/resources/scope2/import-scripts-echo.py',
+    'fetch(): sw1 saw the fetch from the worker: /service-workers/service-worker/resources/scope2/simple.txt',
+    'Case #1: network scope1->scope2');
 
+// request to sw1 scope gets network redirect to out-of-scope
 worker_redirect_test(
     build_worker_url('network', 'out-scope'),
     'resources/worker_interception_redirect_webworker.py',
-    'the shared worker script was served from network',
-    'sw1 saw importScripts from the worker',
-    'fetch(): sw1 saw the fetch from the worker',
-    'request to sw1 scope gets network redirect to out-of-scope');
+    'the worker script was served from network',
+    'sw1 saw importScripts from the worker: /service-workers/service-worker/resources/import-scripts-echo.py',
+    'fetch(): sw1 saw the fetch from the worker: /service-workers/service-worker/resources/simple.txt',
+    'Case #2: network scope1->out-scope');
 
+// request to sw1 scope gets service-worker redirect to sw2 scope
 worker_redirect_test(
     build_worker_url('serviceworker', 'scope2'),
-    'resources/worker_interception_redirect_webworker.py?greeting=sw2%20saw%20the%20request%20for%20the%20worker%20script',
+    'resources/subdir/worker_interception_redirect_webworker.py?greeting=sw2%20saw%20the%20request%20for%20the%20worker%20script',
     'sw2 saw the request for the worker script',
-    'sw2 saw importScripts from the worker',
-    'fetch(): sw2 saw the fetch from the worker',
-    'request to sw1 scope gets service-worker redirect to sw2 scope');
+    'sw2 saw importScripts from the worker: /service-workers/service-worker/resources/subdir/import-scripts-echo.py',
+    'fetch(): sw2 saw the fetch from the worker: /service-workers/service-worker/resources/subdir/simple.txt',
+    'Case #3: sw scope1->scope2');
 
+// request to sw1 scope gets service-worker redirect to out-of-scope
 worker_redirect_test(
     build_worker_url('serviceworker', 'out-scope'),
     'resources/worker_interception_redirect_webworker.py',
-    'the shared worker script was served from network',
-    'sw1 saw importScripts from the worker',
-    'fetch(): sw1 saw the fetch from the worker',
-    'request to sw1 scope gets service-worker redirect to out-of-scope');
+    'the worker script was served from network',
+    'sw1 saw importScripts from the worker: /service-workers/service-worker/resources/import-scripts-echo.py',
+    'fetch(): sw1 saw the fetch from the worker: /service-workers/service-worker/resources/simple.txt',
+    'Case #4: sw scope1->out-scope');
 </script>
 </body>

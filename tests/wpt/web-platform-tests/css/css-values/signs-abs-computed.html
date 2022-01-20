@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Apple Inc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// Identity tests
+test_math_used('abs(1)', '1', {type:'number'});
+test_math_used('sign(1)', '1', {type:'number'});
+test_math_used('abs(-1)', '1', {type:'number'});
+test_math_used('sign(-1)', '-1', {type:'number'});
+
+// Nestings
+test_math_used('abs(sign(1))', '1');
+test_math_used('abs(sign(sign(1)))', '1');
+test_math_used('sign(sign(sign(1) + sign(1)))', '1');
+
+// General calculations
+test_math_used('calc(abs(0.1 + 0.2) + 0.05)', '0.35', {type:'number', approx:0.1});
+test_math_used('calc(sign(0.1 + 0.2) - 0.05)', '0.95', {type:'number', approx:0.1});
+test_math_used('calc(abs(0.1 + 0.2) * 2)', '0.6', {type:'number', approx:0.1});
+test_math_used('calc(abs(sign(0.1) + 0.2) / 2)', '0.6', {type:'number', approx:0.1});
+test_math_used('calc(abs(0.1 + 0.2) * -2)', '-0.6', {type:'number', approx:0.1});
+test_math_used('calc(sign(0.1 - 0.2) - 0.05)', '-1.05', {type:'number', approx:0.1});
+test_math_used('calc(sign(1) + sign(1) - 0.05)', '1.95', {type:'number', approx:0.1});
+
+// Test sign for zero
+test_math_used('calc(sign(-0))', '-0', {type:'number'});
+test_math_used('calc(sign(0))', '0', {type:'number'});
+
+//Type checking sign
+test_math_used('sign(1px)', '1');
+test_math_used('sign(1cm)', '1');
+test_math_used('sign(1mm)', '1');
+test_math_used('sign(1Q)', '1');
+test_math_used('sign(1in)', '1');
+test_math_used('sign(1pc)', '1');
+test_math_used('sign(1pt)', '1');
+test_math_used('sign(1em)', '1');
+test_math_used('sign(1ex)', '1');
+test_math_used('sign(1ch)', '1');
+test_math_used('sign(1rem)', '1');
+test_math_used('sign(1vh)', '1');
+test_math_used('sign(1vw)', '1');
+test_math_used('sign(1vmin)', '1');
+test_math_used('sign(1vmax)', '1');
+test_math_used('sign(-1px)', '-1');
+test_math_used('sign(-1cm)', '-1');
+test_math_used('sign(-1mm)', '-1');
+test_math_used('sign(-1Q)', '-1');
+test_math_used('sign(-1in)', '-1');
+test_math_used('sign(-1pc)', '-1');
+test_math_used('sign(-1pt)', '-1');
+test_math_used('sign(-1em)', '-1');
+test_math_used('sign(-1ex)', '-1');
+test_math_used('sign(-1ch)', '-1');
+test_math_used('sign(-1rem)', '-1');
+test_math_used('sign(-1vh)', '-1');
+test_math_used('sign(-1vw)', '-1');
+test_math_used('sign(-1vmin)', '-1');
+test_math_used('sign(-1vmax)', '-1');
+test_math_used('sign(1s)', '1');
+test_math_used('sign(1ms)', '1');
+test_math_used('sign(-1s)', '-1');
+test_math_used('sign(-1ms)', '-1');
+test_math_used('sign(1deg)', '1');
+test_math_used('sign(1grad)', '1');
+test_math_used('sign(1rad)', '1');
+test_math_used('sign(1turn)', '1');
+test_math_used('sign(-1deg)', '-1');
+test_math_used('sign(-1grad)', '-1');
+test_math_used('sign(-1rad)', '-1');
+test_math_used('sign(-1turn)', '-1');
+test_math_used('sign(0px)', '0');
+test_math_used('sign(0cm)', '0');
+test_math_used('sign(0mm)', '0');
+test_math_used('sign(0Q)', '0');
+test_math_used('sign(0in)', '0');
+test_math_used('sign(0pc)', '0');
+test_math_used('sign(0pt)', '0');
+test_math_used('sign(0em)', '0');
+test_math_used('sign(0ex)', '0');
+test_math_used('sign(0ch)', '0');
+test_math_used('sign(0rem)', '0');
+test_math_used('sign(0vh)', '0');
+test_math_used('sign(0vw)', '0');
+test_math_used('sign(0vmin)', '0');
+test_math_used('sign(0vmax)', '0');
+test_math_used('sign(-0px)', '-0');
+test_math_used('sign(-0cm)', '-0');
+test_math_used('sign(-0mm)', '-0');
+test_math_used('sign(-0Q)', '-0');
+test_math_used('sign(-0in)', '-0');
+test_math_used('sign(-0pc)', '-0');
+test_math_used('sign(-0pt)', '-0');
+test_math_used('sign(-0em)', '-0');
+test_math_used('sign(-0ex)', '-0');
+test_math_used('sign(-0ch)', '-0');
+test_math_used('sign(-0rem)', '-0');
+test_math_used('sign(-0vh)', '-0');
+test_math_used('sign(-0vw)', '-0');
+test_math_used('sign(-0vmin)', '-0');
+test_math_used('sign(-0vmax)', '-0');
+test_math_used('sign(0s)', '0');
+test_math_used('sign(0ms)', '0');
+test_math_used('sign(-0s)', '0');
+test_math_used('sign(-0ms)', '0');
+test_math_used('sign(0deg)', '0');
+test_math_used('sign(0grad)', '0');
+test_math_used('sign(0rad)', '0');
+test_math_used('sign(0turn)', '0');
+test_math_used('sign(-0deg)', '-0');
+test_math_used('sign(-0grad)', '-0');
+test_math_used('sign(-0rad)', '-0');
+test_math_used('sign(-0turn)', '-0');
+
+//Type checking abs
+test_math_used('abs(1px)', '1px');
+test_math_used('abs(1cm)', '1cm');
+test_math_used('abs(1mm)', '1mm');
+test_math_used('abs(1Q)', '1Q');
+test_math_used('abs(1in)', '1in');
+test_math_used('abs(1pc)', '1pc');
+test_math_used('abs(1pt)', '1pt');
+test_math_used('abs(1em)', '1em');
+test_math_used('abs(1ex)', '1ex');
+test_math_used('abs(1ch)', '1ch');
+test_math_used('abs(1rem)', '1rem');
+test_math_used('abs(1vh)', '1vh');
+test_math_used('abs(1vw)', '1vw');
+test_math_used('abs(1vmin)', '1vmin');
+test_math_used('abs(1vmax)', '1vmax');
+test_math_used('abs(-1px)', '1px');
+test_math_used('abs(-1cm)', '1cm');
+test_math_used('abs(-1mm)', '1mm');
+test_math_used('abs(-1Q)', '1Q');
+test_math_used('abs(-1in)', '1in');
+test_math_used('abs(-1pc)', '1pc');
+test_math_used('abs(-1pt)', '1pt');
+test_math_used('abs(-1em)', '1em');
+test_math_used('abs(-1ex)', '1ex');
+test_math_used('abs(-1ch)', '1ch');
+test_math_used('abs(-1rem)', '1rem');
+test_math_used('abs(-1vh)', '1vh');
+test_math_used('abs(-1vw)', '1vw');
+test_math_used('abs(-1vmin)', '1vmin');
+test_math_used('abs(-1vmax)', '1vmax');
+test_math_used('abs(1s)', '1s', {type:'time'});
+test_math_used('abs(1ms)', '1ms', {type:'time'});
+test_math_used('abs(-1s)', '1s', {type:'time'});
+test_math_used('abs(-1ms)', '1ms', {type:'time'});
+test_math_used('abs(1deg)', '1deg', {type:'angle', approx:0.001});
+test_math_used('abs(1grad)', '1grad', {type:'angle', approx:0.001});
+test_math_used('abs(1rad)', '1rad', {type:'angle', approx:0.001});
+test_math_used('abs(1turn)', '1turn', {type:'angle', approx:0.001});
+test_math_used('abs(-1deg)', '1deg', {type:'angle', approx:0.001});
+test_math_used('abs(-1grad)', '1grad', {type:'angle', approx:0.001});
+test_math_used('abs(-1rad)', '1rad', {type:'angle', approx:0.001});
+test_math_used('abs(-1turn)', '1turn', {type:'angle', approx:0.001});
+</script>

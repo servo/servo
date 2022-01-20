@@ -35,7 +35,7 @@ def test_success_document(session, inline):
     assert_is_active_element(session, element)
 
 
-def test_sucess_input(session, inline):
+def test_success_input(session, inline):
     session.url = inline("""
         <body>
             <h1>Heading</h1>
@@ -49,7 +49,7 @@ def test_sucess_input(session, inline):
     assert_is_active_element(session, element)
 
 
-def test_sucess_input_non_interactable(session, inline):
+def test_success_input_non_interactable(session, inline):
     session.url = inline("""
         <body>
             <h1>Heading</h1>

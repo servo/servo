@@ -14,7 +14,7 @@ self.setup({allow_uncaught_exception: true});
 // handlers are evaluated, not after each error event handler.
 
 // Just after each event handler is invoked,
-// https://heycam.github.io/webidl/#call-a-user-objects-operation
+// https://webidl.spec.whatwg.org/#call-a-user-objects-operation
 // calls #clean-up-after-running-script, but this doesn't execute new
 // microtasks immediately, because:
 // - Before https://github.com/whatwg/html/pull/4352:
@@ -57,7 +57,7 @@ async_test(t => {
 // around event events other than the `self` error event cases above.
 // In this case, microtasks are executed just after each event handler is
 // invoked via #clean-up-after-running-script called from
-// https://heycam.github.io/webidl/#call-a-user-objects-operation,
+// https://webidl.spec.whatwg.org/#call-a-user-objects-operation,
 // because the event handlers are executed outside the
 // #prepare-to-run-script/#clean-up-after-running-script scopes in
 // #run-a-classic-script/#run-a-module-script.

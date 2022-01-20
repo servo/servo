@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Using the location interface to navigate to the same hash as the current one</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/7386">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="i" srcdoc="<div style='height: 200vh'></div><div id='te&lt;st'></div>"></iframe>
+
+<script type="module">
+setup({ explicit_done: true });
+await new Promise(r => window.onload = r);
+
+for (const value of ["#te<st", "te<st", "#te%3Cst", "te%3Cst"]) {
+  promise_test(async t => {
+    t.add_cleanup(() => { i.contentWindow.location.hash = ""; });
+    assert_equals(i.contentWindow.scrollY, 0, "Setup: iframe starts at top");
+
+    i.contentWindow.location.hash = "te<st";
+    await delayForFragmentNavigationScrolling(t);
+
+    assert_greater_than(i.contentWindow.scrollY, i.contentWindow.innerHeight, "First hash assignment scrolls the iframe");
+
+    i.contentWindow.scroll({ top: 0, behavior: "instant" });
+    assert_equals(i.contentWindow.scrollY, 0, "Resetting the scroll position must work");
+
+    i.contentWindow.location.hash = value;
+    await delayForFragmentNavigationScrolling(t);
+
+    assert_equals(i.contentWindow.scrollY, 0, "Reassigning the same hash must not change the scroll position");
+  }, `Using location.hash = "${value}" must not reset scroll position`);
+}
+
+// These don't canonicalize to the current value of location.hash; the post-parsing version of
+// "te<st" is "te%3Cst", uppercase.
+for (const value of ["#te%3cst", "te%3cst"]) {
+  promise_test(async t => {
+    t.add_cleanup(() => { i.contentWindow.location.hash = ""; });
+    assert_equals(i.contentWindow.scrollY, 0, "Setup: iframe starts at top");
+
+    i.contentWindow.location.hash = "te<st";
+    await delayForFragmentNavigationScrolling(t);
+
+    assert_greater_than(i.contentWindow.scrollY, i.contentWindow.innerHeight, "First hash assignment scrolls the iframe");
+
+    i.contentWindow.scroll({ top: 0, behavior: "instant" });
+    assert_equals(i.contentWindow.scrollY, 0, "Resetting the scroll position must work");
+
+    i.contentWindow.location.hash = value;
+    await delayForFragmentNavigationScrolling(t);
+
+    assert_greater_than(i.contentWindow.scrollY, i.contentWindow.innerHeight, "Reassigning the same-ish hash scrolls the iframe");
+  }, `Using location.hash = "${value}" must reset scroll position`);
+}
+
+for (const value of ["about:srcdoc#te<st", "about:srcdoc#te%3cst", "about:srcdoc#te%3Cst"]) {
+  promise_test(async t => {
+    t.add_cleanup(() => { i.contentWindow.location.hash = ""; });
+    assert_equals(i.contentWindow.scrollY, 0, "Setup: iframe starts at top");
+
+    i.contentWindow.location.hash = "te<st";
+    await delayForFragmentNavigationScrolling(t);
+
+    assert_greater_than(i.contentWindow.scrollY, i.contentWindow.innerHeight, "First hash assignment scrolls the iframe");
+
+    i.contentWindow.scroll({ top: 0, behavior: "instant" });
+    assert_equals(i.contentWindow.scrollY, 0, "Resetting the scroll position must work");
+
+    i.contentWindow.location.href = value;
+    await delayForFragmentNavigationScrolling(t);
+
+    assert_greater_than(i.contentWindow.scrollY, i.contentWindow.innerHeight, "Setting href must scroll the iframe");
+  }, `Using location.href = "${value}" must reset scroll position`);
+
+  promise_test(async t => {
+    t.add_cleanup(() => { i.contentWindow.location.hash = ""; });
+    assert_equals(i.contentWindow.scrollY, 0, "Setup: iframe starts at top");
+
+    i.contentWindow.location.hash = "te<st";
+    await delayForFragmentNavigationScrolling(t);
+
+    assert_greater_than(i.contentWindow.scrollY, i.contentWindow.innerHeight, "First hash assignment scrolls the iframe");
+
+    i.contentWindow.scroll({ top: 0, behavior: "instant" });
+    assert_equals(i.contentWindow.scrollY, 0, "Resetting the scroll position must work");
+
+    i.contentWindow.location.assign(value);
+    await delayForFragmentNavigationScrolling(t);
+
+    assert_greater_than(i.contentWindow.scrollY, i.contentWindow.innerHeight, "Setting href must scroll the iframe");
+  }, `Using location.assign("${value}") must reset scroll position`);
+}
+
+function delayForFragmentNavigationScrolling(t) {
+  // Scroll behavior for fragment navigation is set to "auto" in the spec, so we can't guarantee it's instant.
+  // In practice 10 milliseconds seems to be enough.
+  return new Promise(r => t.step_timeout(r, 10));
+}
+
+done();
+</script>

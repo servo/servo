@@ -1,0 +1,171 @@
+<!doctype html>
+<title>Query against unsupported axis</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<script>
+  setup(() => assert_implements_container_queries());
+</script>
+
+<style>
+  #container {
+    width: 200px;
+    height: 100px;
+    container-type: inline-size;
+  }
+</style>
+
+<div id=container>
+  <div id=target>
+    Test
+  </div>
+</div>
+
+
+<style>
+  @container size(width > 0px) {
+    #target { --width:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    assert_equals(getComputedStyle(target).getPropertyValue('--width'), 'true');
+  }, 'size(width > 0px)');
+</script>
+
+
+<style>
+  @container size(height > 0px) {
+    #target { --height:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    // container-type:inline-size does not support queries along the block
+    // axis.
+    assert_equals(getComputedStyle(target).getPropertyValue('--height'), '');
+  }, 'size(height > 0px)');
+</script>
+
+
+<style>
+  @container size((height > 0px) or (width > 0px)) {
+    #target { --height-or-width:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    // (height > 0px) should evaluate to "unknown".
+    assert_equals(getComputedStyle(target).getPropertyValue('--height-or-width'), 'true');
+  }, 'size((height > 0px) or (width > 0px))');
+</script>
+
+
+<style>
+  @container size((width > 0px) or (height > 0px)) {
+    #target { --width-or-height:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    // (height > 0px) should evaluate to "unknown".
+    assert_equals(getComputedStyle(target).getPropertyValue('--width-or-height'), 'true');
+  }, 'size((width > 0px) or (height > 0px))');
+</script>
+
+<style>
+  @container size((orientation: landscape) or (width > 0px)) {
+    #target { --orientation-or-width:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    // (orientation: landscape) depends on both axes, and should evaluate
+    // to "unknown".
+    assert_equals(getComputedStyle(target).getPropertyValue('--orientation-or-width'), 'true');
+  }, 'size((orientation: landscape) or (width > 0px))');
+</script>
+
+
+<style>
+  @container size((width > 0px) or (orientation: landscape)) {
+    #target { --width-or-orientation:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    // (orientation: landscape) depends on both axes, and should evaluate
+    // to "unknown".
+    assert_equals(getComputedStyle(target).getPropertyValue('--width-or-orientation'), 'true');
+  }, 'size((width > 0px) or (orientation: landscape))');
+</script>
+
+
+<style>
+  @container size((height > 0px) or (orientation: landscape)) {
+    #target { --height-or-orientation:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    assert_equals(getComputedStyle(target).getPropertyValue('--height-or-orientation'), '');
+  }, 'size((height > 0px) or (orientation: landscape))');
+</script>
+
+
+<style>
+  @container size((height > 0px) or (orientation: landscape)) {
+    #target { --height-or-orientation2:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    // Adding full size containment via the 'contain' property does not
+    // make 'height' queryable. (Limited by container-type:inline-size).
+    t.add_cleanup(() => { target.style = ''; });
+    target.style.contain = 'size';
+    assert_equals(getComputedStyle(target).getPropertyValue('--height-or-orientation2'), '');
+  }, 'size((height > 0px) or (orientation: landscape)), with contain:size');
+</script>
+
+
+<style>
+  @container size(inline-size > 0px) {
+    #target { --inline-size:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    assert_equals(getComputedStyle(target).getPropertyValue('--inline-size'), 'true');
+  }, 'size(inline-size > 0px)');
+</script>
+
+
+<style>
+  @container size(block-size > 0px) {
+    #target { --block-size:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    // container-type:inline-size does not support queries along the block
+    // axis.
+    assert_equals(getComputedStyle(target).getPropertyValue('--block-size'), '');
+  }, 'size(block-size > 0px)');
+</script>
+
+
+<style>
+  @container size(block-size > 0px) {
+    #target { --block-size2:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    // Changing the writing-mode does not affect the evaluation of block-size.
+    t.add_cleanup(() => { target.style = ''; });
+    target.style.writingMode = 'vertical-rl';
+    assert_equals(getComputedStyle(target).getPropertyValue('--block-size2'), '');
+  }, 'size(block-size > 0px), with writing-mode:vertical-rl');
+</script>

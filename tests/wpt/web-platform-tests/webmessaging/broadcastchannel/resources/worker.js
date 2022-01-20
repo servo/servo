@@ -16,6 +16,12 @@ function handler(e, reply) {
   c = new BroadcastChannel(e.data.channel);
   let messages = [];
   c.onmessage = e => {
+      if (e.data === 'ready') {
+        // Ignore any 'ready' messages from the other thread since there could
+        // be some race conditions between this BroadcastChannel instance
+        // being created / ready to receive messages and the message being sent.
+        return;
+      }
       messages.push(e.data);
       if (e.data == 'done')
         reply(messages);

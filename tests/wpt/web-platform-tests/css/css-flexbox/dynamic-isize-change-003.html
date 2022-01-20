@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: Dynamic change to the inline-size of a column flexbox container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1700580">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that the dynamic change to the flex container's inline-size triggers the reflow for flex items with percentage padding.">
+
+<style>
+#flexbox {
+  display: flex;
+  flex-direction: column;
+  inline-size: 50px;
+  block-size: 100px;
+  background: red;
+}
+
+#flexbox > div {
+  box-sizing: border-box;
+  flex-basis: 100px;
+
+  /* The following padding will give our flex item a content-box inline-size of
+     25px, both before and after this test's dynamic change. (Note that the
+     horizontal axis is the flex container's cross axis, so the item stretches
+     its width by default to fill the available space.) */
+  padding-right: calc(100% - 25px);
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="flexbox">
+  <div></div>
+</div>
+
+<script>
+/* Make sure the layout is up-to-date, which is essential to trigger the bug. */
+document.documentElement.offsetHeight;
+
+/* Change the flexbox's inline-size to trigger incremental reflow. */
+document.getElementById("flexbox").style.inlineSize = "100px";
+</script>

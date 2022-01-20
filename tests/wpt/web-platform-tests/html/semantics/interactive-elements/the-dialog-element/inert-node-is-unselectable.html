@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=252071">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+Here is a text node you can't select while the dialog is open.
+<dialog>I'm selectable.</dialog>
+
+<script>
+test(() => {
+  const dialog = document.querySelector('dialog');
+  dialog.showModal();
+  document.execCommand('SelectAll');
+  assert_equals(window.getSelection().toString(), "I'm selectable.");
+}, 'Test that inert nodes cannot be selected. The test passes if the only text you can select is inside the dialog.');
+</script>

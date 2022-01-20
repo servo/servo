@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+.container {
+  border: 1px dashed blue;
+  height: 200px;
+  width: 560px;
+  box-sizing: content-box;
+}
+.container > div {
+  float: left;
+  width: 40px;
+  margin:       10px 20px 30px 40px;
+  border-width: 20px 30px 40px 50px;
+  padding:      30px 40px 50px 60px;
+  border-style: dotted;
+}
+.container > div:nth-child(1) { background: yellow; }
+.container > div:nth-child(2) { background: purple; }
+
+</style>
+
+<div class="container">
+  <div></div>
+  <div></div>
+</div>

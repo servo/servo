@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=571437">
+<link rel=help href="https://drafts.csswg.org/css-transforms-2/#interpolation-of-transform-functions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target {
+  width: 100px;
+  height: 200px;
+  transition-properties: transform;
+  transition-duration: 1s;
+  transition-delay: -0.5s;
+  transition-timing-function: linear;
+}
+</style>
+<div id="target"></div>
+<script>
+test(() => {
+  target.style.transform = 'translate(50%, 50%)';
+  assert_equals(getComputedStyle(target).transform, 'matrix(1, 0, 0, 1, 50, 100)');
+  target.style.transform = 'translate3D(50%, 50%, 100px)';
+  assert_equals(getComputedStyle(target).transform, 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 50, 100, 50, 1)');
+}, 'Retargeting transitions on box size relative transitions should work.');
+</script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tabbing through object tag</title>
+<link rel="author" title="atotic@chromium.org">
+<link rel="help" href="https://crbug.com/1132895">
+<meta assert="assert" content="Tabbed focus works through OBJECT tags">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<p>Pressing TAB twice should focus/highlight end checkbox</p>
+
+<input type="checkbox" id="start">start</a>
+<object type='text/html' data='data:text/html,' width='16' height='16'></object>
+<input type="checkbox" id="end" >end</a>
+
+<script>
+
+let t = async_test("focus advances with tab key thorough object element");
+
+let start = document.querySelector("#start");
+let object = document.querySelector("object");
+let end = document.querySelector("#end");
+let tab = "\uE004";
+
+t.step( _ => {
+  document.querySelector("#start").focus();
+  assert_equals(document.activeElement, start, "start got focus");
+  test_driver.send_keys(document.activeElement, tab).then( _ => {
+    t.step( _ => {
+      assert_equals(document.activeElement, object, "object got focus");
+      test_driver.send_keys(document.activeElement, tab).then( _ => {
+        t.step( _ => {
+          assert_equals(document.activeElement, end, "end got focus");
+          t.done();
+        });
+      });
+    });
+  });
+});
+
+</script>

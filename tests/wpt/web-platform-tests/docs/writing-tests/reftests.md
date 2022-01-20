@@ -120,7 +120,7 @@ To specify the fuzziness in the test file one may add a `<meta
 name=fuzzy>` element (or, in the case of more complex tests, to any
 page containing the `<link rel=[mis]match>` elements). In the simplest
 case this has a `content` attribute containing the parameters above,
-separated by a colon e.g.
+separated by a semicolon e.g.
 
 ```
 <meta name=fuzzy content="maxDifference=15;totalPixels=300">
@@ -148,7 +148,7 @@ or
 
 In this case the maximum pixel difference must be in the range
 `10-15` and the total number of different pixels must be in the range
-`200-300`.
+`200-300`. These range checks are inclusive.
 
 In cases where a single test has multiple possible refs and the
 fuzziness is not the same for all refs, a ref may be specified by

@@ -29,6 +29,7 @@ test_valid_value("grid", '[] "a" 10px', '"a" 10px');
 test_valid_value("grid", '[a] "a" 10px [a]');
 test_valid_value("grid", '"a"');
 test_valid_value("grid", '"a" auto', '"a"');
+test_valid_value("grid", '"a a a"', '"a a a"');
 test_valid_value("grid", '"a" / 10px');
 test_valid_value("grid", '"a" / 20%');
 test_valid_value("grid", '"a" / 5fr');
@@ -51,6 +52,17 @@ test_valid_value("grid", '[a] "a" [a] "b" [a]');
 test_valid_value("grid", '"a" "a" [a] "b" [a]');
 test_valid_value("grid", '"a" [a] "b" [a] / 0', '"a" [a] "b" [a] / 0px');
 test_valid_value("grid", '"a" "a" [a] [a] "b" / auto', '"a" "a" [a a] "b" / auto');
+test_valid_value("grid", '100px / auto-flow dense 100px');
+test_valid_value("grid", 'auto-flow dense 1fr / 100px');
+test_valid_value("grid", '100px / dense auto-flow 100px', '100px / auto-flow dense 100px');
+test_valid_value("grid", 'dense auto-flow 1fr / 100px', 'auto-flow dense 1fr / 100px');
+test_valid_value("grid", '100px / auto-flow 100px');
+test_valid_value("grid", 'auto-flow 1fr / 100px');
+test_valid_value("grid", 'none / auto-flow 100px');
+test_valid_value("grid", 'auto-flow 1fr / none');
+test_valid_value("grid", 'auto / auto-flow 100px');
+test_valid_value("grid", 'auto-flow 1fr / auto');
+test_valid_value("grid", '1fr / 1fr');
 
 // FIXME: add more values to test full syntax
 

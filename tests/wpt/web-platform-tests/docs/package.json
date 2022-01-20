@@ -1,0 +1,11 @@
+{
+  "name": "wpt-docs",
+  "description": "This package file is for node modules used in web-platform-tests docs",
+  "repository": {},
+  "license": "BSD",
+  "devDependencies": {
+    "jsdoc": "3.6.7"
+  },
+  "version": "1.0.0",
+  "private": true
+}

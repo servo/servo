@@ -20,9 +20,9 @@ var t = async_test("test getImageData with display-p3 and uint8 from display p3 
 _addTest(function(canvas, ctx) {
 
 var color_style = 'rgb(50, 100, 150)';
-var epsilon = 2;
 // [0.24304, 0.38818, 0.57227, 1.0] * 255 = [62, 99, 146, 255]
 var pixel_expected = [62, 99, 146, 255];
+var epsilon = 2;
 ctx.fillStyle = color_style;
 ctx.fillRect(0, 0, 10, 10);
 

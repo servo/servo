@@ -8,6 +8,18 @@ function loadScript(url, { doc = document }={}) {
   })
 }
 
+function preloadImage(url, { doc = document }={}) {
+  return new Promise((resolve, reject) => {
+    const preload = doc.createElement('link');
+    preload.rel = 'preload';
+    preload.as = 'image';
+    preload.onload = () => resolve();
+    preload.onerror = () => resolve();
+    preload.href = url;
+    doc.body.appendChild(preload);
+  })
+}
+
 /**
  *
  * @param {Document} document

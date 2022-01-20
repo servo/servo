@@ -6,32 +6,6 @@ from .event_dispatcher import TEST_COMPLETED_EVENT
 from ..data.exceptions.not_found_exception import NotFoundException
 from ..data.session import COMPLETED, ABORTED
 
-# Helper class used to adapt a specific compare function to a Python 3
-# key function.
-class CmpWrapper:
-    def __init__(self, test_manager, compare_function, obj):
-        self.obj = obj
-        self.test_manager = test_manager
-        self.compare_function = compare_function
-
-    def __lt__(self, other):
-        return self.compare_function(self.test_manager, self.obj, other.obj) < 0
-
-    def __gt__(self, other):
-        return self.compare_function(self.test_manager, self.obj, other.obj) > 0
-
-    def __eq__(self, other):
-        return self.compare_function(self.test_manager, self.obj, other.obj) == 0
-
-    def __le__(self, other):
-        return self.compare_function(self.test_manager, self.obj, other.obj) <= 0
-
-    def __ge__(self, other):
-        return self.compare_function(self.test_manager, self.obj, other.obj) >= 0
-
-    def __ne__(self, other):
-        return self.compare_function(self.test_manager, self.obj, other.obj) != 0
-
 
 class TestsManager(object):
     def initialize(
@@ -115,6 +89,8 @@ class TestsManager(object):
                 if potential_result["test"] == test:
                     result = potential_result
                     break
+            if result is None:
+                break
 
             if result["status"] == "ERROR":
                 if len(tests["fail"]) < count:
@@ -144,29 +120,35 @@ class TestsManager(object):
             for test in tests[api]:
                 sorted_tests.append(test)
 
-        def compare(tests_manager, test_a, test_b):
-            micro_test_list = {}
-            api_a = ""
-            for part in test_a.split("/"):
-                if part != "":
-                    api_a = part
-                    break
-            api_b = ""
-            for part in test_b.split("/"):
-                if part != "":
-                    api_b = part
-                    break
-            if api_a == api_b:
-                micro_test_list[api_a] = [test_a, test_b]
-            else:
-                micro_test_list[api_a] = [test_a]
-                micro_test_list[api_b] = [test_b]
-            next_test = tests_manager._get_next_test_from_list(micro_test_list)
-            if next_test == test_a:
-                return -1
-            return 1
+        class compare(object):
+            def __init__(self, tests_manager, test):
+                self.test = test
+                self.tests_manager = tests_manager
 
-        return sorted(sorted_tests, key=lambda x:CmpWrapper(self, compare, x))
+            def __lt__(self, test_b):
+                test_a = self.test
+                test_b = test_b.test
+                micro_test_list = {}
+                api_a = ""
+                for part in test_a.split("/"):
+                    if part != "":
+                        api_a = part
+                        break
+                api_b = ""
+                for part in test_b.split("/"):
+                    if part != "":
+                        api_b = part
+                        break
+                if api_a == api_b:
+                    micro_test_list[api_a] = [test_a, test_b]
+                else:
+                    micro_test_list[api_a] = [test_a]
+                    micro_test_list[api_b] = [test_b]
+                next_test = self.tests_manager._get_next_test_from_list(micro_test_list)
+                return next_test == test_b
+
+        sorted_tests.sort(key=lambda test: compare(self, test))
+        return sorted_tests
 
     def _get_next_test_from_list(self, tests):
         test = None
@@ -180,7 +162,7 @@ class TestsManager(object):
         apis.sort(key=lambda api: api.lower())
 
         for api in apis:
-            tests[api].sort(key=lambda api: api.replace("/", "").lower())
+            tests[api].sort(key=lambda test: test.replace("/", "").lower())
 
         while test is None:
             if len(apis) <= current_api:
@@ -332,7 +314,7 @@ class TestsManager(object):
         )
 
         self._event_dispatcher.dispatch_event(
-            token=session.token,
+            dispatcher_token=session.token,
             event_type=TEST_COMPLETED_EVENT,
             data=test
         )
@@ -377,7 +359,7 @@ class TestsManager(object):
 
     def load_tests(self, session):
         pending_tests = self._test_loader.get_tests(
-            session.types,
+            session.test_types,
             include_list=session.tests["include"],
             exclude_list=session.tests["exclude"],
             reference_tokens=session.reference_tokens

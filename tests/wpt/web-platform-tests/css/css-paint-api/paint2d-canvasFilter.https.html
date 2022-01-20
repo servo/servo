@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="paint2d-canvasFilter-ref.html">
+<style>
+    #output {
+        width: 100px;
+        height: 100px;
+        background-image: paint(rects);
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('rects', class {
+    paint(ctx, geom) {
+        ctx.filter = new CanvasFilter([
+          {filter: "gaussianBlur", stdDeviation: 10},
+          {filter: "colorMatrix", type: "hueRotate", values: 90}
+        ]);
+
+        ctx.fillStyle = "cyan";
+        ctx.fillRect(40, 0, 70, 70);
+        ctx.fillStyle = "magenta";
+        ctx.fillRect(40, 40, 70, 70);
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(0, 40, 70, 70);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

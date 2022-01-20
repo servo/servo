@@ -121,10 +121,12 @@
     t.add_cleanup(() => pc2.close());
 
     // We don't use this right away
-    const offer1 = await pc1.createOffer({offerToReceiveAudio: true});
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    const offer1 = await pc1.createOffer();
 
     // Create offer from pc2, apply and rollback on pc1
-    const offer2 = await pc2.createOffer({offerToReceiveAudio: true});
+    pc2.addTransceiver('audio', { direction: 'recvonly' });
+    const offer2 = await pc2.createOffer();
     await pc1.setRemoteDescription(offer2);
     await pc1.setRemoteDescription({type: "rollback"});
 
@@ -147,7 +149,9 @@
     const offer1 = await pc1.createOffer();
 
     // Create offer from pc2, apply and rollback on pc1
-    const offer2 = await pc2.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: true});
+    pc2.addTransceiver('audio', { direction: 'recvonly' });
+    pc2.addTransceiver('video', { direction: 'recvonly' });
+    const offer2 = await pc2.createOffer();
     // pc1 now should change its mind about what level its video transceiver is
     // bound to. It was 0, now it is 1.
     await pc1.setRemoteDescription(offer2);

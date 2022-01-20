@@ -94,6 +94,11 @@ const RIGHT_OFFSET = {
     orientation: [0, 0, 0, 1]
 };
 
+const FIRST_PERSON_OFFSET = {
+  position: [0, 0.1, 0],
+  orientation: [0, 0, 0, 1]
+};
+
 const VALID_VIEWS = [{
         eye:"left",
         projectionMatrix: VALID_PROJECTION_MATRIX,
@@ -105,6 +110,15 @@ const VALID_VIEWS = [{
         viewOffset: RIGHT_OFFSET,
         resolution: VALID_RESOLUTION
     },
+];
+
+const VALID_SECONDARY_VIEWS = [{
+        eye: "none",
+        projectionMatrix: VALID_PROJECTION_MATRIX,
+        viewOffset: FIRST_PERSON_OFFSET,
+        resolution: VALID_RESOLUTION,
+        isFirstPersonObserver: true
+    }
 ];
 
 const NON_IMMERSIVE_VIEWS = [{
@@ -126,12 +140,14 @@ const ALL_FEATURES = [
   'light-estimation',
   'anchors',
   'depth-sensing',
+  'secondary-views',
 ];
 
 const TRACKED_IMMERSIVE_DEVICE = {
     supportsImmersive: true,
     supportedModes: [ "inline", "immersive-vr"],
     views: VALID_VIEWS,
+    secondaryViews: VALID_SECONDARY_VIEWS,
     viewerOrigin: IDENTITY_TRANSFORM,
     supportedFeatures: ALL_FEATURES,
     environmentBlendMode: "opaque",

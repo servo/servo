@@ -15,7 +15,6 @@
    max(min-content, min(max-content, fill-available))
 */
 .fit-content {
-    width: -moz-fit-content;
     width: fit-content;
 }
 
@@ -28,7 +27,6 @@
 }
 
 .max-width-fit-content {
-    max-width: -moz-fit-content;
     max-width: fit-content;
 }
 
@@ -41,6 +39,5 @@
 }
 
 .min-width-fit-content {
-    min-width: -moz-fit-content;
     min-width: fit-content;
 }

@@ -51,8 +51,8 @@ async function exchangeOfferAnswerEndOnSecond(pc1, pc2, negotiator) {
   await pc2.setLocalDescription(pc1.remoteDescription); // End on pc2. No race
 }
 
-async function assertNoNegotiationNeeded(t, pc) {
-  assert_equals(pc.signalingState, "stable", "In stable state");
+async function assertNoNegotiationNeeded(t, pc, state = "stable") {
+  assert_equals(pc.signalingState, state, `In ${state} state`);
   const event = await Promise.race([
     new Promise(r => pc.onnegotiationneeded = r),
     new Promise(r => t.step_timeout(r, 10))
@@ -72,6 +72,13 @@ function assert_ufrags_equals(x, y, description) {
 function assert_ufrags_not_equals(x, y, description) {
   assert_false(x === y, description);
 }
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  pc.close();
+  pc.restartIce();
+  await assertNoNegotiationNeeded(t, pc, "closed");
+}, "restartIce() has no effect on a closed peer connection");
 
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();

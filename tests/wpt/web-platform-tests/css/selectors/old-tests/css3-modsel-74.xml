@@ -11,7 +11,6 @@ table.t1 td, table.t2 td { border : thin black solid }
 ]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content="" />
  </head>
  <body>
 <ul>

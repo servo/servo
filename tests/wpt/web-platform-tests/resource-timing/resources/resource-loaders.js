@@ -92,6 +92,23 @@ const load = {
     document.body.removeChild(script);
   },
 
+  // Returns a promise that settles once the given path has been fetched as an
+  // object.
+  object: async (path, type) => {
+    const object = document.createElement("object");
+    const loaded = new Promise(resolve => {
+      object.onload = object.onerror = resolve;
+    });
+    object.data = load.cache_bust(path);
+    if (type) {
+      object.type = type;
+    }
+    object.style = "width: 0px; height: 0px";
+    document.body.appendChild(object);
+    await loaded;
+    document.body.removeChild(object);
+  },
+
   // Returns a promise that settles once the given path has been fetched
   // through a synchronous XMLHttpRequest.
   xhr_sync: async (path, headers) => {
@@ -103,5 +120,14 @@ const load = {
       }
     }
     xhr.send();
+  },
+
+  xhr_async: path => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", path)
+    xhr.send();
+    return new Promise(resolve => {
+      xhr.onload = xhr.onerror = resolve;
+    });
   }
 };

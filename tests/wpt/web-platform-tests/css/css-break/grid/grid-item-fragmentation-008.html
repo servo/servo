@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<title>Tests that baseline aligned grid-items fragment correctly.</title>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative; width: 100px; height: 100px; columns: 2; column-gap: 0; background: red;">
+  <div style="display: grid; align-items: baseline; line-height: 0; grid-template-columns: auto auto;">
+    <div style="height: 150px; background: green;">
+      <span style="display: inline-block; height: 10px;"></span>
+    </div>
+    <div style="height: 200px; background: green;">
+      <span style="display: inline-block; height: 60px;"></span>
+    </div>
+  </div>
+  <div style="position: absolute; width: 25px; height: 50px; top: 0; left: 0; background: green;"></div>
+</div>

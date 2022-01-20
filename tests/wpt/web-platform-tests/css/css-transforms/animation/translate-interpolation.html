@@ -122,7 +122,7 @@
         to: '240% 160%',
       }, [
         {at: -1, expect: 'calc(960px - 240%) calc(800px - 160%) 640px'},
-        {at: 0, expect: '480px 400px 320px'},
+        {at: 0, expect: 'calc(0% + 480px) calc(0% + 400px) 320px'},
         {at: 0.125, expect: 'calc(420px + 30%) calc(350px + 20%) 280px'},
         {at: 0.875, expect: 'calc(210% + 60px) calc(140% + 50px) 40px'},
         {at: 1, expect: '240% 160%'},

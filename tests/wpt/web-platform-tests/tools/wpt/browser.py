@@ -851,7 +851,8 @@ class ChromeAndroidBase(Browser):
 
         command = ['adb']
         if self.device_serial:
-            command.extend(['-s', self.device_serial])
+            # Assume we have same version of browser on all devices
+            command.extend(['-s', self.device_serial[0]])
         command.extend(['shell', 'dumpsys', 'package', binary])
         try:
             output = call(*command)

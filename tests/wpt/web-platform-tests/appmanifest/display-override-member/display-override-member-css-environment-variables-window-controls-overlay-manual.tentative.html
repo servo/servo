@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Test CSS environment variables when "window-controls-overlay" in display-override member</title>
+  <link rel="manifest" href="resources/display-override-member-css-environment-variables-window-controls-overlay.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <h1>Test CSS environment variables when "window-controls-overlay" in display-override member</h1>
+  <style>
+    #windowControlsOverlayElementStyle {
+      padding-left: env(titlebar-area-x);
+      padding-right: env(titlebar-area-width);
+      padding-top: env(titlebar-area-y);
+      padding-bottom: env(titlebar-area-height);
+    }
+  </style>
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/display-override-member-media-feature-manual.js"></script>
+
+  <script>
+    setup({ explicit_timeout: true });
+    var manual_test = async_test("titlebar-area CSS environment variables");
+    manual_test.step_timeout(() => {
+      manual_test.force_timeout();
+      manual_test.done();
+    }, 60000);
+    manual_test.step(() => {
+      navigator.windowControlsOverlay.addEventListener('geometrychange', (event) => {
+        if (navigator.windowControlsOverlay.visible) {
+          const windowControlsOverlayElementStyle = document.getElementById('windowControlsOverlayElementStyle');
+          const x = getComputedStyle(windowControlsOverlayElementStyle).getPropertyValue('padding-left');
+          const w = getComputedStyle(windowControlsOverlayElementStyle).getPropertyValue('padding-right');
+          const y = getComputedStyle(windowControlsOverlayElementStyle).getPropertyValue('padding-top');
+          const h = getComputedStyle(windowControlsOverlayElementStyle).getPropertyValue('padding-bottom');
+          const boundingClientRect = navigator.windowControlsOverlay.getTitlebarAreaRect();
+          manual_test.step(() => {
+            assert_equals(x, boundingClientRect.x + 'px', 'CSS environment "titlebar-area-x" does not equal navigator.windowControlsOverlay.getTitlebarAreaRect().x');
+            assert_equals(y, boundingClientRect.y + 'px', 'CSS environment "titlebar-area-x" does not equal navigator.windowControlsOverlay.getTitlebarAreaRect().y');
+            assert_equals(w, boundingClientRect.width + 'px', 'CSS environment "titlebar-area-x" does not equal navigator.windowControlsOverlay.getTitlebarAreaRect().width');
+            assert_equals(h, boundingClientRect.height + 'px', 'CSS environment "titlebar-area-x" does not equal navigator.windowControlsOverlay.getTitlebarAreaRect().height');
+          });
+          manual_test.done();
+        }
+      });
+    });
+  </script>
+</head>
+
+<body>
+  <h1>Description</h1>
+  <p>This test validates that when in "window-controls-overlay" mode, the 'titlebar-area-*' CSS environment variables
+    match the values returned by navigator.windowControlsOverlay.getTitlebarAreaRect().</p>
+  <h1>Manual Test Steps:</h1>
+  <p>
+    <ol>
+      <li> Install this app, and toggle into "window-controls-overlay" mode.</li>
+      <li> Upon toggling into "window-controls-overlay" mode, the test will validate that the CSS enviroment variable
+        values match the JavaScript API.</li>
+    </ol>
+  Note: This test will automatically timeout and fail if not completed within 60 seconds.
+  </p>
+  <div id="windowControlsOverlayElementStyle"></div>
+</body>
+
+</html>

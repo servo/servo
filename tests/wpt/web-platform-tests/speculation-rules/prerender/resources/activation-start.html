@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<body>
+<script>
+function getNextMessage(channel) {
+  return new Promise(resolve => {
+    channel.addEventListener('message', e => resolve(e.data), {once: true});
+  });
+}
+
+function getActivationStart() {
+  const entry = performance.getEntriesByType('navigation')[0];
+  assert_equals(
+      entry.activationStart,
+      entry.toJSON()['activationStart'],
+      'activationStart value must be available in the result of toJSON().');
+  return entry.activationStart;
+}
+
+(async () => {
+  const testChannel = new BroadcastChannel('test-channel');
+  const params = new URLSearchParams(location.search);
+  const isPrerenderingMainFrame = params.has('prerendering') &&
+                                  !params.has('iframe');
+  const isIframe = params.has('iframe');
+  const isInitiator = !isPrerenderingMainFrame && !isIframe;
+
+  const ACTIVATION_DELAY = 10;
+
+  // 1. The initiator document (isInitiator) is opened using window.open() by
+  //    activation-start.html in the parent directory.
+  // 2. The initiator document starts prerendering the prerendering document
+  //    (isPrerenderingMainFrame).
+  // 3. The prerendering document opens the iframe document (isIframe).
+  try {
+    if (isInitiator) {
+      // We use a BroadcastChannel to receive a message from the prerendering
+      // iframe.
+      const prerenderChannel = new BroadcastChannel('prerender-channel');
+      const prerendering_url = new URL(document.URL);
+      prerendering_url.searchParams.set('prerendering', '');
+      startPrerendering(prerendering_url);
+      assert_equals(await getNextMessage(prerenderChannel), 'iframe ready');
+
+      // Wait ACTIVATION_DELAY ms before activation.
+      await new Promise(resolve => setTimeout(resolve, ACTIVATION_DELAY));
+      // Activate the prerendered page.
+      location.href = prerendering_url;
+    } else if (isPrerenderingMainFrame) {
+      const initial_value = getActivationStart();
+      const activation_start_promise = new Promise(resolve => {
+        document.addEventListener('prerenderingchange', () => {
+          resolve(getActivationStart());
+        });
+      });
+      // We use the window's message event handler to receive a message from the
+      // iframe.
+      const msg_from_iframe_promise = getNextMessage(window);
+
+      // Add an iframe.
+      const iframe_url = new URL(document.URL);
+      iframe_url.searchParams.set('iframe', '');
+      const iframe = document.createElement('iframe');
+      iframe.src = iframe_url;
+      document.body.appendChild(iframe);
+
+      assert_equals(
+          initial_value,
+          0,
+          'activationStart must be 0 while prerendering');
+      assert_greater_than_equal(
+          await activation_start_promise,
+          ACTIVATION_DELAY,
+          'activationStart after activation must be greater than or equal to ' +
+          'ACTIVATION_DELAY.');
+      assert_equals(await msg_from_iframe_promise, 'iframe activated');
+
+      // Finishes the test.
+      testChannel.postMessage('Done');
+    } else if (isIframe) {
+      const prerenderChannel = new BroadcastChannel('prerender-channel');
+      const initial_value = getActivationStart();
+      const activation_start_promise = new Promise(resolve => {
+        document.addEventListener('prerenderingchange', () => {
+          resolve(getActivationStart());
+        });
+      });
+      prerenderChannel.postMessage('iframe ready');
+      assert_equals(
+          initial_value,
+          0,
+          'activationStart must be 0 while prerendering in iframe.');
+      assert_greater_than_equal(
+          await activation_start_promise,
+          ACTIVATION_DELAY,
+          'activationStart after activation must be greater than or equal to ' +
+          'ACTIVATION_DELAY in iframe.');
+      window.parent.postMessage('iframe activated');
+    }
+  } catch (e) {
+    testChannel.postMessage(e.toString());
+  }
+})();
+</script>
+</body>

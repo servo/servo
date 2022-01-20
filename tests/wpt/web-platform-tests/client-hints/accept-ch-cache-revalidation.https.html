@@ -16,14 +16,17 @@ function wait25ms(test) {
 promise_test(async (test) => {
   var request_token = token();
   var client_hint_headers = [
+    "sec-ch-device-memory",
     "device-memory",
+    "sec-ch-dpr",
     "dpr",
+    "sec-ch-width",
     "width",
+    "sec-ch-viewport-width",
     "viewport-width",
     "rtt",
     "downlink",
     "ect",
-    "sec-ch-lang",
     "sec-ch-ua",
     "sec-ch-ua-arch",
     "sec-ch-ua-platform",

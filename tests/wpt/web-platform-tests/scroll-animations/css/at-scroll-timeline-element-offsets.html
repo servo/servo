@@ -25,61 +25,51 @@
   }
   @scroll-timeline timeline_start_start {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#offset1);
     end: selector(#offset2);
   }
   @scroll-timeline timeline_end_end {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#offset1) end;
     end: selector(#offset2) end;
   }
   @scroll-timeline timeline_end_start {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#offset1) end;
     end: selector(#offset2) start;
   }
   @scroll-timeline timeline_end_1_end {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#offset1) end 1;
     end: selector(#offset2) end;
   }
   @scroll-timeline timeline_end_start_05 {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#offset1) end;
     end: selector(#offset2) 0.5;
   }
   @scroll-timeline timeline_start_400px {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#offset1);
     end: 400px;
   }
   @scroll-timeline timeline_50px_end {
     source: selector(#scroller);
-    time-range: 10s;
     start: 50px;
     end: selector(#offset2) end;
   }
   @scroll-timeline timeline_outside {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#offset_outside);
     end: auto;
   }
   @scroll-timeline timeline_display_none {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#offset_display_none);
     end: auto;
   }
   @scroll-timeline timeline_null_target {
     source: selector(#scroller);
-    time-range: 10s;
     start: selector(#no_such_id);
     end: selector(#no_such_id);
   }

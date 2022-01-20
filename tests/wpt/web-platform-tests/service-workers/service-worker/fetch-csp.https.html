@@ -108,6 +108,30 @@ promise_test(function(t) {
               'should ignore the path component of the URL.');
         })
       .then(function() {
+          return assert_resolves(
+              frame.contentWindow.fetch(IMAGE_URL + "&fetch1", { mode: 'no-cors'}),
+              'Allowed scope fetch resource should be loaded.');
+        })
+      .then(function() {
+          return assert_resolves(
+              frame.contentWindow.fetch(
+                  // The request for IMAGE_URL will be fetched in SW.
+                  './sample?url=' + encodeURIComponent(IMAGE_URL + '&fetch2'), { mode: 'no-cors'}),
+              'Allowed scope fetch resource which was fetched via SW should be loaded.');
+        })
+      .then(function() {
+          return assert_rejects(
+              frame.contentWindow.fetch(REMOTE_IMAGE_URL + "&fetch3", { mode: 'no-cors'}),
+              'Disallowed scope fetch resource should not be loaded.');
+        })
+      .then(function() {
+          return assert_rejects(
+              frame.contentWindow.fetch(
+                  // The request for REMOTE_IMAGE_URL will be fetched in SW.
+                  './sample?url=' + encodeURIComponent(REMOTE_IMAGE_URL + '&fetch4'), { mode: 'no-cors'}),
+              'Disallowed scope fetch resource which was fetched via SW should not be loaded.');
+        })
+      .then(function() {
           frame.remove();
         });
   }, 'Verify CSP control of fetch() in a Service Worker');

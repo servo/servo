@@ -5,11 +5,16 @@
 promise_test(async t => {
   appHistory.onnavigate = e => e.transitionWhile(Promise.resolve());
 
-  let p1 = promise_rejects_dom(t, 'AbortError', appHistory.navigate('/foo', {state: {foo: 1}}));
+  let result1 = appHistory.navigate('/foo', {state: {foo: 1}});
   assert_equals(appHistory.current.getState().foo, 1);
-  let p2 = appHistory.navigate('/foo', {state: {foo: 2}});
+
+  // Don't let the harness fail because of the "AbortError" DOMException that is caused by interrupting the navigation.
+  result1.finished.catch(() => {});
+
+  let result2 = appHistory.navigate('/foo', {state: {foo: 2}});
   assert_equals(appHistory.current.getState().foo, 2);
-  await p1;
-  await p2;
+
+  await result1.committed;
+  await result2.committed;
 }, "navigate() with state should work correctly when called repeatedly");
 </script>

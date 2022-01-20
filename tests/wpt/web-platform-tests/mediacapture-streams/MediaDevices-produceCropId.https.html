@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+<title>Test navigator.mediaDevices.produceCropId()</title>
+<meta name='assert' content='Test the produceCropId() method.'/>
+</head>
+
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks for the behavior of the
+<code>navigator.mediaDevices.produceCropId()</code> method.</p>
+
+<div id='test-div'></div>
+<iframe id='test-iframe' src="about:blank" />
+<a id='test-a'></a>
+<div id='log'></div>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<script>
+"use strict";
+
+// Regex that matches a string only if it is exactly 32 valid hex characters.
+const HEX_REGEX = /^[0-9A-Fa-f]{32}$/g;
+test(() => {
+  const div_id = document.getElementById('test-div').produceCropId();
+  assert_true(HEX_REGEX.test(div_id));
+}, "produces valid id for div");
+
+test(() => {
+  const iframe_id = document.getElementById('test-iframe').produceCropId();
+  assert_true(HEX_REGEX.test(iframe_id));
+}, "produces valid id for iframe");
+
+test(() => {
+  const iframe_id = document.getElementById('test-iframe').produceCropId();
+  const second_iframe_id = document.getElementById('test-iframe').produceCropId();
+  assert_equals(iframe_id, second_iframe_id);
+}, "repeated calls return the same value");
+
+test(() => {
+  assert_throws_js(TypeError, function() {
+    await document.getElementById('test-a').produceCropId();
+  });
+}, "invalid element types cause an error");
+
+test(() => {
+  const div_id = document.getElementById('test-div').produceCropId();
+  const iframe_id = document.getElementById('test-iframe').produceCropId();
+  assert_not_equals(div_id, iframe_id);
+}, "two elements have different IDs");
+
+test(() => {
+  const div = document.getElementById('test-div');
+  const div_id = div.produceCropId();
+  const clone = div.cloneNode(true);
+  document.querySelector('body').appendChild(clone);
+  const clone_id = clone.produceCropId();
+  assert_not_equals(div_id, clone_id);
+}, "cloned elements have different IDs");
+
+</script>
+</body>
+</html>

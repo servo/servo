@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color 5: color-mix()</title>
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<meta name="assert" content="computed value of color-mix() works for all interpolation methods">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    function canonicalize(value)
+    {
+        const property = 'color';
+        var div = document.createElement("div");
+        document.body.appendChild(div);
+        div.style.setProperty(property, value);
+        var computedValue = getComputedStyle(div).getPropertyValue(property);
+        document.body.removeChild(div);
+        return computedValue;
+    }
+
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `rgb(84, 92, 61)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) 25%, hsl(30deg 30% 40%))`, `rgb(112, 106, 67)`);
+    test_computed_value(`color`, `color-mix(in hsl, 25% hsl(120deg 10% 20%), hsl(30deg 30% 40%))`, `rgb(112, 106, 67)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%), 25% hsl(30deg 30% 40%))`, `rgb(61, 73, 54)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%), hsl(30deg 30% 40%) 25%)`, `rgb(61, 73, 54)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) 25%, hsl(30deg 30% 40%) 75%)`, `rgb(112, 106, 67)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) 30%, hsl(30deg 30% 40%) 90%)`, `rgb(112, 106, 67)`); // Scale down > 100% sum.
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) 12.5%, hsl(30deg 30% 40%) 37.5%)`, `rgba(112, 106, 67, 0.5)`); // Scale up < 100% sum, causes alpha multiplication.
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) 0%, hsl(30deg 30% 40%))`, `rgb(133, 102, 71)`);
+
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20% / .4), hsl(30deg 30% 40% / .8))`, `rgba(95, 105, 65, 0.6)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) 25%, hsl(30deg 30% 40% / .8))`, `rgba(108, 103, 66, 0.85)`);
+    test_computed_value(`color`, `color-mix(in hsl, 25% hsl(120deg 10% 20% / .4), hsl(30deg 30% 40% / .8))`, `rgba(121, 114, 69, 0.7)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20% / .4), 25% hsl(30deg 30% 40% / .8))`, `rgba(68, 84, 59, 0.5)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20% / .4), hsl(30deg 30% 40% / .8) 25%)`, `rgba(68, 84, 59, 0.5)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20% / .4) 25%, hsl(30deg 30% 40% / .8) 75%)`, `rgba(121, 114, 69, 0.7)`);
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20% / .4) 30%, hsl(30deg 30% 40% / .8) 90%)`, `rgba(121, 114, 69, 0.7)`); // Scale down > 100% sum.
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20% / .4) 12.5%, hsl(30deg 30% 40% / .8) 37.5%)`, `rgba(121, 114, 69, 0.35)`); // Scale up < 100% sum, causes alpha multiplication.
+    test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20% / .4) 0%, hsl(30deg 30% 40% / .8))`, `rgba(133, 102, 71, 0.8)`);
+
+    test_computed_value(`color`, `color-mix(in hsl, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl, hsl(50deg 50% 50%), hsl(330deg 50% 50%))`, canonicalize(`hsl(10deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl, hsl(330deg 50% 50%), hsl(50deg 50% 50%))`, canonicalize(`hsl(10deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl, hsl(20deg 50% 50%), hsl(320deg 50% 50%))`, canonicalize(`hsl(350deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl, hsl(320deg 50% 50%), hsl(20deg 50% 50%))`, canonicalize(`hsl(350deg 50% 50%)`));
+
+    test_computed_value(`color`, `color-mix(in hsl shorter hue, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl shorter hue, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl shorter hue, hsl(50deg 50% 50%), hsl(330deg 50% 50%))`, canonicalize(`hsl(10deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl shorter hue, hsl(330deg 50% 50%), hsl(50deg 50% 50%))`, canonicalize(`hsl(10deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl shorter hue, hsl(20deg 50% 50%), hsl(320deg 50% 50%))`, canonicalize(`hsl(350deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl shorter hue, hsl(320deg 50% 50%), hsl(20deg 50% 50%))`, canonicalize(`hsl(350deg 50% 50%)`));
+
+    test_computed_value(`color`, `color-mix(in hsl longer hue, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, canonicalize(`hsl(230deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl longer hue, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, canonicalize(`hsl(230deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl longer hue, hsl(50deg 50% 50%), hsl(330deg 50% 50%))`, canonicalize(`hsl(190deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl longer hue, hsl(330deg 50% 50%), hsl(50deg 50% 50%))`, canonicalize(`hsl(190deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl longer hue, hsl(20deg 50% 50%), hsl(320deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl longer hue, hsl(320deg 50% 50%), hsl(20deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
+
+    test_computed_value(`color`, `color-mix(in hsl increasing hue, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl increasing hue, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, canonicalize(`hsl(230deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl increasing hue, hsl(50deg 50% 50%), hsl(330deg 50% 50%))`, canonicalize(`hsl(190deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl increasing hue, hsl(330deg 50% 50%), hsl(50deg 50% 50%))`, canonicalize(`hsl(10deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl increasing hue, hsl(20deg 50% 50%), hsl(320deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl increasing hue, hsl(320deg 50% 50%), hsl(20deg 50% 50%))`, canonicalize(`hsl(350deg 50% 50%)`));
+
+    test_computed_value(`color`, `color-mix(in hsl decreasing hue, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, canonicalize(`hsl(230deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl decreasing hue, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl decreasing hue, hsl(50deg 50% 50%), hsl(330deg 50% 50%))`, canonicalize(`hsl(10deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl decreasing hue, hsl(330deg 50% 50%), hsl(50deg 50% 50%))`, canonicalize(`hsl(190deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl decreasing hue, hsl(20deg 50% 50%), hsl(320deg 50% 50%))`, canonicalize(`hsl(350deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl decreasing hue, hsl(320deg 50% 50%), hsl(20deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
+
+    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(50deg 50% 50%), hsl(330deg 50% 50%))`, canonicalize(`hsl(190deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(330deg 50% 50%), hsl(50deg 50% 50%))`, canonicalize(`hsl(190deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(20deg 50% 50%), hsl(320deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
+    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(320deg 50% 50%), hsl(20deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
+
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `rgb(147, 179, 52)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%) 25%, hwb(30deg 30% 40%))`, `rgb(166, 153, 64)`);
+    test_computed_value(`color`, `color-mix(in hwb, 25% hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `rgb(166, 153, 64)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%), 25% hwb(30deg 30% 40%))`, `rgb(96, 191, 39)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%), hwb(30deg 30% 40%) 25%)`, `rgb(96, 191, 39)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%) 25%, hwb(30deg 30% 40%) 75%)`, `rgb(166, 153, 64)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%) 30%, hwb(30deg 30% 40%) 90%)`, `rgb(166, 153, 64)`); // Scale down > 100% sum.
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%) 12.5%, hwb(30deg 30% 40%) 37.5%)`, `rgba(166, 153, 64, 0.5)`); // Scale up < 100% sum, causes alpha multiplication.
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%) 0%, hwb(30deg 30% 40%))`, `rgb(153, 115, 77)`);
+
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20% / .4), hwb(30deg 30% 40% / .8))`, `rgba(143, 170, 60, 0.6)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20% / .4) 25%, hwb(30deg 30% 40% / .8))`, `rgba(160, 149, 70, 0.7)`);
+    test_computed_value(`color`, `color-mix(in hwb, 25% hwb(120deg 10% 20% / .4), hwb(30deg 30% 40% / .8))`, `rgba(160, 149, 70, 0.7)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%), 25% hwb(30deg 30% 40% / .8))`, `rgba(95, 193, 37, 0.95)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20% / .4), hwb(30deg 30% 40% / .8) 25%)`, `rgba(98, 184, 46, 0.5)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20% / .4) 25%, hwb(30deg 30% 40% / .8) 75%)`, `rgba(160, 149, 70, 0.7)`);
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20% / .4) 30%, hwb(30deg 30% 40% / .8) 90%)`, `rgba(160, 149, 70, 0.7)`); // Scale down > 100% sum.
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20% / .4) 12.5%, hwb(30deg 30% 40% / .8) 37.5%)`, `rgba(160, 149, 70, 0.35)`); // Scale up < 100% sum, causes alpha multiplication.
+    test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20% / .4) 0%, hwb(30deg 30% 40% / .8))`, `rgba(153, 115, 77, 0.8)`);
+
+    test_computed_value(`color`, `color-mix(in hwb, hwb(40deg 30% 40%), hwb(60deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb, hwb(60deg 30% 40%), hwb(40deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb, hwb(50deg 30% 40%), hwb(330deg 30% 40%))`, canonicalize(`hwb(10deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb, hwb(330deg 30% 40%), hwb(50deg 30% 40%))`, canonicalize(`hwb(10deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb, hwb(20deg 30% 40%), hwb(320deg 30% 40%))`, canonicalize(`hwb(350deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb, hwb(320deg 30% 40%), hwb(20deg 30% 40%))`, canonicalize(`hwb(350deg 30% 40%)`));
+
+    test_computed_value(`color`, `color-mix(in hwb shorter hue, hwb(40deg 30% 40%), hwb(60deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb shorter hue, hwb(60deg 30% 40%), hwb(40deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb shorter hue, hwb(50deg 30% 40%), hwb(330deg 30% 40%))`, canonicalize(`hwb(10deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb shorter hue, hwb(330deg 30% 40%), hwb(50deg 30% 40%))`, canonicalize(`hwb(10deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb shorter hue, hwb(20deg 30% 40%), hwb(320deg 30% 40%))`, canonicalize(`hwb(350deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb shorter hue, hwb(320deg 30% 40%), hwb(20deg 30% 40%))`, canonicalize(`hwb(350deg 30% 40%)`));
+
+    test_computed_value(`color`, `color-mix(in hwb longer hue, hwb(40deg 30% 40%), hwb(60deg 30% 40%))`, canonicalize(`hwb(230deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb longer hue, hwb(60deg 30% 40%), hwb(40deg 30% 40%))`, canonicalize(`hwb(230deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb longer hue, hwb(50deg 30% 40%), hwb(330deg 30% 40%))`, canonicalize(`hwb(190deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb longer hue, hwb(330deg 30% 40%), hwb(50deg 30% 40%))`, canonicalize(`hwb(190deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb longer hue, hwb(20deg 30% 40%), hwb(320deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb longer hue, hwb(320deg 30% 40%), hwb(20deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
+
+    test_computed_value(`color`, `color-mix(in hwb increasing hue, hwb(40deg 30% 40%), hwb(60deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb increasing hue, hwb(60deg 30% 40%), hwb(40deg 30% 40%))`, canonicalize(`hwb(230deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb increasing hue, hwb(50deg 30% 40%), hwb(330deg 30% 40%))`, canonicalize(`hwb(190deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb increasing hue, hwb(330deg 30% 40%), hwb(50deg 30% 40%))`, canonicalize(`hwb(10deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb increasing hue, hwb(20deg 30% 40%), hwb(320deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb increasing hue, hwb(320deg 30% 40%), hwb(20deg 30% 40%))`, canonicalize(`hwb(350deg 30% 40%)`));
+
+    test_computed_value(`color`, `color-mix(in hwb decreasing hue, hwb(40deg 30% 40%), hwb(60deg 30% 40%))`, canonicalize(`hwb(230deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb decreasing hue, hwb(60deg 30% 40%), hwb(40deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb decreasing hue, hwb(50deg 30% 40%), hwb(330deg 30% 40%))`, canonicalize(`hwb(10deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb decreasing hue, hwb(330deg 30% 40%), hwb(50deg 30% 40%))`, canonicalize(`hwb(190deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb decreasing hue, hwb(20deg 30% 40%), hwb(320deg 30% 40%))`, canonicalize(`hwb(350deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb decreasing hue, hwb(320deg 30% 40%), hwb(20deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
+
+    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(40deg 30% 40%), hwb(60deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(60deg 30% 40%), hwb(40deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(50deg 30% 40%), hwb(330deg 30% 40%))`, canonicalize(`hwb(190deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(330deg 30% 40%), hwb(50deg 30% 40%))`, canonicalize(`hwb(190deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(20deg 30% 40%), hwb(320deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
+    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(320deg 30% 40%), hwb(20deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
+
+    for (const colorSpace of [ "lch", "oklch" ]) {
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg), ${colorSpace}(50% 60 70deg))`, `${colorSpace}(30% 40 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg) 25%, ${colorSpace}(50% 60 70deg))`, `${colorSpace}(40% 50 60)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, 25% ${colorSpace}(10% 20 30deg), ${colorSpace}(50% 60 70deg))`, `${colorSpace}(40% 50 60)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg), 25% ${colorSpace}(50% 60 70deg))`, `${colorSpace}(20% 30 40)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg), ${colorSpace}(50% 60 70deg) 25%)`, `${colorSpace}(20% 30 40)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg) 25%, ${colorSpace}(50% 60 70deg) 75%)`, `${colorSpace}(40% 50 60)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg) 30%, ${colorSpace}(50% 60 70deg) 90%)`, `${colorSpace}(40% 50 60)`); // Scale down > 100% sum.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg) 12.5%, ${colorSpace}(50% 60 70deg) 37.5%)`, `${colorSpace}(40% 50 60 / 0.5)`); // Scale up < 100% sum, causes alpha multiplication.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg) 0%, ${colorSpace}(50% 60 70deg))`, `${colorSpace}(50% 60 70)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg / .4), ${colorSpace}(50% 60 70deg / .8))`, `${colorSpace}(36.666664% 46.666664 50 / 0.6)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg / .4) 25%, ${colorSpace}(50% 60 70deg / .8))`, `${colorSpace}(44.285713% 54.285717 60 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, 25% ${colorSpace}(10% 20 30deg / .4), ${colorSpace}(50% 60 70deg / .8))`, `${colorSpace}(44.285713% 54.285717 60 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg / .4), 25% ${colorSpace}(50% 60 70deg / .8))`, `${colorSpace}(26% 36 40 / 0.5)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg / .4), ${colorSpace}(50% 60 70deg / .8) 25%)`, `${colorSpace}(26% 36 40 / 0.5)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg / .4) 25%, ${colorSpace}(50% 60 70deg / .8) 75%)`, `${colorSpace}(44.285713% 54.285717 60 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg / .4) 30%, ${colorSpace}(50% 60 70deg / .8) 90%)`, `${colorSpace}(44.285713% 54.285717 60 / 0.7)`); // Scale down > 100% sum.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg / .4) 12.5%, ${colorSpace}(50% 60 70deg / .8) 37.5%)`, `${colorSpace}(44.285713% 54.285717 60 / 0.35)`); // Scale up < 100% sum, causes alpha multiplication.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg / .4) 0%, ${colorSpace}(50% 60 70deg / .8))`, `${colorSpace}(50% 60 70 / 0.8)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(100% 0 40deg), ${colorSpace}(100% 0 60deg))`, `${colorSpace}(100% 0 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(100% 0 60deg), ${colorSpace}(100% 0 40deg))`, `${colorSpace}(100% 0 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(100% 0 50deg), ${colorSpace}(100% 0 330deg))`, `${colorSpace}(100% 0 10)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(100% 0 330deg), ${colorSpace}(100% 0 50deg))`, `${colorSpace}(100% 0 10)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(100% 0 20deg), ${colorSpace}(100% 0 320deg))`, `${colorSpace}(100% 0 350)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(100% 0 320deg), ${colorSpace}(100% 0 20deg))`, `${colorSpace}(100% 0 350)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace} shorter hue, ${colorSpace}(100% 0 40deg), ${colorSpace}(100% 0 60deg))`, `${colorSpace}(100% 0 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} shorter hue, ${colorSpace}(100% 0 60deg), ${colorSpace}(100% 0 40deg))`, `${colorSpace}(100% 0 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} shorter hue, ${colorSpace}(100% 0 50deg), ${colorSpace}(100% 0 330deg))`, `${colorSpace}(100% 0 10)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} shorter hue, ${colorSpace}(100% 0 330deg), ${colorSpace}(100% 0 50deg))`, `${colorSpace}(100% 0 10)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} shorter hue, ${colorSpace}(100% 0 20deg), ${colorSpace}(100% 0 320deg))`, `${colorSpace}(100% 0 350)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} shorter hue, ${colorSpace}(100% 0 320deg), ${colorSpace}(100% 0 20deg))`, `${colorSpace}(100% 0 350)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace} longer hue, ${colorSpace}(100% 0 40deg), ${colorSpace}(100% 0 60deg))`, `${colorSpace}(100% 0 230)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} longer hue, ${colorSpace}(100% 0 60deg), ${colorSpace}(100% 0 40deg))`, `${colorSpace}(100% 0 230)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} longer hue, ${colorSpace}(100% 0 50deg), ${colorSpace}(100% 0 330deg))`, `${colorSpace}(100% 0 190)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} longer hue, ${colorSpace}(100% 0 330deg), ${colorSpace}(100% 0 50deg))`, `${colorSpace}(100% 0 190)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} longer hue, ${colorSpace}(100% 0 20deg), ${colorSpace}(100% 0 320deg))`, `${colorSpace}(100% 0 170)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} longer hue, ${colorSpace}(100% 0 320deg), ${colorSpace}(100% 0 20deg))`, `${colorSpace}(100% 0 170)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace} increasing hue, ${colorSpace}(100% 0 40deg), ${colorSpace}(100% 0 60deg))`, `${colorSpace}(100% 0 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} increasing hue, ${colorSpace}(100% 0 60deg), ${colorSpace}(100% 0 40deg))`, `${colorSpace}(100% 0 230)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} increasing hue, ${colorSpace}(100% 0 50deg), ${colorSpace}(100% 0 330deg))`, `${colorSpace}(100% 0 190)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} increasing hue, ${colorSpace}(100% 0 330deg), ${colorSpace}(100% 0 50deg))`, `${colorSpace}(100% 0 10)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} increasing hue, ${colorSpace}(100% 0 20deg), ${colorSpace}(100% 0 320deg))`, `${colorSpace}(100% 0 170)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} increasing hue, ${colorSpace}(100% 0 320deg), ${colorSpace}(100% 0 20deg))`, `${colorSpace}(100% 0 350)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100% 0 40deg), ${colorSpace}(100% 0 60deg))`, `${colorSpace}(100% 0 230)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100% 0 60deg), ${colorSpace}(100% 0 40deg))`, `${colorSpace}(100% 0 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100% 0 50deg), ${colorSpace}(100% 0 330deg))`, `${colorSpace}(100% 0 10)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100% 0 330deg), ${colorSpace}(100% 0 50deg))`, `${colorSpace}(100% 0 190)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100% 0 20deg), ${colorSpace}(100% 0 320deg))`, `${colorSpace}(100% 0 350)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100% 0 320deg), ${colorSpace}(100% 0 20deg))`, `${colorSpace}(100% 0 170)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100% 0 40deg), ${colorSpace}(100% 0 60deg))`, `${colorSpace}(100% 0 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100% 0 60deg), ${colorSpace}(100% 0 40deg))`, `${colorSpace}(100% 0 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100% 0 50deg), ${colorSpace}(100% 0 330deg))`, `${colorSpace}(100% 0 190)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100% 0 330deg), ${colorSpace}(100% 0 50deg))`, `${colorSpace}(100% 0 190)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100% 0 20deg), ${colorSpace}(100% 0 320deg))`, `${colorSpace}(100% 0 170)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100% 0 320deg), ${colorSpace}(100% 0 20deg))`, `${colorSpace}(100% 0 170)`);
+    }
+
+    for (const colorSpace of [ "lab", "oklab" ]) {
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30), ${colorSpace}(50% 60 70))`, `${colorSpace}(30% 40 50)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30) 25%, ${colorSpace}(50% 60 70))`, `${colorSpace}(40% 50 60)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, 25% ${colorSpace}(10% 20 30), ${colorSpace}(50% 60 70))`, `${colorSpace}(40% 50 60)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30), 25% ${colorSpace}(50% 60 70))`, `${colorSpace}(20% 30 40)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30), ${colorSpace}(50% 60 70) 25%)`, `${colorSpace}(20% 30 40)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30) 25%, ${colorSpace}(50% 60 70) 75%)`, `${colorSpace}(40% 50 60)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30) 30%, ${colorSpace}(50% 60 70) 90%)`, `${colorSpace}(40% 50 60)`); // Scale down > 100% sum.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30) 12.5%, ${colorSpace}(50% 60 70) 37.5%)`, `${colorSpace}(40% 50 60 / 0.5)`); // Scale up < 100% sum, causes alpha multiplication.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30) 0%, ${colorSpace}(50% 60 70))`, `${colorSpace}(50% 60 70)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30 / .4), ${colorSpace}(50% 60 70 / .8))`, `${colorSpace}(36.666664% 46.666664 56.666664 / 0.6)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30 / .4) 25%, ${colorSpace}(50% 60 70 / .8))`, `${colorSpace}(44.285713% 54.285717 64.28571 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, 25% ${colorSpace}(10% 20 30 / .4), ${colorSpace}(50% 60 70 / .8))`, `${colorSpace}(44.285713% 54.285717 64.28571 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30 / .4), 25% ${colorSpace}(50% 60 70 / .8))`, `${colorSpace}(26% 36 46 / 0.5)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30 / .4), ${colorSpace}(50% 60 70 / .8) 25%)`, `${colorSpace}(26% 36 46 / 0.5)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30 / .4) 25%, ${colorSpace}(50% 60 70 / .8) 75%)`, `${colorSpace}(44.285713% 54.285717 64.28571 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30 / .4) 30%, ${colorSpace}(50% 60 70 / .8) 90%)`, `${colorSpace}(44.285713% 54.285717 64.28571 / 0.7)`); // Scale down > 100% sum.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30 / .4) 12.5%, ${colorSpace}(50% 60 70 / .8) 37.5%)`, `${colorSpace}(44.285713% 54.285717 64.28571 / 0.35)`); // Scale up < 100% sum, causes alpha multiplication.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30 / .4) 0%, ${colorSpace}(50% 60 70 / .8))`, `${colorSpace}(50% 60 70 / 0.8)`);
+    }
+
+    for (const colorSpace of [ "srgb", "srgb-linear", "xyz", "xyz-d50", "xyz-d65" ]) {
+        const resultColorSpace = colorSpace == "xyz" ? "xyz-d65" : colorSpace;
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3), color(${colorSpace} .5 .6 .7))`, `color(${resultColorSpace} 0.3 0.4 0.5)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3) 25%, color(${colorSpace} .5 .6 .7))`, `color(${resultColorSpace} 0.4 0.5 0.6)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, 25% color(${colorSpace} .1 .2 .3), color(${colorSpace} .5 .6 .7))`, `color(${resultColorSpace} 0.4 0.5 0.6)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3), color(${colorSpace} .5 .6 .7) 25%)`, `color(${resultColorSpace} 0.2 0.3 0.4)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3), 25% color(${colorSpace} .5 .6 .7))`, `color(${resultColorSpace} 0.2 0.3 0.4)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3) 25%, color(${colorSpace} .5 .6 .7) 75%)`, `color(${resultColorSpace} 0.4 0.5 0.6)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3) 30%, color(${colorSpace} .5 .6 .7) 90%)`, `color(${resultColorSpace} 0.4 0.5 0.6)`); // Scale down > 100% sum.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3) 12.5%, color(${colorSpace} .5 .6 .7) 37.5%)`, `color(${resultColorSpace} 0.4 0.5 0.6 / 0.5)`); // Scale up < 100% sum, causes alpha multiplication.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3) 0%, color(${colorSpace} .5 .6 .7))`, `color(${resultColorSpace} 0.5 0.6 0.7)`);
+
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .5), color(${colorSpace} .5 .6 .7 / .8))`, `color(${resultColorSpace} 0.3461539 0.4461539 0.5461539 / 0.65)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .4) 25%, color(${colorSpace} .5 .6 .7 / .8))`, `color(${resultColorSpace} 0.44285715 0.54285717 0.64285713 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, 25% color(${colorSpace} .1 .2 .3 / .4), color(${colorSpace} .5 .6 .7 / .8))`, `color(${resultColorSpace} 0.44285715 0.54285717 0.64285713 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .4), color(${colorSpace} .5 .6 .7 / .8) 25%)`, `color(${resultColorSpace} 0.26000002 0.36 0.46 / 0.5)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .4), 25% color(${colorSpace} .5 .6 .7 / .8))`, `color(${resultColorSpace} 0.26000002 0.36 0.46 / 0.5)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .4) 25%, color(${colorSpace} .5 .6 .7 / .8) 75%)`, `color(${resultColorSpace} 0.44285715 0.54285717 0.64285713 / 0.7)`);
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .4) 30%, color(${colorSpace} .5 .6 .7 / .8) 90%)`, `color(${resultColorSpace} 0.44285715 0.54285717 0.64285713 / 0.7)`); // Scale down > 100% sum.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .4) 12.5%, color(${colorSpace} .5 .6 .7 / .8) 37.5%)`, `color(${resultColorSpace} 0.44285715 0.54285717 0.64285713 / 0.35)`); // Scale up < 100% sum, causes alpha multiplication.
+        test_computed_value(`color`, `color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / .4) 0%, color(${colorSpace} .5 .6 .7 / .8))`, `color(${resultColorSpace} 0.5 0.6 0.7 / 0.8)`);
+    }
+</script>
+</body>
+</html>

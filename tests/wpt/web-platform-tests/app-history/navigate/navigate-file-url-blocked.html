@@ -1,9 +1,0 @@
-<!doctype html>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script>
-promise_test(async t => {
-  await new Promise(resolve => window.onload = resolve);
-  await promise_rejects_dom(t, 'AbortError', appHistory.navigate("file://"));
-}, "navigate() to a file url");
-</script>

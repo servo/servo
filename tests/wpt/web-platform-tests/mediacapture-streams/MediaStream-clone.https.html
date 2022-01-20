@@ -11,9 +11,13 @@
 <p class="instructions">This test checks that cloning MediaStreams and MediaStreamTracks works as expected.</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
 
 promise_test(async t => {
+  await setMediaPermission();
   const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
   assert_equals(stream.getAudioTracks().length, 1);
   assert_equals(stream.getVideoTracks().length, 1);

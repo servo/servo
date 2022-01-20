@@ -53,7 +53,7 @@ test(function() {
   for (var p in document.forms) {
     result.push(p);
   }
-  // http://heycam.github.io/webidl/#property-enumeration
+  // https://webidl.spec.whatwg.org/#property-enumeration
   // If the object supports indexed properties, then the object’s supported
   // property indices are enumerated first, in numerical order.
   assert_array_equals(result.splice(0, 3), ["0", "1", "2"]);

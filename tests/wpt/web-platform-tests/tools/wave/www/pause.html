@@ -122,8 +122,7 @@
         });
       }
 
-      WaveService.connectHttpPolling(TOKEN);
-      WaveService.onMessage(function(message) {
+      WaveService.addSessionEventListener(TOKEN, function(message) {
         if (message.type !== "status") return;
         if (message.data !== "running") return;
         WaveService.readNextTest(TOKEN, function(url) {

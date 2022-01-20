@@ -21,7 +21,7 @@ promise_test(async t => {
     assert_equals(appHistory.transition, null);
   }));
 
-  await promise_rejects_dom(t, "AbortError", appHistory.navigate("?1"));
+  await promise_rejects_dom(t, "AbortError", appHistory.navigate("?1").committed);
   assert_equals(appHistory.transition, null);
   assert_array_equals(events, ["navigate", "navigateerror"]);
 }, "canceled navigate()");

@@ -1,1 +1,1 @@
-Accept-CH: device-memory dpr
+Accept-CH: sec-ch-device-memory device-memory sec-ch-dpr dpr

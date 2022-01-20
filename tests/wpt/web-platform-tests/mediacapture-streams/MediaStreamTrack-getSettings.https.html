@@ -4,6 +4,9 @@
 <meta name=timeout content=long>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
   'use strict'
 
@@ -19,6 +22,7 @@
   }
 
   promise_test(async t => {
+    await setMediaPermission("granted", ["camera"]);
     const mediaStream1 = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: false,

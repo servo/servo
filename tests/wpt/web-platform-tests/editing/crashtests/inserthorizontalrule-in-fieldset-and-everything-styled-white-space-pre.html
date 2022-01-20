@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        * {
+            white-space: pre
+        }
+    </style>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const quote_0 = document.getElementById('id_0')
+        const quote_1 = document.createElement('blockquote')
+        const fieldset_1 = document.createElement('fieldset')
+        quote_1.appendChild(fieldset_1)
+        document.documentElement.appendChild(quote_1)
+        const selection = self.getSelection()
+        selection.collapse(fieldset_1, 0)
+        quote_0.contentEditable = false
+        document.documentElement.contentEditable = true
+        document.execCommand('insertHorizontalRule', false, null)
+      })
+    </script>
+</head>
+<blockquote id='id_0'></blockquote>
+</html>

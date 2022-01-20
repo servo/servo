@@ -17,15 +17,30 @@ test_invalid_value("will-change", "auto, transform");
 test_invalid_value("will-change", "contents auto");
 test_invalid_value("will-change", "contents, auto");
 
-// CSS-wide keywords are excluded from <custom-ident>
-// https://drafts.csswg.org/css-values-4/#identifier-value
-test_invalid_value("will-change", "transform, initial");
-test_invalid_value("will-change", "transform, inherit");
-test_invalid_value("will-change", "transform, unset");
-test_invalid_value("will-change", "transform, revert");
-test_invalid_value("will-change", "transform, default");
+let excludedKeywords = [
+  // CSS-wide keywords are excluded from <custom-ident>
+  // https://drafts.csswg.org/css-values-4/#identifier-value
+  "initial",
+  "inherit",
+  "unset",
+  "revert",
+  "revert-layer",
+  "default",
 
-// will-change additionally excludes the following from <custom-ident>
+  // will-change additionally excludes the following from <custom-ident>
+  "will-change",
+  "none",
+  "all",
+];
+
+for (let keyword of excludedKeywords) {
+  test_invalid_value("will-change", `transform, ${keyword}`);
+  test_invalid_value("will-change", `${keyword}, transform`);
+  for (let k of excludedKeywords) {
+    test_invalid_value("will-change", `${keyword}, ${k}`);
+  }
+}
+
 test_invalid_value("will-change", "will-change");
 test_invalid_value("will-change", "none");
 test_invalid_value("will-change", "all");

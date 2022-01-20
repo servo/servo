@@ -1,3 +1,5 @@
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
     if b'Status' in request.GET:
         status = int(request.GET[b"Status"])
@@ -6,7 +8,7 @@ def main(request, response):
 
     headers = []
 
-    url = request.GET[b'Redirect']
+    url = isomorphic_decode(request.GET[b'Redirect'])
     headers.append((b"Location", url))
 
     if b"ACAOrigin" in request.GET:

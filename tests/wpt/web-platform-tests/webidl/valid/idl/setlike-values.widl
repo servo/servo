@@ -1,9 +1,0 @@
-interface ValuesA {
-  readonly setlike<DOMString>;
-  static void values();
-};
-
-interface ValuesB {
-  readonly setlike<DOMString>;
-  static readonly attribute long values;
-};

@@ -1,12 +1,13 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Web Authentication: An API for accessing Public Key Credentials - Level 3 (https://w3c.github.io/webauthn/)
+// Source: Web Authentication: An API for accessing Public Key Credentials - Level (https://w3c.github.io/webauthn/)
 
 [SecureContext, Exposed=Window]
 interface PublicKeyCredential : Credential {
     [SameObject] readonly attribute ArrayBuffer              rawId;
     [SameObject] readonly attribute AuthenticatorResponse    response;
+    [SameObject] readonly attribute DOMString?               authenticatorAttachment;
     AuthenticationExtensionsClientOutputs getClientExtensionResults();
 };
 
@@ -120,7 +121,7 @@ dictionary CollectedClientData {
     required DOMString           challenge;
     required DOMString           origin;
     boolean                      crossOrigin;
-    TokenBinding                 tokenBinding;
+
 };
 
 dictionary TokenBinding {

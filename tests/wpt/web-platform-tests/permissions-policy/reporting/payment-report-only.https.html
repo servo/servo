@@ -3,6 +3,8 @@
   <head>
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src='/resources/testdriver-vendor.js'></script>
   </head>
   <body>
     <script>
@@ -19,6 +21,7 @@ promise_test(async t => {
                           {types: ['permissions-policy-violation']}).observe();
   });
   try {
+    await test_driver.bless();
     const request = new PaymentRequest(
       [{ supportedMethods: 'basic-card' }],
       { total: { label: 'Total', amount: { currency: 'USD', value: 0 }}},

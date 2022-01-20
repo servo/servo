@@ -1,4 +1,5 @@
-spec: https://wicg.github.io/web-locks/
+spec: https://w3c.github.io/web-locks/
 suggested_reviewers:
   - inexorabletash
   - pwnall
+  - saschanaz

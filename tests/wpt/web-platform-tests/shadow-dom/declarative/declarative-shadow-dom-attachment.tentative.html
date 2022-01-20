@@ -50,6 +50,14 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
         assert_equals(element.shadowRoot.innerHTML, '', 'Empty shadow content');
         assert_equals(element.shadowRoot.mode, mode, 'Original shadow mode');
       }
+
+      assert_throws_dom('NotSupportedError', () => {
+        element.attachShadow({mode: mode});
+      }, 'Calling attachShadow a second time on an element with a declarative shadow fails (same mode)');
+
+      assert_throws_dom('NotSupportedError', () => {
+        element.attachShadow({mode: oppositeMode});
+      }, 'Calling attachShadow a second time on an element with a declarative shadow fails (opposite mode)');
     } else {
       const wrapper = nodes.wrapper;
       if (!nochildren) {

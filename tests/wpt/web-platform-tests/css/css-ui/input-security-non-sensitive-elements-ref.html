@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Test that input-security: auto does not obscure text in elements that do not accept sensitive text input</title>
+<style>
+  * { input-security: none; }
+</style>
+<input type="email" value="webkit@webkit.org">
+<input type="number" value="2021">
+<input type="search" value="test">
+<input type="tel" value="555-5555">
+<input type="text" value="test">
+<input type="url" value="webkit.org">
+<div>Test</div>

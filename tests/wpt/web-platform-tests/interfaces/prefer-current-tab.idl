@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: preferCurrentTab (https://wicg.github.io/prefer-current-tab/)
+
+partial dictionary MediaStreamConstraints {
+  boolean preferCurrentTab = false;
+};

@@ -5,7 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/webrtc/dictionary-helper.js"></script>
 <script src="/webrtc/RTCRtpParameters-helper.js"></script>
-<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -45,6 +45,8 @@
           v.srcObject = new MediaStream([(await haveTrackEvent).track]);
           await new Promise(r => v.onloadedmetadata = r);
           await detectSignal(t, v, 100);
+          const sendParams = pc1.getSenders()[0].getParameters();
+          assert_equals(sendParams.encodings[0].scalabilityMode, scalabilityMode);
         }, `[${index++}] ${codec.mimeType} - ${scalabilityMode} should produce valid video content`);
       }
     }

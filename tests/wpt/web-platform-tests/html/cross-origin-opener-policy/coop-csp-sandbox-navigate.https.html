@@ -1,5 +1,6 @@
 <!doctype html>
 <title>CSP sandbox popup navigate to Cross-Origin-Opener-Policy document should work</title>
+<meta name="timeout" content="long">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/utils.js"></script> <!-- Use token() to allow running tests in parallel -->
@@ -32,7 +33,7 @@
     addEventListener('load', t.step_func(() => {
       t.step_timeout(() => {
         assert_unreached('Navigation from CSP sandbox to COOP document failed')
-      }, 1500);
+      }, 10000);
     }));
   }, `CSP: sandbox ${sandboxValue}; ${document.title}`);
 });

@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset=utf-8>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-face-src-formats" />
+<meta name="assert" content="Tests that local() and url() in serialization of @font-face blocks are quoted"/>
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<style id="style">
+/* 0 */
+@font-face {
+    font-family: "A";
+    src: local("B");
+}
+/* 1 */
+@font-face {
+    font-family: "C";
+    src: url("D") format("opentype");
+}
+/* 2 */
+@font-face {
+    font-family: "E";
+    src: url("F") format("opentype");
+}
+/* 3 */
+@font-face {
+    font-family: "G";
+    src: url("H") format("open\"type");
+}
+/* 4 */
+@font-face {
+    font-family: "I";
+    src: url("J") format("open\A type");
+}
+/* 5 */
+@font-face {
+    font-family: "K";
+    src: url("L") format("open\\type");
+}
+/* 6 */
+@font-face {
+    font-family: "M";
+    src: url("N\"O") format("opentype");
+}
+/* 7 */
+@font-face {
+    font-family: "P";
+    src: url("Q\A R") format("opentype");
+}
+/* 8 */
+@font-face {
+    font-family: "S";
+    src: url("T\\U") format("opentype");
+}
+/* 9 */
+@font-face {
+    font-family: "V";
+    src: local("W\"X");
+}
+/* 10 */
+@font-face {
+    font-family: "Y";
+    src: local("Z\A A");
+}
+/* 11 */
+@font-face {
+    font-family: "B";
+    src: local("C\\D");
+}
+</style>
+</head>
+<body>
+<script>
+test(function(t) {
+    let rules = document.getElementById("style").sheet.cssRules;
+    assert_not_equals(rules[0].cssText.indexOf('local("B")'), -1);
+    assert_not_equals(rules[1].cssText.indexOf('opentype'), -1);
+    assert_not_equals(rules[2].cssText.indexOf('F")'), -1);
+    assert_not_equals(rules[3].cssText.indexOf('format(\"open\\\"type\")'), -1);
+    assert_not_equals(rules[4].cssText.indexOf('format(\"open\\a type\")'), -1);
+    assert_not_equals(rules[5].cssText.indexOf('format(\"open\\\\type\")'), -1);
+    assert_not_equals(rules[9].cssText.indexOf('local(\"W\\\"X\")'), -1);
+    assert_not_equals(rules[10].cssText.indexOf('local(\"Z\\a A\")'), -1);
+    assert_not_equals(rules[11].cssText.indexOf('local(\"C\\\\D\")'), -1);
+});
+</script>
+</body>
+</html>

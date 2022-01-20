@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for the 'secure-payment-confirmation' payment method authentication - cross origin</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation#sctn-authentication">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="utils.sub.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  // Make sure that we are testing calling SPC in a cross-origin iframe.
+  assert_not_equals(window.location.hostname, '{{hosts[alt][]}}',
+      'This test must not be run on the alt hostname.');
+
+  const authenticator = await window.test_driver.add_virtual_authenticator(
+      AUTHENTICATOR_OPTS);
+  t.add_cleanup(() => {
+    return window.test_driver.remove_virtual_authenticator(authenticator);
+  });
+
+  await window.test_driver.set_spc_transaction_mode('autoaccept');
+  t.add_cleanup(() => {
+    return window.test_driver.set_spc_transaction_mode('none');
+  });
+
+  const credential = await createCredential();
+
+  const frame = document.createElement('iframe');
+  frame.allow = 'payment';
+  frame.src = 'https://{{hosts[alt][]}}:{{ports[https][0]}}' +
+      '/secure-payment-confirmation/resources/iframe-authenticate.html';
+
+  // Wait for the iframe to load.
+  const readyPromise = new Promise(resolve => {
+      window.addEventListener('message', function handler(evt) {
+        if (evt.source === frame.contentWindow) {
+          window.removeEventListener('message', handler);
+
+          resolve(evt.data);
+        }
+      });
+  });
+  document.body.appendChild(frame);
+  await readyPromise;
+
+  // Setup the result promise before triggering authentication, to avoid a
+  // race.
+  const resultPromise = new Promise(resolve => {
+      window.addEventListener('message', function handler(evt) {
+        if (evt.source === frame.contentWindow) {
+          // We're done with the child iframe now.
+          document.body.removeChild(frame);
+          window.removeEventListener('message', handler);
+
+          resolve(evt.data);
+        }
+      });
+  });
+
+  frame.contentWindow.postMessage(credential.rawId, '*');
+
+  const result = await resultPromise;
+
+  assert_equals(result.id, credential.id);
+  assert_equals(result.clientDataJSON.origin, 'https://{{hosts[alt][]}}:{{ports[https][0]}}');
+  assert_equals(result.clientDataJSON.payment.topOrigin, window.location.origin);
+  // The credential was created in this frame, and so we are the rp.
+  assert_equals(result.clientDataJSON.payment.rp, window.location.hostname);
+  // The payeeOrigin should be unrelated to what the origin and topOrigin are.
+  assert_equals(result.clientDataJSON.payment.payeeOrigin, 'https://merchant.com');
+}, 'SPC authentication ceremony in cross-origin iframe');
+</script>

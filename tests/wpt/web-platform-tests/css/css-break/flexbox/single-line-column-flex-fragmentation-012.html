@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>
+  Tests that flex-items get pushed down due to a previous multicol flex-item
+  expanding as a result of fragmentation.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: flex; flex-direction: column;">
+    <div style="width: 50px; columns: 2; column-gap: 0; column-fill: auto; background: green;">
+      <div style="width: 50px; height: 160px;"></div>
+      <div style="column-span: all; height: 30px; break-inside: avoid;"></div>
+    </div>
+    <div style="background: green; height: 50px;"></div>
+    <div style="background: green; height: 20px;"></div>
+  </div>
+</div>

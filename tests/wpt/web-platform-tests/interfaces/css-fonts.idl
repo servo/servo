@@ -28,12 +28,9 @@ interface CSSFontFeatureValuesMap {
            (unsigned long or sequence<unsigned long>) values);
 };
 
-partial interface CSSRule {  const unsigned short FONT_PALETTE_VALUES_RULE = 15;
-};
-
-[Exposed=Window]
-interface CSSFontPaletteValuesRule : CSSRule {
-  maplike<unsigned long, CSSOMString>;
-  attribute CSSOMString fontFamily;
-  attribute CSSOMString basePalette;
+[Exposed=Window]interface CSSFontPaletteValuesRule : CSSRule {
+  readonly attribute CSSOMString name;
+  readonly attribute CSSOMString fontFamily;
+  readonly attribute CSSOMString basePalette;
+  readonly attribute CSSOMString overrideColors;
 };

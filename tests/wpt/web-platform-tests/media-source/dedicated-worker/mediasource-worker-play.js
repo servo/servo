@@ -23,7 +23,7 @@ util.mediaSource.addEventListener("sourceopen", () => {
     // Shorten the buffered media and test playback duration to avoid timeouts.
     sourceBuffer.remove(0.5, Infinity);
     sourceBuffer.onupdateend = () => {
-      sourceBuffer.duration = 0.5;
+      util.mediaSource.duration = 0.5;
       // Issue changeType to the same type that we've already buffered.
       // Unnecessary for this buffering, except helps with test coverage.
       sourceBuffer.changeType(util.mediaMetadata.type);

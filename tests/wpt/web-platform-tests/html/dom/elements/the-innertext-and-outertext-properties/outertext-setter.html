@@ -62,6 +62,33 @@ test(t => {
   assert_equals(container.childNodes[2].data, "E");
 }, "Only merges with the previous and following text nodes, does not completely normalize");
 
+test(t => {
+  const container = document.getElementById("container");
+  t.add_cleanup(() => { container.textContent = ""; });
+
+  container.append(document.createElement("span"));
+  const node = container.childNodes[0];
+  // https://github.com/whatwg/html/issues/7508
+  node.outerText = "";
+
+  assert_equals(container.childNodes.length, 1, "Creates text node for the empty string");
+  assert_equals(container.childNodes[0].data, "");
+}, "Empty string");
+
+test(t => {
+  const container = document.getElementById("container");
+  t.add_cleanup(() => { container.textContent = ""; });
+
+  container.append("1", "2", document.createElement("span"), "3", "4");
+  const node = container.childNodes[2];
+  node.outerText = "";
+
+  assert_equals(container.childNodes.length, 3, "It got merged with the previous and following text node");
+  assert_equals(container.childNodes[0].data, "1");
+  assert_equals(container.childNodes[1].data, "23");
+  assert_equals(container.childNodes[2].data, "4");
+}, "Empty string with surrounding text nodes");
+
 test(() => {
   const node = document.getElementById("testRemove");
   const parent = node.parentNode;

@@ -16,19 +16,23 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-20.04
     steps:
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
-    - name: Set up Virtualenv
-      run: pip install virtualenv
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 50
-    - name: Run website_build.sh
-      # Use a conditional step instead of a conditional job to work around #20700.
-      if: github.repository == 'web-platform-tests/wpt'
-      run: ./tools/ci/website_build.sh
-      env:
-        DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Set up Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - name: Set up Virtualenv
+        run: pip install virtualenv
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - name: Run website_build.sh
+        # Use a conditional step instead of a conditional job to work around #20700.
+        if: github.repository == 'web-platform-tests/wpt'
+        run: ./tools/ci/website_build.sh
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

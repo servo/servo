@@ -26,6 +26,9 @@ self.addEventListener('fetch', event => {
       event.preloadResponse
         .then(
           res => {
+            if (res.url.includes("base")) {
+              return res;
+            }
             return post_to_page(get_response_info(res)).then(_ => res);
           },
           err => new Response(err.toString())));

@@ -3,6 +3,7 @@ const accept = "/client-hints/accept-ch-stickiness/resources/accept-ch.html";
 const accept_blank = "/client-hints/accept-ch-stickiness/resources/accept-ch-blank.html";
 const no_accept = "/client-hints/accept-ch-stickiness/resources/no-accept-ch.html";
 const httpequiv_accept = "/client-hints/accept-ch-stickiness/resources/http-equiv-accept-ch.html";
+const metaname_accept = "/client-hints/accept-ch-stickiness/resources/meta-name-accept-ch.html";
 const expect = "/client-hints/accept-ch-stickiness/resources/expect-client-hints-headers.html"
 const do_not_expect = "/client-hints/accept-ch-stickiness/resources/do-not-expect-client-hints-headers.html"
 
@@ -16,6 +17,8 @@ function verify_initial_state(initial_url, test_name) {
       // headers when fetching echo-client-hints-received.py.
       assert_false(r.headers.has("device-memory-received"),
         "device-memory-received");
+      assert_false(r.headers.has("device-memory-deprecated-received"),
+        "device-memory-deprecated-received");
     });
   }, test_name + " precondition: Test that the browser does not have client " +
     "hints preferences cached");
@@ -103,6 +106,9 @@ function attempt_set(test_type, accept_url, test_name, test_name_suffix) {
           // headers, just because we can..
           assert_false(r.headers.has("device-memory-received"),
             "device-memory-received",
+            "subresource request had no client hints");
+          assert_false(r.headers.has("device-memory-deprecated-received"),
+            "device-memory-deprecated-received",
             "subresource request had no client hints");
           resolve();
         });

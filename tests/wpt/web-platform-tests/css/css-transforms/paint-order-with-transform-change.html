@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Changes to transform should not affect paint order</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+<link rel="help" href="https://crbug.com/1267689">
+<link rel="match" href="paint-order-with-transform-change-ref.html">
+<style>
+  #bottom {
+    will-change: transform;
+    position: absolute;
+    top: 0;
+    left: 100px;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  #top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<div id="bottom"></div>
+<div id="top"></div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    bottom.style.transform = 'translate(-100px, 0px)';
+    document.documentElement.removeAttribute('class');
+  });
+});
+</script>

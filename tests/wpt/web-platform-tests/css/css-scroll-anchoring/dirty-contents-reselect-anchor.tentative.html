@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1738781">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/6787">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .padding {
+    background: grey;
+    border: 1px dashed black;
+    margin: 5px;
+    height: 200vh;
+  }
+</style>
+<div id="content"></div>
+<script>
+  const content = document.getElementById("content");
+
+  const t = async_test("Scroll anchor is re-selected after adjustment if there are dirty descendants at selection time");
+  function replaceAllContent() {
+    content.innerHTML = `
+      <div class="padding"></div>
+      <button id="target">Scroll target</button>
+      <div class="padding"></div>
+    `;
+  }
+
+  function insertContent() {
+    let inserted = document.createElement("div");
+    inserted.className = "padding inserted";
+    content.insertBefore(inserted, content.firstChild);
+  }
+
+  // Set the content, and scroll #target into view.
+  replaceAllContent();
+  document.getElementById("target").scrollIntoView();
+
+  t.step(function() {
+    assert_not_equals(window.scrollY, 0, "Should've scrolled");
+  });
+
+  // Save the target scroll position, which shouldn't change.
+  const oldTargetTop = document.getElementById("target").getBoundingClientRect().top;
+
+  // Replace all the content, then insert content at the top afterwards.
+  replaceAllContent();
+
+  requestAnimationFrame(() => requestAnimationFrame(t.step_func_done(function() {
+    insertContent();
+    const newTargetTop = document.getElementById("target").getBoundingClientRect().top;
+    assert_equals(oldTargetTop, newTargetTop, "Scroll position should've been preserved");
+  })));
+</script>
+<style>

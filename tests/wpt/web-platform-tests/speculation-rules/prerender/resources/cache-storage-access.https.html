@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+const bc = new BroadcastChannel('prerender-channel');
+assert_true(document.prerendering);
+
+const cacheName = 'checkallowed';
+caches.open(cacheName).then(cache => cache.match('cache.txt'))
+.then(response => response.text())
+.then(result => {
+  bc.postMessage(result);
+  bc.close();
+});
+
+</script>

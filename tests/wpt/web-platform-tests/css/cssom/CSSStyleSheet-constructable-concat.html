@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Adoptedstylesheets.concat should work when starting empty</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">
+<link rel="match" href="CSSStyleSheet-constructable-concat-ref.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<span>This should be green</span>
+<div id=host></div>
+
+<script>
+test(function() {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync('span {background-color:green;}');
+  assert_equals(document.adoptedStyleSheets.length,0);
+  document.adoptedStyleSheets = document.adoptedStyleSheets.concat([sheet]);
+  assert_equals(document.adoptedStyleSheets.length,1);
+
+  const host = document.getElementById('host');
+  const shadow = host.attachShadow({mode: 'open'});
+  shadow.innerHTML = '<span>This should be green</span>';
+  assert_equals(shadow.adoptedStyleSheets.length,0);
+  shadow.adoptedStyleSheets = shadow.adoptedStyleSheets.concat([sheet]);
+  assert_equals(shadow.adoptedStyleSheets.length,1);
+}, "adoptedStyleSheets should allow .concat on empty starting values");
+</script>

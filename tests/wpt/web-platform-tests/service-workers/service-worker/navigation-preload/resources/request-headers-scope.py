@@ -9,4 +9,6 @@ def main(request, response):
         values = [isomorphic_decode(value) for value in values]
         normalized[isomorphic_decode(key.upper())] = values
 
+    response.headers.append(b"Content-Type", b"text/html")
+
     return json.dumps(normalized)

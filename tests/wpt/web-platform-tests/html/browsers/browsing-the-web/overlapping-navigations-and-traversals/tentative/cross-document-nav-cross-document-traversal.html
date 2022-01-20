@@ -34,5 +34,5 @@ promise_test(async t => {
 
   await waitForLoad(iframe);
   assert_equals(iframe.contentWindow.location.search, "?1", "must go back one step eventually");
-}, "cross-document navigations are stopped by same-document back()");
+}, "cross-document navigations are stopped by cross-document back()");
 </script>

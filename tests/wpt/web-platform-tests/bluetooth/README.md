@@ -76,7 +76,7 @@ More details can be found in `generate.py` and `generate_test.py`.
 
 ## Chromium Implementation
 The Chromium implementation is provided by
-`../resources/chromium/web-bluetooth-test.js`.
+`../resources/chromium/web-bluetooth-test.js` using [MojoJS].
 
 The Chromium implementation is not included in stable Chrome builds since it
 would add too much to the binary size. On Chromium infrastructure, it is run
@@ -93,6 +93,7 @@ infrastructure.
 
 For more implementation details, see the [Web Bluetooth Service README].
 
+[MojoJS]: https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/testing/web_platform_tests.md#mojojs
 [Web Bluetooth Service README]:
 https://chromium.googlesource.com/chromium/src.git/+/master/content/browser/bluetooth/README.md
 

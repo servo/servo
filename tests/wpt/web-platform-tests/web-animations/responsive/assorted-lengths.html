@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{bottom: '3em'}, {bottom: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).bottom, '80px');
+}, 'bottom responsive to style changes');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{height: '3em'}, {height: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).height, '80px');
+}, 'height responsive to style changes');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{letterSpacing: '3em'}, {letterSpacing: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).letterSpacing, '80px');
+}, 'letterSpacing responsive to style changes');
+
+test(function() {
+    var player = element.animate([{letterSpacing: 'normal'}, {letterSpacing: 'normal'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).letterSpacing, 'normal');
+}, 'letterSpacing can be normal');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{marginRight: '3em'}, {marginRight: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).marginRight, '80px');
+}, 'marginRight responsive to style changes');
+
+test(function() {
+    element.style.fontSize = '10px';
+    container.style.width = '300px';
+    var player = element.animate([{marginRight: '3em'}, {marginRight: '50%'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    container.style.width = '600px';
+    assert_equals(getComputedStyle(element).marginRight, '180px');
+}, 'marginRight allows percentages');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{outlineOffset: '3em'}, {outlineOffset: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.outline = 'dashed thin';
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).outlineOffset, '80px');
+}, 'outlineOffset responsive to style changes');
+
+test(function() {
+    container.style.fontSize = '10px';
+    var player = container.animate([{perspective: '3em'}, {perspective: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    container.style.fontSize = '20px';
+    assert_equals(getComputedStyle(container).perspective, '80px');
+}, 'perspective responsive to style changes');
+
+test(function() {
+    var player = element.animate([{perspective: 'none'}, {perspective: 'none'}], 10);
+    player.pause();
+    player.currentTime = 10;
+    assert_equals(getComputedStyle(element).perspective, 'none');
+}, 'perspective can be none');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{wordSpacing: '3em'}, {wordSpacing: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).wordSpacing, '80px');
+}, 'wordSpacing responsive to style changes');
+
+</script>

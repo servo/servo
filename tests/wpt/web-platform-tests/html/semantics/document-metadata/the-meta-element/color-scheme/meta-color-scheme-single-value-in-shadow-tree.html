@@ -4,6 +4,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/compute-root-color-scheme.js"></script>
+<!--
+  NOTE: This test assumes that the browser's default color-scheme is "light",
+  see https://github.com/web-platform-tests/wpt/pull/31268 for reasoning
+-->
 <script>
   const host = document.createElement("div");
   host.id = "host";
@@ -14,5 +18,5 @@
   meta.setAttribute("content", "dark");
   root.appendChild(meta);
 
-  assert_root_color_scheme("normal", "Meta color-scheme in shadow tree does not apply.");
+  assert_root_color_scheme("light", "Meta color-scheme in shadow tree does not apply.");
 </script>

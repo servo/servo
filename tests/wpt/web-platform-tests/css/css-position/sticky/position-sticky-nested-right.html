@@ -30,7 +30,7 @@ test(() => {
   const nonStickyLeftX = elements.container.offsetLeft +
       elements.filler.clientWidth;
   assert_equals(elements.sticky.offsetLeft, nonStickyLeftX);
-  assert_equals(elements.innerSticky.offsetLeft, 35);
+  assert_equals(elements.innerSticky.offsetLeft, 50);
 }, 'the inner sticky can stick before the outer one if necessary');
 
 test(() => {
@@ -52,7 +52,7 @@ test(() => {
 }, 'both sticky boxes can be stuck at the same time');
 
 test(() => {
-  const elements = setupNestedStickyTest('right', 25, 35);
+  const elements = setupNestedStickyTest('right', 25, 100);
   elements.scroller.scrollLeft = 0;
   assert_equals(elements.sticky.offsetLeft, elements.container.offsetLeft);
   assert_equals(elements.innerSticky.offsetLeft, 0);

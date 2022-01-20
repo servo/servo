@@ -1,3 +1,2 @@
-Accept-CH: Device-Memory, DPR, Viewport-Width
-Accept-CH-Lifetime: 100
-Feature-Policy: ch-device-memory *; ch-dpr 'none'; ch-viewport-width 'self'; ch-lang 'none'; ch-ua 'self'; ch-ua-mobile 'none'; ch-prefers-color-scheme 'none'
+Accept-CH: Sec-CH-Device-Memory, Device-Memory, Sec-CH-DPR, DPR, Sec-CH-Viewport-Width, Viewport-Width
+Feature-Policy: ch-device-memory *; ch-dpr 'none'; ch-viewport-width 'self'; ch-ua 'self'; ch-ua-mobile 'none'; ch-prefers-color-scheme 'none'

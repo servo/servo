@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>CSS Inline test: empty text node</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" title="2.1. Layout of Line Boxes" href="https://drafts.csswg.org/css-inline/#line-boxes">
+<link rel="match" href="empty-text-node-001-ref.html">
+<meta name="assert" content="Empty text node in a line box is treated as zero height.">
+<style>
+.green { color: green; }
+.red { color: red; }
+.testContent, .testBefore, .testAfter {
+  display: inline-block;
+}
+div div {
+  width: 50px;
+  line-height: 30px;
+  border: 20px solid green;
+  background-color: red;
+  margin: 10px;
+}
+.testBefore div::before {
+  content: "";
+}
+.testAfter div::after {
+  content: "";
+}
+.normal { white-space: normal; }
+.nowrap { white-space: nowrap; }
+.pre { white-space: pre; }
+.prewrap { white-space: pre-wrap; }
+.preline { white-space: pre-line; }
+.breakspaces { white-space: break-spaces; }
+</style>
+<p>Test passes if the <span class=green>green</span> boxes have <span class=red>no red</span> in the middle.</p>
+
+<div class=testContent>
+  <div class=normal></div>
+  <div class=nowrap></div>
+  <div class=pre></div>
+  <div class=prewrap></div>
+  <div class=preline></div>
+  <div class=breakspaces></div>
+  <script>
+  [...document.querySelectorAll(".testContent div")].forEach((node, i) => node.appendChild(document.createTextNode("")));
+  </script>
+</div>
+
+<div class=testBefore>
+  <div class=normal></div>
+  <div class=nowrap></div>
+  <div class=pre></div>
+  <div class=prewrap></div>
+  <div class=preline></div>
+  <div class=breakspaces></div>
+</div>
+
+<div class=testAfter>
+  <div class=normal></div>
+  <div class=nowrap></div>
+  <div class=pre></div>
+  <div class=prewrap></div>
+  <div class=preline></div>
+  <div class=breakspaces></div>
+</div>

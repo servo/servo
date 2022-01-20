@@ -2,8 +2,11 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <script src="/resources/testharness.js"></script>
+<script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
     </head>
     <body>
         <video id="video1" autoplay></video>
@@ -24,6 +27,7 @@ promise_test(async (test) => {
     const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
     assert_equals(data, "registered");
 
+    await setMediaPermission("granted", ["camera"]);
     const localStream = await navigator.mediaDevices.getUserMedia({video: true});
 
     let sender, receiver;

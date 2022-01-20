@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Interaction of 'inert' attribute with modal dialog, when the dialog is the root element</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<meta name="assert" content="Checks that being part of a modal dialog does not protect a node from being marked inert by an 'inert' attribute.">
+<div id="log"></div>
+<dialog id="dialog">
+  dialog
+  <span id="child">
+    child
+  </span>
+</dialog>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const dialog = document.getElementById("dialog");
+const root = document.documentElement;
+
+setup(() => {
+  root.remove();
+  document.append(dialog);
+  dialog.showModal();
+  add_completion_callback(() => {
+    getSelection().removeAllRanges();
+  });
+});
+
+function checkSelection(expectedText) {
+  const selection = getSelection();
+  selection.selectAllChildren(document.documentElement);
+  const actualText = selection.toString().trim();
+  assert_equals(actualText, expectedText);
+}
+
+test(function() {
+  checkSelection("dialog child");
+}, "Modal dialog only marks outside nodes as inert");
+
+test(function() {
+  child.inert = true;
+  this.add_cleanup(() => { child.inert = false; });
+  checkSelection("dialog");
+}, "Inner nodes with 'inert' attribute become inert anyways");
+
+test(function() {
+  dialog.inert = true;
+  this.add_cleanup(() => { dialog.inert = false; });
+  checkSelection("");
+}, "If the modal dialog has the 'inert' attribute, everything becomes inert");
+
+// Ideally this would happen in a completion callback, but then it would
+// be too late: the results would have been shown inside the dialog.
+dialog.remove();
+document.append(root);
+</script>

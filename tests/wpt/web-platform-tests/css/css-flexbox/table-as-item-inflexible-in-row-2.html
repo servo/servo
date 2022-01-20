@@ -10,8 +10,10 @@
 
 <p>Test passes if there is a filled green square.</p>
 <div style="display: flex; flex-direction: row;">
-  <table style="box-sizing: content-box; border: 10px solid green; background: green;
+  <!-- Use display:table and display:table-caption instead of the HTML tags so that box-sizing is used in WebKit-based browsers.
+       Since long time ago WebKit ignores box-sizing for HTML tables. That isn't the case for CSS tables though. -->
+  <div style="display:table; box-sizing: content-box; border: 10px solid green; background: green;
                 height: 50px; flex: 0 0 80px">
-    <caption style="height: 10px; border: 10px solid green; background: green;"></caption>
-  </table>
+    <div style="display: table-caption; height: 10px; border: 10px solid green; background: green;"></div>
+  </div>
 </div>

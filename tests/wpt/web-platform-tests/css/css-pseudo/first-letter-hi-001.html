@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS-Pseudo testcase - ::first-letter in Hindi</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="match" href="first-letter-hi-001-ref.html">
+<meta name="assert" content="When selecting the first-letter text, the UA should tailor its definition of typographic letter unit to reflect the first-letter traditions of the ::first-letter pseudo-element’s containing block’s content language">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#first-letter-pseudo">
+<link rel="help" href="https://www.w3.org/International/i18n-tests/run?base=css-pseudo/first-letter-pseudo&batch=first-letter-pseudo&test=first-letter-deva-1consonant.html">
+<style>
+@font-face {
+  font-family: test;
+  src: url("/fonts/noto/NotoSansDevanagari-Regular.ttf");
+}
+p { font: 16px test, sans-serif; }
+p::first-letter { color: green; font-size: 2em; }
+</style>
+<body lang="hi">
+<p>&#x0938;&#x094D;&#x0925;&#x0932;&#x094B;&#x0902;
+<p>&#x0938;&#x094D;&#x0935;&#x092D;&#x093E;&#x0935;
+<p>&#x0915;&#x094D;&#x0932;&#x092C;
+<p>&#x0915;&#x094D;&#x0930;&#x092E;
+<p>&#x0915;&#x094D;&#x0937;&#x0923;
+<p>&#x0937;&#x094D;&#x0915;&#x094D;&#x0930;&#x0938;
+<p>&#x0919;&#x094D;&#x0919;&#x092E;
+<p>&#x0919;&#x094D;&#x0915;&#x094D;&#x0930;&#x0938;

@@ -7,7 +7,7 @@ async_test(t => {
   window.onload = t.step_func(() => {
     const navState = { key: "value" };
     const navInfo = { infoKey: "infoValue" };
-    i.contentWindow.appHistory.navigate("#1", { state: navState }).then(t.step_func(() => {
+    i.contentWindow.appHistory.navigate("#1", { state: navState }).committed.then(t.step_func(() => {
       // Make sure that state setting worked
       assert_equals(i.contentWindow.appHistory.current.getState().key, "value");
       assert_not_equals(i.contentWindow.appHistory.current.getState(), navState);
@@ -25,7 +25,7 @@ async_test(t => {
         assert_equals(e.destination.getState().key, "value");
         assert_not_equals(e.destination.getState(), start_state);
       });
-      i.contentWindow.appHistory.reload({ info: navInfo }).finally(() => {
+      i.contentWindow.appHistory.reload({ info: navInfo }).committed.finally(() => {
         promise_settled = true;
       });
       i.onload = t.step_func(() => {

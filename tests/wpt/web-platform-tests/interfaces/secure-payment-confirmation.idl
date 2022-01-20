@@ -1,0 +1,51 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Secure Payment Confirmation (https://w3c.github.io/secure-payment-confirmation/)
+
+dictionary SecurePaymentConfirmationRequest {
+    required BufferSource challenge;
+    required FrozenArray<BufferSource> credentialIds;
+    required PaymentCredentialInstrument instrument;
+    unsigned long timeout;
+    required USVString payeeOrigin;
+    AuthenticationExtensionsClientInputs extensions;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  AuthenticationExtensionsPaymentInputs payment;
+};
+
+dictionary AuthenticationExtensionsPaymentInputs {
+  boolean isPayment;
+
+  // Only used for authentication.
+  USVString rp;
+  USVString topOrigin;
+  USVString payeeOrigin;
+  PaymentCurrencyAmount total;
+  PaymentCredentialInstrument instrument;
+};
+
+dictionary CollectedClientPaymentData : CollectedClientData {
+    required CollectedClientAdditionalPaymentData payment;
+};
+
+dictionary CollectedClientAdditionalPaymentData {
+    required USVString rp;
+    required USVString topOrigin;
+    required USVString payeeOrigin;
+    required PaymentCurrencyAmount total;
+    required PaymentCredentialInstrument instrument;
+};
+
+dictionary PaymentCredentialInstrument {
+    required DOMString displayName;
+    required USVString icon;
+};
+
+enum TransactionAutomationMode {
+  "none",
+  "autoaccept",
+  "autoreject"
+};

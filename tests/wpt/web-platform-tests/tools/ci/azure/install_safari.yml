@@ -20,6 +20,7 @@ steps:
 - ${{ if eq(parameters.channel, 'stable') }}:
   - script: |
       set -eux
+      sudo softwareupdate --install $( softwareupdate -l | grep -o '\* Label: \(Safari.*\)' | sed -e 's/* Label: //' )
       sudo safaridriver --enable
       defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
     displayName: 'Configure Safari'

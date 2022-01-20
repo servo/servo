@@ -250,7 +250,7 @@
   testing:
   - 2d.gradient.interpolate.linear
   code: |
-    offscreenCanvas.width = 200;
+    canvas.width = 200;
     var g = ctx.createLinearGradient(0, 0, 200, 0);
     g.addColorStop(0, '#ff0');
     g.addColorStop(0.5, '#0ff');
@@ -266,7 +266,7 @@
   testing:
   - 2d.gradient.interpolate.overlap
   code: |
-    offscreenCanvas.width = 200;
+    canvas.width = 200;
     var g = ctx.createLinearGradient(0, 0, 200, 0);
     g.addColorStop(0, '#f00');
     g.addColorStop(0, '#ff0');
@@ -1044,21 +1044,21 @@
   testing:
   - 2d.pattern.zerocanvas
   code: |
-    offscreenCanvas.width = 0;
-    offscreenCanvas.height = 10;
-    @assert offscreenCanvas.width === 0;
-    @assert offscreenCanvas.height === 10;
-    @assert throws INVALID_STATE_ERR ctx.createPattern(offscreenCanvas, 'repeat');
-    offscreenCanvas.width = 10;
-    offscreenCanvas.height = 0;
-    @assert offscreenCanvas.width === 10;
-    @assert offscreenCanvas.height === 0;
-    @assert throws INVALID_STATE_ERR ctx.createPattern(offscreenCanvas, 'repeat');
-    offscreenCanvas.width = 0;
-    offscreenCanvas.height = 0;
-    @assert offscreenCanvas.width === 0;
-    @assert offscreenCanvas.height === 0;
-    @assert throws INVALID_STATE_ERR ctx.createPattern(offscreenCanvas, 'repeat');
+    canvas.width = 0;
+    canvas.height = 10;
+    @assert canvas.width === 0;
+    @assert canvas.height === 10;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(canvas, 'repeat');
+    canvas.width = 10;
+    canvas.height = 0;
+    @assert canvas.width === 10;
+    @assert canvas.height === 0;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(canvas, 'repeat');
+    canvas.width = 0;
+    canvas.height = 0;
+    @assert canvas.width === 0;
+    @assert canvas.height === 0;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(canvas, 'repeat');
     t.done();
 
 - name: 2d.pattern.basic.nocontext
@@ -1130,42 +1130,42 @@
   testing:
   - 2d.pattern.unrecognised
   code: |
-    @assert ctx.createPattern(offscreenCanvas, null) != null;
+    @assert ctx.createPattern(canvas, null) != null;
     t.done();
 
 - name: 2d.pattern.repeat.undefined
   testing:
   - 2d.pattern.unrecognised
   code: |
-    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, undefined);
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, undefined);
     t.done();
 
 - name: 2d.pattern.repeat.unrecognised
   testing:
   - 2d.pattern.unrecognised
   code: |
-    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, "invalid");
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, "invalid");
     t.done();
 
 - name: 2d.pattern.repeat.unrecognisednull
   testing:
   - 2d.pattern.unrecognised
   code: |
-    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, "null");
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, "null");
     t.done();
 
 - name: 2d.pattern.repeat.case
   testing:
   - 2d.pattern.exact
   code: |
-    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, "Repeat");
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, "Repeat");
     t.done();
 
 - name: 2d.pattern.repeat.nullsuffix
   testing:
   - 2d.pattern.exact
   code: |
-    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, "repeat\0");
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, "repeat\0");
     t.done();
 
 - name: 2d.pattern.modify.canvas1

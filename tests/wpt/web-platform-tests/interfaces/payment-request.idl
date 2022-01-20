@@ -103,31 +103,3 @@ interface PaymentRequestUpdateEvent : Event {
 };
 
 dictionary PaymentRequestUpdateEventInit : EventInit {};
-
-[SecureContext, Exposed=(Window)]
-interface PaymentAddress {
-  [Default] object toJSON();
-  readonly attribute DOMString city;
-  readonly attribute DOMString country;
-  readonly attribute DOMString dependentLocality;
-  readonly attribute DOMString organization;
-  readonly attribute DOMString phone;
-  readonly attribute DOMString postalCode;
-  readonly attribute DOMString recipient;
-  readonly attribute DOMString region;
-  readonly attribute DOMString sortingCode;
-  readonly attribute FrozenArray<DOMString> addressLine;
-};
-
-dictionary AddressErrors {
-  DOMString addressLine;
-  DOMString city;
-  DOMString country;
-  DOMString dependentLocality;
-  DOMString organization;
-  DOMString phone;
-  DOMString postalCode;
-  DOMString recipient;
-  DOMString region;
-  DOMString sortingCode;
-};

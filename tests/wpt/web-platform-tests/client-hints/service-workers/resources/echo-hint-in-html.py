@@ -15,7 +15,7 @@ def main(request, response):
 
     result = "FAIL"
 
-    if b"device-memory" in request.headers:
+    if b"sec-ch-device-memory" in request.headers and b"device-memory" in request.headers:
       result = "PASS"
 
     response.content = result

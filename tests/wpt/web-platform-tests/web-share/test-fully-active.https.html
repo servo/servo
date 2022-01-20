@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebShare Test: consume user activation</title>
+    <link rel="help" href="https://github.com/w3c/web-share/pull/219" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+      async function loadIframe() {
+        const iframe = document.createElement("iframe");
+        iframe.src = "./resources/blank.html";
+        document.body.appendChild(iframe);
+        await new Promise((resolve) => {
+          iframe.addEventListener("load", resolve);
+        });
+        return iframe;
+      }
+
+      promise_test(async (t) => {
+        const iframe = await loadIframe();
+        const { contentWindow } = iframe;
+        const { navigator, DOMException } = contentWindow;
+        const data = { text: "text" };
+        iframe.remove();
+        await promise_rejects_dom(
+          t,
+          "InvalidStateError",
+          DOMException,
+          navigator.share(data),
+          "Expected promise rejected with InvalidStateError from .share()"
+        );
+      }, "calling share() on non-fully active document returns a promise rejected with InvalidStateError");
+
+      promise_test(async (t) => {
+        const iframe = await loadIframe();
+        const { contentWindow } = iframe;
+        const { navigator, DOMException } = contentWindow;
+        const data = { text: "text" };
+
+        // Acquire transient activation, but make the iframe non-fully-active
+        await test_driver.bless(
+          "web share",
+          () => {
+            iframe.remove();
+          },
+          contentWindow
+        );
+
+        await promise_rejects_dom(
+          t,
+          "InvalidStateError",
+          DOMException,
+          navigator.share(data),
+          "Expected promise rejected with InvalidStateError from .share()"
+        );
+      }, "calling share() with transient activation on non-fully active document returns a promise rejected with InvalidStateError");
+
+      promise_test(async (t) => {
+        const iframe = await loadIframe();
+        const { contentWindow } = iframe;
+        const { navigator } = contentWindow;
+        const data = { text: "text" };
+
+        assert_true(navigator.canShare(data), "doc is fully active, so true");
+
+        iframe.remove();
+
+        assert_false(navigator.canShare(data), "not fully active, so false");
+      }, "calling canShare() on a non-fully active document returns false");
+    </script>
+  </body>
+</html>

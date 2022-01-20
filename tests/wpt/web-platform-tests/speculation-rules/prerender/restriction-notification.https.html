@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!--
+TODO(https://crbug.com/1198110): Add the following tests:
+* Test the deferral of the promise if it is used during prerendering.
+* Test Notification.permission returns "default" synchronously.
+-->
+<title>Access to the Notification API is allowed after the prerendering state
+  changed </title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<script>
+
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const bc = new BroadcastChannel('test-channel');
+  t.add_cleanup(_ => bc.close());
+
+  await test_driver.set_permission({name: 'notifications'}, 'granted', true);
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  const url = `resources/notification.html`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  assert_equals(result, 'notification showed');
+}, `it is allowed to access the notification API in the prerenderingchange
+    event`);
+
+</script>
+</body>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+const bc = new BroadcastChannel('prerender-channel');
+assert_true(document.prerendering);
+
+let result = "Success";
+const db = openDatabase("test", "1.0", "test database", 1024);
+db.transaction(function (tx) {
+  tx.executeSql('CREATE TABLE IF NOT EXISTS foo (text)');
+  tx.executeSql('INSERT INTO foo (text) VALUES ("bar")');
+}, function(error) {
+  result = error;
+}, function() {
+  bc.postMessage(result);
+  bc.close();
+});
+
+</script>

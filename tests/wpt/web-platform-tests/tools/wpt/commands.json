@@ -10,7 +10,14 @@
     ],
     "requirements": [
       "../wptrunner/requirements.txt"
-    ]
+    ],
+    "conditional_requirements": {
+      "commandline_flag": {
+        "enable_webtransport_h3": [
+          "../webtransport/requirements.txt"
+        ]
+      }
+    }
   },
   "create": {
     "path": "create.py",

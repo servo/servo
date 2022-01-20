@@ -20,6 +20,16 @@
     "help": "Regenerate the WPT certificates",
     "virtualenv": false
   },
+  "update-built": {
+    "path": "update_built.py",
+    "script": "run",
+    "parser": "get_parser",
+    "help": "Update built tests",
+    "virtualenv": true,
+    "requirements": [
+        "requirements_build.txt"
+    ]
+  },
   "tc-download": {
     "path": "tc/download.py",
     "script": "run",

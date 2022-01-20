@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=650273">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="display: inline-grid; background: green;">
+  <div style="writing-mode: vertical-lr; line-height: 0;">
+    <span style="display: inline-block; height: 100px; width: 50px;"></span>
+    <span style="display: inline-block; height: 50px; width: 50px;"></span>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '100px';
+</script>
+

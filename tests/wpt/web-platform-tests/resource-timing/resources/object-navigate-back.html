@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <title>Resource Timing object navigate - back button navigation</title>
-<body onunload="/*disable bfcache*/"></body>
+</head>
+<body onunload="/*disable bfcache*/">
 <script src="/common/get-host-info.sub.js"></script>
 <script src="nested-contexts.js"></script>
 <script>
-setup_back_navigation("object-navigate-back.html");
+  setup_back_navigation("object-navigate-back.html");
 </script>
-<object type="text/html"></object>
+<object id="target" type="text/html"></object>
 <script>
-    document.getElementsByTagName("object")[0].data = pre_navigate_url;
+  target.data = pre_navigate_url;
 </script>
+</body>
+</html>

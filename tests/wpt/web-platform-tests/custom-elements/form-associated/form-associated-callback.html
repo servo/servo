@@ -176,20 +176,74 @@ test(() => {
 
 test(() => {
   $('#container').innerHTML = '<form id="form1"></form>' +
-      '<pre-defined id="pd1"></pre-defined><form id="form2"></form>';
+      '<pre-defined id="pd1"></pre-defined><form id="form2">' +
+      '</form><form id="form3"></form>';
   const pd1 = $('#pd1');
   const form1 = $('#form1');
   const form2 = $('#form2');
+  const form3 = $('#form3');
   assert_equals(pd1.form, null);
+  assert_array_equals(pd1.formHistory(), []);
 
   pd1.setAttribute('form', 'form1');
   assert_equals(pd1.form, form1);
+  assert_array_equals(pd1.formHistory(), [form1]);
+
+  pd1.setAttribute('form', 'invalid');
+  assert_equals(pd1.form, null);
+  assert_array_equals(pd1.formHistory(), [form1, null]);
 
   pd1.setAttribute('form', 'form2');
   assert_equals(pd1.form, form2);
+  assert_array_equals(pd1.formHistory(), [form1, null, form2]);
+
+  pd1.setAttribute('form', 'form3');
+  assert_equals(pd1.form, form3);
+  assert_array_equals(pd1.formHistory(), [form1, null, form2, form3]);
 
   $('#container').innerHTML = '';
   assert_equals(pd1.form, null);
+  assert_array_equals(pd1.formHistory(), [form1, null, form2, form3, null]);
 }, 'Updating "form" content attribute');
+
+test(() => {
+  $('#container').innerHTML = '<form></form>' +
+      '<pre-defined id="pd1" form="target"></pre-defined>' +
+      '<form></form><form></form>';
+  const pd1 = $('#pd1');
+  const [form1, form2, form3] = document.forms;
+  assert_equals(pd1.form, null);
+  assert_array_equals(pd1.formHistory(), []);
+
+  // The form1 is the only form element with id='target'.
+  form1.setAttribute('id', 'target');
+  assert_equals(pd1.form, form1);
+  assert_array_equals(pd1.formHistory(), [form1]);
+
+  // The first form element with id='target' is still form1.
+  form3.setAttribute('id', 'target');
+  assert_equals(pd1.form, form1);
+  assert_array_equals(pd1.formHistory(), [form1]);
+
+  // The form3 is the only form element with id='target'.
+  form1.removeAttribute('id');
+  assert_equals(pd1.form, form3);
+  assert_array_equals(pd1.formHistory(), [form1, form3]);
+
+  // The first form element with id='target' is form2 now.
+  form2.setAttribute('id', 'target');
+  assert_equals(pd1.form, form2);
+  assert_array_equals(pd1.formHistory(), [form1, form3, form2]);
+
+  // The form2 is the only form element with id='target'.
+  form3.removeAttribute('id');
+  assert_equals(pd1.form, form2);
+  assert_array_equals(pd1.formHistory(), [form1, form3, form2]);
+
+  // No form element has id='target'.
+  form2.removeAttribute('id');
+  assert_equals(pd1.form, null);
+  assert_array_equals(pd1.formHistory(), [form1, form3, form2, null]);
+}, 'Updating "id" attribute of form element');
 </script>
 </body>

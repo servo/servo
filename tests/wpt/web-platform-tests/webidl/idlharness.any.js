@@ -4,7 +4,7 @@
 "use strict";
 
 idl_test(
-  ['WebIDL'],
+  ['webidl'],
   [],
   idl_array => {
     idl_array.add_objects({

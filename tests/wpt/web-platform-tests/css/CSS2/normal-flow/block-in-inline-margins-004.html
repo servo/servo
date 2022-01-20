@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta name="assert" content="Block-in-inline: when empty but not self-collapsing block resolves the BFC offset">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+<link rel="match" href="block-in-inline-margins-004-ref.html"/>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org" />
+<body>
+  <div style="width: 100px; border: solid;">
+    <span>
+      <div style="float: left; width: 10px; height: 10px; background: blue;"></div>
+      <div style="height: 100px; background: orange;"></div>
+    </span>
+  </div>
+</body>

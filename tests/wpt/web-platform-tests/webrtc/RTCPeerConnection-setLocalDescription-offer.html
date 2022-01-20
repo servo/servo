@@ -110,9 +110,9 @@
     t.add_cleanup(() => pc2.close());
 
     return generateDataChannelOffer(pc)
-    .then(offer =>
-      promise_rejects_dom(t, 'InvalidModificationError',
-        pc2.setLocalDescription(offer)));
+    .then(offer => pc2.setLocalDescription(offer))
+    .then(() => t.unreached_func("setLocalDescription should have rejected"),
+          (error) => assert_equals(error.name, 'InvalidModificationError'));
   }, 'setLocalDescription() with offer not created by own createOffer() should reject with InvalidModificationError');
 
   promise_test(t => {
@@ -163,8 +163,10 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
-    const offer = await pc1.createOffer({offerToReceiveAudio: true}); // [[LastOffer]] set
-    const offer2 = await pc2.createOffer({offerToReceiveVideo: true});
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    const offer = await pc1.createOffer(); // [[LastOffer]] set
+    pc2.addTransceiver('video', { direction: 'recvonly' });
+    const offer2 = await pc2.createOffer();
     await pc1.setRemoteDescription(offer2);
     await pc1.createAnswer(); // [[LastAnswer]] set
     await pc1.setRemoteDescription({type: "rollback"});
@@ -177,7 +179,8 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
-    await pc1.setLocalDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc1.setLocalDescription(await pc1.createOffer());
 
     const offer = await pc1.createOffer();
     await pc1.setLocalDescription(offer);
@@ -196,7 +199,8 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const sldPromise = pc.setLocalDescription(await pc.createOffer({offerToReceiveAudio: true}));
+    pc.addTransceiver('audio', { direction: 'recvonly' });
+    const sldPromise = pc.setLocalDescription(await pc.createOffer());
 
     assert_equals(pc.signalingState, "stable", "signalingState should not be set synchronously after a call to sLD");
 

@@ -5,6 +5,7 @@
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="../resources/common.js"></script>
+<script src="/common/subset-tests.js"></script>
 <script>
 [
   {
@@ -19,8 +20,8 @@
     "coep": "",
     "opener": false
   }
-].forEach(variant => {
-  ["same-origin", "same-site"].forEach(site => {
+].forEach((variant) => {
+  ["same-origin", "same-site"].forEach((site) => {
     const title = `Popup navigating to ${site} with ${variant.title}`;
     const channel = title.replace(/ /g,"-");
     const navigateHost = site === "same-origin" ? SAME_ORIGIN : SAME_SITE;

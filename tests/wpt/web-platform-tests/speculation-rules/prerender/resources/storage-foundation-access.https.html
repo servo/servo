@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+async function readFromFile(f) {
+  const {buffer, readBytes} = await f.read(new Uint8Array(4), 0);
+  return buffer;
+}
+
+async function writeToFile(f) {
+  const writeBuffer = new Uint8Array(4);
+  writeBuffer.set([75, 76, 77, 78]);
+
+  await storageFoundation.requestCapacity(4);
+
+  const {writtenBytes} = await f.write(writeBuffer, 0);
+  await f.flush();
+  return writtenBytes == 4;
+}
+
+async function readWriteTest() {
+  const bc = new BroadcastChannel('prerender-channel');
+  assert_true(document.prerendering);
+
+  let f = await storageFoundation.open('test_file');
+  const readBuffer = await readFromFile(f);
+  const writeResult = await writeToFile(f);
+  assert_true(writeResult);
+
+  const writtenBuffer = await readFromFile(f);
+  await f.close();
+
+  bc.postMessage({
+    readBuffer : readBuffer,
+    writtenBuffer : writtenBuffer
+  });
+  bc.close();
+}
+
+readWriteTest();
+</script>

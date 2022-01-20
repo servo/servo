@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Dynamic change to the inline-size of body</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1731653">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1729122">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="dynamic-change-inline-size-003-ref.html">
+<meta name="assert" content="This test verifies that the dynamic change to body's inline-size triggers the reflow of its children.">
+
+<style>
+.abs {
+  position: absolute;
+  background: green;
+  inline-size: 100px;
+  padding-top: 100px;
+}
+.layout {
+  font: 50px/1 Ahem;
+  color: red;
+  background-color: red;
+  width: 100px;
+  padding-top: 25%; /* This resolves against body's inline-size. */
+}
+</style>
+
+<body>
+  <!-- Test passes if there is a filled green square and no red. -->
+  <div class="abs"></div>
+  <div class="layout">XX</div>
+</body>
+
+<script>
+/* Make sure the layout is up-to-date, which is essential to trigger the bug. */
+document.documentElement.offsetHeight;
+
+/* Change body's inline-size to trigger incremental reflow. */
+document.body.style.inlineSize = "200px";
+</script>

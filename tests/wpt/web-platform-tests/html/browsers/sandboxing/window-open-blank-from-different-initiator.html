@@ -30,7 +30,7 @@ const runTest = (description, createNewPopup) => {
   promise_test(async test => {
     // Open a same-origin window with a different CSP.
     const executor_path =
-      "/html/browsers/sandboxing/resources/executor.html?pipe=";
+      "/html/browsers/sandboxing/resources/execute-postmessage.html?pipe=";
     const csp = "|header(Content-Security-Policy, " +
                 "sandbox" +
                 " allow-scripts" +

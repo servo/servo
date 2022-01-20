@@ -244,7 +244,7 @@
                 should(
                     actual[k],
                     options.prefix + ' ' + label[k] + ' .value setter output')
-                    .beEqualToArray(expected[k]);
+                    .beCloseToArray(expected[k], {absoluteThreshold: 1.192094e-7});
             should(
                 match,
                 options.prefix + ' ' + label[k] +

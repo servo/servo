@@ -5,18 +5,8 @@ updates:
   schedule:
     interval: weekly
   open-pull-requests-limit: 1000
-- package-ecosystem: npm
-  directory: webrtc/tools/
-  schedule:
-    interval: weekly
-  open-pull-requests-limit: 1000
-- package-ecosystem: npm
-  directory: tools/scripts/
-  schedule:
-    interval: weekly
-  open-pull-requests-limit: 1000
-- package-ecosystem: npm
-  directory: css/css-writing-modes/tools/generators/
+- package-ecosystem: pip
+  directory: css/
   schedule:
     interval: weekly
   open-pull-requests-limit: 1000

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement.getExtentOfChar</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/text.html#__svg__SVGTextContentElement__getExtentOfChar">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="800" height="600">
+<text><tspan id="tspan1" x="50 150 100" y="100">abc</tspan></text>
+</svg>
+
+<script>
+test(() => {
+  const element = document.querySelector('#tspan1');
+  assert_equals(element.getNumberOfChars(), 3);
+  assert_equals(element.getExtentOfChar(0).x, 50);
+  assert_equals(element.getExtentOfChar(1).x, 150);
+  assert_equals(element.getExtentOfChar(2).x, 100);
+}, 'Multiple chunks in a tspan');
+</script>

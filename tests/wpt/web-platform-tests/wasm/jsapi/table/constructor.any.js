@@ -1,4 +1,5 @@
 // META: global=window,dedicatedworker,jsshell
+// META: script=/wasm/jsapi/wasm-module-builder.js
 // META: script=/wasm/jsapi/assertions.js
 // META: script=/wasm/jsapi/table/assertions.js
 
@@ -88,7 +89,7 @@ test(() => {
 
 test(() => {
   const argument = { "element": "anyfunc", "initial": 0 };
-  const table = new WebAssembly.Table(argument, {});
+  const table = new WebAssembly.Table(argument, null, {});
   assert_Table(table, { "length": 0 });
 }, "Stray argument");
 
@@ -167,3 +168,41 @@ test(() => {
     "maximum valueOf",
   ]);
 }, "Order of evaluation for descriptor");
+
+test(() => {
+  const testObject = {};
+  const argument = { "element": "externref", "initial": 3 };
+  const table = new WebAssembly.Table(argument, testObject);
+  assert_equals(table.length, 3);
+  assert_equals(table.get(0), testObject);
+  assert_equals(table.get(1), testObject);
+  assert_equals(table.get(2), testObject);
+}, "initialize externref table with default value");
+
+test(() => {
+  const argument = { "element": "i32", "initial": 3 };
+  assert_throws_js(TypeError, () => new WebAssembly.Table(argument));
+}, "initialize table with a wrong element value");
+
+test(() => {
+  const builder = new WasmModuleBuilder();
+  builder
+    .addFunction("fn", kSig_v_v)
+    .addBody([])
+    .exportFunc();
+  const bin = builder.toBuffer();
+  const fn = new WebAssembly.Instance(new WebAssembly.Module(bin)).exports.fn;
+  const argument = { "element": "anyfunc", "initial": 3 };
+  const table = new WebAssembly.Table(argument, fn);
+  assert_equals(table.length, 3);
+  assert_equals(table.get(0), fn);
+  assert_equals(table.get(1), fn);
+  assert_equals(table.get(2), fn);
+}, "initialize anyfunc table with default value");
+
+test(() => {
+  const argument = { "element": "anyfunc", "initial": 3 };
+  assert_throws_js(TypeError, () => new WebAssembly.Table(argument, {}));
+  assert_throws_js(TypeError, () => new WebAssembly.Table(argument, "cannot be used as a wasm function"));
+  assert_throws_js(TypeError, () => new WebAssembly.Table(argument, 37));
+}, "initialize anyfunc table with a bad default value");

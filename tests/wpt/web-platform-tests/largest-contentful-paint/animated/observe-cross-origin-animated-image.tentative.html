@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Largest Contentful Paint: observe image.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/largest-contentful-paint-helpers.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async () => {
+      assert_implements(window.LargestContentfulPaint,
+                        "LargestContentfulPaint is not implemented");
+      const beforeLoad = performance.now();
+      // 262 is the size of the animated PNG up until the first frame,
+      // including the chunk that starts the second frame (indicating that
+      //the first frame data is done).
+      const {REMOTE_ORIGIN} = get_host_info();
+      const url = REMOTE_ORIGIN +
+                  '/images/anim-gr.png?pipe=trickle(262:d1)';
+      const entry = await load_and_observe(url);
+      // anim-gr.png is 100 by 50.
+      const size = 100 * 50;
+      checkImage(entry, url, 'image_id', size, beforeLoad, ["renderTimeIs0", "animated-zero"]);
+    }, "Same origin animated image is observable and has a first frame.");
+  </script>
+</body>
+</html>

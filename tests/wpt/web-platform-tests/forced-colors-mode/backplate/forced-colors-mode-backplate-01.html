@@ -24,6 +24,9 @@
   #b {
     forced-color-adjust: none;
   }
+  #c {
+    forced-color-adjust: preserve-parent-color;
+  }
 </style>
 <body>
   <div id="a">
@@ -40,6 +43,13 @@
     in forced colors mode
     <br>
     (forced-color-adjust is set to none.)
+  </div>
+  <div id="c">
+    There should NOT be a backplate drawn behind the text
+    <br>
+    in forced colors mode
+    <br>
+    (forced-color-adjust is set to preserve-parent-color.)
   </div>
 </body>
 </html>

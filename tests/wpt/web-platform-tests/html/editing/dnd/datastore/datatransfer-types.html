@@ -112,4 +112,25 @@ test(() => {
   dt.types = 42;
   assert_equals(dt.types, types);
 }, "Verify type is a read-only attribute");
+
+test(() => {
+  const dt = new DataTransfer();
+  assert_array_equals(dt.types, []);
+
+  // The added File is respected
+  dt.items.add(new File(["abc"], "test.txt"));
+  assert_array_equals(dt.types, ["Files"]);
+
+  // "Files" is always last even after setting data
+  dt.setData("text/plain", "test");
+  assert_array_equals(dt.types, ["text/plain", "Files"]);
+
+  // Removing the File changes types
+  dt.items.remove(0);
+  assert_array_equals(dt.types, ["text/plain"]);
+
+  // Adding back a File as the second item works correctly.
+  dt.items.add(new File(["abc"], "test.txt"));
+  assert_array_equals(dt.types, ["text/plain", "Files"]);
+}, "DataTransfer containing files");
 </script>

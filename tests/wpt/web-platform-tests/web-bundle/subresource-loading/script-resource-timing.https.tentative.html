@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Resource timing entries present for urn:uuid resources</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+
+<script>
+  window.TEST_WEB_BUNDLE_ELEMENT_TYPE = 'script';
+  setup(() => {
+    assert_true(HTMLScriptElement.supports('webbundle'));
+  });
+</script>
+<body>
+<script src="resources/resource-timing-test.js"></script>
+</body>
+

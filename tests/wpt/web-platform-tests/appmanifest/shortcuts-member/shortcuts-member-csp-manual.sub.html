@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<meta http-equiv="Content-Security-Policy" content="img-src {{host}}:{{ports[https][1]}}">
+<meta http-equiv="Content-Security-Policy" content="img-src {{host}}:{{ports[https][0]}}">
 <title>Test that shortcuts member is supported (icon CSP check)</title>
 <link rel="help" href="https://w3c.github.io/manifest/#shortcuts-member" />
-<link rel="manifest" href="shortcuts-member-cors.sub.webmanifest" />
+<link rel="manifest" href="resources/shortcuts-member-csp.sub.webmanifest" />
+<script src="resources/shortcuts-member-manual.js"></script>
 <h1>Testing support for shortcuts member (icon CSP check)</h1>
 <script>
     // Force the port of the origin to be ports[https][0] (likely :8443)

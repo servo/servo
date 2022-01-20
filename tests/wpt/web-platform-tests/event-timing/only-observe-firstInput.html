@@ -26,10 +26,10 @@
         assert_false(hasObservedFirstInput);
         hasObservedFirstInput = true;
         const observedEntries = entryList.getEntries().filter(
-            entry => entry.name === 'mousedown');
+            entry => entry.name === 'pointerdown');
         assert_equals(observedEntries.length, 1);
         assert_equals(observedEntries[0].entryType, 'first-input');
-        assert_equals(observedEntries[0].name, 'mousedown');
+        assert_equals(observedEntries[0].name, 'pointerdown');
     })).observe({ entryTypes: ['first-input'] });
     on_event(window, 'load', () => {
       clickAndBlockMain('button').then(() => {

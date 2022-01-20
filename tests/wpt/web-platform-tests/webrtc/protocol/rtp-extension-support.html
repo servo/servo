@@ -41,4 +41,34 @@ for (const extension of mandatoryExtensions) {
   }, `RTP header extension ${extension} is present in offer`);
 }
 
+// Test for illegal remote behavior: Reassignment of hdrext ID
+// in a subsequent offer/answer cycle.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver('audio');
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+  // Do a second offer/answer cycle.
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  const answer = await pc2.createAnswer();
+
+  // Swap the extension number of the two required extensions
+  answer.sdp = answer.sdp.replace('urn:ietf:params:rtp-hdrext:ssrc-audio-level',
+                     'xyzzy')
+  .replace('urn:ietf:params:rtp-hdrext:sdes:mid',
+           'urn:ietf:params:rtp-hdrext:ssrc-audio-level')
+  .replace('xyzzy',
+           'urn:ietf:params:rtp-hdrext:sdes:mid');
+
+  return promise_rejects_dom(t, 'InvalidAccessError',
+                            pc1.setRemoteDescription(answer));
+}, 'RTP header extension reassignment causes failure');
+
 </script>

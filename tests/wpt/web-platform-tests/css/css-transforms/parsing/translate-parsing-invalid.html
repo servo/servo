@@ -15,6 +15,10 @@ test_invalid_value("translate", "100deg");
 
 test_invalid_value("translate", "100px 200px 300%");
 test_invalid_value("translate", "100px 200px calc(30px + 30%)");
+
+test_invalid_value("translate", "100px junk");
+test_invalid_value("translate", "100px 200px junk");
+test_invalid_value("translate", "100px 200px 300px junk");
 </script>
 </body>
 </html>

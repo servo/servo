@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- DO NOT EDIT. This file has been generated. Source:
+     /html/syntax/speculative-parsing/tools/generate.py
+-->
+<!-- no meta charset -->
+<!-- (padding to exceed 1024 bytes processed by the character encoding scanner)                  -->
+<!--                                                                                             -->
+<!--                                                                                             -->
+<!--                                                                                             -->
+<!--                                                                                             -->
+<!--                                                                                             -->
+<!--                                                                                             -->
+<!--                                                                                             -->
+<!--                                                                                             -->
+<!--                                                                                             -->
+<title>Speculative parsing, page load: meta-charset-script-src</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/utils.js></script>
+<script src=/html/syntax/speculative-parsing/resources/speculative-parsing-util.js></script>
+<body>
+<script>
+  setup({single_test: true});
+  const uuid = token();
+  const iframe = document.createElement('iframe');
+  iframe.src = `resources/meta-charset-script-src-framed.sub.html?uuid=${uuid}`;
+  document.body.appendChild(iframe);
+  expect_fetched_onload(uuid, true)
+    .then(compare_with_nonspeculative(uuid, 'meta-charset-script-src', true))
+    .then(done);
+</script>

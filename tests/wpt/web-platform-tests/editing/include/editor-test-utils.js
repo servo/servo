@@ -2,6 +2,8 @@
  * EditorTestUtils is a helper utilities to test HTML editor.  This can be
  * instantiated per an editing host.  If you test `designMode`, the editing
  * host should be the <body> element.
+ * Note that if you want to use sendKey in a sub-document, you need to include
+ * testdriver.js (and related files) from the sub-document before creating this.
  */
 class EditorTestUtils {
   kShift = "\uE008";
@@ -13,7 +15,7 @@ class EditorTestUtils {
 
   constructor(aEditingHost, aHarnessWindow = window) {
     this.editingHost = aEditingHost;
-    if (aHarnessWindow != this.window) {
+    if (aHarnessWindow != this.window && this.window.test_driver) {
       this.window.test_driver.set_test_context(aHarnessWindow);
     }
   }
@@ -71,6 +73,15 @@ class EditorTestUtils {
   sendEndKey(modifier) {
     const kEnd = "\uE010";
     return this.sendKey(kEnd, modifier);
+  }
+
+  sendSelectAllShortcutKey() {
+    return this.sendKey(
+      "a",
+      this.window.navigator.platform.includes("Mac")
+        ? this.kMeta
+        : this.kControl
+    );
   }
 
   // Similar to `setupDiv` in editing/include/tests.js, this method sets
@@ -142,7 +153,7 @@ class EditorTestUtils {
           return {
             marker: scanResult[0],
             container: textNode,
-            offset: scanResult.index + offset
+            offset: scanResult.index + offset,
           };
         };
         if (startContainer.nodeType === Node.TEXT_NODE) {
@@ -181,7 +192,7 @@ class EditorTestUtils {
           return {
             marker: scanResult[0],
             container: textNode,
-            offset: scanResult.index + offset
+            offset: scanResult.index + offset,
           };
         };
         if (startContainer.nodeType === Node.TEXT_NODE) {

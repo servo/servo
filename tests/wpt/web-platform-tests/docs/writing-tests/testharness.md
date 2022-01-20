@@ -16,11 +16,17 @@ A high-level overview is provided below and more information can be found here:
     clicking a mouse. See also the
     [testdriver.js extension tutorial](testdriver-extension-tutorial.md) for adding new commands.
 
-  * [idlharness.js Documentation](idlharness.md) — A library for testing
+  * [idlharness.js](idlharness.md) — A library for testing
      IDL interfaces using `testharness.js`.
 
-See [server features](server-features.md) for advanced testing features that are commonly used
-with JavaScript tests. See also the [general guidelines](general-guidelines.md) for all test types.
+  * [Message Channels](channels.md) - A way to communicate between
+    different globals, including window globals not in the same
+    browsing context group.
+
+  * [Server features](server-features.md) - Advanced testing features
+    that are commonly used with JavaScript tests.
+
+See also the [general guidelines](general-guidelines.md) for all test types.
 
 ## Window tests
 

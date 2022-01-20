@@ -24,6 +24,26 @@
 #absolute-element {
     position: absolute;
 }
+
+#transform-element {
+    transform: translateX(10px);
+}
+
+#perspective-element {
+    perspective: 10px;
+}
+
+#transform-style-preserve-3d-element {
+    transform-style: preserve-3d;
+}
+
+#filter-element {
+    filter: opacity(25%);
+}
+
+#contain-paint-element {
+    contain: paint;
+}
 </style>
 
 </head>
@@ -37,6 +57,22 @@
 
 <div id="absolute-element">
     <div id="absolute-element-child"></div>
+</div>
+
+<div id="transform-element">
+    <div id="transform-element-child"></div>
+</div>
+
+<div id="transform-style-preserve-3d-element">
+    <div id="transform-style-preserve-3d-element-child"></div>
+</div>
+
+<div id="perspective-element">
+    <div id="perspective-element-child"></div>
+</div>
+
+<div id="contain-paint-element">
+    <div id="contain-paint-element-child"></div>
 </div>
 
 <table id="table-element">
@@ -122,6 +158,21 @@ test(function() {
     assert_equals(caption_element_child.offsetParent,table_element);
     assert_equals(window.getComputedStyle(td_element).position,'static');
     assert_equals(td_element.offsetParent,table_element);
+
+    let transform_element = document.getElementById('transform-element');
+    assert_equals(transform_element.children[0].offsetParent, transform_element);
+
+    let perspective_element = document.getElementById('perspective-element');
+    assert_equals(perspective_element.children[0].offsetParent, perspective_element);
+
+    let transform_style_preserve_3d_element = document.getElementById('transform-style-preserve-3d-element');
+    assert_equals(transform_style_preserve_3d_element.children[0].offsetParent,
+                  transform_style_preserve_3d_element);
+
+    let contain_paint_element = document.getElementById('contain-paint-element');
+    assert_equals(contain_paint_element.children[0].offsetParent, contain_paint_element);
+
+
 }, "Valid the algorithm rule of offsetParent check step 2");
 
 </script>

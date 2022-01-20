@@ -132,7 +132,8 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    await pc.setLocalDescription(await pc.createOffer({offerToReceiveAudio: true}));
+    pc.addTransceiver('audio', { direction: 'recvonly' });
+    await pc.setLocalDescription(await pc.createOffer());
     const sldPromise = pc.setLocalDescription({type: "rollback"});
 
     assert_equals(pc.signalingState, "have-local-offer", "signalingState should not be set synchronously after a call to sLD");

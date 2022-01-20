@@ -112,21 +112,6 @@
       "expectation": "*"
     },
     {
-      // source_context_list values not for CSP tests
-      "expansion": "*",
-      "source_scheme": "*",
-      "source_context_list": [
-        "worker-classic",
-        "worker-module"
-      ],
-      "delivery_type": "*",
-      "delivery_value": "*",
-      "redirection": "*",
-      "subresource": "*",
-      "origin": "*",
-      "expectation": "*"
-    },
-    {
       // subresource values not yet tested
       "expansion": "*",
       "source_scheme": "*",
@@ -144,6 +129,7 @@
         "object-tag",
         "picture-tag",
         "script-tag",
+        "script-tag-dynamic-import",
         "video-tag"
       ],
       "origin": "*",
@@ -232,6 +218,7 @@
       "object-tag": [],
       "picture-tag": [],
       "script-tag": [],
+      "script-tag-dynamic-import": [],
       "sharedworker-classic": [],
       "sharedworker-import": [],
       "sharedworker-import-data": [],

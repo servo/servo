@@ -1,0 +1,21 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Scripting Policy (https://wicg.github.io/csp-next/scripting-policy.html)
+
+enum ScriptingPolicyViolationType {
+  "externalScript",
+  "inlineScript",
+  "inlineEventHandler",
+  "eval"
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface ScriptingPolicyReportBody : ReportBody {
+  [Default] object toJSON();
+  readonly attribute DOMString     violationType;
+  readonly attribute USVString?    violationURL;
+  readonly attribute USVString?    violationSample;
+  readonly attribute unsigned long lineno;
+  readonly attribute unsigned long colno;
+};

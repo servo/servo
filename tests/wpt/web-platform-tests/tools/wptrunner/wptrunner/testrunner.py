@@ -114,8 +114,8 @@ class TestRunner(object):
             raise
 
     def wait(self):
-        self.executor.wait()
-        self.send_message("wait_finished")
+        rerun = self.executor.wait()
+        self.send_message("wait_finished", rerun)
 
     def send_message(self, command, *args):
         self.result_queue.put((command, args))
@@ -155,15 +155,6 @@ def start_runner(runner_command_queue, runner_result_queue,
                     handle_error(e)
         except Exception as e:
             handle_error(e)
-
-
-manager_count = 0
-
-
-def next_manager_number():
-    global manager_count
-    local = manager_count = manager_count + 1
-    return local
 
 
 class BrowserManager(object):
@@ -264,10 +255,10 @@ RunnerManagerState = _RunnerManagerState()
 
 
 class TestRunnerManager(threading.Thread):
-    def __init__(self, suite_name, test_queue, test_source_cls, browser_cls, browser_kwargs,
-                 executor_cls, executor_kwargs, stop_flag, rerun=1, pause_after_test=False,
-                 pause_on_unexpected=False, restart_on_unexpected=True, debug_info=None,
-                 capture_stdio=True, recording=None):
+    def __init__(self, suite_name, index, test_type, test_queue, test_source_cls, browser_cls,
+                 browser_kwargs, executor_cls, executor_kwargs, stop_flag, rerun=1,
+                 pause_after_test=False, pause_on_unexpected=False, restart_on_unexpected=True,
+                 debug_info=None, capture_stdio=True, recording=None):
         """Thread that owns a single TestRunner process and any processes required
         by the TestRunner (e.g. the Firefox binary).
 
@@ -287,8 +278,14 @@ class TestRunnerManager(threading.Thread):
 
         self.test_source = test_source_cls(test_queue)
 
+        self.manager_number = index
+        self.test_type = test_type
         self.browser_cls = browser_cls
-        self.browser_kwargs = browser_kwargs
+        self.browser_kwargs = browser_kwargs.copy()
+        if self.browser_kwargs.get("device_serial"):
+            # Assign Android device to runner according to current manager index
+            self.browser_kwargs["device_serial"] = (
+                self.browser_kwargs["device_serial"][index])
 
         self.executor_cls = executor_cls
         self.executor_kwargs = executor_kwargs
@@ -306,7 +303,6 @@ class TestRunnerManager(threading.Thread):
         self.restart_on_unexpected = restart_on_unexpected
         self.debug_info = debug_info
 
-        self.manager_number = next_manager_number()
         assert recording is not None
         self.recording = recording
 
@@ -315,7 +311,7 @@ class TestRunnerManager(threading.Thread):
 
         self.test_runner_proc = None
 
-        threading.Thread.__init__(self, name="TestRunnerManager-%i" % self.manager_number)
+        threading.Thread.__init__(self, name="TestRunnerManager-%s-%i" % (test_type, index))
         # This is started in the actual new thread
         self.logger = None
 
@@ -510,7 +506,8 @@ class TestRunnerManager(threading.Thread):
         mp = mpcontext.get_context()
         self.test_runner_proc = mp.Process(target=start_runner,
                                            args=args,
-                                           name="TestRunner-%i" % self.manager_number)
+                                           name="TestRunner-%s-%i" % (
+                                               self.test_type, self.manager_number))
         self.test_runner_proc.start()
         self.logger.debug("Test runner started")
         # Now we wait for either an init_succeeded event or an init_failed event
@@ -696,17 +693,20 @@ class TestRunnerManager(threading.Thread):
         else:
             return self.after_test_end(test, restart_before_next)
 
-    def wait_finished(self):
+    def wait_finished(self, rerun=False):
         assert isinstance(self.state, RunnerManagerState.running)
         self.logger.debug("Wait finished")
 
         # The browser should be stopped already, but this ensures we do any
         # post-stop processing
-        return self.after_test_end(self.state.test, True)
+        return self.after_test_end(self.state.test, not rerun, force_rerun=rerun)
 
-    def after_test_end(self, test, restart):
+    def after_test_end(self, test, restart, force_rerun=False):
         assert isinstance(self.state, RunnerManagerState.running)
-        if self.run_count == self.rerun:
+        # Mixing manual reruns and automatic reruns is confusing; we currently assume
+        # that as long as we've done at least the automatic run count in total we can
+        # continue with the next test.
+        if not force_rerun and self.run_count >= self.rerun:
             test, test_group, group_metadata = self.get_next_test()
             if test is None:
                 return RunnerManagerState.stop()
@@ -891,8 +891,10 @@ class ManagerGroup(object):
 
         test_queue = make_test_queue(type_tests, self.test_source_cls, **self.test_source_kwargs)
 
-        for _ in range(self.size):
+        for idx in range(self.size):
             manager = TestRunnerManager(self.suite_name,
+                                        idx,
+                                        test_type,
                                         test_queue,
                                         self.test_source_cls,
                                         self.browser_cls,

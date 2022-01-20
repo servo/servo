@@ -13,7 +13,9 @@ promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
 
-  const offer = await pc1.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: true});
+  pc1.addTransceiver('audio', { direction: 'recvonly' });
+  pc1.addTransceiver('video', { direction: 'recvonly' });
+  const offer = await pc1.createOffer();
 
   // Extract all payload types from the m= lines.
   const payloadTypes = offer.sdp.split('\n')

@@ -4,6 +4,18 @@ from abc import ABCMeta, abstractmethod
 from typing import ClassVar, List, Type
 
 
+def merge_dicts(target, source):
+    if not (isinstance(target, dict) and isinstance(source, dict)):
+        raise TypeError
+    for (key, source_value) in source.items():
+        if key not in target:
+            target[key] = source_value
+        else:
+            if isinstance(source_value, dict) and isinstance(target[key], dict):
+                merge_dicts(target[key], source_value)
+            else:
+                target[key] = source_value
+
 class Protocol(object):
     """Backend for a specific browser-control protocol.
 
@@ -129,7 +141,9 @@ class BaseProtocolPart(ProtocolPart):
 
     @abstractmethod
     def wait(self):
-        """Wait indefinitely for the browser to close"""
+        """Wait indefinitely for the browser to close.
+
+        :returns: True to re-run the test, or False to continue with the next test"""
         pass
 
     @property
@@ -308,6 +322,21 @@ class SendKeysProtocolPart(ProtocolPart):
         :param keys: A protocol-specific handle to a string of input keys."""
         pass
 
+class WindowProtocolPart(ProtocolPart):
+    """Protocol part for manipulating the window"""
+    __metaclass__ = ABCMeta
+
+    name = "window"
+
+    @abstractmethod
+    def set_rect(self, rect):
+        """Restores the window to the given rect."""
+        pass
+
+    @abstractmethod
+    def minimize(self):
+        """Minimizes the window and returns the previous rect."""
+        pass
 
 class GenerateTestReportProtocolPart(ProtocolPart):
     """Protocol part for generating test reports"""
@@ -532,6 +561,20 @@ class VirtualAuthenticatorProtocolPart(ProtocolPart):
 
         :param str authenticator_id: The ID of the authenticator
         :param bool uv: the user verified flag"""
+        pass
+
+
+class SPCTransactionsProtocolPart(ProtocolPart):
+    """Protocol part for Secure Payment Confirmation transactions"""
+    __metaclass__ = ABCMeta
+
+    name = "spc_transactions"
+
+    @abstractmethod
+    def set_spc_transaction_mode(self, mode):
+        """Set the SPC transaction automation mode
+
+        :param str mode: The automation mode to set"""
         pass
 
 

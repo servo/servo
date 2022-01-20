@@ -15,6 +15,7 @@
       assert_true(CSS.supports("background", "foobar(env(test))"));
       assert_false(CSS.supports("background", "env()"));
       assert_true(CSS.supports("background", "env(test, )"));
+      assert_true(CSS.supports("background", "env(test,)"));
     });
     </script>
   </body>

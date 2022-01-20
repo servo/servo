@@ -1,8 +1,8 @@
 // META: global=window,worker
 
-// https://heycam.github.io/webidl/#dfn-attribute-getter (step 1.1.2.1)
-// https://heycam.github.io/webidl/#dfn-attribute-setter (step 4.5.1)
-// https://heycam.github.io/webidl/#dfn-create-operation-function (step 2.1.2.1)
+// https://webidl.spec.whatwg.org/#dfn-attribute-getter (step 1.1.2.1)
+// https://webidl.spec.whatwg.org/#dfn-attribute-setter (step 4.5.1)
+// https://webidl.spec.whatwg.org/#dfn-create-operation-function (step 2.1.2.1)
 
 const notGlobalObject = Object.create(Object.getPrototypeOf(globalThis));
 

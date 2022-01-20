@@ -41,7 +41,9 @@ test_first_argument(["bits", new Blob(["bits"]), new Blob(), new Uint8Array([0x5
 test_first_argument([12], 2, "Number in fileBits");
 test_first_argument([[1,2,3]], 5, "Array in fileBits");
 test_first_argument([{}], 15, "Object in fileBits"); // "[object Object]"
-test_first_argument([document.body], 24, "HTMLBodyElement in fileBits"); // "[object HTMLBodyElement]"
+if (globalThis.document !== undefined) {
+  test_first_argument([document.body], 24, "HTMLBodyElement in fileBits"); // "[object HTMLBodyElement]"
+}
 test_first_argument([to_string_obj], 8, "Object with toString in fileBits");
 test_first_argument({[Symbol.iterator]() {
   let i = 0;
@@ -83,7 +85,9 @@ test_second_argument("dummy/foo", "dummy/foo",
 test_second_argument(null, "null", "Using null fileName");
 test_second_argument(1, "1", "Using number fileName");
 test_second_argument('', '', "Using empty string fileName");
-test_second_argument(document.body, '[object HTMLBodyElement]', "Using object fileName");
+if (globalThis.document !== undefined) {
+  test_second_argument(document.body, '[object HTMLBodyElement]', "Using object fileName");
+}
 
 // testing the third argument
 [

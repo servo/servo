@@ -106,5 +106,18 @@ test_interpolation({
   {at: 1, expect: 'rgb(0, 128, 0) 10px 10px 10px'},
   {at: 1.5, expect: 'rgb(0, 192, 0) 10px 10px 10px'},
 ]);
+
+test_interpolation({
+  property: 'text-shadow',
+  from: 'black 0px 0px 0px',
+  to: 'black 1px 1px 1px',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 0) -0.3px -0.3px 0px'},
+  {at: 0, expect: 'rgb(0, 0, 0) 0px 0px 0px'},
+  {at: 0.3, expect: 'rgb(0, 0, 0) 0.3px 0.3px 0.3px'},
+  {at: 0.6, expect: 'rgb(0, 0, 0) 0.6px 0.6px 0.6px'},
+  {at: 1, expect: 'rgb(0, 0, 0) 1px 1px 1px'},
+  {at: 1.5, expect: 'rgb(0, 0, 0) 1.5px 1.5px 1.5px'},
+]);
 </script>
 </body>

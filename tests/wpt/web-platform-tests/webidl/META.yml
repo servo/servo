@@ -1,4 +1,4 @@
-spec: https://heycam.github.io/webidl/
+spec: https://webidl.spec.whatwg.org/
 suggested_reviewers:
   - domenic
   - yuki3

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+text {
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+  width: 10ch;
+}
+</style>
+<body>
+
+<svg width="800" height="100">
+<text x="20" y="20" id="text-1">An SVG text element with no "transform" attribute</text>
+<text x="20" y="50" id="text-2" transform="matrix(2,0,0,2,0,0)">An SVG with a "transform" attribute</text>
+<text x="20" y="80" id="text-3" rotate="45">An SVG with a "rotate" attribute</text>
+</svg>
+
+<script>
+function getBoundingClientRect(node, start, end) {
+  const range = document.createRange();
+  range.setStart(node, start);
+  range.setEnd(node, end);
+  const rect = range.getBoundingClientRect();
+  return rect;
+}
+
+test(() => {
+  const element = document.querySelector('#text-1');
+  const elementRect = element.getBoundingClientRect();
+  const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
+  assert_approx_equals(elementRect.x, rangeRect.x, 1);
+  assert_approx_equals(elementRect.y, rangeRect.y, 1);
+  assert_approx_equals(elementRect.width, rangeRect.width, 1);
+  assert_approx_equals(elementRect.height, rangeRect.height, 1);
+}, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text>');
+
+test(() => {
+  const element = document.querySelector('#text-2');
+  const elementRect = element.getBoundingClientRect();
+  const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
+  assert_approx_equals(elementRect.x, rangeRect.x, 1);
+  assert_approx_equals(elementRect.y, rangeRect.y, 1);
+  assert_approx_equals(elementRect.width, rangeRect.width, 1);
+  assert_approx_equals(elementRect.height, rangeRect.height, 1);
+}, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text> with a transform');
+
+test(() => {
+  const element = document.querySelector('#text-3');
+  const elementRect = element.getBoundingClientRect();
+  const rangeRect = getBoundingClientRect(element.firstChild, 0, element.firstChild.length);
+  assert_approx_equals(elementRect.x, rangeRect.x, 1);
+  assert_approx_equals(elementRect.y, rangeRect.y, 1);
+  assert_approx_equals(elementRect.width, rangeRect.width, 1);
+  assert_approx_equals(elementRect.height, rangeRect.height, 1);
+}, 'Element.getBoundingClientRect() and Range.getBoudingClientRect() should match for an SVG <text> with a rotate');
+</script>
+</body>

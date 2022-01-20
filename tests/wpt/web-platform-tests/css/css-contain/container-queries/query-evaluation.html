@@ -1,0 +1,128 @@
+<!doctype html>
+<title>Evaluation of queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    width: 1px;
+    height: 0px;
+    container-type: size;
+    --applied:false;
+  }
+</style>
+<div id=container>
+  <div id=inner></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  function test_query(query, expected) {
+    test((t) => {
+      let style = document.createElement('style');
+      t.add_cleanup(() => { style.remove(); });
+      style.innerText = `@container ${query} { #inner { --applied:true; } }`;
+      let cs = getComputedStyle(inner);
+      assert_equals(cs.getPropertyValue('--applied'), 'false');
+      document.head.append(style);
+      assert_equals(cs.getPropertyValue('--applied'), expected.toString());
+    }, query);
+  };
+
+  // We don't care about specific features in this file, only higher level
+  // evaluation like "and", "or", and so forth. The features "width", "height"
+  // and "unknown" are arbitrarily chosen to represent true, false, and
+  // unknown values, respectively.
+
+  test_query('size(width)', true);
+  test_query('size(height)', false);
+  test_query('size(unknown)', false);
+  test_query('unknown(width)', false);
+
+  // Nesting in <container-query>:
+  test_query('(size(width))', true);
+  test_query('(size(height))', false);
+  test_query('(size(unknown))', false);
+  test_query('(((size(width))))', true);
+  test_query('(((size(height))))', false);
+  test_query('(((size(unknown))))', false);
+
+  // "not" in <container-query>:
+  test_query('(not size(width))', false);
+  test_query('(not size(height))', true);
+  test_query('(not size(unknown))', false);
+  test_query('(not unknown(width))', false);
+
+  // "and" in <container-query>:
+  test_query('(size(width) and size(width))', true);
+  test_query('(size(width) and size(width) and size(width))', true);
+  test_query('(size(height) and size(height))', false);
+  test_query('(size(height) and size(width) and size(width))', false);
+  test_query('(size(width) and size(height) and size(width))', false);
+  test_query('(size(width) and size(width) and size(height))', false);
+  test_query('(size(unknown) and size(width) and size(width))', false);
+  test_query('(size(width) and size(unknown) and size(width))', false);
+  test_query('(size(width) and size(width) and size(unknown))', false);
+
+  // "or" in <container-query>:
+  test_query('(size(width) or size(width))', true);
+  test_query('(size(width) or size(width) or size(width))', true);
+  test_query('(size(height) or size(height))', false);
+  test_query('(size(height) or size(width) or size(width))', true);
+  test_query('(size(width) or size(height) or size(width))', true);
+  test_query('(size(width) or size(width) or size(height))', true);
+  test_query('(size(unknown) or size(width) or size(width))', true);
+  test_query('(size(width) or size(unknown) or size(width))', true);
+  test_query('(size(width) or size(width) or size(unknown))', true);
+  test_query('(size(unknown) or size(height) or size(width))', true);
+
+  // Combinations, <container-query>:
+  test_query('(not (size(width) and size(width)))', false);
+  test_query('(not (size(width) and size(height)))', true);
+  test_query('(size(width) and (not (size(height) or size(width))))', false);
+  test_query('(size(height) or (not (size(height) and size(width))))', true);
+  test_query('(size(height) or (size(height) and size(width)))', false);
+
+  // Nesting in <size-query>:
+  test_query('size((width))', true);
+  test_query('size((height))', false);
+  test_query('size((unknown))', false);
+  test_query('unknown((width))', false);
+
+  // "not" in <size-query>:
+  test_query('size(not (width))', false);
+  test_query('size(not (height))', true);
+  test_query('size(not (unknown))', false);
+
+  // "and" in <size-query>:
+  test_query('size((width) and (width))', true);
+  test_query('size((width) and (width) and (width))', true);
+  test_query('size((height) and (height))', false);
+  test_query('size((height) and (width) and (width))', false);
+  test_query('size((width) and (height) and (width))', false);
+  test_query('size((width) and (width) and (height))', false);
+  test_query('size((unknown) and (width) and (width))', false);
+  test_query('size((width) and (unknown) and (width))', false);
+  test_query('size((width) and (width) and (unknown))', false);
+
+  // "or" in <size-query>:
+  test_query('size((width) or (width))', true);
+  test_query('size((width) or (width) or (width))', true);
+  test_query('size((height) or (height))', false);
+  test_query('size((height) or (width) or (width))', true);
+  test_query('size((width) or (height) or (width))', true);
+  test_query('size((width) or (width) or (height))', true);
+  test_query('size((unknown) or (width) or (width))', true);
+  test_query('size((width) or (unknown) or (width))', true);
+  test_query('size((width) or (width) or (unknown))', true);
+  test_query('size((unknown) or (height) or (width))', true);
+
+  // Combinations, <size-query>:
+  test_query('size(not ((width) and (width)))', false);
+  test_query('size(not ((width) and (height)))', true);
+  test_query('size((width) and (not ((height) or (width))))', false);
+  test_query('size((height) or (not ((height) and (width))))', true);
+  test_query('size((height) or ((height) and (width)))', false);
+
+</script>

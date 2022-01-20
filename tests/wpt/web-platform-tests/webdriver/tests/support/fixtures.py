@@ -14,7 +14,12 @@ from tests.support.inline import build_inline
 from tests.support.http_request import HTTPRequest
 
 
+# The webdriver session can outlive a pytest session
 _current_session = None
+
+# The event loop needs to outlive the webdriver session
+_event_loop = None
+
 _custom_session = False
 
 
@@ -39,15 +44,14 @@ def pytest_generate_tests(metafunc):
             metafunc.parametrize("capabilities", marker.args, ids=None)
 
 
-# Ensure that the event loop is restarted once per session rather than the default
-# of once per test. If we don't do this, tests will try to reuse a closed event
-# loop and fail with an error that the "future belongs to a different loop".
 @pytest.fixture(scope="session")
 def event_loop():
-    """Change event_loop fixture to session level."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+    """Change event_loop fixture to global."""
+    global _event_loop
+
+    if _event_loop is None:
+        _event_loop = asyncio.get_event_loop_policy().new_event_loop()
+    return _event_loop
 
 
 @pytest.fixture
@@ -55,23 +59,38 @@ def http(configuration):
     return HTTPRequest(configuration["host"], configuration["port"])
 
 
-@pytest.fixture
-def server_config():
-    with open(os.environ.get("WD_SERVER_CONFIG_FILE"), "r") as f:
+@pytest.fixture(scope="session")
+def full_configuration():
+    """Get test configuration information. Keys are:
+
+    host - WebDriver server host.
+    port -  WebDriver server port.
+    capabilites - Capabilites passed when creating the WebDriver session
+    webdriver - Dict with keys `binary`: path to webdriver binary, and
+                `args`: Additional command line arguments passed to the webdriver
+                binary. This doesn't include all the required arguments e.g. the
+                port.
+    wptserve - Configuration of the wptserve servers."""
+
+    with open(os.environ.get("WDSPEC_CONFIG_FILE"), "r") as f:
         return json.load(f)
 
 
 @pytest.fixture(scope="session")
-def configuration():
-    host = os.environ.get("WD_HOST", defaults.DRIVER_HOST)
-    port = int(os.environ.get("WD_PORT", str(defaults.DRIVER_PORT)))
-    capabilities = json.loads(os.environ.get("WD_CAPABILITIES", "{}"))
+def server_config(full_configuration):
+    return full_configuration["wptserve"]
 
-    return {
-        "host": host,
-        "port": port,
-        "capabilities": capabilities
-    }
+
+@pytest.fixture(scope="session")
+def configuration(full_configuration):
+    """Configuation minus server config.
+
+    This makes logging easier to read."""
+
+    config = full_configuration.copy()
+    del config["wptserve"]
+
+    return config
 
 
 async def reset_current_session_if_necessary(caps):
@@ -90,7 +109,7 @@ async def reset_current_session_if_necessary(caps):
 
 
 @pytest.fixture(scope="function")
-async def session(capabilities, configuration, request):
+async def session(capabilities, configuration):
     """Create and start a session for a test that does not itself test session creation.
 
     By default the session will stay open after each test, but we always try to start a
@@ -127,7 +146,7 @@ async def session(capabilities, configuration, request):
 
 
 @pytest.fixture(scope="function")
-async def bidi_session(capabilities, configuration, request):
+async def bidi_session(capabilities, configuration):
     """Create and start a bidi session.
 
     Can be used for a test that does not itself test bidi session creation.
@@ -159,8 +178,9 @@ async def bidi_session(capabilities, configuration, request):
     await _current_session.bidi_session.start()
 
     # Enforce a fixed default window size and position
-    _current_session.window.size = defaults.WINDOW_SIZE
-    _current_session.window.position = defaults.WINDOW_POSITION
+    if _current_session.capabilities.get("setWindowRect"):
+        _current_session.window.size = defaults.WINDOW_SIZE
+        _current_session.window.position = defaults.WINDOW_POSITION
 
     yield _current_session.bidi_session
 

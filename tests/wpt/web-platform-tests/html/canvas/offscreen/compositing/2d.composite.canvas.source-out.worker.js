@@ -13,11 +13,11 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 
-var offscreenCanvas2 = new OffscreenCanvas(offscreenCanvas.width, offscreenCanvas.height);
+var offscreenCanvas2 = new OffscreenCanvas(canvas.width, canvas.height);
 var ctx2 = offscreenCanvas2.getContext('2d');
 var promise = new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
@@ -35,7 +35,7 @@ promise.then(function(response) {
         ctx.fillRect(0, 0, 100, 50);
         ctx.globalCompositeOperation = 'source-out';
         ctx.drawImage(offscreenCanvas2, 0, 0);
-        _assertPixelApprox(offscreenCanvas, 50,25, 255,255,0,96, "50,25", "255,255,0,96", 5);
+        _assertPixelApprox(canvas, 50,25, 255,255,0,96, "50,25", "255,255,0,96", 5);
     }, t_fail);
 }).then(t_pass, t_fail);
 

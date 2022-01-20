@@ -5,21 +5,22 @@
 	<link rel="author" href="http://opera.com" title="Opera Software ASA">
 	<link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-supports">
 	<link rel="match" href="at-supports-001-ref.html">
-	<meta name="flags" content="">
 	<style>
 		div {
 			background-color:red;
-			height:100px;
+			height:50px;
 			width:100px;
 		}
 		@supports (margin: 0) {
-			div { background-color:green; }
+			.test1 { background:green; }
+			.test2 { background: red; }
 		}
+		.test2 { background: green; }
 	</style>
 </head>
 <body>
 	<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
-	<div>
-	</div>
+	<div class="test1"></div>
+	<div class="test2"></div>
 </body>
 </html>

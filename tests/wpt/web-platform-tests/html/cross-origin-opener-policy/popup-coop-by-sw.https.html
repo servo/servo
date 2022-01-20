@@ -6,13 +6,12 @@
 <script src="/common/subset-tests.js"></script>
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
 <script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
-<script src="./resources/dispatcher.js"></script>
 <script>
 
-const resources = "/html/cross-origin-opener-policy/resources";
-const executor_path = resources + "/executor.html?pipe=";
-const sw_executor_path  = resources + "/sw_executor.js?pipe=";
+const executor_path = '/common/dispatcher/executor.html?pipe=';
+const executor_service_worker_path = '/common/dispatcher/executor-service-worker.js?pipe=';
 
 const coop_header = `|header(Cross-Origin-Opener-Policy,same-origin)`;
 const coep_header = `|header(Cross-Origin-Embedder-Policy,require-corp)`;
@@ -60,11 +59,11 @@ const popupCoopBySwTest = (
     test.add_cleanup(() => opener_window.close());
 
     // 2. Define the openee's URL as being served by the service worker.
-    const openee_url = https_origin + resources + "/proxied?" + token();
+    const openee_url = https_origin + "/common/dispatcher/proxied?" + token();
 
     // 3. Register, install and activate a ServiceWorker serving the openee_url.
     const sw_token = token();
-    const sw_url = https_origin + sw_executor_path + sw_headers +
+    const sw_url = https_origin + executor_service_worker_path + sw_headers +
       `&uuid=${sw_token}`;
     const sw_scope = openee_url; // One-time scope, because of the token.
 
@@ -79,7 +78,7 @@ const popupCoopBySwTest = (
           return;
 
         const response = new Response(\`
-          <script src="./dispatcher.js"></scr\`+\`ipt>
+          <script src="/common/dispatcher/dispatcher.js"></scr\`+\`ipt>
           <script>
             send("${driver_token}", opener ? "opener is set"
                                            : "opener is null");

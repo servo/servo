@@ -22,7 +22,7 @@ main() {
         'html/canvas/offscreen/text/2d.text.draw.stroke.basic.png'
     )
 
-    ./update-built-tests.sh
+    ./wpt update-built
     git update-index --assume-unchanged ${excluded[*]}
     git diff --exit-code
 }

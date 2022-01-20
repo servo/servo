@@ -19,8 +19,8 @@
     <p>The test passes if there is a green square and no red.</p>
     <svg>
         <rect x="41" y="41" width="78" height="78" fill="red"/> <!-- this rect is outside the group to catch failures of the group transform -->
-        <g transform="translate(0 25px)">
-            <rect x="1" y="1" width="78" height="78" fill="red" transform="translate(40px 15px)"/>
+        <g transform="translate(0 25)">
+            <rect x="1" y="1" width="78" height="78" fill="red" transform="translate(40 15)"/>
             <rect x="80" y="30" width="160" height="160" fill="green" transform="scale(0.5)"/>
         </g>
     </svg>

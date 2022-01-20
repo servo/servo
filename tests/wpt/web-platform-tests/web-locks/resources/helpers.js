@@ -8,6 +8,10 @@
   self.uniqueName = (testCase, prefix) => {
     return `${self.location.pathname}-${prefix}-${testCase.name}-${++res_num}`;
   };
+  self.uniqueNameByQuery = () => {
+    const prefix = new URL(location.href).searchParams.get('prefix');
+    return `${prefix}-${++res_num}`;
+  }
 
   // Inject an iframe showing the given url into the page, and resolve
   // the returned promise when the frame is loaded.
@@ -55,6 +59,25 @@
       };
       worker.addEventListener('message', listener);
     });
+  };
+
+  /**
+   * Request a lock and hold it until the subtest ends.
+   * @param {*} t test runner object
+   * @param {string} name lock name
+   * @param {LockOptions=} options lock options
+   * @returns
+   */
+  self.requestLockAndHold = (t, name, options = {}) => {
+    return navigator.locks.request(name, options, () => {
+      return new Promise(resolve => t.add_cleanup(resolve));
+    });
+  };
+
+  self.makePromiseAndResolveFunc = () => {
+    let resolve;
+    const promise = new Promise(r => { resolve = r; });
+    return [promise, resolve];
   };
 
 })();

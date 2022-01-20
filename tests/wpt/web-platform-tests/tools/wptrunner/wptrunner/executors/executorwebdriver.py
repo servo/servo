@@ -26,7 +26,10 @@ from .protocol import (BaseProtocolPart,
                        GenerateTestReportProtocolPart,
                        SetPermissionProtocolPart,
                        VirtualAuthenticatorProtocolPart,
-                       DebugProtocolPart)
+                       WindowProtocolPart,
+                       DebugProtocolPart,
+                       SPCTransactionsProtocolPart,
+                       merge_dicts)
 
 from webdriver.client import Session
 from webdriver import error
@@ -70,6 +73,8 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
     def wait(self):
         while True:
             try:
+                self.webdriver.execute_async_script("""let callback = arguments[arguments.length - 1];
+addEventListener("__test_restart", e => {e.preventDefault(); callback(true)})""")
                 self.webdriver.execute_async_script("")
             except (error.TimeoutException,
                     error.ScriptTimeoutException,
@@ -86,6 +91,7 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
             except Exception:
                 self.logger.error(traceback.format_exc())
                 break
+        return False
 
 
 class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
@@ -198,6 +204,17 @@ class WebDriverCookiesProtocolPart(CookiesProtocolPart):
         self.logger.info("Deleting all cookies")
         return self.webdriver.send_session_command("DELETE", "cookie")
 
+class WebDriverWindowProtocolPart(WindowProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def minimize(self):
+        self.logger.info("Minimizing")
+        return self.webdriver.window.minimize()
+
+    def set_rect(self, rect):
+        self.logger.info("Restoring")
+        self.webdriver.window.rect = rect
 
 class WebDriverSendKeysProtocolPart(SendKeysProtocolPart):
     def setup(self):
@@ -296,6 +313,15 @@ class WebDriverVirtualAuthenticatorProtocolPart(VirtualAuthenticatorProtocolPart
         return self.webdriver.send_session_command("POST", "webauthn/authenticator/%s/uv" % authenticator_id, uv)
 
 
+class WebDriverSPCTransactionsProtocolPart(SPCTransactionsProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_spc_transaction_mode(self, mode):
+        body = {"mode": mode}
+        return self.webdriver.send_session_command("POST", "secure-payment-confirmation/set-mode", body)
+
+
 class WebDriverDebugProtocolPart(DebugProtocolPart):
     def load_devtools(self):
         raise NotImplementedError()
@@ -308,16 +334,23 @@ class WebDriverProtocol(Protocol):
                   WebDriverClickProtocolPart,
                   WebDriverCookiesProtocolPart,
                   WebDriverSendKeysProtocolPart,
+                  WebDriverWindowProtocolPart,
                   WebDriverActionSequenceProtocolPart,
                   WebDriverTestDriverProtocolPart,
                   WebDriverGenerateTestReportProtocolPart,
                   WebDriverSetPermissionProtocolPart,
                   WebDriverVirtualAuthenticatorProtocolPart,
+                  WebDriverSPCTransactionsProtocolPart,
                   WebDriverDebugProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super(WebDriverProtocol, self).__init__(executor, browser)
         self.capabilities = capabilities
+        if hasattr(browser, "capabilities"):
+            if self.capabilities is None:
+                self.capabilities = browser.capabilities
+            else:
+                merge_dicts(self.capabilities, browser.capabilities)
         self.url = browser.webdriver_url
         self.webdriver = None
 

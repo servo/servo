@@ -1,5 +1,11 @@
 # testharness.js tutorial
 
+.. contents:: Table of Contents
+   :depth: 3
+   :local:
+   :backlinks: none
+```
+
 <!--
 Note to maintainers:
 

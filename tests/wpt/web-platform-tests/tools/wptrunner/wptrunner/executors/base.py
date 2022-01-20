@@ -347,7 +347,7 @@ class TestExecutor(object):
         return test.result_cls(status, message), []
 
     def wait(self):
-        self.protocol.base.wait()
+        return self.protocol.base.wait()
 
 
 class TestharnessExecutor(TestExecutor):
@@ -700,7 +700,7 @@ class ConnectionlessBaseProtocolPart(BaseProtocolPart):
         pass
 
     def wait(self):
-        pass
+        return False
 
     def set_window(self, handle):
         pass
@@ -748,9 +748,15 @@ class WdspecProtocol(Protocol):
                           output_handler_start_kwargs=self.output_handler_start_kwargs)
         self.logger.info(
             "WebDriver HTTP server listening at %s" % self.server.url)
-        self.session_config = {"host": self.server.host,
-                               "port": self.server.port,
-                               "capabilities": self.capabilities}
+        self.session_config = {
+            "webdriver": {
+                "binary": self.webdriver_binary,
+                "args": self.webdriver_args
+            },
+            "host": self.server.host,
+            "port": self.server.port,
+            "capabilities": self.capabilities
+        }
 
     def after_connect(self):
         pass

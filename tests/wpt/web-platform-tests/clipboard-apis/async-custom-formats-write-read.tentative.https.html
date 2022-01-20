@@ -12,6 +12,8 @@
 'use strict';
 
 promise_test(async t => {
+  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
   const format1 = 'application/x-custom-format-clipboard-test-format-1';
   const format2 = 'application/x-custom-format-clipboard-test-format-2';
   const blobInput1 = new Blob(['input data 1'], {type: format1});
@@ -49,8 +51,3 @@ promise_test(async t => {
   assert_equals(data2, 'input data 2');
 }, 'Verify write and read clipboard given 2 platform-neutral custom format inputs');
 </script>
-<p>
-  This is a manual test because it writes/reads to the shared system
-  clipboard and thus cannot be run async with other tests that might interact
-  with the clipboard.
-</p>

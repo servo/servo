@@ -10,6 +10,10 @@
       .split('=')[1].trim();
 
   promise_test(async t => {
+    // Dedicated workers do not inherit CSP in general.
+    await fetch_tests_from_worker(
+      new Worker("./support/script-src-allow.sub.js"));
+
     // Dedicated workers honor CSP received in their response headers.
     await fetch_tests_from_worker(
       new Worker(
@@ -49,12 +53,5 @@
 
       await new Promise(resolve => fs_entry.remove(resolve));
     }
-
-    // Dedicated workers do not inherit CSP in general.
-    // We put this at the end since chrome is failing this at the moment, and
-    // this sends reports which would make the report checks in the other tests
-    // fail.
-    await fetch_tests_from_worker(
-      new Worker("./support/script-src-allow.sub.js"));
   });
 </script>

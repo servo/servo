@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<body>
+</body>
+<script src="/resources/testharness.js"></script>
+<script>
+if (window.chrome && chrome.gpuBenchmarking) {
+  chrome.gpuBenchmarking.pointerActionSequence(
+    [
+      {
+        source: 'pen',
+        actions: [
+          { name: 'pointerMove', x: 50, y: 50 }
+        ]
+      }
+    ]
+  );
+}
+</script>
+<script>step_timeout(gc, 50);</script>
+<script>
+  const frameElem = document.createElement('iframe');
+
+  frameElem.srcdoc = '<div></div>';
+  frameElem.onload = function() {
+    const frameDoc = frameElem.contentWindow.document;
+    const divElem = frameDoc.querySelector('div');
+    getComputedAccessibleNode(divElem).then(function(divAccessible) {
+      frameElem.remove();
+      requestAnimationFrame(() => {
+        const isChecked = divAccessible.checked;
+        document.documentElement.className = '';
+      });
+    });
+  };
+  document.body.appendChild(frameElem);
+</script>
+</html>

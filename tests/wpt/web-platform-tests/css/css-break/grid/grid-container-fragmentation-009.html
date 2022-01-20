@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#fragmentation-model">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-properties">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<style>
+  .content {
+    width:50px;
+    background:green;
+    contain:size;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div style="columns:2; column-gap:0px; column-fill:auto; width:100px; height:100px; position:relative;">
+  <div style="display:grid; max-height:200px; overflow:clip;">
+    <div class="content" style="height:50px;"></div>
+    <div class="content" style="height:150px;"></div>
+  </div>
+  <div class="content" style="position:absolute; height:50px; left:0px; top:50px;"></div>
+</div>
+

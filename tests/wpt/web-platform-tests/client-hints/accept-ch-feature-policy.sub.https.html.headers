@@ -1,2 +1,2 @@
-Accept-CH: device-memory, dpr, viewport-width, rtt, downlink, ect, lang, mobile, sec-ch-prefers-color-scheme, sec-ch-viewport-height
-Feature-Policy: ch-device-memory *; ch-dpr 'none'; ch-viewport-width 'self'; ch-lang 'none'; ch-mobile; ch-prefers-color-scheme 'none'; ch-viewport-height 'none'
+Accept-CH: sec-ch-device-memory, device-memory, sec-ch-dpr, dpr, sec-ch-viewport-width, viewport-width, rtt, downlink, ect, mobile, sec-ch-prefers-color-scheme, sec-ch-viewport-height
+Feature-Policy: ch-device-memory *; ch-dpr 'none'; ch-viewport-width 'self'; ch-mobile; ch-prefers-color-scheme 'none'; ch-viewport-height 'none'

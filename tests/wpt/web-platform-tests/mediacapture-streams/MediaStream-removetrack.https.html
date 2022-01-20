@@ -15,9 +15,13 @@
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
 
 promise_test(async t => {
+  await setMediaPermission();
   const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
   const tracks = stream.getTracks();
   t.add_cleanup(() => tracks.forEach(track => track.stop()));

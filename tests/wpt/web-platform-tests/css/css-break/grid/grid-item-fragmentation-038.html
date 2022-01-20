@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<title>Tests that break-before:avoid on a grid-item is respected.</title>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative; width: 100px; height: 100px; columns: 4; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: grid;">
+    <div style="background: green; height: 150px;"></div>
+    <div style="background: green; height: 110px;"></div>
+    <div style="background: green; break-before: avoid; line-height: 0;">
+      <span style="display: inline-block; width: 100%; height: 60px;"></span>
+    </div>
+  </div>
+  <div style="background: green; position: absolute; width: 50px; height: 40px; bottom: 0; right: 0;"></div>
+</div>

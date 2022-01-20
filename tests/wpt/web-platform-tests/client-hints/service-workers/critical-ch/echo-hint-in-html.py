@@ -13,12 +13,12 @@ def main(request, response):
 
     response.headers.append(b"Cache-Control", b"no-store")
 
-    response.headers.append(b"Accept-CH", b"device-memory");
-    response.headers.append(b"Critical-CH", b"device-memory");
+    response.headers.append(b"Accept-CH", b"sec-ch-device-memory,device-memory");
+    response.headers.append(b"Critical-CH", b"sec-ch-device-memory,device-memory");
 
     result = "FAIL"
 
-    if b"device-memory" in request.headers:
+    if b"sec-ch-device-memory" in request.headers and b"device-memory" in request.headers:
       result = "PASS"
 
     response.content = result

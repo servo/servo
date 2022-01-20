@@ -22,16 +22,16 @@ test(function() {
   assert_false(supportsPassive, "removeEventListener supports the passive option when it should not");
 }, "Supports passive option on addEventListener only");
 
-function testPassiveValue(optionsValue, expectedDefaultPrevented) {
+function testPassiveValue(optionsValue, expectedDefaultPrevented, existingEventTarget) {
   var defaultPrevented = undefined;
   var handler = function handler(e) {
     assert_false(e.defaultPrevented, "Event prematurely marked defaultPrevented");
     e.preventDefault();
     defaultPrevented = e.defaultPrevented;
   }
-  const et = new EventTarget();
+  const et = existingEventTarget || new EventTarget();
   et.addEventListener('test', handler, optionsValue);
-  var uncanceled = document.body.dispatchEvent(new Event('test', {bubbles: true, cancelable: true}));
+  var uncanceled = et.dispatchEvent(new Event('test', {bubbles: true, cancelable: true}));
 
   assert_equals(defaultPrevented, expectedDefaultPrevented, "Incorrect defaultPrevented for options: " + JSON.stringify(optionsValue));
   assert_equals(uncanceled, !expectedDefaultPrevented, "Incorrect return value from dispatchEvent");
@@ -89,7 +89,7 @@ function testPassiveWithOtherHandlers(optionsValue, expectedDefaultPrevented) {
   et.addEventListener('test', dummyHandler1, {passive:true});
   et.addEventListener('test', dummyHandler2);
 
-  testPassiveValue(optionsValue, expectedDefaultPrevented);
+  testPassiveValue(optionsValue, expectedDefaultPrevented, et);
 
   assert_true(handlerInvoked1, "Extra passive handler not invoked");
   assert_true(handlerInvoked2, "Extra non-passive handler not invoked");

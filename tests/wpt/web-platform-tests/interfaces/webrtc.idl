@@ -4,11 +4,11 @@
 // Source: WebRTC 1.0: Real-Time Communication Between Browsers (https://w3c.github.io/webrtc-pc/)
 
 dictionary RTCConfiguration {
-  sequence<RTCIceServer> iceServers;
-  RTCIceTransportPolicy iceTransportPolicy;
-  RTCBundlePolicy bundlePolicy;
-  RTCRtcpMuxPolicy rtcpMuxPolicy;
-  sequence<RTCCertificate> certificates;
+  sequence<RTCIceServer> iceServers = [];
+  RTCIceTransportPolicy iceTransportPolicy = "all";
+  RTCBundlePolicy bundlePolicy = "balanced";
+  RTCRtcpMuxPolicy rtcpMuxPolicy = "require";
+  sequence<RTCCertificate> certificates = [];
   [EnforceRange] octet iceCandidatePoolSize = 0;
 };
 
@@ -247,12 +247,12 @@ partial interface RTCPeerConnection {
 };
 
 dictionary RTCCertificateExpiration {
-  [EnforceRange] DOMTimeStamp expires;
+  [EnforceRange] unsigned long long expires;
 };
 
 [Exposed=Window, Serializable]
 interface RTCCertificate {
-  readonly attribute DOMTimeStamp expires;
+  readonly attribute EpochTimeStamp expires;
   sequence<RTCDtlsFingerprint> getFingerprints();
 };
 
@@ -372,8 +372,7 @@ dictionary RTCRtpContributingSource {
   required unsigned long rtpTimestamp;
 };
 
-dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {
-};
+dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {};
 
 [Exposed=Window]
 interface RTCRtpTransceiver {

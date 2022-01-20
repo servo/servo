@@ -123,6 +123,18 @@ nfc_test(async (t, mockNFC) => {
 }, "Test that NDEFReader.scan rejects if NDEFScanOptions.signal aborts right after \
 the scan invocation.");
 
+nfc_test(async () => {
+  const ndef = new NDEFReader();
+
+  const controller1 = new AbortController();
+  await ndef.scan({signal: controller1.signal});
+
+  controller1.abort();
+
+  const controller2 = new AbortController();
+  await ndef.scan({signal: controller2.signal});
+}, "Test that NDEFReader.scan signals are independant.");
+
 nfc_test(async (t, mockNFC) => {
   const ndef = new NDEFReader();
   const controller = new AbortController();

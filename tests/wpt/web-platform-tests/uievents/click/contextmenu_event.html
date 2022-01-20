@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Contextmenu event</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <h1>Test contextmenu event</h1>
+  <p>Tests that right-clicking fires a contextmenu event.</p>
+  <ol id="instructions">
+    <li>Right-click here.
+  </ol>
+  <script>
+    let event_log = [];
+
+    function cancel_and_log_event(ename) {
+        return new Promise(resolve => {
+            document.body.addEventListener(ename, e => {
+                e.preventDefault();
+                event_log.push(e.type);
+                resolve(e);
+            }, {once: true});
+        });
+    }
+
+    promise_test(async () => {
+        const event_promises = ["mousedown", "mouseup", "contextmenu"]
+              .map(ename => cancel_and_log_event(ename));
+
+        let target = document.getElementById("instructions");
+        let actions = new test_driver.Actions();
+        actions.pointerMove(0, 0, {origin: target})
+            .pointerDown({button: actions.ButtonType.RIGHT})
+            .pointerUp({button: actions.ButtonType.RIGHT})
+            .send();
+
+        await Promise.all(event_promises);
+
+        assert_equals(event_log.length, 3, "Three events are received");
+        assert_true(event_log.includes("contextmenu"), "contextmenu event is received");
+        assert_true(event_log.includes("mouseup"), "mouseup event is received");
+        assert_equals(event_log[0], "mousedown", "mousedown event is the first event received");
+    }, "Test contextmenu dispatched after mousedown");
+  </script>
+</body>
+</html>

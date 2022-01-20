@@ -14,6 +14,28 @@ here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
 
+def load_conditional_requirements(props, base_dir):
+    """Load conditional requirements from commands.json."""
+
+    conditional_requirements = props.get("conditional_requirements")
+    if not conditional_requirements:
+        return {}
+
+    commandline_flag_requirements = {}
+    for key, value in conditional_requirements.items():
+        if key == "commandline_flag":
+            for flag_name, requirements_paths in value.items():
+                commandline_flag_requirements[flag_name] = [
+                    os.path.join(base_dir, path) for path in requirements_paths]
+        else:
+            raise KeyError(
+                'Unsupported conditional requirement key: {}'.format(key))
+
+    return {
+        "commandline_flag": commandline_flag_requirements,
+    }
+
+
 def load_commands():
     rv = {}
     with open(os.path.join(here, "paths"), "r") as f:
@@ -37,7 +59,11 @@ def load_commands():
                     "requirements": [os.path.join(base_dir, item)
                                      for item in props.get("requirements", [])]
                 }
-                if rv[command]["install"] or rv[command]["requirements"]:
+
+                rv[command]["conditional_requirements"] = load_conditional_requirements(
+                    props, base_dir)
+
+                if rv[command]["install"] or rv[command]["requirements"] or rv[command]["conditional_requirements"]:
                     assert rv[command]["virtualenv"]
     return rv
 
@@ -130,6 +156,13 @@ def setup_virtualenv(path, skip_venv_setup, props):
     return venv
 
 
+def install_command_flag_requirements(venv, kwargs, requirements):
+    for command_flag_name, requirement_paths in requirements.items():
+        if command_flag_name in kwargs:
+            for path in requirement_paths:
+                venv.install_requirements(path)
+
+
 def main(prog=None, argv=None):
     logging.basicConfig(level=logging.INFO)
     # Ensure we use the spawn start method for all multiprocessing
@@ -170,6 +203,9 @@ def main(prog=None, argv=None):
         kwargs = {}
 
     if venv is not None:
+        requirements = props["conditional_requirements"].get("commandline_flag")
+        if requirements is not None and not main_args.skip_venv_setup:
+            install_command_flag_requirements(venv, kwargs, requirements)
         args = (venv,) + extras
     else:
         args = extras

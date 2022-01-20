@@ -38,7 +38,8 @@ test(t => {
     TypeError,
     () => chunk.copyTo(new Uint8Array(2)), 'destination is not large enough');
 
+  const detached = makeDetachedArrayBuffer();
   assert_throws_js(
     TypeError,
-    () => chunk.copyTo(makeDetachedArrayBuffer()), 'destiation is detached');
+    () => chunk.copyTo(detached), 'destination is detached');
 }, 'Test copyTo() exception if destiation invalid');

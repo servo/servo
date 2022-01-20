@@ -1,9 +1,0 @@
-interface HasA {
-  readonly setlike<DOMString>;
-  static void has();
-};
-
-interface HasB {
-  readonly setlike<DOMString>;
-  static readonly attribute long has;
-};

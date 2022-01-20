@@ -8,13 +8,21 @@
 <link rel="match" href="reference/ic-unit-002-ref.html">
 <meta name="assert" content="In vertical mixed, the ic unit is equal to the used vertical advance measure of the 水 (CJK water ideograph, U+6C34) glyph found in the font used to render it.">
 <style>
+@font-face {
+    font-family: IcTestFullWidth;
+    src: url(resources/IcTestFullWidth.woff2);
+}
+
 span {
+    font: 20px IcTestFullWidth;
     background: green;
     color: green;
     left: 0; right: 0;
     position: absolute;
 }
+
 div {
+    font: 20px IcTestFullWidth;
     background: red;
     color: red;
     position: relative;

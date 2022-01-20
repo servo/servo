@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>contain:inline-size on block-level box</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#containment-inline-size">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="contain:inline-size; width:fit-content; border:solid green; border-width:0 50px; background:red;">
+  <div style="width:100px; height:100px;"></div>
+</div>

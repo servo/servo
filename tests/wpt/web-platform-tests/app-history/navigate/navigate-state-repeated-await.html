@@ -5,9 +5,9 @@
 promise_test(async t => {
   appHistory.onnavigate = e => e.transitionWhile(Promise.resolve());
 
-  await appHistory.navigate('/foo', {state: {foo: 1}});
+  await appHistory.navigate('/foo', {state: {foo: 1}}).committed;
   assert_equals(appHistory.current.getState().foo, 1);
-  await appHistory.navigate('/foo', {state: {foo: 2}});
+  await appHistory.navigate('/foo', {state: {foo: 2}}).committed;
   assert_equals(appHistory.current.getState().foo, 2);
 }, "navigate() with state should work correctly when called repeatedly - with awaits");
 </script>

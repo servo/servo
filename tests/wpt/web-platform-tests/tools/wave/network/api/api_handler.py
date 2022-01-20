@@ -2,6 +2,7 @@ import json
 import sys
 import traceback
 import logging
+
 from urllib.parse import parse_qsl
 
 global logger
@@ -51,3 +52,46 @@ class ApiHandler(object):
         info = sys.exc_info()
         traceback.print_tb(info[2])
         logger.error("{}: {}: {}".format(message, info[0].__name__, info[1].args[0]))
+
+    def create_hal_list(self, items, uris, index, count, total):
+        hal_list = {}
+        links = {}
+        if uris is not None:
+            for relation in uris:
+                if relation == "self":
+                    continue
+                uri = uris[relation]
+                templated = "{" in uri
+                links[relation] = {"href": uri, "templated": templated}
+
+            if "self" in uris:
+                self_uri = uris["self"]
+                self_uri += "?index={}&count={}".format(index, count)
+                links["self"] = {"href": self_uri}
+
+                first_uri = uris["self"]
+                first_uri += "?index={}&count={}".format(0, count)
+                links["first"] = {"href": first_uri}
+
+                last_uri = uris["self"]
+                last_uri += "?index={}&count={}".format(total - (total % count), count)
+                links["last"] = {"href": last_uri}
+
+                if index + count <= total:
+                    next_index = index + count
+                    next_uri = uris["self"]
+                    next_uri += "?index={}&count={}".format(next_index, count)
+                    links["next"] = {"href": next_uri}
+
+                if index != 0:
+                    previous_index = index - count
+                    if previous_index < 0:
+                        previous_index = 0
+                    previous_uri = uris["self"]
+                    previous_uri += "?index={}&count={}".format(previous_index, count)
+                    links["previous"] = {"href": previous_uri}
+
+        hal_list["_links"] = links
+        hal_list["items"] = items
+
+        return hal_list

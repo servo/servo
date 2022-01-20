@@ -1,0 +1,102 @@
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+const policy = trustedTypes.createPolicy("sample", {createScript: x => x});
+
+// Check CSP violated by a script originating from |input| returns a CSP
+// violation whose sourceFile is |output|.
+const testSourceFile = (description, input, output) => {
+  promise_test(async test => {
+    // Listen for TrustedType violation.
+    const violation = new Promise(resolve => {
+      document.addEventListener("securitypolicyviolation", e => {
+        resolve(e);
+      }, {once: true});
+    });
+
+    // A trusted script using a customized sourceURL. The script's execution
+    // itself will trigger a TrustedType violation.
+    const trusted_script = policy.createScript(`
+      eval('');
+      //# sourceURL=${input}
+    `)
+    try {
+      eval(trusted_script);
+      assert_unreached();
+    } catch (e) {}
+
+    assert_equals((await violation).sourceFile, output);
+  }, description);
+};
+
+testSourceFile("Basic HTTPS URL",
+               "http://dummy.test/script1.js",
+               "http://dummy.test/script1.js");
+
+testSourceFile("Basic HTTP URL",
+               "https://dummy.test/script1.js",
+               "https://dummy.test/script1.js");
+
+testSourceFile("Basic WSS URL",
+               "wss://dummy.test/script1.js",
+               "wss://dummy.test/script1.js");
+
+testSourceFile("Basic WS URL",
+               "ws://dummy.test/script1.js",
+               "ws://dummy.test/script1.js");
+
+testSourceFile("Fragment",
+               "https://dummy.test/script1.js#frag",
+               "https://dummy.test/script1.js");
+
+testSourceFile("Query",
+               "https://dummy.test/script1.js?query",
+               "https://dummy.test/script1.js");
+
+testSourceFile("Port",
+               "https://dummy.test:8080/script1.js",
+               "https://dummy.test:8080/script1.js");
+
+testSourceFile("User:password",
+               "https://user:password@dummy.test/script1.js",
+               "https://dummy.test/script1.js");
+
+testSourceFile("User",
+               "https://user@dummy.test/script1.js",
+               "https://dummy.test/script1.js");
+
+testSourceFile("Invalid URL",
+               "script2.js",
+               "");
+
+testSourceFile("file:",
+               "file:///temp/script3.js",
+               "file");
+
+testSourceFile("Custom protocol",
+               "webpack://node_modules/sample/script4.js",
+               "webpack");
+
+testSourceFile("about:blank",
+               "about:blank",
+               "about");
+
+testSourceFile("about:custom",
+               "about:custom",
+               "about");
+
+testSourceFile("data:",
+               "data:text/html;charset=utf8,<html></html>",
+               "data");
+
+testSourceFile("blob:",
+               "blob:http://test.test/012345-6789-abcd-efab-0123456789",
+               "blob");
+
+testSourceFile("javascript:",
+               "javascript:void(0)",
+               "javascript");
+
+</script>

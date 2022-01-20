@@ -8,7 +8,7 @@ promise_test(async () => {
 
   let onnavigate_called = false;
   appHistory.onnavigate = () => onnavigate_called = true;
-  await appHistory.navigate("#2", { replace: true });
+  await appHistory.navigate("#2", { replace: true }).committed;
   assert_equals(location.hash, "#2");
   assert_true(onnavigate_called);
   assert_equals(history.state, null);

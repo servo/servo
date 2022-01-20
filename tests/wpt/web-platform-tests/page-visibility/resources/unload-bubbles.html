@@ -5,8 +5,12 @@
 <h1>Document</h1>
 <script>
 window.addEventListener("load", function() {
-  window.addEventListener("visibilitychange", function() {
-    opener.postMessage(document.visibilityState, "*");
+  window.addEventListener("visibilitychange", event => {
+    opener.postMessage({
+                        target: event.target.nodeName,
+                        state: document.visibilityState,
+                        bubbles: event.bubbles
+                      }, "*");
   });
   opener.postMessage("close", "*");
 });

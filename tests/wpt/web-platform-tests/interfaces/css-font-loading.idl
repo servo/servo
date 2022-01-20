@@ -44,6 +44,47 @@ interface FontFace {
   readonly attribute Promise<FontFace> loaded;
 };
 
+[Exposed=(Window,Worker)]
+interface FontFaceFeatures {
+  /* The CSSWG is still discussing what goes in here */
+};
+
+[Exposed=(Window,Worker)]
+interface FontFaceVariationAxis {
+  readonly attribute DOMString name;
+  readonly attribute DOMString axisTag;
+  readonly attribute double minimumValue;
+  readonly attribute double maximumValue;
+  readonly attribute double defaultValue;
+};
+
+[Exposed=(Window,Worker)]
+interface FontFaceVariations {
+  readonly setlike<FontFaceVariationAxis>;
+};
+
+[Exposed=(Window,Worker)]
+interface FontFacePalette {
+  iterable<DOMString>;
+  readonly attribute unsigned long length;
+  getter DOMString (unsigned long index);
+  readonly attribute boolean usableWithLightBackground;
+  readonly attribute boolean usableWithDarkBackground;
+};
+
+[Exposed=(Window,Worker)]
+interface FontFacePalettes {
+  iterable<FontFacePalette>;
+  readonly attribute unsigned long length;
+  getter FontFacePalette (unsigned long index);
+};
+
+partial interface FontFace {
+  readonly attribute FontFaceFeatures features;
+  readonly attribute FontFaceVariations variations;
+  readonly attribute FontFacePalettes palettes;
+};
+
 dictionary FontFaceSetLoadEventInit : EventInit {
   sequence<FontFace> fontfaces = [];
 };
@@ -60,7 +101,6 @@ enum FontFaceSetLoadStatus { "loading", "loaded" };
 interface FontFaceSet : EventTarget {
   constructor(sequence<FontFace> initialFaces);
 
-  // FontFaceSet is Set-like!
   setlike<FontFace>;
   FontFaceSet add(FontFace font);
   boolean delete(FontFace font);

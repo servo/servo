@@ -1,16 +1,18 @@
 # Import results - [Results API](../README.md#results-api)
 
-If enabled, the WMAS Test Suite can import results exported by any arbitrary other instance.
+If enabled, the WMAS Test Runner can import results exported by any arbitrary other instance.
 
-## 1. `import`
+## 1. Import session
 
-Import a session's results from a ZIP file.
+Upload results and create a new, finished session
 
 ### HTTP Request
 
-`POST /api/results/import`
+```
+POST /api/results/import
+```
 
-### HTTP Response
+#### HTTP Response
 
 If successful, the server responds with the token of the imported session:
 
@@ -28,18 +30,37 @@ However, if an error occured, the server responds the error message:
 }
 ```
 
-## 2. `import enabled`
+## 2. Import API results
 
-To check whether or not the import features is enabled, the `import enabled` method returns the state as JSON.
+Upload a results json file and overwrite results of a specific API.
 
 ### HTTP Request
 
-`GET /api/results/import`
+```
+POST /api/results/<session_token>/<api_name>/json
+```
 
-### Response
+### File structure
 
 ```json
 {
-  "enabled": "Boolean"
+  "results": [
+    {
+      "test": "String",
+      "status": "Enum['OK', 'ERROR', 'TIMEOUT', 'NOT_RUN']",
+      "message": "String",
+      "subtests": [
+        {
+          "name": "String",
+          "status": "Enum['PASS', 'FAIL', 'TIMEOUT', 'NOT_RUN']",
+          "message": "String"
+        }
+      ]
+    }
+  ]
 }
 ```
+
+### HTTP Response
+
+If successful, the server responds with status code 200.

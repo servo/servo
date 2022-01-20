@@ -25,8 +25,6 @@ interface Animation : EventTarget {
              attribute DOMString                id;
              attribute AnimationEffect?         effect;
              attribute AnimationTimeline?       timeline;
-             attribute double?                  startTime;
-             attribute double?                  currentTime;
              attribute double                   playbackRate;
     readonly attribute AnimationPlayState       playState;
     readonly attribute AnimationReplaceState    replaceState;
@@ -65,7 +63,6 @@ dictionary EffectTiming {
     FillMode                           fill = "auto";
     double                             iterationStart = 0.0;
     unrestricted double                iterations = 1.0;
-    (unrestricted double or DOMString) duration = "auto";
     PlaybackDirection                  direction = "normal";
     DOMString                          easing = "linear";
 };
@@ -86,9 +83,6 @@ enum FillMode { "none", "forwards", "backwards", "both", "auto" };
 enum PlaybackDirection { "normal", "reverse", "alternate", "alternate-reverse" };
 
 dictionary ComputedEffectTiming : EffectTiming {
-    unrestricted double  endTime;
-    unrestricted double  activeDuration;
-    double?              localTime;
     double?              progress;
     unrestricted double? currentIteration;
 };
@@ -158,14 +152,3 @@ partial interface mixin DocumentOrShadowRoot {
 };
 
 Element includes Animatable;
-
-[Exposed=Window]
-interface AnimationPlaybackEvent : Event {
-    constructor(DOMString type, optional AnimationPlaybackEventInit eventInitDict = {});
-    readonly attribute double? currentTime;
-    readonly attribute double? timelineTime;
-};
-dictionary AnimationPlaybackEventInit : EventInit {
-    double? currentTime = null;
-    double? timelineTime = null;
-};

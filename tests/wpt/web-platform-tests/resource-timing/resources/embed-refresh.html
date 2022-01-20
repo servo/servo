@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <title>Resource Timing embed refresh</title>
+</head>
+<body>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="nested-contexts.js"></script>
 <script>
-    setup_refresh_test();
+  setup_refresh_test();
 </script>
-<div id=log></div>
-<embed type="text/html">
+<embed id="target" type="text/html">
 <script>
-    document.getElementsByTagName("embed")[0].src = pre_refresh_url;
+  target.src = pre_refresh_url;
 </script>
+</body>
+</html>

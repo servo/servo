@@ -12,7 +12,6 @@
 // Test support for
 // https://www.rfc-editor.org/rfc/rfc8826#section-4.3.1
 
-const sdes_constraint = {'mandatory': {'DtlsSrtpKeyAgreement': false}};
 const sdp = `v=0
 o=- 0 3 IN IP4 127.0.0.1
 s=-
@@ -29,7 +28,9 @@ a=ice-ufrag:ETEn
 a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l
 `;
 
+// Negative test for Chrome legacy behavior.
 promise_test(async t => {
+  const sdes_constraint = {'mandatory': {'DtlsSrtpKeyAgreement': false}};
   const pc = new RTCPeerConnection(null, sdes_constraint);
   t.add_cleanup(() => pc.close());
 
@@ -42,7 +43,13 @@ promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
-  pc.setRemoteDescription({type: 'offer', sdp})
-    .then(assert_unreached);
-}, 'rejects a remote offer that only includes SDES and no DTLS');
+  try {
+    await pc.setRemoteDescription({type: 'offer', sdp});
+    assert_unreached("Must not accept SDP without fingerprint");
+  } catch (e) {
+    // TODO: which error is correct? See
+    // https://github.com/w3c/webrtc-pc/issues/2672
+    assert_true(['OperationError', 'InvalidAccessError'].includes(e.name));
+  }
+}, 'rejects a remote offer that only includes SDES and no DTLS fingerprint');
 </script>

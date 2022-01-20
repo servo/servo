@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Apple Inc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_invalid_number(value) {
+  test_invalid_value('opacity', value);
+}
+
+// Syntax checking
+test_invalid_number('abs()');
+test_invalid_number('abs( )');
+test_invalid_number('abs(,)');
+test_invalid_number('abs(1, )');
+test_invalid_number('abs(, 1)');
+test_invalid_number('abs(1 + )');
+test_invalid_number('abs(1 - )');
+test_invalid_number('abs(1 * )');
+test_invalid_number('abs(1 / )');
+test_invalid_number('abs(1 2)');
+test_invalid_number('abs(1, , 2)');
+test_invalid_number('abs(1, 2)');
+test_invalid_number('sign()');
+test_invalid_number('sign( )');
+test_invalid_number('sign(,)');
+test_invalid_number('sign(1, )');
+test_invalid_number('sign(, 1)');
+test_invalid_number('sign(1 + )');
+test_invalid_number('sign(1 - )');
+test_invalid_number('sign(1 * )');
+test_invalid_number('sign(1 / )');
+test_invalid_number('sign(1 2)');
+test_invalid_number('sign(1, , 2)');
+test_invalid_number('sign(1, 2)');
+
+// Type checking
+test_invalid_number('abs(0px)');
+test_invalid_number('abs(0s)');
+test_invalid_number('abs(0deg)');
+test_invalid_number('abs(0Hz)');
+test_invalid_number('abs(0dpi)');
+test_invalid_number('abs(0fr)');
+test_invalid_number('abs(1, 1%)');
+test_invalid_number('abs(1, 0px)');
+test_invalid_number('abs(1, 0s)');
+test_invalid_number('abs(1, 0deg)');
+test_invalid_number('abs(1, 0Hz)');
+test_invalid_number('abs(1, 0dpi)');
+test_invalid_number('abs(1, 0fr)');
+test_invalid_number('sign(1, 1%)');
+test_invalid_number('sign(1, 0px)');
+test_invalid_number('sign(1, 0s)');
+test_invalid_number('sign(1, 0deg)');
+test_invalid_number('sign(1, 0Hz)');
+test_invalid_number('sign(1, 0dpi)');
+test_invalid_number('sign(1, 0fr)');
+</script>

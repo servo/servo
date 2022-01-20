@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Resize Event On Showing Iframe</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+          async_test(t => {
+            document.addEventListener("DOMContentLoaded", () => {
+              let iframe = document.querySelector("iframe");
+              onload = () => {
+                requestAnimationFrame(() => { requestAnimationFrame(() => {
+                  // First full rendering update is complete.
+                  let resize_event_count = 0;
+                  iframe.contentWindow.visualViewport.addEventListener("resize", () => {
+                    resize_event_count++;
+                  });
+                  iframe.style.display = "";
+                  iframe.clientWidth;
+                  requestAnimationFrame(() => {
+                    t.step(() => {
+                      assert_equals(resize_event_count, 1);
+                      t.done();
+                    });
+                  }) }); // 2x requestAnimationFrame
+                })
+              };
+            });
+          }, "Resize event fired when an iframe is shown.");
+        </script>
+    </head>
+    <body>
+        <h1>Viewport: Resize Event On Iframe Size Change</h1>
+        <h4>
+          Test Description: This test ensures that we fire a resize event when
+          an iframe is shown.
+        </h4>
+        <iframe style="display: none;" srcdoc="<p>Hello, world!</p>"></iframe>
+        <div id="log"></div>
+    </body>
+</html>

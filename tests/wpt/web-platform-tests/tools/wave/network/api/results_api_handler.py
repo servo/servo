@@ -6,9 +6,10 @@ from ...data.exceptions.invalid_data_exception import InvalidDataException
 
 
 class ResultsApiHandler(ApiHandler):
-    def __init__(self, results_manager, web_root):
+    def __init__(self, results_manager, session_manager, web_root):
         super(ResultsApiHandler, self).__init__(web_root)
         self._results_manager = results_manager
+        self._sessions_manager = session_manager
 
     def create_result(self, request, response):
         try:
@@ -31,6 +32,11 @@ class ResultsApiHandler(ApiHandler):
             uri_parts = self.parse_uri(request)
             token = uri_parts[2]
 
+            session = self._sessions_manager.read_session(token)
+            if session is None:
+                response.status = 404
+                return
+
             results = self._results_manager.read_results(token)
 
             self.send_json(response=response, data=results)
@@ -52,19 +58,6 @@ class ResultsApiHandler(ApiHandler):
             self.handle_exception("Failed to read compact results")
             response.status = 500
 
-    def read_results_config(self, request, response):
-        try:
-            import_enabled = self._results_manager.is_import_enabled()
-            reports_enabled = self._results_manager.are_reports_enabled()
-
-            self.send_json({
-                "import_enabled": import_enabled,
-                "reports_enabled": reports_enabled
-            }, response)
-        except Exception:
-            self.handle_exception("Failed to read results configuration")
-            response.status = 500
-
     def read_results_api_wpt_report_url(self, request, response):
         try:
             uri_parts = self.parse_uri(request)
@@ -80,7 +73,7 @@ class ResultsApiHandler(ApiHandler):
     def read_results_api_wpt_multi_report_uri(self, request, response):
         try:
             uri_parts = self.parse_uri(request)
-            api = uri_parts[3]
+            api = uri_parts[2]
             query = self.parse_query_parameters(request)
             tokens = query["tokens"].split(",")
             uri = self._results_manager.read_results_wpt_multi_report_uri(
@@ -110,6 +103,20 @@ class ResultsApiHandler(ApiHandler):
             self.send_zip(blob, file_name, response)
         except Exception:
             self.handle_exception("Failed to download api json")
+            response.status = 500
+
+    def import_results_api_json(self, request, response):
+        try:
+            uri_parts = self.parse_uri(request)
+            token = uri_parts[2]
+            api = uri_parts[3]
+            blob = request.body
+
+            self._results_manager.import_results_api_json(token, api, blob)
+
+            response.status = 200
+        except Exception:
+            self.handle_exception("Failed to upload api json")
             response.status = 500
 
     def download_results_all_api_jsons(self, request, response):
@@ -182,12 +189,8 @@ class ResultsApiHandler(ApiHandler):
                 return
 
             if method == "GET":
-                if uri_parts[2] == "config":
-                    self.read_results_config(request, response)
-                    return
-                else:
-                    self.read_results(request, response)
-                    return
+                self.read_results(request, response)
+                return
 
         # /api/results/<token>/<function>
         if len(uri_parts) == 4:
@@ -218,6 +221,10 @@ class ResultsApiHandler(ApiHandler):
                     return
                 if function == "json":
                     self.download_results_api_json(request, response)
+                    return
+            if method == "POST":
+                if function == "json":
+                    self.import_results_api_json(request, response)
                     return
 
         response.status = 404

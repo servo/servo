@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1236967">
+
+<body>
+<script>
+const domParser = new DOMParser();
+const doc = domParser.parseFromString(undefined, 'text/html', {includeShadowRoots: false});
+const attribute = doc.createAttribute("test");
+new XPathEvaluator().evaluate("..", attribute, null, 2, null);
+</script>

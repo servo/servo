@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 const g = ctx.createConicGradient(-Math.PI/2, 50, 25);
 // It's red in the upper right region and green on the lower left region
@@ -24,8 +24,8 @@ g.addColorStop(0.50, "#0f0");
 g.addColorStop(0.75, "#f00");
 ctx.fillStyle = g;
 ctx.fillRect(0, 0, 100, 50);
-_assertPixel(offscreenCanvas, 25,15, 255,0,0,255, "25,15", "255,0,0,255");
-_assertPixel(offscreenCanvas, 75,40, 0,255,0,255, "75,40", "0,255,0,255");
+_assertPixel(canvas, 25,15, 255,0,0,255, "25,15", "255,0,0,255");
+_assertPixel(canvas, 75,40, 0,255,0,255, "75,40", "0,255,0,255");
 t.done();
 
 });

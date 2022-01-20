@@ -3,6 +3,9 @@
 <title>RTCPeerConnection.prototype.addTrack</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
@@ -171,6 +174,7 @@
     assert_equals(transceiver.sender.track, null);
     assert_equals(transceiver.direction, 'recvonly');
 
+    await setMediaPermission("granted", ["microphone"]);
     const stream = await navigator.mediaDevices.getUserMedia({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();

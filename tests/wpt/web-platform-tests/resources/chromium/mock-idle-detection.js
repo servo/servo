@@ -1,4 +1,4 @@
-import {IdleManager, IdleManagerReceiver, ScreenIdleState as MojoScreenIdleState, UserIdleState as MojoUserIdleState} from '/gen/third_party/blink/public/mojom/idle/idle_manager.mojom.m.js';
+import {IdleManager, IdleManagerError, IdleManagerReceiver} from '/gen/third_party/blink/public/mojom/idle/idle_manager.mojom.m.js';
 
 /**
  * This is a testing framework that enables us to test the user idle detection
@@ -41,8 +41,7 @@ class FakeIdleMonitor {
   }
 }
 
-self.UserIdleState = {};
-self.ScreenIdleState = {};
+self.IdleDetectorError = {};
 
 self.addMonitor = function addMonitor(threshold, monitorPtr, callback) {
   throw new Error("expected to be overriden by tests");
@@ -70,10 +69,9 @@ function intercept() {
   interceptor.oninterfacerequest = e => binding.$.bindHandle(e.handle);
   interceptor.start();
 
-  self.UserIdleState.ACTIVE = MojoUserIdleState.kActive;
-  self.UserIdleState.IDLE = MojoUserIdleState.kIdle;
-  self.ScreenIdleState.LOCKED = MojoScreenIdleState.kLocked;
-  self.ScreenIdleState.UNLOCKED = MojoScreenIdleState.kUnlocked;
+  self.IdleDetectorError.SUCCESS = IdleManagerError.kSuccess;
+  self.IdleDetectorError.PERMISSION_DISABLED =
+      IdleManagerError.kPermissionDisabled;
 
   result.setBinding(binding);
   return result;

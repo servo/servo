@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script>
+
+// This file is loaded twice. First this is loaded as a page to trigger
+// prerendering and then loaded as a prerendering page.
+
+function runAsTriggerPage() {
+  assert_false(document.prerendering);
+  startPrerendering(location.href + '?prerendering');
+
+  // Close this window for cleanup after the prerendering page runs the test.
+  const bc = new BroadcastChannel('result');
+  bc.onmessage = e => window.close();
+}
+
+function runAsPrerenderingPage() {
+  assert_true(document.prerendering);
+
+  // Attempt to open a window during prerendering.
+  const win = window.open('empty.html', '_blank');
+
+  // Send the result to the test runner page.
+  const bc = new BroadcastChannel('result');
+  if (win) {
+    bc.postMessage('opened');
+    win.close();
+  } else {
+    bc.postMessage('failed to open');
+  }
+}
+
+if (location.search === '?prerendering') {
+  runAsPrerenderingPage();
+} else {
+  runAsTriggerPage();
+}
+
+</script>

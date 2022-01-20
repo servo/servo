@@ -100,6 +100,31 @@ def get_extra_jobs(event):
     return jobs
 
 
+def filter_excluded_users(tasks, event):
+    # Some users' pull requests are excluded from tasks,
+    # such as pull requests from automated exports.
+    try:
+        submitter = event["pull_request"]["user"]["login"]
+    except KeyError:
+        # Just ignore excluded users if the
+        # username cannot be pulled from the event.
+        logger.debug("Unable to read username from event. Continuing.")
+        return
+
+    excluded_tasks = []
+    # A separate list of items for tasks is needed to iterate over
+    # because removing an item during iteration will raise an error.
+    for name, task in list(tasks.items()):
+        if submitter in task.get("exclude-users", []):
+            excluded_tasks.append(name)
+            tasks.pop(name)  # removing excluded task
+    if excluded_tasks:
+        logger.info(
+            f"Tasks excluded for user {submitter}:\n * " +
+            "\n * ".join(excluded_tasks)
+        )
+
+
 def filter_schedule_if(event, tasks):
     scheduled = OrderedDict()
     run_jobs = None
@@ -338,6 +363,7 @@ def decide(event):
 
     triggered_tasks = filter_triggers(event, all_tasks)
     scheduled_tasks = filter_schedule_if(event, triggered_tasks)
+    filter_excluded_users(scheduled_tasks, event)
 
     logger.info("UNSCHEDULED TASKS:\n  %s" % "\n  ".join(sorted(set(all_tasks.keys()) -
                                                             set(scheduled_tasks.keys()))))

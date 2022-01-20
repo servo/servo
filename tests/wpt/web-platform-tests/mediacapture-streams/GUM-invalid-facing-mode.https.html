@@ -12,20 +12,20 @@
 
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
-var t = async_test(
-  "Tests that setting an invalid facingMode constraint in getUserMedia fails");
-t.step(function() {
-  navigator.mediaDevices.getUserMedia({video: {facingMode: {exact: ''}}})
-    .then(t.step_func(function (stream) {
-      assert_unreached("The empty string is not a valid facingMode");
-      t.done();
-    }), t.step_func(function(error) {
-      assert_equals(error.name, "OverconstrainedError");
-      assert_equals(error.constraint, "facingMode");
-      t.done();
-    }));
-});
+promise_test(async () => {
+  await setMediaPermission("granted", ["camera"]);
+  try {
+    await navigator.mediaDevices.getUserMedia({video: {facingMode: {exact: ''}}});
+    assert_unreached("The empty string is not a valid facingMode");
+  } catch (error) {
+    assert_equals(error.name, "OverconstrainedError");
+    assert_equals(error.constraint, "facingMode");
+  };
+}, "Tests that setting an invalid facingMode constraint in getUserMedia fails");
 </script>
 </body>
 </html>

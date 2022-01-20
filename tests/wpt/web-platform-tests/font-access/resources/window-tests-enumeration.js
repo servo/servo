@@ -10,14 +10,14 @@ for (const test of standard_fonts_tests) {
 
   font_access_test(async t => {
     const fonts =
-        await navigator.fonts.query({persistentAccess: true, ...test});
+        await navigator.fonts.query(test);
 
     assert_fonts_exist(fonts, getEnumerationTestSet());
   }, `query(): standard fonts returned for input: ${inputAsString}`);
 }
 
 font_access_test(async t => {
-  const fonts = await navigator.fonts.query({persistentAccess: true});
+  const fonts = await navigator.fonts.query();
   // The following tests that fonts are sorted. Postscript names are expected to
   // be encoded in a subset of the ASCII character set.
   // See: https://docs.microsoft.com/en-us/typography/opentype/spec/name
@@ -38,7 +38,6 @@ font_access_test(async t => {
 
 font_access_test(async t => {
   const test = {
-    persistentAccess: true,
     select: [getEnumerationTestSet()[0].postscriptName]
   };
   const fonts = await navigator.fonts.query(test);
@@ -69,8 +68,7 @@ const non_ascii_input = [
 
 for (const test of non_ascii_input) {
   font_access_test(async t => {
-    const fonts =
-        await navigator.fonts.query({persistentAccess: true, ...test});
+    const fonts = await navigator.fonts.query(test);
     assert_equals(
         fonts.length, 0,
         `There should be no results. Instead got: ${JSON.stringify(fonts)}`);

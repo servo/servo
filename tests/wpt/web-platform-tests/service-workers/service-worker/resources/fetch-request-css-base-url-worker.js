@@ -19,7 +19,7 @@ self.addEventListener('fetch', event => {
   if (url.pathname.indexOf(cssPath) != -1) {
     // Respond with a different URL, deleting "request-url-path/".
     if (url.search == '?fetch') {
-      event.respondWith(fetch('fetch-request-css-base-url-style.css'));
+      event.respondWith(fetch('fetch-request-css-base-url-style.css?fetch'));
     }
     // Respond with new Response().
     else if (url.search == '?newResponse') {

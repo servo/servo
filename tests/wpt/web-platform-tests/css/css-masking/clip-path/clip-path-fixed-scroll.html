@@ -1,0 +1,20 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Test: clip-path above  position: fixed scrolled</title>
+<link rel="help" href="https://crbug.com/1267676">
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-clip-path">
+<link rel="match" href="clip-path-fixed-scroll-ref.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<div style="height: 100vh"></div>
+<div style="width: 200px; height: 200px; clip-path: inset(0 0 0 0)">
+  <div style="position: fixed; top: 0; left: 0; width: 2000px; height: 2000px; background: green"></div>
+</div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  scrollTo(0, 1000);
+  takeScreenshot();
+});
+</script>
+</html>
+

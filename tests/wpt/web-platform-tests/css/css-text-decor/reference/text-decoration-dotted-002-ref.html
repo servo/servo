@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for text-decoration across inline-element boundaries</title>
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style>
+      div {
+        font: 92px Arial, sans-serif;
+        -webkit-text-decoration: dotted red underline;
+        text-decoration: dotted red underline;
+        margin: .5em;
+      }
+      .test1 {
+        text-decoration-thickness:10px;
+      }
+      .test2 {
+        text-decoration-thickness:20px;
+      }
+      .test3 {
+        text-decoration-thickness:30px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if the dotted red underlines are uniform throughout each line:</p>
+    <div class=test1>foobarbaz</div>
+    <div class=test2>foobarbaz</div>
+    <div class=test3>foobarbaz</div>
+  </body>
+</html>

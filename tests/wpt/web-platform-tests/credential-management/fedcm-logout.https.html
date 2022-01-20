@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>FederatedCredential.logout() promise resolution</title>
+<link rel="author" title="Peter Kotwicz" href="mailto:pkotwicz@chromium.org">
+<link rel="help" href="https://wicg.github.io/FedCM/#browser-api-idp-sign-out">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+  import {fedcm_test} from './support/fedcm-helper.js';
+
+  fedcm_test(async (t, mock) => {
+    mock.logoutReturn("kError");
+    return promise_rejects_dom(t, "NetworkError",
+      FederatedCredential.logout([{
+        accountId: "1234",
+        url: "https://rp.example/logout.php"
+      }])
+    );
+  }, "FederatedCredential.logout() error.");
+
+  fedcm_test(async (t, mock) => {
+    mock.logoutReturn("kSuccess");
+    await FederatedCredential.logout([{
+      accountId: "1234",
+      url: "https://rp.example/logout.php"
+    }]);
+  }, "FederatedCredential.logout() success.");
+</script>

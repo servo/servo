@@ -8,7 +8,7 @@
 promise_test(async test => {
   // TODO(arthursonzogni): Consider switching toward another message passing
   // API like:
-  // /html/cross-origin-embedder-policy/credentialless/resources/dispatcher.js
+  // /common/dispatcher/dispatcher.js
   const bc = new BroadcastChannel(token());
   const futureMessage = () => {
     return new Promise(resolve => {

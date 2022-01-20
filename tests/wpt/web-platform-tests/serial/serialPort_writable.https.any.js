@@ -70,7 +70,7 @@ serial_test(async (t, fake) => {
   compareArrays(data, value);
 
   await port.close();
-}, 'Can read a large amount of data');
+}, 'Can write a large amount of data');
 
 serial_test(async (t, fake) => {
   const {port, fakePort} = await getFakeSerialPort(fake);
@@ -155,9 +155,8 @@ serial_test(async (t, fake) => {
   const data = new Uint8Array(1024);  // Much larger than bufferSize above.
   for (let i = 0; i < data.byteLength; ++i)
     data[i] = i & 0xff;
-  let writePromise = writer.write(data).catch(reason => {
-    assert_equals(reason, 'Aborting.');
-  });
+  const writePromise =
+      promise_rejects_exactly(t, 'Aborting.', writer.write(data));
 
   await writer.abort('Aborting.');
   await writePromise;
@@ -174,15 +173,11 @@ serial_test(async (t, fake) => {
   const data = new Uint8Array(1024);  // Much larger than bufferSize above.
   for (let i = 0; i < data.byteLength; ++i)
     data[i] = i & 0xff;
-  let closed = (async () => {
-    try {
-      await writer.write(data);
-    } catch (reason) {
-      assert_equals(reason, 'Aborting.');
-      writer.releaseLock();
-      await port.close();
-      assert_equals(port.writable, null);
-    }
+  const closed = (async () => {
+    await promise_rejects_exactly(t, 'Aborting.', writer.write(data));
+    writer.releaseLock();
+    await port.close();
+    assert_equals(port.writable, null);
   })();
 
   await writer.abort('Aborting.');

@@ -6,7 +6,7 @@
 promise_test(async () => {
   let onnavigate_called = false;
   appHistory.onnavigate = () => onnavigate_called = true;
-  await appHistory.navigate("#d");
+  await appHistory.navigate("#d").committed;
   assert_equals(location.hash, "#d");
   assert_true(onnavigate_called);
   assert_equals(document.querySelector(":target"), d);

@@ -7,7 +7,7 @@
 <script>
 const verify_headers = (header_list, response, verification_func) => {
   header_list.forEach(header => {
-    const value = response.headers.get(header+"-recieved");
+    const value = response.headers.get(header+"-received");
     if(value) {
       verification_func(value);
     }
@@ -26,6 +26,7 @@ promise_test(async (test) => {
     "sec-ch-ua-model",
     "sec-ch-ua-full-version",
     "sec-ch-prefers-color-scheme",
+    "sec-ch-ua-full-version-list",
   ];
   const boolean_client_hint_headers = [
     "sec-ch-mobile",

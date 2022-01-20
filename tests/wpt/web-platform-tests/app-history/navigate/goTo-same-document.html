@@ -12,25 +12,25 @@ async_test(t => {
     appHistory.onnavigate = () => onnavigate_count++;
 
     let key = appHistory.current.key;
-    appHistory.navigate("#")
+    appHistory.navigate("#").committed
       .then(t.step_func(() => {
         assert_equals(appHistory.entries().length, 2);
         assert_equals(appHistory.current, appHistory.entries()[1]);
         assert_not_equals(key, appHistory.current.key);
-        return appHistory.goTo(key);
+        return appHistory.goTo(key).committed;
       }))
       .then(t.step_func(() => {
         assert_equals(appHistory.entries().length, 2);
         assert_equals(appHistory.current, appHistory.entries()[0]);
         assert_equals(key, appHistory.current.key);
         assert_true(appHistory.canGoForward);
-        return appHistory.forward();
+        return appHistory.forward().committed;
       }))
       .then(t.step_func(() => {
         assert_equals(appHistory.entries().length, 2);
         assert_equals(appHistory.current, appHistory.entries()[1]);
         assert_true(appHistory.canGoBack);
-        return appHistory.back();
+        return appHistory.back().committed;
       }))
       .then(t.step_func_done(() => {
         assert_equals(appHistory.entries().length, 2);

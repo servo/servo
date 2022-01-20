@@ -10,8 +10,8 @@ infrastructure which makes the project possible.
    :titlesonly:
 
    ../README
-   ../tools/wptrunner/README
-   ../tools/wptserve/docs/index.rst
+   /tools/wptrunner/README.rst
+   /tools/wptserve/docs/index.rst
    pywebsocket3
 
 .. toctree::

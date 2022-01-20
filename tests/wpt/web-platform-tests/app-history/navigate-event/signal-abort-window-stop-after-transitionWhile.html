@@ -21,12 +21,15 @@ async_test(t => {
       abort_signal.onabort = () => onabort_called = true;
       e.transitionWhile(new Promise(resolve => t.step_timeout(resolve, 0)));
     });
-    let navigate_promise = appHistory.navigate("?1");
+    let result = appHistory.navigate("?1");
     window.stop();
     assert_true(abort_signal.aborted);
     assert_true(onabort_called);
-    promise_rejects_dom(t, 'AbortError', navigate_promise).then(() => {
-      return navigate_promise.catch(e => assert_equals(e, navigateErrorException));
+
+    result.committed.then(() => {
+      return promise_rejects_dom(t, 'AbortError', result.finished);
+    }).then(() => {
+      return result.finished.catch(e => assert_equals(e, navigateErrorException));
     }).then(() => {
       // Complete the test asynchronously to ensure that onnavigatesuccess
       // didn't fire on a microtask.

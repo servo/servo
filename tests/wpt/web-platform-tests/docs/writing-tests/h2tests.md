@@ -1,9 +1,5 @@
 # Writing H2 Tests
 
-> <b>Important:</b> The HTTP/2.0 server requires you to have
-OpenSSL 1.0.2+. This is because HTTP/2.0 is negotiated using the
-[TLS ALPN](https://tools.ietf.org/html/rfc7301) extension, which is only supported in [OpenSSL 1.0.2](https://www.openssl.org/news/openssl-1.0.2-notes.html) and up.
-
 These instructions assume you are already familiar with the testing
 infrastructure and know how to write a standard HTTP/1.1 test.
 

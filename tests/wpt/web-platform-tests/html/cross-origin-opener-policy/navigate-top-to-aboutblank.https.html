@@ -6,8 +6,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/html/cross-origin-opener-policy/resources/common.js"></script>
-<script src="/html/cross-origin-opener-policy/resources/dispatcher.js"></script>
 
 
 <p>Non-initial empty documents (about:blank) should inherit their
@@ -28,8 +28,7 @@
 </ol>
 
 <script>
-const directory = "/html/cross-origin-opener-policy";
-const executor_path = directory + "/resources/executor.html?pipe=";
+const executor_path = "/common/dispatcher/executor.html?pipe=";
 const same_origin = get_host_info().HTTPS_ORIGIN;
 const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
 const coop_same_origin_header =

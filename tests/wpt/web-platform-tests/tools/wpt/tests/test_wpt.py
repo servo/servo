@@ -93,6 +93,12 @@ def test_help():
     assert excinfo.value.code == 0
 
 
+def test_load_commands():
+    commands = wpt.load_commands()
+    # The `wpt run` command has conditional requirements.
+    assert "conditional_requirements" in commands["run"]
+
+
 @pytest.mark.slow
 @pytest.mark.skipif(sys.platform == "win32",
                     reason="https://github.com/web-platform-tests/wpt/issues/28745")

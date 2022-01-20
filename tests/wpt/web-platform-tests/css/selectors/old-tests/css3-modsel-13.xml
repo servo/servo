@@ -8,7 +8,6 @@ li.t2 { background-color : lime }
 .t3 { background-color : red }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content="" />
  </head>
  <body>
 <ul>

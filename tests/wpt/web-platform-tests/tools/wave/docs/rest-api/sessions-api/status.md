@@ -25,9 +25,9 @@ The `status` method of the results API returns information about a sessions curr
   - **paused**: The execution of tests in this session is currently paused.
   - **completed**: All tests files include in this session were executed and have a result.
   - **aborted**: The session was finished before all tests were executed.
-- **date_started** contains the time the status changed from `PENDING` to `RUNNING` in unix epoch time milliseconds.
-- **date_finished** contains the time the status changed to either `COMPLETED` or `ABORTED` in unix epoch time milliseconds.
-- **expiration_date** contains the time at which the sessions will be deleted
+- **date_started** contains the time the status changed from `PENDING` to `RUNNING` in ISO 8601.
+- **date_finished** contains the time the status changed to either `COMPLETED` or `ABORTED` in ISO 8601.
+- **expiration_date** contains the time at which the sessions will be deleted in ISO 8601.
 
 ## Example
 
@@ -41,8 +41,8 @@ The `status` method of the results API returns information about a sessions curr
 {
   "token": "d9caaae0-c362-11e9-943f-eedb305f22f6",
   "status": "running",
-  "date_started": "1567606879230",
+  "date_started": "2019-09-04T14:21:19",
   "date_finished": null,
-  "expiration_date": "1567607179230"
+  "expiration_date": "2019-09-04T14:26:19"
 }
 ```

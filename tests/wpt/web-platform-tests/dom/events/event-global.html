@@ -5,6 +5,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
 <script>
+setup({allow_uncaught_exception: true});
+
 test(t => {
   assert_own_property(window, "event");
   assert_equals(window.event, undefined);
@@ -61,6 +63,30 @@ async_test(t => {
 
   shadowNode.dispatchEvent(new Event("test", {composed: true, bubbles: true}));
 }, "window.event is undefined if the target is in a shadow tree (event dispatched inside shadow tree)");
+
+async_test(t => {
+  let parent = document.createElement("div");
+  let root = parent.attachShadow({mode: "open"});
+  document.body.append(parent)
+  let span = document.createElement("span");
+  root.append(span);
+  let shadowNode = root.firstElementChild;
+
+  shadowNode.addEventListener("error", t.step_func(e => {
+    assert_not_equals(window.event, e);
+    assert_equals(window.event, undefined);
+  }));
+
+  let windowOnErrorCalled = false;
+  window.onerror = t.step_func_done(() => {
+    windowOnErrorCalled = true;
+    assert_equals(typeof window.event, "object");
+    assert_equals(window.event.type, "error");
+  });
+
+  shadowNode.dispatchEvent(new ErrorEvent("error", {composed: true, bubbles: true}));
+  assert_true(windowOnErrorCalled);
+}, "window.event is undefined inside window.onerror if the target is in a shadow tree (ErrorEvent dispatched inside shadow tree)");
 
 async_test(t => {
   let target1 = document.createElement("div");

@@ -129,6 +129,7 @@ function xr_session_promise_test(
                         xr_debug(name, 'session start');
                         testSession = session;
                         session.mode = sessionMode;
+                        session.sessionInit = sessionInit;
                         let glLayer = new XRWebGLLayer(session, sessionObjects.gl, gllayerProperties);
                         glLayer.context = sessionObjects.gl;
                         // Session must have a baseLayer or frame requests

@@ -14,9 +14,9 @@
     loaded = true;
     target.src = "";
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      target.src = "resources/image.png?pipe=trickle(d2)";
+      target.src = "resources/image.png?loading-lazy-slow&pipe=trickle(d2)";
       takeScreenshot();
     }));
   };
-  target.src = "resources/image.png";
+  target.src = "resources/image.png?loading-lazy-slow";
 </script>

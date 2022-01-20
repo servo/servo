@@ -2,42 +2,30 @@
 <html>
   <head>
     <script src="lib/wave-service.js"></script>
+    <script src="lib/screen-console.js"></script>
+    <script src="lib/query-parser.js"></script>
   </head>
   <body>
-    <div id="console" style="font-family: monospace; padding: 5px"></div>
+    <p id="console" style="font-family: monospace;"></p>
     <script>
-      var screenConsole = document.getElementById("console");
-      var log = function() {
-        var text = "";
-        for (var i = 0; i < arguments.length; i++) {
-          text += arguments[i] + " ";
-        }
-        console.log(text);
-        text = text.replace(/ /gm, "&nbsp;");
-        text = text.replace(/\n/gm, "<br/>");
-        screenConsole.innerHTML += "<br/>" + text;
-      };
-
-      var HOSTNAME = location.hostname;
-      var PORT = location.port;
-      var PROTOCOL = location.protocol.replace(/:/, "");
-      var QUERY = location.search.replace(/\?/, "");
-      var match = QUERY.match(/token=([^&]+)/);
-      var TOKEN = match ? match[1] : null;
+      var consoleElement = document.getElementById("console");
+      var screenConsole = new ScreenConsole(consoleElement);
+      var queryParameters = QueryParser.parseQuery();
+      var TOKEN = queryParameters["token"];
       if (TOKEN)
         document.cookie =
           "resume_token=" + TOKEN + "; expires=Fri, 31 Dec 9999 23:59:59 GMT";
 
-      log("Loading next test ...");
+      screenConsole.log("Loading next test ...");
 
       WaveService.readNextTest(
         TOKEN,
-        function(url) {
-          log("Redirecting to " + url);
+        function (url) {
+          screenConsole.log("Redirecting to " + url);
           location.href = url;
         },
-        function() {
-          log("Connection failed.");
+        function () {
+          screenConsole.log("Connection failed.");
         }
       );
     </script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    var keyframes = [
+        {offsetRotate: 'inherit'},
+        {offsetRotate: 'auto 200deg'}
+    ];
+
+    container.style.offsetRotate = 'auto 100deg';
+    var player = element.animate(keyframes, 10);
+
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).offsetRotate, 'auto 150deg');
+
+    container.style.offsetRotate = '400deg';
+    assert_equals(getComputedStyle(element).offsetRotate, 'auto 200deg');
+
+    container.style.offsetRotate = '400deg auto';
+    assert_equals(getComputedStyle(element).offsetRotate, 'auto 300deg');
+
+    container.style.offsetRotate = '800deg auto';
+    assert_equals(getComputedStyle(element).offsetRotate, 'auto 500deg');
+
+    container.style.offsetRotate = '400deg';
+    assert_equals(getComputedStyle(element).offsetRotate, 'auto 200deg');
+
+    container.style.offsetRotate = '800deg auto';
+    assert_equals(getComputedStyle(element).offsetRotate, 'auto 500deg');
+
+    container.style.offsetRotate = '400deg auto';
+    assert_equals(getComputedStyle(element).offsetRotate, 'auto 300deg');
+}, 'offsetRotate responsive to inherited offsetRotate changes');
+</script>

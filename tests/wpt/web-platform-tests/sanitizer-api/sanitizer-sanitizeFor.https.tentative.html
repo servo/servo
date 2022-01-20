@@ -14,9 +14,23 @@
       return e;
     }
 
+    function toString(node) {
+      const e = document.createElement("div");
+      e.append(node.cloneNode(true));
+      return e.innerHTML;
+    }
+
     function assert_node_equals(node1, node2) {
-      assert_true(node1 instanceof Node && node1.isEqualNode(node2),
-          `Node[${node1.innerHTML}] == Node[${node2.innerHTML}]`);
+      assert_equals(node1 instanceof Node, node2 instanceof Node);
+      if (!(node1 instanceof Node)) return;
+
+      node1.normalize();
+      node2.normalize();
+      assert_true(node1.isEqualNode(node2),
+          `Node[${toString(node1)}] == Node[${toString(node2)}]`);
+      if (node1 instanceof HTMLTemplateElement) {
+        assert_node_equals(node1.content, node2.content);
+      }
     }
 
     test(t => {

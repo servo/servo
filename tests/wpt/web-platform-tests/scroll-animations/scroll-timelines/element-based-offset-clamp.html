@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test clamping logic of element-based scroll offset for scroll timeline.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="testcommon.js"></script>
+
+<style>
+/*
+ * Overflow hidden prevents user scroll including mouse wheel; however, the
+ * element is still a scrollable container and can be scrolled programmatically.
+ * Removing the visible scrollbars in this manner simplifies the position
+ * calculations in the text.
+ */
+.scroller {
+  overflow: hidden;
+  height: 500px;
+  width: 500px;
+  will-change: transform;
+}
+
+.contents {
+  height: 1200px;
+  width: 1200px;
+  position: relative;
+}
+
+.vertical #target {
+  background: blue;
+  border-top: 0px solid pink;
+  border-bottom: 0px solid pink;
+  box-sizing: border-box;
+  position: absolute;
+  width: 100%;
+  top: var(--start-position);
+  height: calc(var(--end-position) - var(--start-position));
+}
+
+.horizontal #target {
+  background: blue;
+  border-left: 0px solid pink;
+  border-right: 0px solid pink;
+  box-sizing: border-box;
+  position: absolute;
+  height: 100%;
+  left: var(--start-position);
+  width: calc(var(--end-position) - var(--start-position));
+}
+</style>
+<div id="log"></div>
+<script>
+  'use strict';
+
+  function createScrollerWithTarget(test, config) {
+    const orientationClass = config.orientation;
+    const positions = `
+    --start-position: ${config.startElementPosition};
+    --end-position: ${config.endElementPosition};`
+
+    var scroller = createDiv(test);
+    scroller.innerHTML =
+     `<div class='contents' style="${positions}">
+        <div id='target'></div>
+      </div>`;
+    scroller.classList.add('scroller');
+    scroller.classList.add(orientationClass);
+
+    return scroller;
+  }
+
+  async function createScrollAnimationTest(description, config) {
+    promise_test(async t => {
+      const scroller = createScrollerWithTarget(t, config);
+      t.add_cleanup(() => scroller.remove());
+
+      const target = scroller.querySelector("#target");
+
+      // Force layout before creating the scroll timeline to ensure the correct
+      // scroll range.
+      target.offsetHeight;
+
+      const timeline = createScrollTimeline(t, {
+        source: scroller,
+        orientation: config.orientation,
+        fill: 'both',
+        scrollOffsets: [{target: target, edge: 'end', ...config.start},
+                        {target: target, edge:'start', ...config.end }]
+      });
+
+      // Wait for new animation frame which allows the timeline to compute new
+      // current time.
+      await waitForNextFrame();
+
+      const animation = createScrollLinkedAnimation(t, timeline);
+
+      // Verify initial start and current times in Idle state.
+      assert_equals(animation.currentTime, null,
+                    "The current time is null in Idle state.");
+      assert_equals(animation.startTime, null,
+                    "The start time is null in Idle state.");
+
+      animation.play();
+      assert_true(animation.pending, "Animation is in pending state.");
+      // Verify initial start and current times in Pending state.
+      assert_percents_equal(animation.currentTime, 0,
+                            "The current time is zero in Pending state.");
+      assert_percents_equal(animation.startTime, 0,
+                            "The start time is zero in Pending state.");
+
+      await animation.ready;
+      // Verify initial start and current times in Playing state.
+      assert_percents_equal(animation.currentTime, 0,
+                            "The current time is zero in Playing state.");
+      assert_percents_equal(animation.startTime, 0,
+                            "The start time is zero in Playing state.");
+
+      // Now do some scrolling and make sure that the Animation current time is
+      // correct.
+      if (config.orientation == 'vertical') {
+        scroller.scrollTo({top: config.scrollTo});
+        assert_equals(scroller.scrollTop, config.scrollTo);
+      } else {
+        scroller.scrollTo({left: config.scrollTo});
+        assert_equals(scroller.scrollLeft, config.scrollTo);
+      }
+
+      await waitForNextFrame();
+
+      assert_percents_equal(
+          animation.timeline.currentTime,
+          config.expectedCurrentTime,
+          "The timeline current time corresponds to the scroll position of " +
+          "the scroller.");
+      assert_percents_equal(
+          animation.currentTime,
+          config.expectedCurrentTime,
+          "The animation current time corresponds to the scroll position of " +
+          "the scroller.");
+      assert_percents_equal(
+          animation.effect.getComputedTiming().localTime,
+          config.expectedCurrentTime,
+          "Effect local time corresponds to the scroll position of the " +
+          "scroller.");
+    }, description);
+  }
+
+  // We have no scrollbar and the scroller is symmetric on x & y axis so this
+  // static value is axis and platform agnostic.
+  const scroll_max = 700;
+
+  // For this test we setup a single target, and scroll timeline in a way that
+  // our animation runs from when target enters the scroll port until it fully
+  // exits it. Then we create various edgecase scenarios to see the clamping
+  // logic.
+  //
+  // Scroller has 500px heights with 1200px content which translates to
+  // 0 < scroll < 700px
+  //
+  //  +----------+  ^
+  //  |          |  |
+  //  | Scroller |  |
+  //  |          |  | scrollRange
+  //  |          |  |
+  //  +----------+  |     +--+
+  //      |TT|      |     |TT|
+  //      +--+      v +----------+
+  //                  |          |
+  //                  | Scroller |
+  //                  |          |
+  //                  |          |
+  //                  +----------+
+  //
+  // For each test the expected timeline start/end is in the comment to help
+  // with the verification.
+  //
+  // Note: expectedCurrentTime values are percentages. They are used as such:
+  //    CSS.percent(expectedCurrentTime)
+  const tests = {
+    // offsets: [0, 600]
+    "no clamping is expected": {
+      startElementPosition: '500px',
+      endElementPosition: '600px',
+      scrollTo: 300,
+      expectedCurrentTime: 50,
+    },
+    // offsets: [0, 600]
+    "start is visible at zero offset and should get clamped": {
+      startElementPosition: '400px',
+      endElementPosition: '600px',
+      scrollTo: 300,
+      expectedCurrentTime: 50,
+    },
+
+    // offsets: [0, scroll_max]
+    "end is not reachable and should be clamped": {
+      startElementPosition: '500px',
+      endElementPosition: '800px',
+      scrollTo: scroll_max / 2,
+      expectedCurrentTime: 50,
+    },
+
+    // offsets: [0, scroll_max]
+    "both start and end are clamped": {
+      startElementPosition: '400px',
+      endElementPosition: '800px',
+      scrollTo: scroll_max / 2,
+      expectedCurrentTime: 50,
+    },
+  };
+
+  for (let orientation of ['vertical', 'horizontal']) {
+    for (let testName in tests) {
+      const description = `Animation start and current times are correct given
+          element-based offsets for orienation ${orientation} and ${testName}.`;
+      const config = tests[testName];
+      config.orientation = orientation;
+      createScrollAnimationTest(description, config);
+    }
+  }
+</script>

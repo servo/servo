@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+
+function remote(path) {
+  const REMOTE_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+  return new URL(path, REMOTE_ORIGIN);
+}
+
+const image_path = "/html/cross-origin-embedder-policy/resources/corp-image.py";
+
+window.addEventListener("load", async () => {
+  await new Promise(resolve => {
+    let img = document.createElement("img");
+    img.src = remote(image_path);
+    img.onload = () => { window.parent.postMessage({loaded: true, src: img.src}, "*"); resolve(); };
+    img.onerror = (e) => { window.parent.postMessage({loaded: false, src: img.src}, "*"); resolve(); };
+    document.body.appendChild(img);
+  });
+
+  await new Promise(resolve => {
+    let img = document.createElement("img");
+    img.src = remote(image_path + "?corp-cross-origin=1");
+    img.onload = () => { window.parent.postMessage({loaded: true, src: img.src}, "*"); resolve(); };
+    img.onerror = (e) => { window.parent.postMessage({loaded: false, src: img.src}, "*"); resolve(); };
+    document.body.appendChild(img);
+  });
+
+  window.parent.postMessage({done: true}, "*")
+});
+
+</script>
+</html>

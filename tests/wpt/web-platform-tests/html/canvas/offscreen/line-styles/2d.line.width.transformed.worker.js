@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 100, 50);
@@ -41,20 +41,20 @@ ctx.save();
  ctx.stroke();
 ctx.restore();
 ctx.fillRect(65, 15, 20, 20);
-_assertPixel(offscreenCanvas, 14,25, 0,255,0,255, "14,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 15,25, 0,255,0,255, "15,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 16,25, 0,255,0,255, "16,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 25,25, 0,255,0,255, "25,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 34,25, 0,255,0,255, "34,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 35,25, 0,255,0,255, "35,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 36,25, 0,255,0,255, "36,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 64,25, 0,255,0,255, "64,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 65,25, 0,255,0,255, "65,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 66,25, 0,255,0,255, "66,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 84,25, 0,255,0,255, "84,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 85,25, 0,255,0,255, "85,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 86,25, 0,255,0,255, "86,25", "0,255,0,255");
+_assertPixel(canvas, 14,25, 0,255,0,255, "14,25", "0,255,0,255");
+_assertPixel(canvas, 15,25, 0,255,0,255, "15,25", "0,255,0,255");
+_assertPixel(canvas, 16,25, 0,255,0,255, "16,25", "0,255,0,255");
+_assertPixel(canvas, 25,25, 0,255,0,255, "25,25", "0,255,0,255");
+_assertPixel(canvas, 34,25, 0,255,0,255, "34,25", "0,255,0,255");
+_assertPixel(canvas, 35,25, 0,255,0,255, "35,25", "0,255,0,255");
+_assertPixel(canvas, 36,25, 0,255,0,255, "36,25", "0,255,0,255");
+_assertPixel(canvas, 64,25, 0,255,0,255, "64,25", "0,255,0,255");
+_assertPixel(canvas, 65,25, 0,255,0,255, "65,25", "0,255,0,255");
+_assertPixel(canvas, 66,25, 0,255,0,255, "66,25", "0,255,0,255");
+_assertPixel(canvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255");
+_assertPixel(canvas, 84,25, 0,255,0,255, "84,25", "0,255,0,255");
+_assertPixel(canvas, 85,25, 0,255,0,255, "85,25", "0,255,0,255");
+_assertPixel(canvas, 86,25, 0,255,0,255, "86,25", "0,255,0,255");
 t.done();
 
 });

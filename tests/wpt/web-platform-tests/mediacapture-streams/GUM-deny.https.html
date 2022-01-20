@@ -12,11 +12,15 @@
   <p class="instructions">This test checks that the error callback is triggered
     when user denies access to the video stream.</p>
   <div id='log'></div>
-  <script src=/resources/testharness.js></script>
+<script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
   <script>
 promise_test(async () => {
   try {
+    await setMediaPermission('denied', ['camera']);
     await navigator.mediaDevices.getUserMedia({video: true})
   } catch (error) {
     assert_throws_dom("NotAllowedError", () => { throw error });

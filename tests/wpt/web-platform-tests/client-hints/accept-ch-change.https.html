@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <title>Accept-CH test</title>
 <body>
@@ -25,50 +26,41 @@ in this web page, and two in the other web pages.
 // After this, the same is done but with a differet Accept-CH header, to test
 // that the preferences change after receiving a different header.
 
-// First, verify the initial state to make sure that the browser does not have
-// client hints preferences cached from a previous run of the test.
-promise_test(t => {
-  return fetch("resources/echo-client-hints-received.py").then(r => {
-    assert_equals(r.status, 200)
-    // Verify that the browser did not include client hints in the request
-    // headers when fetching echo_client_hints_received.py.
-    assert_false(r.headers.has("device-memory-received"), "device-memory-received");
-    assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
-  });
-}, "Precondition: Test that the browser does not have client hints preferences cached");
+promise_test(async () => {
+  r = await fetch("resources/echo-client-hints-received.py");
 
-function acceptChLoaded() {
+  assert_equals(r.status, 200);
+  // Verify that the browser did not include client hints in the request
+  // headers when fetching echo_client_hints_received.py.
+  assert_false(r.headers.has("device-memory-received"), "device-memory-received");
+  assert_false(r.headers.has("device-memory-deprecated-received"), "device-memory-deprecated-received");
+  assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
+  assert_false(r.headers.has("viewport-width-deprecated-received"), "viewport-width-deprecated-received");
+
+  // Fetching this webpage should cause user-agent to persist client hint
+  // preferences for the origin.
+  await open_and_add_load_event("resources/accept-ch.html");
+
   // Open a new window. Verify that the user agent does attach the client hints.
-  open_and_add_load_event("resources/expect-client-hints-headers.html", changeCh);
-}
+  await open_and_expect_headers("resources/expect-client-hints-headers.html");
 
-function changeCh() {
   // Use new window to overwrite client hint preferences, then verify new
   // settings have been saved
-  open_and_add_load_event("resources/accept-ch-different.html", verifyChangeCh);
-}
+  await open_and_add_load_event("resources/accept-ch-different.html");
 
-function verifyChangeCh() {
   // Use new window to overwrite client hint preferences, then verify new
   // settings have been saved
-  open_and_add_load_event("resources/expect-client-hints-headers-different.html", clearCh);
-}
+  await open_and_expect_headers("resources/expect-different-client-hints-headers.html");
 
-function clearCh() {
   // Use new window to overwrite client hint preferences, then verify new
   // settings have been saved
-  open_and_add_load_event("resources/accept-ch-empty.html", verifyClearCh);
-}
+  await open_and_add_load_event("resources/accept-ch-empty.html");
 
-function verifyClearCh() {
   // Use new window to overwrite client hint preferences, then verify new
   // settings have been saved
-  open_and_add_load_event("resources/do-not-expect-client-hints.html", null);
-}
+  await open_and_expect_headers("resources/expect-no-client-hints-headers.html");
 
-// Fetching this webpage should cause user-agent to persist client hint
-// preferences for the origin.
-open_and_add_load_event("resources/accept-ch.html", acceptChLoaded);
+}, "Accept-CH changes based on header");
 
 </script>
 </body>

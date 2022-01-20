@@ -17,14 +17,14 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 var n = 2147483647; // 2^31 - 1, which should be supported by any sensible definition of "long"
-offscreenCanvas.width = n;
-offscreenCanvas.height = n;
-_assertSame(offscreenCanvas.width, n, "offscreenCanvas.width", "n");
-_assertSame(offscreenCanvas.height, n, "offscreenCanvas.height", "n");
+canvas.width = n;
+canvas.height = n;
+_assertSame(canvas.width, n, "canvas.width", "n");
+_assertSame(canvas.height, n, "canvas.height", "n");
 t.done();
 
 });

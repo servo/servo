@@ -8,6 +8,7 @@
 promise_test(() => {
   let iframe = document.createElement('iframe');
   iframe.src = 'resources/iframe-keyboard-map-helper.html';
+  iframe.allow = "keyboard-map 'none'";
   iframe.onload = () => {
     iframe.contentWindow.postMessage('Ready', '*');
   }

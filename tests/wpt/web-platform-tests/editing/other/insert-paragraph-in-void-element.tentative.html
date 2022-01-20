@@ -90,6 +90,49 @@ for (const container of ["div", "h1", "li"]) {
     }, `Inserting paragraph when selection is collapsed in <${tag}> in <${container}> which is only child`);
 
     test(() => {
+      editor.innerHTML = `${openTagOfContainer}<${tag}>${closeTagOfContainer}`;
+      const element = editor.querySelector(tag);
+      editor.focus();
+      const selection = getSelection();
+      selection.collapse(element, 0);
+      element.getBoundingClientRect();
+      document.execCommand("insertParagraph");
+      if (tag == "br") {
+        if (!visibleTag && container == "h1") {
+          assert_in_array(
+            editor.innerHTML,
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><br></div>`,
+            `The paragraph should be inserted before the <${tag}> element`
+          );
+        } else {
+          assert_in_array(
+            editor.innerHTML,
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<br>${closeTagOfContainer}`,
+            `The paragraph should be inserted before the <${tag}> element`
+          );
+        }
+      } else if (!visibleTag && container == "h1") {
+        assert_in_array(
+          editor.innerHTML,
+          [
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><${tag}></div>`,
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><${tag}><br></div>`,
+          ],
+          `The paragraph should be inserted before the <${tag}> element`
+        );
+      } else {
+        assert_in_array(
+          editor.innerHTML,
+          [
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<${tag}>${closeTagOfContainer}`,
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<${tag}><br>${closeTagOfContainer}`,
+          ],
+          `The paragraph should be inserted before the <${tag}> element`
+        );
+      }
+    }, `Inserting paragraph when selection is collapsed in <${tag}> in <${container}> which is only child (explicitly flushes maybe pending layout)`);
+
+    test(() => {
       editor.innerHTML = `${openTagOfContainer}abc<${tag}>${closeTagOfContainer}`;
       const element = editor.querySelector(tag);
       editor.focus();

@@ -4,7 +4,7 @@ components:
     workerType: ci
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: webplatformtests/wpt:0.46
+    image: webplatformtests/wpt:0.48
     maxRunTime: 7200
     artifacts:
       public/results:
@@ -17,6 +17,7 @@ components:
 
   wpt-testharness:
     chunks: 16
+    maxRunTime: 10800
     vars:
       test-type: testharness
 
@@ -295,9 +296,13 @@ tasks:
         - vars:
             browser: firefox
             channel: nightly
+            stability-exclude-users:
+              - moz-wptsync-bot
         - vars:
             browser: chrome
             channel: dev
+            stability-exclude-users:
+              - chromium-wpt-export-bot
       do:
         - wpt-${vars.browser}-${vars.channel}-stability:
             use:
@@ -321,6 +326,7 @@ tasks:
               --verify-repeat-loop=0
               --verify-repeat-restart=10
               --github-checks-text-file="/home/test/artifacts/checkrun.md"
+            exclude-users: ${vars.stability-exclude-users}
 
         - wpt-${vars.browser}-${vars.channel}-results:
             use:

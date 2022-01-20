@@ -5,8 +5,6 @@
         "ws": [],
         "wss": []
     },
-    "bind_address": true,
-    "server_host": "localhost",
     "check_subdomains": false,
     "ssl": {
         "type": "openssl",

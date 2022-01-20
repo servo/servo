@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>aspect-ratio flex item</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="Item's final height is definite when the flex base size is definite because it derives from item's aspect ratio and stretched width, not from layout">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex; flex-direction: column; width: 100px;">
+  <div style="aspect-ratio: 1/1; background: red;">
+    <div style="height: 100%; background: green;"></div>
+  </div>
+</div>

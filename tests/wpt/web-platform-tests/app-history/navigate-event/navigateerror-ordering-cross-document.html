@@ -13,8 +13,8 @@ promise_test(async t => {
     events.push("navigate");
     e.signal.onabort = () => events.push("abort");
   });
-  i.contentWindow.appHistory.navigate("?1").finally(t.unreached_func("navigate to ?1"));
-  i.contentWindow.appHistory.navigate("?2").finally(t.unreached_func("navigate to ?2"));
+  i.contentWindow.appHistory.navigate("?1").committed.finally(t.unreached_func("navigate to ?1"));
+  i.contentWindow.appHistory.navigate("?2").committed.finally(t.unreached_func("navigate to ?2"));
   assert_equals(i.contentWindow.location.search, "");
   await new Promise(resolve => i.onload = resolve);
   assert_equals(i.contentWindow.location.search, "?2");

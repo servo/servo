@@ -65,7 +65,7 @@ test_composition({
   addTo: '100px',
 }, [
   {at: -1, expect: '-100px'},
-  {at: 0, expect: 'none'},
+  {at: 0, expect: '0px'},
   {at: 0.25, expect: '25px'},
   {at: 0.75, expect: '75px'},
   {at: 1, expect: '100px'},
@@ -79,7 +79,7 @@ test_composition({
   addTo: '100px',
 }, [
   {at: -1, expect: '-100px'},
-  {at: 0, expect: 'none'},
+  {at: 0, expect: '0px'},
   {at: 0.25, expect: '25px'},
   {at: 0.75, expect: '75px'},
   {at: 1, expect: '100px'},
@@ -96,7 +96,7 @@ test_composition({
   {at: 0, expect: '0px 40px 60px'},
   {at: 0.25, expect: '0px 30px 45px'},
   {at: 0.75, expect: '0px 10px 15px'},
-  {at: 1, expect: 'none'},
+  {at: 1, expect: '0px'},
   {at: 2, expect: '0px -40px -60px'},
 ]);
 
@@ -110,7 +110,7 @@ test_composition({
   {at: 0, expect: '0px 40px 60px'},
   {at: 0.25, expect: '0px 30px 45px'},
   {at: 0.75, expect: '0px 10px 15px'},
-  {at: 1, expect: 'none'},
+  {at: 1, expect: '0px'},
   {at: 2, expect: '0px -40px -60px'},
 ]);
 
@@ -140,7 +140,7 @@ test_composition({
   {at: 0.25, expect: '60px 45px 45px'},
   {at: 0.5, expect: '40px 30px 30px'},
   {at: 0.75, expect: '20px 15px 15px'},
-  {at: 1, expect: 'none'},
+  {at: 1, expect: '0px'},
   {at: 2, expect: '-80px -60px -60px'},
 ]);
 </script>

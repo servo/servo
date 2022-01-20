@@ -17,6 +17,7 @@ partial dictionary MediaTrackSupportedConstraints {
   boolean logicalSurface = true;
   boolean cursor = true;
   boolean restrictOwnAudio = true;
+  boolean suppressLocalAudioPlayback = true;
 };
 
 partial dictionary MediaTrackConstraintSet {
@@ -24,6 +25,7 @@ partial dictionary MediaTrackConstraintSet {
   ConstrainBoolean logicalSurface;
   ConstrainDOMString cursor;
   ConstrainBoolean restrictOwnAudio;
+  ConstrainBoolean suppressLocalAudioPlayback;
 };
 
 partial dictionary MediaTrackSettings {

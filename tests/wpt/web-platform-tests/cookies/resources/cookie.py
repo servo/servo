@@ -4,16 +4,14 @@ from cookies.resources.helpers import setNoCacheAndCORSHeaders
 from wptserve.utils import isomorphic_decode
 from wptserve.utils import isomorphic_encode
 
-def set_cookie(headers, cookie_string, drop=False):
+def set_cookie(headers, cookie_string):
     """Helper method to add a Set-Cookie header"""
-    if drop:
-        cookie_string = cookie_string.encode('utf-8') + b'; max-age=0'
     headers.append((b'Set-Cookie', isomorphic_encode(cookie_string)))
 
 def main(request, response):
-    """Set or drop a cookie via GET params.
+    """Set a cookie via GET params.
 
-    Usage: `/cookie.py?set={cookie}` or `/cookie.py?drop={cookie}`
+    Usage: `/cookie.py?set={cookie}`
 
     The passed-in cookie string should be stringified via JSON.stringify() (in
     the case of multiple cookie headers sent in an array) and encoded via
@@ -29,13 +27,6 @@ def main(request, response):
     to it.
     """
     headers = setNoCacheAndCORSHeaders(request, response)
-
-    if b'drop' in request.GET:
-        cookie = request.GET[b'drop']
-        cookie = json.loads(cookie)
-        cookies = cookie if isinstance(cookie, list) else [cookie]
-        for c in cookies:
-            set_cookie(headers, c, drop=True)
 
     if b'set' in request.GET:
         cookie = isomorphic_decode(request.GET[b'set'])

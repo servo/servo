@@ -1,0 +1,33 @@
+<!doctype html>
+<title></title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+:root {
+  color:black; background-color:white; font:10px/1 monospace;
+}
+ol::before {
+  content: counters(list-item,".");
+}
+</style>
+<ol start="11">
+ <li style="counter-set: list-item 8">8
+ <li style="counter-set: list-item 6">6
+ <li style="counter-set: list-item 5">5
+ <li style="counter-set: list-item 3">3
+</ol>
+<ol start="11">
+ <li style="counter-set: list-item 7">7
+ <li style="counter-set: list-item 5">5
+ <li style="counter-set: list-item 4">4
+ <li style="counter-set: list-item -4">-4
+</ol>
+<ol start="4">
+ <li style="counter-set: list-item 5">5
+ <li style="counter-set: list-item 7">7
+ <li style="counter-set: list-item 9">9
+</ol>
+<ol start="-6">
+ <li style="counter-set: list-item -4">-4
+ <li style="counter-set: list-item -3">-3
+ <li style="counter-set: list-item 5">5
+</ol>

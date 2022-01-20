@@ -45,11 +45,26 @@
 // everything to two decimal places, which isn't OK for the matrices
 // that result from large perspective values.
 const compareWithPerspective = (actual, expected) => {
-  const matrixRegExp = /^matrix3d\(((?:(?:[-0-9.]+), ){15}(?:[-0-9.]+))\)$/;
-  const actualArray = actual.match(matrixRegExp)[1].split(", ").map(Number);
-  const expectedArray = expected.match(matrixRegExp)[1].split(", ").map(Number);
+  // TODO: This RegExp should be more precise to capture only what is a
+  // valid float, and this code should be merged with other code doing
+  // the same thing, e.g., RoundMatrix in
+  // web-animations/animation-model/animation-types/property-list.js .
+  const matrixRegExp = /^matrix3d\(((?:(?:[-0-9.e]+), ){15}(?:[-0-9.]+))\)$/;
+  const actualMatch = actual.match(matrixRegExp);
+  const expectedMatch = expected.match(matrixRegExp);
+  assert_not_equals(actualMatch, null, `${actual} should be a matrix`);
+  assert_not_equals(expectedMatch, null, `${expected} should be a matrix`);
+  if (actualMatch === null || expectedMatch === null) {
+    return;
+  }
+  const actualArray = actualMatch[1].split(", ").map(Number);
+  const expectedArray = expectedMatch[1].split(", ").map(Number);
   assert_equals(actualArray.length, 16);
   assert_equals(expectedArray.length, 16);
+
+  if (actualArray.length != expectedArray.length) {
+    return;
+  }
 
   for (let i in actualArray) {
     const error = Math.abs((actualArray[i] - expectedArray[i])) /

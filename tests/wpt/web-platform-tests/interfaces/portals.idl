@@ -11,13 +11,13 @@ interface HTMLPortalElement : HTMLElement {
     [CEReactions] attribute DOMString referrerPolicy;
 
     [NewObject] Promise<undefined> activate(optional PortalActivateOptions options = {});
-    undefined postMessage(any message, optional PostMessageOptions options = {});
+    undefined postMessage(any message, optional StructuredSerializeOptions options = {});
 
     attribute EventHandler onmessage;
     attribute EventHandler onmessageerror;
 };
 
-dictionary PortalActivateOptions : PostMessageOptions {
+dictionary PortalActivateOptions : StructuredSerializeOptions {
     any data;
 };
 
@@ -27,7 +27,7 @@ partial interface Window {
 
 [Exposed=Window]
 interface PortalHost : EventTarget {
-    undefined postMessage(any message, optional PostMessageOptions options = {});
+    undefined postMessage(any message, optional StructuredSerializeOptions options = {});
 
     attribute EventHandler onmessage;
     attribute EventHandler onmessageerror;

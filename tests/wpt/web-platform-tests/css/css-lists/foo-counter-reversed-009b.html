@@ -1,0 +1,95 @@
+<!doctype html>
+<title></title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6738">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1706346">
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="match" href="li-value-reversed-009-ref.html">
+<meta name="assert" content="The last (non-zero) counter-increment value before the first counter-set determines the start value.">
+<style>
+:root {
+  color:black; background-color:white; font:10px/1 monospace;
+}
+::marker {
+  content: counter(foo) ". ";
+}
+ol::before, li::before {
+  content: counters(foo,".");
+}
+div, span {
+  counter-increment: foo 0;
+}
+.pure-set {
+  counter-increment: foo 0;
+  counter-set: foo 5;
+}
+ol[reversed] {
+  counter-reset: reversed(foo);
+}
+li {
+  counter-increment: foo -1 list-item 0;
+}
+</style>
+<ol reversed>
+ <li style="counter-increment: foo -2"></li>
+ <div></div>
+ <li class="pure-set">
+  <ol reversed>
+   <li style="counter-increment: foo -3"></li>
+   <div style="counter-increment: foo -3"></div>
+   <div style="counter-increment: foo 1"></div>
+   <div></div>
+   <li class="pure-set"></li>
+   <li style="counter-increment: foo -8"></li>
+  </ol>
+ </li>
+ <div></div>
+ <li style="counter-increment: foo -2"></li>
+</ol>
+<ol reversed>
+ <div style="counter-increment: foo 1"></div>
+ <div style="counter-increment: foo -2"></div>
+ <li class="pure-set"></li>
+ <li style="counter-increment: foo -1"></li>
+  <ol reversed>
+   <div><span></span></div>
+   <div style="counter-increment: foo -1"></div>
+   <li class="pure-set"><span></span></li>
+   <div></div>
+   <li style="counter-increment: foo -2"><span></span></li>
+   <div></div>
+   <li style="counter-increment: foo -2"><span></span></li>
+   <div><span></span></div>
+  </ol>
+ </li>
+ <li style="counter-increment: foo -8"></li>
+</ol>
+<ol reversed>
+ <div><span></span></div>
+ <li style="counter-increment: foo 2"></li>
+ <li class="pure-set"></li>
+ <div><span></span></div>
+ <li style="counter-increment: foo 2"></li>
+  <ol reversed>
+   <li style="counter-increment: foo 3"></li>
+   <li style="counter-increment: foo 1"></li>
+   <div style="counter-increment: foo 4"></div>
+   <div><span></span></div>
+   <li class="pure-set"></li>
+   <div><span></span></div>
+  </ol>
+ </li>
+</ol>
+<ol reversed>
+ <ol reversed>
+  <div style="counter-increment: foo -1"></div>
+  <div style="counter-increment: foo 2"></div>
+  <li class="pure-set"></li>
+  <li style="counter-increment: foo 1"></li>
+  <li style="counter-increment: foo 8"></li>
+ </ol>
+ <li style="counter-increment: foo 3"></li>
+ <li style="counter-increment: foo 1"></li>
+ <div style="counter-increment: foo 4"></div>
+ <li class="pure-set"></li>
+</ol>

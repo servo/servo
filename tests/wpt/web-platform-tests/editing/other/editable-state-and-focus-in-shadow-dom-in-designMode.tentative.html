@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Testing editable state and focus in shadow DOM in design mode</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head>
+<body>
+<h3>open</h3>
+<my-shadow data-mode="open"></my-shadow>
+<h3>closed</h3>
+<my-shadow data-mode="closed"></my-shadow>
+
+<script>
+"use strict";
+
+document.designMode = "on";
+const utils = new EditorTestUtils(document.body);
+
+class MyShadow extends HTMLElement {
+  #defaultInnerHTML =
+    "<style>:focus { outline: 3px red solid; }</style>" +
+    "<div>text" +
+      "<div contenteditable=\"\">editable</div>" +
+      "<object tabindex=\"0\">object</object>" +
+      "<p tabindex=\"0\">paragraph</p>" +
+    "</div>";
+  #shadowRoot;
+
+  constructor() {
+    super();
+    this.#shadowRoot = this.attachShadow({mode: this.getAttribute("data-mode")});
+    this.#shadowRoot.innerHTML = this.#defaultInnerHTML;
+  }
+
+  reset() {
+    this.#shadowRoot.innerHTML = this.#defaultInnerHTML;
+    this.#shadowRoot.querySelector("div").getBoundingClientRect();
+  }
+
+  focusText() {
+    this.focus();
+    const div = this.#shadowRoot.querySelector("div");
+    getSelection().collapse(div.firstChild || div, 0);
+  }
+
+  focusContentEditable() {
+    this.focus();
+    const contenteditable = this.#shadowRoot.querySelector("div[contenteditable]");
+    contenteditable.focus();
+    getSelection().collapse(contenteditable.firstChild || contenteditable, 0);
+  }
+
+  focusObject() {
+    this.focus();
+    this.#shadowRoot.querySelector("object[tabindex]").focus();
+  }
+
+  focusParagraph() {
+    this.focus();
+    const tabbableP = this.#shadowRoot.querySelector("p[tabindex]");
+    tabbableP.focus();
+    getSelection().collapse(tabbableP.firstChild || tabbableP, 0);
+  }
+
+  getInnerHTML() {
+    return this.#shadowRoot.innerHTML;
+  }
+
+  getDefaultInnerHTML() {
+    return this.#defaultInnerHTML;
+  }
+
+  getFocusedElementName() {
+    return this.#shadowRoot.querySelector(":focus")?.tagName.toLocaleLowerCase() || "";
+  }
+
+  getSelectedRange() {
+    // XXX There is no standardized way to retrieve selected ranges in
+    //     shadow trees, therefore, we use non-standardized API for now
+    //     since the main purpose of this test is checking the behavior of
+    //     selection changes in shadow trees, not checking the selection API.
+    const selection =
+      this.#shadowRoot.getSelection !== undefined
+        ? this.#shadowRoot.getSelection()
+        : getSelection();
+    return selection.getRangeAt(0);
+  }
+}
+
+customElements.define("my-shadow", MyShadow);
+
+function getRangeDescription(range) {
+  function getNodeDescription(node) {
+    if (!node) {
+      return "null";
+    }
+    switch (node.nodeType) {
+      case Node.TEXT_NODE:
+      case Node.COMMENT_NODE:
+      case Node.CDATA_SECTION_NODE:
+        return `${node.nodeName} "${node.data}"`;
+      case Node.ELEMENT_NODE:
+        return `<${node.nodeName.toLowerCase()}>`;
+      default:
+        return `${node.nodeName}`;
+    }
+  }
+  if (range === null) {
+    return "null";
+  }
+  if (range === undefined) {
+    return "undefined";
+  }
+  return range.startContainer == range.endContainer &&
+    range.startOffset == range.endOffset
+    ? `(${getNodeDescription(range.startContainer)}, ${range.startOffset})`
+    : `(${getNodeDescription(range.startContainer)}, ${
+        range.startOffset
+      }) - (${getNodeDescription(range.endContainer)}, ${range.endOffset})`;
+}
+
+promise_test(async () => {
+  await new Promise(resolve => addEventListener("load", resolve, {once: true}));
+  assert_true(true, "Load event is fired");
+}, "Waiting for load");
+
+/**
+ * The expected result of this test is based on Blink and Gecko's behavior.
+ */
+
+for (const mode of ["open", "closed"]) {
+  const host = document.querySelector(`my-shadow[data-mode=${mode}]`);
+  promise_test(async (t) => {
+    host.reset();
+    host.focusText();
+    test(() => {
+      assert_equals(
+        host.getFocusedElementName(),
+        "",
+        `No element should have focus after ${t.name}`
+      );
+    }, `Focus after ${t.name}`);
+    await utils.sendKey("A");
+    test(() => {
+      assert_equals(
+        host.getInnerHTML(),
+        host.getDefaultInnerHTML(),
+        `The shadow DOM shouldn't be modified after ${t.name}`
+      );
+    }, `Typing "A" after ${t.name}`);
+  }, `Collapse selection into text in the ${mode} shadow DOM`);
+
+  promise_test(async (t) => {
+    host.reset();
+    host.focusContentEditable();
+    test(() => {
+      assert_equals(
+        host.getFocusedElementName(),
+        "div",
+        `<div contenteditable> should have focus after ${t.name}`
+      );
+    }, `Focus after ${t.name}`);
+    await utils.sendKey("A");
+    test(() => {
+      assert_equals(
+        host.getInnerHTML(),
+        host.getDefaultInnerHTML().replace("<div contenteditable=\"\">", "<div contenteditable=\"\">A"),
+        `The shadow DOM shouldn't be modified after ${t.name}`
+      );
+    }, `Typing "A" after ${t.name}`);
+  }, `Collapse selection into text in <div contenteditable> in the ${mode} shadow DOM`);
+
+  promise_test(async (t) => {
+    host.reset();
+    host.focusObject();
+    test(() => {
+      assert_equals(
+        host.getFocusedElementName(),
+        "object",
+        `The <object> element should have focus after ${t.name}`
+      );
+    }, `Focus after ${t.name}`);
+    await utils.sendKey("A");
+    test(() => {
+      assert_equals(
+        host.getInnerHTML(),
+        host.getDefaultInnerHTML(),
+        `The shadow DOM shouldn't be modified after ${t.name}`
+      );
+    }, `Typing "A" after ${t.name}`);
+  }, `Set focus to <object> in the ${mode} shadow DOM`);
+
+  promise_test(async (t) => {
+    host.reset();
+    host.focusParagraph();
+    test(() => {
+      assert_equals(
+        host.getFocusedElementName(),
+        "p",
+        `The <p tabindex="0"> element should have focus after ${t.name}`
+      );
+    }, `Focus after ${t.name}`);
+    await utils.sendKey("A");
+    test(() => {
+      assert_equals(
+        host.getInnerHTML(),
+        host.getDefaultInnerHTML(),
+        `The shadow DOM shouldn't be modified after ${t.name}`
+      );
+    }, `Typing "A" after ${t.name}`);
+  }, `Set focus to <p tabindex="0"> in the ${mode} shadow DOM`);
+
+  promise_test(async (t) => {
+    host.reset();
+    host.focusParagraph();
+    await utils.sendSelectAllShortcutKey();
+    assert_in_array(
+      getRangeDescription(host.getSelectedRange()),
+      [
+        // Feel free to add reasonable select all result in the <my-shadow>.
+        "(#document-fragment, 0) - (#document-fragment, 2)",
+        "(#text \"text\", 0) - (#text \"paragraph\", 9)",
+      ],
+      `Only all children of the ${mode} shadow DOM should be selected`
+    );
+    getSelection().collapse(document.body, 0);
+  }, `SelectAll in the ${mode} shadow DOM`);
+
+  promise_test(async (t) => {
+    host.reset();
+    host.focusContentEditable();
+    await utils.sendSelectAllShortcutKey();
+    assert_in_array(
+      getRangeDescription(host.getSelectedRange()),
+      [
+        // Feel free to add reasonable select all result in the <div contenteditable>.
+        "(<div>, 0) - (<div>, 1)",
+        "(#text \"editable\", 0) - (#text \"editable\", 8)",
+      ]
+    );
+    getSelection().collapse(document.body, 0);
+  }, `SelectAll in the <div contenteditable> in the ${mode} shadow DOM`);
+}
+</script>
+</body>
+</html>

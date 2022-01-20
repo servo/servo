@@ -7,6 +7,7 @@ wptrunner is a harness for running the W3C `web-platform-tests testsuite`_.
    :maxdepth: 2
 
    docs/expectation
+   docs/commands
    docs/design
    docs/internals
 

@@ -3,21 +3,11 @@
 // (https://github.com/w3c/webref)
 // Source: WebHID API (https://wicg.github.io/webhid/)
 
-dictionary HIDDeviceFilter {
-    unsigned long vendorId;
-    unsigned short productId;
-    unsigned short usagePage;
-    unsigned short usage;
+[SecureContext] partial interface Navigator {
+    [SameObject] readonly attribute HID hid;
 };
 
-dictionary HIDDeviceRequestOptions {
-    required sequence<HIDDeviceFilter> filters;
-};
-
-[
-    Exposed=Window,
-    SecureContext
-]
+[Exposed=Window, SecureContext]
 interface HID : EventTarget {
     attribute EventHandler onconnect;
     attribute EventHandler ondisconnect;
@@ -26,20 +16,51 @@ interface HID : EventTarget {
         HIDDeviceRequestOptions options);
 };
 
-[SecureContext] partial interface Navigator {
-    [SameObject] readonly attribute HID hid;
+dictionary HIDDeviceRequestOptions {
+    required sequence<HIDDeviceFilter> filters;
+};
+
+dictionary HIDDeviceFilter {
+    unsigned long vendorId;
+    unsigned short productId;
+    unsigned short usagePage;
+    unsigned short usage;
+};
+
+[Exposed=Window, SecureContext]
+interface HIDDevice : EventTarget {
+    attribute EventHandler oninputreport;
+    readonly attribute boolean opened;
+    readonly attribute unsigned short vendorId;
+    readonly attribute unsigned short productId;
+    readonly attribute DOMString productName;
+    readonly attribute FrozenArray<HIDCollectionInfo> collections;
+    Promise<undefined> open();
+    Promise<undefined> close();
+    Promise<undefined> forget();
+    Promise<undefined> sendReport([EnforceRange] octet reportId, BufferSource data);
+    Promise<undefined> sendFeatureReport(
+        [EnforceRange] octet reportId,
+        BufferSource data);
+    Promise<DataView> receiveFeatureReport([EnforceRange] octet reportId);
+};
+
+[Exposed=Window, SecureContext]
+interface HIDConnectionEvent : Event {
+    constructor(DOMString type, HIDConnectionEventInit eventInitDict);
+    [SameObject] readonly attribute HIDDevice device;
 };
 
 dictionary HIDConnectionEventInit : EventInit {
     required HIDDevice device;
 };
 
-[
-    Exposed=Window,
-    SecureContext
-] interface HIDConnectionEvent : Event {
-    constructor(DOMString type, HIDConnectionEventInit eventInitDict);
+[Exposed=Window, SecureContext]
+interface HIDInputReportEvent : Event {
+    constructor(DOMString type, HIDInputReportEventInit eventInitDict);
     [SameObject] readonly attribute HIDDevice device;
+    readonly attribute octet reportId;
+    readonly attribute DataView data;
 };
 
 dictionary HIDInputReportEventInit : EventInit {
@@ -48,19 +69,19 @@ dictionary HIDInputReportEventInit : EventInit {
     required DataView data;
 };
 
-[
-    Exposed=Window,
-    SecureContext
-] interface HIDInputReportEvent : Event {
-    constructor(DOMString type, HIDInputReportEventInit eventInitDict);
-    [SameObject] readonly attribute HIDDevice device;
-    readonly attribute octet reportId;
-    readonly attribute DataView data;
+dictionary HIDCollectionInfo {
+    unsigned short usagePage;
+    unsigned short usage;
+    octet type;
+    sequence<HIDCollectionInfo> children;
+    sequence<HIDReportInfo> inputReports;
+    sequence<HIDReportInfo> outputReports;
+    sequence<HIDReportInfo> featureReports;
 };
 
-enum HIDUnitSystem {
-    "none", "si-linear", "si-rotation", "english-linear",
-    "english-rotation", "vendor-defined", "reserved"
+dictionary HIDReportInfo {
+    octet reportId;
+    sequence<HIDReportItem> items;
 };
 
 dictionary HIDReportItem {
@@ -94,34 +115,7 @@ dictionary HIDReportItem {
     sequence<DOMString> strings;
 };
 
-dictionary HIDReportInfo {
-    octet reportId;
-    sequence<HIDReportItem> items;
-};
-
-dictionary HIDCollectionInfo {
-    unsigned short usagePage;
-    unsigned short usage;
-    octet type;
-    sequence<HIDCollectionInfo> children;
-    sequence<HIDReportInfo> inputReports;
-    sequence<HIDReportInfo> outputReports;
-    sequence<HIDReportInfo> featureReports;
-};
-
-[
-    Exposed=Window,
-    SecureContext
-] interface HIDDevice : EventTarget {
-    attribute EventHandler oninputreport;
-    readonly attribute boolean opened;
-    readonly attribute unsigned short vendorId;
-    readonly attribute unsigned short productId;
-    readonly attribute DOMString productName;
-    readonly attribute FrozenArray<HIDCollectionInfo> collections;
-    Promise<undefined> open();
-    Promise<undefined> close();
-    Promise<undefined> sendReport([EnforceRange] octet reportId, BufferSource data);
-    Promise<undefined> sendFeatureReport([EnforceRange] octet reportId, BufferSource data);
-    Promise<DataView> receiveFeatureReport([EnforceRange] octet reportId);
+enum HIDUnitSystem {
+    "none", "si-linear", "si-rotation", "english-linear",
+    "english-rotation", "vendor-defined", "reserved"
 };

@@ -56,7 +56,6 @@ test(() => {
   const argument = { "element": "anyfunc", "initial": 5 };
   const table = new WebAssembly.Table(argument);
   assert_throws_js(TypeError, () => table.set());
-  assert_throws_js(TypeError, () => table.set(0));
 }, "Missing arguments: set");
 
 test(t => {
@@ -223,3 +222,42 @@ test(() => {
   assert_equals(table.get(0, {}), null);
   assert_equals(table.set(0, fn, {}), undefined);
 }, "Stray argument");
+
+test(() => {
+  const builder = new WasmModuleBuilder();
+  builder
+    .addFunction("fn", kSig_v_v)
+    .addBody([])
+    .exportFunc();
+  const bin = builder.toBuffer();
+  const fn = new WebAssembly.Instance(new WebAssembly.Module(bin)).exports.fn;
+
+  const argument = { "element": "anyfunc", "initial": 1 };
+  const table = new WebAssembly.Table(argument, fn);
+
+  assert_equals(table.get(0), fn);
+  table.set(0);
+  assert_equals(table.get(0), null);
+
+  table.set(0, fn);
+  assert_equals(table.get(0), fn);
+
+  assert_throws_js(TypeError, () => table.set(0, {}));
+  assert_throws_js(TypeError, () => table.set(0, 37));
+}, "Arguments for anyfunc table set");
+
+test(() => {
+  const testObject = {};
+  const argument = { "element": "externref", "initial": 1 };
+  const table = new WebAssembly.Table(argument, testObject);
+
+  assert_equals(table.get(0), testObject);
+  table.set(0);
+  assert_equals(table.get(0), undefined);
+
+  table.set(0, testObject);
+  assert_equals(table.get(0), testObject);
+
+  table.set(0, 37);
+  assert_equals(table.get(0), 37);
+}, "Arguments for externref table set");

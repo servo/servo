@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+    <div id='element'></div>
+</div>
+
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    var keyframes = [
+        {fontSize: 'inherit'},
+        {fontSize: '20px'}
+    ];
+
+    container.style.fontSize = '10px';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    container.style.fontSize = '30px';
+    assert_equals(getComputedStyle(element).fontSize, '25px');
+}, 'Font size responsive to inherited changes at start');
+
+test(function() {
+    var keyframes = [
+        {fontSize: '50px'},
+        {fontSize: 'inherit'}
+    ];
+
+    container.style.fontSize = '40px';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    container.style.fontSize = '60px';
+    assert_equals(getComputedStyle(element).fontSize, '55px');
+}, 'Font size responsive to inherited changes at end');
+
+test(function() {
+    var keyframes = [
+        {fontSize: 'inherit'},
+        {fontSize: 'inherit'}
+    ];
+
+    container.style.fontSize = '70px';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    container.style.fontSize = '80px';
+    assert_equals(getComputedStyle(element).fontSize, '80px');
+}, 'Font size responsive to inherited changes');
+
+</script>

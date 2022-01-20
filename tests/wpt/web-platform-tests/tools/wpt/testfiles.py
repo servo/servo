@@ -154,8 +154,17 @@ def repo_files_changed(revish, include_uncommitted=False, include_new=False):
     if git is None:
         raise Exception("git not found")
 
-    files_list = git("diff", "--name-only", "-z", revish).split(u"\0")
-    assert not files_list[-1]
+    if "..." in revish:
+        raise Exception(f"... not supported when finding files changed (revish: {revish!r}")
+
+    if ".." in revish:
+        # ".." isn't treated as a range for git-diff; what we want is
+        # everything reachable from B but not A, and git diff A...B
+        # gives us that (via the merge-base)
+        revish = revish.replace("..", "...")
+
+    files_list = git("diff", "--no-renames", "--name-only", "-z", revish).split(u"\0")
+    assert not files_list[-1], f"final item should be empty, got: {files_list[-1]!r}"
     files = set(files_list[:-1])
 
     if include_uncommitted:

@@ -984,21 +984,22 @@
       "origin": "*",
       "expectation": "*"
     },
+    // Skip some nested source_context_lists for faster tests.
     {
-      // source_context_list values not for referrer-policy tests
       "expansion": "*",
       "source_scheme": "*",
       "source_context_list": [
-        "worker-classic-inherit",
-        "worker-module-inherit"
+        "iframe",
+        "srcdoc",
+        "srcdoc-inherit"
       ],
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
-      "subresource": "*",
+      "subresource": "script-tag-dynamic-import",
       "origin": "*",
       "expectation": "*"
-    }
+    },
   ],
   "source_context_schema": {
     "supported_delivery_type": {
@@ -1072,6 +1073,13 @@
       // Support this.
       "picture-tag": [],
       "script-tag": [
+        "attr"
+      ],
+      "script-tag-dynamic-import": [
+        // The policy set to the <script referrerpolicy> attribute is used for
+        // dynamic imports initiated from the script, passed as referencing
+        // script's fetch options.
+        // https://html.spec.whatwg.org/multipage/webappapis.html#hostimportmoduledynamically(referencingscriptormodule,-modulerequest,-promisecapability)
         "attr"
       ],
       "sharedworker-classic": [],

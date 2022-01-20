@@ -6,5 +6,5 @@ async_test(function(t) {
   var channel = new MessageChannel();
   channel.port2.onmessage = t.step_func_done();
   channel.port1.postMessage("ping");
-  setTimeout(t.unreached_func(), 100);
+  t.step_timeout(t.unreached_func(), 1000);
 });

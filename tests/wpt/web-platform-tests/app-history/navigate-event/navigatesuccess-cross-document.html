@@ -10,5 +10,5 @@ async_test(t => {
     i.contentWindow.location.search = "?1";
     i.onload = t.step_func_done(() => assert_equals(i.contentWindow.location.search, "?1"));
   });
-}, "navigatesucess does not fire for a cross-document navigation");
+}, "navigatesuccess does not fire for a cross-document navigation");
 </script>

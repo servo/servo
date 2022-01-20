@@ -61,7 +61,7 @@
       below_viewport_3.onerror = reject;
       t.step_timeout(resolve, 1000);
 
-      below_viewport_3.src = "resources/image.png?change";
+      below_viewport_3.src = "resources/image.png?relevant-mutations-change";
     });
   }, "Image src mutation does not cause deferred loading=lazy " +
      "images to be fetched");
@@ -69,15 +69,15 @@
 
 <body>
   <div style="height:1000vh;"></div>
-  <img id="below-viewport-1" src="resources/image.png?1" loading="lazy"
+  <img id="below-viewport-1" src="resources/image.png?relevant-mutations-1" loading="lazy"
        onload="below_viewport_1_loaded = true"
        onerror="below_viewport_1_loaded = true">
 
-  <img id="below-viewport-2" src="resources/image.png?2" loading="lazy"
+  <img id="below-viewport-2" src="resources/image.png?relevant-mutations-2" loading="lazy"
        onload="below_viewport_2_loaded = true"
        onerror="below_viewport_2_loaded = true">
 
-  <img id="below-viewport-3" src="resources/image.png?3" loading="lazy"
+  <img id="below-viewport-3" src="resources/image.png?relevant-mutations-3" loading="lazy"
        onload="below_viewport_3_loaded = true"
        onerror="below_viewport_3_loaded = true">
 </body>

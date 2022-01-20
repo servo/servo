@@ -24,7 +24,7 @@ var check_report_format = function(reports, observer) {
     assert_false(sensor_features_verified[report.body.featureId]);
 
     // Validate the remainder of the report
-    assert_equals(report.type, "feature-policy-violation");
+    assert_equals(report.type, "permissions-policy-violation");
     assert_equals(report.url, document.location.href);
     assert_equals(report.body.sourceFile, document.location.href);
     assert_equals(typeof report.body.lineNumber, "number");
@@ -44,7 +44,7 @@ var check_report_format = function(reports, observer) {
 
 async_test(t => {
   new ReportingObserver(t.step_func(check_report_format),
-                        {types: ['feature-policy-violation']}).observe();
+                        {types: ['permissions-policy-violation']}).observe();
   assert_throws_dom("SecurityError", () => new Accelerometer(), "Constructing sensors should be blocked by policy");
   assert_throws_dom("SecurityError", () => new AmbientLightSensor(), "Constructing sensors should be blocked by policy");
   assert_throws_dom("SecurityError", () => new Gyroscope(), "Constructing sensors should be blocked by policy");

@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Clipboard unsanitized write -> Async Clipboard unsanitized read test</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
+<script>
+'use strict';
+
+// Writes a payload with custom content and checks to ensure the correct data
+// was written successfully.
+promise_test(async t => {
+  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+
+  const dataToWrite = 'Test text.';
+  const format = 'text/plain';
+
+  const blobInput = new Blob([dataToWrite], {type: format});
+  // Blob types are automatically converted to lower-case.
+  assert_equals(blobInput.type, format.toLowerCase());
+  const clipboardItemInput = new ClipboardItem(
+      {[format]: blobInput}, {unsanitized: [format]});
+  await waitForUserActivation();
+  await navigator.clipboard.write([clipboardItemInput]);
+
+  // Items should be readable on a system clipboard after custom format write.
+  await waitForUserActivation();
+  const clipboardItems = await navigator.clipboard.read(
+    {unsanitized: [format]});
+  assert_equals(clipboardItems.length, 1);
+  const clipboardItem = clipboardItems[0];
+  assert_true(clipboardItem instanceof ClipboardItem);
+
+  const blobOutput = await clipboardItem.getType(format);
+  assert_equals(blobOutput.type, format);
+  const data = await (new Response(blobOutput)).text();
+  assert_equals(data, dataToWrite);
+
+  // These examples use native text formats, so these formats should be
+  // accessible as text.
+  const textOutput = await navigator.clipboard.readText();
+  assert_equals(textOutput, dataToWrite);
+}, 'Verify write and read unsanitized content to the clipboard given standard format as input');
+</script>

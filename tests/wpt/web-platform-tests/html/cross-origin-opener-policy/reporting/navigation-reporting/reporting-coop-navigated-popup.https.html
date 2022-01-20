@@ -2,8 +2,9 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/utils.js"></script> <!-- Use token() to allow running tests in parallel -->
-<script src="/html/cross-origin-opener-policy/resources/dispatcher.js"></script>
-<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script
+  src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js?pipe=sub&report_id=df3cde15-b00b-4a59-b6e2-498b67a6146e&report_only_id=ebf3a415-7a74-42e1-92d1-e600b1bbe22e"></script>
 
 <script>
 
@@ -18,13 +19,13 @@ promise_test( async t => {
   const callbackToken = token();
   const noCoopToken = token();
   const coopToken= token();
-  await reportingTest( async resolve => {
+  await reportingTest(async resolve => {
     const noCOOPUrl = executor_path +
-      `|header(report-to,${encodeURIComponent(getReportEndpoints(location.origin))})` +
+      convertToWPTHeaderPipe(getReportToHeader(location.origin)) +
       `|header(Cross-Origin-Opener-Policy,${encodeURIComponent(`unsafe-none; report-to="${popupReportEndpoint.name}"`)})` +
       `&uuid=${noCoopToken}`;
     const coopUrl = executor_path +
-      `|header(report-to,${encodeURIComponent(getReportEndpoints(location.origin))})` +
+      convertToWPTHeaderPipe(getReportToHeader(location.origin)) +
       `|header(Cross-Origin-Opener-Policy,${encodeURIComponent(`same-origin; report-to="${redirectReportEndpoint.name}"`)})` +
       `&uuid=${coopToken}`;
 

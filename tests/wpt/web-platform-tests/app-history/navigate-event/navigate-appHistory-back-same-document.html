@@ -8,10 +8,10 @@ async_test(t => {
   window.onload = () => t.step_timeout(() => {
     let target_key = appHistory.current.key;
     let target_id = appHistory.current.id;
-    appHistory.navigate("#foo").then(() => {
+    appHistory.navigate("#foo").committed.then(t.step_func(() => {
       appHistory.onnavigate = t.step_func_done(e => {
         assert_equals(e.navigationType, "traverse");
-        assert_true(e.cancelable);
+        assert_false(e.cancelable);
         assert_true(e.canTransition);
         assert_false(e.userInitiated);
         assert_true(e.hashChange);
@@ -25,7 +25,7 @@ async_test(t => {
       });
       assert_true(appHistory.canGoBack);
       appHistory.back({ info: "hi" });
-    });
+    }));
   }, 0);
 }, "navigate event for appHistory.back() - same-document");
 </script>

@@ -94,6 +94,19 @@ test_interpolation({
   {at: 1.5, expect: 'rgb(255, 248, 0) -30px -20px 35px -9px'},
 ]);
 
+test_interpolation({
+  property: 'box-shadow',
+  from: '0px 0px 0px 0px black',
+  to: '1px 1px 1px 1px black',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 0) -0.3px -0.3px 0px -0.3px'},
+  {at: 0, expect: 'rgb(0, 0, 0) 0px 0px 0px 0px'},
+  {at: 0.3, expect: 'rgb(0, 0, 0) 0.3px 0.3px 0.3px 0.3px'},
+  {at: 0.6, expect: 'rgb(0, 0, 0) 0.6px 0.6px 0.6px 0.6px'},
+  {at: 1, expect: 'rgb(0, 0, 0) 1px 1px 1px 1px'},
+  {at: 1.5, expect: 'rgb(0, 0, 0) 1.5px 1.5px 1.5px 1.5px'},
+]);
+
 // Test with color as first value.
 test_interpolation({
   property: 'box-shadow',

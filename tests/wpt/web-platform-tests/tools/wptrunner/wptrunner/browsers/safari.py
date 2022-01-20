@@ -1,6 +1,7 @@
 import os
 import plistlib
 from distutils.spawn import find_executable
+from distutils.version import LooseVersion
 
 import psutil
 
@@ -27,6 +28,7 @@ __wptrunner__ = {"product": "safari",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
+                 "run_info_extras": "run_info_extras",
                  "timeout_multiplier": "get_timeout_multiplier"}
 
 
@@ -49,6 +51,14 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, **kwargs
     if kwargs["binary"] is not None:
         raise ValueError("Safari doesn't support setting executable location")
 
+    V = LooseVersion
+    browser_bundle_version = run_info_data["browser_bundle_version"]
+    if browser_bundle_version is not None and V(browser_bundle_version[2:]) >= V("613.1.7.1"):
+        logger.debug("using acceptInsecureCerts=True")
+        executor_kwargs["capabilities"]["acceptInsecureCerts"] = True
+    else:
+        logger.warning("not using acceptInsecureCerts, Safari will require certificates to be trusted")
+
     return executor_kwargs
 
 
@@ -58,6 +68,79 @@ def env_extras(**kwargs):
 
 def env_options():
     return {}
+
+
+def run_info_extras(**kwargs):
+    webdriver_binary = kwargs["webdriver_binary"]
+    rv = {}
+
+    safari_bundle, safari_info = get_safari_info(webdriver_binary)
+
+    if safari_info is not None:
+        assert safari_bundle is not None  # if safari_info is not None, this can't be
+        _, webkit_info = get_webkit_info(safari_bundle)
+        if webkit_info is None:
+            webkit_info = {}
+    else:
+        safari_info = {}
+        webkit_info = {}
+
+    rv["browser_marketing_version"] = safari_info.get("CFBundleShortVersionString")
+    rv["browser_bundle_version"] = safari_info.get("CFBundleVersion")
+    rv["browser_webkit_bundle_version"] = webkit_info.get("CFBundleVersion")
+
+    with open("/System/Library/CoreServices/SystemVersion.plist", "rb") as fp:
+        system_version = plistlib.load(fp)
+
+    rv["os_build"] = system_version["ProductBuildVersion"]
+
+    return rv
+
+
+def get_safari_info(wd_path):
+    bundle_paths = [
+        os.path.join(os.path.dirname(wd_path), "..", ".."),  # bundled Safari (e.g. STP)
+        os.path.join(os.path.dirname(wd_path), "Safari.app"),  # local Safari build
+        "/Applications/Safari.app",  # system Safari
+    ]
+
+    for bundle_path in bundle_paths:
+        info_path = os.path.join(bundle_path, "Contents", "Info.plist")
+        if not os.path.isfile(info_path):
+            continue
+
+        with open(info_path, "rb") as fp:
+            info = plistlib.load(fp)
+
+        # check we have a Safari family bundle
+        ident = info.get("CFBundleIdentifier")
+        if not isinstance(ident, str) or not ident.startswith("com.apple.Safari"):
+            continue
+
+        return (bundle_path, info)
+
+    return (None, None)
+
+
+def get_webkit_info(safari_bundle_path):
+    framework_paths = [
+        os.path.join(os.path.dirname(safari_bundle_path), "Contents", "Frameworks"),  # bundled Safari (e.g. STP)
+        os.path.join(os.path.dirname(safari_bundle_path), ".."),  # local Safari build
+        "/System/Library/PrivateFrameworks",
+        "/Library/Frameworks",
+        "/System/Library/Frameworks",
+    ]
+
+    for framework_path in framework_paths:
+        info_path = os.path.join(framework_path, "WebKit.framework", "Versions", "Current", "Resources", "Info.plist")
+        if not os.path.isfile(info_path):
+            continue
+
+        with open(info_path, "rb") as fp:
+            info = plistlib.load(fp)
+            return (framework_path, info)
+
+    return (None, None)
 
 
 class SafariBrowser(Browser):
@@ -78,47 +161,25 @@ class SafariBrowser(Browser):
             wd_path = find_executable(webdriver_binary)
         else:
             wd_path = webdriver_binary
-        self.safari_path = self._findAssociatedSafariExecutable(wd_path)
+        self.safari_path = self._find_safari_executable(wd_path)
 
         logger.debug("WebDriver executable path: %s" % wd_path)
         logger.debug("Safari executable path: %s" % self.safari_path)
 
         self.kill_safari = kill_safari
 
-    def _findAssociatedSafariExecutable(self, wd_path):
-        bundle_paths = [
-            os.path.join(os.path.dirname(wd_path), "..", ".."),  # bundled Safari (e.g. STP)
-            os.path.join(os.path.dirname(wd_path), "Safari.app"),  # local Safari build
-            "/Applications/Safari.app",  # system Safari
-        ]
+    def _find_safari_executable(self, wd_path):
+        bundle_path, info = get_safari_info(wd_path)
 
-        for bundle_path in bundle_paths:
-            info_path = os.path.join(bundle_path, "Contents", "Info.plist")
-            if not os.path.isfile(info_path):
-                continue
+        exe = info.get("CFBundleExecutable")
+        if not isinstance(exe, str):
+            return None
 
-            with open(info_path, "rb") as fp:
-                info = plistlib.load(fp)
+        exe_path = os.path.join(bundle_path, "Contents", "MacOS", exe)
+        if not os.path.isfile(exe_path):
+            return None
 
-            # check we have a Safari family bundle
-            if "CFBundleIdentifier" not in info:
-                continue
-            ident = info["CFBundleIdentifier"]
-            if not isinstance(ident, str) or not ident.startswith("com.apple.Safari"):
-                continue
-
-            # get the executable name
-            if "CFBundleExecutable" not in info:
-                continue
-            exe = info["CFBundleExecutable"]
-            if not isinstance(exe, str):
-                continue
-
-            exe_path = os.path.join(bundle_path, "Contents", "MacOS", exe)
-            if not os.path.isfile(exe_path):
-                continue
-
-            return exe_path
+        return exe_path
 
     def start(self, **kwargs):
         self.server.start(block=False)

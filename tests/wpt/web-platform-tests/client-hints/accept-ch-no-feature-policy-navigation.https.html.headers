@@ -1,2 +1,1 @@
-Accept-CH: Device-Memory, DPR, Viewport-Width
-Accept-CH-Lifetime: 100
+Accept-CH: Sec-CH-Device-Memory, Device-Memory, Sec-CH-DPR, DPR, Sec-CH-Viewport-Width, Viewport-Width

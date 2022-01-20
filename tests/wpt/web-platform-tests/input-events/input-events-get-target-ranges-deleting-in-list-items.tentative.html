@@ -458,6 +458,213 @@ addPromiseTest(
 );
 
 addPromiseTest(
+  `<div>{<${list}><li><br></li></${list}>}</div>`,
+  {
+    expectedInnerHTML: ["<div><br></div>", "<div><div><br></div></div>"],
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector("div"),
+          startOffset: 0,
+          endContainer: gEditor.querySelector("div"),
+          endOffset: 1,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+// It may be better to ignore the invisible white-space and take same action
+// as above, but it requires more expensive check before deleting.  So perhaps,
+// this behavior is reasonable.
+addPromiseTest(
+  `<div>{  <${list}><li><br></li></${list}>  }</div>`,
+  {
+    expectedInnerHTML: ["<div><br></div>", "<div><div><br></div></div>"],
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector("div"),
+          startOffset: 0,
+          endContainer: gEditor.querySelector("div"),
+          endOffset: 3,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
+  `<div><${list}><li>{}<br></li></${list}></div>`,
+  {
+    expectedInnerHTML: ["<div><br></div>", "<div><div><br></div></div>"],
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector("div"),
+          startOffset: 0,
+          endContainer: gEditor.querySelector("div"),
+          endOffset: 1,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+// XXX Blink does not delete the list element if its first or last <li> element
+//     is not editable.  However, it means that user cannot delete the list
+//     element, and it's not consistent behavior when only middle list item(s)
+//     are not editable.  Perhaps, once it makes the list element has only
+//     one empty list item element, then, another deleting operation allows to
+//     delete the list element.
+addPromiseTest(
+  `<div>{<${list}><li contenteditable="false"><br></li></${list}>}</div>`,
+  {
+    expectedInnerHTML: `<div><${list}><li><br></li></${list}></div>`,
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector(list),
+          startOffset: 0,
+          endContainer: gEditor.querySelector(list),
+          endOffset: 1,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
+  `<div>{<${list}><li contenteditable="false">list-item1</li></${list}>}</div>`,
+  {
+    expectedInnerHTML: `<div><${list}><li><br></li></${list}></div>`,
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector(list),
+          startOffset: 0,
+          endContainer: gEditor.querySelector(list),
+          endOffset: 1,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
+  `<div>{<${list}><li contenteditable="false">list-item1</li><li><br></li></${list}>}</div>`,
+  {
+    expectedInnerHTML: `<div><${list}><li><br></li></${list}></div>`,
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector(list),
+          startOffset: 0,
+          endContainer: gEditor.querySelector("li + li"),
+          endOffset: 1,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
+  `<div>{<${list}><li contenteditable="false">list-item1</li><li>list-item2</li></${list}>}</div>`,
+  {
+    expectedInnerHTML: `<div><${list}><li><br></li></${list}></div>`,
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector(list),
+          startOffset: 0,
+          endContainer: gEditor.querySelector("li + li").firstChild,
+          endOffset: gEditor.querySelector("li + li").firstChild.length,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
+  `<div>{<${list}><li><br></li><li contenteditable="false">list-item2</li></${list}>}</div>`,
+  {
+    expectedInnerHTML: `<div><${list}><li><br></li></${list}></div>`,
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector("li").firstChild,
+          startOffset: 0,
+          endContainer: gEditor.querySelector(list),
+          endOffset: 2,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
+  `<div>{<${list}><li>list-item1</li><li contenteditable="false">list-item2</li></${list}>}</div>`,
+  {
+    expectedInnerHTML: `<div><${list}><li><br></li></${list}></div>`,
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector("li").firstChild,
+          startOffset: 0,
+          endContainer: gEditor.querySelector(list),
+          endOffset: 2,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
+  `<div>{<${list}><li><br></li><li contenteditable="false">list-item2</li><li><br></li></${list}>}</div>`,
+  {
+    expectedInnerHTML: `<div><${list}><li><br></li></${list}></div>`,
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector("li").firstChild,
+          startOffset: 0,
+          endContainer: gEditor.querySelector("li + li + li"),
+          endOffset: 1,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
+  `<div>{<${list}><li>list-item1</li><li contenteditable="false">list-item2</li><li>list-item3</li></${list}>}</div>`,
+  {
+    expectedInnerHTML: `<div><${list}><li><br></li></${list}></div>`,
+    expectedTargetRanges: () => {
+      return [
+        {
+          startContainer: gEditor.querySelector("li").firstChild,
+          startOffset: 0,
+          endContainer: gEditor.querySelector("li + li + li").firstChild,
+          endOffset: gEditor.querySelector("li + li + li").firstChild.length,
+        },
+      ];
+    },
+    expectInputEvent: true,
+  }
+);
+
+addPromiseTest(
   `<${list}><li>list-item1</li>{<li>list-item2</li>}<li>list-item3</li></${list}>`,
   {
     expectedInnerHTML: `<${list}><li>list-item1</li><li>list-item3</li></${list}>`,
@@ -960,6 +1167,42 @@ for (let childList of ["ul", "ol"]) {
   );
 
   addPromiseTest(
+    `<${list}><li><${childList}><li>[list-item1]</li></${childList}></li></${list}>`,
+    {
+      expectedInnerHTML: `<${list}><li><${childList}><li><br></li></${childList}></li></${list}>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`li li`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`li li`).firstChild,
+            endOffset: gEditor.querySelector(`li li`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<${list}><li>{<${childList}><li>list-item1</li></${childList}>}</li></${list}>`,
+    {
+      expectedInnerHTML: `<${list}><li><${childList}><li><br></li></${childList}></li></${list}>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`li li`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`li li`).firstChild,
+            endOffset: gEditor.querySelector(`li li`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
     `<${list}><li><${childList}><li>{}<br></li></${childList}></li><li>list-item2</li></${list}>`,
     {
       expectedInnerHTML: `<${list}><li><br></li><li>list-item2</li></${list}>`,
@@ -1007,6 +1250,42 @@ for (let childList of ["ul", "ol"]) {
             startOffset: 0,
             endContainer: gEditor.querySelector(`${list}`),
             endOffset: 1,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<${list}><${childList}><li>[list-item1]</li></${childList}></${list}>`,
+    {
+      expectedInnerHTML: `<${list}><${childList}><li><br></li></${childList}></${list}>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`li`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`li`).firstChild,
+            endOffset: gEditor.querySelector(`li`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<${list}>{<${childList}><li>list-item1</li></${childList}>}</${list}>`,
+    {
+      expectedInnerHTML: `<${list}><${childList}><li><br></li></${childList}></${list}>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`li`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`li`).firstChild,
+            endOffset: gEditor.querySelector(`li`).firstChild.length,
           },
         ];
       },
