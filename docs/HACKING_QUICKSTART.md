@@ -134,6 +134,49 @@ Both will tell any cargo project to not use the online version of the dependency
 
 For more details about overriding dependencies, see [Cargo's documentation](https://doc.crates.io/specifying-dependencies.html#overriding-dependencies).
 
+## Editor support
+
+### Visual Studio Code
+
+Running plain `cargo` will cause problems! This is because the rustflags (flags passed to the rust compiler) that
+standard `cargo` provides are different to what `./mach` uses, and so every time Servo is built using `cargo` it will
+undo all the work done by `./mach` (and vice versa).
+
+You can override this in a `.vscode/settings.json` file:
+
+```
+{
+    "rust-analyzer.checkOnSave.overrideCommand": [
+        "./mach",
+        "check",
+        "--message-format=json",
+    ],
+    "rust-analyzer.rustfmt.overrideCommand": [
+        "./mach",
+        "fmt"
+    ],
+}
+```
+
+If that still causes problems, then supplying a different target directory should fix this (although it will increase
+the amount of disc space used).
+
+```
+{
+    "rust-analyzer.checkOnSave.overrideCommand": [
+        "./mach",
+        "check",
+        "--message-format=json",
+        "--target-dir",
+        "target/lsp"
+    ],
+    "rust-analyzer.rustfmt.overrideCommand": [
+        "./mach",
+        "fmt"
+    ],
+}
+```
+
 ## Debugging
 
 ### Logging:
