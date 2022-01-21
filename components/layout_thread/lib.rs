@@ -104,7 +104,7 @@ use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpecula
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
-use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
+use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
@@ -175,9 +175,6 @@ pub struct LayoutThread {
 
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
-
-    /// Flag to indicate whether to use parallel operations
-    parallel_flag: bool,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -537,7 +534,6 @@ impl LayoutThread {
             first_reflow: Cell::new(true),
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
-            parallel_flag: true,
             generation: Cell::new(0),
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
             root_flow: RefCell::new(None),
@@ -975,31 +971,6 @@ impl LayoutThread {
         sequential::reflow(layout_root, layout_context, RelayoutMode::Incremental);
     }
 
-    /// Performs layout constraint solving in parallel.
-    ///
-    /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
-    /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
-    #[inline(never)]
-    fn solve_constraints_parallel(
-        traversal: &rayon::ThreadPool,
-        layout_root: &mut dyn Flow,
-        profiler_metadata: Option<TimerMetadata>,
-        time_profiler_chan: profile_time::ProfilerChan,
-        layout_context: &LayoutContext,
-    ) {
-        let _scope = layout_debug_scope!("solve_constraints_parallel");
-
-        // NOTE: this currently computes borders, so any pruning should separate that
-        // operation out.
-        parallel::reflow(
-            layout_root,
-            profiler_metadata,
-            time_profiler_chan,
-            layout_context,
-            traversal,
-        );
-    }
-
     /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the
     /// reflow type need it, builds the display list.
     fn compute_abs_pos_and_build_display_list(
@@ -1171,12 +1142,8 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
-        // Parallelize if there's more than 750 objects based on rzambre's suggestion
-        // https://github.com/servo/servo/issues/10110
-        self.parallel_flag = data.dom_count > 750;
         debug!("layout: received layout request for: {}", self.url);
         debug!("Number of objects in DOM: {}", data.dom_count);
-        debug!("layout: parallel? {}", self.parallel_flag);
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1402,14 +1369,6 @@ impl LayoutThread {
             data.stylesheets_changed,
         );
 
-        let pool;
-        let (thread_pool, num_threads) = if self.parallel_flag {
-            pool = STYLE_THREAD_POOL.pool();
-            (pool.as_ref(), STYLE_THREAD_POOL.num_threads.unwrap_or(1))
-        } else {
-            (None, 1)
-        };
-
         let dirty_root = unsafe {
             ServoLayoutNode::new(&data.dirty_root.unwrap())
                 .as_element()
@@ -1436,7 +1395,7 @@ impl LayoutThread {
                     let root = driver::traverse_dom::<
                         ServoLayoutElement,
                         RecalcStyleAndConstructFlows,
-                    >(&traversal, token, thread_pool);
+                    >(&traversal, token, None);
                     unsafe {
                         construct_flows_at_ancestors(traversal.context(), root.as_node());
                     }
@@ -1444,7 +1403,7 @@ impl LayoutThread {
             );
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
             let text_shaping_time =
-                font::get_and_reset_text_shaping_performance_counter() / num_threads;
+                font::get_and_reset_text_shaping_performance_counter();
             profile_time::send_profile_data(
                 profile_time::ProfilerCategory::LayoutTextShaping,
                 self.profiler_metadata(),
@@ -1741,27 +1700,8 @@ impl LayoutThread {
                 || {
                     let profiler_metadata = self.profiler_metadata();
 
-                    let pool;
-                    let thread_pool = if self.parallel_flag {
-                        pool = STYLE_THREAD_POOL.pool();
-                        pool.as_ref()
-                    } else {
-                        None
-                    };
-
-                    if let Some(pool) = thread_pool {
-                        // Parallel mode.
-                        LayoutThread::solve_constraints_parallel(
-                            pool,
-                            FlowRef::deref_mut(root_flow),
-                            profiler_metadata,
-                            self.time_profiler_chan.clone(),
-                            &*context,
-                        );
-                    } else {
-                        //Sequential mode
-                        LayoutThread::solve_constraints(FlowRef::deref_mut(root_flow), &context)
-                    }
+                    //Sequential mode
+                    LayoutThread::solve_constraints(FlowRef::deref_mut(root_flow), &context)
                 },
             );
         }
