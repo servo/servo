@@ -27,7 +27,7 @@ use std::sync::Arc;
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency
-pub trait LayoutThreadFactory {
+/*pub trait LayoutThreadFactory {
     type Message;
     fn create(
         id: PipelineId,
@@ -56,5 +56,6 @@ pub trait LayoutThreadFactory {
         nonincremental_layout: bool,
         trace_layout: bool,
         dump_flow_tree: bool,
-    );
+    ) -> Box<dyn script_layout_interface::Layout>;
 }
+*/

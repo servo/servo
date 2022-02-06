@@ -487,7 +487,7 @@ impl<E: TElement> SequentialTask<E> {
     /// Executes this task.
     pub fn execute(self) {
         use self::SequentialTask::*;
-        debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
+        debug_assert_eq!(thread_state::get() & ThreadState::LAYOUT, ThreadState::LAYOUT);
         match self {
             Unused(_) => unreachable!(),
             #[cfg(feature = "gecko")]
@@ -582,7 +582,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
 
     /// Applies the flags. Must be called on the main thread.
     fn apply_flags(&mut self) {
-        debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
+        debug_assert_eq!(thread_state::get() & ThreadState::LAYOUT, ThreadState::LAYOUT);
         self.cache.clear();
         for (el, flags) in self.map.drain() {
             unsafe {
@@ -622,7 +622,7 @@ where
     E: TElement,
 {
     fn drop(&mut self) {
-        debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
+        debug_assert_eq!(thread_state::get() & ThreadState::LAYOUT, ThreadState::LAYOUT);
         for task in self.0.drain(..) {
             task.execute()
         }
@@ -770,7 +770,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
 
 impl<E: TElement> Drop for ThreadLocalStyleContext<E> {
     fn drop(&mut self) {
-        debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
+        debug_assert_eq!(thread_state::get() & ThreadState::LAYOUT, ThreadState::LAYOUT);
 
         // Apply any slow selector flags that need to be set on parents.
         self.selector_flags.apply_flags();

@@ -953,7 +953,7 @@ impl Stylist {
 
             // Gecko calls this from sequential mode, so we can directly apply
             // the flags.
-            debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
+            debug_assert_eq!(thread_state::get() & ThreadState::LAYOUT, ThreadState::LAYOUT);
             let self_flags = flags.for_self();
             if !self_flags.is_empty() {
                 unsafe {

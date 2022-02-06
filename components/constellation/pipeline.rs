@@ -17,7 +17,7 @@ use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error;
-use layout_traits::LayoutThreadFactory;
+//use layout_traits::LayoutThreadFactory;
 use media::WindowGLContext;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -39,7 +39,9 @@ use script_traits::{
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg};
-use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
+use script_traits::{TimerSchedulerMsg, WindowSizeData};
+use script_traits::{LayoutInit};
+use script_layout_interface::{ScriptThreadFactory, LayoutThreadFactory};
 use servo_config::opts::{self, Opts};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
@@ -544,14 +546,44 @@ impl UnprivilegedPipelineContent {
         );
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         let layout_thread_busy_flag = Arc::new(AtomicBool::new(false));
-        let layout_pair = STF::create(
+
+        let layout_init = LayoutInit {
+            id: self.id,
+            top_level_browsing_context_id: self.top_level_browsing_context_id,
+            url: self.load_data.url.clone(),
+            is_iframe: self.parent_pipeline_id.is_some(),
+            //chan: layout_pair,
+            pipeline_port: self.pipeline_port,
+            background_hang_monitor: background_hang_monitor_register.clone(),
+            constellation_chan: self.layout_to_constellation_chan.clone(),
+            script_chan: self.script_chan.clone(),
+            image_cache: image_cache.clone(),
+            font_cache_thread: self.font_cache_thread.clone(),
+            time_profiler_chan: self.time_profiler_chan.clone(),
+            mem_profiler_chan: self.mem_profiler_chan.clone(),
+            webrender_api_sender: self.webrender_api_sender.clone(),
+            //paint_time_metrics: paint_time_metrics,
+            busy: layout_thread_busy_flag.clone(),
+            load_webfonts_synchronously: self.opts.load_webfonts_synchronously,
+            window_size: self.window_size,
+            dump_display_list: self.opts.dump_display_list,
+            dump_display_list_json: self.opts.dump_display_list_json,
+            dump_style_tree: self.opts.dump_style_tree,
+            dump_rule_tree: self.opts.dump_rule_tree,
+            relayout_event: self.opts.relayout_event,
+            nonincremental_layout: self.opts.nonincremental_layout,
+            trace_layout: self.opts.trace_layout,
+            dump_flow_tree: self.opts.dump_flow_tree,
+        };
+
+        /*let layout_pair =*/ STF::create::<LTF>(
             InitialScriptState {
                 id: self.id,
                 browsing_context_id: self.browsing_context_id,
                 top_level_browsing_context_id: self.top_level_browsing_context_id,
                 parent_info: self.parent_pipeline_id,
                 opener: self.opener,
-                control_chan: self.script_chan.clone(),
+                control_chan: self.script_chan,
                 control_port: self.script_port,
                 script_to_constellation_chan: self.script_to_constellation_chan.clone(),
                 background_hang_monitor_register: background_hang_monitor_register.clone(),
@@ -588,9 +620,10 @@ impl UnprivilegedPipelineContent {
             self.opts.headless,
             self.opts.replace_surrogates,
             self.user_agent,
+            layout_init,
         );
 
-        LTF::create(
+        /*LTF::create(
             self.id,
             self.top_level_browsing_context_id,
             self.load_data.url,
@@ -617,7 +650,7 @@ impl UnprivilegedPipelineContent {
             self.opts.nonincremental_layout,
             self.opts.trace_layout,
             self.opts.dump_flow_tree,
-        );
+        );*/
 
         if wait_for_completion {
             match content_process_shutdown_port.recv() {

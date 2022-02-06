@@ -453,7 +453,7 @@ impl HTMLElementMethods for HTMLElement {
         window.layout_reflow(QueryMsg::ElementInnerTextQuery(
             node.to_trusted_node_address(),
         ));
-        DOMString::from(window.layout().element_inner_text())
+        DOMString::from(window.layout_rpc().element_inner_text())
     }
 
     // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute

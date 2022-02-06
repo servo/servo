@@ -18,6 +18,7 @@ crossbeam-channel = "0.4"
 euclid = "0.20"
 fxhash = "0.2"
 gfx_traits = { path = "../gfx_traits" }
+gfx = { path = "../gfx" }
 html5ever = "0.25"
 ipc-channel = "0.14"
 libc = "0.2"

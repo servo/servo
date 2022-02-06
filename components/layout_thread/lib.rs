@@ -62,7 +62,7 @@ use layout::traversal::{
     RecalcStyleAndConstructFlows,
 };
 use layout::wrapper::LayoutNodeLayoutData;
-use layout_traits::LayoutThreadFactory;
+use script_layout_interface::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
@@ -208,7 +208,7 @@ pub struct LayoutThread {
     webrender_api: WebrenderIpcSender,
 
     /// Paint time metrics.
-    paint_time_metrics: PaintTimeMetrics,
+    //paint_time_metrics: PaintTimeMetrics,
 
     /// The time a layout query has waited before serviced by layout thread.
     layout_query_waiting_time: Histogram,
@@ -268,7 +268,7 @@ impl LayoutThreadFactory for LayoutThread {
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
         webrender_api_sender: WebrenderIpcSender,
-        paint_time_metrics: PaintTimeMetrics,
+        //paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
@@ -280,11 +280,11 @@ impl LayoutThreadFactory for LayoutThread {
         nonincremental_layout: bool,
         trace_layout: bool,
         dump_flow_tree: bool,
-    ) {
-        thread::Builder::new()
+    ) -> Box<dyn script_layout_interface::Layout> {
+        /*thread::Builder::new()
             .name(format!("Layout{}", id))
-            .spawn(move || {
-                thread_state::initialize(ThreadState::LAYOUT);
+            .spawn(move || {*/
+                //thread_state::initialize(ThreadState::LAYOUT);
 
                 // In order to get accurate crash reports, we install the top-level bc id.
                 TopLevelBrowsingContextId::install(top_level_browsing_context_id);
@@ -316,7 +316,7 @@ impl LayoutThreadFactory for LayoutThread {
                         time_profiler_chan,
                         mem_profiler_chan.clone(),
                         webrender_api_sender,
-                        paint_time_metrics,
+                        //paint_time_metrics,
                         busy,
                         load_webfonts_synchronously,
                         window_size,
@@ -330,7 +330,7 @@ impl LayoutThreadFactory for LayoutThread {
                         dump_flow_tree,
                     );
 
-                    let reporter_name = format!("layout-reporter-{}", id);
+                    /*let reporter_name = format!("layout-reporter-{}", id);
                     mem_profiler_chan.run_with_memory_reporting(
                         || {
                             layout.start();
@@ -338,10 +338,12 @@ impl LayoutThreadFactory for LayoutThread {
                         reporter_name,
                         sender,
                         Msg::CollectReports,
-                    );
+                );*/
+
+                    Box::new(layout)
                 }
-            })
-            .expect("Thread spawning failed");
+            /*})
+            .expect("Thread spawning failed");*/
     }
 }
 
@@ -485,7 +487,7 @@ impl LayoutThread {
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
         webrender_api: WebrenderIpcSender,
-        paint_time_metrics: PaintTimeMetrics,
+        //paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
         window_size: WindowSizeData,
@@ -561,7 +563,7 @@ impl LayoutThread {
                 inner_window_dimensions_response: None,
             })),
             webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
-            paint_time_metrics: paint_time_metrics,
+            //paint_time_metrics: paint_time_metrics,
             layout_query_waiting_time: Histogram::new(),
             last_iframe_sizes: Default::default(),
             busy,
@@ -663,6 +665,8 @@ impl LayoutThread {
         // Notify the background-hang-monitor we are waiting for an event.
         self.background_hang_monitor.notify_wait();
 
+        //XXXjdm: need to ensure messages from constellation and font cache
+        //        go to script thread and trigger layout processing.
         let request = select! {
             recv(self.pipeline_port) -> msg => Request::FromPipeline(msg.unwrap()),
             recv(self.port) -> msg => Request::FromScript(msg.unwrap()),
@@ -685,7 +689,7 @@ impl LayoutThread {
                 self.handle_request_helper(Msg::ExitNow, possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time)) => {
-                self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
+                //self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
                 true
             },
             Request::FromScript(msg) => self.handle_request_helper(msg, possibly_locked_rw_data),
@@ -807,7 +811,7 @@ impl LayoutThread {
                 return false;
             },
             Msg::SetNavigationStart(time) => {
-                self.paint_time_metrics.set_navigation_start(time);
+                //self.paint_time_metrics.set_navigation_start(time);
             },
         }
 
@@ -866,7 +870,7 @@ impl LayoutThread {
             self.time_profiler_chan.clone(),
             self.mem_profiler_chan.clone(),
             self.webrender_api.clone(),
-            info.paint_time_metrics,
+            //info.paint_time_metrics,
             info.layout_is_busy,
             self.load_webfonts_synchronously,
             info.window_size,
@@ -1124,8 +1128,8 @@ impl LayoutThread {
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related
                 // Progressive Web Metrics.
-                self.paint_time_metrics
-                    .maybe_observe_paint_time(self, epoch, is_contentful.0);
+                /*self.paint_time_metrics
+                    .maybe_observe_paint_time(self, epoch, is_contentful.0);*/
 
                 self.webrender_api
                     .send_display_list(epoch, viewport_size, builder.finalize());
@@ -1979,5 +1983,20 @@ impl RegisteredPainters for RegisteredPaintersImpl {
         self.0
             .get(&name)
             .map(|painter| painter as &dyn RegisteredPainter)
+    }
+}
+
+impl script_layout_interface::Layout for LayoutThread {
+    fn process(&mut self, msg: script_layout_interface::message::Msg) { 
+        let rw_data = self.rw_data.clone();
+        let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
+        let mut rw_data = RwData {
+            rw_data: &rw_data,
+            possibly_locked_rw_data: &mut possibly_locked_rw_data,
+        };
+        self.handle_request_helper(msg, &mut rw_data);
+    }
+    fn rpc(&self) -> &dyn script_layout_interface::rpc::LayoutRPC {
+        unimplemented!()
     }
 }

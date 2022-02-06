@@ -126,7 +126,7 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
-use layout_traits::LayoutThreadFactory;
+use script_layout_interface::{LayoutThreadFactory, ScriptThreadFactory};
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{
@@ -159,7 +159,7 @@ use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
 use script_traits::{
-    Job, LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory,
+    Job, LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg,
     ServiceWorkerManagerFactory,
 };
 use script_traits::{MediaSessionActionType, MouseEventType};

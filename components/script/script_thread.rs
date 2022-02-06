@@ -126,6 +126,7 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
+use script_layout_interface::{ScriptThreadFactory, LayoutThreadFactory};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
     CompositionEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
@@ -135,7 +136,7 @@ use script_traits::{
     AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
     DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
     LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
-    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory,
+    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg,
     ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
     TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
     WindowSizeData, WindowSizeType,
@@ -167,7 +168,7 @@ use webrender_api::DocumentId;
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
-thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
+thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*mut ScriptThread>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
@@ -197,7 +198,7 @@ struct InProgressLoad {
     /// The current window size associated with this pipeline.
     window_size: WindowSizeData,
     /// Channel to the layout thread associated with this pipeline.
-    layout_chan: Sender<message::Msg>,
+    //layout: Box<dyn script_layout_interface::Layout>,
     /// The activity level of the document (inactive, active or fully active).
     activity: DocumentActivity,
     /// Window is visible.
@@ -226,7 +227,7 @@ impl InProgressLoad {
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
-        layout_chan: Sender<message::Msg>,
+        //layout: Box<dyn script_layout_interface::Layout>,
         window_size: WindowSizeData,
         url: ServoUrl,
         origin: MutableOrigin,
@@ -235,16 +236,14 @@ impl InProgressLoad {
     ) -> InProgressLoad {
         let current_time = get_time();
         let navigation_start_precise = precise_time_ns();
-        layout_chan
-            .send(message::Msg::SetNavigationStart(navigation_start_precise))
-            .unwrap();
+        //layout.process(message::Msg::SetNavigationStart(navigation_start_precise));
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
             parent_info: parent_info,
             opener: opener,
-            layout_chan: layout_chan,
+            //layout: layout,
             window_size: window_size,
             activity: DocumentActivity::FullyActive,
             is_visible: true,
@@ -513,6 +512,7 @@ pub struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContext)>>);
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitor);
+unsafe_no_jsmanaged_fields!(dyn script_layout_interface::Layout);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
@@ -697,6 +697,8 @@ pub struct ScriptThread {
 
     // Secure context
     inherited_secure_context: Option<bool>,
+
+    layout: Box<dyn script_layout_interface::Layout>,
 }
 
 struct BHMExitSignal {
@@ -752,7 +754,7 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 impl ScriptThreadFactory for ScriptThread {
     type Message = message::Msg;
 
-    fn create(
+    fn create<LTF: script_layout_interface::LayoutThreadFactory<Message = message::Msg>>(
         state: InitialScriptState,
         load_data: LoadData,
         profile_script_events: bool,
@@ -765,7 +767,8 @@ impl ScriptThreadFactory for ScriptThread {
         headless: bool,
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
-    ) -> (Sender<message::Msg>, Receiver<message::Msg>) {
+        layout_init: script_traits::LayoutInit,
+    ) /*-> (Sender<message::Msg>, Receiver<message::Msg>)*/ {
         let (script_chan, script_port) = unbounded();
 
         let (sender, receiver) = unbounded();
@@ -773,7 +776,7 @@ impl ScriptThreadFactory for ScriptThread {
         thread::Builder::new()
             .name(format!("Script{}", state.id))
             .spawn(move || {
-                thread_state::initialize(ThreadState::SCRIPT);
+                thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
                 TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
                 let roots = RootCollection::new();
@@ -787,6 +790,36 @@ impl ScriptThreadFactory for ScriptThread {
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
                 let window_size = state.window_size;
                 let layout_is_busy = state.layout_is_busy.clone();
+
+                let layout = LTF::create(
+                    layout_init.id,
+                    layout_init.top_level_browsing_context_id,
+                    layout_init.url,
+                    layout_init.is_iframe,
+                    //layout_init.chan,
+                    (sender, receiver),
+                    layout_init.pipeline_port,
+                    layout_init.background_hang_monitor,
+                    layout_init.constellation_chan,
+                    layout_init.script_chan,
+                    layout_init.image_cache,
+                    layout_init.font_cache_thread,
+                    layout_init.time_profiler_chan,
+                    layout_init.mem_profiler_chan,
+                    layout_init.webrender_api_sender,
+                    //layout_init.paint_time_metrics,
+                    layout_init.busy,
+                    layout_init.load_webfonts_synchronously,
+                    layout_init.window_size,
+                    layout_init.dump_display_list,
+                    layout_init.dump_display_list_json,
+                    layout_init.dump_style_tree,
+                    layout_init.dump_rule_tree,
+                    layout_init.relayout_event,
+                    layout_init.nonincremental_layout,
+                    layout_init.trace_layout,
+                    layout_init.dump_flow_tree,
+                );
 
                 let script_thread = ScriptThread::new(
                     state,
@@ -802,10 +835,12 @@ impl ScriptThreadFactory for ScriptThread {
                     headless,
                     replace_surrogates,
                     user_agent,
+                    layout,
                 );
 
+                //XXXjdm bad
                 SCRIPT_THREAD_ROOT.with(|root| {
-                    root.set(Some(&script_thread as *const _));
+                    root.set(Some(&script_thread as *const _ as *mut _));
                 });
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
@@ -817,7 +852,7 @@ impl ScriptThreadFactory for ScriptThread {
                     top_level_browsing_context_id,
                     parent_info,
                     opener,
-                    layout_chan,
+                    //layout_chan,
                     window_size,
                     load_data.url.clone(),
                     origin,
@@ -842,11 +877,18 @@ impl ScriptThreadFactory for ScriptThread {
             })
             .expect("Thread spawning failed");
 
-        (sender, receiver)
+        //(sender, receiver)
     }
 }
 
 impl ScriptThread {
+    pub fn layout() -> &'static mut dyn script_layout_interface::Layout {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &mut *root.get().unwrap() };
+            &mut *script_thread.layout
+        })
+    }
+
     pub fn runtime_handle() -> ParentRuntime {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -1182,12 +1224,7 @@ impl ScriptThread {
             },
         };
 
-        match window.layout_chan() {
-            Some(chan) => chan
-                .send(Msg::RegisterPaint(name, properties, painter))
-                .unwrap(),
-            None => warn!("Layout channel unavailable"),
-        }
+        window.layout().process(Msg::RegisterPaint(name, properties, painter))
     }
 
     pub fn push_new_element_queue() {
@@ -1283,6 +1320,7 @@ impl ScriptThread {
         headless: bool,
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
+        layout: Box<dyn script_layout_interface::Layout>,
     ) -> ScriptThread {
         let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
 
@@ -1412,6 +1450,8 @@ impl ScriptThread {
             gpu_id_hub: Arc::new(Mutex::new(Identities::new())),
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
+
+            layout: layout,
         }
     }
 
@@ -2499,8 +2539,9 @@ impl ScriptThread {
             window_size,
         });
 
+        //XXXjdm notify script thread's layout of new layout
         // Pick a layout thread, any layout thread
-        let current_layout_chan: Option<Sender<Msg>> = self
+        /*let current_layout_chan: Option<Sender<Msg>> = self
             .documents
             .borrow()
             .iter()
@@ -2517,7 +2558,7 @@ impl ScriptThread {
             None => panic!("Layout attached to empty script thread."),
             // Tell the layout thread factory to actually spawn the thread.
             Some(layout_chan) => layout_chan.send(msg).unwrap(),
-        };
+        };*/
 
         // Kick off the fetch for the new resource.
         let new_load = InProgressLoad::new(
@@ -2526,7 +2567,7 @@ impl ScriptThread {
             top_level_browsing_context_id,
             parent_info,
             opener,
-            layout_chan,
+            //layout_chan,
             window_size,
             load_data.url.clone(),
             origin,
@@ -2908,8 +2949,9 @@ impl ScriptThread {
         // but also has a Document.
         debug_assert!(idx.is_none() || document.is_none());
 
+        //XXXjdm notify layout about closing pipeline
         // Remove any incomplete load.
-        let chan = if let Some(idx) = idx {
+        /*let chan = if let Some(idx) = idx {
             let load = self.incomplete_loads.borrow_mut().remove(idx);
             load.layout_chan.clone()
         } else if let Some(ref document) = document {
@@ -2919,17 +2961,17 @@ impl ScriptThread {
             }
         } else {
             return warn!("Exiting nonexistant pipeline {}.", id);
-        };
+        };*/
 
         // We shut down layout before removing the document,
         // since layout might still be in the middle of laying it out.
-        debug!("preparing to shut down layout for page {}", id);
+        /*debug!("preparing to shut down layout for page {}", id);
         let (response_chan, response_port) = unbounded();
         chan.send(message::Msg::PrepareToExit(response_chan)).ok();
-        let _ = response_port.recv();
+        let _ = response_port.recv();*/
 
         debug!("shutting down layout for page {}", id);
-        chan.send(message::Msg::ExitNow).ok();
+        //chan.send(message::Msg::ExitNow).ok();
         self.script_sender
             .send((id, ScriptMsg::PipelineExited))
             .ok();
@@ -3214,10 +3256,11 @@ impl ScriptThread {
         let final_url = metadata.final_url.clone();
         {
             // send the final url to the layout thread.
-            incomplete
+            //XXXjdm notify layout of final url
+            /*incomplete
                 .layout_chan
                 .send(message::Msg::SetFinalUrl(final_url.clone()))
-                .unwrap();
+                .unwrap();*/
 
             // update the pipeline url
             self.script_sender
@@ -3275,7 +3318,7 @@ impl ScriptThread {
             script_to_constellation_chan,
             self.control_chan.clone(),
             self.scheduler_chan.clone(),
-            incomplete.layout_chan,
+            //incomplete.layout_chan,
             incomplete.pipeline_id,
             incomplete.parent_info,
             incomplete.window_size,
