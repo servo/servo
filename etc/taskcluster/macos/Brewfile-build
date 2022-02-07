@@ -9,4 +9,4 @@ brew "yasm"
 brew "zlib"
 
 # For sccache
-brew "openssl@1.1"
+#brew "openssl@1.1"

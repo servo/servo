@@ -8,9 +8,9 @@ env:
   SHELL: /bin/bash
 
 jobs:
-  build-linux:
-    name: Build (Linux)
-    runs-on: ubuntu-20.04
+  build-mac:
+    name: Build (macOS)
+    runs-on: macos-10.15
     steps:
       - uses: actions/checkout@v2
         with:
@@ -18,13 +18,12 @@ jobs:
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip virtualenv
-          sudo apt update
-          python3 ./mach bootstrap
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
+          brew install gnu-tar
       - name: Release build
-        run: python3 ./mach build --release
-      - name: Unit tests
-        run: python3 ./mach test-unit --release
-      - name: Tidy
-        run: python3 ./mach test-tidy --no-progress --all
-      - name: Lockfile check
-        run: ./etc/ci/lockfile_changed.sh
+        run: |
+          export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
+          export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
+          export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+          export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
+          python3 ./mach build --release -p simplemozjs --media-stack=dummy
