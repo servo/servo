@@ -1,9 +1,0 @@
-interface EntriesA {
-  readonly setlike<DOMString>;
-  static void entries();
-};
-
-interface EntriesB {
-  readonly setlike<DOMString>;
-  static readonly attribute long entries;
-};

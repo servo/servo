@@ -631,6 +631,24 @@ function requestViaScript(url, additionalAttributes) {
 }
 
 /**
+ * Creates a new script element that performs a dynamic import to `url`, and
+ * appends the script element to {@code document.body}.
+ * @param {string} url The src URL.
+ * @return {Promise} The promise for success/error events.
+ */
+function requestViaDynamicImport(url, additionalAttributes) {
+  const scriptUrl = `data:text/javascript,import("${url}");`;
+  const script = createElement(
+      "script",
+      Object.assign({"src": scriptUrl}, additionalAttributes),
+      document.body,
+      false);
+
+  return bindEvents2(window, "message", script, "error", window, "error")
+    .then(event => wrapResult(event.data));
+}
+
+/**
  * Creates a new form element, sets attributes, appends it to
  *     {@code document.body} and submits the form.
  * @param {string} url The URL to submit to.
@@ -865,6 +883,10 @@ const subresourceMap = {
   "script-tag": {
     path: "/common/security-features/subresource/script.py",
     invoker: requestViaScript,
+  },
+  "script-tag-dynamic-import": {
+    path: "/common/security-features/subresource/script.py",
+    invoker: requestViaDynamicImport,
   },
   "video-tag": {
     path: "/common/security-features/subresource/video.py",

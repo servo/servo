@@ -7,7 +7,8 @@ partial interface Navigator {
   [SecureContext, SameObject] readonly attribute Keyboard keyboard;
 };
 
-[SecureContext, Exposed=Window] interface Keyboard {
+[SecureContext, Exposed=Window]
+interface Keyboard : EventTarget {
   Promise<undefined> lock(optional sequence<DOMString> keyCodes = []);
   undefined unlock();
 };

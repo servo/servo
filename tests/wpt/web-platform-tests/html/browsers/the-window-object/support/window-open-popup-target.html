@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script>
+  var channelName = window.name;
+  var channel = new BroadcastChannel(channelName);
+  const allBarProps = [
+    window.locationbar.visible,
+    window.menubar.visible,
+    window.personalbar.visible,
+    window.scrollbars.visible,
+    window.statusbar.visible,
+    window.toolbar.visible
+  ];
+  const allTrue = allBarProps.every(x=>x);
+  const allFalse = allBarProps.every(x=>!x);
+  channel.postMessage({isPopup: allFalse, mixedState: !allTrue && !allFalse});
+
+  // Because messages are not delivered synchronously and because closing a
+  // browsing context prompts the eventual clearing of all task sources, this
+  // document should not be closed until the opener document has confirmed
+  // receipt.
+  channel.onmessage = function() {
+    window.close();
+  };
+</script>

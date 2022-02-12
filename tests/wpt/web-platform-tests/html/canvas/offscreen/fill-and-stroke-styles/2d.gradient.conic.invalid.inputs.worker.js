@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 assert_throws_js(TypeError, function() { ctx.createConicGradient(Infinity, 0, 1); });
 assert_throws_js(TypeError, function() { ctx.createConicGradient(-Infinity, 0, 1); });

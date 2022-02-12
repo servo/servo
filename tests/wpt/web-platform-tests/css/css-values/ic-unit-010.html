@@ -8,13 +8,19 @@
   <link rel="help" href="https://www.w3.org/TR/css-values-4/#font-relative-lengths">
   <link rel="match" href="reference/ic-unit-009-ref.html">
 
-  <meta name="flags" content="">
   <meta name="assert" content="In this test, the ic unit is the advance height measure of the 水 (CJK water ideograph, U+6C34) glyph.">
 
   <style>
+  @font-face
+    {
+      font-family: IcTestFullWidth;
+      src: url(resources/IcTestFullWidth.woff2);
+    }
+
   div
     {
       float: left;
+      font-family: IcTestFullWidth;
       font-size: 80px; /* arbitrary font size */
       text-orientation: mixed;
       writing-mode: vertical-rl;

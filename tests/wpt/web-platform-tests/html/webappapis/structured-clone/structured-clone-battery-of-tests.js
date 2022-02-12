@@ -3,11 +3,6 @@
 structuredCloneBatteryOfTests = [];
 
 function check(description, input, callback, requiresDocument = false) {
-  testObjMock = {
-    done() {},
-    step_func(f) {return _ => f()},
-  };
-
   structuredCloneBatteryOfTests.push({
     description,
     async f(runner) {
@@ -16,47 +11,41 @@ function check(description, input, callback, requiresDocument = false) {
         newInput = input();
       }
       const copy = await runner.structuredClone(newInput);
-      await callback(copy, newInput, testObjMock);
+      await callback(copy, newInput);
     },
     requiresDocument
   });
 }
 
-function compare_primitive(actual, input, test_obj) {
+function compare_primitive(actual, input) {
   assert_equals(actual, input);
-  if (test_obj)
-    test_obj.done();
 }
-function compare_Array(callback, callback_is_async) {
-  return function(actual, input, test_obj) {
+function compare_Array(callback) {
+  return async function(actual, input) {
     if (typeof actual === 'string')
       assert_unreached(actual);
     assert_true(actual instanceof Array, 'instanceof Array');
     assert_not_equals(actual, input);
     assert_equals(actual.length, input.length, 'length');
-    callback(actual, input);
-    if (test_obj && !callback_is_async)
-      test_obj.done();
+    await callback(actual, input);
   }
 }
 
-function compare_Object(callback, callback_is_async) {
-  return function(actual, input, test_obj) {
+function compare_Object(callback) {
+  return async function(actual, input) {
     if (typeof actual === 'string')
       assert_unreached(actual);
     assert_true(actual instanceof Object, 'instanceof Object');
     assert_false(actual instanceof Array, 'instanceof Array');
     assert_not_equals(actual, input);
-    callback(actual, input);
-    if (test_obj && !callback_is_async)
-      test_obj.done();
+    await callback(actual, input);
   }
 }
 
-function enumerate_props(compare_func, test_obj) {
-  return function(actual, input) {
+function enumerate_props(compare_func) {
+  return async function(actual, input) {
     for (const x in input) {
-      compare_func(actual[x], input[x], test_obj);
+      await compare_func(actual[x], input[x]);
     }
   };
 }
@@ -127,14 +116,12 @@ check('Object primitives', {'undefined':undefined,
                            '9007199254740994':9007199254740994,
                            '-9007199254740994':-9007199254740994}, compare_Object(enumerate_props(compare_primitive)));
 
-function compare_Boolean(actual, input, test_obj) {
+function compare_Boolean(actual, input) {
   if (typeof actual === 'string')
     assert_unreached(actual);
   assert_true(actual instanceof Boolean, 'instanceof Boolean');
   assert_equals(String(actual), String(input), 'converted to primitive');
   assert_not_equals(actual, input);
-  if (test_obj)
-    test_obj.done();
 }
 check('Boolean true', new Boolean(true), compare_Boolean);
 check('Boolean false', new Boolean(false), compare_Boolean);
@@ -143,14 +130,12 @@ check('Object Boolean objects', {'true':new Boolean(true), 'false':new Boolean(f
 
 function compare_obj(what) {
   const Type = self[what];
-  return function(actual, input, test_obj) {
+  return function(actual, input) {
     if (typeof actual === 'string')
       assert_unreached(actual);
     assert_true(actual instanceof Type, 'instanceof '+what);
     assert_equals(Type(actual), Type(input), 'converted to primitive');
     assert_not_equals(actual, input);
-    if (test_obj)
-      test_obj.done();
   };
 }
 check('String empty string', new String(''), compare_obj('String'));
@@ -203,14 +188,12 @@ check('Object Number objects', {'0.2':new Number(0.2),
                                '9007199254740994':new Number(9007199254740994),
                                '-9007199254740994':new Number(-9007199254740994)}, compare_Object(enumerate_props(compare_obj('Number'))));
 
-function compare_Date(actual, input, test_obj) {
+function compare_Date(actual, input) {
   if (typeof actual === 'string')
     assert_unreached(actual);
   assert_true(actual instanceof Date, 'instanceof Date');
   assert_equals(Number(actual), Number(input), 'converted to primitive');
   assert_not_equals(actual, input);
-  if (test_obj)
-    test_obj.done();
 }
 check('Date 0', new Date(0), compare_Date);
 check('Date -0', new Date(-0), compare_Date);
@@ -227,7 +210,7 @@ check('Object Date objects', {'0':new Date(0),
 
 function compare_RegExp(expected_source) {
   // XXX ES6 spec doesn't define exact serialization for `source` (it allows several ways to escape)
-  return function(actual, input, test_obj) {
+  return function(actual, input) {
     if (typeof actual === 'string')
       assert_unreached(actual);
     assert_true(actual instanceof RegExp, 'instanceof RegExp');
@@ -239,8 +222,6 @@ function compare_RegExp(expected_source) {
     assert_equals(actual.unicode, input.unicode, 'unicode');
     assert_equals(actual.lastIndex, 0, 'lastIndex');
     assert_not_equals(actual, input);
-    if (test_obj)
-      test_obj.done();
   }
 }
 function func_RegExp_flags_lastIndex() {
@@ -273,7 +254,7 @@ check('Object RegExp object, RegExp empty', {'x':new RegExp('')}, compare_Object
 check('Object RegExp object, RegExp slash', {'x':new RegExp('/')}, compare_Object(enumerate_props(compare_RegExp('\\/'))));
 check('Object RegExp object, RegExp new line', {'x':new RegExp('\n')}, compare_Object(enumerate_props(compare_RegExp('\\n'))));
 
-async function compare_Blob(actual, input, test_obj, expect_File) {
+async function compare_Blob(actual, input, expect_File) {
   if (typeof actual === 'string')
     assert_unreached(actual);
   assert_true(actual instanceof Blob, 'instanceof Blob');
@@ -333,33 +314,33 @@ function func_Blob_NUL() {
 }
 check('Blob NUL', func_Blob_NUL, compare_Blob);
 
-check('Array Blob object, Blob basic', [func_Blob_basic()], compare_Array(enumerate_props(compare_Blob), true));
-check('Array Blob object, Blob unpaired high surrogate (invalid utf-8)', [func_Blob_bytes([0xD800])()], compare_Array(enumerate_props(compare_Blob), true));
-check('Array Blob object, Blob unpaired low surrogate (invalid utf-8)', [func_Blob_bytes([0xDC00])()], compare_Array(enumerate_props(compare_Blob), true));
-check('Array Blob object, Blob paired surrogates (invalid utf-8)', [func_Blob_bytes([0xD800, 0xDC00])()], compare_Array(enumerate_props(compare_Blob), true));
-check('Array Blob object, Blob empty', [func_Blob_empty()], compare_Array(enumerate_props(compare_Blob), true));
-check('Array Blob object, Blob NUL', [func_Blob_NUL()], compare_Array(enumerate_props(compare_Blob), true));
-check('Array Blob object, two Blobs', [func_Blob_basic(), func_Blob_empty()], compare_Array(enumerate_props(compare_Blob), true));
+check('Array Blob object, Blob basic', [func_Blob_basic()], compare_Array(enumerate_props(compare_Blob)));
+check('Array Blob object, Blob unpaired high surrogate (invalid utf-8)', [func_Blob_bytes([0xD800])()], compare_Array(enumerate_props(compare_Blob)));
+check('Array Blob object, Blob unpaired low surrogate (invalid utf-8)', [func_Blob_bytes([0xDC00])()], compare_Array(enumerate_props(compare_Blob)));
+check('Array Blob object, Blob paired surrogates (invalid utf-8)', [func_Blob_bytes([0xD800, 0xDC00])()], compare_Array(enumerate_props(compare_Blob)));
+check('Array Blob object, Blob empty', [func_Blob_empty()], compare_Array(enumerate_props(compare_Blob)));
+check('Array Blob object, Blob NUL', [func_Blob_NUL()], compare_Array(enumerate_props(compare_Blob)));
+check('Array Blob object, two Blobs', [func_Blob_basic(), func_Blob_empty()], compare_Array(enumerate_props(compare_Blob)));
 
-check('Object Blob object, Blob basic', {'x':func_Blob_basic()}, compare_Object(enumerate_props(compare_Blob), true));
-check('Object Blob object, Blob unpaired high surrogate (invalid utf-8)', {'x':func_Blob_bytes([0xD800])()}, compare_Object(enumerate_props(compare_Blob), true));
-check('Object Blob object, Blob unpaired low surrogate (invalid utf-8)', {'x':func_Blob_bytes([0xDC00])()}, compare_Object(enumerate_props(compare_Blob), true));
-check('Object Blob object, Blob paired surrogates (invalid utf-8)', {'x':func_Blob_bytes([0xD800, 0xDC00])()  }, compare_Object(enumerate_props(compare_Blob), true));
-check('Object Blob object, Blob empty', {'x':func_Blob_empty()}, compare_Object(enumerate_props(compare_Blob), true));
-check('Object Blob object, Blob NUL', {'x':func_Blob_NUL()}, compare_Object(enumerate_props(compare_Blob), true));
+check('Object Blob object, Blob basic', {'x':func_Blob_basic()}, compare_Object(enumerate_props(compare_Blob)));
+check('Object Blob object, Blob unpaired high surrogate (invalid utf-8)', {'x':func_Blob_bytes([0xD800])()}, compare_Object(enumerate_props(compare_Blob)));
+check('Object Blob object, Blob unpaired low surrogate (invalid utf-8)', {'x':func_Blob_bytes([0xDC00])()}, compare_Object(enumerate_props(compare_Blob)));
+check('Object Blob object, Blob paired surrogates (invalid utf-8)', {'x':func_Blob_bytes([0xD800, 0xDC00])()  }, compare_Object(enumerate_props(compare_Blob)));
+check('Object Blob object, Blob empty', {'x':func_Blob_empty()}, compare_Object(enumerate_props(compare_Blob)));
+check('Object Blob object, Blob NUL', {'x':func_Blob_NUL()}, compare_Object(enumerate_props(compare_Blob)));
 
-function compare_File(actual, input, test_obj) {
+async function compare_File(actual, input) {
   assert_true(actual instanceof File, 'instanceof File');
   assert_equals(actual.name, input.name, 'name');
   assert_equals(actual.lastModified, input.lastModified, 'lastModified');
-  compare_Blob(actual, input, test_obj, true);
+  await compare_Blob(actual, input, true);
 }
 function func_File_basic() {
   return new File(['foo'], 'bar', {type:'text/x-bar', lastModified:42});
 }
 check('File basic', func_File_basic, compare_File);
 
-function compare_FileList(actual, input, test_obj) {
+function compare_FileList(actual, input) {
   if (typeof actual === 'string')
     assert_unreached(actual);
   assert_true(actual instanceof FileList, 'instanceof FileList');
@@ -367,8 +348,6 @@ function compare_FileList(actual, input, test_obj) {
   assert_not_equals(actual, input);
   // XXX when there's a way to populate or construct a FileList,
   // check the items in the FileList
-  if (test_obj)
-    test_obj.done();
 }
 function func_FileList_empty() {
   const input = document.createElement('input');
@@ -381,7 +360,7 @@ check('Object FileList object, FileList empty', () => ({'x':func_FileList_empty(
 
 function compare_ArrayBufferView(view) {
   const Type = self[view];
-  return function(actual, input, test_obj) {
+  return function(actual, input) {
     if (typeof actual === 'string')
       assert_unreached(actual);
     assert_true(actual instanceof Type, 'instanceof '+view);
@@ -390,19 +369,15 @@ function compare_ArrayBufferView(view) {
     for (let i = 0; i < actual.length; ++i) {
       assert_equals(actual[i], input[i], 'actual['+i+']');
     }
-    if (test_obj)
-      test_obj.done();
   };
 }
-function compare_ImageData(actual, input, test_obj) {
+function compare_ImageData(actual, input) {
   if (typeof actual === 'string')
     assert_unreached(actual);
   assert_equals(actual.width, input.width, 'width');
   assert_equals(actual.height, input.height, 'height');
   assert_not_equals(actual.data, input.data, 'data');
   compare_ArrayBufferView('Uint8ClampedArray')(actual.data, input.data, null);
-  if (test_obj)
-    test_obj.done();
 }
 function func_ImageData_1x1_transparent_black() {
   const canvas = document.createElement('canvas');
@@ -614,5 +589,43 @@ check('ObjectPrototype must lose its exotic-ness when cloned',
     Object.setPrototypeOf(copy, newProto);
 
     assert_equals(Object.getPrototypeOf(copy), newProto);
+  }
+);
+
+structuredCloneBatteryOfTests.push({
+  description: 'Serializing a non-serializable platform object fails',
+  async f(runner, t) {
+    const request = new Response();
+    await promise_rejects_dom(
+      t,
+      "DataCloneError",
+      runner.structuredClone(request)
+    );
+  }
+});
+
+structuredCloneBatteryOfTests.push({
+  description: 'An object whose interface is deleted from the global must still deserialize',
+  async f(runner) {
+    const blob = new Blob();
+    const blobInterface = globalThis.Blob;
+    delete globalThis.Blob;
+    try {
+      const copy = await runner.structuredClone(blob);
+      assert_true(copy instanceof blobInterface);
+    } finally {
+      globalThis.Blob = blobInterface;
+    }
+  }
+});
+
+check(
+  'A subclass instance will deserialize as its closest serializable superclass',
+  () => {
+    class FileSubclass extends File {}
+    return new FileSubclass([], "");
+  },
+  (copy) => {
+    assert_equals(Object.getPrototypeOf(copy), File.prototype);
   }
 );

@@ -9,7 +9,6 @@
   <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
   <link rel="match" href="reference/active-selection-012-ref.html">
 
-  <meta content="" name="flags">
 
   <link rel="stylesheet" href="support/highlights.css">
   <style>
@@ -24,6 +23,7 @@
   div::selection
     {
       background-color: green;
+      color: aqua;
     }
 
   /*
@@ -47,6 +47,6 @@
 
   <body onload="startTest();">
 
-  <p>Test passes if the background color of each glyph of "Selected Text" is green and <strong>not red</strong> while each glyph of "Selected Text" is fuchsia.
+  <p>Test passes if the background color of each glyph of "Selected Text" is green and <strong>not red</strong> while each glyph of "Selected Text" is aqua and <strong>not fuchsia</strong>.
 
   <div id="test" class="highlight_reftest">Selected Text</div>

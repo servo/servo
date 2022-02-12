@@ -28,6 +28,9 @@
     "package submodules": {
       "expectedResults": {
         "moment/foo": "https://example.com/node_modules/moment/src/foo",
+        "moment/foo?query": "https://example.com/node_modules/moment/src/foo?query",
+        "moment/foo#fragment": "https://example.com/node_modules/moment/src/foo#fragment",
+        "moment/foo?query#fragment": "https://example.com/node_modules/moment/src/foo?query#fragment",
         "lodash-dot/foo": "https://example.com/app/node_modules/lodash-es/foo",
         "lodash-dotdot/foo": "https://example.com/node_modules/lodash-es/foo"
       }

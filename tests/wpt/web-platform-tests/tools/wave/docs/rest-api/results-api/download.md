@@ -7,7 +7,7 @@ the [`create`](./create.md) method of the results API.
 ## 1. `download`
 
 Downloads all results of a session as ZIP, which other instances of the WMAS 
-Test Suite can import.
+Test Runner can import.
 
 ### HTTP Request
 

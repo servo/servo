@@ -42,18 +42,18 @@ if (topLevelDocument) {
   // of various iFrames
 
   // Create a test with a single-child same-origin iframe.
-  RunTestsInIFrame("requestStorageAccess.sub.window.html?testCase=same-origin-frame&rootdocument=false");
+  RunTestsInIFrame("resources/requestStorageAccess-iframe.html?testCase=same-origin-frame&rootdocument=false");
 
   // Create a test with a single-child cross-origin iframe.
-  RunTestsInIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/requestStorageAccess.sub.window.html?testCase=cross-origin-frame&rootdocument=false");
+  RunTestsInIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=cross-origin-frame&rootdocument=false");
 
   // Validate the nested-iframe scenario where the same-origin frame containing
   // the tests is not the first child.
-  RunTestsInNestedIFrame("requestStorageAccess.sub.window.html?testCase=nested-same-origin-frame&rootdocument=false");
+  RunTestsInNestedIFrame("resources/requestStorageAccess-iframe.html?testCase=nested-same-origin-frame&rootdocument=false");
 
   // Validate the nested-iframe scenario where the cross-origin frame containing
   //  the tests is not the first child.
-  RunTestsInNestedIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/requestStorageAccess.sub.window.html?testCase=nested-cross-origin-frame&rootdocument=false");
+  RunTestsInNestedIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=nested-cross-origin-frame&rootdocument=false");
 
   promise_test(async t => {
     await test_driver.set_permission({ name: 'storage-access' }, 'granted');

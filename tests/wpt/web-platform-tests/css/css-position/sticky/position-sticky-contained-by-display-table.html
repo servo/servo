@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>position:sticky should work for elements with display: table* containing blocks</title>
+<link rel="match" href="position-sticky-contained-by-display-table-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that position:sticky works for elements with containing blocks that have display: table*" />
+
+<style>
+.group {
+  display: inline-block;
+}
+
+.container {
+  height: 1000px;
+  width: 50px;
+  margin-right: 10px;
+}
+
+#scroll-container {
+  height: 300px;
+  width: 500px;
+  overflow: hidden;
+  position: relative;
+}
+
+.sticky {
+  position: sticky;
+  height: 50px;
+  width: 50px;
+  background: green;
+  top: 0;
+}
+
+#scroll-indicator {
+    display: inline-block;
+    position: absolute;
+    top: 0px;
+    width: 300px;
+    height: 50px;
+    background: red;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroll-container').scrollTop = 300;
+});
+</script>
+
+
+<div id="scroll-container">
+    <div class="group">
+        <div class="container" style="display: table-cell;">
+          <div class="sticky"></div>
+        </div>
+    </div>
+
+    <div class="group">
+        <div class="container" style="display: table-row;">
+          <div class="sticky"></div>
+        </div>
+    </div>
+
+    <div class="group">
+        <div class="container" style="display: table;">
+          <div class="sticky"></div>
+        </div>
+    </div>
+
+    <!-- This is here to validate that the container does scroll. -->
+    <div id="scroll-indicator" style=""></div>
+</div>

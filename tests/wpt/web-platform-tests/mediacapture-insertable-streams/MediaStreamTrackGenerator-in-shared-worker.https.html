@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Test initialize MediaStreamTrackGenerator in a shared worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+    const worker = new SharedWorker('shared-worker.js');
+    const result = new Promise((resolve, reject) => {
+        worker.port.onmessage = (e) => {
+            if (e.data.result === 'Failure') {
+                reject('Failed with error ' + e.data.error);
+            } else {
+                resolve();
+            }
+        };
+    });
+    worker.port.postMessage('Hello world');
+    return result;
+}, 'A shared worker is able to initialize a MediaStreamTrackGenerator without crashing');
+</script>

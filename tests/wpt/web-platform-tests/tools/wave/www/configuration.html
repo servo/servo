@@ -18,271 +18,428 @@
   </head>
   <body>
     <script>
-//      var apis = [
-//        { title: "2D Context", path: "/2dcontext" },
-//        { title: "Content Security Policy", path: "/content-security-policy" },
-//        { title: "CSS", path: "/css" },
-//        { title: "DOM", path: "/dom" },
-//        { title: "ECMAScript", path: "/ecmascript" },
-//        { title: "Encrypted media", path: "/encrypted-media" },
-//        { title: "Fetch", path: "/fetch" },
-//        { title: "FileAPI", path: "/FileAPI" },
-//        { title: "Fullscreen", path: "/fullscreen" },
-//        { title: "WebGL", path: "/webgl" },
-//        { title: "HTML", path: "/html" },
-//        { title: "IndexedDB", path: "/IndexedDB" },
-//        { title: "Media Source", path: "/media-source" },
-//        { title: "Notifications", path: "/notifications" },
-//        { title: "Page Visibility", path: "/page-visibility" },
-//        { title: "Service Workers", path: "/service-workers" },
-//        { title: "UI Events", path: "/uievents" },
-//        { title: "WAVE Extra", path: "/wave-extra" },
-//        { title: "Webaudio", path: "/webaudio" },
-//        { title: "WebCryptoAPI", path: "/WebCryptoAPI" },
-//        { title: "Webmessaging", path: "/webmessaging" },
-//        { title: "Websockets", path: "/websockets" },
-//        { title: "Webstorage", path: "/webstorage" },
-//        { title: "Workers", path: "/workers" },
-//        { title: "XHR", path: "/xhr" }
-//      ];
-			var apis = [];
+      //      var apis = [
+      //        { title: "2D Context", path: "/2dcontext" },
+      //        { title: "Content Security Policy", path: "/content-security-policy" },
+      //        { title: "CSS", path: "/css" },
+      //        { title: "DOM", path: "/dom" },
+      //        { title: "ECMAScript", path: "/ecmascript" },
+      //        { title: "Encrypted media", path: "/encrypted-media" },
+      //        { title: "Fetch", path: "/fetch" },
+      //        { title: "FileAPI", path: "/FileAPI" },
+      //        { title: "Fullscreen", path: "/fullscreen" },
+      //        { title: "WebGL", path: "/webgl" },
+      //        { title: "HTML", path: "/html" },
+      //        { title: "IndexedDB", path: "/IndexedDB" },
+      //        { title: "Media Source", path: "/media-source" },
+      //        { title: "Notifications", path: "/notifications" },
+      //        { title: "Page Visibility", path: "/page-visibility" },
+      //        { title: "Service Workers", path: "/service-workers" },
+      //        { title: "UI Events", path: "/uievents" },
+      //        { title: "WAVE Extra", path: "/wave-extra" },
+      //        { title: "Webaudio", path: "/webaudio" },
+      //        { title: "WebCryptoAPI", path: "/WebCryptoAPI" },
+      //        { title: "Webmessaging", path: "/webmessaging" },
+      //        { title: "Websockets", path: "/websockets" },
+      //        { title: "Webstorage", path: "/webstorage" },
+      //        { title: "Workers", path: "/workers" },
+      //        { title: "XHR", path: "/xhr" }
+      //      ];
 
-      var types = [
-        { title: "Automatic", value: "automatic" },
-        { title: "Manual", value: "manual" }
-      ];
+      //      var referenceSessions = [
+      //        {
+      //          title: "Edge 44.17763",
+      //          engine: "",
+      //          token: "b2924d20-6a93-11e9-98b4-a11fb92a6d1c",
+      //          icon: "fab fa-edge"
+      //        },
+      //        {
+      //          title: "Firefox 64.0",
+      //          engine: "Gecko 64.0",
+      //          token: "bb7aafa0-6a92-11e9-8ec2-04f58dad2e4f",
+      //          icon: "fab fa-firefox"
+      //        },
+      //        {
+      //          title: "WebKit 605.1.15",
+      //          engine: "Revision 239158",
+      //          token: "caf823e0-6a92-11e9-b732-3188d0065ebc",
+      //          icon: "fab fa-safari"
+      //        },
+      //        {
+      //          title: "Chromium 73.0.3640.0",
+      //          engine: "Blink 537.36",
+      //          token: "a50c6db0-6a94-11e9-8d1b-e23fc4555885",
+      //          icon: "fab fa-chrome"
+      //        }
+      //      ];
 
-//      var referenceSessions = [
-//        {
-//          title: "Edge 44.17763",
-//          engine: "",
-//          token: "b2924d20-6a93-11e9-98b4-a11fb92a6d1c",
-//          icon: "fab fa-edge"
-//        },
-//        {
-//          title: "Firefox 64.0",
-//          engine: "Gecko 64.0",
-//          token: "bb7aafa0-6a92-11e9-8ec2-04f58dad2e4f",
-//          icon: "fab fa-firefox"
-//        },
-//        {
-//          title: "WebKit 605.1.15",
-//          engine: "Revision 239158",
-//          token: "caf823e0-6a92-11e9-b732-3188d0065ebc",
-//          icon: "fab fa-safari"
-//        },
-//        {
-//          title: "Chromium 73.0.3640.0",
-//          engine: "Blink 537.36",
-//          token: "a50c6db0-6a94-11e9-8d1b-e23fc4555885",
-//          icon: "fab fa-chrome"
-//        }
-//      ];
-			var referenceSessions= [];
+      var testFileSelectionEnabled = true;
 
-      window.onload = function() {
-        const query = utils.parseQuery(location.search);
-        token = query.token;
-        if (token) WaveService.addRecentSession(token);
-        configurationUi.render();
-				WaveService.readAvailableApis(function(available_apis) {
-					available_apis = available_apis.sort((apiA, apiB) => apiA.title.toLowerCase() > apiB.title.toLowerCase() ? 1 : -1)
-					apis = available_apis;
-					WaveService.readPublicSessions(function(tokens) {
-						console.log(tokens);
-						WaveService.readMultipleSessions(tokens, function(configurations) {
-							referenceSessions = configurations
-								.sort((confA, confB) => confA.browser.name.toLowerCase() > confB.browser.name.toLowerCase() ? 1 : -1)
-								.map(configuration => {
-									var icon = "";
-									switch(configuration.browser.name.toLowerCase()) {
-										case "firefox": icon = "fab fa-firefox"; break;
-										case "webkit":
-										case "safari": icon = "fab fa-safari"; break;
-										case "edge": icon = "fab fa-edge"; break;
-										case "chrome":
-										case "chromium": icon = "fab fa-chrome"; break;
-									}
-									return {
-										title: configuration.browser.name + " " + configuration.browser.version,
-										token: configuration.token,
-										icon,
-										engine: configuration.browser.engine || ""
-									}
-								});
-							WaveService.readSessionStatus(
-								token,
-								function(status) {
-									if (status.status !== "pending") {
-										configurationUi.openResultsPage(token);
-										return;
-									}
-
-									WaveService.readSession(token, function(configuration) {
-										if (
-											configuration.tests.include.findIndex(test => test === "/") !==
-											-1
-										) {
-											configuration.tests.include = apis.map(api => api.path);
-										}
-										configurationUi.state.configurationBackup = utils.copyObject(
-											configuration
-										);
-										configurationUi.state.configuration = configuration;
-										setTimeout(
-											configurationUi.handleExpiration,
-											configuration.expirationDate - Date.now()
-										);
-										configurationUi.renderSessionConfiguration();
-									});
-								},
-								function() {
-									configurationUi.state.expired = true;
-									configurationUi.renderSessionConfiguration();
-									configurationUi.renderExcludedTests();
-									configurationUi.renderResumeView();
-								}
-							);
-						});
-					});
-				});
+      window.onload = function () {
+        new ConfigurationView();
       };
 
-      var configurationUi = {
-        state: {},
-        hasIncludedTest: function(path) {
-          var configuration = configurationUi.state.configuration;
-          var index = configuration.tests.include.findIndex(
-            test => test === path
-          );
-          return index !== -1;
-        },
-        handleIncludedTestToggle: function(path) {
-          var configuration = configurationUi.state.configuration;
-          if (configurationUi.hasIncludedTest(path)) {
-            var index = configuration.tests.include.findIndex(
-              test => test === path
-            );
-            configuration.tests.include.splice(index, 1);
-          } else {
-            configuration.tests.include.push(path);
+      function ConfigurationView() {
+        const query = utils.parseQuery(location.search);
+        var token = query.token;
+        if (token) WaveService.addRecentSession(token);
+        var referenceSessions = [];
+        var apis = [];
+        var testTypeSelectionEnabled = true;
+        var testFileSelectionEnabled = false;
+
+        var types = [
+          { title: "Automatic", value: "automatic" },
+          { title: "Manual", value: "manual" },
+        ];
+        var state = {};
+        loadServerStatus();
+        loadSessionData(token, function () {
+                loadPublicSessionData(function () {
+                  renderReferencesField();
+                });
+        });
+        render();
+
+        function loadServerStatus() {
+          WaveService.readStatus(function (status) {
+            testTypeSelectionEnabled = status.testTypeSelectionEnabled;
+            testFileSelectionEnabled = status.testFileSelectionEnabled;
+            renderSessionConfiguration();
+          });
+        }
+
+        function loadSessionData(token, callback) {
+          if (!token) {
+            state.expired = true;
+            return;
           }
-          configurationUi.renderSessionConfiguration();
-        },
-        selectAllTests: function() {
-          var configuration = configurationUi.state.configuration;
-          configuration.tests.include = apis.map(api => api.path);
-          configurationUi.renderSessionConfiguration();
-        },
-        deselectAllTests: function() {
-          var configuration = configurationUi.state.configuration;
-          configuration.tests.include = [];
-          configurationUi.renderSessionConfiguration();
-        },
-        hasTestType: function(value) {
-          var configuration = configurationUi.state.configuration;
-          var index = configuration.types.findIndex(type => type === value);
+          WaveService.readSessionStatus(
+            token,
+            function (status) {
+              if (status.status !== "pending") {
+                openResultsPage(token);
+                return;
+              }
+              state.status = status;
+
+              WaveService.readSession(token, function (configuration) {
+                if (
+                  configuration.tests.include.findIndex(
+                    (test) => test === "/"
+                  ) !== -1
+                ) {
+                  configuration.tests.include = apis.map((api) => api.path);
+                }
+                state.configurationBackup = utils.copyObject(configuration);
+                state.configuration = configuration;
+                setTimeout(
+                  handleExpiration,
+                  status.expirationDate.getTime() - Date.now()
+                );
+                renderSessionConfiguration();
+                callback();
+                WaveService.readAvailableApis(function (available_apis) {
+                  available_apis = available_apis.sort((apiA, apiB) =>
+                    apiA.title.toLowerCase() > apiB.title.toLowerCase() ? 1 : -1
+                  );
+                  apis = available_apis;
+                  selectAllTests();
+                  renderSessionConfiguration();
+                });
+              });
+            },
+            function () {
+              state.expired = true;
+              renderSessionConfiguration();
+              renderExcludedTests();
+              renderResumeView();
+            }
+          );
+        }
+
+        function loadPublicSessionData(callback) {
+          WaveService.readPublicSessions(function (tokens) {
+            WaveService.readMultipleSessions(tokens, function (configurations) {
+                    console.log(configurations);
+              referenceSessions = configurations
+                .sort((confA, confB) =>
+                  confA.browser.name.toLowerCase() >
+                  confB.browser.name.toLowerCase()
+                    ? 1
+                    : -1
+                )
+                .map((configuration) => {
+                  var icon = "";
+                  switch (configuration.browser.name.toLowerCase()) {
+                    case "firefox":
+                      icon = "fab fa-firefox";
+                      break;
+                    case "webkit":
+                    case "safari":
+                      icon = "fab fa-safari";
+                      break;
+                    case "edge":
+                      icon = "fab fa-edge";
+                      break;
+                    case "chrome":
+                    case "chromium":
+                      icon = "fab fa-chrome";
+                      break;
+                  }
+                  return {
+                    title:
+                      configuration.browser.name +
+                      " " +
+                      configuration.browser.version,
+                    token: configuration.token,
+                    icon,
+                    engine: configuration.browser.engine || "",
+                  };
+                });
+              callback(referenceSessions);
+            });
+          });
+        }
+
+        function handleConfigureSession() {
+          const tokenFragmentInput = UI.getElement("token-fragment");
+          const fragment = tokenFragmentInput.value;
+          findSession(fragment, function (session) {
+            if (!session) {
+              const errorBox = UI.getElement("find-error");
+              errorBox.setAttribute("style", "display: block");
+              return;
+            }
+            tokenFragmentInput.value = "";
+            const errorBox = UI.getElement("find-error");
+            errorBox.setAttribute("style", "display: none");
+            const path = location.pathname + "?token=" + session.token;
+            location.href = path;
+          });
+        }
+
+        function findSession(fragment, callback) {
+          if (!fragment || fragment.length < 8) {
+            callback(null);
+            return;
+          }
+          WaveService.findToken(
+            fragment,
+            function (token) {
+              WaveService.readSession(token, function (session) {
+                WaveService.readSessionStatus(token, function (status) {
+                  session.status = status.status;
+                  session.dateStarted = status.dateStarted;
+                  session.dateFinished = status.dateFinished;
+                  callback(session);
+                });
+              });
+            },
+            function () {
+              callback(null);
+            }
+          );
+        }
+
+        function hasIncludedTest(path) {
+          var tests = state.configuration.tests;
+          //var index = tests.include.findIndex(function (test) {
+          //  return test.match(new RegExp("^" + path));
+          //});
+          var index = tests.include.indexOf(path);
           return index !== -1;
-        },
-        handleTestTypeToggle: function(value) {
-          var configuration = configurationUi.state.configuration;
-          if (configurationUi.hasTestType(value)) {
-            var index = configuration.types.findIndex(type => type === value);
+        }
+
+        function handleIncludedTestToggle(path) {
+          var configuration = state.configuration;
+          if (hasIncludedTest(path)) {
+            handleRemoveIncludedTest(path);
+          } else {
+            handleAddIncludedTest(path);
+          }
+        }
+
+        function handleAddIncludedTest(path) {
+          var tests = state.configuration.tests;
+          if (state.tests && state.tests[path.substr(1)]) {
+            tests.include = tests.include.filter(function (test) {
+              return !test.match(new RegExp("^" + path + "/"));
+            });
+            tests.include = tests.include.concat(state.tests[path.substr(1)]);
+          } else {
+            tests.include.push(path);
+          }
+        }
+
+        function handleRemoveIncludedTest(path) {
+          var tests = state.configuration.tests;
+
+          if (state.tests && state.tests[path.substr(1)]) {
+            tests.include = tests.include.filter(function (test) {
+              return !test.match(new RegExp("^" + path + "/"));
+            });
+          } else {
+            var index = tests.include.findIndex((test) => test === path);
+            tests.include.splice(index, 1);
+          }
+        }
+
+        function getIncludedRatio(path) {
+          var includedTests = state.configuration.tests.include;
+          if (!state.tests) {
+            return includedTests.indexOf(path) !== -1 ? 1 : 0;
+          }
+          var count = 0;
+          for (var test of includedTests) {
+            if (!test.match(new RegExp("^" + path))) continue;
+            count++;
+          }
+          return count / state.tests[path.substr(1)].length;
+        }
+
+        function selectAllTests() {
+          var tests = state.configuration.tests;
+          if (state.tests) {
+            tests.include = [];
+            for (var api in state.tests) {
+              tests.include = tests.include.concat(state.tests[api]);
+            }
+          } else {
+            tests.include = apis.map((api) => api.path);
+          }
+        }
+
+        function deselectAllTests() {
+          var configuration = state.configuration;
+          configuration.tests.include = [];
+        }
+
+        function hasTestType(value) {
+          var configuration = state.configuration;
+          var index = configuration.types.findIndex((type) => type === value);
+          return index !== -1;
+        }
+
+        function handleTestTypeToggle(value) {
+          var configuration = state.configuration;
+          if (hasTestType(value)) {
+            var index = configuration.types.findIndex((type) => type === value);
             configuration.types.splice(index, 1);
           } else {
             configuration.types.push(value);
           }
-          configurationUi.renderSessionConfiguration();
-        },
-        selectAllTestTypes: function() {
-          var configuration = configurationUi.state.configuration;
-          configuration.types = types.map(type => type.value);
-          configurationUi.renderSessionConfiguration();
-        },
-        deselectAllTestTypes: function() {
-          var configuration = configurationUi.state.configuration;
+        }
+
+        function selectAllTestTypes() {
+          var configuration = state.configuration;
+          configuration.types = types.map((type) => type.value);
+        }
+
+        function deselectAllTestTypes() {
+          var configuration = state.configuration;
           configuration.types = [];
-          configurationUi.renderSessionConfiguration();
-        },
-        hasRefSession: function(session) {
-          var configuration = configurationUi.state.configuration;
+        }
+
+        function hasRefSession(session) {
+          var configuration = state.configuration;
           var index = configuration.referenceTokens.findIndex(
-            token => token === session.token
+            (token) => token === session.token
           );
           return index !== -1;
-        },
-        handleRefSessionToggle: function(session) {
-          var configuration = configurationUi.state.configuration;
-          if (configurationUi.hasRefSession(session)) {
+        }
+
+        function handleRefSessionToggle(session) {
+          var configuration = state.configuration;
+          if (hasRefSession(session)) {
             var index = configuration.referenceTokens.findIndex(
-              token => token === session.token
+              (token) => token === session.token
             );
             configuration.referenceTokens.splice(index, 1);
           } else {
             configuration.referenceTokens.push(session.token);
           }
-          configurationUi.renderSessionConfiguration();
-        },
-        selectAllRefSessions: function() {
-          var configuration = configurationUi.state.configuration;
+        }
+
+        function selectAllRefSessions() {
+          var configuration = state.configuration;
           configuration.referenceTokens = referenceSessions.map(
-            session => session.token
+            (session) => session.token
           );
-          configurationUi.renderSessionConfiguration();
-        },
-        deselectAllRefSessions: function() {
-          var configuration = configurationUi.state.configuration;
+        }
+
+        function deselectAllRefSessions() {
+          var configuration = state.configuration;
           configuration.referenceTokens = [];
-          configurationUi.renderSessionConfiguration();
-        },
-        isTestListValid: function() {
-          var configuration = configurationUi.state.configuration;
+        }
+
+        function isTestListValid() {
+          var configuration = state.configuration;
           return configuration.tests.include.length > 0;
-        },
-        isTestTypeListValid: function() {
-          var configuration = configurationUi.state.configuration;
+        }
+
+        function isTestTypeListValid() {
+          var configuration = state.configuration;
           return configuration.types.length > 0;
-        },
-        isConfigurationValid: function() {
-          if (!configurationUi.isTestListValid()) return false;
-          if (!configurationUi.isTestTypeListValid()) return false;
+        }
+
+        function isConfigurationValid() {
+          if (!isTestListValid()) return false;
+          if (!isTestTypeListValid()) return false;
           return true;
-        },
-        isSessionStarting: function() {
-          return configurationUi.state.isStarting;
-        },
-        handleStart: function() {
-          if (configurationUi.isSessionStarting()) return;
-          var configuration = configurationUi.state.configuration;
+        }
+
+        function isSessionStarting() {
+          return state.isStarting;
+        }
+
+        function checkApiList() {
+          var apiErrorElement = UI.getElement("api-error");
+          apiErrorElement.innerHTML = "";
+          if (!isTestListValid()) {
+            apiErrorElement.appendChild(
+              UI.createElement(
+                createErrorMessage(
+                  "Select at least one API or at least one test within an API"
+                )
+              )
+            );
+          }
+          renderButtonsField();
+        }
+
+        function handleStart() {
+          if (isSessionStarting()) return;
+          var configuration = state.configuration;
           var token = configuration.token;
-          WaveService.updateSession(token, configuration, function() {
-            WaveService.updateLabels(token, configuration.labels, function() {
-              WaveService.startSession(token, function() {
-                configurationUi.openResultsPage(token);
+          WaveService.updateSession(token, configuration, function () {
+            WaveService.updateLabels(token, configuration.labels, function () {
+              WaveService.startSession(token, function () {
+                openResultsPage(token);
               });
             });
           });
-          configurationUi.state.isStarting = true;
-          configurationUi.renderSessionConfiguration();
-        },
-        handleDiscardChanges: function() {
-          configurationUi.state.configuration = utils.copyObject(
-            configurationUi.state.configurationBackup
-          );
-          configurationUi.renderSessionConfiguration();
-        },
-        handleExpiration: function() {
-          configurationUi.state.expired = true;
-          configurationUi.renderSessionConfiguration();
-          configurationUi.renderResumeView();
-        },
-        openResultsPage: function(token) {
+          state.isStarting = true;
+        }
+
+        function handleDiscardChanges() {
+          state.configuration = utils.copyObject(state.configurationBackup);
+        }
+
+        function handleExpiration() {
+          state.expired = true;
+          renderSessionConfiguration();
+          renderResumeView();
+        }
+
+        function openResultsPage(token) {
           location.href = WEB_ROOT + "results.html?token=" + token;
-        },
-        handleAddExludedTestsRaw: function() {
+        }
+
+        function handleAddExludedTestsRaw() {
           var excludedTestsTextArea = UI.getElement("excluded-tests-text");
           var tests = excludedTestsTextArea.value.split("\n");
-          var configuration = configurationUi.state.configuration;
+          var configuration = state.configuration;
           var excludedTests = configuration.tests.exclude;
           for (var test of tests) {
             if (!test) continue;
@@ -292,21 +449,22 @@
           }
 
           excludedTestsTextArea.value = "";
-          configurationUi.renderExcludedTests();
-        },
-        handleAddExludedTestsMalfunctioning: function() {
+          renderExcludedTests();
+        }
+
+        function handleAddExludedTestsMalfunctioning() {
           var excludedTestsTextArea = UI.getElement("excluded-tests-text");
           var token = excludedTestsTextArea.value;
           var tokenRegExp = new RegExp(
             "^[a-f0-9]{8}(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,12}|$)"
           );
-          var configuration = configurationUi.state.configuration;
+          var configuration = state.configuration;
           var excludedTests = configuration.tests.exclude;
           if (tokenRegExp.test(token)) {
             WaveService.findToken(
               token,
-              function(token) {
-                WaveService.readMalfunctioningTests(token, function(
+              function (token) {
+                WaveService.readMalfunctioningTests(token, function (
                   malfunctioningTests
                 ) {
                   for (var test of malfunctioningTests) {
@@ -314,100 +472,109 @@
                     if (excludedTests.indexOf(test) !== -1) continue;
                     excludedTests.push(test);
                   }
-                  configurationUi.renderExcludedTests();
+                  renderExcludedTests();
                 });
               },
-              function() {
-                configurationUi.state.excludedTestError = "Session not found";
-                configurationUi.renderExcludedTests();
+              function () {
+                state.excludedTestError = "Session not found";
+                renderExcludedTests();
               }
             );
           } else {
-            configurationUi.state.excludedTestError = "Invalid session token";
-            configurationUi.renderExcludedTests();
+            state.excludedTestError = "Invalid session token";
+            renderExcludedTests();
           }
-        },
-        handleAddExludedTestsExcluded: function() {
+        }
+
+        function handleAddExludedTestsExcluded() {
           var excludedTestsTextArea = UI.getElement("excluded-tests-text");
           var token = excludedTestsTextArea.value;
           var tokenRegExp = new RegExp(
             "^[a-f0-9]{8}(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,12}|$)"
           );
-          var configuration = configurationUi.state.configuration;
+          var configuration = state.configuration;
           var excludedTests = configuration.tests.exclude;
           if (tokenRegExp.test(token)) {
             WaveService.findToken(
               token,
-              function(token) {
-                WaveService.readSession(token, function(sessionConfig) {
+              function (token) {
+                WaveService.readSession(token, function (sessionConfig) {
                   var prevExcludedTests = sessionConfig.tests.exclude;
                   for (var test of prevExcludedTests) {
                     if (!test) continue;
                     if (excludedTests.indexOf(test) !== -1) continue;
                     excludedTests.push(test);
                   }
-                  configurationUi.renderExcludedTests();
+                  renderExcludedTests();
                 });
               },
-              function() {
-                configurationUi.state.excludedTestError = "Session not found";
-                configurationUi.renderExcludedTests();
+              function () {
+                state.excludedTestError = "Session not found";
+                renderExcludedTests();
               }
             );
           } else {
-            configurationUi.state.excludedTestError = "Invalid session token";
-            configurationUi.renderExcludedTests();
+            state.excludedTestError = "Invalid session token";
+            renderExcludedTests();
           }
-        },
-        handleRemoveExcludedTest: function(test) {
-          var configuration = configurationUi.state.configuration;
+        }
+
+        function handleRemoveExcludedTest(test) {
+          var configuration = state.configuration;
           var excludedTests = configuration.tests.exclude;
           var index = excludedTests.indexOf(test);
           excludedTests.splice(index, 1);
-          configurationUi.renderExcludedTests();
-        },
-        handleExcludeInputChange: function(type) {
-          if (configurationUi.state.activeExcludeInput === type) {
-            configurationUi.state.activeExcludeInput = null;
+          renderExcludedTests();
+        }
+
+        function handleExcludeInputChange(type) {
+          if (state.activeExcludeInput === type) {
+            state.activeExcludeInput = null;
           } else {
-            configurationUi.state.activeExcludeInput = type;
+            state.activeExcludeInput = type;
           }
-          configurationUi.renderExcludedTests();
-        },
-        showAddLabel: function() {
-          configurationUi.state.addLabelVisible = true;
-          configurationUi.renderSessionConfiguration();
+          renderExcludedTests();
+        }
+
+        function showAddLabel() {
+          state.addLabelVisible = true;
+          renderLabelsField();
           UI.getElement("session-label-input").focus();
-        },
-        hideAddLabel: function() {
-          configurationUi.state.addLabelVisible = false;
-          configurationUi.renderSessionConfiguration();
-        },
-        addLabel: function() {
+        }
+
+        function hideAddLabel() {
+          state.addLabelVisible = false;
+          renderLabelsField();
+        }
+
+        function addLabel() {
           var label = UI.getElement("session-label-input").value;
           if (!label) return;
-          configurationUi.state.configuration.labels.push(label);
-          configurationUi.renderSessionConfiguration();
+          state.configuration.labels.push(label);
+          renderLabelsField();
           UI.getElement("session-label-input").focus();
-        },
-        removeLabel: function(index) {
-          const { configuration } = configurationUi.state;
+        }
+
+        function removeLabel(index) {
+          const { configuration } = state;
           configuration.labels.splice(index, 1);
-          configurationUi.renderSessionConfiguration();
-        },
-        resumeSession: function() {
+          renderLabelsField();
+        }
+
+        function resumeSession() {
           var resumeToken = UI.getElement("resume-token").value;
           if (!resumeToken) return;
 
           WaveService.resumeSession(
-            configurationUi.state.configuration.token,
+            state.configuration.token,
             resumeToken,
-            function() {
-              configurationUi.openResultsPage(resumeToken);
+            function () {
+              openResultsPage(resumeToken);
             }
           );
-        },
-        render: function() {
+        }
+
+        function render() {
           const configurationView = UI.createElement({
             element: "section",
             className: "section",
@@ -419,48 +586,114 @@
                   {
                     element: "img",
                     src: "res/wavelogo_2016.jpg",
-                    className: "site-logo"
+                    className: "site-logo",
                   },
-                  { className: "title", text: "Session Configuration" }
-                ]
+                  { className: "title", text: "Session Configuration" },
+                ],
               },
               {
                 id: "session-configuration",
-                className: "container",
-                style: "margin-bottom: 2em"
               },
               {
                 id: "resume-view",
                 className: "container",
-                style: "margin-bottom: 2em"
-              }
-            ]
+                style: "margin-bottom: 2em",
+              },
+            ],
           });
           const root = UI.getRoot();
           root.innerHTML = "";
           root.appendChild(configurationView);
-          configurationUi.renderSessionConfiguration();
-          configurationUi.renderResumeView();
-        },
-        renderSessionConfiguration: function() {
-          var configuration = configurationUi.state.configuration;
+          renderSessionConfiguration();
+          renderResumeView();
+        }
+
+        function renderSessionConfiguration() {
+          var configuration = state.configuration;
+          var status = state.status;
           var sessionConfigurationView = UI.createElement({});
           var sessionConfiguration = UI.getElement("session-configuration");
           sessionConfiguration.innerHTML = "";
 
-          if (configurationUi.state.expired) {
+          if (state.expired) {
             var expiredIndicator = UI.createElement({
-              className: "level",
+              className: "level container",
+              style: "max-width: 500px",
               children: {
                 element: "span",
-                className: "level-item",
+                className: "level-item field column",
                 children: [
                   {
-                    text:
-                      "The specified session does not exist or is already expired."
-                  }
-                ]
-              }
+                    element: "article",
+                    className: "message is-danger",
+                    id: "find-error",
+                    children: [
+                      {
+                        text:
+                          "Could not find any sessions! Try adding more characters of the token.",
+                        className: "message-body",
+                      },
+                    ],
+                    style: "display: none",
+                  },
+                  {
+                    className: "label has-text-weight-normal",
+                    text: "Session token:",
+                  },
+                  {
+                    className: "field-body",
+                    children: {
+                      className: "field",
+                      children: {
+                        className: "control",
+                        children: {
+                          style: "display: flex; margin-bottom: 10px;",
+                          children: [
+                            {
+                              element: "input",
+                              inputType: "text",
+                              className: "input is-family-monospace",
+                              id: "token-fragment",
+                              placeholder:
+                                "First 8 characters or more of session token",
+                              onKeyDown: function (event) {
+                                if (event.key === "Enter") {
+                                  handleConfigureSession();
+                                }
+                              },
+                            },
+                          ],
+                        },
+                      },
+                    },
+                  },
+                  {
+                    className: "field is-grouped is-grouped-right",
+                    children: {
+                      className: "control",
+                      children: {
+                        className: "button is-dark is-outlined",
+                        children: [
+                          {
+                            element: "span",
+                            className: "icon",
+                            children: [
+                              {
+                                element: "i",
+                                className: "fas fa-cog",
+                              },
+                            ],
+                          },
+                          { text: "Configure Session", element: "span" },
+                        ],
+                        onclick: function () {
+                          handleConfigureSession();
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
             });
             sessionConfigurationView.appendChild(expiredIndicator);
             sessionConfiguration.appendChild(sessionConfigurationView);
@@ -468,355 +701,581 @@
           }
 
           if (!configuration) {
-            var loadingIndicator = UI.createElement({
-              className: "level",
-              children: {
-                element: "span",
-                className: "level-item",
-                children: [
-                  {
-                    element: "i",
-                    className: "fas fa-spinner fa-pulse"
-                  },
-                  {
-                    style: "margin-left: 0.4em;",
-                    text: "Loading configuration ..."
-                  }
-                ]
-              }
-            });
+            var loadingIndicator = createLoadingIndicator(
+              "Loading configuration ..."
+            );
             sessionConfigurationView.appendChild(loadingIndicator);
             sessionConfiguration.appendChild(sessionConfigurationView);
             return;
           }
 
-          var addLabelVisible = configurationUi.state.addLabelVisible;
+          sessionConfiguration.parentNode.replaceChild(
+            UI.createElement({
+              id: "session-configuration",
+              className: "container",
+              style: "margin-bottom: 2em",
+              children: [
+                {
+                  id: "token-field",
+                },
+                {
+                  id: "expiration-field",
+                },
+                {
+                  id: "labels-field",
+                },
+                {
+                  id: "apis-field",
+                },
+                {
+                  id: "exclude-field",
+                },
+                {
+                  id: "types-field",
+                },
+                {
+                  id: "references-field",
+                },
+                {
+                  id: "buttons-field",
+                },
+              ],
+            }),
+            sessionConfiguration
+          );
 
-          var tokenField = UI.createElement({
-            className: "field is-horizontal",
-            children: [
-              {
-                className: "field-label",
-                children: { className: "label", text: "Token" }
-              },
-              {
-                className: "field-body",
-                children: {
-                  className: "field",
+          renderTokenField();
+          renderExpirationField();
+          renderLabelsField();
+          renderApisField();
+          renderExcludeField();
+          renderTypesField();
+          renderReferencesField();
+          renderButtonsField();
+        }
+
+        function renderTokenField() {
+          var configuration = state.configuration;
+          var tokenField = UI.getElement("token-field");
+          tokenField.parentNode.replaceChild(
+            UI.createElement({
+              id: "token-field",
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: { className: "label", text: "Token" },
+                },
+                {
+                  className: "field-body",
                   children: {
-                    className: "control",
-                    text: configuration.token
-                  }
-                }
-              }
-            ]
-          });
-          sessionConfiguration.appendChild(tokenField);
-
-          expirationField = UI.createElement({
-            className: "field is-horizontal",
-            children: [
-              {
-                className: "field-label",
-                children: { className: "label", text: "Expires" }
-              },
-              {
-                className: "field-body",
-                children: {
-                  className: "field",
-                  children: {
-                    className: "control",
-                    text: new Date(
-                      configuration.expirationDate
-                    ).toLocaleString()
-                  }
-                }
-              }
-            ]
-          });
-          sessionConfiguration.appendChild(expirationField);
-
-          var labelsField = UI.createElement({
-            className: "field is-horizontal",
-            children: [
-              {
-                className: "field-label",
-                children: { className: "label", text: "Labels" }
-              },
-              {
-                className: "field-body",
-                children: {
-                  className: "field is-grouped is-grouped-multiline",
-                  children: configuration.labels
-                    .map((label, index) => ({
+                    className: "field",
+                    children: {
                       className: "control",
-                      children: {
-                        className: "tags has-addons",
+                      text: configuration.token,
+                    },
+                  },
+                },
+              ],
+            }),
+            tokenField
+          );
+        }
+
+        function renderExpirationField() {
+          var status = state.status;
+          var expirationField = UI.getElement("expiration-field");
+          expirationField.parentNode.replaceChild(
+            UI.createElement({
+              id: "expiration-field",
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: { className: "label", text: "Expires" },
+                },
+                {
+                  className: "field-body",
+                  children: {
+                    className: "field",
+                    children: {
+                      className: "control",
+                      text: status.expirationDate.toLocaleString(),
+                    },
+                  },
+                },
+              ],
+            }),
+            expirationField
+          );
+        }
+
+        function renderLabelsField() {
+          var addLabelVisible = state.addLabelVisible;
+          var configuration = state.configuration;
+          var labelsField = UI.getElement("labels-field");
+
+          labelsField.parentNode.replaceChild(
+            UI.createElement({
+              id: "labels-field",
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: { className: "label", text: "Labels" },
+                },
+                {
+                  className: "field-body",
+                  children: {
+                    className: "field is-grouped is-grouped-multiline",
+                    children: configuration.labels
+                      .map((label, index) => ({
+                        className: "control",
+                        children: {
+                          className: "tags has-addons",
+                          children: [
+                            {
+                              element: "span",
+                              className: "tag is-info",
+                              text: label,
+                            },
+                            {
+                              element: "a",
+                              className: "tag is-delete",
+                              onClick: () => removeLabel(index),
+                            },
+                          ],
+                        },
+                      }))
+                      .concat(
+                        addLabelVisible
+                          ? [
+                              {
+                                className: "control field is-grouped",
+                                children: [
+                                  {
+                                    element: "input",
+                                    className: "input is-small control",
+                                    style: "width: 10rem",
+                                    id: "session-label-input",
+                                    type: "text",
+                                    onKeyUp: (event) =>
+                                      event.keyCode === 13 ? addLabel() : null,
+                                  },
+                                  {
+                                    className:
+                                      "button is-dark is-outlined is-small is-rounded control",
+                                    text: "save",
+                                    onClick: addLabel,
+                                  },
+                                  {
+                                    className:
+                                      "button is-dark is-outlined is-small is-rounded control",
+                                    text: "cancel",
+                                    onClick: hideAddLabel,
+                                  },
+                                ],
+                              },
+                            ]
+                          : [
+                              {
+                                className: "button is-rounded is-small",
+                                text: "Add",
+                                onClick: showAddLabel,
+                              },
+                            ]
+                      ),
+                  },
+                },
+              ],
+            }),
+            labelsField
+          );
+        }
+
+        function renderApisField() {
+          var apisField = UI.getElement("apis-field");
+          apisField.parentNode.replaceChild(
+            UI.createElement({
+              id: "apis-field",
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: [
+                    { className: "label", text: "APIs" },
+                    createSelectDeselectButtons(
+                      function () {
+                        selectAllTests();
+                        renderApisField();
+                      },
+                      function () {
+                        deselectAllTests();
+                        renderApisField();
+                      }
+                    ),
+                  ],
+                },
+                {
+                  className: "field-body",
+                  children: {
+                    className: "field",
+                    children: {
+                      className: "control",
+                      children: [
+                        {
+                          id: "api-error",
+                        },
+                        {
+                          element: "ul",
+                          className: "menu-list",
+                          children: apis.map(function (api) {
+                            return UI.createElement({
+                              element: "li",
+                              id: api.title,
+                            });
+                          }),
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            }),
+            apisField
+          );
+          renderApisList(apis);
+          checkApiList();
+        }
+
+        function renderApisList(apis) {
+          for (var api of apis) {
+            renderApiList(api);
+          }
+        }
+
+        function renderApiList(api) {
+          var listItem = UI.getElement(api.title);
+          var includedRatio = getIncludedRatio(api.path);
+          var apiListItem = {
+            element: "a",
+            onClick: function (event) {
+              if (!testFileSelectionEnabled) return;
+              if (!state.expandedApis) state.expandedApis = {};
+              state.expandedApis[api.path] = !state.expandedApis[api.path];
+              renderApiList(api);
+            },
+            children: [
+              {
+                element: "input",
+                type: "checkbox",
+                style: "width: 1.3em; height: 1.3em;vertical-align: middle;",
+                checked: includedRatio > 0,
+                indeterminate: includedRatio > 0 && includedRatio < 1,
+                onclick: function (event) {
+                  event.stopPropagation();
+                  if (includedRatio > 0) {
+                    handleRemoveIncludedTest(api.path);
+                  } else {
+                    handleAddIncludedTest(api.path);
+                  }
+                  renderApiList(api);
+                },
+              },
+              testFileSelectionEnabled
+                ? {
+                    element: "span",
+                    style:
+                      "display: inline-block;vertical-align: middle;margin-left:0.3em;width: 0.7em",
+                    children: {
+                      element: "i",
+                      className:
+                        state.expandedApis && state.expandedApis[api.path]
+                          ? "fas fa-angle-down"
+                          : "fas fa-angle-right",
+                    },
+                  }
+                : null,
+              {
+                style:
+                  "display: inline-block;vertical-align: middle;margin-left:0.3em;width: 90%",
+                text: api.title,
+              },
+            ],
+          };
+          listItem.innerHTML = "";
+          listItem.appendChild(UI.createElement(apiListItem));
+          if (state.expandedApis && state.expandedApis[api.path]) {
+            listItem.appendChild(createApiTestsList(api));
+          }
+          checkApiList();
+        }
+
+        function createApiTestsList(api) {
+          if (!state.tests) {
+            WaveService.readTestList(
+              function (readTests) {
+                state.tests = readTests;
+                for (var api in state.tests) {
+                  if (hasIncludedTest("/" + api)) {
+                    handleRemoveIncludedTest("/" + api);
+                    handleAddIncludedTest("/" + api);
+                  }
+                }
+                renderApiList(this.api);
+              }.bind({ api: api })
+            );
+            return createLoadingIndicator("Loading tests ...");
+          } else {
+            var tests = state.tests[api.path.substr(1)];
+            var testListView = {
+              element: "ul",
+              children: [],
+            };
+
+            testListView.children = testListView.children.concat(
+              tests
+                .sort()
+                .map(function (test) {
+                  return {
+                    element: "li",
+                    onclick: function (event) {
+                      handleIncludedTestToggle(test);
+                      renderApiList(api);
+                    },
+                    children: [
+                      {
+                        element: "a",
                         children: [
                           {
-                            element: "span",
-                            className: "tag is-info",
-                            text: label
+                            element: "input",
+                            type: "checkbox",
+                            style:
+                              "width: 1.3em; height: 1.3em;vertical-align: middle;",
+                            checked: hasIncludedTest(test),
                           },
                           {
-                            element: "a",
-                            className: "tag is-delete",
-                            onClick: () => configurationUi.removeLabel(index)
-                          }
-                        ]
-                      }
-                    }))
-                    .concat(
-                      addLabelVisible
-                        ? [
-                            {
-                              className: "control field is-grouped",
-                              children: [
-                                {
-                                  element: "input",
-                                  className: "input is-small control",
-                                  style: "width: 10rem",
-                                  id: "session-label-input",
-                                  type: "text",
-                                  onKeyUp: event =>
-                                    event.keyCode === 13
-                                      ? configurationUi.addLabel()
-                                      : null
-                                },
-                                {
-                                  className:
-                                    "button is-dark is-outlined is-small is-rounded control",
-                                  text: "save",
-                                  onClick: configurationUi.addLabel
-                                },
-                                {
-                                  className:
-                                    "button is-dark is-outlined is-small is-rounded control",
-                                  text: "cancel",
-                                  onClick: configurationUi.hideAddLabel
-                                }
-                              ]
-                            }
-                          ]
-                        : [
-                            {
-                              className: "button is-rounded is-small",
-                              text: "Add",
-                              onClick: configurationUi.showAddLabel
-                            }
-                          ]
-                    )
-                }
-              }
-            ]
-          });
-          sessionConfiguration.appendChild(labelsField);
+                            style:
+                              "display: inline-block;vertical-align: middle;margin-left:0.3em;max-width: 90%",
+                            text: test,
+                          },
+                        ],
+                      },
+                    ],
+                  };
+                })
+            );
+            return UI.createElement(testListView);
+          }
+        }
 
-          var apisField = UI.createElement({
-            className: "field is-horizontal",
-            children: [
-              {
-                className: "field-label",
-                children: [
-                  { className: "label", text: "APIs" },
-                  configurationUi.createSelectDeselectButtons(
-                    configurationUi.selectAllTests,
-                    configurationUi.deselectAllTests
-                  )
-                ]
-              },
-              {
-                className: "field-body",
-                children: {
-                  className: "field",
+        function renderExcludeField() {
+          var excludeField = UI.getElement("exclude-field");
+          excludeField.parentNode.replaceChild(
+            UI.createElement({
+              id: "exclude-field",
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: { className: "label", text: "Excluded Tests" },
+                },
+                {
+                  className: "field-body",
                   children: {
-                    className: "control",
-                    children: [
-                      configurationUi.isTestListValid()
-                        ? null
-                        : configurationUi.createErrorMessage(
-                            "Select at least one API"
-                          )
-                    ].concat(configurationUi.createApiList(apis))
-                  }
-                }
-              }
-            ]
-          });
-          sessionConfiguration.appendChild(apisField);
-
-          var excludeField = UI.createElement({
-            className: "field is-horizontal",
-            children: [
-              {
-                className: "field-label",
-                children: { className: "label", text: "Excluded Tests" }
-              },
-              {
-                className: "field-body",
-                children: {
-                  className: "field",
-                  children: {
-                    className: "control",
-                    children: { id: "excluded-tests-view" }
-                  }
-                }
-              }
-            ]
-          });
-          sessionConfiguration.appendChild(excludeField);
-
-          var typesField = UI.createElement({
-            className: "field is-horizontal",
-            children: [
-              {
-                className: "field-label",
-                children: { className: "label", text: "Test Types" }
-              },
-              {
-                className: "field-body",
-                children: {
-                  className: "field",
-                  children: {
-                    className: "control",
-                    children: [
-                      configurationUi.isTestTypeListValid()
-                        ? null
-                        : configurationUi.createErrorMessage(
-                            "Select at least one test type"
-                          )
-                    ].concat(configurationUi.createTestTypeList(types))
-                  }
-                }
-              }
-            ]
-          });
-          sessionConfiguration.appendChild(typesField);
-
-          var referencesField = UI.createElement({
-            className: "field is-horizontal",
-            children: [
-              {
-                className: "field-label",
-                children: [
-                  { className: "label", text: "Reference Browsers" },
-                  configurationUi.createSelectDeselectButtons(
-                    configurationUi.selectAllRefSessions,
-                    configurationUi.deselectAllRefSessions
-                  )
-                ]
-              },
-              {
-                className: "field-body",
-                children: {
-                  className: "field",
-                  children: {
-                    className: "control",
-                    children: configurationUi.createRefSessionsList(
-                      referenceSessions
-                    )
-                  }
-                }
-              }
-            ]
-          });
-          sessionConfiguration.appendChild(referencesField);
-
-          var buttonList = UI.createElement({
-            className: "level level-right",
-            children: [
-              {
-                element: "button",
-                className: "button is-success",
-                style: "margin-right: 0.3em",
-                disabled: !configurationUi.isConfigurationValid(),
-                onClick: configurationUi.handleStart,
-                children: [
-                  {
-                    element: "span",
-                    className: "icon",
-                    children: [
-                      {
-                        element: "i",
-                        className: configurationUi.isSessionStarting()
-                          ? "fas fa-spinner fa-pulse"
-                          : "fas fa-play"
-                      }
-                    ]
+                    className: "field",
+                    children: {
+                      className: "control",
+                      children: { id: "excluded-tests-view" },
+                    },
                   },
-                  {
-                    element: "span",
-                    text: configurationUi.isSessionStarting()
-                      ? "Starting Session ..."
-                      : "Start Session"
-                  }
-                ]
-              },
-              {
-                element: "button",
-                className: "button",
-                onClick: configurationUi.handleDiscardChanges,
-                disabled: configurationUi.isSessionStarting(),
-                children: [
-                  {
-                    element: "span",
-                    className: "icon",
-                    children: [
-                      {
-                        element: "i",
-                        className: "fas fa-times"
-                      }
-                    ]
-                  },
-                  {
-                    element: "span",
-                    text: "Discard Changes"
-                  }
-                ]
-              }
-            ]
-          });
-          sessionConfiguration.appendChild(buttonList);
+                },
+              ],
+            }),
+            excludeField
+          );
+          renderExcludedTests();
+        }
 
-          configurationUi.renderExcludedTests();
-        },
-        renderExcludedTests: function() {
+        function renderTypesField() {
+          if (!testTypeSelectionEnabled) return;
+          var typesField = UI.getElement("types-field");
+          typesField.parentNode.replaceChild(
+            UI.createElement({
+              id: "types-field",
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: { className: "label", text: "Test Types" },
+                },
+                {
+                  className: "field-body",
+                  children: {
+                    className: "field",
+                    children: {
+                      className: "control",
+                      children: [
+                        isTestTypeListValid()
+                          ? null
+                          : createErrorMessage("Select at least one test type"),
+                      ].concat(createTestTypeList(types)),
+                    },
+                  },
+                },
+              ],
+            }),
+            typesField
+          );
+        }
+
+        function renderReferencesField() {
+          if (referenceSessions.length === 0) {
+            return;
+          }
+          var referencesField = UI.getElement("references-field");
+          referencesField.parentNode.replaceChild(
+            UI.createElement({
+              id: "references-field",
+              className: "field is-horizontal",
+              children: [
+                {
+                  className: "field-label",
+                  children: [
+                    { className: "label", text: "Reference Browsers" },
+                    createSelectDeselectButtons(
+                      function () {
+                        selectAllRefSessions();
+                        renderReferencesField();
+                      },
+                      function () {
+                        deselectAllRefSessions();
+                        renderReferencesField();
+                      }
+                    ),
+                  ],
+                },
+                {
+                  className: "field-body",
+                  children: {
+                    className: "field",
+                    children: {
+                      className: "control",
+                      children: createRefSessionsList(referenceSessions),
+                    },
+                  },
+                },
+              ],
+            }),
+            referencesField
+          );
+        }
+
+        function renderButtonsField() {
+          var buttonsField = UI.getElement("buttons-field");
+          buttonsField.parentNode.replaceChild(
+            UI.createElement({
+              id: "buttons-field",
+              className: "level level-right",
+              children: [
+                {
+                  element: "button",
+                  className: "button is-success",
+                  style: "margin-right: 0.3em",
+                  disabled: !isConfigurationValid(),
+                  onClick: function () {
+                    handleStart();
+                    renderButtonsField();
+                  },
+                  children: [
+                    {
+                      element: "span",
+                      className: "icon",
+                      children: [
+                        {
+                          element: "i",
+                          className: isSessionStarting()
+                            ? "fas fa-spinner fa-pulse"
+                            : "fas fa-play",
+                        },
+                      ],
+                    },
+                    {
+                      element: "span",
+                      text: isSessionStarting()
+                        ? "Starting Session ..."
+                        : "Start Session",
+                    },
+                  ],
+                },
+                {
+                  element: "button",
+                  className: "button",
+                  onClick: function () {
+                    handleDiscardChanges();
+                    renderSessionConfiguration();
+                  },
+                  disabled: isSessionStarting(),
+                  children: [
+                    {
+                      element: "span",
+                      className: "icon",
+                      children: [
+                        {
+                          element: "i",
+                          className: "fas fa-times",
+                        },
+                      ],
+                    },
+                    {
+                      element: "span",
+                      text: "Discard Changes",
+                    },
+                  ],
+                },
+              ],
+            }),
+            buttonsField
+          );
+        }
+
+        function renderExcludedTests() {
           var excludedTestsView = UI.getElement("excluded-tests-view");
           if (!excludedTestsView) return;
           excludedTestsView.innerHTML = "";
 
-          var errorMessage = configurationUi.state.excludedTestError;
+          var errorMessage = state.excludedTestError;
           if (errorMessage) {
-            var error = configurationUi.createErrorMessage(errorMessage);
+            var error = createErrorMessage(errorMessage);
             excludedTestsView.appendChild(UI.createElement(error));
           }
 
           var excludeInputs = [
             { title: "Add Raw", type: "raw" },
             { title: "Add Malfunctioning", type: "malfunc" },
-            { title: "Add Previous Excluded", type: "excluded" }
+            { title: "Add Previous Excluded", type: "excluded" },
           ];
 
-          var activeExcludeInput = configurationUi.state.activeExcludeInput;
+          var activeExcludeInput = state.activeExcludeInput;
 
           var excludedTestInputSwitch = UI.createElement({
             className: "tabs is-centered is-toggle is-small",
             children: {
               element: "ul",
-              children: excludeInputs.map(function(input) {
+              children: excludeInputs.map(function (input) {
                 return {
                   element: "li",
-                  onClick: function() {
-                    configurationUi.handleExcludeInputChange(input.type);
+                  onClick: function () {
+                    handleExcludeInputChange(input.type);
                   },
-                  className: (function() {
+                  className: (function () {
                     if (activeExcludeInput === input.type) return "is-active";
                     return "";
                   })(),
-                  children: { element: "a", text: input.title }
+                  children: { element: "a", text: input.title },
                 };
-              })
-            }
+              }),
+            },
           });
           excludedTestsView.appendChild(excludedTestInputSwitch);
 
@@ -827,28 +1286,28 @@
                   className: "is-size-7",
                   style: "margin-bottom: 20px",
                   text:
-                    "Provide paths to test files or directories to exclude them from the session. One path per line, lines starting with # are omitted."
+                    "Provide paths to test files or directories to exclude them from the session. One path per line, lines starting with # are omitted.",
                 },
                 {
                   element: "textarea",
                   className: "textarea",
-                  id: "excluded-tests-text"
+                  id: "excluded-tests-text",
                 },
                 {
                   style: "margin-top: 10px",
-                  onClick: function() {
-                    configurationUi.handleAddExludedTestsRaw();
+                  onClick: function () {
+                    handleAddExludedTestsRaw();
                   },
                   children: [
                     {
                       element: "button",
                       className: "button",
                       style: "margin-bottom: 20px",
-                      text: "Add"
-                    }
-                  ]
-                }
-              ]
+                      text: "Add",
+                    },
+                  ],
+                },
+              ],
             });
             excludedTestsView.appendChild(rawInput);
           } else if (
@@ -864,14 +1323,14 @@
                   text:
                     activeExcludeInput === "malfunc"
                       ? "Add malfunctioning tests from past sessions by providing at least the first eight characters of the session's token."
-                      : "Add excluded tests from past sessions by providing at least the first eight characters of the session's token."
+                      : "Add excluded tests from past sessions by providing at least the first eight characters of the session's token.",
                 },
                 {
                   className: "field is-horizontal",
                   children: [
                     {
                       className: "field-label",
-                      children: { className: "label", text: "Session Token" }
+                      children: { className: "label", text: "Session Token" },
                     },
                     {
                       className: "field-body",
@@ -882,50 +1341,51 @@
                             id: "excluded-tests-text",
                             className: "input",
                             element: "input",
-                            type: "text"
+                            type: "text",
                           },
                           {
                             className: "button",
                             style: "margin-left: 1em",
                             text: "Add",
-                            onClick: function() {
+                            onClick: function () {
                               if (activeExcludeInput === "malfunc") {
-                                configurationUi.handleAddExludedTestsMalfunctioning();
+                                handleAddExludedTestsMalfunctioning();
                               } else {
-                                configurationUi.handleAddExludedTestsExcluded();
+                                handleAddExludedTestsExcluded();
                               }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              ]
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              ],
             });
             excludedTestsView.appendChild(malfuncInput);
           }
 
-          var excludedTestsTable = configurationUi.createExcludedTestsTable();
+          var excludedTestsTable = createExcludedTestsTable();
           var tableWrapper = UI.createElement({
-            style: "max-height: 250px; overflow: auto; margin-bottom: 10px"
+            style: "max-height: 250px; overflow: auto; margin-bottom: 10px",
           });
           tableWrapper.appendChild(excludedTestsTable);
           excludedTestsView.appendChild(tableWrapper);
-        },
-        renderResumeView: function() {
+        }
+
+        function renderResumeView() {
           var query = utils.parseQuery(location.search);
           var resumeToken = query.resume;
           if (!resumeToken) resumeToken = "";
 
           var renderResumeElement = UI.getElement("resume-view");
           renderResumeElement.innerHTML = "";
-          if (configurationUi.state.expired) return;
+          if (state.expired) return;
 
           var heading = UI.createElement({
             element: "h2",
             className: "title is-5",
-            text: "Resume session"
+            text: "Resume session",
           });
           renderResumeElement.appendChild(heading);
 
@@ -940,7 +1400,7 @@
                     {
                       element: "label",
                       className: "label",
-                      text: "Token (first 8 characters or more)"
+                      text: "Token (first 8 characters or more)",
                     },
                     {
                       className: "control",
@@ -950,11 +1410,11 @@
                         className: "input is-family-monospace tabbable",
                         type: "text",
                         style: "max-width: 30em",
-                        value: resumeToken
-                      }
-                    }
-                  ]
-                }
+                        value: resumeToken,
+                      },
+                    },
+                  ],
+                },
               },
               {
                 className: "column",
@@ -962,39 +1422,40 @@
                   "display: flex; align-items: flex-end; justify-content: flex-end",
                 children: {
                   className: "button",
-                  onClick: function() {
-                    configurationUi.resumeSession();
+                  onClick: function () {
+                    resumeSession();
                   },
                   children: [
                     {
                       element: "span",
                       className: "icon",
-                      children: { element: "i", className: "fas fa-redo-alt" }
+                      children: { element: "i", className: "fas fa-redo-alt" },
                     },
                     {
                       element: "span",
-                      text: "Resume"
-                    }
-                  ]
-                }
-              }
-            ]
+                      text: "Resume",
+                    },
+                  ],
+                },
+              },
+            ],
           });
           renderResumeElement.appendChild(resumeControls);
-        },
-        createExcludedTestsTable: function() {
-          var excludedTests = configurationUi.state.configuration.tests.exclude;
+        }
+
+        function createExcludedTestsTable() {
+          var excludedTests = state.configuration.tests.exclude;
           if (excludedTests.length === 0) {
             return UI.createElement({
               style: "text-align: center",
-              text: "- No Excluded Tests -"
+              text: "- No Excluded Tests -",
             });
           }
           var table = UI.createElement({
             element: "table",
             className: "table",
             style: "width: 100%",
-            children: excludedTests.map(function(test) {
+            children: excludedTests.map(function (test) {
               return {
                 element: "tr",
                 children: [
@@ -1004,66 +1465,53 @@
                     children: {
                       element: "button",
                       className: "button is-small",
-                      onClick: function() {
-                        configurationUi.handleRemoveExcludedTest(test);
+                      onClick: function () {
+                        handleRemoveExcludedTest(test);
                       },
                       children: {
                         element: "span",
                         className: "icon",
                         children: {
                           element: "i",
-                          className: "fas fa-trash-alt"
-                        }
-                      }
-                    }
-                  }
-                ]
+                          className: "fas fa-trash-alt",
+                        },
+                      },
+                    },
+                  },
+                ],
               };
-            })
+            }),
           });
           return table;
-        },
-        createApiList: function(apis) {
-          return apis.map(api => ({
+        }
+
+        function createTestTypeList(types) {
+          return types.map((type) => ({
             element: "button",
             style: "margin-right: 0.3em; margin-bottom: 0.3em",
-            className:
-              "button" +
-              (configurationUi.hasIncludedTest(api.path) ? " is-info" : ""),
-            text: api.title,
-            onClick: function(event) {
-              configurationUi.handleIncludedTestToggle(api.path);
-            }
-          }));
-        },
-        createTestTypeList: function(types) {
-          return types.map(type => ({
-            element: "button",
-            style: "margin-right: 0.3em; margin-bottom: 0.3em",
-            className:
-              "button" +
-              (configurationUi.hasTestType(type.value) ? " is-info" : ""),
+            className: "button" + (hasTestType(type.value) ? " is-info" : ""),
             text: type.title,
-            onClick: function(event) {
-              configurationUi.handleTestTypeToggle(type.value);
-            }
+            onClick: function (event) {
+              handleTestTypeToggle(type.value);
+              renderTypesField();
+            },
           }));
-        },
-        createRefSessionsList: function(referenceSessions) {
-          return referenceSessions.map(session => ({
+        }
+
+        function createRefSessionsList(referenceSessions) {
+          return referenceSessions.map((session) => ({
             element: "button",
-            className:
-              "button" +
-              (configurationUi.hasRefSession(session) ? " is-info" : ""),
+            className: "button" + (hasRefSession(session) ? " is-info" : ""),
             style: "margin-right: 0.3em; margin-bottom: 0.3em; height: auto",
-            onClick: function() {
-              configurationUi.handleRefSessionToggle(session);
+            onClick: function () {
+              handleRefSessionToggle(session);
+              renderReferencesField();
             },
             children: [
               {
                 element: "span",
                 className: "icon",
-                children: [{ element: "i", className: session.icon }]
+                children: [{ element: "i", className: session.icon }],
               },
               {
                 element: "span",
@@ -1071,14 +1519,15 @@
                   { text: session.title },
                   {
                     text: session.engine,
-                    style: "font-size: 0.8em"
-                  }
-                ]
-              }
-            ]
+                    style: "font-size: 0.8em",
+                  },
+                ],
+              },
+            ],
           }));
-        },
-        createSelectDeselectButtons: function(onSelect, onDeselect) {
+        }
+
+        function createSelectDeselectButtons(onSelect, onDeselect) {
           return {
             style: "margin-top: 0.3em",
             children: [
@@ -1087,30 +1536,51 @@
                 style: "margin-right: 0.3em",
                 className: "button is-rounded is-small",
                 text: "All",
-                onClick: onSelect
+                onClick: onSelect,
               },
               {
                 element: "button",
                 className: "button is-rounded is-small",
                 text: "None",
-                onClick: onDeselect
-              }
-            ]
+                onClick: onDeselect,
+              },
+            ],
           };
-        },
-        createErrorMessage: function(message) {
+        }
+
+        function createErrorMessage(message) {
           return {
             element: "article",
             className: "message is-danger",
             children: [
               {
                 className: "message-body",
-                text: message
-              }
-            ]
+                text: message,
+              },
+            ],
           };
         }
-      };
+
+        function createLoadingIndicator(text) {
+          return UI.createElement({
+            className: "level",
+            children: {
+              element: "span",
+              className: "level-item",
+              children: [
+                {
+                  element: "i",
+                  className: "fas fa-spinner fa-pulse",
+                },
+                {
+                  style: "margin-left: 0.4em;",
+                  text: text,
+                },
+              ],
+            },
+          });
+        }
+      }
     </script>
   </body>
 </html>

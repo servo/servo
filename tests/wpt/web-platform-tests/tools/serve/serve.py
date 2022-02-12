@@ -629,6 +629,10 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
                          'Requires OpenSSL 1.0.2+')
             continue
 
+        # Skip WebTransport over HTTP/3 server unless if is enabled explicitly.
+        if scheme == 'webtransport-h3' and not kwargs.get("webtransport_h3"):
+            continue
+
         for port in ports:
             if port is None:
                 continue
@@ -881,6 +885,7 @@ class ConfigBuilder(config.ConfigBuilder):
             "https-public": ["auto"],
             "ws": ["auto"],
             "wss": ["auto"],
+            "webtransport-h3": ["auto"],
         },
         "check_subdomains": True,
         "log_level": "info",
@@ -946,9 +951,6 @@ def build_config(logger, override_path=None, config_cls=ConfigBuilder, **kwargs)
         enable_http2 = True
     if enable_http2:
         rv._default["ports"]["h2"] = [9000]
-
-    if kwargs.get("webtransport_h3"):
-        rv._default["ports"]["webtransport-h3"] = [11000]
 
     if override_path and os.path.exists(override_path):
         with open(override_path) as f:
@@ -1081,7 +1083,7 @@ def run(config_cls=ConfigBuilder, route_builder=None, mp_context=None, log_handl
         with stash.StashServer(stash_address, authkey=str(uuid.uuid4())):
             servers = start(logger, config, routes, mp_context, log_handlers, **kwargs)
 
-            if not kwargs["exit_after_start"]:
+            if not kwargs.get("exit_after_start"):
                 try:
                     # Periodically check if all the servers are alive
                     server_process_exited = False

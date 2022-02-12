@@ -3,7 +3,7 @@
   testing:
   - 2d.canvas
   code: |
-    @assert ctx.canvas === offscreenCanvas;
+    @assert ctx.canvas === canvas;
     t.done();
 
 - name: 2d.canvas.readonly
@@ -45,12 +45,12 @@
   testing:
   - context.2d.extraargs
   code: |
-    @assert offscreenCanvas.getContext('2d', false, {}, [], 1, "2") !== null;
-    @assert offscreenCanvas.getContext('2d', 123) !== null;
-    @assert offscreenCanvas.getContext('2d', "test") !== null;
-    @assert offscreenCanvas.getContext('2d', undefined) !== null;
-    @assert offscreenCanvas.getContext('2d', null) !== null;
-    @assert offscreenCanvas.getContext('2d', Symbol.hasInstance) !== null;
+    @assert canvas.getContext('2d', false, {}, [], 1, "2") !== null;
+    @assert canvas.getContext('2d', 123) !== null;
+    @assert canvas.getContext('2d', "test") !== null;
+    @assert canvas.getContext('2d', undefined) !== null;
+    @assert canvas.getContext('2d', null) !== null;
+    @assert canvas.getContext('2d', Symbol.hasInstance) !== null;
     t.done();
 
 - name: 2d.getcontext.unique
@@ -67,7 +67,7 @@
   testing:
   - context.unique
   code: |
-    var ctx2 = offscreenCanvas.getContext('2d');
+    var ctx2 = canvas.getContext('2d');
     ctx.fillStyle = '#f00';
     ctx2.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -153,7 +153,7 @@
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 50, 50);
     @assert pixel 20,20 == 255,0,0,255;
-    offscreenCanvas.width = 50;
+    canvas.width = 50;
     @assert pixel 20,20 == 0,0,0,0;
     t.done();
 
@@ -162,11 +162,11 @@
   testing:
   - initial.reset
   code: |
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 50, 50);
     @assert pixel 20,20 == 255,0,0,255;
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     @assert pixel 20,20 == 0,0,0,0;
     t.done();
 
@@ -175,9 +175,9 @@
   testing:
   - initial.reset
   code: |
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     ctx.rect(0, 0, 100, 50);
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     ctx.fillStyle = '#f00';
     ctx.fill();
     @assert pixel 20,20 == 0,0,0,0;
@@ -188,10 +188,10 @@
   testing:
   - initial.reset
   code: |
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     ctx.rect(0, 0, 1, 1);
     ctx.clip();
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 20,20 == 0,255,0,255;
@@ -202,9 +202,9 @@
   testing:
   - initial.reset
   code: |
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     ctx.scale(0.1, 0.1);
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     @assert pixel 20,20 == 0,255,0,255;
@@ -215,11 +215,11 @@
   testing:
   - initial.reset
   code: |
-    offscreenCanvas.width = 50;
+    canvas.width = 50;
     var g = ctx.createLinearGradient(0, 0, 100, 0);
     g.addColorStop(0, '#0f0');
     g.addColorStop(1, '#0f0');
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
     ctx.fillStyle = g;
@@ -232,11 +232,11 @@
   testing:
   - initial.reset
   code: |
-    offscreenCanvas.width = 30;
+    canvas.width = 30;
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 30, 50);
-    var p = ctx.createPattern(offscreenCanvas, 'repeat-x');
-    offscreenCanvas.width = 100;
+    var p = ctx.createPattern(canvas, 'repeat-x');
+    canvas.width = 100;
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
     ctx.fillStyle = p;
@@ -250,10 +250,10 @@
   - size.width
   - size.height
   code: |
-    offscreenCanvas.width = 0;
-    offscreenCanvas.height = 0;
-    @assert offscreenCanvas.width === 0;
-    @assert offscreenCanvas.height === 0;
+    canvas.width = 0;
+    canvas.height = 0;
+    @assert canvas.width === 0;
+    @assert canvas.height === 0;
     t.done();
 
 - name: size.attributes.idl
@@ -264,22 +264,22 @@
   webidl:
   - es-unsigned-long
   code: |
-    offscreenCanvas.width = "100";
-    offscreenCanvas.height = "100";
-    @assert offscreenCanvas.width === 100;
-    @assert offscreenCanvas.height === 100;
-    offscreenCanvas.width = "+1.5e2";
-    offscreenCanvas.height = "0x96";
-    @assert offscreenCanvas.width === 150;
-    @assert offscreenCanvas.height === 150;
-    offscreenCanvas.width = 301.999;
-    offscreenCanvas.height = 301.001;
-    @assert offscreenCanvas.width === 301;
-    @assert offscreenCanvas.height === 301;
-    @assert throws TypeError offscreenCanvas.width = "400x";
-    @assert throws TypeError offscreenCanvas.height = "foo";
-    @assert offscreenCanvas.width === 301;
-    @assert offscreenCanvas.height === 301;
+    canvas.width = "100";
+    canvas.height = "100";
+    @assert canvas.width === 100;
+    @assert canvas.height === 100;
+    canvas.width = "+1.5e2";
+    canvas.height = "0x96";
+    @assert canvas.width === 150;
+    @assert canvas.height === 150;
+    canvas.width = 301.999;
+    canvas.height = 301.001;
+    @assert canvas.width === 301;
+    @assert canvas.height === 301;
+    @assert throws TypeError canvas.width = "400x";
+    @assert throws TypeError canvas.height = "foo";
+    @assert canvas.width === 301;
+    @assert canvas.height === 301;
     t.done();
 
 - name: size.attributes.default
@@ -288,8 +288,8 @@
   - size.default
   - size.missing
   code: |
-    @assert offscreenCanvas.width === 100;
-    @assert offscreenCanvas.height === 50;
+    @assert canvas.width === 100;
+    @assert canvas.height === 50;
     t.done();
 
 - name: size.attributes.reflect.setidl
@@ -297,10 +297,10 @@
   testing:
   - size.reflect
   code: |
-    offscreenCanvas.width = 120;
-    offscreenCanvas.height = 60;
-    @assert offscreenCanvas.width === 120;
-    @assert offscreenCanvas.height === 60;
+    canvas.width = 120;
+    canvas.height = 60;
+    @assert canvas.width === 120;
+    @assert canvas.height === 60;
     t.done();
 
 - name: size.attributes.reflect.setidlzero
@@ -308,10 +308,10 @@
   testing:
   - size.reflect
   code: |
-    offscreenCanvas.width = 0;
-    offscreenCanvas.height = 0;
-    @assert offscreenCanvas.width === 0;
-    @assert offscreenCanvas.height === 0;
+    canvas.width = 0;
+    canvas.height = 0;
+    @assert canvas.width === 0;
+    @assert canvas.height === 0;
     t.done();
 
 - name: size.large
@@ -322,9 +322,16 @@
     limit on the size.
   code: |
     var n = 2147483647; // 2^31 - 1, which should be supported by any sensible definition of "long"
-    offscreenCanvas.width = n;
-    offscreenCanvas.height = n;
-    @assert offscreenCanvas.width === n;
-    @assert offscreenCanvas.height === n;
+    canvas.width = n;
+    canvas.height = n;
+    @assert canvas.width === n;
+    @assert canvas.height === n;
     t.done();
 
+- name: 2d.text.setFont.mathFont
+  desc: crbug.com/1212190, make sure offscreencanvas doesn't crash with Math Font
+  testing:
+  - 2d.text.setFont.mathFont
+  code: |
+    ctx.font = "math serif";
+    t.done();

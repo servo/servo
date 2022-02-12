@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<title>HTMLSelectMenuElement Test: shadow root replacement</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<selectmenu id="selectmenu"></selectmenu>
+
+<selectmenu id="selectmenu1">
+  <template shadowroot=open>
+    <button behavior="button">Custom button</button>
+    <popup behavior="listbox">
+      <slot></slot>
+    </popup>
+  </template>
+  <option>one</option>
+  <option id="selectmenu1-child2">two</option>
+</selectmenu>
+
+<script>
+  // See https://w3c.github.io/webdriver/#keyboard-actions
+  const KEY_CODE_MAP = {
+    'Enter':      '\uE007',
+    'Space':      '\uE00D',
+    'ArrowUp':    '\uE013',
+    'ArrowDown':  '\uE015'
+  };
+
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  promise_test(async () => {
+    const selectMenu = document.getElementById("selectmenu");
+    assert_equals(selectMenu.shadowRoot, null, "The UA provided shadow root should not be exposed to the web");
+    let selectMenuShadow = selectMenu.attachShadow({mode: 'open', delegatesFocus: true});
+    assert_equals(selectMenuShadow.host, selectMenu);
+    assert_equals(selectMenu.shadowRoot, selectMenuShadow);
+    assert_equals(selectMenuShadow.mode, "open");
+    assert_equals(selectMenuShadow.delegatesFocus, true);
+
+    selectMenuShadow.innerHTML = `
+      <style>
+        :focus {
+          outline: 2px solid blue;
+        }
+        #value::before {
+          content: "Value selected: "
+        }
+
+      </style>
+      <button behavior="button">Open select!</button>
+      <div id="value" behavior="selected-value"></div>
+      <popup behavior="listbox">
+        <input type="text" placeholder="Filter options">
+        <option>Thing 1</option>
+        <option>Thing 2</option>
+        <option id="option3">Thing 3</option>
+    </popup>`;
+    assert_equals(selectMenu.shadowRoot.querySelectorAll("option").length, 3);
+    assert_equals(selectMenu.open, false);
+    await clickOn(selectMenu);
+    assert_equals(selectMenu.open, true, "Ensure that controller code has been provided");
+    assert_equals(selectMenu.value, "Thing 1", "value should start with the text of the first option part");
+    await test_driver.send_keys(selectMenu, KEY_CODE_MAP.ArrowDown);
+    assert_equals(selectMenu.value, "Thing 2", "Down arrow should go to next option");
+  }, "Test that the UA provided shadow root can be replaced");
+
+  promise_test(async () => {
+    const selectMenu1 = document.getElementById("selectmenu1");
+    assert_equals(selectMenu1.open, false);
+    await clickOn(selectMenu1);
+    assert_equals(selectMenu1.open, true, "Ensure that controller code has been provided");
+    assert_equals(selectMenu1.value, "one", "value should start with the text of the first option part");
+    const selectMenu1Child2 = document.getElementById("selectmenu1-child2");
+    await clickOn(selectMenu1Child2);
+    assert_equals(selectMenu1.value, "two", "Clicking an <option> should change the value");
+    assert_equals(selectMenu1.open, false);
+  }, "Test that the UA provided shadow root can be replaced using declarative shadow DOM");
+
+  test(() => {
+    let customSelectMenu = document.createElement('selectmenu');
+    let customSelectMenuShadow = customSelectMenu.attachShadow({mode : 'closed'});
+    assert_equals(customSelectMenu.shadowRoot, null);
+    assert_equals(customSelectMenuShadow.mode, "closed");
+    assert_throws_dom('NotSupportedError', () => {
+      customSelectMenu.attachShadow({mode : 'closed'});
+    });
+  }, "Test that only the UA provided shadow root can be replaced");
+</script>

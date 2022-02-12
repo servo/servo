@@ -1,0 +1,115 @@
+<!doctype html>
+
+<title>about:blank iframe initiator and prerendered page</title>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script>
+// Called by iframe-nav-to-about-blank in case empty.html loads before
+// we can add the proper onload handler below.
+let iframeLoadedEmptyHtml = false;
+function onIframeLoadedEmptyHtml() {
+  iframeLoadedEmptyHtml = true;
+}
+</script>
+<body>
+<iframe id="iframe-no-src"></iframe>
+<iframe id="iframe-srcdoc" srcdoc="<!doctype html><p>wow look</p>"></iframe>
+<iframe id="iframe-nav-to-about-blank" src="empty.html"
+        onload="onIframeLoadedEmptyHtml();"></iframe>
+<script>
+
+// When loaded without the "?prerendering" param, this document
+// is called the "intiator page". It starts a prerender to the same
+// URL, but with the "?prerendering" param.
+//
+// When loaded with the "?prerendering" param, this document is
+// the "prerendered page". It tells the initiator page when it is
+// ready to activate, and messages the main test page when it is
+// finished.
+
+// Runs the logic of the prerendered page.
+//
+// The prerendered page has about:blank/srcdoc iframes and tests their
+// document.prerendering state before and after activation.
+async function main() {
+  // The iframe-no-src iframe has no src attribute.
+  const iframeNoSrc = document.querySelector('#iframe-no-src');
+
+  // The iframe-srcdoc iframe has a srcdoc attribute.
+  const iframeSrcdoc = document.querySelector('#iframe-srcdoc');
+
+  // The iframe-nav-to-about-blank first navigates to a non-about:blank URL,
+  // then sets src to about:blank.
+  const iframeNavToAboutBlank =
+     document.querySelector('#iframe-nav-to-about-blank');
+
+  await new Promise((resolve, reject) => {
+    iframeNavToAboutBlank.addEventListener('load', (e) => {
+      if (iframeNavToAboutBlank.src != 'about:blank')
+        iframeNavToAboutBlank.src = 'about:blank';
+      else
+        resolve();
+    });
+
+    // In case the original navigation to empty.html already finished before we
+    // added the event listener above, navigate to about:blank now.
+    if (iframeLoadedEmptyHtml)
+      iframeNavToAboutBlank.src = 'about:blank';
+  });
+
+  // Collect the documents.
+  let frames = [
+    {doc: document, name: 'main'},
+    {doc: iframeNoSrc.contentDocument, name: 'iframeNoSrc'},
+    {doc: iframeSrcdoc.contentDocument, name: 'iframeSrcdoc'},
+    {doc: iframeNavToAboutBlank.contentDocument, name: 'iframeNavToAboutBlank'}
+  ];
+
+  // Test document.prerendering pre-activation for each document.
+  for (let i = 0; i < frames.length; i++) {
+    assert_true(frames[i].doc.prerendering,
+                `document.prerendering pre-activation: ${frames[i].name}`);
+  }
+
+  // Resolves with [bool, bool, bool, ...] upon activation. Each `bool` is the
+  // value of document.prerendering in the prerenderingchange event for the
+  // corresponding document.
+  let activationPromises = frames.map(x => {
+    return new Promise((resolve, reject) => {
+      x.doc.addEventListener('prerenderingchange', (e) => {
+        resolve(document.prerendering);
+      });
+    });
+  });
+
+  // Ask to activate.
+  const prerenderChannel = new BroadcastChannel('prerender-channel');
+  prerenderChannel.postMessage('readyToActivate');
+
+  // Test document.prerendering post-activation for each document.
+  let activationResults = await Promise.all(activationPromises);
+  for (let i = 0; i < activationResults.length; i++) {
+    assert_false(activationResults[i],
+        `document.prerendering in prerenderingchange for ${frames[i].name}`);
+  }
+}
+
+// See comment at the top of this file.
+const params = new URLSearchParams(location.search);
+const isPrerendering = params.has('prerendering');
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  // For the prerendering page, run main() then message the test page with the
+  // result.
+  const testChannel = new BroadcastChannel('test-channel');
+  main().then(() => {
+    testChannel.postMessage('PASS');
+  }).catch((e) => {
+    testChannel.postMessage('FAIL: ' + e);
+  });
+}
+</script>
+</body>

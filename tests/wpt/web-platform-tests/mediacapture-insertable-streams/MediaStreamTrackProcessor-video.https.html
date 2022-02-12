@@ -10,8 +10,12 @@
 <p class="instructions">This test checks that MediaStreamTrackProcessor works as expected on video MediaStreamTracks.</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
 <script>
 promise_test(async t => {
+  await setMediaPermission("granted", ["camera"]);
   const stream = await navigator.mediaDevices.getUserMedia({video: true});
   const track = stream.getTracks()[0];
   const processor = new MediaStreamTrackProcessor({track: track});
@@ -46,10 +50,10 @@ promise_test(async t => {
   return promise;
 }, "Tests that the reader of a video MediaStreamTrackProcessor produces VideoFrame objects and is closed on track stop while running on a worker");
 
-function makeVideoFrame() {
+function makeVideoFrame(timestamp) {
   const canvas = new OffscreenCanvas(100, 100);
   const ctx = canvas.getContext('2d');
-  return new VideoFrame(canvas);
+  return new VideoFrame(canvas, {timestamp});
 }
 
 promise_test(async t => {
@@ -80,7 +84,7 @@ promise_test(async t => {
   // Write video frames in different tasks to "slowly" settle the pending read
   // requests.
   for (let i = 0; i<numOperations; i++) {
-     await writer.write(makeVideoFrame());
+     await writer.write(makeVideoFrame(i));
      await new Promise(r=>setTimeout(r,0));
   }
 

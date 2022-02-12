@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Delan Azabani" href="mailto:dazabani@igalia.com">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    main::selection {
+        color: black;
+        background-color: transparent;
+    }
+    main > .control > span::selection,
+    main > .bg > span::selection {
+        color: white;
+        background-color: green;
+    }
+    main > .fg > span::selection {
+        color: green;
+        background-color: white;
+    }
+</style>
+<p>Test passes if the words below are (respectively): white on green, green on white, white on green.
+<!--
+    The element tree below is intentionally the same shape as the
+    test, despite the fact that we might be able to simplify it. This
+    is because multiple impls (including Gecko and Blink) split the
+    background paints accordingly, which can obscure ink overflow in
+    some of the highlighted text (especially “f”).
+-->
+<main class="highlight_reftest"
+    ><span class="control"><span>foo</span></span
+    > <span class="fg"><span>b</span></span
+    ><span class="fg"><span>a</span></span
+    ><span class="fg"><span>r</span></span
+    > <span class="bg"><span>b</span></span
+    ><span class="bg"><span>a</span></span
+    ><span class="bg"><span>z</span></span
+    ></main>
+<script>selectNodeContents(document.querySelector("main"));</script>

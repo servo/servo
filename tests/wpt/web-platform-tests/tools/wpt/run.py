@@ -121,7 +121,8 @@ def check_environ(product):
 
         missing_hosts = set(expected_hosts)
         if is_windows:
-            hosts_path = r"%s\System32\drivers\etc\hosts" % os.environ.get("SystemRoot", r"C:\Windows")
+            hosts_path = r"%s\System32\drivers\etc\hosts" % os.environ.get(
+                "SystemRoot", r"C:\Windows")
         else:
             hosts_path = "/etc/hosts"
 
@@ -177,7 +178,8 @@ class BrowserSetup(object):
 
     def install_requirements(self):
         if not self.venv.skip_virtualenv_setup:
-            self.venv.install_requirements(os.path.join(wpt_root, "tools", "wptrunner", self.browser.requirements))
+            self.venv.install_requirements(os.path.join(
+                wpt_root, "tools", "wptrunner", self.browser.requirements))
 
     def setup(self, kwargs):
         self.setup_kwargs(kwargs)
@@ -286,16 +288,23 @@ class FirefoxAndroid(BrowserSetup):
             kwargs["prefs_root"] = prefs_root
 
         if kwargs["package_name"] is None:
-            kwargs["package_name"] = "org.mozilla.geckoview.test"
+            kwargs["package_name"] = "org.mozilla.geckoview.test_runner"
         app = kwargs["package_name"]
 
-        if kwargs["device_serial"] is None:
-            kwargs["device_serial"] = "emulator-5554"
+        if not kwargs["device_serial"]:
+            kwargs["device_serial"] = ["emulator-5554"]
 
-        # We're running on an emulator so ensure that's set up
-        if kwargs["device_serial"].startswith("emulator-"):
-            emulator = android.install(logger, reinstall=False, no_prompt=not self.prompt)
-            android.start(logger, emulator=emulator, reinstall=False)
+        for device_serial in kwargs["device_serial"]:
+            if device_serial.startswith("emulator-"):
+                # We're running on an emulator so ensure that's set up
+                emulator = android.install(logger,
+                                           reinstall=False,
+                                           no_prompt=not self.prompt,
+                                           device_serial=device_serial)
+                android.start(logger,
+                              emulator=emulator,
+                              reinstall=False,
+                              device_serial=device_serial)
 
         if "ADB_PATH" not in os.environ:
             adb_path = os.path.join(android.get_sdk_path(None),
@@ -304,15 +313,16 @@ class FirefoxAndroid(BrowserSetup):
             os.environ["ADB_PATH"] = adb_path
         adb_path = os.environ["ADB_PATH"]
 
-        device = mozdevice.ADBDeviceFactory(adb=adb_path,
-                                            device=kwargs["device_serial"])
+        for device_serial in kwargs["device_serial"]:
+            device = mozdevice.ADBDeviceFactory(adb=adb_path,
+                                                device=device_serial)
 
-        if self.browser.apk_path:
-            device.uninstall_app(app)
-            device.install_app(self.browser.apk_path)
-        elif not device.is_app_installed(app):
-            raise WptrunError("app %s not installed on device %s" %
-                              (app, kwargs["device_serial"]))
+            if self.browser.apk_path:
+                device.uninstall_app(app)
+                device.install_app(self.browser.apk_path)
+            elif not device.is_app_installed(app):
+                raise WptrunError("app %s not installed on device %s" %
+                                  (app, device_serial))
 
 
 class Chrome(BrowserSetup):
@@ -323,7 +333,7 @@ class Chrome(BrowserSetup):
     def setup_kwargs(self, kwargs):
         browser_channel = kwargs["browser_channel"]
         if kwargs["binary"] is None:
-            binary = self.browser.find_binary(channel=browser_channel)
+            binary = self.browser.find_binary(venv_path=self.venv.path, channel=browser_channel)
             if binary:
                 kwargs["binary"] = binary
             else:
@@ -371,10 +381,13 @@ class Chrome(BrowserSetup):
             else:
                 raise WptrunError("Unable to locate or install matching ChromeDriver binary")
         if browser_channel in self.experimental_channels:
-            logger.info("Automatically turning on experimental features for Chrome Dev/Canary or Chromium trunk")
+            logger.info(
+                "Automatically turning on experimental features for Chrome Dev/Canary or Chromium trunk")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
             # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/16448
             kwargs["webdriver_args"].append("--disable-build-check")
+            # To start the WebTransport over HTTP/3 test server.
+            kwargs["enable_webtransport_h3"] = True
         if os.getenv("TASKCLUSTER_ROOT_URL"):
             # We are on Taskcluster, where our Docker container does not have
             # enough capabilities to run Chrome with sandboxing. (gh-20133)
@@ -684,14 +697,16 @@ class WebKitGTKMiniBrowser(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:
-            binary = self.browser.find_binary(venv_path=self.venv.path, channel=kwargs["browser_channel"])
+            binary = self.browser.find_binary(
+                venv_path=self.venv.path, channel=kwargs["browser_channel"])
 
             if binary is None:
                 raise WptrunError("Unable to find MiniBrowser binary")
             kwargs["binary"] = binary
 
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver(venv_path=self.venv.path, channel=kwargs["browser_channel"])
+            webdriver_binary = self.browser.find_webdriver(
+                venv_path=self.venv.path, channel=kwargs["browser_channel"])
 
             if webdriver_binary is None:
                 raise WptrunError("Unable to find WebKitWebDriver in PATH")
@@ -805,7 +820,8 @@ def setup_wptrunner(venv, **kwargs):
                                                                    channel))
             kwargs["browser_channel"] = channel
         else:
-            logger.info("Valid channels for %s not known; using argument unmodified" % kwargs["product"])
+            logger.info("Valid channels for %s not known; using argument unmodified" %
+                        kwargs["product"])
             kwargs["browser_channel"] = kwargs["channel"]
 
     if kwargs["install_browser"]:

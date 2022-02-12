@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Invalidation: input pseudo classes in :has() argument</title>
+<link rel="author" title="Byungwoo Lee" href="blee@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  .ancestor:has(#checkme:checked) { color: green }
+  .ancestor:has(#checkme:indeterminate) { color: yellowgreen }
+  .ancestor:has(#checkme:disabled) { color: blue }
+  .ancestor:has(#textinput:read-only) { color: skyblue }
+  .ancestor:has(#textinput:placeholder-shown) { color: navy }
+  .ancestor:has(#radioinput:default) { color: lightblue }
+  .ancestor:has(#textinput:valid) { color: lightgreen }
+  .ancestor:has(#numberinput:out-of-range) { color: darkgreen }
+  .ancestor:has(#numberinput:required) { color: pink }
+</style>
+<div id=subject class=ancestor>
+  <input type="checkbox" name="my-checkbox" id="checkme">
+  <label for="checkme">Check me!</label>
+  <input type="text" id="textinput" required>
+  <input id="radioinput" checked>
+  <input id="numberinput" type="number" min="1" max="10" value="5">
+</div>
+<script>
+  test(() => {
+    checkme.checked = false;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    checkme.checked = true;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green");
+    checkme.indeterminate = true;
+    assert_equals(getComputedStyle(subject).color, "rgb(154, 205, 50)",
+                  "ancestor should be yellowgreen");
+    checkme.remove();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+
+    {
+      const input = document.createElement('input');
+      input.id = 'checkme';
+      input.setAttribute('type', 'checkbox');
+      input.setAttribute('name', 'my-checkbox');
+      input.checked = true;
+      assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                    "ancestor should be black");
+      subject.prepend(input);
+      assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                    "ancestor should be green");
+    }
+
+    checkme.disabled = true;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 255)",
+                  "ancestor should be blue");
+
+    textinput.readOnly = true;
+    assert_equals(getComputedStyle(subject).color, "rgb(135, 206, 235)",
+                  "ancestor should be skyblue");
+    textinput.readOnly = false;
+
+    textinput.placeholder = 'placeholder text';
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 128)",
+                  "ancestor should be navy");
+
+    radioinput.type = 'radio';
+    assert_equals(getComputedStyle(subject).color, "rgb(173, 216, 230)",
+                  "ancestor should be lightblue");
+
+    textinput.value = "text input";
+    assert_equals(getComputedStyle(subject).color, "rgb(144, 238, 144)",
+                  "ancestor should be lightgreen");
+
+    numberinput.value = 12;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 100, 0)",
+                  "ancestor should be darkgreen");
+
+    numberinput.required = true;
+    assert_equals(getComputedStyle(subject).color, "rgb(255, 192, 203)",
+                  "ancestor should be pink");
+
+  });
+</script>

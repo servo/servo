@@ -1,5 +1,6 @@
 (function(global) {
   const TEST_SAMPLE_INTERVAL = 10;
+  const ENSURE_SAMPLE_SPIN_WAIT_MS = 500;
 
   function forceSample() {
     // Spin for |TEST_SAMPLE_INTERVAL + 500|ms to ensure that a sample occurs
@@ -8,7 +9,10 @@
     //
     // More reliable sampling will be handled in a future testdriver RFC
     // (https://github.com/web-platform-tests/rfcs/pull/81).
-    for (const deadline = performance.now() + TEST_SAMPLE_INTERVAL + 500; performance.now() < deadline;);
+    for (const deadline = performance.now() + TEST_SAMPLE_INTERVAL +
+             ENSURE_SAMPLE_SPIN_WAIT_MS;
+         performance.now() < deadline;)
+      ;
   }
 
   // Creates a new profile that captures the execution of when the given
@@ -82,6 +86,24 @@
     return trace.resources.includes(expectedResource);
   }
 
+  // Returns true if a trace contains a sample matching the given specification.
+  // We define a "match" as follows: a sample A matches an expectation E if (and
+  // only if) for each field of E, A has the same value.
+  function containsSample(trace, expectedSample) {
+    return trace.samples.find(sample => {
+      return sampleMatches(sample, expectedSample);
+    }) !== undefined;
+  }
+
+  // Compares each set field of `expected` against the given frame `actual`.
+  function sampleMatches(actual, expected) {
+    return (expected.timestamp === undefined ||
+            expected.timestamp === actual.timestamp) &&
+        (expected.stackId === undefined ||
+         expected.stackId === actual.stackId) &&
+        (expected.marker === undefined || expected.marker === actual.marker);
+  }
+
   // Compares each set field of `expected` against the given frame `actual`.
   function frameMatches(actual, expected) {
     return (expected.name === undefined || expected.name === actual.name) &&
@@ -116,6 +138,7 @@
     containsFrame,
     containsSubstack,
     containsResource,
+    containsSample,
 
     // Cross-frame sampling
     forceSampleFrame,

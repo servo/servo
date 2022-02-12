@@ -571,4 +571,18 @@ var browserTests = [
      "<pre contenteditable=\"false\"><span contenteditable=\"\">abc<br></span></pre>"],
     [true],
     {"inserthtml":[false,false,"",false,false,""]}],
+
+// Empty inline elements shouldn't be deleted if they are inserted intentionally
+["<div>a[]b</div>",
+    [["inserthtml","<span></span>"]],
+    ["<div>a<span></span>b</div>",
+     "<div>a<span></span>b<br></div>"],
+    [true],
+    {"inserthtml":[false,false,"",false,false,""]}],
+["<div>a[]c</div>",
+    [["inserthtml","<span class=\"s1\"></span>b<span class=\"s2\"></span>"]],
+    ["<div>a<span class=\"s1\"></span>b<span class=\"s2\"></span>c</div>",
+     "<div>a<span class=\"s1\"></span>b<span class=\"s2\"></span>c<br></div>"],
+    [true],
+    {"inserthtml":[false,false,"",false,false,""]}],
 ]

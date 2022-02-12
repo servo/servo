@@ -224,8 +224,8 @@ test(() => {
   // <div #outside>
   // First focusable = #slottedToFirstSlot
   host.focus();
-  assert_equals(shadowRoot.activeElement, null);
-  assert_equals(document.activeElement, slottedToFirstSlot);
+  assert_equals(shadowRoot.activeElement, belowSlots);
+  assert_equals(document.activeElement, host);
 }, "focus() on host with delegatesFocus & tabindex=0, #slottedToFirstSlot, #slottedToSecondSlot, #belowSlots  with tabindex=0");
 
 test(() => {
@@ -272,8 +272,7 @@ test(() => {
   const dom = createNestedHosts(false);
   dom.outerHost.focus();
   assert_equals(document.activeElement, dom.outerHost);
-  assert_equals(dom.outerShadow.activeElement, dom.innerHost);
-  assert_equals(dom.innerShadow.activeElement, dom.innerShadowChild);
+  assert_equals(dom.outerShadow.activeElement, dom.outerShadowChild);
 }, 'focus() on host with delegatesFocus with another host with no delegatesFocus and a focusable child');
 
 test(() => {
@@ -283,5 +282,31 @@ test(() => {
   assert_equals(dom.outerShadow.activeElement, dom.innerHost);
   assert_equals(dom.innerShadow.activeElement, dom.innerShadowChild);
 }, 'focus() on host with delegatesFocus with another host with delegatesFocus and a focusable child');
+
+test(() => {
+  // Structure:
+  // <div> host
+  //   #shadowRoot root delegatesFocus=true
+  //    <slot>
+  //      (slotted) <div>
+  //        <input>
+  //    <input #firstFocusable>
+  const host = document.createElement("div");
+  const slotted = document.createElement("div");
+  slotted.appendChild(document.createElement("input"));
+  host.appendChild(slotted);
+
+  const root = host.attachShadow({mode: "open", delegatesFocus: true});
+
+  const firstFocusable = document.createElement("input");
+  root.innerHTML = "<slot>";
+  root.appendChild(firstFocusable);
+
+  document.body.appendChild(host);
+
+  host.focus();
+  assert_equals(document.activeElement, host);
+  assert_equals(root.activeElement, firstFocusable);
+}, "focus() on host with delegatesFocus and slotted focusable children");
 </script>
 

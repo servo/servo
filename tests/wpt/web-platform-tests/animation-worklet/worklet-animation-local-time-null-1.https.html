@@ -47,7 +47,7 @@ promise_test(async t => {
   );
   animation.play();
   await waitForAsyncAnimationFrames(1);
-  assert_equals(getComputedStyle(target).transform, "matrix(1, 0, 0, 1, 0, 0)");
+  assert_equals(getComputedStyle(target).transform, "none");
 }, "A worklet which never sets localTime has no effect.");
 
 promise_test(async t => {
@@ -72,7 +72,7 @@ promise_test(async t => {
   );
   animation.play();
   await waitForAsyncAnimationFrames(1);
-  assert_equals(getComputedStyle(target).transform, "matrix(1, 0, 0, 1, 0, 0)");
+  assert_equals(getComputedStyle(target).transform, "none");
 }, "A worklet which sets localTime to null has no effect.");
 
 promise_test(async t => {
@@ -112,7 +112,7 @@ promise_test(async t => {
 
   await waitForAnimationFrameWithCondition(() => animation.currentTime > 1000);
   await waitForAsyncAnimationFrames(1);
-  assert_equals(getComputedStyle(target).transform, "matrix(1, 0, 0, 1, 0, 0)",
+  assert_equals(getComputedStyle(target).transform, "none",
       "The effect stops on nulling of localTime");
 
 }, "A worklet which changes localTime to from a number to null has no effect on transform.");

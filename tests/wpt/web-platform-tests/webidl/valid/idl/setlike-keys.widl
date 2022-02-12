@@ -1,9 +1,0 @@
-interface KeysA {
-  readonly setlike<DOMString>;
-  static void keys();
-};
-
-interface KeysB {
-  readonly setlike<DOMString>;
-  static readonly attribute long keys;
-};

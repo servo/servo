@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tests that dynamically adding font-palette causes the necessary rendering update</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-palette-prop">
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com">
+<style>
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+
+@font-palette-values --MyPalette {
+    font-family: "COLR-test-font";
+    base-palette: 1;
+}
+</style>
+</head>
+<body>
+<div id="target" style="font: 48px 'COLR-test-font'; font-palette: --MyPalette;">A</div>
+</body>
+</html>

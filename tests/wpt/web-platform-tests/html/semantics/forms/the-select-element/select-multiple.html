@@ -33,4 +33,16 @@ test(() => {
   assert_true(select.options[1].selected, "second option should be selected.");
 
 }, "multiple selected options exist, one set from script");
+
+// crbug.com/1245443
+test(() => {
+  let select = document.createElement("select");
+  select.length = 4;
+  let o1 = select.options.item(1);
+  select.multiple = true;
+  select.selectedIndex = 2;
+  o1.selected = true;
+  select.multiple = false;
+  assert_equals(select.selectedOptions.length, 1);
+}, "Removing multiple attribute reduces the number of selected OPTIONs to 1");
 </script>

@@ -1,0 +1,10 @@
+<!doctype html>
+<script src="/resources/channel.sub.js"></script>
+<div id="test">FAIL</div>
+<script>
+(async function() {
+    await new Promise(resolve => onload = resolve);
+    document.getElementById("test").textContent = "PASS";
+    await start_global_channel();
+})()
+</script>

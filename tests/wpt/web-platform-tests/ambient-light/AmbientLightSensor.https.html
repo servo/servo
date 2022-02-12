@@ -27,4 +27,41 @@ runGenericSensorTests(
     verifyAlsSensorReading,
     ['ambient-light-sensor']);
 
+sensor_test(async (t, sensorProvider) => {
+  const sensor1 = new AmbientLightSensor();
+  const sensor2 = new AmbientLightSensor();
+
+  return new Promise((resolve, reject) => {
+    sensor1.addEventListener('reading', () => {
+      sensor2.addEventListener('activate', () => {
+        try {
+          assert_true(sensor1.activated);
+          assert_true(sensor1.hasReading);
+          assert_not_equals(sensor1.illuminance, null);
+          assert_not_equals(sensor1.timestamp, null);
+
+          assert_true(sensor2.activated);
+          assert_not_equals(sensor2.illuminance, null);
+          assert_not_equals(sensor2.timestamp, null);
+        } catch (e) {
+          reject(e);
+        }
+      }, { once: true });
+      sensor2.addEventListener('reading', () => {
+        try {
+          assert_true(sensor2.activated);
+          assert_true(sensor2.hasReading);
+          assert_equals(sensor1.illuminance, sensor2.illuminance);
+          assert_equals(sensor1.timestamp, sensor2.timestamp);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      }, { once: true });
+      sensor2.start();
+    }, { once: true });
+    sensor1.start();
+  });
+}, "Readings delivered by shared platform sensor are immediately accessible to all sensors.");
+
 </script>

@@ -8,7 +8,7 @@
 <body class="show_output">
 
 <h1>2d.path.roundrect.1.radius.dompointinit</h1>
-<p class="desc">Verify that when two radii are given to roundRect(), the first radius, specified as a DOMPointInit, applies to the top-left and bottom-left corners.</p>
+<p class="desc">Verify that when one radius is given to roundRect(), specified as a DOMPointInit, applies to all corners.</p>
 
 
 <p class="output">Actual output:</p>
@@ -16,7 +16,7 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("Verify that when two radii are given to roundRect(), the first radius, specified as a DOMPointInit, applies to the top-left and bottom-left corners.");
+var t = async_test("Verify that when one radius is given to roundRect(), specified as a DOMPointInit, applies to all corners.");
 _addTest(function(canvas, ctx) {
 
 ctx.fillStyle = '#f00';

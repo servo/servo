@@ -2,26 +2,73 @@
 <title>Aliases enumerated on CSSStyleDeclaration</title>
 <link rel="help" href="https://compat.spec.whatwg.org/#css-simple-aliases">
 <meta name="assert" content="This test verifies that aliases are enumerated on CSSStyleDeclaration" />
-
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
 </body>
 <script>
+const PREFIXED_PROPS = [
+  'webkitAlignContent',
+  'webkitAlignItems',
+  'webkitAnimationName',
+  'webkitAlignSelf',
+  'webkitAnimationDuration',
+  'webkitAnimationTimingFunction',
+  'webkitAnimationIterationCount',
+  'webkitAnimationDirection',
+  'webkitAnimationPlayState',
+  'webkitAnimationDelay',
+  'webkitAnimationFillMode',
+  'webkitAnimation',
+  'webkitBackfaceVisibility',
+  'webkitBackgroundOrigin',
+  'webkitBackgroundSize',
+  'webkitBorderBottomLeftRadius',
+  'webkitBorderBottomRightRadius',
+  'webkitBorderTopLeftRadius',
+  'webkitBorderTopRightRadius',
+  'webkitBorderRadius',
+  'webkitBoxShadow',
+  'webkitFlex',
+  'webkitFlexBasis',
+  'webkitFlexDirection',
+  'webkitFlexFlow',
+  'webkitFlexGrow',
+  'webkitFlexShrink',
+  'webkitFlexWrap',
+  'webkitFilter',
+  'webkitJustifyContent',
+  'webkitMask',
+  'webkitMaskBoxImage',
+  'webkitMaskBoxImageOutset',
+  'webkitMaskBoxImageRepeat',
+  'webkitMaskBoxImageSlice',
+  'webkitMaskBoxImageSource',
+  'webkitMaskBoxImageWidth',
+  'webkitMaskClip',
+  'webkitMaskComposite',
+  'webkitMaskImage',
+  'webkitMaskOrigin',
+  'webkitMaskPosition',
+  'webkitMaskRepeat',
+  'webkitMaskSize',
+  'webkitOrder',
+  'webkitPerspective',
+  'webkitPerspectiveOrigin',
+  'webkitTransformOrigin',
+  'webkitTransformStyle',
+  'webkitTransform',
+  'webkitTransitionDelay',
+  'webkitTransitionDuration',
+  'webkitTransitionProperty',
+  'webkitTransitionTimingFunction',
+  'webkitTransition',
+];
 
-// Note: This is an arbitrarily chosen simple alias from the spec.
-const ALIAS_SAMPLE = 'webkitTransform';
-
-function find_alias(alias) {
-  for (let prop in document.body.style) {
-    if (prop == alias) {
-      return true;
-    }
-  }
-  return false;
+const docBodyStyle = document.body.style;
+for (let prop of PREFIXED_PROPS) {
+  test(() => {
+    assert_true(prop in docBodyStyle);
+  }, `${prop} found on CSSStyleDeclaration`);
 }
-
-test(() => {
-  assert_true(find_alias(ALIAS_SAMPLE), `Alias ${ALIAS_SAMPLE} seen`);
-});
 </script>

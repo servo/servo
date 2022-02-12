@@ -36,11 +36,14 @@ enum XRVisibilityState {
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // Attributes
   readonly attribute XRVisibilityState visibilityState;
+  readonly attribute float? frameRate;
+  readonly attribute Float32Array? supportedFrameRates;
   [SameObject] readonly attribute XRRenderState renderState;
   [SameObject] readonly attribute XRInputSourceArray inputSources;
 
   // Methods
   undefined updateRenderState(optional XRRenderStateInit state = {});
+  Promise<undefined> updateTargetFrameRate(float rate);
   [NewObject] Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
   unsigned long requestAnimationFrame(XRFrameRequestCallback callback);
@@ -58,6 +61,7 @@ enum XRVisibilityState {
   attribute EventHandler onsqueezestart;
   attribute EventHandler onsqueezeend;
   attribute EventHandler onvisibilitychange;
+  attribute EventHandler onframeratechange;
 };
 
 dictionary XRRenderStateInit {
@@ -79,6 +83,7 @@ callback XRFrameRequestCallback = undefined (DOMHighResTimeStamp time, XRFrame f
 
 [SecureContext, Exposed=Window] interface XRFrame {
   [SameObject] readonly attribute XRSession session;
+  readonly attribute DOMHighResTimeStamp predictedDisplayTime;
 
   XRViewerPose? getViewerPose(XRReferenceSpace referenceSpace);
   XRPose? getPose(XRSpace space, XRSpace baseSpace);

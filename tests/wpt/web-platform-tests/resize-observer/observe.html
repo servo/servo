@@ -3,13 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="./resources/resizeTestHelper.js"></script>
+<body>
 <div id="log"></div>
+
 <script>
 'use strict';
-
-// allow uncaught exception because ResizeObserver posts exceptions
-// to window error handler when limit is exceeded.
-setup({allow_uncaught_exception: true});
 
 function test0() {
   let t = createAndAppendElement("div");
@@ -144,6 +142,7 @@ function test5() {
           observer.observe(img);
         },
         notify: entries => {
+          return true;
         }
       },
       {
@@ -218,7 +217,6 @@ function test7() {
   let resolvePromise;
   let ro = new ResizeObserver( function(entries, obs)  {
     let callbackThis = this;
-    resolvePromise();
     harnessTest.step(() => {
       assert_equals(callbackThis, ro, "callback.this is ResizeObserver");
       assert_equals(obs, ro, "2nd argument is ResizeObserver");
@@ -228,7 +226,10 @@ function test7() {
       ro = null;
       callbackThis = null;
       obs = null;
-      harnessTest.done();
+      harnessTest.step_timeout( _ => {
+        harnessTest.done();
+        resolvePromise();
+      }, 0);
      });
     }
   );
@@ -254,6 +255,7 @@ function test8() {
   [
     {
       setup: observer => {
+
         observer.observe(t, { box: "content-box" });
       },
       notify: entries => {
@@ -271,6 +273,7 @@ function test8() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 100,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -293,6 +296,7 @@ function test8() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 90,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -339,6 +343,7 @@ function test9() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 100,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -396,6 +401,7 @@ function test10() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 100,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -466,6 +472,7 @@ function test11() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 50,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -518,6 +525,7 @@ function test12() {
                       "target content-box inline size");
         assert_equals(entries[0].contentBoxSize[0].blockSize, 50,
                       "target content-box block size");
+        return true;
       }
     },
     {
@@ -559,6 +567,7 @@ function test13() {
                       "target content-box inline size");
         assert_equals(entries[0].contentBoxSize[0].blockSize, 50,
                       "target content-box block size");
+        return true;
       }
     },
     {
@@ -610,6 +619,7 @@ function test14() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 100,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -679,6 +689,7 @@ function test15() {
                       "target content-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 100,
                       "target content-box block size");
+        return true;
       }
     },
     {
@@ -767,6 +778,7 @@ function test17() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 50,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -791,6 +803,7 @@ function test17() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 50,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -814,6 +827,7 @@ function test17() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 50,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -835,6 +849,7 @@ function test17() {
                       "target border-box inline size");
         assert_equals(entries[0].borderBoxSize[0].blockSize, 50,
                       "target border-box block size");
+        return true;
       }
     },
     {
@@ -913,6 +928,7 @@ function test19() {
       },
       notify: entries => {
         // No need to test again (see test18), so skip this event loop.
+        return true;
       }
     },
     {
@@ -936,7 +952,14 @@ function test19() {
                       "target device-pixel-content-box inline size");
         assert_equals(entries[0].devicePixelContentBoxSize[0].blockSize, 300,
                       "target device-pixel-content-box block size");
+        return true;
       }
+    },
+    {
+      setup: observer => {
+        document.body.style.zoom = '';
+      },
+      notify: entries => {}
     }
   ]);
 

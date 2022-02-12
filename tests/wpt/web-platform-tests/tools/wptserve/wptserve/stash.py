@@ -2,40 +2,56 @@ import base64
 import json
 import os
 import threading
+import queue
 import uuid
 
-from multiprocessing.managers import AcquirerProxy, BaseManager, DictProxy
+from multiprocessing.managers import AcquirerProxy, BaseManager, BaseProxy, DictProxy, public_methods
 
 from .utils import isomorphic_encode
 
 
-class ServerDictManager(BaseManager):
+class StashManager(BaseManager):
     shared_data = {}
     lock = threading.Lock()
 
 
 def _get_shared():
-    return ServerDictManager.shared_data
+    return StashManager.shared_data
 
 
 def _get_lock():
-    return ServerDictManager.lock
+    return StashManager.lock
+
+StashManager.register("get_dict",
+                      callable=_get_shared,
+                      proxytype=DictProxy)
+StashManager.register('Lock',
+                      callable=_get_lock,
+                      proxytype=AcquirerProxy)
 
 
-ServerDictManager.register("get_dict",
-                           callable=_get_shared,
-                           proxytype=DictProxy)
-ServerDictManager.register('Lock',
-                           callable=_get_lock,
-                           proxytype=AcquirerProxy)
+# We have to create an explicit class here because the built-in
+# AutoProxy has a bug with nested managers, and the MakeProxy
+# method doesn't work with spawn-based multiprocessing, since the
+# generated class can't be pickled for use in child processes.
+class QueueProxy(BaseProxy):
+    _exposed_ = public_methods(queue.Queue)
 
 
-class ClientDictManager(BaseManager):
-    pass
+for method in QueueProxy._exposed_:
+
+    def impl_fn(method):
+        def _impl(self, *args, **kwargs):
+            return self._callmethod(method, args, kwargs)
+        _impl.__name__ = method
+        return _impl
+
+    setattr(QueueProxy, method, impl_fn(method))
 
 
-ClientDictManager.register("get_dict")
-ClientDictManager.register("Lock")
+StashManager.register("Queue",
+                      callable=queue.Queue,
+                      proxytype=QueueProxy)
 
 
 class StashServer(object):
@@ -77,7 +93,7 @@ def start_server(address=None, authkey=None, mp_context=None):
     kwargs = {}
     if mp_context is not None:
         kwargs["ctx"] = mp_context
-    manager = ServerDictManager(address, authkey, **kwargs)
+    manager = StashManager(address, authkey, **kwargs)
     manager.start()
 
     address = manager._address
@@ -132,6 +148,7 @@ class Stash(object):
 
     _proxy = None
     lock = None
+    manager = None
     _initializing = threading.Lock()
 
     def __init__(self, default_path, address=None, authkey=None):
@@ -154,10 +171,13 @@ class Stash(object):
             if Stash.lock:
                 return
 
-            manager = ClientDictManager(address, authkey)
-            manager.connect()
-            Stash._proxy = manager.get_dict()
-            Stash.lock = LockWrapper(manager.Lock())
+            Stash.manager = StashManager(address, authkey)
+            Stash.manager.connect()
+            Stash._proxy = self.manager.get_dict()
+            Stash.lock = LockWrapper(self.manager.Lock())
+
+    def get_queue(self):
+        return self.manager.Queue()
 
     def _wrap_key(self, key, path):
         if path is None:

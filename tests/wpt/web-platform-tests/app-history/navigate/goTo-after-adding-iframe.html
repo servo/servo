@@ -19,10 +19,10 @@ async_test(t => {
       assert_equals(i.contentWindow.appHistory.entries().length, 1);
       i.contentWindow.appHistory.navigate("#fragment");
       assert_equals(i.contentWindow.appHistory.entries().length, 2);
-      i.contentWindow.appHistory.back().then(t.step_func(() => {
+      i.contentWindow.appHistory.back().committed.then(t.step_func(() => {
         assert_equals(i.contentWindow.appHistory.entries().length, 2);
         assert_equals(i.contentWindow.appHistory.current.index, 0);
-        return i.contentWindow.appHistory.forward();
+        return i.contentWindow.appHistory.forward().committed;
       })).then(t.step_func_done(() => {
         assert_equals(i.contentWindow.appHistory.entries().length, 2);
         assert_equals(i.contentWindow.appHistory.current.index, 1);

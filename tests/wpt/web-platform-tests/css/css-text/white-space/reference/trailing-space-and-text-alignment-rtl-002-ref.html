@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Reference File</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+    div {
+        display: inline-block;
+        width: 3ch;
+        height: 100px;
+        font: 40px/1 Ahem;
+        border: 1px solid black;
+        box-sizing: content-box;
+        overflow-y: hidden;
+        overflow-x: auto;
+
+        direction: rtl;
+    }
+.left { text-align: left; }
+.center { text-align: center; }
+.right { text-align: right; }
+.start { text-align: start; }
+.end { text-align: end; }
+</style>
+<div class="left">XXXX&#10;X</div>
+<div class="center">XXXX&#10;X</div>
+<div class="right">XXXX&#10;X</div>
+<div class="start">XXXX&#10;X</div>
+<div class="end">XXXX&#10;X</div>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<title> Images on a page Cross-Origin-Embedder-Policy: require-corp should load the same from the cache or network</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+
+function remote(path) {
+  const REMOTE_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+  return new URL(path, REMOTE_ORIGIN);
+}
+
+//
+// This test loads a same-orign iframe resources/load_corp_images.html with
+// Cross-Origin-Embedder-Policy: require-corp
+// The iframe loads two cross origin images, one with a
+// Cross-Origin-Resource-Policy: cross-origin header, and one without.
+// We expect the image with the header to load successfully and the one without
+// to fail to load.
+// After the first load we then reload the iframe, with the same expectations
+// for the image loads when they are loaded from the cache.
+//
+
+const image_path = "/html/cross-origin-embedder-policy/resources/corp-image.py";
+
+let EXPECTED_LOADS = {
+  [`NETWORK-${remote(image_path)}`]: false,
+  [`NETWORK-${remote(image_path)}?corp-cross-origin=1`]: true,
+  [`CACHED-${remote(image_path)}`]: false,
+  [`CACHED-${remote(image_path)}?corp-cross-origin=1`]: true,
+}
+
+let TESTS = {};
+for (let t in EXPECTED_LOADS) {
+  TESTS[t] = async_test(t);
+}
+
+window.addEventListener("load", async () => {
+  let iframe = document.createElement("iframe");
+  let firstRun = true;
+  let t = async_test("main_test");
+  await new Promise((resolve, reject) => {
+    iframe.src = "resources/load-corp-images.html";
+    iframe.onload = () => { resolve() };
+    iframe.onerror = (e) => { reject(); };
+    window.addEventListener("message", (event) => {
+      // After the first done event we reload the iframe.
+      if (event.data.done) {
+        if (firstRun) {
+          firstRun = false;
+          iframe.contentWindow.location.reload();
+        } else {
+          // After the second done event the test is finished.
+          t.done();
+        }
+      } else {
+        // Check that each image either loads or doesn't based on the expectations
+        let testName = `${firstRun ? "NETWORK-" : "CACHED-"}${event.data.src}`;
+        let test = TESTS[testName];
+        test.step(() => {
+          assert_equals(event.data.loaded, EXPECTED_LOADS[testName], `${firstRun ? "NETWORK" : "CACHED"} load of ${event.data.src} should ${EXPECTED_LOADS[testName] ? "" : "not"} succeed`);
+        });
+        test.done();
+      }
+    }, false);
+    document.body.appendChild(iframe);
+  })
+});
+
+
+</script>
+</html>

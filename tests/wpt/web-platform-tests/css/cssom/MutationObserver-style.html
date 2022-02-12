@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Observer notifications when updating styles</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+  "use strict";
+
+  promise_test(async () => {
+    let called = 0;
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const m = new MutationObserver(() => {
+      called++;
+    });
+    m.observe(el, { attributes: true });
+    el.style.height = "100px";
+    await Promise.resolve();
+    assert_equals(called, 1, "times callback called");
+    el.style.height = "100px";
+    await Promise.resolve();
+    assert_equals(called, 1, "times callback called");
+  }, "Updating style property with the same value does not trigger an observation callback");
+
+  promise_test(async () => {
+    let called = 0;
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const m = new MutationObserver(() => {
+      called++;
+    });
+    m.observe(el, { attributes: true });
+    el.style.cssText = "height:100px";
+    await Promise.resolve();
+    assert_equals(called, 1, "times callback called");
+    el.style.cssText = "height:100px";
+    await Promise.resolve();
+    assert_equals(called, 2, "times callback called");
+  }, "Updating cssText triggers an observation callback even if the value is the same");
+</script>
+

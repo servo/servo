@@ -3,8 +3,11 @@
 <head>
   <title>MediaRecorder Disabled Tracks</title>
   <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
-  <script src="/resources/testharness.js"></script>
+<script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
 </head>
 <script>
 
@@ -46,7 +49,7 @@
       });
 
       const onError = test.unreached_func('Error creating MediaStream.');
-      navigator.mediaDevices.getUserMedia(args[1]).then(gotStream, onError);
+      setMediaPermission().then(() => navigator.mediaDevices.getUserMedia(args[1])).then(gotStream, onError);
     }, args[0]);
   });
 

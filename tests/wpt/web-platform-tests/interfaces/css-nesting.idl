@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: CSS Nesting Module (https://drafts.csswg.org/css-nesting-1/)
+// Source: CSS Nesting Module (https://drafts.csswg.org/css-nesting/)
 
 partial interface CSSStyleRule {
   [SameObject] readonly attribute CSSRuleList cssRules;

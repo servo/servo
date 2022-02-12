@@ -3,6 +3,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/accesskey.js"></script>
 
 <p>Tests that a keyboard access key to press a button will fire only the click event</p>
 <button id="button" accesskey="g">Click Me with Shift+Alt+g or on Mac with Control+Option+g</button>
@@ -46,41 +47,10 @@ testElements.forEach((el)=>promise_test((test)=> new Promise(async (resolve,reje
   eventLog = [];
   var eventWatcher = new EventWatcher(test, el, ['click']);
   let waitForClick = eventWatcher.wait_for('click');
-  let actions = new test_driver.Actions();
-  actions = pressAccessKey(actions, accesskeyMap.get(el));
-  await actions.send();
+  await pressAccessKey(accesskeyMap.get(el));
   await waitForClick;
 
   assert_array_equals(eventLog, [`click_${el.id}`], "The Keyboard generated click only sends the click event.");
   resolve();
 }), `Test that the Keyboard generated click does not fire pointer or mouse events for ${el.id}`));
-
-function pressAccessKey(actions, accessKey){
-  // TODO(liviutinta): figure out which values for controlKey/optionKey to use for Mac
-  let controlKey = '\uE009'; // left Control key
-  let altKey = '\uE00A'; // left Alt key
-  let optionKey = altKey;  // left Option key
-  let shiftKey = '\uE008'; // left Shift key
-  // There are differences in using accesskey across browsers and OS's.
-  // See: // https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/accesskey
-  let isMacOSX = navigator.userAgent.indexOf("Mac") != -1;
-  // Default OS access keys.
-  let osAccessKey = [shiftKey, altKey];
-  // Set the OS keys that need to be pressed for a keyboard accessibility click.
-  if(isMacOSX){
-    // On Mac use Control + Option + accesskey (for button is g).
-    osAccessKey = [controlKey, optionKey];
-  }
-  // Press keys.
-  for(key of osAccessKey)
-    actions = actions.keyDown(key);
-  actions = actions
-            .keyDown(accessKey)
-            .addTick()
-            .keyUp(accessKey);
-  osAccessKey.reverse();
-  for(key of osAccessKey)
-    actions = actions.keyUp(key);
-  return actions;
-}
 </script>

@@ -70,8 +70,8 @@
           t5.done();
         } else if (data.type == "https") {
           t6.step(function() {
-            assert_false(data.error);
-            assert_false(data.isSecureContext);
+            assert_false(data.error, "error");
+            assert_false(data.isSecureContext, "isSecureContext");
           });
           t6.done();
         } else {

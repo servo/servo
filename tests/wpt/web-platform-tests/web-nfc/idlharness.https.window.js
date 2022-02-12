@@ -18,7 +18,7 @@ const message = {
 
 idl_test(
   ['web-nfc'],
-  ['html', 'dom', 'WebIDL'],
+  ['html', 'dom', 'webidl'],
   idl_array => {
     idl_array.add_objects({
       NDEFReader: ['new NDEFReader();'],

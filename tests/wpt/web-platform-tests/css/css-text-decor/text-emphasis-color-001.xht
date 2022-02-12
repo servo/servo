@@ -4,46 +4,38 @@
 	<head>
 		<title>CSS Test: text-emphasis - color - basic cases</title>
 		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
 		<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-color-property" />
 		<link rel="match" href="reference/text-emphasis-color-001-ref.xht"/>
-		<meta name="flags" content="" />
 		<meta name="assert" content="This property describes the foreground color of the emphasis marks." />
 		<style type="text/css"><![CDATA[
-			.common
-			{
-				line-height: 1em;
-				position: relative;
-			}
 			.emphasis
 			{
 				text-emphasis-style: filled circle;
 			}
+			.margin
+			{
+				margin: 0.6em 0 0;
+			}
 			.parent
 			{
 				border: solid 1px gray;
-				font-size: 2em;
+				font: 1.5em monospace;
 				width: 10em;
 			}
-			.refcommon
-			{
-				font-size: 0.5em;
-				left: 0em;
-				position: absolute;
-				top: -1.5em;
-			}
-			.black
+			.ref1 rt
 			{
 				color: black;
 			}
-			.blue
+			.ref2 rt
 			{
 				color: blue;
 			}
-			.green
+			.ref3 rt
 			{
 				color: green;
 			}
-			.red
+			.ref4 rt
 			{
 				color: red;
 			}
@@ -64,88 +56,59 @@
 				text-emphasis-color: red;
 			}
 		]]></style>
-		<script type="text/javascript">
-			//	<![CDATA[
-					// Set Font Family to 'IPAMincho'
-					function setFontFamily () {
-						var fontName = 'IPAMincho';
-						var divs = document.getElementsByTagName('div');
-						var i = 0;
-						var div;
-						while (i < divs.length) {
-							div = divs.item(i);
-							if (div.className == 'parent') {
-								div.style.fontFamily = fontName;
-							}
-							i++;
-						}
-					}
-			//	]]>
-		</script>
 	</head>
+    <!--
+        Reference line for each example relies on ruby rendering, as described in the spec:
+        "Emphasis marks are drawn exactly as if each character was assigned the mark as its ruby annotation text
+         with the ruby position given by text-emphasis-position and the ruby alignment as centered."
+    -->
 	<body>
 		<div>
 			<p>Test passes if each pair of upper and lower "Filler Text" in the square box is identical.</p>
 			black
 			<div class="parent">
-				<div><span class="emphasis test1">Filler</span> Text</div>
-				<br />
+				<div class="margin"><span class="emphasis test1">Filler</span> Text</div>
 				<div>
-					<span class="common">F<span class="black refcommon">&#x25CF;</span></span><span class="common">i<span class="black refcommon">&#x25CF;</span></span><span class="common">l<span class="black refcommon">&#x25CF;</span></span><span class="common">l<span class="black refcommon">&#x25CF;</span></span><span class="common">e<span class="black refcommon">&#x25CF;</span></span><span class="common">r<span class="black refcommon">&#x25CF;</span></span>
+					<ruby class="ref1"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
 					Text
 				</div>
 			</div>
 			<br />
 			blue
 			<div class="parent">
-				<div><span class="emphasis test2">Filler</span> Text</div>
-				<br />
+				<div class="margin"><span class="emphasis test2">Filler</span> Text</div>
 				<div>
-					<span class="common">F<span class="blue refcommon">&#x25CF;</span></span><span class="common">i<span class="blue refcommon">&#x25CF;</span></span><span class="common">l<span class="blue refcommon">&#x25CF;</span></span><span class="common">l<span class="blue refcommon">&#x25CF;</span></span><span class="common">e<span class="blue refcommon">&#x25CF;</span></span><span class="common">r<span class="blue refcommon">&#x25CF;</span></span>
+					<ruby class="ref2"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
 					Text
 				</div>
 			</div>
 			<br />
 			green
 			<div class="parent">
-				<div><span class="emphasis test3">Filler</span> Text</div>
-				<br />
+				<div class="margin"><span class="emphasis test3">Filler</span> Text</div>
 				<div>
-					<span class="common">F<span class="green refcommon">&#x25CF;</span></span><span class="common">i<span class="green refcommon">&#x25CF;</span></span><span class="common">l<span class="green refcommon">&#x25CF;</span></span><span class="common">l<span class="green refcommon">&#x25CF;</span></span><span class="common">e<span class="green refcommon">&#x25CF;</span></span><span class="common">r<span class="green refcommon">&#x25CF;</span></span>
+					<ruby class="ref3"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
 					Text
 				</div>
 			</div>
 			<br />
 			red
 			<div class="parent">
-				<div><span class="emphasis test4">Filler</span> Text</div>
-				<br />
+				<div class="margin"><span class="emphasis test4">Filler</span> Text</div>
 				<div>
-					<span class="common">F<span class="red refcommon">&#x25CF;</span></span><span class="common">i<span class="red refcommon">&#x25CF;</span></span><span class="common">l<span class="red refcommon">&#x25CF;</span></span><span class="common">l<span class="red refcommon">&#x25CF;</span></span><span class="common">e<span class="red refcommon">&#x25CF;</span></span><span class="common">r<span class="red refcommon">&#x25CF;</span></span>
+					<ruby class="ref4"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
 					Text
 				</div>
 			</div>
 			<br />
 			current-color
 			<div class="parent">
-				<div><span class="emphasis">Filler</span> Text</div>
-				<br />
+				<div class="margin"><span class="emphasis">Filler</span> Text</div>
 				<div>
-					<span class="common">F<span class="refcommon">&#x25CF;</span></span><span class="common">i<span class="refcommon">&#x25CF;</span></span><span class="common">l<span class="refcommon">&#x25CF;</span></span><span class="common">l<span class="refcommon">&#x25CF;</span></span><span class="common">e<span class="refcommon">&#x25CF;</span></span><span class="common">r<span class="refcommon">&#x25CF;</span></span>
+					<ruby><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
 					Text
 				</div>
 			</div>
-			<p class="fontChange" style="display: block;">
-				If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and apply it.
-				<button type="button" onclick="setFontFamily()">
-					Apply
-				</button>
-			</p>
-			<script type="text/javascript">
-				if (document.getElementById) {
-					document.getElementById('fontChange').style.display = 'block'
-				}
-			</script>
 		</div>
 	</body>
 </html>

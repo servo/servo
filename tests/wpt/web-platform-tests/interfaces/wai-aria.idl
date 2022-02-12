@@ -6,54 +6,54 @@
 interface mixin ARIAMixin {
   attribute DOMString? role;
 
-  attribute DOMString ariaAtomic;
-  attribute DOMString ariaAutoComplete;
-  attribute DOMString ariaBusy;
-  attribute DOMString ariaChecked;
-  attribute DOMString ariaColCount;
-  attribute DOMString ariaColIndex;
-  attribute DOMString ariaColIndexText;
-  attribute DOMString ariaColSpan;
+  attribute DOMString? ariaAtomic;
+  attribute DOMString? ariaAutoComplete;
+  attribute DOMString? ariaBusy;
+  attribute DOMString? ariaChecked;
+  attribute DOMString? ariaColCount;
+  attribute DOMString? ariaColIndex;
+  attribute DOMString? ariaColIndexText;
+  attribute DOMString? ariaColSpan;
 
-  attribute DOMString ariaCurrent;
+  attribute DOMString? ariaCurrent;
 
-  attribute DOMString ariaDescription;
+  attribute DOMString? ariaDescription;
 
-  attribute DOMString ariaDisabled;
+  attribute DOMString? ariaDisabled;
 
-  attribute DOMString ariaExpanded;
+  attribute DOMString? ariaExpanded;
 
-  attribute DOMString ariaHasPopup;
-  attribute DOMString ariaHidden;
-  attribute DOMString ariaInvalid;
-  attribute DOMString ariaKeyShortcuts;
-  attribute DOMString ariaLabel;
+  attribute DOMString? ariaHasPopup;
+  attribute DOMString? ariaHidden;
+  attribute DOMString? ariaInvalid;
+  attribute DOMString? ariaKeyShortcuts;
+  attribute DOMString? ariaLabel;
 
-  attribute DOMString ariaLevel;
-  attribute DOMString ariaLive;
-  attribute DOMString ariaModal;
-  attribute DOMString ariaMultiLine;
-  attribute DOMString ariaMultiSelectable;
-  attribute DOMString ariaOrientation;
+  attribute DOMString? ariaLevel;
+  attribute DOMString? ariaLive;
+  attribute DOMString? ariaModal;
+  attribute DOMString? ariaMultiLine;
+  attribute DOMString? ariaMultiSelectable;
+  attribute DOMString? ariaOrientation;
 
-  attribute DOMString ariaPlaceholder;
-  attribute DOMString ariaPosInSet;
-  attribute DOMString ariaPressed;
-  attribute DOMString ariaReadOnly;
+  attribute DOMString? ariaPlaceholder;
+  attribute DOMString? ariaPosInSet;
+  attribute DOMString? ariaPressed;
+  attribute DOMString? ariaReadOnly;
 
-  attribute DOMString ariaRequired;
-  attribute DOMString ariaRoleDescription;
-  attribute DOMString ariaRowCount;
-  attribute DOMString ariaRowIndex;
-  attribute DOMString ariaRowIndexText;
-  attribute DOMString ariaRowSpan;
-  attribute DOMString ariaSelected;
-  attribute DOMString ariaSetSize;
-  attribute DOMString ariaSort;
-  attribute DOMString ariaValueMax;
-  attribute DOMString ariaValueMin;
-  attribute DOMString ariaValueNow;
-  attribute DOMString ariaValueText;
+  attribute DOMString? ariaRequired;
+  attribute DOMString? ariaRoleDescription;
+  attribute DOMString? ariaRowCount;
+  attribute DOMString? ariaRowIndex;
+  attribute DOMString? ariaRowIndexText;
+  attribute DOMString? ariaRowSpan;
+  attribute DOMString? ariaSelected;
+  attribute DOMString? ariaSetSize;
+  attribute DOMString? ariaSort;
+  attribute DOMString? ariaValueMax;
+  attribute DOMString? ariaValueMin;
+  attribute DOMString? ariaValueNow;
+  attribute DOMString? ariaValueText;
 };
 
 Element includes ARIAMixin;

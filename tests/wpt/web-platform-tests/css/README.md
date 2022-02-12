@@ -22,15 +22,6 @@ this directory has a number of test requirements specific to it:
    `css` directory.
 
 
-vendor-imports/ Directory
--------------------------
-
-vendor-imports/ is the remains of a legacy directory where third parties
-historically imported their tests. These tests should be moved into the correct
-directory under css/, see
-[#8615](https://github.com/web-platform-tests/wpt/issues/8615). In the meantime,
-feel free to fix any test bugs in the usual way.
-
 Importing Old Branches
 ----------------------
 

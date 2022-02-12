@@ -35,6 +35,25 @@ test(function () {
 }, 'innerHTML of template element replaces all referenced by the content attribute');
 
 
+test(function () {
+    var doc = newHTMLDocument();
+    var template = doc.createElement('template');
+
+    var div1 = doc.createElement('div');
+    div1.setAttribute('id', 'div1');
+    template.content.appendChild(div1);
+
+    assert_not_equals(template.content.querySelector('#div1'), null,
+            'Element should present in template content');
+
+    template.innerHTML = '';
+
+    assert_false(template.content.hasChildNodes(),
+            'Template content should be removed by innerHTML');
+
+}, 'innerHTML of template element replaces all referenced by the content attribute. '
+    + 'Test empty HTML string');
+
 
 test(function () {
     var doc = newHTMLDocument();

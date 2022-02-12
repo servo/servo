@@ -18,13 +18,11 @@
   }
   @scroll-timeline timeline {
     source: selector(#scroller);
-    time-range: 10s;
     start: 0px;
     end: 100px;
   }
   @scroll-timeline timeline {
     source: selector(#scroller);
-    time-range: 1s;
     start: 0px;
     end: 50px;
   }
@@ -45,6 +43,6 @@
   promise_test(async (t) => {
     scroller.scrollTop = 25;
     await waitForNextFrame();
-    assert_equals(getComputedStyle(element).width, '105px');
+    assert_equals(getComputedStyle(element).width, '150px');
   }, 'Latest @scroll-timeline rule wins');
 </script>

@@ -1,0 +1,120 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight cascade: custom properties are inherited regardless of inherits flag or inheritedness of referencing property</title>
+<link rel="author" title="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="match" href="highlight-cascade-002-ref.html">
+<meta name="assert" value="This test verifies that, given ::selection styles referencing custom properties, their substitution values are inherited from the parent ::selection styles, even if the property is registered with inherits set to false (--inherits-false) or the referencing property is not an inherited property (background-color). All custom properties are treated as inherited when used in highlight styles in any way.">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+    /*
+        Register the custom properties, other than --unregistered,
+        which would be an inherited property [css-variables-1].
+    */
+    @property --control {
+        syntax: "<color>";
+        initial-value: green;
+        inherits: false;
+    }
+    @property --inherits-false {
+        syntax: "<color>";
+        initial-value: red;
+        inherits: false;
+    }
+    @property --inherits-true {
+        syntax: "<color>";
+        initial-value: red;
+        inherits: true;
+    }
+
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    main::selection {
+        /*
+            Don’t visibly highlight the spaces between words.
+        */
+        color: black;
+        background-color: transparent;
+    }
+
+    /*
+        Non-highlight control: if this text is white on red (inherit)
+        rather than white on green (initial), then @property is not
+        supported well enough to make this test meaningful.
+    */
+    main > .control {
+        --control: red;
+    }
+    main > .control > span {
+        color: white;
+        background-color: var(--control);
+    }
+
+    main > *::selection {
+        --inherits-false: green;
+        --inherits-true: green;
+        --unregistered: green;
+    }
+
+    /*
+        Foreground tests: if the foreground of this text is red or
+        black (initial) rather than green (inherit), then custom
+        properties are not being inherited in highlight styles.
+
+        color is an inherited property, but that shouldn’t matter.
+    */
+    main > .fg > span::selection {
+        background-color: white;
+    }
+    main > .fg.inherits-false > span::selection {
+        color: var(--inherits-false);
+    }
+    main > .fg.inherits-true > span::selection {
+        color: var(--inherits-true);
+    }
+    main > .fg.unregistered > span::selection {
+        color: var(--unregistered);
+    }
+
+    /*
+        Background tests: if the background of this text is red or
+        black (initial) rather than green (inherit), then custom
+        properties are not being inherited in highlight styles.
+
+        background-color is not an inherited property, but that
+        shouldn’t matter.
+    */
+    main > .bg > span::selection {
+        color: white;
+    }
+    main > .bg.inherits-false > span::selection {
+        background-color: var(--inherits-false);
+    }
+    main > .bg.inherits-true > span::selection {
+        background-color: var(--inherits-true);
+    }
+    main > .bg.unregistered > span::selection {
+        background-color: var(--unregistered);
+    }
+</style>
+<p>Test passes if the words below are (respectively): white on green, green on white, white on green.
+<main class="highlight_reftest"
+    ><span class="control"><span>foo</span></span
+    > <span class="fg inherits-false"><span>b</span></span
+    ><span class="fg inherits-true"><span>a</span></span
+    ><span class="fg unregistered"><span>r</span></span
+    > <span class="bg inherits-false"><span>b</span></span
+    ><span class="bg inherits-true"><span>a</span></span
+    ><span class="bg unregistered"><span>z</span></span
+    ></main>
+<script>
+    const main = document.querySelector("main");
+    selectRangeWith(range => {
+        range.selectNodeContents(main);
+        range.setStart(main, 2);
+        range.setEnd(main, 9);
+    });
+</script>

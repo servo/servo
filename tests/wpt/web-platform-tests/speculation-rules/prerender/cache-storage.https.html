@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Same-origin prerendering can access cache storage</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<script>
+
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const bc = new BroadcastChannel('prerender-channel');
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+
+  const cacheName = 'checkallowed';
+  const cache = await caches.open(cacheName);
+  await cache.add('resources/cache.txt');
+  const response = await cache.match('resources/cache.txt');
+  const cacheText = await (response ? response.text() : 'primary cache match failed');
+
+  // Start prerendering a page that attempts to access cache storage.
+  startPrerendering(`resources/cache-storage-access.https.html`);
+  const result = await gotMessage;
+
+  assert_equals(
+    result, cacheText,
+    'prerendering page should be able to read from cache storage.');
+  await caches.delete(cacheName);
+
+  bc.close();
+}, 'prerendering page should be able to access cache storage')
+
+</script>
+</body>

@@ -26,8 +26,6 @@ RUN apt-get -qqy update \
     locales \
     openjdk-8-jre-headless \
     pulseaudio \
-    python2 \
-    python2-dev \
     python3 \
     python3-dev \
     python3-pip \
@@ -42,12 +40,9 @@ RUN apt-get -qqy update \
 # python3.6 is not available by default in new versions of Ubuntu.
 RUN apt-add-repository -y ppa:deadsnakes/ppa
 
-# Ensure that scripts referencing `/usr/bin/env python` work.
-RUN apt install python-is-python2
-
-# The python-pip package no longer exists in new versions of Ubuntu.
-RUN curl https://bootstrap.pypa.io/get-pip.py --output get-pip.py
-RUN python2 get-pip.py
+# Ensure a `python` binary exists
+RUN apt-get -qqy update \
+    && apt-get install -qqy python-is-python3
 
 # Installing just the deps of firefox and chrome is moderately tricky, so
 # just install the default versions of them, and some extra deps we happen
@@ -66,11 +61,8 @@ RUN apt-get -qqy install \
 
 RUN apt-get -y autoremove
 
-RUN pip2 install --upgrade pip
-RUN pip2 install virtualenv
-
-RUN pip3 install --upgrade pip
-RUN pip3 install virtualenv
+RUN pip install --upgrade pip
+RUN pip install virtualenv
 
 ENV TZ "UTC"
 RUN echo "${TZ}" > /etc/timezone \

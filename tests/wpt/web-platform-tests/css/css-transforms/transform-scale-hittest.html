@@ -32,7 +32,7 @@ test(() => {
 }, 'Hit test within unscaled box');
 
 test(() => {
-  const result = document.elementFromPoint(50, 9.1);
+  const result = document.elementFromPoint(50, 10);
   assert_equals(result, document.getElementById('scaled'));
 }, 'Hit test intersecting scaled box');
 </script>

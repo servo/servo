@@ -411,6 +411,18 @@ nfc_test(async (t, mockNFC) => {
   });
 }, "NDEFReader.write should replace all previously configured write operations.");
 
+nfc_test(async () => {
+  const ndef = new NDEFReader();
+
+  const controller1 = new AbortController();
+  await ndef.write(test_text_data, {signal: controller1.signal});
+
+  const controller2 = new AbortController();
+  const promise = ndef.write(test_text_data, {signal: controller2.signal});
+  controller1.abort();
+  await promise;
+}, 'NDEFReader.write signals are independent.');
+
 nfc_test(async (t, mockNFC) => {
   const ndef = new NDEFReader();
   await ndef.write({ records: [{ recordType: "mime", data: test_buffer_data }] });

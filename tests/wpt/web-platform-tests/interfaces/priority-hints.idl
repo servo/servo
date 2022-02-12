@@ -1,0 +1,30 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Priority Hints (https://wicg.github.io/priority-hints/)
+
+enum Importance { "high", "low", "auto" };
+
+partial interface Request {
+  readonly attribute Importance importance;
+};
+
+partial dictionary RequestInit {
+  Importance importance;
+};
+
+partial interface HTMLImageElement {
+    [CEReactions] attribute DOMString importance;
+};
+
+partial interface HTMLLinkElement {
+    [CEReactions] attribute DOMString importance;
+};
+
+partial interface HTMLScriptElement {
+    [CEReactions] attribute DOMString importance;
+};
+
+partial interface HTMLIFrameElement {
+    [CEReactions] attribute DOMString importance;
+};

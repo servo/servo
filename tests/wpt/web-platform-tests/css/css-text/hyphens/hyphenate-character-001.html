@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text test: hyphenate-character</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#hyphenate-character">
+<link rel="match" href="reference/hyphenate-character-001-ref.html">
+<meta name="assert" content="Specifies the string that appears at the end of the line before a hyphenation break">
+<style>
+div {
+  font: 16px monospace;
+  width: 4.5ch;  /* wide enough that the first potential break in "re-al-iza-tion" should NOT be used */
+  hyphens: manual;
+  hyphenate-character: "";
+}
+</style>
+
+<p>Test passes if the words below are broken at hyphenation positions but <b>no visible hyphens appear</b>.
+
+<div lang="en">
+im&shy;ple&shy;men&shy;ta&shy;tion<br><br>
+ini&shy;tial&shy;iza&shy;tion<br><br>
+re&shy;al&shy;iza&shy;tion<br><br>
+hy&shy;phen&shy;ation
+</div>

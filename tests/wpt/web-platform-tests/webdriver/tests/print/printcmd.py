@@ -1,7 +1,9 @@
+# META: timeout=long
 from base64 import decodebytes
 
 import pytest
 
+from . import load_pdf_document
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -41,6 +43,7 @@ def test_html_document(session, inline):
     # TODO: Test that the output is reasonable
     assert_pdf(pdf)
 
+
 def test_large_html_document(session, inline):
     session.url = inline("<canvas id=\"image\"></canvas>")
 
@@ -77,6 +80,48 @@ def test_large_html_document(session, inline):
     assert_pdf(pdf)
 
 
+@pytest.mark.parametrize("ranges,expected", [
+    (["2-4"], ["Page 2", "Page 3", "Page 4"]),
+    (["2-4", "2-3"], ["Page 2", "Page 3", "Page 4"]),
+    (["2-4", "3-5"], ["Page 2", "Page 3", "Page 4", "Page 5"]),
+    (["9-"], ["Page 9", "Page 10"]),
+    (["-2"], ["Page 1", "Page 2"]),
+    (["7"], ["Page 7"]),
+    (["-2", "9-", "7"], ["Page 1", "Page 2", "Page 7", "Page 9", "Page 10"]),
+    (["-5", "2-"], ["Page 1", "Page 2", "Page 3", "Page 4", "Page 5", "Page 6", "Page 7", "Page 8", "Page 9", "Page 10"]),
+    ([], ["Page 1", "Page 2", "Page 3", "Page 4", "Page 5", "Page 6", "Page 7", "Page 8", "Page 9", "Page 10"]),
+])
+def test_page_ranges_document(session, inline, ranges, expected):
+    session.url = inline("""
+<style>
+div {page-break-after: always}
+</style>
+
+<div>Page 1</div>
+<div>Page 2</div>
+<div>Page 3</div>
+<div>Page 4</div>
+<div>Page 5</div>
+<div>Page 6</div>
+<div>Page 7</div>
+<div>Page 8</div>
+<div>Page 9</div>
+<div>Page 10</div>""")
+
+    response = do_print(session, {
+        "pageRanges": ranges
+    })
+    value = assert_success(response)
+    pdf = decodebytes(value.encode())
+    # TODO: Test that the output is reasonable
+    assert_pdf(pdf)
+
+    load_pdf_document(session, inline, value)
+    pages = session.execute_async_script("""let callback = arguments[arguments.length - 1];
+window.getText().then(pages => callback(pages));""")
+    assert pages == expected
+
+
 @pytest.mark.parametrize("options", [{"orientation": 0},
                                      {"orientation": "foo"},
                                      {"scale": "1"},
@@ -85,7 +130,13 @@ def test_large_html_document(session, inline):
                                      {"margin": {"top": "1"}},
                                      {"margin": {"bottom": -1}},
                                      {"page": {"height": False}},
-                                     {"shrinkToFit": "false"}])
-def test_invalid(session, options):
+                                     {"shrinkToFit": "false"},
+                                     {"pageRanges": ["3-2"]},
+                                     {"pageRanges": ["a-2"]},
+                                     {"pageRanges": ["1:2"]},
+                                     {"pageRanges": ["1-2-3"]},
+                                     {"pageRanges": [None]},
+                                     {"pageRanges": ["1-2", {}]}])
+def test_page_ranges_invalid(session, options):
     response = do_print(session, options)
     assert_error(response, "invalid argument")

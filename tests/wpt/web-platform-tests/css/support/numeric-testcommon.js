@@ -42,7 +42,7 @@ to test that a given value is ±∞, ±0, or NaN:
 
 
 
-function test_math_used(testString, expectedString, {msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
+function test_math_used(testString, expectedString, {approx, msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
     if(type === undefined) type = "length";
     if(!prop) {
         switch(type) {
@@ -57,10 +57,10 @@ function test_math_used(testString, expectedString, {msg, msgExtra, type, prop, 
         }
 
     }
-    _test_math({stage:'used', testString, expectedString, type, msg, msgExtra, prop, prefix, suffix, extraStyle});
+    _test_math({stage:'used', testString, expectedString, type, approx, msg, msgExtra, prop, prefix, suffix, extraStyle});
 }
 
-function test_math_computed(testString, expectedString, {msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
+function test_math_computed(testString, expectedString, {approx, msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
     if(type === undefined) type = "length";
     if(!prop) {
         switch(type) {
@@ -75,10 +75,10 @@ function test_math_computed(testString, expectedString, {msg, msgExtra, type, pr
         }
 
     }
-    _test_math({stage:'computed', testString, expectedString, type, msg, msgExtra, prop, prefix, suffix, extraStyle});
+    _test_math({stage:'computed', testString, expectedString, type, approx, msg, msgExtra, prop, prefix, suffix, extraStyle});
 }
 
-function test_math_specified(testString, expectedString, {msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
+function test_math_specified(testString, expectedString, {approx, msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
     if(type === undefined) type = "length";
     const stage = "specified";
     if(!prop) {
@@ -126,7 +126,7 @@ function test_math_specified(testString, expectedString, {msg, msgExtra, type, p
         const expectedValue = testEl.style[prop];
         assert_not_equals(expectedValue, '', `${expectedString} isn't valid in '${prop}'; got the default value instead.`)
         assert_equals(usedValue, expectedValue, `${testString} and ${expectedString} serialize to the same thing in ${stage} values.`);
-    }, msg || `${testString} should be ${stage}-value-equivalent to ${expectedString}`);
+    }, msg);
 }
 
 /*
@@ -152,7 +152,7 @@ function test_nan(testString) {
 }
 
 
-function _test_math({stage, testEl, testString, expectedString, type, msg, msgExtra, prop, prefix, suffix, extraStyle}={}) {
+function _test_math({stage, testEl, testString, expectedString, type, approx, msg, msgExtra, prop, prefix, suffix, extraStyle}={}) {
     // Find the test element
     if(!testEl) testEl = document.getElementById('target');
     if(testEl == null) throw "Couldn't find #target element to run tests on.";
@@ -177,13 +177,20 @@ function _test_math({stage, testEl, testString, expectedString, type, msg, msgEx
     }
     test(()=>{
         testEl.style[prop] = '';
+        const defaultValue = getComputedStyle(testEl)[prop];
         testEl.style[prop] = t;
         const usedValue = getComputedStyle(testEl)[prop];
-        assert_not_equals(usedValue, '', `${testString} isn't valid in '${prop}'; got the default value instead.`);
+        assert_not_equals(usedValue, defaultValue, `${testString} isn't valid in '${prop}'; got the default value instead.`);
         testEl.style[prop] = '';
         testEl.style[prop] = e;
         const expectedValue = getComputedStyle(testEl)[prop];
-        assert_not_equals(expectedValue, '', `${expectedString} isn't valid in '${prop}'; got the default value instead.`)
-        assert_equals(usedValue, expectedValue, `${testString} and ${expectedString} serialize to the same thing in ${stage} values.`);
-    }, msg || `${testString} should be ${stage}-value-equivalent to ${expectedString}`);
+        assert_not_equals(expectedValue, defaultValue, `${expectedString} isn't valid in '${prop}'; got the default value instead.`)
+        if(approx && (type == "number" || type == "angle")){
+            let parsedUsed = usedValue.split('(')[1].split(')')[0].split(',').map(parseFloat);
+            let parsedExpected = expectedValue.split('(')[1].split(')')[0].split(',').map(parseFloat);
+            assert_array_approx_equals(parsedUsed, parsedExpected, approx, `${testString} and ${expectedString} ${approx} serialize to the same thing in ${stage} values.`);
+        } else {
+            assert_equals(usedValue, expectedValue, `${testString} and ${expectedString} serialize to the same thing in ${stage} values.`);
+        }
+    }, msg);
 }

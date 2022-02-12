@@ -1,0 +1,186 @@
+<!doctype html>
+<title>CSS counter style accessibility test</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<p>
+  This is a manual test. To run the tests, open the browser's developer tools
+  and navigate to the Accessibility pane (may need to activate it in Settings),
+  or use an OS-level accessibility inspector, and verify that the accessible
+  name of the list markers matches the text in the list items (excluding
+  quotation marks).
+
+  <br><br>
+
+  The following issue discusses ways to automate these tests:
+
+  <br><br>
+
+  https://github.com/web-platform-tests/wpt/issues/8355
+</p>
+<style>
+  @counter-style base {
+    system: cyclic;
+    symbols: 'One' 'Two' 'Three';
+    suffix: '. ';
+  }
+
+  @counter-style explicit-bullets {
+    system: extends base;
+    speak-as: bullets;
+  }
+  @counter-style explicit-numbers {
+    system: extends base;
+    speak-as: numbers;
+  }
+  @counter-style explicit-words {
+    system: extends base;
+    speak-as: words;
+  }
+
+  @counter-style auto-alphabetic {
+    system: alphabetic;
+    symbols: 'One' 'Two' 'Three';
+    suffix: '. ';
+    speak-as: auto;
+  }
+  @counter-style auto-cyclic {
+    system: cyclic;
+    symbols: 'One' 'Two' 'Three';
+    suffix: '. ';
+    speak-as: auto;
+  }
+  @counter-style auto-extends {
+    system: extends base;
+    speak-as: auto;
+  }
+  @counter-style auto-fixed {
+    system: fixed;
+    symbols: 'One' 'Two' 'Three';
+    suffix: '. ';
+    speak-as: auto;
+  }
+  @counter-style auto-symbolic {
+    system: symbolic;
+    symbols: 'One' 'Two' 'Three';
+    suffix: '. ';
+    speak-as: auto;
+  }
+  @counter-style auto-numeric {
+    system: numeric;
+    symbols: 'Zero' 'One' 'Two' 'Three';
+    suffix: '. ';
+    speak-as: auto;
+  }
+  @counter-style auto-additive {
+    system: additive;
+    additive-symbols: 3 'Three', 2 'Two', 1 'One';
+    suffix: '. ';
+    speak-as: auto;
+  }
+
+  @counter-style reference-bullets {
+    system: fixed;
+    symbols: 'Yi' 'Er' 'San';
+    suffix: '> ';
+    speak-as: explicit-bullets;
+  }
+  @counter-style reference-numbers {
+    system: fixed;
+    symbols: 'Yi' 'Er' 'San';
+    suffix: '> ';
+    speak-as: explicit-numbers;
+  }
+  @counter-style reference-words {
+    system: fixed;
+    symbols: 'Yi' 'Er' 'San';
+    suffix: '> ';
+    speak-as: explicit-words;
+  }
+
+</style>
+<body>
+  <ul style="list-style-type: disc">
+    <li>"&#x2022; "</li>
+  </ul>
+  <ul style="list-style-type: circle">
+    <li>"&#x25E6; "</li>
+  </ul>
+  <ul style="list-style-type: square">
+    <li>"&#x25FE; "</li>
+  </ul>
+  <ul style="list-style-type: disclosure-open">
+    <li>"&#x25BE; "</li>
+  </ul>
+  <ul style="list-style-type: disclosure-closed">
+    <li>"&#x25B8; "</li>
+  </ul>
+
+  <ul style="list-style-type: explicit-bullets">
+    <li>"&#x2022; "</li>
+    <li>"&#x2022; "</li>
+    <li>"&#x2022; "</li>
+  </ul>
+  <ul style="list-style-type: explicit-numbers">
+    <li>"1. "</li>
+    <li>"2. "</li>
+    <li>"3. "</li>
+  </ul>
+  <ul style="list-style-type: explicit-words">
+    <li>"One. "</li>
+    <li>"Two. "</li>
+    <li>"Three. "</li>
+  </ul>
+
+  <ul style="list-style-type: auto-alphabetic">
+    <li>"One. "</li>
+    <li>"Two. "</li>
+    <li>"Three. "</li>
+  </ul>
+  <ul style="list-style-type: auto-cyclic">
+    <li>"&#x2022; "</li>
+    <li>"&#x2022; "</li>
+    <li>"&#x2022; "</li>
+  </ul>
+  <ul style="list-style-type: auto-extends">
+    <li>"&#x2022; "</li>
+    <li>"&#x2022; "</li>
+    <li>"&#x2022; "</li>
+  </ul>
+  <ul style="list-style-type: auto-fixed">
+    <li>"1. "</li>
+    <li>"2. "</li>
+    <li>"3. "</li>
+  </ul>
+  <ul style="list-style-type: auto-symbolic">
+    <li>"1. "</li>
+    <li>"2. "</li>
+    <li>"3. "</li>
+  </ul>
+  <ul style="list-style-type: auto-numeric">
+    <li>"1. "</li>
+    <li>"2. "</li>
+    <li>"3. "</li>
+  </ul>
+  <ul style="list-style-type: auto-additive">
+    <li>"1. "</li>
+    <li>"2. "</li>
+    <li>"3. "</li>
+  </ul>
+
+  <ul style="list-style-type: reference-bullets">
+    <li>"&#x2022; "</li>
+    <li>"&#x2022; "</li>
+    <li>"&#x2022; "</li>
+  </ul>
+  <ul style="list-style-type: reference-numbers">
+    <li>"1&gt; "</li>
+    <li>"2&gt; "</li>
+    <li>"3&gt; "</li>
+  </ul>
+  <ul style="list-style-type: reference-words">
+    <li>"One&gt; "</li>
+    <li>"Two&gt; "</li>
+    <li>"Three&gt; "</li>
+  </ul>
+
+</body>

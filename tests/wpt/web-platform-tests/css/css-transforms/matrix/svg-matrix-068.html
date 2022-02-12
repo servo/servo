@@ -5,7 +5,7 @@
     <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
     <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
     <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
-		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-matrix">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-matrix">
     <link rel="match" href="reference/svg-matrix-four-color-ref.html">
     <meta name="flags" content="svg">
     <meta name="assert" content="The matrix function does not support pc units. If one argument is invalid in one function, none of the transforms in the function list should happen. The rect in this test should remain the same.">
@@ -28,7 +28,7 @@
             </pattern>
         </defs>
         <rect x="1" y="1" width="98" height="98" fill="red"/>
-        <rect width="100" height="100" fill="url(#coloredBoxes)" transform="matrix(0.5 0 0.5 0.5 100pc 100) scaleX(0.5)"/>
+        <rect width="100" height="100" fill="url(#coloredBoxes)" transform="matrix(0.5 0 0.5 0.5 100pc 100) scale(0.5 1)"/>
     </svg>
 </body>
 </html>

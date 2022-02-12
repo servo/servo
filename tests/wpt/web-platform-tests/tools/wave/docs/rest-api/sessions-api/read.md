@@ -1,4 +1,4 @@
-# `read` - [Sessions API](../README.md#sessions-api)
+# `read session` - [Sessions API](../README.md#sessions-api)
 
 The `read` method of the sessions API fetches the configuration of a session, including values that can not be set by the user, but are created by the server upon creation.
 
@@ -27,7 +27,9 @@ The `read` method of the sessions API fetches the configuration of a session, in
     "name": "String",
     "version": "String"
   },
-  "is_public": "Boolean"
+  "is_public": "Boolean",
+  "date_created": "String",
+  "labels": "Array<String>"
 }
 ```
 
@@ -48,6 +50,8 @@ The `read` method of the sessions API fetches the configuration of a session, in
   - **name**: The name of the browser.
   - **version**: The version numbers of the browser.
 - **is_public** defines whether or not the session is listed when fetching the list of public session using [`read public`](./read-public.md).
+- **date_created**: The date the session was created in ISO 8601 format.
+- **labels**: A list of the sessions labels.
 
 ## Example
 
@@ -79,6 +83,8 @@ The `read` method of the sessions API fetches the configuration of a session, in
     "name": "Chromium",
     "version": "76"
   },
-  "is_public": "false"
+  "is_public": "false",
+  "date_created": "2020-05-25T11:37:07",
+  "labels": ["labelA", "labelB"]
 }
 ```

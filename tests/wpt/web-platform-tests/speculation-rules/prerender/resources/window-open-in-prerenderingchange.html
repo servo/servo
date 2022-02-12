@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script>
+
+// This file is loaded twice. First this is loaded as a page to trigger
+// prerendering and then loaded as a prerendering page. The trigger page
+// activates the prerendering page.
+
+// Runs as the trigger page. This page starts prerendering and waits for signal
+// from the prerendering page. After the signal, this page starts activation.
+function runAsTriggerPage() {
+  assert_false(document.prerendering);
+
+  // Start prerendering.
+  const prerendering_url = location.href + '?prerendering';
+  startPrerendering(prerendering_url);
+
+  // Activate the prerendering page once it gets ready.
+  const bc = new BroadcastChannel('activation-ready');
+  bc.onmessage = () => window.location = prerendering_url;
+}
+
+// Runs as prerendeirng page. First this page waits for the load event and
+// signals to the trigger page for starting activation. Then, this page fires
+// the prerenderingchange event and tests window.open() in the event.
+function runAsPrerenderingPage() {
+  assert_true(document.prerendering);
+
+  window.onload = () => {
+    assert_true(document.prerendering);
+
+    // Notify the trigger page of activation ready.
+    const bc = new BroadcastChannel('activation-ready');
+    bc.postMessage('ready for activation');
+  }
+
+  document.onprerenderingchange = () => {
+    assert_false(document.prerendering);
+
+    // Attempt to open a window in the prerenderingchange event.
+    const win = window.open('empty.html', '_blank');
+
+    // Send the result to the test runner page.
+    const bc = new BroadcastChannel('result');
+    if (win) {
+      bc.postMessage('opened');
+      win.close();
+    } else {
+      bc.postMessage('failed to open');
+    }
+
+    // Close this window for cleanup.
+    window.close();
+  };
+}
+
+if (location.search === '?prerendering') {
+  runAsPrerenderingPage();
+} else {
+  runAsTriggerPage();
+}
+
+</script>

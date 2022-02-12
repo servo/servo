@@ -13,6 +13,9 @@ autoplaying.</p>
 <video id="vid"></video>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
 'use strict';
 const vid = document.getElementById("vid");
@@ -23,6 +26,7 @@ promise_test(async t => {
     promise,
     wait(time).then(() => Promise.reject(new Error(msg)))
   ]);
+  await setMediaPermission("granted", ["camera"]);
   const stream = await navigator.mediaDevices.getUserMedia({video: true});
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   vid.srcObject = stream;

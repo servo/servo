@@ -16,11 +16,21 @@
 
 let focusedDefault = false;
 function didFocusDefault() { }
-function checkFocusMatch() {
+function handleFocus() {
+    if (!focusedDefault) {
+        // Use step_timeout here to avoid nested focusing steps.
+        // For example, <input id="defaultFocus" autofocus> could run scripts
+        // while it's autofocusing which may run the tests, so that the
+        // focus() usage in the tests becomes nested focusing steps.
+        step_timeout(function() {
+          testInMode('open');
+          testInMode('closed');
+        }, 0);
+    }
     focusedDefault = true;
     didFocusDefault();
 }
-defaultFocus.addEventListener('focus', checkFocusMatch);
+defaultFocus.addEventListener('focus', handleFocus);
 
 function prepare(test)
 {
@@ -74,9 +84,6 @@ function testInMode(mode) {
     }, `:focus must not match a shadow host with ${mode} mode shadow root contains the focused element assigned to a slot`);
 
 }
-
-testInMode('open');
-testInMode('closed');
 
 </script>
 </body>

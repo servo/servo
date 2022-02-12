@@ -119,17 +119,13 @@ also influenced by [the `pipe` query string parameter](server-pipes).
 
 ### Tests Requiring HTTP/2.0
 
-The server now has a prototype HTTP/2.0 server which gives you access to
-some of the HTTP/2.0 specific functionality. Currently, the server is off
-by default and needs to be run using `./wpt serve --h2` in order to enable it.
+To make a test run over an HTTP/2.0 connection, use `.h2.` in the filename.
+By default the HTTP/2.0 server can be accessed using port 9000. At the moment
+accessing tests that use `.h2.` over ports that do not use an HTTP/2.0 server
+also succeeds, so beware of that when creating them.
+
 The HTTP/2.0 server supports handlers that work per-frame; these, along with the
 API are documented in [Writing H2 Tests](h2tests).
-
-> <b>Important:</b> The HTTP/2.0 server requires you to have
-OpenSSL 1.0.2+. This is because HTTP/2.0 is negotiated using the
-[TLS ALPN](https://tools.ietf.org/html/rfc7301) extension, which is only
-supported in
-[OpenSSL 1.0.2](https://www.openssl.org/news/openssl-1.0.2-notes.html) and up.
 
 
 ### Tests Requiring WebTransport over HTTP/3

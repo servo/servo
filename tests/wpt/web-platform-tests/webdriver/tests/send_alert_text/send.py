@@ -61,6 +61,16 @@ def test_alert_element_not_interactable(session, inline, dialog_type):
     assert_error(response, "element not interactable")
 
 
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm"])
+def test_chained_alert_element_not_interactable(session, inline, dialog_type):
+    session.url = inline("<script>window.{}('Hello');</script>".format(dialog_type))
+    session.alert.accept()
+
+    session.url = inline("<script>window.{}('Hello');</script>".format(dialog_type))
+    response = send_alert_text(session, "Federer")
+    assert_error(response, "element not interactable")
+
+
 @pytest.mark.parametrize("text", ["", "Federer", " Fed erer ", "Fed\terer"])
 def test_send_alert_text(session, page, text):
     send_response = send_alert_text(session, text)

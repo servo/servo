@@ -30,7 +30,7 @@ test(() => {
   const nonStickyTopY = elements.container.offsetTop +
       elements.filler.clientHeight;
   assert_equals(elements.sticky.offsetTop, nonStickyTopY);
-  assert_equals(elements.innerSticky.offsetTop, 35);
+  assert_equals(elements.innerSticky.offsetTop, 50);
 }, 'the inner sticky can stick before the outer one if necessary');
 
 test(() => {
@@ -52,14 +52,14 @@ test(() => {
 }, 'both sticky boxes can be stuck at the same time');
 
 test(() => {
-  const elements = setupNestedStickyTest('bottom', 25, 35);
+  const elements = setupNestedStickyTest('bottom', 25, 75);
   elements.scroller.scrollTop = 0;
   assert_equals(elements.sticky.offsetTop, elements.container.offsetTop);
   assert_equals(elements.innerSticky.offsetTop, 0);
 }, 'neither sticky can escape their containing block');
 
 test(() => {
-  const elements = setupNestedStickyTest('bottom', 25, 500);
+  const elements = setupNestedStickyTest('bottom', 25, 300);
   elements.scroller.scrollTop = 200;
   // It doesn't matter how big the inner sticky offset is, it cannot escape its
   // containing block (the outer sticky).

@@ -73,8 +73,8 @@ function expect_feature_unavailable_default(data, feature_description) {
 //         attribute should be specified on the iframe.
 function test_feature_availability_with_post_message_result(
     test, src, expected_result, allow_attribute) {
-  var test_result = function({message}, feature_description) {
-    assert_equals(message, expected_result);
+  const test_result = ({ name, message }, feature_description) => {
+    assert_equals(name, expected_result, message + '.');
   };
   test_feature_availability(null, test, src, test_result, allow_attribute);
 }
@@ -84,13 +84,15 @@ function test_feature_availability_with_post_message_result(
 // Otherwise, does nothing.
 async function test_feature_in_iframe(feature_name, feature_promise_factory) {
   if (location.hash.endsWith(`#${feature_name}`)) {
-    let message = '#OK';
+    let message = 'Available';
+    let name = '#OK';
     try {
       await feature_promise_factory();
     } catch (e) {
-      message = '#' + e.name;
+      ({ name, message } = e);
     }
-    window.parent.postMessage({ type: 'availability-result', message }, '*');
+    window.parent.postMessage(
+      { type: 'availability-result', name, message }, '*');
   }
 }
 
@@ -174,7 +176,7 @@ function run_all_fp_tests_allow_self(
   async_test(
       t => {
         test_feature_availability_with_post_message_result(
-            t, cross_origin_frame_url, '#' + error_name);
+            t, cross_origin_frame_url, error_name);
       },
       'Default "' + feature_name +
           '" permissions policy ["self"] disallows cross-origin iframes.');
@@ -192,7 +194,7 @@ function run_all_fp_tests_allow_self(
   async_test(
       t => {
         test_feature_availability_with_post_message_result(
-            t, same_origin_frame_pathname, '#' + error_name,
+            t, same_origin_frame_pathname, error_name,
             feature_name + " 'none'");
       },
       'permissions policy "' + feature_name +
@@ -266,7 +268,7 @@ function run_all_fp_tests_allow_all(
   async_test(
       t => {
         test_feature_availability_with_post_message_result(
-            t, cross_origin_frame_url, '#' + error_name,
+            t, cross_origin_frame_url, error_name,
             feature_name + " 'none'");
       },
       'permissions policy "' + feature_name +
@@ -276,7 +278,7 @@ function run_all_fp_tests_allow_all(
   async_test(
       t => {
         test_feature_availability_with_post_message_result(
-            t, same_origin_frame_pathname, '#' + error_name,
+            t, same_origin_frame_pathname, error_name,
             feature_name + " 'none'");
       },
       'permissions policy "' + feature_name +

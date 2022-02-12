@@ -20,8 +20,11 @@
     width: 0px;
     height: 20px;
     animation-name: expand;
-    animation-duration: 1e10s;
-    animation-timing-function: linear;
+    /* Some of the tests in this file assume animations attached to the
+       DocumentTimeline are "stopped" without actually being paused.
+       Using 600s + steps(10, end) achieves this for one minute.*/
+    animation-duration: 600s;
+    animation-timing-function: steps(10, end);
   }
 </style>
 <div id=scrollers>
@@ -34,6 +37,8 @@
   scroller1.offsetTop;
   scroller2.offsetTop;
 
+  // Note the steps(10, end) timing function and height:100px. (10px scroll
+  // resolution).
   scroller1.scrollTop = 20;
   scroller2.scrollTop = 40;
 
@@ -60,8 +65,6 @@
       options.name = 'timeline';
     if (typeof(options.source) == 'undefined')
       options.source = 'selector(#scroller1)';
-    if (typeof(options.timeRange) == 'undefined')
-      options.timeRange = '1e10s';
     if (typeof(options.start) == 'undefined')
       options.start = '0px';
     if (typeof(options.end) == 'undefined')
@@ -69,7 +72,6 @@
     return insertSheet(`
       @scroll-timeline ${options.name} {
         source: ${options.source};
-        time-range: ${options.timeRange};
         start: ${options.start};
         end: ${options.end};
       }
@@ -101,11 +103,11 @@
 
     // Verify that the computed style after scrolling a bit.
     instantiate(async (element, expected) => {
-      scroller1.scrollTop = scroller1.scrollTop + 1;
-      scroller2.scrollTop = scroller2.scrollTop + 1;
+      scroller1.scrollTop = scroller1.scrollTop + 10;
+      scroller2.scrollTop = scroller2.scrollTop + 10;
       await waitForNextFrame();
-      scroller1.scrollTop = scroller1.scrollTop - 1;
-      scroller2.scrollTop = scroller2.scrollTop - 1;
+      scroller1.scrollTop = scroller1.scrollTop - 10;
+      scroller2.scrollTop = scroller2.scrollTop - 10;
       await waitForNextFrame();
       assert_equals(getComputedStyle(element).width, expected);
     }, description + ' [scroll]');
@@ -206,20 +208,6 @@
     insertScrollTimeline({source: 'selector(#scroller2)'});
     await assert_width(element, '140px');
   }, 'Changing the source descriptor switches effective timeline');
-
-  dynamic_rule_test(async (t, assert_width) => {
-    let element = insertElement();
-    insertSheet('#element { animation-timeline: timeline; }');
-
-    // Unknown animation-timeline, current time held at zero.
-    await assert_width(element, '100px');
-
-    insertScrollTimeline({timeRange: '1e10s'});
-    await assert_width(element, '120px');
-
-    insertScrollTimeline({timeRange: '1e9s'});
-    await assert_width(element, '102px');
-  }, 'Changing the time-range descriptor switches effective timeline');
 
   dynamic_rule_test(async (t, assert_width) => {
     let element = insertElement();

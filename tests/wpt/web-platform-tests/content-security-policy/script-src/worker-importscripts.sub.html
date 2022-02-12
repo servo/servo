@@ -13,8 +13,8 @@
     <script>
       assert_worker_is_loaded(
         "./support/worker-with-script-src-none-importscripts.js",
-        "Dedicated worker inherits CSP from main document",
-        "importScripts allowed");
+        "Dedicated worker delivers its own CSP",
+        "importScripts blocked");
 
       assert_shared_worker_is_loaded(
         "./support/worker-with-script-src-none-importscripts.js",

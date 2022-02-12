@@ -1,5 +1,7 @@
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script>
-  // Execute arbitrary code from somewhere else, via postMessage.
-  window.addEventListener("message", event => eval(event.data));
-  window.opener.postMessage("ready", "*");
+  const params = new URLSearchParams(window.location.search);
+  const uuid = params.get("uuid");
+  const executor = new Executor(uuid);
+  executor.execute();
 </script>

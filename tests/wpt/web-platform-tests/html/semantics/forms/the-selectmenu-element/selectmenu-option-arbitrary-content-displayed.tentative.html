@@ -20,10 +20,14 @@
   popup {
     width: fit-content;
     height: fit-content;
-    border: 1px solid;
-    padding: 1em;
     background: white;
     color: black;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0px;
+    box-shadow: 0px 12.8px 28.8px rgba(0, 0, 0, 0.13), 0px 0px 9.2px rgba(0, 0, 0, 0.11);
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 4px;
   }
 
   option {
@@ -33,7 +37,7 @@
 </style>
 
 <selectmenu id="selectMenu0">
-  <popup slot="listbox" part="listbox">
+  <popup slot="listbox" behavior="listbox">
     <option>
       option with image displayed
       <img src="support/cat.png" alt="Image download support must be enabled" />

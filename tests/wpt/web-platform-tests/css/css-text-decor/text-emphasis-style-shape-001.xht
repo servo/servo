@@ -4,28 +4,16 @@
 	<head>
 		<title>CSS Test: text-emphasis-style - shape - basic cases</title>
 		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
 		<link rel="help" title="CSS Text Level 3: 11.2.1.  Emphasis Mark Style: the ‘text-emphasis-style’ property" href="http://www.w3.org/TR/css-text-decor-3/#text-emphasis-style-property" />
 		<link rel="match" href="reference/text-emphasis-style-shape-001-ref.xht"/>
-		<meta name="flags" content="" />
 		<meta name="assert" content="This property applies emphasis marks to the element's text. " />
 		<style type="text/css"><![CDATA[
-				.common
-				{
-					line-height: 1em;
-					position: relative;
-				}
 				.parent
 				{
 					border: solid 1px gray;
-					font-size: 2em;
+					font: 1.5em monospace;
 					width: 10em;
-				}
-				.refcommon
-				{
-					font-size: 0.5em;
-					left: 0em;
-					position: absolute;
-					top: -1.5em;
 				}
 				#test1
 				{
@@ -48,24 +36,6 @@
 					text-emphasis-style: triangle;
 				}
 		]]></style>
-		<script type="text/javascript">
-			//	<![CDATA[
-					// Set Font Family to 'IPAMincho'
-					function setFontFamily () {
-						var fontName = 'IPAMincho';
-						var divs = document.getElementsByTagName('div');
-						var i = 0;
-						var div;
-						while (i < divs.length) {
-							div = divs.item(i);
-							if (div.className == 'parent') {
-								div.style.fontFamily = fontName;
-							}
-							i++;
-						}
-					}
-			//	]]>
-		</script>
 	</head>
 	<body>
 		<div>
@@ -73,9 +43,8 @@
 			circle
 			<div class="parent">
 				<div><span id="test1">Filler</span> Text</div>
-				<br />
 				<div>
-					<span class="common">F<span class="refcommon">&#x25CF;</span></span><span class="common">i<span class="refcommon">&#x25CF;</span></span><span class="common">l<span class="refcommon">&#x25CF;</span></span><span class="common">l<span class="refcommon">&#x25CF;</span></span><span class="common">e<span class="refcommon">&#x25CF;</span></span><span class="common">r<span class="refcommon">&#x25CF;</span></span>
+					<ruby><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
 					Text
 				</div>
 			</div>
@@ -83,9 +52,8 @@
 			dot
 			<div class="parent">
 				<div><span id="test2">Filler</span> Text</div>
-				<br />
 				<div>
-					<span class="common">F<span class="refcommon">&#x2022;</span></span><span class="common">i<span class="refcommon">&#x2022;</span></span><span class="common">l<span class="refcommon">&#x2022;</span></span><span class="common">l<span class="refcommon">&#x2022;</span></span><span class="common">e<span class="refcommon">&#x2022;</span></span><span class="common">r<span class="refcommon">&#x2022;</span></span>
+					<ruby><rb>F</rb><rt>&#x2022;</rt><rb>i</rb><rt>&#x2022;</rt><rb>l</rb><rt>&#x2022;</rt><rb>l</rb><rt>&#x2022;</rt><rb>e</rb><rt>&#x2022;</rt><rb>r</rb><rt>&#x2022;</rt></ruby>
 					Text
 				</div>
 			</div>
@@ -93,9 +61,8 @@
 			double-circle
 			<div class="parent">
 				<div><span id="test3">Filler</span> Text</div>
-				<br />
 				<div>
-					<span class="common">F<span class="refcommon">&#x25C9;</span></span><span class="common">i<span class="refcommon">&#x25C9;</span></span><span class="common">l<span class="refcommon">&#x25C9;</span></span><span class="common">l<span class="refcommon">&#x25C9;</span></span><span class="common">e<span class="refcommon">&#x25C9;</span></span><span class="common">r<span class="refcommon">&#x25C9;</span></span>
+					<ruby><rb>F</rb><rt>&#x25C9;</rt><rb>i</rb><rt>&#x25C9;</rt><rb>l</rb><rt>&#x25C9;</rt><rb>l</rb><rt>&#x25C9;</rt><rb>e</rb><rt>&#x25C9;</rt><rb>r</rb><rt>&#x25C9;</rt></ruby>
 					Text
 				</div>
 			</div>
@@ -103,9 +70,8 @@
 			sesame
 			<div class="parent">
 				<div><span id="test4">Filler</span> Text</div>
-				<br />
 				<div>
-					<span class="common">F<span class="refcommon">&#xFE45;</span></span><span class="common">i<span class="refcommon">&#xFE45;</span></span><span class="common">l<span class="refcommon">&#xFE45;</span></span><span class="common">l<span class="refcommon">&#xFE45;</span></span><span class="common">e<span class="refcommon">&#xFE45;</span></span><span class="common">r<span class="refcommon">&#xFE45;</span></span>
+					<ruby><rb>F</rb><rt>&#xFE45;</rt><rb>i</rb><rt>&#xFE45;</rt><rb>l</rb><rt>&#xFE45;</rt><rb>l</rb><rt>&#xFE45;</rt><rb>e</rb><rt>&#xFE45;</rt><rb>r</rb><rt>&#xFE45;</rt></ruby>
 					Text
 				</div>
 			</div>
@@ -113,23 +79,11 @@
 			triangle
 			<div class="parent">
 				<div><span id="test5">Filler</span> Text</div>
-				<br />
 				<div>
-					<span class="common">F<span class="refcommon">&#x25B2;</span></span><span class="common">i<span class="refcommon">&#x25B2;</span></span><span class="common">l<span class="refcommon">&#x25B2;</span></span><span class="common">l<span class="refcommon">&#x25B2;</span></span><span class="common">e<span class="refcommon">&#x25B2;</span></span><span class="common">r<span class="refcommon">&#x25B2;</span></span>
+					<ruby><rb>F</rb><rt>&#x25B2;</rt><rb>i</rb><rt>&#x25B2;</rt><rb>l</rb><rt>&#x25B2;</rt><rb>l</rb><rt>&#x25B2;</rt><rb>e</rb><rt>&#x25B2;</rt><rb>r</rb><rt>&#x25B2;</rt></ruby>
 					Text
 				</div>
 			</div>
-			<p class="fontChange" style="display: block;">
-				If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and apply it.
-				<button type="button" onclick="setFontFamily()">
-					Apply
-				</button>
-			</p>
-			<script type="text/javascript">
-				if (document.getElementById) {
-					document.getElementById('fontChange').style.display = 'block'
-				}
-			</script>
 		</div>
 	</body>
 </html>

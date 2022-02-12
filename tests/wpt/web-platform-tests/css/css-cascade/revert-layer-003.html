@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: 'all: revert-layer'</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+<style>
+@layer {
+  #target {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+}
+
+@layer {
+  #target {
+    width: 200px;
+    height: 200px;
+    background-color: red;
+  }
+
+  #target {
+    all: revert-layer;
+  }
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target"></div>

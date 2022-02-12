@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: font-synthesis-small-caps apply to ::first-letter</title>
+<!--Lato-Medium does not have small caps in the font-->
+<style>
+    @font-face {
+        font-family: "Lato-Medium";
+        src: url(support/fonts/Lato-Medium.ttf);
+    }
+    .test {
+        font-family: "Lato-Medium";
+        font-size: 3em;
+    }
+</style>
+
+<p>Test passes if the two lines below are identical and there is no red.</p>
+<section class="test">
+    <p>placeholder</p>
+    <p>placeholder</p>
+</section>

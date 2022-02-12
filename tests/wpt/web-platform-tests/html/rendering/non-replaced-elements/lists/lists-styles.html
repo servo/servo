@@ -40,13 +40,14 @@ ol[class=type-a], li[class=type-a] { list-style-type: lower-alpha; }
 ol[class=type-A], li[class=type-A] { list-style-type: upper-alpha; }
 ol[class=type-i], li[class=type-i] { list-style-type: lower-roman; }
 ol[class=type-I], li[class=type-I] { list-style-type: upper-roman; }
-ul[type=none i], li[type=none i] { list-style-type: none; }
-ul[type=disc i], li[type=disc i] { list-style-type: disc; }
-ul[type=circle i], li[type=circle i] { list-style-type: circle; }
-ul[type=square i], li[type=square i] { list-style-type: square; }
+ol[type=none i], li[type=none i] { list-style-type: none; }
+ol[type=disc i], li[type=disc i] { list-style-type: disc; }
+ol[type=circle i], li[type=circle i] { list-style-type: circle; }
+ol[type=square i], li[type=square i] { list-style-type: square; }
 
 li[value="10"], li[value="10xyz"], li[value="10e10"] { counter-set: list-item 10; }
 ol[start="10"], ol[start="10xyz"], ol[start="10e10"] { counter-reset: list-item 9; }
+ol[reversed] { counter-reset: reversed(list-item); }
 ol[reversed][start="20"], ol[reversed][start="20xyz"], ol[reversed][start="20e10"] { counter-reset: reversed(list-item) 21; }
 
 /* dir="" */

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The default scroll-timeline at rule with animation moving from end point</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<link rel="help" href="https://drafts.csswg.org/web-animations/#update-an-animations-finished-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-animations/support/testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+
+  @scroll-timeline timeline {
+    source: auto;
+    orientation: auto;
+    scroll-offsets: none;
+  }
+
+  .fill-vh {
+    width: 100px;
+    height: 100vh;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t, { style: 'width: 50px; height: 100px;' });
+  const filling = addDiv(t, { class: 'fill-vh' });
+  const scroller = document.scrollingElement;
+  getComputedStyle(document.scrollingElement).height;
+
+  div.style.animation = 'anim 100s linear timeline';
+  assert_equals(getComputedStyle(div).width, '100px');
+
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  scroller.scrollTop = maxScroll;
+  assert_equals(getComputedStyle(div).width, '200px');
+
+  document.scrollingElement.scrollTop = 0;
+  assert_equals(getComputedStyle(div).width, '100px');
+}, 'Test that the scroll animation is still responsive after moving from 100%');
+
+</script>
+</body>

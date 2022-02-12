@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Placement of grid items spanning multiple rows</title>
+<link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#auto-placement-algo" title="8.5. Grid Item Placement Algorithm">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1255298">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+.grid {
+  width: 100px;
+  height: 100px;
+  display: grid;
+  background: red;
+  grid-auto-rows: 5px;
+  grid-template-columns: repeat(4, 25px);
+}
+.grid > div {
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="grid">
+  <div style="grid-row: span 7"></div>
+  <div style="grid-row: span 9"></div>
+  <div style="grid-row: span 11"></div>
+  <div style="grid-row: span 10"></div>
+  <div style="grid-row: span 10"></div>
+  <div style="grid-row: span 9"></div>
+  <div style="grid-row: span 10"></div>
+  <div style="grid-row: span 9"></div>
+  <div style="grid-row: span 3"></div>
+  <div style="grid-row: span 2"></div>
+</div>

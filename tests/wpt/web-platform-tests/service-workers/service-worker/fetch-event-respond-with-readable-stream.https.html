@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
+<script src="/common/utils.js"></script>
 <script>
 'use strict';
 
@@ -51,4 +52,18 @@ iframeTest(SCOPE, async (t, iwin) => {
 iframeTest(SCOPE + '?stream&use-fetch-stream', (t, iwin) => {
   assert_equals(iwin.document.body.textContent, 'PASS\n');
 }, 'Main resource built from a ReadableStream - fetch stream');
+
+iframeTest(SCOPE, async (t, iwin) => {
+  const id = token();
+  let response = await iwin.fetch('?stream&observe-cancel&id=${id}');
+  response.body.cancel();
+
+  // Wait for a while to avoid a race between the cancel handling and the
+  // second fetch request.
+  await new Promise(r => step_timeout(r, 10));
+
+  response = await iwin.fetch('?stream&query-cancel&id=${id}');
+  assert_equals(await response.text(), 'cancelled');
+}, 'Cancellation in the page should be observable in the service worker');
+
 </script>

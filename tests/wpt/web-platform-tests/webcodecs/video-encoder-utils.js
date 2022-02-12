@@ -1,0 +1,97 @@
+async function checkEncoderSupport(test, config) {
+  let supported = false;
+  try {
+    const support = await VideoEncoder.isConfigSupported(config);
+    supported = support.supported;
+  } catch (e) {}
+
+  if (!supported) {
+    // Mark the test 'passed', unfortunately assert_implements_optional()
+    // doesn't do it by itself.
+    test.done();
+  }
+
+  assert_implements_optional(supported, 'Unsupported config: ' +
+                             JSON.stringify(config));
+}
+
+function fourColorsFrame(ctx, width, height, text) {
+  const kYellow = "#FFFF00";
+  const kRed = "#FF0000";
+  const kBlue = "#0000FF";
+  const kGreen = "#00FF00";
+
+  ctx.fillStyle = kYellow;
+  ctx.fillRect(0, 0, width / 2, height / 2);
+
+  ctx.fillStyle = kRed;
+  ctx.fillRect(width / 2, 0, width / 2, height / 2);
+
+  ctx.fillStyle = kBlue;
+  ctx.fillRect(0, height / 2, width / 2, height / 2);
+
+  ctx.fillStyle = kGreen;
+  ctx.fillRect(width / 2, height / 2, width / 2, height / 2);
+
+  ctx.fillStyle = 'white';
+  ctx.font = (height / 10) + 'px sans-serif';
+  ctx.fillText(text, width / 2, height / 2);
+}
+
+// Paints |count| black dots on the |ctx|, so their presence can be validated
+// later. This is an analog of the most basic bar code.
+function putBlackDots(ctx, width, height, count) {
+  ctx.fillStyle = 'black';
+  const dot_size = 10;
+  const step = dot_size * 3;
+
+  for (let i = 1; i <= count; i++) {
+    let x = i * step;
+    let y = step * (x / width + 1);
+    x %= width;
+    ctx.fillRect(x, y, dot_size, dot_size);
+  }
+}
+
+// Validates that frame has |count| black dots in predefined places.
+function validateBlackDots(frame, count) {
+  const width = frame.displayWidth;
+  const height = frame.displayHeight;
+  let cnv = new OffscreenCanvas(width, height);
+  var ctx = cnv.getContext('2d');
+  ctx.drawImage(frame, 0, 0);
+  const dot_size = 10;
+  const step = dot_size * 3;
+
+  for (let i = 1; i <= count; i++) {
+    let x = i * step + dot_size / 2;
+    let y = step * (x / width + 1) + dot_size / 2;
+    x %= width;
+    let rgba = ctx.getImageData(x, y, 1, 1).data;
+    const tolerance = 40;
+    if (rgba[0] > tolerance || rgba[1] > tolerance || rgba[2] > tolerance) {
+      // The dot is too bright to be a black dot.
+      return false;
+    }
+  }
+  return true;
+}
+
+function createFrame(width, height, ts = 0) {
+  let text = ts.toString();
+  let cnv = new OffscreenCanvas(width, height);
+  var ctx = cnv.getContext('2d');
+  fourColorsFrame(ctx, width, height, text);
+  return new VideoFrame(cnv, { timestamp: ts });
+}
+
+function createDottedFrame(width, height, dots, ts) {
+  if (ts === undefined)
+    ts = dots;
+  let text = ts.toString();
+  let cnv = new OffscreenCanvas(width, height);
+  var ctx = cnv.getContext('2d');
+  fourColorsFrame(ctx, width, height, text);
+  putBlackDots(ctx, width, height, dots);
+  return new VideoFrame(cnv, { timestamp: ts });
+}

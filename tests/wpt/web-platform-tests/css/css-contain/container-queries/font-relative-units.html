@@ -1,0 +1,55 @@
+<!doctype html>
+<title>CSS Container Queries Test: font-relative units</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  :root { font-size: 10px; }
+  #em_container {
+    container-type: inline-size;
+    width: 100px;
+    font-size: 100px;
+  }
+  #ex_container {
+    container-type: inline-size;
+    font-size: 50px;
+    width: 10ex;
+  }
+  #ch_container {
+    container-type: inline-size;
+    font-size: 50px;
+    width: 10ch;
+  }
+  @container size(width: 1em) {
+    #em_test { color: green }
+  }
+  @container size(width: 10rem) {
+    #rem_test { color: green }
+  }
+  @container size(width: 10ex) {
+    #ex_test { color: green }
+  }
+  @container size(width: 10ch) {
+    #ch_test { color: green }
+  }
+</style>
+<div id="em_container">
+  <div id="em_test"></div>
+  <div id="rem_test"></div>
+</div>
+<div id="ex_container">
+  <div id="ex_test"></div>
+</div>
+<div id="ch_container">
+  <div id="ch_test"></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+  test(() => assert_equals(getComputedStyle(em_test).color, green), "em relative inline-size");
+  test(() => assert_equals(getComputedStyle(rem_test).color, green), "rem relative inline-size");
+  test(() => assert_equals(getComputedStyle(ex_test).color, green), "ex relative inline-size");
+  test(() => assert_equals(getComputedStyle(ch_test).color, green), "ch relative inline-size");
+</script>

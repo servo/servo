@@ -79,7 +79,7 @@ let StereoPannerTest = (function() {
     // The max error we allow between the rendered impulse and the
     // expected value.  This value is experimentally determined.  Set
     // to 0 to make the test fail to see what the actual error is.
-    this.maxAllowedError = 9.8015e-8;
+    this.maxAllowedError = 1.284318e-7;
 
     // Max (absolute) error and the index of the maxima for the left
     // and right channels.

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Embedded Style: Cascade Priority</title>
+<link rel="match" href="embedded_style_cascade_priority-ref.html">
+<link rel="help" href="https://w3c.github.io/webvtt/#obtaining-css-boxes">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#cascade-sort">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/common/reftest-wait.js"></script>
+<style>
+/* Embedded important style should take precedence over author important style
+   regardless of layers, so the cue color should be green. */
+@layer {
+  ::cue {
+    color: red !important;
+  }
+}
+</style>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="support/embedded_style_cascade_priority_layer.vtt" default>
+</video>
+</html>

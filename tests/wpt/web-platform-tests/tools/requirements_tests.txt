@@ -1,5 +1,5 @@
-json-e==4.4.1
+json-e==4.4.3
 jsonschema==3.2.0
 pyyaml==5.4.1
-requests==2.26.0
-taskcluster==44.0.0
+requests==2.27.1
+taskcluster==44.2.2

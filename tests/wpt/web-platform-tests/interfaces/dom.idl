@@ -88,14 +88,16 @@ interface AbortController {
 
   [SameObject] readonly attribute AbortSignal signal;
 
-  undefined abort();
+  undefined abort(optional any reason);
 };
 
 [Exposed=(Window,Worker)]
 interface AbortSignal : EventTarget {
-  [NewObject] static AbortSignal abort();
+  [NewObject] static AbortSignal abort(optional any reason);
 
   readonly attribute boolean aborted;
+  readonly attribute any reason;
+  undefined throwIfAborted();
 
   attribute EventHandler onabort;
 };

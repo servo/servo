@@ -75,6 +75,16 @@ const validButUnsupportedConfigs = [
       framerate: 240,
     }
   },
+  {
+    comment: 'Odd sized frames for H264',
+    config: {
+      codec: "avc1.42001E",
+      width: 641,
+      height: 480,
+      bitrate: 1000000,
+      framerate: 24,
+    }
+  },
 ];
 
 validButUnsupportedConfigs.forEach(entry => {

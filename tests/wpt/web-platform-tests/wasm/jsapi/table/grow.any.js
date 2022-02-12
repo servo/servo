@@ -1,4 +1,5 @@
 // META: global=window,dedicatedworker,jsshell
+// META: script=/wasm/jsapi/wasm-module-builder.js
 // META: script=assertions.js
 
 function nulls(n) {
@@ -94,3 +95,32 @@ test(() => {
   assert_equals(result, 5);
   assert_equal_to_array(table, nulls(8), "after");
 }, "Stray argument");
+
+test(() => {
+  const builder = new WasmModuleBuilder();
+  builder
+    .addFunction("fn", kSig_v_v)
+    .addBody([])
+    .exportFunc();
+  const bin = builder.toBuffer()
+  const argument = { "element": "anyfunc", "initial": 1 };
+  const table = new WebAssembly.Table(argument);
+  const fn = new WebAssembly.Instance(new WebAssembly.Module(bin)).exports.fn;
+  const result = table.grow(2, fn);
+  assert_equals(result, 1);
+  assert_equals(table.get(0), null);
+  assert_equals(table.get(1), fn);
+  assert_equals(table.get(2), fn);
+}, "Grow with exported-function argument");
+
+test(() => {
+  const argument = { "element": "anyfunc", "initial": 1 };
+  const table = new WebAssembly.Table(argument);
+  assert_throws_js(TypeError, () => table.grow(2, {}));
+}, "Grow with non-function argument");
+
+test(() => {
+  const argument = { "element": "anyfunc", "initial": 1 };
+  const table = new WebAssembly.Table(argument);
+  assert_throws_js(TypeError, () => table.grow(2, () => true));
+}, "Grow with JS-function argument");

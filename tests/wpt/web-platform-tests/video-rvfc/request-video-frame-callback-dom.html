@@ -13,17 +13,24 @@ var testVideo = {
   width: 320,
 }
 
-async_test(function(t) {
+promise_test(async function(t) {
+    let done;
+    const promise = new Promise(resolve => done = resolve);
+
     let video = document.createElement('video');
 
-    video.requestVideoFrameCallback(t.step_func_done());
+    video.requestVideoFrameCallback(done);
     video.src = testVideo.url;
-    video.play();
+    await video.play();
 
+    return promise;
 }, 'Test a video outside of the DOM can still use video.rVFC.');
 
 function rvfcStyleTest(applyStyle, description) {
-    async_test(function(t) {
+    promise_test(async function(t) {
+      let done;
+      const promise = new Promise(resolve => done = resolve);
+
       let video = document.createElement('video');
       document.body.appendChild(video);
       applyStyle(video);
@@ -31,12 +38,14 @@ function rvfcStyleTest(applyStyle, description) {
       video.requestVideoFrameCallback(
         t.step_func( _ => {
           // Make sure we can receive more than one callback.
-          video.requestVideoFrameCallback(t.step_func_done());
+          video.requestVideoFrameCallback(done);
         })
       );
 
       video.src = testVideo.url;
-      video.play();
+      await video.play();
+
+      return promise;
     }, description);
 }
 

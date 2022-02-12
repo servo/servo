@@ -2,18 +2,34 @@
 
 function addElementAndWaitForLoad(element) {
   return new Promise((resolve, reject) => {
-    element.onload = resolve;
-    element.onerror = reject;
+    element.onload = () => resolve(element);
+    element.onerror = () => reject(element);
     document.body.appendChild(element);
   });
 }
 
 function addElementAndWaitForError(element) {
   return new Promise((resolve, reject) => {
-    element.onload = reject;
-    element.onerror = resolve;
+    element.onload = () => reject(element);
+    element.onerror = () => resolve(element);
     document.body.appendChild(element);
   });
+}
+
+// Evaluates |code| in |iframe|. The following message event handler must be
+// registered on the iframe page:
+//   window.addEventListener(
+//       'message',
+//       (e) => { e.source.postMessage(eval(e.data), e.origin); });
+function evalInIframe(iframe, code) {
+  const message_promise = new Promise((resolve) => {
+      window.addEventListener(
+          'message',
+          (e) => { resolve(e.data); },
+          { once : true });
+    });
+  iframe.contentWindow.postMessage(code,'*');
+  return message_promise;
 }
 
 function fetchAndWaitForReject(url) {
@@ -88,4 +104,144 @@ function addScriptAndWaitForError(url) {
     script.onerror = resolve;
     document.body.appendChild(script);
   });
+}
+
+function addScriptAndWaitForExecution(url) {
+  return new Promise((resolve, reject) => {
+    window.scriptLoaded = (val) => {
+      window.scriptLoaded = undefined;
+      resolve(val);
+    };
+    const script = document.createElement("script");
+    script.src = url;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+}
+
+// Currnetly Chrome supports two element types for Subresource Web Bundles
+// feature, <link rel=webbundle> and <script type=webbundle>.
+// In order to use the same test js file for the two types, we use
+// window.TEST_WEB_BUNDLE_ELEMENT_TYPE. When 'link' is set,
+// createWebBundleElement() will create a <link rel=webbundle> element, and when
+// 'script' is set, createWebBundleElement() will create a <script
+// rel=webbundle> element.
+function isTestBundleElementTypeSet() {
+  return (window.TEST_WEB_BUNDLE_ELEMENT_TYPE == 'link') ||
+         (window.TEST_WEB_BUNDLE_ELEMENT_TYPE == 'script');
+}
+
+function createWebBundleElement(url, resources, options) {
+  if (!isTestBundleElementTypeSet()) {
+    throw new Error(
+        'window.TEST_WEB_BUNDLE_ELEMENT_TYPE is not correctly set: ' +
+        window.TEST_WEB_BUNDLE_ELEMENT_TYPE);
+  }
+  if (window.TEST_WEB_BUNDLE_ELEMENT_TYPE == 'link') {
+    const link = document.createElement("link");
+    link.rel = "webbundle";
+    link.href = url;
+    if (options) {
+      if (options.crossOrigin) {
+        link.crossOrigin = options.crossOrigin;
+      }
+      if (options.scopes) {
+        for (const scope of options.scopes) {
+          link.scopes.add(scope);
+        }
+      }
+    }
+    for (const resource of resources) {
+      link.resources.add(resource);
+    }
+    return link;
+  }
+  const script = document.createElement("script");
+  script.type = "webbundle";
+  const json_rule  = {"source": url, "resources": resources};
+  if (options && options.scopes) {
+    json_rule.scopes = options.scopes;
+  }
+  if (options && options.credentials) {
+    json_rule.credentials = options.credentials;
+  }
+  script.textContent = JSON.stringify(json_rule);
+  return script;
+}
+
+function addWebBundleElementAndWaitForLoad(url, resources, options) {
+  const element = createWebBundleElement(url, resources, options);
+  return addElementAndWaitForLoad(element);
+}
+
+function addWebBundleElementAndWaitForError(url, resources, options) {
+  const element = createWebBundleElement(url, resources, options);
+  return addElementAndWaitForError(element);
+}
+
+function changeWebBundleUrlInPlace(element, new_url) {
+  if (window.TEST_WEB_BUNDLE_ELEMENT_TYPE != 'link') {
+    throw new Error(
+        'Changing the URL of web bundle is not supported for : ' +
+        window.TEST_WEB_BUNDLE_ELEMENT_TYPE);
+  }
+  element.href= new_url;
+}
+
+function changeWebBundleScopesInPlace(element, scopes) {
+  if (window.TEST_WEB_BUNDLE_ELEMENT_TYPE != 'link') {
+    throw new Error(
+        'Changing the scopes of web bundle is not supported for : ' +
+        window.TEST_WEB_BUNDLE_ELEMENT_TYPE);
+  }
+  element.scopes = '';
+  for (const scope of scopes) {
+    element.scopes.add(scope);
+  }
+}
+
+function changeWebBundleResourcesInPlace(element, resources) {
+  if (window.TEST_WEB_BUNDLE_ELEMENT_TYPE != 'link') {
+    throw new Error(
+        'Changing the resources of web bundle is not supported for : ' +
+        window.TEST_WEB_BUNDLE_ELEMENT_TYPE);
+  }
+  element.resources = '';
+  for (const url of resources) {
+    element.resources.add(url);
+  }
+}
+
+// This function creates a new WebBundle element that has a rule
+// constructed in accordance with a JSON object |new_rule|:
+// 1. Copy over WebBundle rules from an existing element that are
+// not present in |new_rule|, in case of <link> API it is all
+// relevant attributes: href, resources, scopes and crossOrigin;
+// in case of <script> API, it is: source, resources, scopes and
+// credentials.
+// 2. Then create a new WebBundle element from |new_rule| (that now
+// has full information required after 1.) and return it.
+function createNewWebBundleElementWithUpdatedRule(element, new_rule) {
+  if (window.TEST_WEB_BUNDLE_ELEMENT_TYPE == 'link') {
+    if (element.resources && !new_rule.resources)
+      new_rule.resources = Array.from(element.resources);
+    if (element.scopes && !new_rule.scopes)
+      new_rule.scopes = Array.from(element.scopes);
+    if (element.crossOrigin && !new_rule.crossOrigin)
+      new_rule.crossOrigin = element.crossOrigin;
+    if (!new_rule.url)
+      new_rule.url = element.href;
+  } else {
+    const rule = JSON.parse(element.textContent);
+    if (rule.resources && !new_rule.resources)
+      new_rule.resources = rule.resources;
+    if (rule.scopes && !new_rule.scopes)
+      new_rule.scopes = rule.scopes;
+    if (rule.credentials && !new_rule.credentials)
+      new_rule.credentials = rule.credentials;
+    if (!new_rule.url)
+      new_rule.url = rule.source;
+  }
+
+  return createWebBundleElement(new_rule.url, new_rule.resources, new_rule);
 }

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Service Worker: 3P iframe for partitioned service workers</title>
+<script src="/test-helpers.sub.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./partitioned-utils.js"></script>
+
+<body>
+  This iframe will register a service worker when it loads and then will use
+  getRegistrations to get a handle to the SW. It will then postMessage to the
+  SW to retrieve the SW's ID. This iframe will then forward that message up,
+  eventually, to the test.
+  <script>
+
+    async function onLoad() {
+      await setup3pIframe();
+
+      // Once the SW sends us its ID, forward it up to the window.
+      navigator.serviceWorker.addEventListener('message', evt => {
+        window.parent.postMessage(evt.data, '*');
+      });
+
+      // Now get the SW with getRegistrations.
+      const retrieved_registrations =
+        await navigator.serviceWorker.getRegistrations();
+
+
+      retrieved_registrations[0].active.postMessage({type: "get-id"});
+
+    }
+
+    self.addEventListener('load', onLoad);
+  </script>
+</body>

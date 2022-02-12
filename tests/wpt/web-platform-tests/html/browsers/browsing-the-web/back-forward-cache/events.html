@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/helper.sub.js"></script>
+<script>
+// Basic event tests.
+runEventTest(
+  {targetOrigin: originSameOrigin},
+  'SameOrigin');
+
+runEventTest(
+  {targetOrigin: originSameSite},
+  'SameSite');
+
+runEventTest(
+  {},
+  'CrossSite');
+
+// beforeunload.
+runEventTest({
+  events: ['pagehide', 'pageshow', 'load', 'beforeunload'],
+  expectedEvents: [
+    'window.load',
+    'window.pageshow',
+    'window.beforeunload',
+    'window.pagehide.persisted',
+    'window.pageshow.persisted'
+  ]},
+  'beforeunload');
+
+// unload.
+runEventTest({
+  events: ['pagehide', 'pageshow', 'load', 'unload'],
+  expectedEvents: [
+    'window.load',
+    'window.pageshow',
+    'window.pagehide.persisted',
+    'window.pageshow.persisted'
+  ]},
+  'unload');
+</script>

@@ -148,6 +148,11 @@ const gTestCases = [
     expected: new CSSPerspective(CSS.px(1)),
     desc: 'perspective()'
   },
+  {
+    cssText: 'perspective(none)',
+    expected: new CSSPerspective(new CSSKeywordValue('none')),
+    desc: 'perspective(none)'
+  },
 ];
 
 for (const {cssText, expected, desc} of gTestCases) {

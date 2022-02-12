@@ -70,7 +70,7 @@ class ServoBaseProtocolPart(BaseProtocolPart):
         pass
 
     def wait(self):
-        pass
+        return False
 
     def set_window(self, handle):
         pass
@@ -123,7 +123,8 @@ class ServoWebDriverProtocol(Protocol):
     def wait(self):
         while True:
             try:
-                self.session.execute_async_script("")
+                return self.session.execute_async_script("""let callback = arguments[arguments.length - 1];
+addEventListener("__test_restart", e => {e.preventDefault(); callback(true)})""")
             except webdriver.TimeoutException:
                 pass
             except (socket.timeout, IOError):
@@ -131,6 +132,7 @@ class ServoWebDriverProtocol(Protocol):
             except Exception:
                 self.logger.error(traceback.format_exc())
                 break
+        return False
 
 
 class ServoWebDriverRun(TimedRunner):

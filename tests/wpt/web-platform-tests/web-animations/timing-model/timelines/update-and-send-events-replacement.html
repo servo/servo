@@ -725,8 +725,8 @@ promise_test(async t => {
 
   const event = await eventWatcher.wait_for('remove');
 
-  assert_equals(event.timelineTime, document.timeline.currentTime);
-  assert_equals(event.currentTime, 1);
+  assert_times_equal(event.timelineTime, document.timeline.currentTime);
+  assert_times_equal(event.currentTime, 1);
 }, 'Dispatches an event when removing');
 
 promise_test(async t => {

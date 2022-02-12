@@ -27,29 +27,35 @@ Here's the spec trail why the height of this item is 100px.
    specified size suggestion). We ignore transferred size suggestion because
    this item has a specified size.
 
-5. content size suggestion = 150, because 150 is the min-content size in the
-   main axis.
+5. content size suggestion = 50px because the stretched width of 100px is sent
+   through the 2:1 aspect ratio to determine the image's min-content size in the
+   block axis.
+
+   5a. This flex container qualifies for 9.8.3:
+
+     If a single-line flex container has a definite cross size, the automatic
+     preferred outer cross size of any stretched flex items is the flex
+     container's inner cross size (clamped to the flex item's min and max cross
+     size) and is considered definite.
+
+     So the preferred width of the image is 100px.
+   5b. The float specified by the min-content calculation from css-sizing 5.1 is
+     <img src="support/300x150-green.png" style="width: 100px; float: left;" />
+     This element gets height 50px.
 
 6. specified size suggestion = 100px because that's what's specified.
 
-7. So content-based min size = min(150, 100) = 100px. That becomes its flexed
+7. So content-based min size = min(50, 100) = 50px. That becomes its flexed
    height (see #1).
 
 8. Then, the item stretches its width to 100px. The item has an aspect ratio,
    so does the new width change the height? Not according to
    https://drafts.csswg.org/css-flexbox/#algo-stretch, which says "Note that
    this step does not affect the main size of the flex item, even if it has an
-   intrinsic aspect ratio." The height remains 100px.
-
-FF 77 gives the item height of 50px. It's probably due to a disagreement in #8;
-I think FF applies the aspect ratio of the new stretched width to get a height.
-But it might be a disagreement in #4.
-
-Chrome <= 83 gives the item height 150 because it doesn't treat
-min-height:min-content as min-height:auto. That makes the used min-height be
-150px. That might change in Chrome 84 or 85 when FlexNG launches.
-
+   intrinsic aspect ratio." The height remains 50px.
 -->
+
+<div style="height: 50px; width: 100px; background: green;"></div>
 <div style="display: flex; flex-direction: column; width:100px; height: 0px;">
-  <img src="support/300x150-green.png" style="display: flex; min-height: min-content; height: 100px;" />
+  <img src="support/300x150-green.png" style="min-height: min-content; height: 100px;" />
 </div>

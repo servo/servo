@@ -10,7 +10,8 @@ source_revision=$(git rev-parse HEAD)
 # wpt-pr-bot.
 #
 # https://help.github.com/en/articles/generic-jekyll-build-failures
-remote_url=https://${DEPLOY_TOKEN}@github.com/web-platform-tests/wpt.git
+remote_url=https://${DEPLOY_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+wpt_root=$PWD
 
 function json_property {
   cat ${1} | \
@@ -30,19 +31,23 @@ git config --global user.name "wpt-pr-bot"
 
 # Prepare the output directory so that the new build can be pushed to the
 # repository as an incremental change to the prior build.
-mkdir -p docs/_build/html
-cd docs/_build/html
+mkdir -p docs/_build
+cd docs/_build
 git init
 git fetch --depth 1 ${remote_url} gh-pages
 git checkout FETCH_HEAD
 git rm -rf .
 
 # Build the website
-cd ../..
-pip install -r requirements.txt
-make html
+unset NODE_ENV
+cd ${wpt_root}/docs
+npm install .
+export PATH="$PWD/node_modules/.bin:$PATH"
+cd ${wpt_root}
 
-cd _build/html
+./wpt build-docs
+
+cd docs/_build
 # Configure DNS
 echo web-platform-tests.org > CNAME
 # Disable Jekyll

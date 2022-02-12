@@ -21,7 +21,7 @@ async_test(t => {
   animation.onfinish = t.step_func_done(event => {
     assert_equals(event.currentTime, 0,
       'event.currentTime should be zero');
-    assert_equals(event.timelineTime, finishedTimelineTime,
+    assert_times_equal(event.timelineTime, finishedTimelineTime,
       'event.timelineTime should equal to the animation timeline ' +
       'when finished promise is resolved');
   });
@@ -40,9 +40,9 @@ async_test(t => {
   });
 
   animation.onfinish = t.step_func_done(event => {
-    assert_equals(event.currentTime, 100 * MS_PER_SEC,
+    assert_times_equal(event.currentTime, 100 * MS_PER_SEC,
       'event.currentTime should be the effect end');
-    assert_equals(event.timelineTime, finishedTimelineTime,
+    assert_times_equal(event.timelineTime, finishedTimelineTime,
       'event.timelineTime should equal to the animation timeline ' +
       'when finished promise is resolved');
   });
@@ -61,9 +61,9 @@ async_test(t => {
   });
 
   animation.onfinish = t.step_func_done(event => {
-    assert_equals(event.currentTime, 100 * MS_PER_SEC,
+    assert_times_equal(event.currentTime, 100 * MS_PER_SEC,
       'event.currentTime should be the effect end');
-    assert_equals(event.timelineTime, finishedTimelineTime,
+    assert_times_equal(event.timelineTime, finishedTimelineTime,
       'event.timelineTime should equal to the animation timeline ' +
       'when finished promise is resolved');
   });

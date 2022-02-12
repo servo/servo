@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSS Container Queries Test: whitespace changes in container which changes evaluation</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#container-queries">
+<link rel="match" href="change-display-in-container-ref.html">
+<style>
+  #container {
+    container-type: size;
+    width: 400px;
+    height: 200px;
+  }
+
+  @container size(min-width: 400px) {
+    span { color: red; }
+  }
+</style>
+<p>You should see the word PASS below.</p>
+<div id="container"><span id="fail">FAIL</span> <span>PASS</span></div>
+<script>
+  container.offsetTop;
+  container.style.width = "200px";
+  // The space text node between the two spans no longer takes up space when the
+  // first span is removed.
+  fail.remove();
+</script>

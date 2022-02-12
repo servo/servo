@@ -74,8 +74,8 @@ interface ReadableStreamDefaultReader {
 ReadableStreamDefaultReader includes ReadableStreamGenericReader;
 
 dictionary ReadableStreamDefaultReadResult {
- any value;
- boolean done;
+  any value;
+  boolean done;
 };
 
 [Exposed=(Window,Worker,Worklet)]
@@ -88,8 +88,8 @@ interface ReadableStreamBYOBReader {
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
 
 dictionary ReadableStreamBYOBReadResult {
- ArrayBufferView value;
- boolean done;
+  ArrayBufferView value;
+  boolean done;
 };
 
 [Exposed=(Window,Worker,Worklet)]
@@ -159,6 +159,7 @@ interface WritableStreamDefaultWriter {
 
 [Exposed=(Window,Worker,Worklet)]
 interface WritableStreamDefaultController {
+  readonly attribute AbortSignal signal;
   undefined error(optional any e);
 };
 
@@ -198,7 +199,7 @@ dictionary QueuingStrategy {
   QueuingStrategySize size;
 };
 
-callback QueuingStrategySize = unrestricted double (optional any chunk);
+callback QueuingStrategySize = unrestricted double (any chunk);
 
 dictionary QueuingStrategyInit {
   required unrestricted double highWaterMark;

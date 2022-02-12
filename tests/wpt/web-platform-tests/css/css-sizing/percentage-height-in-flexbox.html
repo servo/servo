@@ -22,24 +22,29 @@
   display:block;
 }
 </style>
+<script>
+setup({explicit_done: true});
+function doTest() {
+  test(() => {
+    let target = document.querySelector("#target");
+    assert_equals(target.offsetWidth, target.offsetHeight);
+    assert_equals(target.offsetWidth, target.parentNode.offsetWidth);
+    assert_equals(target.offsetHeight, target.parentNode.offsetHeight);
+  }, '#target offsetSize matches #container offsetSize' );
+  test(() => {
+    document.querySelector("#container").style.height = "100px";
+    let target = document.querySelector("#target");
+    assert_equals(target.offsetWidth, target.offsetHeight);
+    assert_equals(target.offsetWidth, target.parentNode.offsetWidth);
+    assert_equals(target.offsetHeight, target.parentNode.offsetHeight);
+  }, '#target offsetSize matches #container offsetSize after resize' );
+  done();
+}
+</script>
+<body onload="doTest()">
 <div id="outer">
   <div id="container">
     <img id="target" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
   </div>
 </div>
-<script>
-test(() => {
-  let target = document.querySelector("#target");
-  assert_equals(target.offsetWidth, target.offsetHeight);
-  assert_equals(target.offsetWidth, target.parentNode.offsetWidth);
-  assert_equals(target.offsetHeight, target.parentNode.offsetHeight);
-}, '#target offsetSize matches #container offsetSize' );
-test(() => {
-  document.querySelector("#container").style.height = "100px";
-  let target = document.querySelector("#target");
-  assert_equals(target.offsetWidth, target.offsetHeight);
-  assert_equals(target.offsetWidth, target.parentNode.offsetWidth);
-  assert_equals(target.offsetHeight, target.parentNode.offsetHeight);
-}, '#target offsetSize matches #container offsetSize after resize' );
-
-</script>
+</body>

@@ -10,4 +10,6 @@ interface KeyboardLayoutMap {
 
 partial interface Keyboard {
   Promise<KeyboardLayoutMap> getLayoutMap();
+
+  attribute EventHandler onlayoutchange;
 };

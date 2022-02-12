@@ -24,11 +24,11 @@ async_test(function(t) {
     }
   });
   const observer = new PerformanceObserver(t.step_func((entryList) => {
-    const entries = entryList.getEntriesByName('mousedown');
+    const entries = entryList.getEntriesByName('pointerdown');
     if (entries.length === 0)
       return;
 
-    // There must only be one mousedown entry.
+    // There must only be one pointerdown entry.
     assert_equals(entries.length, 1);
     verifyClickEvent(entries[0], 'custom_button', true);
     assert_true(innerButtonClicked);

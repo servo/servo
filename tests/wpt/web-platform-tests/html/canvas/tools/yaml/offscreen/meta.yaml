@@ -43,13 +43,13 @@
         'desc': 'Resetting the canvas state resets 2D state variables',
         'testing': [ 'initial.reset' ],
         'code':
-    """offscreenCanvas.width = 100;
+    """canvas.width = 100;
     var default_val;
     """ + "".join(
     """
     default_val = ctx.%(key)s;
     ctx.%(key)s = %(value)s;
-    offscreenCanvas.width = 100;
+    canvas.width = 100;
     @assert ctx.%(key)s === default_val;
     """ % { 'key':key, 'value':value }
         for key,value in state) + "\nt.done();",
@@ -168,7 +168,7 @@
                 'testing': [ '2d.composite.%s' % op ],
                 'images': [ 'yellow75.png' ],
                 'code': """
-    var offscreenCanvas2 = new OffscreenCanvas(offscreenCanvas.width, offscreenCanvas.height);
+    var offscreenCanvas2 = new OffscreenCanvas(canvas.width, canvas.height);
     var ctx2 = offscreenCanvas2.getContext('2d');
     var promise = new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
@@ -525,15 +525,15 @@
         testing = ["size.nonnegativeinteger"]
         if exp is None:
             testing.append("size.error")
-            code += "offscreenCanvas.width = '%s';\noffscreenCanvas.height = '%s';\n" % (string, string)
-            code += "@assert offscreenCanvas.width === 100;\n@assert offscreenCanvas.height === 50;\n"
+            code += "canvas.width = '%s';\ncanvas.height = '%s';\n" % (string, string)
+            code += "@assert canvas.width === 100;\n@assert canvas.height === 50;\n"
             expected = None
         elif exp == "exception":
-            code += "@assert throws TypeError offscreenCanvas.width = '%s';\n" % string
+            code += "@assert throws TypeError canvas.width = '%s';\n" % string
             expected = None
         else:
-            code += "offscreenCanvas.width = '%s';\noffscreenCanvas.height = '%s';\n" % (string, string)
-            code += "@assert offscreenCanvas.width === %s;\n@assert offscreenCanvas.height === %s;\n" % (exp, exp)
+            code += "canvas.width = '%s';\ncanvas.height = '%s';\n" % (string, string)
+            code += "@assert canvas.width === %s;\n@assert canvas.height === %s;\n" % (exp, exp)
             expected = None
 
         code += "t.done();\n"

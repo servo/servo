@@ -1,5 +1,6 @@
 import time
 
 def main(request, response):
-    time.sleep(2)
+    delay = float(request.GET.first(b"delay", 2000)) / 1000
+    time.sleep(delay)
     return 200, [], b''

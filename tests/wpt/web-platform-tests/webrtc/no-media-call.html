@@ -43,8 +43,10 @@
   };
 
   var onAnswerCreated = test.step_func(function(answer) {
-    gSecondConnection.setLocalDescription(answer, ignoreSuccess,
-                                          failed('setLocalDescription second'));
+    gSecondConnection.setLocalDescription(answer, test.step_func(() => {
+        assert_equals(gSecondConnection.getSenders()[0], 1);
+        assert_not_equals(gSecondConnection.getSenders()[0].transport, null);
+    }), failed('setLocalDescription second'));
 
     // Similarly, this would go over the application's signaling solution.
     handleAnswer(answer.sdp);

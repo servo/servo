@@ -1,2 +1,2 @@
-Accept-CH: viewport-width
+Accept-CH: sec-ch-viewport-width,viewport-width
 Access-Control-Allow-Origin: *

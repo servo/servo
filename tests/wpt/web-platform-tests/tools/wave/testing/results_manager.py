@@ -5,6 +5,7 @@ import json
 import hashlib
 import zipfile
 import time
+from threading import Timer
 
 from ..utils.user_agent_parser import parse_user_agent, abbreviate_browser_name
 from ..utils.serializer import serialize_session
@@ -17,6 +18,9 @@ from .wpt_report import generate_report, generate_multi_report
 from ..data.session import COMPLETED
 
 WAVE_SRC_DIR = "./tools/wave"
+RESULTS_FILE_REGEX = r"^\w\w\d\d\d?\.json$"
+RESULTS_FILE_PATTERN = re.compile(RESULTS_FILE_REGEX)
+SESSION_RESULTS_TIMEOUT = 60*30  # 30min
 
 
 class ResultsManager(object):
@@ -25,17 +29,18 @@ class ResultsManager(object):
         results_directory_path,
         sessions_manager,
         tests_manager,
-        import_enabled,
+        import_results_enabled,
         reports_enabled,
         persisting_interval
     ):
         self._results_directory_path = results_directory_path
         self._sessions_manager = sessions_manager
         self._tests_manager = tests_manager
-        self._import_enabled = import_enabled
+        self._import_results_enabled = import_results_enabled
         self._reports_enabled = reports_enabled
         self._results = {}
         self._persisting_interval = persisting_interval
+        self._timeouts = {}
 
     def create_result(self, token, data):
         result = self.prepare_result(data)
@@ -82,10 +87,10 @@ class ResultsManager(object):
         if filter_path is not None:
             filter_api = next((p for p in filter_path.split("/")
                                if p is not None), None)
-        cached_results = self._read_from_cache(token)
-        persisted_results = self.load_results(token)
-        results = self._combine_results_by_api(cached_results,
-                                               persisted_results)
+        results = self._read_from_cache(token)
+        if results == []:
+            results = self.load_results(token)
+            self._set_session_cache(token, results)
 
         filtered_results = {}
 
@@ -209,6 +214,7 @@ class ResultsManager(object):
                         if test in failed_tests[api]:
                             continue
                         failed_tests[api].append(test)
+        return passed_tests
 
     def read_results_wpt_report_uri(self, token, api):
         api_directory = os.path.join(self._results_directory_path, token, api)
@@ -244,8 +250,7 @@ class ResultsManager(object):
             return
         for api in list(self._results[token].keys())[:]:
             self.save_api_results(token, api)
-            self.create_info_file(session)
-            self._clear_cache_api(token, api)
+        self.create_info_file(session)
         session.recent_completed_count = 0
         self._sessions_manager.update_session(session)
 
@@ -282,22 +287,28 @@ class ResultsManager(object):
         if api not in self._results[token]:
             self._results[token][api] = []
         self._results[token][api].append(result)
+        self._set_timeout(token)
+
+    def _set_session_cache(self, token, results):
+        if token is None:
+            return
+        self._results[token] = results
+        self._set_timeout(token)
 
     def _read_from_cache(self, token):
         if token is None:
             return []
         if token not in self._results:
             return []
+        self._set_timeout(token)
         return self._results[token]
 
-    def _clear_cache_api(self, token, api):
+    def _clear_session_cache(self, token):
         if token is None:
             return
         if token not in self._results:
             return
-        if api not in self._results[token]:
-            return
-        del self._results[token][api]
+        del self._results[token]
 
     def _combine_results_by_api(self, result_a, result_b):
         combined_result = {}
@@ -534,7 +545,7 @@ class ResultsManager(object):
                 zip.write(file_path, file_name, zipfile.ZIP_DEFLATED)
         zip.close()
 
-        with open(zip_file_name, "rb") as file:
+        with open(zip_file_name, "r") as file:
             blob = file.read()
             os.remove(zip_file_name)
 
@@ -575,8 +586,8 @@ class ResultsManager(object):
 
             return blob
 
-    def is_import_enabled(self):
-        return self._import_enabled
+    def is_import_results_enabled(self):
+        return self._import_results_enabled
 
     def are_reports_enabled(self):
         return self._reports_enabled
@@ -592,7 +603,7 @@ class ResultsManager(object):
             return deserialize_session(info)
 
     def import_results(self, blob):
-        if not self.is_import_enabled:
+        if not self.is_import_results_enabled:
             raise PermissionDeniedException()
         tmp_file_name = "{}.zip".format(str(time.time()))
 
@@ -614,8 +625,34 @@ class ResultsManager(object):
         os.makedirs(destination_path)
         zip.extractall(destination_path)
         self.remove_tmp_files()
-        self.load_results()
+        self.load_results(token)
         return token
+
+    def import_results_api_json(self, token, api, blob):
+        if not self.is_import_results_enabled:
+            raise PermissionDeniedException()
+        destination_path = os.path.join(self._results_directory_path, token, api)
+        files = os.listdir(destination_path)
+        file_name = ""
+        for file in files:
+            if RESULTS_FILE_PATTERN.match(file):
+                file_name = file
+                break
+        destination_file_path = os.path.join(destination_path, file_name)
+        with open(destination_file_path, "wb") as file:
+            file.write(blob)
+
+        self.generate_report(token, api)
+
+        session = self._sessions_manager.read_session(token)
+        if session is None:
+            raise NotFoundException()
+
+        results = self.load_results(token)
+        test_state = self.parse_test_state(results)
+        session.test_state = test_state
+
+        self._sessions_manager.update_session(session)
 
     def remove_tmp_files(self):
         files = os.listdir(".")
@@ -624,3 +661,12 @@ class ResultsManager(object):
             if re.match(r"\d{10}\.\d{2}\.zip", file) is None:
                 continue
             os.remove(file)
+
+    def _set_timeout(self, token):
+        if token in self._timeouts:
+            self._timeouts[token].cancel()
+
+        def handler(self, token):
+            self._clear_session_cache(token)
+
+        self._timeouts[token] = Timer(SESSION_RESULTS_TIMEOUT, handler, [self, token])

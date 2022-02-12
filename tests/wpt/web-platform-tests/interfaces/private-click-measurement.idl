@@ -5,5 +5,4 @@
 
 partial interface HTMLAnchorElement {
     [CEReactions] attribute unsigned long attributionSourceId;
-    [CEReactions] attribute DOMString attributionDestination;
 };

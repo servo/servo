@@ -37,6 +37,38 @@
   </div>
 </template>
 <script>
+
+const APPROX_INFINITY = 3.35544e+07;
+test_interpolation({
+  property: 'left',
+  from: '0px',
+  to: 'calc(infinity * 1px)',
+  target_names:['CSS Transitions', 'CSS Transitions with transition: all']
+}, [
+  {at: -0.25, expect: `${APPROX_INFINITY * -0.25 }px`},
+  {at: 0, expect: '0px'},
+  {at: 0.25, expect: `${APPROX_INFINITY * 0.25}px`},
+  {at: 0.5, expect: `${APPROX_INFINITY * 0.5}px`},
+  {at: 0.75, expect: `${APPROX_INFINITY * 0.75}px`},
+  {at: 1, expect: `${APPROX_INFINITY}px`},
+  {at: 1.25, expect: `${APPROX_INFINITY * 1.25}px`}
+]);
+
+test_interpolation({
+  property: 'left',
+  from: '0px',
+  to: 'calc(infinity * 1px)',
+  target_names:['CSS Animations', 'Web Animations']
+}, [
+  {at: -0.25, expect: `${-APPROX_INFINITY}px`},
+  {at: 0, expect: `${APPROX_INFINITY}px`},
+  {at: 0.25, expect: `${APPROX_INFINITY}px`},
+  {at: 0.5, expect: `${APPROX_INFINITY}px`},
+  {at: 0.75, expect: `${APPROX_INFINITY}px`},
+  {at: 1, expect: `${APPROX_INFINITY}px`},
+  {at: 1.25, expect: `${APPROX_INFINITY}px`}
+]);
+
 test_interpolation({
   property: 'left',
   from: 'calc(50% - 25px)',

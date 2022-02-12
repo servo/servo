@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>visibilityState must be updated after prerendering</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<script>
+
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const bc = new BroadcastChannel('test-channel');
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  const url = `resources/visibility-state-check.html`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  const expected = [
+    {
+      event: 'Initial visibilityState: hidden',
+      prerendering: true
+    },
+    {
+      event: 'started waiting visibilityState check',
+      prerendering: true
+    },
+    {
+      event: 'visibilityState after prerenderingchange: visible',
+      prerendering: false
+    },
+    {
+      event: 'finished waiting visibilityState check',
+      prerendering: false
+    }
+  ];
+  assert_equals(result.length, expected.length);
+  for (let i = 0; i < result.length; i++) {
+    assert_equals(result[i].event, expected[i].event, `event${i}`);
+    assert_equals(result[i].prerendering, expected[i].prerendering,
+      `prerendering${i}`);
+  }
+}, 'The visibilityState must be updated after prerendering.');
+
+</script>
+</body>

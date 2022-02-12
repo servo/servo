@@ -149,7 +149,19 @@ class PolicyDelivery(object):
     def get_another_policy(self, delivery_type):
         # type: (str) -> PolicyDelivery
         if self.key == 'referrerPolicy':
-            if self.value == 'no-referrer':
+            # Return 'unsafe-url' (i.e. more unsafe policy than `self.value`)
+            # as long as possible, to make sure the tests to fail if the
+            # returned policy is used unexpectedly instead of `self.value`.
+            # Using safer policy wouldn't be distinguishable from acceptable
+            # arbitrary policy enforcement by user agents, as specified at
+            # Step 7 of
+            # https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer:
+            # "The user agent MAY alter referrerURL or referrerOrigin at this
+            # point to enforce arbitrary policy considerations in the
+            # interests of minimizing data leakage."
+            # See also the comments at `referrerUrlResolver` in
+            # `wpt/referrer-policy/generic/test-case.sub.js`.
+            if self.value != 'unsafe-url':
                 return PolicyDelivery(delivery_type, self.key, 'unsafe-url')
             else:
                 return PolicyDelivery(delivery_type, self.key, 'no-referrer')

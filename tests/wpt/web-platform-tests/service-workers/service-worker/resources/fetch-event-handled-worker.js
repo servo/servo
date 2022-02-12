@@ -1,25 +1,19 @@
 // This worker reports back the final state of FetchEvent.handled (RESOLVED or
 // REJECTED) to the test.
 
-// Send a message to the client with the client id.
-function send_message_to_client(message, clientId) {
-  clients.get(clientId).then((client) => {
-    client.postMessage(message);
-  });
-}
+self.addEventListener('message', function(event) {
+  self.port = event.data.port;
+});
 
 self.addEventListener('fetch', function(event) {
-  const clientId = (event.request.mode === 'navigate') ?
-      event.resultingClientId : event.clientId;
-
   try {
     event.handled.then(() => {
-      send_message_to_client('RESOLVED', clientId);
+      self.port.postMessage('RESOLVED');
     }, () => {
-      send_message_to_client('REJECTED', clientId);
+      self.port.postMessage('REJECTED');
     });
   } catch (e) {
-    send_message_to_client('FAILED', clientId);
+    self.port.postMessage('FAILED');
     return;
   }
 

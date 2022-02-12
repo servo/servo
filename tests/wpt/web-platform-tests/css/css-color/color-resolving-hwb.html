@@ -95,7 +95,22 @@
                     if (alpha !== undefined) {
                         hwb_color_using_number = `hwb(${hue} ${white * 100}% ${black * 100}% / ${alpha})`;
                     }
+
                     color_test(hwb_color_using_number, expected_value(rgb_channels), "HWB value should parse and round correctly");
+
+                    // Test comma syntax
+                    let comma_deg = `hwb(${hue}deg, ${white * 100}%, ${black * 100}%)`;
+                    if (alpha !== undefined) {
+                        comma_deg = `hwb(${hue}deg, ${white * 100}%, ${black * 100}%, ${alpha})`;
+                    }
+                    color_test(comma_deg, null, "HWB value with commas should not be parsed");
+
+                    // Test comma syntax
+                    let comma_num = `hwb(${hue}, ${white * 100}%, ${black * 100}%)`;
+                    if (alpha !== undefined) {
+                        comma_num = `hwb(${hue}, ${white * 100}%, ${black * 100}%, ${alpha})`;
+                    }
+                    color_test(comma_num, null, "HWB value with commas should not be parsed");
                 }
             }
         }

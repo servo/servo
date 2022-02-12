@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: MathML Core (https://mathml-refresh.github.io/mathml-core/)
+// Source: MathML Core (https://w3c.github.io/mathml-core/)
 
 [Exposed=Window]
 interface MathMLElement : Element { };

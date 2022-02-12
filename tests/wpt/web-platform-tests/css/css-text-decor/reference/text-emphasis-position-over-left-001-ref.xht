@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-position - over left - basic cases Reftest Reference</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
+		<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+		<style type="text/css"><![CDATA[
+			.parent
+			{
+				background: yellow;
+				border: solid 1px gray;
+				color: blue;
+				font: 20px/1em ahem;
+				width: 6em;
+			}
+			ruby {
+			    ruby-position: over;
+			}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of upper and lower block in the square box is identical.</p>
+			<p>horizontal</p>
+			<div class="parent">
+				<div>
+					<ruby><rb>a</rb><rt>&#x25CF;</rt><rb>b</rb><rt>&#x25CF;</rt><rb>c</rb><rt>&#x25CF;</rt></ruby>
+					 de<br />
+					<br />
+				</div>
+			</div>
+			<br />
+			<div class="parent">
+				<div>
+					<ruby><rb>a</rb><rt>&#x25CF;</rt><rb>b</rb><rt>&#x25CF;</rt><rb>c</rb><rt>&#x25CF;</rt></ruby>
+					 de<br />
+					<br />
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

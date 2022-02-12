@@ -37,7 +37,7 @@ async_test(t => {
 
     // (1) Navigate to ?1. This will take 1 ms to settle.
     let secondNavigateFulfilled = false;
-    promise_rejects_dom(t, "AbortError", appHistory.navigate("?1")).then(t.step_func(() => {
+    promise_rejects_dom(t, "AbortError", appHistory.navigate("?1").finished).then(t.step_func(() => {
       // (4) After navigateerror for the navigation to ?1 comes the promise rejection.
       firstNavigateRejected = true;
 
@@ -53,7 +53,7 @@ async_test(t => {
     assert_not_equals(from, from2);
 
     // (2) Navigate to ?2. This will interrupt the navigation to ?1 and take us to (3).
-    appHistory.navigate("?2", { replace: true }).then(t.step_func_done(() => {
+    appHistory.navigate("?2", { replace: true }).finished.then(t.step_func_done(() => {
       // (6) After navigatesuccess for the navigation to ?2 comes the promise fulfillment.
       assert_true(navigatesuccessFired, "navigatesuccess must be fired");
 

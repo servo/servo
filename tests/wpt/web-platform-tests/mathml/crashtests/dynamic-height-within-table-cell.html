@@ -1,0 +1,33 @@
+<!DOCTYPE>
+<html class="test-wait">
+  <head>
+    <title>Dynamic height within table cell</title>
+    <meta charset="utf-8"/>
+    <link rel="author" title="Frédéric Wang" href="mailto:fwang@igalia.com">
+    <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1254572">
+    <style>
+      #cell {
+          position: relative;
+      }
+      #elementToResize {
+          position: absolute;
+          height: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <math>
+      <mtd id="cell">
+        <mrow id="elementToResize"></mrow>
+      </mtd>
+    </math>
+    <script>
+      window.addEventListener("load", () => {
+          window.requestAnimationFrame(() => {
+              elementToResize.style.height = "0px";
+              document.documentElement.classList.remove('test-wait');
+          });
+      });
+    </script>
+  </body>
+</html>

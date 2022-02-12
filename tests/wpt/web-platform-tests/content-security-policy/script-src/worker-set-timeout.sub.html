@@ -13,8 +13,8 @@
     <script>
       assert_worker_is_loaded(
         "./support/worker-with-script-src-none-set-timeout.js",
-        "Dedicated worker inherits CSP from main document",
-        "setTimeout allowed");
+        "Dedicated worker delivers its own CSP",
+        "setTimeout blocked");
 
       assert_shared_worker_is_loaded(
         "./support/worker-with-script-src-none-set-timeout.js",

@@ -1,22 +1,30 @@
 import http.client as httplib
 import sys
+import logging
 import traceback
 
+
+global logger
+logger = logging.getLogger("wave-api-handler")
 
 class HttpHandler(object):
     def __init__(
         self,
-        static_handler=None,
-        sessions_api_handler=None,
-        tests_api_handler=None,
-        results_api_handler=None,
-        http_port=None,
-        web_root=None
+        static_handler,
+        sessions_api_handler,
+        tests_api_handler,
+        results_api_handler,
+        devices_api_handler,
+        general_api_handler,
+        http_port,
+        web_root
     ):
         self.static_handler = static_handler
         self.sessions_api_handler = sessions_api_handler
         self.tests_api_handler = tests_api_handler
         self.results_api_handler = results_api_handler
+        self.general_api_handler = general_api_handler
+        self.devices_api_handler = devices_api_handler
         self._http_port = http_port
         self._web_root = web_root
 
@@ -50,6 +58,7 @@ class HttpHandler(object):
 
     def handle_api(self, request, response):
         path = self._remove_web_root(request.request_path)
+        path = path.split("?")[0]
         api_name = path.split("/")[1]
 
         if api_name is None:
@@ -64,6 +73,11 @@ class HttpHandler(object):
         if api_name == "results":
             self.results_api_handler.handle_request(request, response)
             return
+        if api_name == "devices":
+            self.devices_api_handler.handle_request(request, response)
+            return
+
+        self.general_api_handler.handle_request(request, response)
 
     def handle_static_file(self, request, response):
         self.static_handler.handle_request(request, response)
@@ -76,16 +90,19 @@ class HttpHandler(object):
 
     def _proxy(self, request, response):
         host = 'localhost'
-        port = str(self._http_port)
+        port = int(self._http_port)
         uri = request.url_parts.path
         uri = uri + "?" + request.url_parts.query
-        data = request.raw_input.read(int(request.headers.get('Content-Length', -1)))
+        content_length = request.headers.get('Content-Length')
+        data = ""
+        if content_length is not None:
+            data = request.raw_input.read(int(content_length))
         method = request.method
-        # HTTPConnection expects values to be a comma separated string instead
-        # of a list of values.
+
         headers = {}
-        for k, v in request.headers.items():
-            headers[k] = b",".join(list(v))
+        for key in request.headers:
+            value = request.headers[key]
+            headers[key.decode("utf-8")] = value.decode("utf-8")
 
         try:
             proxy_connection = httplib.HTTPConnection(host, port)
@@ -96,8 +113,8 @@ class HttpHandler(object):
             response.status = proxy_response.status
 
         except IOError:
+            message = "Failed to perform proxy request"
             info = sys.exc_info()
             traceback.print_tb(info[2])
-            print("Failed to perform proxy request: " +
-                info[0].__name__ + ": " + str(info[1].args[0]))
+            logger.error("{}: {}: {}".format(message, info[0].__name__, info[1].args[0]))
             response.status = 500

@@ -68,6 +68,9 @@ const UI = {
         case "checked":
           if (value) element.setAttribute("checked", true);
           return;
+        case "indeterminate":
+          element.indeterminate = value;
+          return;
       }
     });
     return element;

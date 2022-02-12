@@ -1,0 +1,64 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>toggle 'display' test</title>
+<meta charset="utf-8">
+<link rel="match" href="toggle-display-ref.html">
+
+<div id="tests">
+ <input type="hidden">
+ <input type="text">
+ <input type="text" value="a">
+ <input type="search">
+ <input type="search" value="a">
+ <input type="tel">
+ <input type="tel" value="123456789">
+ <input type="url">
+ <input type="url" value="http://a">
+ <input type="email">
+ <input type="email" value="a">
+ <input type="password">
+ <input type="password" value="a">
+ <input type="date">
+ <input type="month">
+ <input type="week">
+ <input type="time">
+ <input type="datetime-local">
+ <input type="number">
+ <input type="range">
+ <input type="color">
+ <input type="checkbox">
+ <input type="radio">
+ <input type="file">
+ <input type="submit">
+ <input type="image">
+ <input type="reset">
+ <input type="button">
+ <input type="button" value="a">
+ <select><optgroup><option></select>
+ <select><optgroup><option>a</select>
+ <select multiple></select>
+ <select multiple><optgroup>a</optgroup><option>b</option></select>
+ <optgroup></optgroup>
+ <option></option>
+ <button></button>
+ <button>a</button>
+ <textarea></textarea>
+ <textarea>a</textarea>
+</div>
+
+<script>
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      let tests = document.querySelector('#tests');
+      tests.style.display = 'none';
+      requestAnimationFrame(() => {
+        tests.style.display = '';
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  });
+}
+</script>
+
+</html>

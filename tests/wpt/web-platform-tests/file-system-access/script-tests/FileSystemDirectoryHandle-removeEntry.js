@@ -86,3 +86,18 @@ directory_test(async (t, root) => {
         `removeEntry() must reject names containing "${kPathSeparators[i]}"`);
   }
 }, 'removeEntry() with a path separator should fail.');
+
+directory_test(async (t, root) => {
+  const handle =
+      await createFileWithContents(t, 'file-to-remove', '12345', root);
+  await createFileWithContents(t, 'file-to-keep', 'abc', root);
+
+  const writable = await handle.createWritable();
+  await root.removeEntry('file-to-remove');
+  await promise_rejects_dom(t, 'NotFoundError', getFileContents(handle));
+
+  await writable.close();
+  assert_array_equals(
+      await getSortedDirectoryEntries(root),
+      ['file-to-keep', 'file-to-remove']);
+}, 'removeEntry() while the file has an open writable succeeds');

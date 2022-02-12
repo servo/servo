@@ -131,9 +131,9 @@
     .then(offer =>
       pc.setRemoteDescription(offer)
       .then(() => generateAnswer(offer))
-      .then(answer =>
-        promise_rejects_dom(t, 'InvalidModificationError',
-          pc.setLocalDescription(answer))));
+      .then(answer => pc.setLocalDescription(answer))
+      .then(() => t.unreached_func("setLocalDescription should have rejected"),
+            (error) => assert_equals(error.name, 'InvalidModificationError')));
   }, 'setLocalDescription() with answer not created by own createAnswer() should reject with InvalidModificationError');
 
   /*
@@ -177,11 +177,13 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
-    const offer = await pc1.createOffer({offerToReceiveAudio: true});
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    const offer = await pc1.createOffer();
     await pc2.setRemoteDescription(offer);
     const answer = await pc2.createAnswer(); // [[LastAnswer]] slot set
     await pc2.setRemoteDescription({type: "rollback"});
-    await pc2.createOffer({offerToReceiveVideo: true}); // [[LastOffer]] slot set
+    pc2.addTransceiver('video', { direction: 'recvonly' });
+    await pc2.createOffer(); // [[LastOffer]] slot set
     await pc2.setRemoteDescription(offer);
     await pc2.setLocalDescription(answer); // Should check against [[LastAnswer]], not [[LastOffer]]
   }, "Setting previously generated answer after a call to createOffer should work");
@@ -192,7 +194,8 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
-    await pc2.setRemoteDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc2.setRemoteDescription(await pc1.createOffer());
     const answer = await pc2.createAnswer();
     const sldPromise = pc2.setLocalDescription(answer);
 

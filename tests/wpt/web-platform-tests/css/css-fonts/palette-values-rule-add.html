@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Tests that dynamically adding a @font-palette-values rule causes the necessary rendering update</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-palette-values">
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com">
+<link rel="mismatch" href="palette-values-rule-add-notref.html">
+<style>
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+</style>
+</head>
+<body>
+<div style="font: 48px 'COLR-test-font'; font-palette: --MyPalette;">A</div>
+<script>
+let count = 0;
+function tick() {
+    if (count > 3) {
+        let style = document.createElement("style");
+        document.head.appendChild(style);
+        style.sheet.insertRule(`
+            @font-palette-values --MyPalette {
+                font-family: "COLR-test-font";
+                base-palette: 1;
+            }`);
+        document.documentElement.classList.remove("reftest-wait");
+    } else {
+        ++count;
+        requestAnimationFrame(tick);
+    }
+}
+[...document.fonts][0].load().then(tick);
+</script>
+</body>
+</html>

@@ -6,5 +6,5 @@
 async_test(t => {
   appHistory.onnavigatesuccess = t.step_func_done(() => assert_equals(location.hash, "#1"));
   a.click();
-}, "navigatesucess fires for a same-document navigation");
+}, "navigatesuccess fires for a same-document navigation");
 </script>

@@ -20,13 +20,14 @@ promise_setup(async t => {
 promise_test(async t => {
   // Basic test that expects start() to call internally
   // addMonitor, which in turn return an ACTIVE state.
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      return Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.LOCKED
+          idleTime: null,
+          screenLocked: true
         }
-      });
+      };
   });
 
   const controller = new AbortController();
@@ -46,19 +47,23 @@ promise_test(async t => {
 promise_test(async t => {
   // Verifies that an event is thrown when a change of state from IDLE to ACTIVE
   // is detected.
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      let first = Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      const first = {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.UNLOCKED
+          idleTime: null,
+          screenLocked: false
         }
-      });
+      };
 
       t.step_timeout(() => {
-        monitorPtr.update({
-          user: UserIdleState.IDLE,
-          screen: ScreenIdleState.UNLOCKED
-        });
+        monitorPtr.update(
+          {
+            idleTime: { milliseconds: 0 },
+            screenLocked: false
+          },
+          /*is_overridden_by_devtools=*/true
+        );
       }, 0);
 
       return first;
@@ -71,6 +76,8 @@ promise_test(async t => {
 
   await detector.start({ signal: controller.signal });
   await initial_state;
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "unlocked");
 
   // Wait for the first change in state.
   await watcher.wait_for("change");
@@ -81,32 +88,40 @@ promise_test(async t => {
   controller.abort();
 }, 'updates once');
 
-
 promise_test(async t => {
   // Simulates the user being active, going idle and then going back active
   // again.
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      let first = Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      const first = {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.UNLOCKED
+          idleTime: null,
+          screenLocked: false
         }
-      });
+      };
 
       // Updates the client once with the user idle.
       t.step_timeout(() => {
-        monitorPtr.update({
-          user: UserIdleState.IDLE,
-          screen: ScreenIdleState.UNLOCKED
-        });
+        monitorPtr.update(
+          {
+            idleTime: { milliseconds: 0 },
+            screenLocked: false
+          },
+          /*is_overridden_by_devtools=*/true
+        );
       }, 0);
+
       // Updates the client a second time with the user active.
       t.step_timeout(() => {
-        monitorPtr.update({
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.UNLOCKED
-        });
+        monitorPtr.update(
+          {
+            idleTime: null,
+            screenLocked: false
+          },
+          /*is_overridden_by_devtools=*/true
+        );
       }, 1);
+
       return first;
     });
 
@@ -131,13 +146,14 @@ promise_test(async t => {
 
 promise_test(async t => {
   // Simulates a locked screen.
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      return Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.LOCKED
+          idleTime: null,
+          screenLocked: true
         }
-      });
+      };
     });
 
   const controller = new AbortController();
@@ -154,13 +170,14 @@ promise_test(async t => {
 }, 'locked screen');
 
 promise_test(async t => {
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      return Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.LOCKED
+          idleTime: null,
+          screenLocked: true
         }
-      });
+      };
   });
 
   const controller = new AbortController();
@@ -182,13 +199,14 @@ promise_test(async t => {
 }, 'IdleDetector.onchange');
 
 promise_test(async t => {
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      return Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.UNLOCKED
+          idleTime: null,
+          screenLocked: false
         }
-      });
+      };
     });
 
   const controller = new AbortController();
@@ -214,13 +232,14 @@ promise_test(async t => {
 }, 'Safe to call start() or stop() multiple times');
 
 promise_test(async t => {
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      return Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.UNLOCKED
+          idleTime: null,
+          screenLocked: false
         }
-      });
+      };
     });
 
   const controller = new AbortController();
@@ -234,13 +253,14 @@ promise_test(async t => {
 }, 'Calling stop() after start() is a no-op');
 
 promise_test(async t => {
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      return Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.ACTIVE,
-          screen: ScreenIdleState.UNLOCKED
+          idleTime: null,
+          screenLocked: false
         }
-      });
+      };
     });
 
   let controller = new AbortController();
@@ -253,13 +273,14 @@ promise_test(async t => {
 
   controller.abort();
 
-  expect(addMonitor).andReturn((threshold, monitorPtr) => {
-      return Promise.resolve({
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
         state: {
-          user: UserIdleState.IDLE,
-          screen: ScreenIdleState.LOCKED
+          idleTime: { milliseconds: 0 },
+          screenLocked: true
         }
-      });
+      };
     });
 
   // Restarting the monitor.

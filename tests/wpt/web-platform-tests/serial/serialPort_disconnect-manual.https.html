@@ -13,7 +13,7 @@
       These tests require a serial device to be connected and disconnected.
     </p>
     <script>
-      manual_loopback_serial_test(async (t, port) => {
+      manual_serial_test(async (t, port) => {
         const watcher = new EventWatcher(t, navigator.serial, ['disconnect']);
 
         await port.open({baudRate: 115200, bufferSize: 1024});
@@ -47,7 +47,7 @@
         await port.close();
       }, 'Disconnect during read is detected.');
 
-      manual_loopback_serial_test(async (t, port) => {
+      manual_serial_test(async (t, port) => {
         const watcher = new EventWatcher(t, navigator.serial, ['disconnect']);
 
         await port.open({baudRate: 115200, bufferSize: 1024});

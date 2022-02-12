@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+<title>enumerateDevices rotates deviceId across origins and after cookies get cleared</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+</head>
+<body>
+  <iframe allow="camera 'src';microphone 'src'" id=same src="/mediacapture-streams/iframe-enumerate.html"></iframe>
+<iframe allow="camera 'src';microphone 'src'" id=cross src="https://{{hosts[][www1]}}:{{ports[https][0]}}/mediacapture-streams/iframe-enumerate.html"></iframe>
+<script>
+
+  let deviceList;
+
+  promise_test(async t => {
+    await setMediaPermission();
+    const stream = await navigator.mediaDevices.getUserMedia({audio : true, video: true});
+    stream.getTracks().forEach(t => t.stop());
+    deviceList = await navigator.mediaDevices.enumerateDevices();
+    const msgWatcher = new EventWatcher(t, window, ['message']);
+    frames[0].postMessage('run', '*')
+    const e = await msgWatcher.wait_for('message');
+    const iframeDevices = e.data.devices;
+    assert_equals(deviceList.length, iframeDevices.length, "Same number of devices detected same-origin");
+    for (const device of deviceList) {
+      // Look for the same device in the iframe based on deviceId
+      // "default" can be used across several kinds, so it needs an additional check
+      // but we limit that check to "default" to detect re-use of deviceId across kinds
+      const sameDevice = iframeDevices.find(d => d.deviceId === device.deviceId && (device.deviceId !== "default" || d.kind === device.kind));
+      assert_true(!!sameDevice, "deviceIds stay the same when loaded in same origin");
+      assert_equals(sameDevice.label, device.label, "labels matches when deviceId matches");
+      assert_equals(sameDevice.kind, device.kind, "kind matches when deviceId matches");
+      // The group identifier MUST be uniquely generated for each document.
+      assert_not_equals(sameDevice.groupId, device.groupId, "groupId is specific to a document");
+    }
+    // setting a cookie as a way to detect if cookie clearing gets done
+    document.cookie = "test=true";
+    window.localStorage.touched = true;
+  }, "enumerateDevices has stable deviceIds across same-origin iframe");
+
+  promise_test(async t => {
+    const msgWatcher = new EventWatcher(t, window, ['message']);
+    frames[1].postMessage('run', '*')
+    const e = await msgWatcher.wait_for('message');
+    const iframeDevices = e.data.devices;
+    assert_equals(deviceList.length, iframeDevices.length, "Same number of devices detected cross-origin");
+    for (const device of deviceList) {
+      // An identifier can be reused across origins as long as
+      // it is not tied to the user and can be guessed by other means
+      // In practice, "default" is what is used today, so we hardcode it
+      // to be able to detect the general case of non-shared deviceIds
+      if (device.deviceId !== "default") {
+        const sameDevice = iframeDevices.find(d => d.deviceId === device.deviceId);
+        assert_false(!!sameDevice, "deviceIds are not shared across origin");
+      }
+      assert_false(!!iframeDevices.find(d => d.groupId === device.groupId), "groupId is specific to a document");
+    }
+  }, "enumerateDevices rotates deviceId across different-origin iframe");
+
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("allow", "camera 'src';microphone 'src'");
+    iframe.src = "/mediacapture-streams/iframe-enumerate-cleared.html";
+    document.body.appendChild(iframe);
+    const loadWatcher = new EventWatcher(t, iframe, ['load']);
+    await loadWatcher.wait_for('load');
+    assert_implements_optional(document.cookie === "", "Clear-Site-Data not enabled, can't test clearing deviceId");
+
+    const msgWatcher = new EventWatcher(t, window, ['message']);
+    frames[2].postMessage('run', '*')
+    const e = await msgWatcher.wait_for('message');
+    const iframeDevices = e.data.devices;
+    assert_equals(deviceList.length, iframeDevices.length, "Same number of devices detected after clearing cookies");
+    for (const device of deviceList) {
+      const sameDevice = iframeDevices.find(d => d.deviceId === device.deviceId);
+      assert_false(!!sameDevice, "deviceIds are not kept after clearing site data");
+      assert_false(!!iframeDevices.find(d => d.groupId === device.groupId), "groupId is specific to a document");
+    }
+
+  }, "enumerateDevices rotates deviceId after clearing site data");
+
+</script>
+</body>
+</html>

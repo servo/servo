@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>Internal methods of Window's named properties object</title>
-<link rel="help" href="https://heycam.github.io/webidl/#named-properties-object">
+<link rel="help" href="https://webidl.spec.whatwg.org/#named-properties-object">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
@@ -62,7 +62,7 @@ test(t => {
     w.Object.prototype.a = {};
     w.EventTarget.prototype[0] = {};
 
-    // These are shadowed by properties higher in [[Prototype]] chain. See https://heycam.github.io/webidl/#dfn-named-property-visibility
+    // These are shadowed by properties higher in [[Prototype]] chain. See https://webidl.spec.whatwg.org/#dfn-named-property-visibility
     assert_equals(Object.getOwnPropertyDescriptor(wp, "hasOwnProperty"), undefined, supportedNonIndex);
     assert_equals(Reflect.getOwnPropertyDescriptor(wp, "addEventListener"), undefined, supportedNonIndex);
     assert_equals(Object.getOwnPropertyDescriptor(wp, "a"), undefined, supportedNonIndex);
@@ -123,7 +123,7 @@ test(t => {
     w.EventTarget.prototype.a = 10;
     w.Object.prototype[0] = 20;
 
-    // These are shadowed by properties higher in [[Prototype]] chain. See https://heycam.github.io/webidl/#dfn-named-property-visibility
+    // These are shadowed by properties higher in [[Prototype]] chain. See https://webidl.spec.whatwg.org/#dfn-named-property-visibility
     assert_equals(wp.isPrototypeOf, w.Object.prototype.isPrototypeOf, supportedNonIndex);
     assert_equals(wp.dispatchEvent, w.EventTarget.prototype.dispatchEvent, supportedNonIndex);
     assert_equals(wp.a, 10, supportedNonIndex);

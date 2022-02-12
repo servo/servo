@@ -27,14 +27,19 @@ self.addEventListener('fetch', evt => {
   // final request for the worker.
   if (evt.request.url.indexOf('webworker.py') != -1) {
     const greeting = encodeURIComponent(`${name} saw the request for the worker script`);
-    evt.respondWith(fetch(`worker_interception_redirect_webworker.py?greeting=${greeting}`));
+    // Serve from `./subdir/`, not `./`,
+    // to conform that the base URL used in the worker is
+    // the response URL (`./subdir/`), not the current request URL (`./`).
+    evt.respondWith(fetch(`subdir/worker_interception_redirect_webworker.py?greeting=${greeting}`));
     return;
   }
+
+  const path = (new URL(evt.request.url)).pathname;
 
   // (3) The worker does an importScripts() to import-scripts-echo.py. Indicate
   // that this service worker handled the request.
   if (evt.request.url.indexOf('import-scripts-echo.py') != -1) {
-    const msg = encodeURIComponent(`${name} saw importScripts from the worker`);
+    const msg = encodeURIComponent(`${name} saw importScripts from the worker: ${path}`);
     evt.respondWith(fetch(`import-scripts-echo.py?msg=${msg}`));
     return;
   }
@@ -42,7 +47,7 @@ self.addEventListener('fetch', evt => {
   // (4) The worker does a fetch() to simple.txt. Indicate that this service
   // worker handled the request.
   if (evt.request.url.indexOf('simple.txt') != -1) {
-    evt.respondWith(new Response(`${name} saw the fetch from the worker`));
+    evt.respondWith(new Response(`${name} saw the fetch from the worker: ${path}`));
     return;
   }
 });

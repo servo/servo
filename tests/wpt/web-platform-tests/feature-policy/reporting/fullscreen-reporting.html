@@ -15,7 +15,7 @@ var check_report_format = (reports, observer) => {
   observer1.disconnect();
   observer2.disconnect();
   let report = reports[0];
-  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.type, "permissions-policy-violation");
   assert_equals(report.url, document.location.href);
   assert_equals(report.body.featureId, "fullscreen");
   assert_equals(report.body.sourceFile, document.location.href);
@@ -26,16 +26,16 @@ var check_report_format = (reports, observer) => {
 
 var check_second_observer = (reports, observer) => {
   let report = reports[0];
-  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.type, "permissions-policy-violation");
   assert_equals(report.body.featureId, "fullscreen");
 };
 
 async_test(t => {
   observer1 = new ReportingObserver(t.step_func(check_report_format),
-                                    {types: ['feature-policy-violation']});
+                                    {types: ['permissions-policy-violation']});
   observer1.observe();
   observer2 = new ReportingObserver(t.step_func_done(check_second_observer),
-                                    {types: ['feature-policy-violation']});
+                                    {types: ['permissions-policy-violation']});
   observer2.observe();
   document.getElementById('fs').requestFullscreen().then(t.unreached_func(
     "Fullscreen should not be allowed in this document.")).catch(()=>{});

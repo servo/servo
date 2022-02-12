@@ -575,4 +575,13 @@ testSerializedEntry({
   },
   description: 'Newline normalization - \\n\\r in FormData filename'
 });
+
+test(() => {
+  class NotFormAssociatedElement extends HTMLElement {}
+  customElements.define('not-form-associated-element', NotFormAssociatedElement);
+  const element = new NotFormAssociatedElement();
+  const i = element.attachInternals();
+  assert_throws_dom('NotSupportedError', () => i.setFormValue("test"));
+}, "ElementInternals.setFormValue() should throw NotSupportedError if the target element is not a form-associated custom element");
+
 </script>

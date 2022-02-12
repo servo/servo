@@ -36,6 +36,10 @@ test(() => {
   const labels = container.querySelectorAll('label');
   control = container.querySelector('my-control');
   assert_array_equals(control.i.labels, labels);
+
+  container.innerHTML = '<my-control></my-control>';
+  control = container.querySelector('my-control');
+  assert_array_equals(control.i.labels, []);
 }, 'LABEL association');
 
 test(() => {
@@ -46,5 +50,14 @@ test(() => {
   container.querySelector('label').click();
   assert_equals(clickCount, 1);
 }, 'LABEL click');
+
+test(() => {
+  class NotFormAssociatedElement extends HTMLElement {}
+  customElements.define('not-form-associated-element', NotFormAssociatedElement);
+  const element = new NotFormAssociatedElement();
+  const i = element.attachInternals();
+  assert_throws_dom('NotSupportedError', () => i.labels);
+}, "ElementInternals.labels should throw NotSupportedError if the target element is not a form-associated custom element");
+
 </script>
 </body>

@@ -76,7 +76,7 @@ Notifications standard](https://notifications.spec.whatwg.org/#constructors):
 >    object](https://html.spec.whatwg.org/multipage/webappapis.html#current-global-object)
 >    is a
 >    [ServiceWorkerGlobalScope](https://w3c.github.io/ServiceWorker/#serviceworkerglobalscope)
->    object, then [throw](https://heycam.github.io/webidl/#dfn-throw) a
+>    object, then [throw](https://webidl.spec.whatwg.org/#dfn-throw) a
 >    `TypeError` exception.
 > 2. Let *notification* be the result of [creating a
 >    notification](https://notifications.spec.whatwg.org/#create-a-notification)
@@ -263,9 +263,9 @@ standard](https://dom.spec.whatwg.org/) powers
 >    selector](https://drafts.csswg.org/selectors-4/#parse-a-selector)
 >    *selectors*.
 > 2. If *s* is failure, then
->    [throw](https://heycam.github.io/webidl/#dfn-throw) a
->    "[`SyntaxError`](https://heycam.github.io/webidl/#syntaxerror)"
->    [DOMException](https://heycam.github.io/webidl/#idl-DOMException).
+>    [throw](https://webidl.spec.whatwg.org/#dfn-throw) a
+>    "[`SyntaxError`](https://webidl.spec.whatwg.org/#syntaxerror)"
+>    [DOMException](https://webidl.spec.whatwg.org/#idl-DOMException).
 > 3. Return the result of [match a selector against a
 >    tree](https://drafts.csswg.org/selectors-4/#match-a-selector-against-a-tree)
 >    with *s* and *node*'s
@@ -312,7 +312,7 @@ standard](https://fetch.spec.whatwg.org/)
 > steps:
 >
 > 1. If *init*["`status`"] is not in the range `200` to `599`, inclusive, then
->    [throw](https://heycam.github.io/webidl/#dfn-throw) a `RangeError`.
+>    [throw](https://webidl.spec.whatwg.org/#dfn-throw) a `RangeError`.
 >
 > [...]
 

@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Utility page which embeds a reporting page on the chosen host</title>
+</head>
+<body>
+  <script>
+      const searchParams = new URLSearchParams(window.location.search);
+      const host = searchParams.get('host') || "{{hosts[][]}}";
+      const frame = document.createElement('iframe');
+      frame.src=`https://${host}:{{ports[https][0]}}/reporting/resources/same-origin-report.https.sub.html`;
+      document.body.appendChild(frame);
+  </script>
+</body>
+</html>

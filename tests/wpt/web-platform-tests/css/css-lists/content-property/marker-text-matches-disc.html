@@ -4,12 +4,20 @@
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=787382">
 <link rel=match href="marker-text-matches-disc-ref.html">
 <style>
+/*
+    Avoid using list-style:disc directly, because the spec allows the
+    rendering to deviate from the element's font.
+    https://drafts.csswg.org/css-counter-styles-3/#simple-symbolic
+*/
+@counter-style my-disc {
+    system: extends disc;
+}
 * {
     padding: 0;
     margin: 0;
 }
 ol {
-    list-style: disc inside;
+    list-style: my-disc inside;
 }
 </style>
 

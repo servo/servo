@@ -22,8 +22,8 @@ let isValidViewport = function(viewport) {
 };
 
 let containsViewport = function(outer, inner) {
-  assert_greater_than_equal(inner.x, outer.x);
-  assert_greater_than_equal(inner.y, outer.y);
+  assert_less_than_equal(inner.x, outer.x);
+  assert_less_than_equal(inner.y, outer.y);
   assert_less_than_equal(inner.x + inner.width, outer.x + outer.width);
   assert_less_than_equal(inner.y + inner.height, outer.y + outer.height);
 };

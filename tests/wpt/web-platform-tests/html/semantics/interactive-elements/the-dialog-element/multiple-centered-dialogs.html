@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  height: 10000px;
+}
+
+dialog {
+  padding: 0;
+  height: 50px;
+  width: 50px;
+}
+
+#console {
+  position: fixed;
+}
+</style>
+
+<dialog id="top-dialog"></dialog>
+<dialog id="first-middle-dialog"></dialog>
+<dialog id="second-middle-dialog" style="left: 100px"></dialog>
+<dialog id="bottom-dialog"></dialog>
+
+<script>
+test(() => {
+  function expectedTop(dialog) {
+    return Math.floor((document.documentElement.clientHeight - dialog.offsetHeight) / 2);
+  }
+
+  function showAndTest(id) {
+    dialog = document.getElementById(id);
+    dialog.showModal();
+    assert_equals(dialog.offsetTop, expectedTop(dialog), id);
+  }
+
+  showAndTest('top-dialog');
+
+  window.scroll(0, 100);
+  showAndTest('first-middle-dialog');
+  showAndTest('second-middle-dialog');
+
+  window.scroll(0, 200);
+  showAndTest('bottom-dialog');
+}, 'Test that multiple dialogs are centered properly.');
+</script>

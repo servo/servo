@@ -13,16 +13,15 @@
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
-var t = async_test("Tests that distinct mediastream tracks have distinct ids ");
-t.step(function () {
-  navigator.mediaDevices.getUserMedia({video: true, audio: true})
-    .then(t.step_func(gotStream), t.step_func(function(error) {t.assert_unreached("Access to audio and video stream is granted");}));
-  function gotStream(stream) {
-    assert_not_equals(stream.getVideoTracks()[0], stream.getAudioTracks()[0].id, "audio and video tracks have distinct ids");
-    t.done();
-  }
-});
+promise_test(async () => {
+  await setMediaPermission();
+  const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true})
+  assert_not_equals(stream.getVideoTracks()[0], stream.getAudioTracks()[0].id, "audio and video tracks have distinct ids");
+}, "Tests that distinct mediastream tracks have distinct ids ");
 </script>
 </body>
 </html>

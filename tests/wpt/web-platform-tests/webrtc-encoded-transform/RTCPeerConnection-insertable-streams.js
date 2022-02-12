@@ -27,6 +27,7 @@ function areArraysEqual(a1, a2) {
 
 function areMetadataEqual(metadata1, metadata2, type) {
   return metadata1.synchronizationSource === metadata2.synchronizationSource &&
+         metadata1.payloadType == metadata2.payloadType &&
          areArraysEqual(metadata1.contributingSources, metadata2.contributingSources) &&
          metadata1.frameId === metadata2.frameId &&
          areArraysEqual(metadata1.dependencies, metadata2.dependencies) &&
@@ -71,7 +72,7 @@ function enableGFD(sdp) {
       return sdp += 'a=extmap:' + newId + ' ' + GFD_V00_EXTENSION + '\r\n';
     }
   }
-  if (sdp.indexОf('a=extmap-allow-mixed') !== -1) { // Pick the next highest one.
+  if (sdp.indexOf('a=extmap-allow-mixed') !== -1) { // Pick the next highest one.
     const newId = extensionIds[extensionIds.length - 1] + 1;
     return sdp += 'a=extmap:' + newId + ' ' + GFD_V00_EXTENSION + '\r\n';
   }

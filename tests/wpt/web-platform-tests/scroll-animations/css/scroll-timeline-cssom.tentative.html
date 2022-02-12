@@ -48,7 +48,11 @@ function test_descriptor(descriptor, specified, expected) {
   test_stylesheet(`@scroll-timeline test { ${descriptor}:${specified}; }`, (rules) => {
     assert_equals(rules.length, 1);
     assert_equals(rules[0].constructor.name, 'CSSScrollTimelineRule');
-    assert_equals(rules[0][attribute], expected);
+    if (Array.isArray(expected)) {
+      assert_in_array(rules[0][attribute], expected, "serialization should be sound");
+    } else {
+      assert_equals(rules[0][attribute], expected, "serialization should be canonical");
+    }
   }, `CSSScrollTimelineRule.${attribute} ${specified}`);
 }
 
@@ -131,43 +135,57 @@ test_csstext(
   'orientation descriptor',
   `@scroll-timeline timeline { orientation: inline; }`);
 
+// https://github.com/w3c/csswg-drafts/issues/6617
 test_csstext(
-  'start descriptor (px)',
-  `@scroll-timeline timeline { start: 100px; }`);
+  'scroll-offsets descriptor (none)',
+  `@scroll-timeline timeline { scroll-offsets: none; }`,
+  `@scroll-timeline timeline { scroll-offsets: none; }`,);
 
 test_csstext(
-  'start descriptor (offset)',
-  `@scroll-timeline timeline { start: selector(#bar); }`);
+  'scroll-offsets descriptor (auto)',
+  `@scroll-timeline timeline { scroll-offsets: auto; }`);
 
 test_csstext(
-  'start descriptor (offset with edge)',
-  `@scroll-timeline timeline { start: selector(#bar) start; }`);
+  'scroll-offsets descriptor (container-based offset, px)',
+  `@scroll-timeline timeline { scroll-offsets: 100px; }`);
 
 test_csstext(
-  'start descriptor (offset with threshold)',
-  `@scroll-timeline timeline { start: selector(#bar) 1; }`);
+  'scroll-offsets descriptor (container-based offset, percentage)',
+  `@scroll-timeline timeline { scroll-offsets: 100%; }`);
 
 test_csstext(
-  'start descriptor (offset with edge and threshold)',
-  `@scroll-timeline timeline { start: selector(#bar) start 1; }`);
+  'scroll-offsets descriptor (element offset)',
+  `@scroll-timeline timeline { scroll-offsets: selector(#bar); }`);
 
 test_csstext(
-  'start descriptor (offset with threshold and edge)',
-  `@scroll-timeline timeline { start: selector(#bar) 1 start; }`,
-  `@scroll-timeline timeline { start: selector(#bar) start 1; }`);
+  'scroll-offsets descriptor (element offset with edge)',
+  `@scroll-timeline timeline { scroll-offsets: selector(#bar) start; }`);
 
 test_csstext(
-  'time-range descriptor',
-  `@scroll-timeline timeline { time-range: 10s; }`);
+  'scroll-offsets descriptor (element offset with threshold)',
+  `@scroll-timeline timeline { scroll-offsets: selector(#bar) 1; }`);
+
+test_csstext(
+  'scroll-offsets descriptor (element offset with edge and threshold)',
+  `@scroll-timeline timeline { scroll-offsets: selector(#bar) start 1; }`);
+
+test_csstext(
+  'scroll-offsets descriptor (element offset with threshold and edge)',
+  `@scroll-timeline timeline { scroll-offsets: selector(#bar) 1 start; }`,
+  `@scroll-timeline timeline { scroll-offsets: selector(#bar) start 1; }`);
+
+test_csstext(
+  'scroll-offsets descriptor (multiple offsets)',
+  `@scroll-timeline timeline { scroll-offsets: auto, selector(#bar) start 1; }`);
 
 test_csstext(
   'defaults',
-  `@scroll-timeline timeline { source: none; orientation: auto; start: auto; end: auto; time-range: auto; }`);
+  `@scroll-timeline timeline { source: auto; orientation: auto; scroll-offsets: none; }`);
 
 test_csstext(
   'order',
-  `@scroll-timeline timeline { orientation: auto; time-range: auto; source: none; end: auto; start: auto; }`,
-  `@scroll-timeline timeline { source: none; orientation: auto; start: auto; end: auto; time-range: auto; }`);
+  `@scroll-timeline timeline { orientation: auto; source: auto; scroll-offsets: none; }`,
+  `@scroll-timeline timeline { source: auto; orientation: auto; scroll-offsets: none; }`);
 
 // CSSScrollTimelineRule.source
 
@@ -183,16 +201,16 @@ test_source(' none ', 'none');
 test_source('selector(#a\\9 b)');
 test_source('auto');
 
-test_source('#foo', 'none');
-test_source('', 'none');
-test_source('element(#foo)', 'none');
-test_source('selector(#foo more)', 'none');
-test_source('selector(html)', 'none');
-test_source('selector(foo)', 'none');
-test_source('selector(:before)', 'none');
-test_source('selector(*)', 'none');
-test_source('selector(.a)', 'none');
-test_source('selector(.a, .b)', 'none');
+test_source('#foo', 'auto');
+test_source('', 'auto');
+test_source('element(#foo)', 'auto');
+test_source('selector(#foo more)', 'auto');
+test_source('selector(html)', 'auto');
+test_source('selector(foo)', 'auto');
+test_source('selector(:before)', 'auto');
+test_source('selector(*)', 'auto');
+test_source('selector(.a)', 'auto');
+test_source('selector(.a, .b)', 'auto');
 
 // CSSScrollTimelineRule.orientation
 
@@ -212,30 +230,30 @@ test_orientation('foo', 'auto');
 test_orientation('10px', 'auto');
 test_orientation('red', 'auto');
 
-// CSSScrollTimelineRule.start
-// CSSScrollTimelineRule.end
+// CSSScrollTimelineRule.scrollOffsets
 
 function test_offsets(specified, expected) {
-  test_descriptor('start', specified, expected);
-  test_descriptor('end', specified, expected);
+  test_descriptor('scroll-offsets', specified, expected);
 }
 
+test_offsets('none');
+test_offsets(' none ', 'none');
+test_offsets('', 'none');
+test_offsets('red', 'none');
+test_offsets('#fff', 'none');
+test_offsets('unset', 'none');
+test_offsets('unknown(#foo)', 'none');
+test_offsets('start', 'none');
+test_offsets('end', 'none');
+test_offsets('3', 'none');
+test_offsets('selector(#foo) 3 start 10', 'none');
+test_offsets('0%, 100%, selector(.a)', 'none');
+test_offsets('selector(#foo) 3 end, start', 'none');
+
 test_offsets('auto');
-test_offsets(' auto ', 'auto');
-test_offsets('10px',);
-test_offsets(' 10px ', '10px');
 test_offsets('10em');
 test_offsets('10%');
-test_offsets('calc(1px + 1%)');
-
-test_offsets('', 'auto');
-test_offsets('red', 'auto');
-test_offsets('#fff', 'auto');
-test_offsets('unset', 'auto');
-test_offsets('unknown(#foo)', 'auto');
-test_offsets('start', 'auto');
-test_offsets('end', 'auto');
-test_offsets('3', 'auto');
+test_offsets('calc(1px + 1%)', ['calc(1px + 1%)', 'calc(1% + 1px)']);
 test_offsets('selector(#foo)');
 test_offsets(' selector(#foo)', 'selector(#foo)');
 test_offsets('selector(#foo) start');
@@ -245,22 +263,11 @@ test_offsets('selector(#foo) 3.5');
 test_offsets('selector(#foo) end');
 test_offsets('selector(#foo) end 3');
 test_offsets('selector(#foo) 3 end', 'selector(#foo) end 3');
-
-// CSSScrollTimelineRule.timeRange
-
-function test_scroll_time_range(specified, expected) {
-  test_descriptor('time-range', specified, expected);
-}
-
-test_scroll_time_range('auto');
-test_scroll_time_range(' auto ', 'auto');
-test_scroll_time_range('1s');
-test_scroll_time_range(' 1s ', '1s');
-test_scroll_time_range('1000ms');
-
-test_scroll_time_range('', 'auto');
-test_scroll_time_range('red', 'auto');
-test_scroll_time_range('#fff', 'auto');
-test_scroll_time_range('unset', 'auto');
+test_offsets(' auto , auto ', 'auto, auto');
+test_offsets('10%, 100px');
+test_offsets('auto, 100%');
+test_offsets('0%, selector(  #foo)  3  end  ', "0%, selector(#foo) end 3");
+test_offsets('selector(#foo) end 3, selector(#bar)');
+test_offsets('0%, auto, selector(#foo) start, auto, selector(#bar) 12.3');
 
 </script>

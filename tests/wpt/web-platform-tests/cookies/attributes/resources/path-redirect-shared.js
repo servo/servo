@@ -1,22 +1,15 @@
-function expireCookie(cookie) {
-  const cookies = Array.isArray(cookie) ? cookie : [cookie];
-  for (let c of cookies) {
-    document.cookie = c += "; max-age=0";
-  }
-}
-
-function getCookies() {
-  return document.cookie;
-}
-
+// Note: this function has a dependency on testdriver.js. Any test files calling
+// it should include testdriver.js and testdriver-vendor.js
 window.addEventListener("message", (e) => {
-  if (e.data == "getCookies") {
-    const cookies = getCookies();
-    e.source.postMessage({"cookies": cookies}, '*');
+  let test_window = window.top;
+  while (test_window.opener && !test_window.opener.closed) {
+    test_window = test_window.opener.top;
   }
-
-  if (typeof e.data == "object" && 'expireCookie' in e.data) {
-    expireCookie(e.data.expireCookie);
-    e.source.postMessage("expired", '*');
+  test_driver.set_test_context(test_window);
+  if (e.data == "getAndExpireCookiesForRedirectTest") {
+    const cookies = document.cookie;
+    test_driver.delete_all_cookies().then(() => {
+      e.source.postMessage({"cookies": cookies}, '*');
+    });
   }
 });

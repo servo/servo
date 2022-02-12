@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    container.style.fontSize = '10px';
+
+    var keyframes = [
+        {shapeOutside: 'circle(10em at 50% 50%)'},
+        {shapeOutside: 'circle(10em at 50% 50%)'}
+    ];
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+
+    var shapeOutside = getComputedStyle(element).shapeOutside;
+    container.style.fontSize = '20px';
+    assert_not_equals(getComputedStyle(element).shapeOutside, shapeOutside);
+}, 'shapeOutside responsive to style changes');
+
+test(function() {
+    var keyframes = [
+        {shapeOutside: 'inherit'},
+        {shapeOutside: 'circle(200px at 50% 50%)'}
+    ];
+
+    container.style.shapeOutside = 'circle(100px at 50% 50%)';
+    var player = element.animate(keyframes, 10);
+
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).shapeOutside, 'circle(150px at 50% 50%)');
+
+    container.style.shapeOutside = 'inset(100%)';
+    assert_equals(getComputedStyle(element).shapeOutside, 'circle(200px at 50% 50%)');
+
+    container.style.shapeOutside = 'circle(400px at 50% 50%)';
+    assert_equals(getComputedStyle(element).shapeOutside, 'circle(300px at 50% 50%)');
+
+    container.style.shapeOutside = 'circle(800px at 50% 50%)';
+    assert_equals(getComputedStyle(element).shapeOutside, 'circle(500px at 50% 50%)');
+
+    container.style.shapeOutside = 'inset(100%)';
+    assert_equals(getComputedStyle(element).shapeOutside, 'circle(200px at 50% 50%)');
+
+    container.style.shapeOutside = 'circle(800px at 50% 50%)';
+    assert_equals(getComputedStyle(element).shapeOutside, 'circle(500px at 50% 50%)');
+
+    container.style.shapeOutside = 'circle(400px at 50% 50%)';
+    assert_equals(getComputedStyle(element).shapeOutside, 'circle(300px at 50% 50%)');
+}, 'shapeOutside responsive to inherited shapeOutside changes');
+</script>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1264783">
+<link rel="help" href="https://www.w3.org/TR/css-transforms-2/#3d-rendering-contexts">
+<link rel="match" href="3d-scene-with-iframe-001-ref.html">
+<meta name="assert" content="The iframe should be covered by the green div.">
+
+<style>
+
+#container {
+    perspective: 400px;
+    perspective-origin: 0 0;
+}
+#scene {
+    transform-style: preserve-3d;
+    transform: translate(100px, 100px);
+    width: 300px;
+    height: 300px;
+}
+.transform1, .transform2 {
+    position: absolute;
+    transform-style: preserve-3d;
+    top: 0;
+    left: 0;
+}
+.transform1 {
+    transform: translateZ(200px);
+}
+.transform1 > div {
+    background-color: green;
+    width: 150px;
+    height: 100px;
+    transform: translate(-100px, -100px)
+}
+.transform2 {
+    transform: translateZ(100px);
+}
+.transform2 > iframe {
+    display: block;
+    transform: translate(-50px, -75px);
+}
+
+</style>
+
+<div id="container">
+    <div id="scene">
+        <div class="transform1">
+            <div></div>
+        </div>
+        <div class="transform2">
+            <iframe width="150" height="100"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+
+let iframe = document.getElementsByTagName("iframe")[0];
+iframe.addEventListener("load", function() {
+    let root = iframe.contentDocument.documentElement;
+    root.style.height = "10000px";
+    root.style.background = "red";
+    document.documentElement.classList.remove("reftest-wait");
+});
+iframe.src = "/resources/blank.html";
+
+</script>

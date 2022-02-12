@@ -65,3 +65,14 @@ Called whenever a datagram is received on a WebTransport session.
 
   - <b>session</b>: A WebTransport session object.
   - <b>data</b>: The received data.
+
+---
+
+#### `stream_reset(session, stream_id, error_code)`
+Called whenever a datagram is reset with RESET_STREAM.
+
+- <b>Parameters</b>
+
+  - <b>session</b>: A WebTransport session object.
+  - <b>stream_id</b>: The ID of the stream.
+  - <b>error_code</b>: The reason of the reset.

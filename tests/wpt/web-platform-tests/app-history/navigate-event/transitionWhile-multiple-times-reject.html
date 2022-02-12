@@ -25,7 +25,7 @@ promise_test(async t => {
     e.transitionWhile(new Promise(resolve => t.step_timeout(resolve, 1)));
   });
 
-  await appHistory.navigate("#1").catch(t.step_func(e => {
+  await appHistory.navigate("#1").finished.catch(t.step_func(e => {
     caught_rejection = true;
     assert_equals(e, err);
   }));

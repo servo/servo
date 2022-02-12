@@ -178,94 +178,112 @@ let test_cases = [
     description: 'overlapping one letter exact matches with suffix'
   },
   {
-    // Step 2.4.1
+    // Step 2.5.1
     fragment: '#:~:text=brown,fox',
     expect_to_scroll: true,
     description: 'matching range search'
   },
   {
-    // Step 2.4.1
+    // Step 2.4
     fragment: '#:~:text=brown,quick',
     expect_to_scroll: false,
     description: 'inverted range search'
   },
   {
-    // Step 2.4.2
+    // Step 2.5.1.1
     fragment: '#:~:text=quick,bro',
     expect_to_scroll: false,
     description: 'no suffix forces |end| to be end bounded'
   },
   {
-    // Step 2.4.2
+    // Step 2.5.1.1
     fragment: '#:~:text=quick,bro,-wn',
     expect_to_scroll: true,
     description: 'suffix means |end| need not be end bounded'
   },
   {
-    // Step 2.4.3
+    // Step 2.5.1.2
     fragment: '#:~:text=quick,ro,-wn',
     expect_to_scroll: false,
     description: '|end| must be start bounded'
   },
   {
-    // Step 2.4.3
+    // Step 2.5.1.2
     fragment: '#:~:text=bro,wn',
     expect_to_scroll: false,
     description: '|end| must be start bounded even if full range is word bounded'
   },
   {
-    // Step 2.4.4
+    // Step 2.5.1.3
     fragment: '#:~:text=quick,null',
     expect_to_scroll: false,
     description: 'non-existent |end|'
   },
   {
-    // Step 2.4.5
+    // Step 2.5.1.4
     fragment: '#:~:text=quick,jumped,-fox',
     expect_to_scroll: false,
     description: 'Range with preceeding suffix'
   },
   {
-    // Step 2.6
+    // Step 2.5.3
     fragment: '#:~:text=The-,quick,brown',
     expect_to_scroll: true,
     description: 'Match with no suffix'
   },
   {
-    // Step 2.7
+    // Step 2.5.4
     fragment: '#:~:text=The-,quick,fox,-brown',
     expect_to_scroll: false,
     description: 'Suffix comes before |end|'
   },
   {
-    // Step 2.8
+    // Step 2.5.5
     fragment: '#:~:text=Lorem-,Ipsum,Whitespace,-Dipsum',
     expect_to_scroll: true,
     description: 'Search invisible content between |end| and suffix'
   },
   {
-    // Step 2.9
+    // Step 2.5.6
     fragment: '#:~:text=quick,-bro',
     expect_to_scroll: false,
     description: 'Suffix must be end bounded'
   },
   {
-    // Step 2.9
+    // Step 2.5.6
     fragment: '#:~:text=qu,-ick',
     expect_to_scroll: true,
     description: 'Suffix need not be start bounded'
   },
   {
-    // Step 2.10
+    // Step 2.5.7
     fragment: '#:~:text=quick,-null',
     expect_to_scroll: false,
     description: 'Non-existent suffix'
   },
   {
-    // Step 2.11
+    // Step 2.5.8
     fragment: '#:~:text=quick,-fox',
     expect_to_scroll: false,
     description: 'Content appears between match and suffix'
+  },
+  {
+    // Step 2.5.9
+    fragment: '#:~:text=match,-suffix2',
+    expect_to_scroll: true,
+    description: 'Non-matching suffix in first potential match'
+  },
+  {
+    // Step 2.5.9
+    fragment: '#:~:text=prefix-,match,-suffix3',
+    expect_to_scroll: true,
+    description: 'Non-matching suffix search continues to prefix match'
+  },
+  {
+    // Step 2.5.10
+    fragment: '#:~:text=prefix-,match,matchEnd,-suffix5',
+    expect_to_scroll: true,
+    description: 'Range end matches correct suffix'
   }
 ];
 

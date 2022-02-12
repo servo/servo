@@ -37,6 +37,28 @@ def test_verify_taskcluster_yml():
         jsone.render(template, context)
 
 
+@pytest.mark.parametrize("event_path,expected",
+                         [("pr_event.json",
+                           frozenset(["lint", "wpt-chrome-dev-stability"])),
+                          ("pr_event_tests_affected.json", frozenset(["lint"]))]
+                         )
+def test_exclude_users(event_path, expected):
+    """Verify that tasks excluded by the PR submitter are properly excluded"""
+    tasks = {
+        "lint": {
+            "commands": "wpt example"
+        },
+        "wpt-chrome-dev-stability": {
+            "commands": "wpt example",
+            "exclude-users": ["chromium-wpt-export-bot"]
+        }
+    }
+    with open(data_path(event_path), encoding="utf8") as f:
+        event = json.load(f)
+        decision.filter_excluded_users(tasks, event)
+        assert set(tasks) == expected
+
+
 def test_verify_payload():
     """Verify that the decision task produces tasks with a valid payload"""
     from tools.ci.tc.decision import decide
@@ -145,7 +167,6 @@ def test_verify_payload():
       'wpt-firefox-nightly-stability',
       'wpt-firefox-nightly-results',
       'wpt-firefox-nightly-results-without-changes',
-      'wpt-chrome-dev-stability',
       'wpt-chrome-dev-results',
       'wpt-chrome-dev-results-without-changes',
       'lint',

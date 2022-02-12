@@ -4,8 +4,8 @@
 // https://www.w3.org/TR/geolocation-API/
 
 idl_test(
-  ['geolocation-API'],
-  ['html'],
+  ['geolocation'],
+  ['hr-time', 'html'],
   idl_array => {
     self.audio = document.createElement('audio');
     self.video = document.createElement('video');

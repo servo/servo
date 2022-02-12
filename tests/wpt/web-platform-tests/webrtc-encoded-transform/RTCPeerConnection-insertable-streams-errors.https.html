@@ -4,6 +4,9 @@
 <title>RTCPeerConnection Insertable Streams - Errors</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
 <script src="../webrtc/RTCPeerConnection-helper.js"></script>
 <script src="./RTCPeerConnection-insertable-streams.js"></script>
 </head>
@@ -14,6 +17,7 @@ promise_test(async t => {
   t.add_cleanup(() => caller.close());
   const callee = new RTCPeerConnection();
   t.add_cleanup(() => callee.close());
+  await setMediaPermission("granted", ["camera"]);
   const stream = await navigator.mediaDevices.getUserMedia({video:true});
   const videoTrack = stream.getVideoTracks()[0];
   t.add_cleanup(() => videoTrack.stop());

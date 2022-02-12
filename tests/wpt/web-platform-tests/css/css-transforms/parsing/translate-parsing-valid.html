@@ -24,9 +24,14 @@ test_valid_value("translate", "100px 200%");
 test_valid_value("translate", "100% 200px");
 
 test_valid_value("translate", "100px 200px 0px", "100px 200px");
+test_valid_value("translate", "100px 0px 300px", "100px 0px 300px");
 test_valid_value("translate", "100px 0px 0px", "100px");
 test_valid_value("translate", "100px 200px 300px");
 test_valid_value("translate", "100% 200% 300px");
+
+test_valid_value("translate", "100% 0% 200px", "100% 0% 200px");
+test_valid_value("translate", "0% 0% 100px", "0% 0% 100px");
+test_valid_value("translate", "0em 0em 100px", "0em 0em 100px");
 
 test_valid_value("translate", "calc(10% + 10px) calc(20% + 20px) calc(30em + 30px)");
 

@@ -1,0 +1,49 @@
+<!doctype html>
+<title>Allow text fragments in HTML documents only</title>
+<meta charset=utf-8>
+<link rel="help" href="https://wicg.github.io/ScrollToTextFragment/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="stash.js"></script>
+
+<script>
+function rAF(win) {
+  return new Promise((resolve) => {
+    win.requestAnimationFrame(resolve);
+  });
+}
+
+function openPopup(url) {
+  return new Promise((resolve) => {
+    test_driver.bless('Open a URL with a text fragment directive', () => {
+      const popup = window.open(url, '_blank', 'width=300,height=300');
+      popup.onload = () => resolve(popup);
+    });
+  });
+}
+
+const test_cases = [
+  'non-html.css',
+  'non-html.js',
+  'non-html.json',
+  'non-html.txt',
+  'non-html.xml'
+];
+
+for (let test_case of test_cases) {
+  promise_test(async function (t) {
+    const popup = await openPopup(`resources/${test_case}#:~:text=target`);
+
+    // rAF twice in case there is any asynchronicity in scrolling to the target.
+    await rAF(popup);
+    await rAF(popup);
+
+    assert_equals(popup.scrollY, 0);
+    popup.close();
+  }, `Text directive blocked in ${test_case}`);
+}
+
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.webkit.org/show_bug.cgi?id=97425">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog id="mydialog">It's my dialog.</dialog>
+
+<script>
+test(() => {
+  const dialog = document.getElementById('mydialog');
+  const computedStyle = window.getComputedStyle(dialog, null);
+  assert_equals(computedStyle.display, 'none');
+
+  dialog.showModal();
+  assert_equals(computedStyle.display, 'block');
+
+  // The quoted texts output below are from <http://www.whatwg.org/specs/web-apps/current-work/multipage/commands.html#dom-dialog-showmodal>.
+  assert_throws_dom('InvalidStateError', () => dialog.showModal());
+
+  dialog.close();
+  assert_equals(computedStyle.display, 'none');
+
+  dialog.parentNode.removeChild(dialog);
+  assert_throws_dom('InvalidStateError', () => dialog.showModal());
+
+  const doc = document.implementation.createHTMLDocument();
+  doc.body.appendChild(dialog);
+  assert_false(dialog.open);
+  dialog.showModal();
+  assert_true(dialog.open, 'Although the document is not attached to any pages, showModal() should execute as normal.');
+}, 'Tests that showModal() performs the steps specified in the HTML spec.');
+</script>

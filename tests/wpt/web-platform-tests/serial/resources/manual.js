@@ -1,7 +1,7 @@
 let manualTestPort = null;
 
 navigator.serial.addEventListener('disconnect', (e) => {
-  if (e.port === manualTestPort) {
+  if (e.target === manualTestPort) {
     manualTestPort = null;
   }
 })
@@ -31,7 +31,7 @@ async function getPortForManualTest() {
   return manualTestPort;
 }
 
-function manual_loopback_serial_test(func, name, properties) {
+function manual_serial_test(func, name, properties) {
   promise_test(async (test) => {
     await func(test, await getPortForManualTest());
   }, name, properties);

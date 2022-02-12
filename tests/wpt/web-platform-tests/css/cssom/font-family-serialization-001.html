@@ -35,10 +35,10 @@
   }, "Serialization of prefixed -webkit-<generic-family>");
 
   test(function() {
-    kWebKitPrefixKeywords.forEach(keyword => {
+    kNonGenericFontFamilyKeywords.forEach(keyword => {
       assert_equals(SetFontFamilyAndSerialize(keyword), keyword);
     });
-  }, `Serialization of ${kWebKitPrefixKeywords}`);
+  }, `Serialization of ${kNonGenericFontFamilyKeywords}`);
 
 </script>
 </html>

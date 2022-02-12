@@ -1,6 +1,6 @@
 import pytest
-import asyncio
 import websockets
+
 import webdriver
 
 # classic session to enable bidi capability manually
@@ -13,17 +13,17 @@ async def test_websocket_url_connect(session):
         await websocket.send("Hello world!")
 
 # test bidi_session send
-# using bidi_session is the recommended way to test bidi
 @pytest.mark.asyncio
-async def test_bidi_session_send(bidi_session):
-    await bidi_session.send_command("test.test", {})
+async def test_bidi_session_send(bidi_session, send_blocking_command):
+    await send_blocking_command("session.status", {})
 
 # bidi session following a bidi session with a different capabilities
 # to test session recreation
 @pytest.mark.asyncio
 @pytest.mark.capabilities({"acceptInsecureCerts": True})
-async def test_bidi_session_with_different_capability(bidi_session):
-    await bidi_session.send_command("test.test", {})
+async def test_bidi_session_with_different_capability(bidi_session,
+                                                      send_blocking_command):
+    await send_blocking_command("session.status", {})
 
 # classic session following a bidi session to test session
 # recreation

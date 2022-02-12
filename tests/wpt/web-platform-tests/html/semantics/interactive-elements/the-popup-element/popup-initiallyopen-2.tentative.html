@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<popup id=p1 initiallyopen>
+  Outer popup
+  <popup id=p2 initiallyopen>
+    Inner popup
+  </popup>
+</popup>
+
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      test(function(){
+        assert_true(p1.open,'The first (outermost) popup should be the one that opens in this case');
+        assert_false(p2.open,'The inner popup should not be open');
+      }, "The initiallyopen attribute should cause only the first popup to open");
+    });
+  });
+</script>

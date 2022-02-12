@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: Support for font-stretch:auto in @font-face</title>
+<style>
+    @font-face {
+        font-family: "Lato";
+        src: url('support/fonts/Lato-Medium.ttf') format('truetype');
+        font-display: swap;
+        font-stretch: normal;
+    }
+    .test {
+        font-family: "Lato";
+        font-size: 3em;
+        font-stretch: 125%;
+    }
+</style>
+
+<p class="test">text</p>

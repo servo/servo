@@ -316,6 +316,11 @@ class Window(object):
     def rect(self):
         return self.session.send_session_command("GET", "window/rect")
 
+    @rect.setter  # type: ignore
+    @command
+    def rect(self, new_rect):
+        self.session.send_session_command("POST", "window/rect", new_rect)
+
     @property  # type: ignore
     @command
     def size(self):

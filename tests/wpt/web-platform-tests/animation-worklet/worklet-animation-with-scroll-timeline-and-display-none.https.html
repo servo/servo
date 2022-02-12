@@ -64,7 +64,7 @@
 
     const scroller = document.getElementById('scroller');
     scroller.classList.add('removed');
-    const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+    const timeline = new ScrollTimeline({ scrollSource: scroller, orientation: 'block' });
     const animation = new WorkletAnimation('passthrough', effect, timeline);
     animation.play();
 

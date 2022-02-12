@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>
+  Tests that flex-items *don't* get pushed down when there is no expansion.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: flex;">
+    <div style="background: green; height: 110px; position: relative;">
+      <div style="contain: size; width: 25px; height: 80px;"></div>
+      <div style="contain: size; width: 25px; height: 30px;"></div>
+      <div style="position: absolute; top: 110px; height: 90px; width: 25px; background: green;"></div>
+    </div>
+    <div style="background: green; width: 25px; height: 200px;"></div>
+  </div>
+</div>

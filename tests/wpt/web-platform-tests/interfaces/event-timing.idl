@@ -9,6 +9,7 @@ interface PerformanceEventTiming : PerformanceEntry {
     readonly attribute DOMHighResTimeStamp processingEnd;
     readonly attribute boolean cancelable;
     readonly attribute Node? target;
+    readonly attribute unsigned long long interactionId;
     [Default] object toJSON();
 };
 
@@ -18,8 +19,14 @@ interface EventCounts {
 };
 
 [Exposed=Window]
+interface InteractionCounts {
+    readonly maplike<DOMString, unsigned long long>;
+};
+
+[Exposed=Window]
 partial interface Performance {
     [SameObject] readonly attribute EventCounts eventCounts;
+    [SameObject] readonly attribute InteractionCounts interactionCounts;
 };
 
 partial dictionary PerformanceObserverInit {

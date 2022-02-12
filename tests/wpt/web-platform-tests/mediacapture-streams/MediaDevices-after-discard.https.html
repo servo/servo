@@ -3,6 +3,9 @@
   context</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <body></body>
 <script>
 let devices;
@@ -20,6 +23,7 @@ setup(() => {
 // return a promise rejected with a DOMException object whose name attribute
 // has the value "InvalidStateError".
 promise_test(async () => {
+  await setMediaPermission("granted", ["microphone"]);
   // `catch()` is used rather than static Promise methods because microtasks
   // for `PromiseResolve()` do not run when Promises in inactive Documents are
   // involved.  Whether microtasks for `catch()` run depends on the realm of
@@ -42,18 +46,19 @@ promise_test(async () => {
 }, 'getUserMedia() in a discarded browsing context');
 
 // https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices
-// https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-for-spec-authors
-// Promise resolution occurs only in parallel steps, so, if there is any
-// manipulation of the Promise, it would occur through a queued task.
-promise_test(() => {
-  let promise_is_pending = true;
-  // Don't use `finally()`, because it uses `PromiseResolve()` and so
-  // microtasks don't run.
-  devices.enumerateDevices().then(() => promise_is_pending = false,
-                                  () => promise_is_pending = false);
-  return Promise.resolve().then(() => {
-    assert_true(promise_is_pending,
-                'should have returned a pending promise.');
-  });
+// https://w3c.github.io/mediacapture-main/#device-enumeration-can-proceed
+// Device enumeration can proceed steps return false when device enumeration
+// can be exposed is true and the document is not fully active.
+promise_test(async () => {
+  let promise_state = 'pending';
+  // `then()` is used to avoid methods that apply `PromiseResolve()` to
+  // Promises from inactive realms, which would lead to microtasks that don't
+  // run.
+  devices.enumerateDevices().then(() => promise_state = 'resolved',
+                                  () => promise_state = 'rejected');
+  // Enumerate in the parent document to provide enough time to check that the
+  // Promise from the inactive document does not settle.
+  await navigator.mediaDevices.enumerateDevices();
+  assert_equals(promise_state, 'pending', 'Promise state');
 }, 'enumerateDevices() in a discarded browsing context');
 </script>

@@ -1,0 +1,173 @@
+<!doctype html>
+<script src="/resources/channel.sub.js"></script>
+<script src="serialize-data.js"></script>
+<script>
+
+let lastData;
+
+// Hack: these will be converted into testharness AssertionError instances in the test
+// This means they will be treated identically to asserts raised by `assert_` in the harness
+// In the long term we want to be able to use parts of testharness.js directly in remote
+// contexts and automatically send the results over a channel.
+function AssertionError(message) {
+    this.message = message;
+}
+AssertionError.prototype = Object.create(Error.prototype);
+
+function compareResult(name, actual) {
+    let obj = objects[name];
+    // If there's an output property use that, otherwise assume the output is equal to the input
+    let expected = obj.hasOwnProperty("output") ? obj.output : obj.input;
+    seen = new Set();
+    try {
+        compareValue(actual, expected, seen);
+    } catch(e) {
+        throw new AssertionError(e.message);
+    }
+    return true;
+}
+
+function compareValue(actualValue, expectedValue, seen) {
+    let seenActual;
+    if (typeof actualValue != typeof expectedValue) {
+        throw new Error(`Types differ, expected ${typeof expectedValue}, got ${typeof actualValue}`);
+    }
+    if (["undefined", "string", "boolean", "number", "bigint"].includes(typeof expectedValue) ||
+        actualValue === null) {
+        if (!Object.is(actualValue, expectedValue)) {
+            throw new Error(`Expected ${typeof expected} ${expected}, got ${actual}`);
+        }
+        return;
+    }
+
+    if (expectedValue.constructor && actualValue.constructor && expectedValue.constructor.name !== actualValue.constructor.name) {
+        throw new Error(`Constructors differ, expected ${expectedValue.constructor.name}, got ${actualValue.constructor.name}`);
+    }
+    if (expectedValue.constructor && expectedValue.constructor.name === "SendChannel") {
+        if (expectedValue.uuid !== actualValue.uuid) {
+            throw new Error(`SendChannels differ, expected uuid ${expectedValue.uuid}, got ${actualValue.uuid}`);
+        }
+    }
+    else if (expectedValue.constructor && expectedValue.constructor.name === "RegExp") {
+        if (expectedValue.source !== actualValue.source ||
+            expectedValue.flags !== actualValue.flags) {
+            throw new Error(`RegExps differ, expected ${expectedValue}, got ${actualValue}`);
+        }
+    } else if (expectedValue.constructor && expectedValue.constructor.name == "Date") {
+        if (expectedValue.valueOf() !== actualValue.valueOf()) {
+            throw new Error(`Dates differ, expected ${expectedValue.valueOf()} (${expectedValue.toDateString()}), `
+                            `got ${actualValue.valueOf()} (${actualValue.toDateString()})`);
+        }
+    } else if (expectedValue instanceof Error) {
+        if (expectedValue.message !== actualValue.message ||
+            expectedValue.lineNumber !== actualValue.lineNumber ||
+            expectedValue.columnNumber !== actualValue.columnNumber ||
+            expectedValue.fileName !== actualValue.fileName) {
+            throw new Error(`Errors differ, expected ${expectedValue}, got ${actualValue}`);
+        }
+    } else if (Array.isArray(expectedValue)) {
+        seenActual = seen.has(actualValue);
+        seenExpected = seen.has(expectedValue)
+        if (seenActual && seenExpected) {
+            return;
+        } else if (seenExpected && !seenActual) {
+            throw new Error(`Expected cyclic array`);
+        } else if (!seenExpected && seenActual) {
+            throw new Error(`Got unexpected cyclic array`);
+        }
+        seen.add(actualValue);
+        seen.add(expectedValue);
+
+        if (actualValue.length !== expectedValue.length) {
+            throw new Error(`Array lengths differ, expected ${expectedValue.length}, got ${actualValue.length}`);
+        }
+        for (let i=0; i<actualValue.length; i++) {
+            compareValue(actualValue[i], expectedValue[i], seen);
+        }
+    } else if (expectedValue.constructor && expectedValue.constructor.name === "Set") {
+        seenActual = seen.has(actualValue);
+        seenExpected = seen.has(expectedValue)
+        if (seenActual && seenExpected) {
+            return;
+        } else if (seenExpected && !seenActual) {
+            throw new Error(`Expected cyclic set`);
+        } else if (!seenExpected && seenActual) {
+            throw new Error(`Got unexpected cyclic set`);
+        }
+        seen.add(actualValue);
+        seen.add(expectedValue);
+
+
+        if (actualValue.size !== expectedValue.size) {
+            throw new Error(`Set sizes differ, expected ${expectedValue.size}, got ${actualValue.size}`);
+        }
+        // For an arbitary set it's complex to check if two sets are equivalent, since
+        // we'd need to compare every object in one set with every object in the
+        // other set, so we end up with quadratic complexity. Instead, just support sets
+        // containing primitives and rely on the other tests for correct handling of
+        // objects.
+        for (let entry of expectedValue) {
+            if (["undefined", "string", "boolean", "number", "bigint"].includes(typeof entry) || entry === null) {
+                if(!actualValue.has(entry)) {
+                    throw new Error(`Set missing entry, expected ${entry}`);
+                }
+            } else {
+                throw new Error(`Can't compare non-primitive value ${entry} inside sets`);
+            }
+        }
+    } else if (expectedValue.constructor && expectedValue.constructor.name === "Map") {
+        seenActual = seen.has(actualValue);
+        seenExpected = seen.has(expectedValue)
+        if (seenActual && seenExpected) {
+            return;
+        } else if (seenExpected && !seenActual) {
+            throw new Error(`Expected cyclic map`);
+        } else if (!seenExpected && seenActual) {
+            throw new Error(`Got unexpected cyclic map`);
+        }
+        seen.add(actualValue);
+        seen.add(expectedValue);
+
+        if (actualValue.size !== expectedValue.size) {
+            throw new Error(`Map sizes differ, expected ${expectedValue.size}, got ${actualValue.size}`);
+        }
+        // So for a set we can't really check if the values are the same
+        // except where they're primitives
+        for (let [key, value] of expectedValue.entries()) {
+            if(!actualValue.has(key)) {
+                throw new Error(`Map missing key, expected key ${key} with value ${value}`);
+            }
+            compareValue(actualValue.get(key), value, seen);
+        }
+    } else {
+        seenActual = seen.has(actualValue);
+        seenExpected = seen.has(expectedValue)
+        if (seenActual && seenExpected) {
+            return;
+        } else if (seenExpected && !seenActual) {
+            throw new Error(`Expected cyclic object`);
+        } else if (!seenExpected && seenActual) {
+            throw new Error(`Got unexpected cyclic object`);
+        }
+        seen.add(actualValue);
+        seen.add(expectedValue);
+
+
+        // Compare as a general Object
+        let expectedEntries = Object.entries(expectedValue);
+        if (Object.keys(actualValue).length !== expectedEntries.length) {
+            throw new Error(`Object keys differ, expected [${Object.keys(expectedValue).join(",")}], got [${Object.keys(actualValue).join(",")}]`);
+        }
+        // So for a set we can't really check if the values are the same
+        // except where they're primitives
+        for (let [name, entry] of expectedEntries) {
+            if(!actualValue.hasOwnProperty(name)) {
+                throw new Error(`Object missing key ${name}`);
+            }
+            compareValue(actualValue[name], entry, seen);
+        }
+    }
+}
+
+ctx = start_global_channel();
+</script>

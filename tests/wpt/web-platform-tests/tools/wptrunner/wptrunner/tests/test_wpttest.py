@@ -118,6 +118,16 @@ def make_test_object(test_name,
     return wpttest.from_manifest(tests, test, inherit_metadata, test_metadata.get_test(test.id))
 
 
+def test_run_info():
+    run_info = wpttest.get_run_info("/", "fake-product", debug=False)
+    assert isinstance(run_info["bits"], int)
+    assert isinstance(run_info["os"], str)
+    assert isinstance(run_info["os_version"], str)
+    assert isinstance(run_info["processor"], str)
+    assert isinstance(run_info["product"], str)
+    assert isinstance(run_info["python_version"], int)
+
+
 def test_metadata_inherit():
     items = [("test", "a", 10), ("test", "a/b", 10), ("test", "c", 10)]
     inherit_metadata = [

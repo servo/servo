@@ -7,6 +7,8 @@
 
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
 </head>
 <body>
 <div id=log></div>
@@ -29,28 +31,13 @@ async_test(function (t) {
       !!iframe.contentWindow.isCookieSet('cookies-path-default'),
       'cookie can be retrieved from expected path'
     );
-
-    // The default-path of this cookie must contain, "the characters of the
-    // uri-path from the first character up to, but not including, the
-    // right-most %x2F ("/")."
-    iframe.contentWindow.expireCookie(
-      'cookies-path-default', '/cookies/resources'
-    );
-
-    // As of 2018-11-21, some UAs were observed to include the right-most %x2F
-    // character in violation of RFC6265.
-    t.add_cleanup(function () {
-      iframe.contentWindow.expireCookie(
-        'cookies-path-default', '/cookies/resources/'
+    iframe.contentWindow.expireCookies().then(() => {
+      assert_false(
+        !!iframe.contentWindow.isCookieSet('cookies-path-default'),
+        'cookie can be referenced using the expected path'
       );
+      t.done();
     });
-
-    assert_false(
-      !!iframe.contentWindow.isCookieSet('cookies-path-default'),
-      'cookie can be referenced using the expected path'
-    );
-
-    t.done();
   });
 
   createIframe('/cookies/resources/echo-cookie.html', t.step_func(function (_iframe) {

@@ -68,6 +68,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
             capabilities["ms:edgeOptions"]["args"] = []
         if "--headless" not in capabilities["ms:edgeOptions"]["args"]:
             capabilities["ms:edgeOptions"]["args"].append("--headless")
+        capabilities["ms:edgeOptions"]["args"].append("--use-fake-device-for-media-stream")
 
     executor_kwargs["capabilities"] = capabilities
 

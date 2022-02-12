@@ -3,14 +3,14 @@
 <link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<link href="style.css?pipe=trickle(d3)" rel="stylesheet" id="style_test">
+<link href="style.css" rel="stylesheet" id="style_test">
 <script>
   test(function() {
     assert_true(document.styleSheets.length === 1 &&
                 document.styleSheets[0].href.includes("style.css"),
                 "The style sheet 'style.css' must be available to scripts");
 
-    style_test.href = "resources/neutral.css?pipe=trickle(d3)";
+    style_test.href = "resources/neutral.css?pipe=trickle(d1)";
 
     assert_true(document.styleSheets.length === 1 &&
                 document.styleSheets[0].href.includes("style.css"),

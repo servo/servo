@@ -295,21 +295,6 @@
       "expectation": "*"
     },
     {
-      // source_context_list values not for content security policy tests
-      "expansion": "*",
-      "source_scheme": "*",
-      "source_context_list": [
-        "worker-classic",
-        "worker-module"
-      ],
-      "delivery_type": "*",
-      "delivery_value": "*",
-      "redirection": "*",
-      "subresource": "*",
-      "origin": "*",
-      "expectation": "*"
-    },
-    {
       // source_context_list values to be blocked by CSP (i.e. the source
       // context itself should be blocked by CSP before sending subresource
       // requests):
@@ -348,10 +333,8 @@
         "iframe",
         "iframe-blank-inherit",
         "worker-classic",
-        "worker-classic-inherit",
         "worker-classic-data",
         "worker-module",
-        "worker-module-inherit",
         "worker-module-data",
         "sharedworker-classic",
         "sharedworker-classic-data",
@@ -417,6 +400,7 @@
         "link-prefetch-tag",
         "object-tag",
         "picture-tag",
+        "script-tag-dynamic-import",
         "video-tag",
         "websocket",
         "xhr"
@@ -448,6 +432,7 @@
         "link-prefetch-tag",
         "object-tag",
         "picture-tag",
+        "script-tag-dynamic-import",
         "video-tag",
         "websocket",
         "xhr"
@@ -523,6 +508,7 @@
       "object-tag": [],
       "picture-tag": [],
       "script-tag": [],
+      "script-tag-dynamic-import": [],
       "sharedworker-classic": [],
       "sharedworker-import": [],
       "sharedworker-import-data": [],

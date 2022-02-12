@@ -1,0 +1,60 @@
+<!doctype html>
+<title></title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="help" href="https://html.spec.whatwg.org/#attr-ol-reversed">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6738">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1706346">
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="match" href="li-value-reversed-009-ref.html">
+<meta name="assert" content="The last (non-zero) counter-increment value before the first counter-set determines the start value.">
+<style>
+:root {
+  color:black; background-color:white; font:10px/1 monospace;
+}
+ol::before, li::before {
+  content: counters(list-item,".");
+}
+</style>
+<ol reversed>
+ <li style="counter-increment: list-item -2">
+ <li style="counter-increment: list-item -2; counter-set: list-item 5">
+  <ol reversed>
+   <li style="counter-increment: list-item -3">
+   <li style="counter-increment: list-item -1; counter-set: list-item 5">
+   <li style="counter-increment: list-item -8">
+  </ol>
+ </li>
+ <li style="counter-increment: list-item -2">
+</ol>
+<ol reversed>
+ <li style="counter-increment: list-item -3; counter-set: list-item 5">
+ <li style="counter-increment: list-item -1">
+  <ol reversed>
+   <li style="counter-increment: list-item -2; counter-set: list-item 5">
+   <li style="counter-increment: list-item -2">
+   <li style="counter-increment: list-item -2">
+  </ol>
+ </li>
+ <li style="counter-increment: list-item -8">
+</ol>
+<ol reversed>
+ <li style="counter-increment: list-item 2">
+ <li style="counter-increment: list-item 2; counter-set: list-item 5">
+ <li style="counter-increment: list-item 2">
+  <ol reversed>
+   <li style="counter-increment: list-item 3">
+   <li style="counter-increment: list-item 1">
+   <li style="counter-increment: list-item 8; counter-set: list-item 5">
+  </ol>
+ </li>
+</ol>
+<ol reversed>
+ <ol reversed>
+  <li style="counter-increment: list-item 3; counter-set: list-item 5">
+  <li style="counter-increment: list-item 1">
+  <li style="counter-increment: list-item 8">
+ </ol>
+ <li style="counter-increment: list-item 3">
+ <li style="counter-increment: list-item 1">
+ <li style="counter-increment: list-item 8; counter-set: list-item 5">
+</ol>

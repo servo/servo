@@ -21,8 +21,11 @@ promise_test(t => {
     // Verify that the browser includes client hints in the headers for a
     // same-origin fetch with the default feature policy in place.
     assert_true(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_true(r.headers.has("device-memory-deprecated-received"), "device-memory-deprecated-received");
     assert_true(r.headers.has("dpr-received"), "dpr-received");
+    assert_true(r.headers.has("dpr-deprecated-received"), "dpr-deprecated-received");
     assert_true(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_true(r.headers.has("viewport-width-deprecated-received"), "viewport-width-deprecated-received");
 
     assert_true(r.headers.has("rtt-received"), "rtt-received");
     var rtt = parseInt(r.headers.get("rtt-received"));

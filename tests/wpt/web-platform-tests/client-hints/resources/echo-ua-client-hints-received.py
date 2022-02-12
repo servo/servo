@@ -15,13 +15,14 @@ def main(request, response):
         b"sec-ch-ua-platform-version",
         b"sec-ch-ua-model",
         b"sec-ch-ua-full-version",
+        b"sec-ch-ua-full-version-list",
     ]
 
     request_client_hints = {i: request.headers.get(i) for i in client_hint_headers}
 
     for header in client_hint_headers:
         if request_client_hints[header] is not None:
-            response.headers.set(header + b"-recieved", request_client_hints[header])
+            response.headers.set(header + b"-received", request_client_hints[header])
 
     headers = []
     content = u""

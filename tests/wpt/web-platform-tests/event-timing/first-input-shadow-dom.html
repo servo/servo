@@ -18,7 +18,7 @@ promise_test(t => {
     connectedCallback() {
       this.attachShadow({mode: 'open'});
       this.shadowRoot.innerHTML = `<button id='inner_button_id'>Click me</button>`;
-      this.shadowRoot.getElementById('inner_button_id').onmousedown = () => {
+      this.shadowRoot.getElementById('inner_button_id').onpointerdown = () => {
         innerButtonClicked = true;
       };
     }

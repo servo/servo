@@ -3,13 +3,13 @@ let frameCounter = 0;
 function populateForm(optionalContentHtml) {
   if (!optionalContentHtml)
     optionalContentHtml = '';
+  const frameName = "form-test-target-" + frameCounter++;
   document.body.insertAdjacentHTML(
       'afterbegin',
-      `<iframe name="form-test-target-${frameCounter}"></iframe>` +
+      `<iframe name="${frameName}"></iframe>` +
           `<form action="/common/blank.html" target="` +
-          `form-test-target-${frameCounter}">${optionalContentHtml}</form>`);
-  ++frameCounter;
-  return document.body.firstChild.nextSibling;
+          `${frameName}">${optionalContentHtml}</form>`);
+  return document.getElementsByName(frameName)[0].nextSibling;
 }
 
 function submitPromise(form, iframe) {

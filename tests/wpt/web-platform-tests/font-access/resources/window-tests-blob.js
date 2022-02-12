@@ -1,7 +1,7 @@
 'use strict';
 
 font_access_test(async t => {
-  const fonts = await navigator.fonts.query({persistentAccess: true});
+  const fonts = await navigator.fonts.query();
   const expectedFonts = await filterEnumeration(
       fonts, getEnumerationTestSet({labelFilter: [TEST_SIZE_CATEGORY.small]}));
   const additionalExpectedTables = getMoreExpectedTables(expectedFonts);

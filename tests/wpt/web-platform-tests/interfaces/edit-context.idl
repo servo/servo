@@ -1,0 +1,113 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: EditContext API (https://w3c.github.io/edit-context/)
+
+partial interface Element {
+     attribute EditContext? editContext;
+};
+
+dictionary EditContextInit {
+    DOMString text;
+    unsigned long selectionStart;
+    unsigned long selectionEnd;
+};
+
+[Exposed=Window]
+interface EditContext : EventTarget {
+    constructor(optional EditContextInit options = {});
+
+    undefined updateText(unsigned long rangeStart, unsigned long rangeEnd,
+        DOMString text);
+    undefined updateSelection(unsigned long start, unsigned long end);
+    undefined updateControlBound(DOMRect controlBound);
+    undefined updateSelectionBound(DOMRect selectionBound);
+    undefined updateCharacterBounds(unsigned long rangeStart, sequence<DOMRect> characterBounds);
+
+    sequence<Element> attachedElements();
+
+    readonly attribute DOMString text;
+    readonly attribute unsigned long selectionStart;
+    readonly attribute unsigned long selectionEnd;
+    readonly attribute unsigned long compositionRangeStart;
+    readonly attribute unsigned long compositionRangeEnd;
+    readonly attribute boolean isInComposition;
+    readonly attribute DOMRect controlBound;
+    readonly attribute DOMRect selectionBound;
+    readonly attribute unsigned long characterBoundsRangeStart;
+    sequence<DOMRect> characterBounds();
+
+    attribute EventHandler ontextupdate;
+    attribute EventHandler ontextformatupdate;
+    attribute EventHandler oncharacterboundsupdate;
+    attribute EventHandler oncompositionstart;
+    attribute EventHandler oncompositionend;
+};
+
+dictionary TextUpdateEventInit {
+    unsigned long updateRangeStart;
+    unsigned long updateRangeEnd;
+    DOMString text;
+    unsigned long selectionStart;
+    unsigned long selectionEnd;
+    unsigned long compositionStart;
+    unsigned long compositionEnd;
+};
+
+[Exposed=Window]
+interface TextUpdateEvent : Event {
+    constructor(optional TextUpdateEventInit options = {});
+    readonly attribute unsigned long updateRangeStart;
+    readonly attribute unsigned long updateRangeEnd;
+    readonly attribute DOMString text;
+    readonly attribute unsigned long selectionStart;
+    readonly attribute unsigned long selectionEnd;
+    readonly attribute unsigned long compositionStart;
+    readonly attribute unsigned long compositionEnd;
+};
+
+dictionary TextFormatInit {
+    unsigned long rangeStart;
+    unsigned long rangeEnd;
+    DOMString textColor;
+    DOMString backgroundColor;
+    DOMString underlineStyle;
+    DOMString underlineThickness;
+    DOMString underlineColor;
+};
+
+[Exposed=Window]
+interface TextFormat {
+    constructor(optional TextFormatInit options = {});
+    attribute unsigned long rangeStart;
+    attribute unsigned long rangeEnd;
+    attribute DOMString textColor;
+    attribute DOMString backgroundColor;
+    attribute DOMString underlineStyle;
+    attribute DOMString underlineThickness;
+    attribute DOMString underlineColor;
+};
+
+dictionary TextFormatUpdateEventInit {
+    sequence<TextFormat> textFormats;
+};
+
+[Exposed=Window]
+interface TextFormatUpdateEvent : Event {
+    constructor(optional TextFormatUpdateEventInit options = {});
+
+    sequence<TextFormat> getTextFormats();
+};
+
+dictionary CharacterBoundsUpdateEventInit {
+    unsigned long rangeStart;
+    unsigned long rangeEnd;
+};
+
+[Exposed=Window]
+interface CharacterBoundsUpdateEvent : Event {
+    constructor(optional CharacterBoundsUpdateEventInit options = {});
+
+    readonly attribute unsigned long rangeStart;
+    readonly attribute unsigned long rangeEnd;
+};

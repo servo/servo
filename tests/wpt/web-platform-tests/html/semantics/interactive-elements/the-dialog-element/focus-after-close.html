@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<meta charset=urf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Test focus is moved to the previously focused element when dialog is closed</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -21,7 +21,7 @@
 function test_move_to_previously_focused(showModal) {
   const input = document.querySelector("input");
   input.focus();
-  const dialog = document.querySelector('dialog');
+  const dialog = document.querySelector("dialog");
   if (showModal) {
     dialog.showModal();
   } else {
@@ -36,7 +36,7 @@ function test_move_to_previously_focused(showModal) {
 async function test_move_to_previously_focused_with_complex_dialog_usage(showModal) {
   const input = document.querySelector("input");
   input.focus();
-  const dialog = document.querySelector('dialog');
+  const dialog = document.querySelector("dialog");
   if (showModal) {
     dialog.showModal();
   } else {
@@ -56,12 +56,66 @@ async function test_move_to_previously_focused_with_complex_dialog_usage(showMod
   assert_equals(document.activeElement, input);
 }
 
+// Test focus is moved to the previously focused element even if that element moved in between
+function test_element_move_in_between_show_close(showModal) {
+  const input = document.querySelector("input");
+  input.focus();
+  const dialog = document.querySelector("dialog");
+
+  assert_equals(input.nextElementSibling, dialog, "Element is in correct position");
+
+  if (showModal) {
+    dialog.showModal();
+  } else {
+    dialog.show();
+  }
+
+  document.body.appendChild(input);
+  assert_not_equals(input.nextElementSibling, dialog, "Element should have moved");
+
+  dialog.close();
+  assert_equals(document.activeElement, input, "Focus should be restored to previously focused input");
+
+  // Clean up
+  document.body.insertBefore(input, dialog);
+}
+
+// Test focus is moved to the previously focused element even if that element moved to shadow root in between
+function test_element_move_to_shadow_root_in_between_show_close(showModal) {
+  const input = document.querySelector("input");
+  input.focus();
+  const dialog = document.querySelector("dialog");
+
+  assert_equals(input.nextElementSibling, dialog, "Element is in correct position");
+
+  if (showModal) {
+    dialog.showModal();
+  } else {
+    dialog.show();
+  }
+
+  const shadowHost = document.createElement("div");
+  const shadowRoot = shadowHost.attachShadow({mode: "open"});
+  shadowRoot.appendChild(input);
+  document.body.appendChild(shadowHost);
+
+  assert_not_equals(input.nextElementSibling, dialog, "Element should have moved");
+
+  dialog.close();
+  assert_equals(shadowRoot.activeElement, input, "Focus should be restored to previously focused input");
+  assert_equals(document.activeElement, shadowHost, "document.activeElement should be previously focused input's shadow DOM host");
+
+  // Clean up
+  document.body.insertBefore(input, dialog);
+  shadowHost.remove();
+}
+
 // Test focus is moved to <body> if the previously focused
 // element can't be focused
 function test_move_to_body_if_fails(showModal) {
   const input = document.querySelector("input");
   input.focus();
-  const dialog = document.querySelector('dialog');
+  const dialog = document.querySelector("dialog");
   if (showModal) {
     dialog.showModal();
   } else {
@@ -70,7 +124,9 @@ function test_move_to_body_if_fails(showModal) {
   dialog.close();
   input.remove();
   assert_equals(document.activeElement, document.body);
-  document.body.appendChild(input);
+
+  // Clean up
+  document.body.insertBefore(input, dialog);
 }
 
 // Test focus is moved to shadow host if the previously
@@ -78,7 +134,7 @@ function test_move_to_body_if_fails(showModal) {
 function test_move_to_shadow_host(showModal) {
   const shadowHost = document.createElement("div");
 
-  const shadowRoot = shadowHost.attachShadow({mode: 'open'});
+  const shadowRoot = shadowHost.attachShadow({mode: "open"});
   shadowRoot.appendChild(document.createElement("input"));
 
   document.body.appendChild(shadowHost);
@@ -88,7 +144,7 @@ function test_move_to_shadow_host(showModal) {
   assert_equals(document.activeElement, shadowHost);
   assert_equals(shadowRoot.activeElement, inputElement);
 
-  const dialog = document.querySelector('dialog');
+  const dialog = document.querySelector("dialog");
   if (showModal) {
     dialog.showModal();
   } else {
@@ -98,6 +154,9 @@ function test_move_to_shadow_host(showModal) {
 
   assert_equals(document.activeElement, shadowHost);
   assert_equals(shadowRoot.activeElement, inputElement);
+
+  // Clean up
+  shadowHost.remove();
 }
 
 // Test moving the focus doesn't scroll the viewport
@@ -112,7 +171,7 @@ function test_move_focus_dont_scroll_viewport(showModal) {
   // scrolled to it
   assert_true(document.documentElement.scrollTop > 0 );
 
-  const dialog = document.querySelector('dialog');
+  const dialog = document.querySelector("dialog");
   if (showModal) {
     dialog.showModal();
   } else {
@@ -131,26 +190,36 @@ function test_move_focus_dont_scroll_viewport(showModal) {
 test(() => {
   test_move_to_previously_focused(true);
   test_move_to_previously_focused(false);
-}, 'Focus should be moved to the previously focused element(Simple dialog usage)');
+}, "Focus should be moved to the previously focused element (Simple dialog usage)");
 
 promise_test(async () => {
   await test_move_to_previously_focused_with_complex_dialog_usage(true);
   await test_move_to_previously_focused_with_complex_dialog_usage(false);
-}, 'Focus should be moved to the previously focused element(Complex dialog usage)');
+}, "Focus should be moved to the previously focused element (Complex dialog usage)");
+
+test(() => {
+  test_element_move_in_between_show_close(true);
+  test_element_move_in_between_show_close(false);
+}, "Focus should be moved to the previously focused element even if it has moved in between show/close");
+
+test(() => {
+  test_element_move_to_shadow_root_in_between_show_close(true);
+  test_element_move_to_shadow_root_in_between_show_close(false);
+}, "Focus should be moved to the previously focused element even if it has moved to shadow DOM root in between show/close");
 
 test(() => {
   test_move_to_body_if_fails(true);
   test_move_to_body_if_fails(false);
-}, 'Focus should be moved to the body if the previously focused element is removed');
+}, "Focus should be moved to the body if the previously focused element is removed");
 
 test(() => {
   test_move_to_shadow_host(true);
   test_move_to_shadow_host(false);
-}, 'Focus should be moved to the shadow DOM host if the previouly focused element is a shadow DOM node');
+}, "Focus should be moved to the shadow DOM host if the previouly focused element is a shadow DOM node");
 
 test(() => {
   test_move_focus_dont_scroll_viewport(true);
   test_move_focus_dont_scroll_viewport(false);
-}, 'Focus should not scroll if the previously focused element is outside the viewport');
+}, "Focus should not scroll if the previously focused element is outside the viewport");
 </script>
 </body>

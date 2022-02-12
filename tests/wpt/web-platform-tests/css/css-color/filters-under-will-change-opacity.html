@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="http://www.w3.org/TR/css3-color/#transparency">
+<link rel="match" href="composited-filters-under-opacity-ref.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<style>
+div {
+  position: absolute;
+  will-change: opacity;
+}
+.filter {
+  width: 100px;
+  height: 150px;
+  position: absolute;
+  background: yellow;
+  filter: invert(100%);
+}
+</style>
+Below should be a light blue square in uniform color.
+<div id="target" style="opacity: 1">
+  <div class="filter" style="left: 0"></div>
+  <div class="filter" style="left: 50px"></div>
+</div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  target.style.opacity = 0.5;
+  takeScreenshot();
+});
+</script>
+</html>

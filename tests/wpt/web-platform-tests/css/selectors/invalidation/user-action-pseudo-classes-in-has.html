@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Invalidation: user-action pseudo classes in :has() argument</title>
+<link rel="author" title="Byungwoo Lee" href="blee@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  .ancestor:has(.descendant1:hover) { color: blue }
+  .ancestor:has(.descendant1:hover:active) { color: skyblue }
+  .ancestor:has(:focus) { color: green }
+  .ancestor:has(.descendant2:focus-visible) { color: yellowgreen }
+  .ancestor:has(.descendant3:focus-within) { color: lightgreen }
+</style>
+<div id=subject1 class=ancestor>
+  <div>
+    <div id=hoverme class=descendant1>Hover and click me</div>
+    <div id=focusme1 tabindex=1>Focus me</div>
+    <div id=focusme2 class=descendant2 tabindex=2>Focus me</div>
+    <div class=descendant3>
+      <div><div id=focusme3 tabindex=3>Focus me</div></div>
+    </div>
+  </div>
+</div>
+<div id=subject2 class=ancestor>
+  <div id=focusme4 tabindex=4>Focus me</div>
+</div>
+<script>
+  const tab_key = '\ue004';
+
+  async_test(function(t) {
+    hoverme.addEventListener("mouseover", t.step_func(event => {
+      assert_equals(getComputedStyle(subject1).color, "rgb(0, 0, 255)",
+                    "subject1 should be blue");
+    }));
+    hoverme.addEventListener("mousedown", t.step_func(event => {
+      assert_equals(getComputedStyle(subject1).color, "rgb(135, 206, 235)",
+                    "subject1 should be skyblue");
+    }));
+    hoverme.addEventListener("mouseup", t.step_func(event => {
+      assert_equals(getComputedStyle(subject1).color, "rgb(0, 0, 255)",
+                    "subject1 should be blue again");
+    }));
+    focusme1.addEventListener("focus", t.step_func(function() {
+      assert_equals(getComputedStyle(subject1).color, "rgb(0, 128, 0)",
+                    "subject1 should be green");
+      test_driver.send_keys(document.body, tab_key);
+    }));
+    focusme2.addEventListener("focus", t.step_func(function() {
+      assert_equals(getComputedStyle(subject1).color, "rgb(154, 205, 50)",
+                    "subject1 should be yellowgreen");
+      test_driver.send_keys(document.body, tab_key);
+    }));
+    focusme3.addEventListener("focus", t.step_func(function() {
+      assert_equals(getComputedStyle(subject1).color, "rgb(144, 238, 144)",
+                    "subject1 should be lightgreen");
+
+      focusme3.remove();
+      assert_equals(getComputedStyle(subject1).color, "rgb(0, 0, 0)",
+                    "subject1 should be black");
+
+      test_driver.send_keys(document.body, tab_key);
+    }));
+    focusme4.addEventListener("focus", t.step_func_done(function() {
+      assert_equals(getComputedStyle(subject2).color, "rgb(0, 128, 0)",
+                    "subject2 should be green");
+
+      focusme4.remove();
+      assert_equals(getComputedStyle(subject2).color, "rgb(0, 0, 0)",
+                    "subject2 should be black");
+    }));
+  }, "Invalidation with :focus, :focus-within, :focus-visible in :has()");
+
+  test(() => {
+    assert_equals(getComputedStyle(subject1).color, "rgb(0, 0, 0)");
+    assert_equals(getComputedStyle(subject2).color, "rgb(0, 0, 0)");
+  }, "ancestor should be black");
+
+  new test_driver.Actions()
+      .pointerMove(0, 0, {origin: hoverme})
+      .pointerDown()
+      .pointerUp()
+      .pointerMove(0, 0, {origin: focusme1})
+      .pointerDown()
+      .pointerUp()
+      .send();
+</script>

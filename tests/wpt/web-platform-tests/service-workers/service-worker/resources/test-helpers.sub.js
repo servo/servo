@@ -298,32 +298,3 @@ async function wait_for_activation_on_sample_scope(t, window_or_workerglobalscop
   await registration.unregister();
 }
 
-// This installs resources/appcache-ordering.manifest.
-function install_appcache_ordering_manifest() {
-  let resolve_install_appcache;
-  let reject_install_appcache;
-
-  // This is notified by the child iframe, i.e. appcache-ordering.install.html,
-  // that's to be created below.
-  window.notify_appcache_installed = success => {
-    if (success)
-      resolve_install_appcache();
-    else
-      reject_install_appcache();
-  };
-
-  return new Promise((resolve, reject) => {
-      const frame = document.createElement('iframe');
-      frame.src = 'resources/appcache-ordering.install.html';
-      document.body.appendChild(frame);
-      resolve_install_appcache = function() {
-          document.body.removeChild(frame);
-          resolve();
-        };
-      reject_install_appcache = function() {
-          document.body.removeChild(frame);
-          reject();
-        };
-  });
-}
-

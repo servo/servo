@@ -17,7 +17,7 @@
       return resetSameSiteCookies(origin, value)
         .then(_ => {
           return new Promise((resolve, reject) => {
-            var w = window.open(origin + "/cookies/resources/postToParent.py");
+            var w = window.open(target + "/cookies/resources/postToParent.py");
 
             var reloaded = false;
             var msgHandler = e => {
@@ -48,5 +48,5 @@
   // The reload status is always strictly same-site because this is a site-initiated reload, as opposed to a reload triggered by a user interface element.
   create_test(SECURE_ORIGIN, SECURE_ORIGIN, SameSiteStatus.STRICT, SameSiteStatus.STRICT, "Reloaded same-host auxiliary navigations are strictly same-site.");
   create_test(SECURE_SUBDOMAIN_ORIGIN, SECURE_SUBDOMAIN_ORIGIN, SameSiteStatus.STRICT, SameSiteStatus.STRICT, "Reloaded subdomain auxiliary navigations are strictly same-site.");
-  create_test(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN, SameSiteStatus.LAX, SameSiteStatus.STRICT, "Reloaded cross-site auxiliary navigations are laxly same-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN, SameSiteStatus.LAX, SameSiteStatus.STRICT, "Reloaded cross-site auxiliary navigations are strictly same-site");
 </script>

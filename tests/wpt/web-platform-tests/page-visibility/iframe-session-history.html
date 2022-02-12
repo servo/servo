@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<title>Test the correct sequence of pagevisibility-related events in conjunction with history navigation</title>
+<link rel="author" title="Noam Rosenthal"  href="mailto:noam@webkit.org">
+<link rel="help" href="https://www.w3.org/TR/page-visibility-2/">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+
+const iframePath1 = 'resources/iframe-post-load.html?v=1'
+const iframePath2 = 'resources/iframe-post-load.html?v=2'
+
+function waitForLoad(iframe) {
+  return new Promise(resolve => {
+    const callback = e => {
+      if (e.data === 'load') {
+        window.removeEventListener('message', callback)
+        resolve()
+      }
+    }
+
+    window.addEventListener('message', callback)
+  })
+}
+
+function assert_sequence(sequence) {
+  assert_equals(sequence.length, 2)
+  assert_equals(sequence[0].type, 'pagehide')
+  assert_equals(sequence[0].target, '#document')
+  assert_equals(sequence[0].visibilityState, 'visible')
+  assert_equals(sequence[0].cancelable, true)
+  assert_equals(sequence[1].type, 'visibilitychange')
+  assert_equals(sequence[1].target, '#document')
+  assert_equals(sequence[1].visibilityState, 'hidden')
+  assert_equals(sequence[1].cancelable, false)
+}
+promise_test(async t => {
+    const iframe = document.createElement('iframe');
+    iframe.src = iframePath1;
+    document.body.appendChild(iframe);
+    let sequence = [];
+    t.add_cleanup(() => iframe.remove());
+    iframe.src = iframePath1;
+    await waitForLoad(iframe);
+    const handler = t.step_func(event => sequence.push({
+      type: event.type,
+      target: event.target.nodeName,
+      cancelable: event.cancelable,
+      visibilityState: iframe.contentWindow.document.visibilityState
+    }));
+    iframe.contentWindow.document.addEventListener('visibilitychange', handler);
+    iframe.contentWindow.addEventListener('pagehide', handler);
+    iframe.contentWindow.location.href = iframePath2;
+    await waitForLoad(iframe);
+    assert_sequence(sequence);
+    sequence = [];
+    iframe.contentWindow.addEventListener('pagehide', handler);
+    iframe.contentWindow.document.addEventListener('visibilitychange', handler);
+    iframe.contentWindow.history.back();
+    await waitForLoad(iframe);
+    assert_sequence(sequence);
+}, "pagehide should be called before visibilitychange, and visibilityState should be set to hidden at the right time");
+</script>
+</body>

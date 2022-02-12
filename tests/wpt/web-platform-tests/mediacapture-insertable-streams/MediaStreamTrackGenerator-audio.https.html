@@ -13,6 +13,9 @@
   <audio id="audioElement" autoplay=true></audio>
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+  <script src='../mediacapture-streams/permission-helper.js'></script>
   <script>
 
     function makeAudioData(timestamp) {
@@ -56,6 +59,7 @@
     }, "Creating Generator with an invalid kind throws");
 
     promise_test(async t => {
+      await setMediaPermission();
       const capturedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       assert_equals(capturedStream.getAudioTracks().length, 1);
       const upstreamTrack = capturedStream.getAudioTracks()[0];

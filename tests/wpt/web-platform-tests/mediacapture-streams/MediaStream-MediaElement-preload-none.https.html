@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Test that the HTMLMediaElement preload 'none' attribute value is ignored for MediaStream used as srcObject and MediaStream object URLs used as src.</title>
+        <link rel="author" title="Matthew Wolenetz" href="mailto:wolenetz@chromium.org"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="permission-helper.js"></script>
+    </head>
+    <body>
+        <p class="instructions">When prompted, accept to share your audio and video streams.</p>
+        <p class="instructions">This test checks that the HTMLMediaElement preload 'none' attribute value is ignored for MediaStream used as srcObject and MediaStream object URLs used as src.</p>
+        <div id=log></div>
+
+        <audio preload="none"></audio>
+        <video preload="none"></video>
+
+        <script>
+            async function testPreloadNone(mediaElement, stream)
+            {
+                let rejectSuspendedPromise, rejectErrorPromise, resolveDataLoadedPromise;
+                const suspended = new Promise((r, rej) => {
+                  rejectSuspendedPromise = rej;
+                });
+                const errored = new Promise((r, rej) => {
+                  rejectErrorPromise = rej;
+                });
+                const loaded = new Promise(resolve => {
+                  resolveDataLoadedPromise = resolve;
+                });
+
+                // The optional deferred load steps (for preload none) for MediaStream resources should be skipped.
+                mediaElement.addEventListener("suspend", () => {
+                  rejectSuspendedPromise("'suspend' should not be fired.")
+                });
+                mediaElement.addEventListener("error", () => {
+                  rejectErrorPromise("'error' should not be fired, code=" + mediaElement.error.code);
+                });
+
+                mediaElement.addEventListener("loadeddata", () => {
+                  assert_equals(mediaElement.networkState, mediaElement.NETWORK_LOADING);
+                  resolveDataLoadedPromise();
+                });
+
+                mediaElement.srcObject = stream;
+                assert_equals(mediaElement.networkState, mediaElement.NETWORK_NO_SOURCE); // Resource selection is active.
+                try {
+                  await Promise.race([suspended, errored, loaded]);
+                } catch (msg) {
+                  assert_unreached(msg);
+                }
+2            }
+
+            promise_test(async () =>
+            {
+                const aud = document.querySelector("audio");
+                // camera is needed for the next test, asking for both at once
+                await setMediaPermission();
+                let stream;
+                try {
+                  stream = await navigator.mediaDevices.getUserMedia({audio:true});
+                } catch (e) {
+                  assert_unreached("getUserMedia error callback was invoked.");
+                }
+                await testPreloadNone(aud, stream);
+            }, "Test that preload 'none' is ignored for MediaStream object URL used as srcObject for audio");
+
+            promise_test(async () =>
+            {
+                const vid = document.querySelector("video");
+                let stream;
+                try {
+                  stream = await navigator.mediaDevices.getUserMedia({video:true});
+                } catch (e) {
+                  assert_unreached("getUserMedia error callback was invoked.")
+                }
+                await testPreloadNone(vid, stream);
+
+            }, "Test that preload 'none' is ignored for MediaStream used as srcObject for video");
+        </script>
+    </body>
+</html>

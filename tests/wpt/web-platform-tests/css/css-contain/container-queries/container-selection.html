@@ -1,0 +1,180 @@
+<!doctype html>
+<title>@container: selection using name(), type()</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+
+  main { background-color: lightgray; }
+  main > div { background-color: skyblue; }
+  main > div > div { background-color: seagreen; }
+  main > div > div > div { background-color: tomato; }
+
+  main {
+    width: 64px;
+    height: 64px;
+  }
+
+  main div {
+    width: 50%;
+    height: 50%;
+  }
+
+  .inline { container-type: inline-size; }
+  .size { container-type: size; }
+
+  .a-inline { container:  inline-size / a; }
+  .a-size { container:  size / a; }
+
+  .b-size { container:  inline-size / b; }
+  .b-size { container:  size / b; }
+
+  .a { container-name: a; contain: strict; }
+
+</style>
+
+<main>
+  <div class="inline">
+    <div class="size">
+      <span></span>
+    </div>
+  </div>
+</main>
+
+<main>
+  <div class="size">
+    <div class="inline">
+      <span></span>
+    </div>
+  </div>
+</main>
+
+<main>
+  <div class="inline">
+    <div class="inline">
+      <span></span>
+    </div>
+  </div>
+</main>
+
+<main>
+  <div class="a-size">
+    <div class="b-size">
+      <span></span>
+    </div>
+  </div>
+</main>
+
+<main>
+  <div class="a-size">
+    <div class="a-size">
+      <span></span>
+    </div>
+  </div>
+</main>
+
+<main>
+  <div class="a-size">
+    <div class="a">
+      <span></span>
+    </div>
+  </div>
+</main>
+
+<main>
+  <div class="a-size">
+    <div class="b-size">
+      <div class="a-inline">
+        <span></span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<main>
+  <div class="a-inline">
+    <div class="b-size">
+      <span></span>
+    </div>
+  </div>
+</main>
+
+<script>
+  setup(() => assert_implements_container_queries());
+
+  function test_query(prelude, selector, expected) {
+    test(t => {
+      let elements = document.querySelectorAll(selector);
+      assert_equals(elements.length, 1);
+      let element = elements[0];
+
+      let style = document.createElement('style');
+      t.add_cleanup(() => { style.remove(); });
+      style.innerText = `@container ${prelude} { span { --match:true; } } `;
+      document.body.append(style);
+
+      assert_equals(getComputedStyle(element).getPropertyValue('--match'), expected);
+    }, `${prelude} for ${selector}`);
+  }
+
+  // Test that a given container query applies to the specified element.
+  // The provided selector must unique identify the element.
+  function test_applied(prelude, selector) {
+    test_query(prelude, selector, 'true');
+  }
+
+  function test_rejected(prelude, selector) {
+    test_query(prelude, selector, '');
+  }
+
+  // For the following tests, the inner container has a size of 16x16px,
+  // and the outer container has a size of 32x32px.
+
+  // "Nearest" selection:
+  test_applied('size(width: 16px)',  '.size > .inline > span');
+  test_applied('size(height: 16px)', '.inline > .size > span');
+  test_applied('size(width: 16px)',  '.inline > .size > span');
+  test_rejected('size(height)', '.size > .inline > span');
+
+  // type():
+  test_applied('type(inline-size) size(width: 16px)', '.inline > .size > span');
+  test_applied('type(inline-size) size(width: 16px)', '.size > .inline > span');
+
+  test_applied('type(size) size(height: 16px)', '.inline > .size > span');
+  test_applied('type(size) size(height: 32px)', '.size > .inline > span');
+  test_rejected('type(size) size(height)', '.inline > .inline > span');
+
+  // name():
+  test_applied('name(a) size(width: 32px)', '.a-size > .b-size > span');
+  test_applied('name(b) size(width: 16px)', '.a-size > .b-size > span');
+  test_rejected('name(c) size(width)','.a-size > .b-size > span');
+  test_applied('name(a) size(width: 16px)', '.a-size > .a-size > span');
+
+  // Name as plain ident:
+  test_applied('a size(width: 32px)', '.a-size > .b-size > span');
+  test_applied('b size(width: 16px)', '.a-size > .b-size > span');
+  test_rejected('c size(width)', '.a-size > .b-size > span');
+  test_applied('a size(width: 16px)', '.a-size > .a-size > span');
+
+  // container-name alone does not establish a container:
+  test_applied('a size(width: 32px)', '.a-size > .a > span');
+
+  // The following tests have three containers:
+  //
+  //  outer  -> 32x32px
+  //  middle -> 16x16px
+  //  inner -> 8x8px
+
+  // Mixing name() and type():
+  test_applied('name(a) type(inline-size) size(width: 8px)', '.a-size > .b-size > .a-inline > span');
+  test_applied('name(b) type(inline-size) size(width: 16px)', '.a-size > .b-size > .a-inline > span');
+  test_applied('name(a) type(size) size(width: 32px)', '.a-size > .b-size > .a-inline > span');
+  test_applied('name(b) type(size) size(width: 16px)', '.a-size > .b-size > .a-inline > span');
+  test_rejected('name(a) type(size) size(width)', '.a-inline > .b-size');
+
+  // type() first, then name():
+  test_applied('type(inline-size) name(a) size(width: 8px)', '.a-size > .b-size > .a-inline > span');
+  test_applied('type(size) name(a) size(height: 32px)', '.a-size > .b-size > .a-inline > span');
+
+</script>

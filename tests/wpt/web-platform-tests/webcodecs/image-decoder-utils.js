@@ -1,3 +1,22 @@
+const kYellow = 0xFFFF00FF;
+const kRed = 0xFF0000FF;
+const kBlue = 0x0000FFFF;
+const kGreen = 0x00FF00FF;
+
+function getColorName (color) {
+  switch (color) {
+    case kYellow:
+      return "Yellow";
+    case kRed:
+      return "Red";
+    case kBlue:
+      return "Blue";
+    case kGreen:
+      return "Green";
+  }
+  return "#" + color.toString(16);
+}
+
 function toUInt32(pixelArray) {
   let p = pixelArray.data;
   return ((p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3]) >>> 0;
@@ -99,8 +118,8 @@ function testFourColorDecodeWithExifOrientation(orientation, canvas) {
           ctx.drawImage(result.image, 0, 0);
 
           let matrix = [
-            [0xFFFF00FF, 0xFF0000FF],  // yellow, red
-            [0x0000FFFF, 0x00FF00FF],  // blue, green
+            [kYellow, kRed],
+            [kBlue, kGreen],
           ];
           if (respectOrientation) {
             switch (orientation) {
@@ -144,8 +163,8 @@ function testFourColorDecodeWithExifOrientation(orientation, canvas) {
 function verifyFourColorsImage(width, height, ctx, matrix) {
   if (!matrix) {
     matrix = [
-      [0xFFFF00FF, 0xFF0000FF],  // yellow, red
-      [0x0000FFFF, 0x00FF00FF],  // blue, green
+      [kYellow, kRed],
+      [kBlue, kGreen],
     ];
   }
 
@@ -159,8 +178,12 @@ function verifyFourColorsImage(width, height, ctx, matrix) {
   let bottomLeft = toUInt32(ctx.getImageData(0, height - 1, 1, 1));
   let bottomRight = toUInt32(ctx.getImageData(width - 1, height - 1, 1, 1));
 
-  assert_equals(topLeft, expectedTopLeft, 'top left corner');
-  assert_equals(topRight, expectedTopRight, 'top right corner');
-  assert_equals(bottomLeft, expectedBottomLeft, 'bottom left corner');
-  assert_equals(bottomRight, expectedBottomRight, 'bottom right corner');
+  assert_equals(getColorName(topLeft), getColorName(expectedTopLeft),
+                            'top left corner');
+  assert_equals(getColorName(topRight), getColorName(expectedTopRight),
+                            'top right corner');
+  assert_equals(getColorName(bottomLeft), getColorName(expectedBottomLeft),
+                            'bottom left corner');
+  assert_equals(getColorName(bottomRight), getColorName(expectedBottomRight),
+                            'bottom right corner');
 }

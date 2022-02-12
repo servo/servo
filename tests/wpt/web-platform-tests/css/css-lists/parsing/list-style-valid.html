@@ -12,12 +12,24 @@
 <body>
 <script>
 test_valid_value('list-style', 'none');
+test_valid_value('list-style', 'disc outside none', 'outside');
 
 test_valid_value('list-style', 'inside');
+test_valid_value('list-style', 'inside disc', 'inside');
+test_valid_value('list-style', 'inside none');
+test_valid_value('list-style', 'inside none none', 'inside none');
+test_valid_value('list-style', 'none inside none', 'inside none');
+test_valid_value('list-style', 'none none inside', 'inside none');
+test_valid_value('list-style', 'none inside', 'inside none');
 test_valid_value('list-style', 'url("https://example.com/")');
+test_valid_value('list-style', 'none url("https://example.com/")', 'url("https://example.com/") none');
+test_valid_value('list-style', 'url("https://example.com/") disc', 'url("https://example.com/")');
+test_valid_value('list-style', 'url("https://example.com/") disc outside', 'url("https://example.com/")');
 test_valid_value('list-style', 'square');
 
 test_valid_value('list-style', 'square url("https://example.com/") inside', 'inside url("https://example.com/") square');
+test_valid_value('list-style', 'square linear-gradient(red,blue) inside', 'inside linear-gradient(red, blue) square');
+test_valid_value('list-style', 'disc radial-gradient(circle, #006, #00a 90%, #0000af 100%,white 100%) inside', 'inside radial-gradient(circle, rgb(0, 0, 102), rgb(0, 0, 170) 90%, rgb(0, 0, 175) 100%, white 100%)');
 </script>
 </body>
 </html>

@@ -26,9 +26,9 @@ var testCases = [
     {
         title: 'A2 Anonymous layers',
         style: `
-            target { color: red; }
+            target { color: green; }
             @layer {
-                target { color: green; }
+                target { color: red; }
             }
         `,
     },
@@ -36,9 +36,9 @@ var testCases = [
         title: 'A3 Anonymous layers',
         style: `
             @layer {
-                target { color: green; }
+                target { color: red; }
             }
-            target { color: red; }
+            target { color: green; }
         `,
     },
     {
@@ -56,12 +56,11 @@ var testCases = [
         title: 'A5 Anonymous layers',
         style: `
             @layer {
-                target { color: red; }
+                target { color: green; }
                 @layer {
-                    target { color: green; }
+                    target { color: red; }
                 }
             }
-            target { color: red; }
         `,
     },
     {
@@ -69,11 +68,10 @@ var testCases = [
         style: `
             @layer {
                 @layer {
-                    target { color: green; }
+                    target { color: red; }
                 }
-                target { color: red; }
+                target { color: green; }
             }
-            target { color: red; }
         `,
     },
     {
@@ -87,9 +85,9 @@ var testCases = [
             }
             @layer {
                 @layer {
-                    target { color: green; }
+                    target { color: red; }
                 }
-                target { color: red; }
+                target { color: green; }
             }
         `,
     },
@@ -106,9 +104,9 @@ var testCases = [
             }
             @layer {
                 @layer {
-                    target { color: green; }
+                    target { color: red; }
                 }
-                target { color: red; }
+                target { color: green; }
             }
         `,
     },
@@ -124,10 +122,10 @@ var testCases = [
             @layer {
                 @layer {
                     @layer {
-                        target { color: green; }
+                        target { color: red; }
                     }
                 }
-                target { color: red; }
+                target { color: green; }
             }
         `,
     },
@@ -143,9 +141,9 @@ var testCases = [
         title: 'B2 Named layers',
         style: `
             @layer A {
-                target { color: green; }
+                target { color: red; }
             }
-            target { color: red; }
+            target { color: green; }
         `,
     },
     {
@@ -157,7 +155,6 @@ var testCases = [
             @layer A {
                 target { color: green; }
             }
-            target { color: red; }
         `,
     },
     {
@@ -178,9 +175,9 @@ var testCases = [
         title: 'B5 Named layers',
         style: `
             @layer A {
-                target { color: red; }
+                target { color: green; }
                 @layer A {
-                    target { color: green; }
+                    target { color: red; }
                 }
             }
         `,
@@ -365,11 +362,11 @@ var testCases = [
         style: `
             @layer A {
                 @layer {
-                    target { color: green; }
+                    target { color: red; }
                 }
             }
             @layer A {
-                target { color: red; }
+                target { color: green; }
             }
         `,
     },
@@ -508,11 +505,10 @@ var testCases = [
     },
 ];
 
-for (var i = 0; i < testCases.length; ++i) {
-    var testCase = testCases[i];
-    var documentStyle = document.createElement('style');
-    documentStyle.appendChild(document.createTextNode(testCase['style']));
-    document.head.appendChild(documentStyle);
+for (let testCase of testCases) {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = testCase['style'];
+    document.head.append(styleElement);
 
     test(function () {
         var targets = document.querySelectorAll('target');
@@ -521,7 +517,7 @@ for (var i = 0; i < testCases.length; ++i) {
                       testCase['title'] + ", target '" + target.classList[0] + "'");
     }, testCase['title']);
 
-    document.head.removeChild(documentStyle)
+    styleElement.remove();
 }
 </script>
 </body>

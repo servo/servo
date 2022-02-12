@@ -285,6 +285,9 @@ class BaseWebTestRequestHandler(http.server.BaseHTTPRequestHandler):
             try:
                 handler(request, response)
             except HTTPException as e:
+                if 500 <= e.code < 600:
+                    self.logger.warning("HTTPException in handler: %s" % e)
+                    self.logger.warning(traceback.format_exc())
                 response.set_error(e.code, str(e))
             except Exception as e:
                 self.respond_with_error(response, e)

@@ -8,7 +8,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <selectmenu id="selectMenu0">
-  <popup slot="listbox" part="listbox">
+  <popup slot="listbox" behavior="listbox">
     <selectmenu id="nested0">
       <option id="child1">one</option>
       <option id="child2">two</option>
@@ -18,7 +18,7 @@
 </selectmenu>
 
 <selectmenu id="selectMenu1">
-  <popup slot="listbox" part="listbox">
+  <popup slot="listbox" behavior="listbox">
     <select>
       <option>one</option>
       <option>two</option>
@@ -30,10 +30,10 @@
 <selectmenu id="selectMenu2">
   <div slot="button">
     <selectmenu id="nested2">
-      <div slot="button" part="button" id="selectMenu2-button0">button0</div>
+      <div slot="button" behavior="button" id="selectMenu2-button0">button0</div>
       <option id="nested2-option1">one</option>
     </selectmenu>
-    <div part="button" id="selectMenu2-button1">button1</div>
+    <div behavior="button" id="selectMenu2-button1">button1</div>
   </div>
   <option>two</option>
 </selectmenu>

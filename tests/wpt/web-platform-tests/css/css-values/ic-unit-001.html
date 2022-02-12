@@ -6,13 +6,20 @@
 <link rel="match" href="reference/ic-unit-001-ref.html">
 <meta name="assert" content="The ic unit is equal to the used advance measure of the 水 (CJK water ideograph, U+6C34) glyph found in the font used to render it.">
 <style>
+@font-face {
+    font-family: IcTestFullWidth;
+    src: url(resources/IcTestFullWidth.woff2);
+}
+
 span {
+    font: 20px IcTestFullWidth;
     background: green;
     color: green;
     top: 0; bottom: 0;
     position: absolute;
 }
 div {
+    font: 20px IcTestFullWidth;
     background: red;
     color: red;
     position: relative;

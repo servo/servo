@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Pseudo-Elements Test: ::target-text text color with transparent originating color</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<link rel="help" href="https://crbug.com/1273943">
+<meta name="assert" content="This test checks that ::target-text pseudo-element uses the specified color even when the originating element text color was trasnparent.">
+<link rel="match" href="/css/reference/pass_if_pass_below.html">
+<style>
+  div {
+    color: transparent;
+  }
+  ::target-text {
+    color: black;
+  }
+</style>
+
+<p>Test passes if there is the word "PASS" below.</p>
+<div>PASS&nbsp;</div>
+
+<script>
+  window.location.hash = "#:~:text=PASS%20";
+</script>

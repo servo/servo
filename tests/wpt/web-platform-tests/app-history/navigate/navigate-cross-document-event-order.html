@@ -25,7 +25,7 @@ async_test(t => {
       i.contentDocument.onreadystatechange = () => events.push("readystate" + i.contentDocument.readyState);
     };
     i.contentWindow.appHistory.onnavigate = () => events.push("onnavigate");
-    i.contentWindow.appHistory.navigate("?1").then(
+    i.contentWindow.appHistory.navigate("?1").committed.then(
         () => events.push("promisefulfilled"), () => events.push("promiserejected"));
   });
 }, "navigate() event ordering for cross-document navigation");

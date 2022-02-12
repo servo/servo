@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>call method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/channel.sub.js"></script>
+
+<script>
+setup({single_test: true})
+onload = async () => {
+    let remote = await new RemoteGlobal();
+
+    let url = `child_script.html?uuid=${remote.uuid}`;
+    win = window.open(url, "_blank", "noopener");
+
+    let result = await remote.call(async (elemId) => {
+        return document.getElementById(elemId).textContent;
+    }, ["test"]);
+    assert_equals(result.trim(), "PASS");
+    done();
+}
+</script>

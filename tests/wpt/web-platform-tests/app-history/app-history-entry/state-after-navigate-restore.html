@@ -1,0 +1,27 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+  await i.contentWindow.appHistory.navigate("#start", { replace: true, state: "someState" });
+  assert_equals(i.contentWindow.appHistory.entries().length, 1);
+  assert_equals(i.contentWindow.appHistory.entries()[0].getState(), "someState");
+
+  await i.contentWindow.appHistory.navigate("#foo");
+  assert_equals(i.contentWindow.appHistory.entries().length, 2);
+  assert_equals(i.contentWindow.appHistory.entries()[0].getState(), "someState");
+
+  i.contentWindow.appHistory.navigate("/common/blank.html?bar");
+  await new Promise(resolve => i.onload = resolve);
+  assert_equals(i.contentWindow.appHistory.entries().length, 3);
+  assert_equals(i.contentWindow.appHistory.entries()[0].getState(), "someState");
+
+  i.contentWindow.appHistory.back();
+  await new Promise(resolve => i.onload = resolve);
+  assert_equals(i.contentWindow.appHistory.entries().length, 3);
+  assert_equals(i.contentWindow.appHistory.current.index, 1);
+  assert_equals(i.contentWindow.appHistory.entries()[0].getState(), "someState");
+}, "entry.getState() is properly restored after cross-document back");
+</script>

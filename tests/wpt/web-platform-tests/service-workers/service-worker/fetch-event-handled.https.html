@@ -10,18 +10,11 @@ let frame = null;
 let worker = null;
 const script = 'resources/fetch-event-handled-worker.js';
 const scope = 'resources/simple.html';
+const channel = new MessageChannel();
 
 // Wait for a message from the service worker and removes the message handler.
 function wait_for_message_from_worker() {
-  return new Promise((resolve) => {
-    const handler = (event) => {
-      frame.contentWindow.navigator.serviceWorker.removeEventListener(
-          'message', handler);
-      resolve(event.data);
-    };
-    frame.contentWindow.navigator.serviceWorker.addEventListener(
-        'message', handler);
-  });
+  return new Promise((resolve) => channel.port2.onmessage = (event) => resolve(event.data));
 }
 
 // Global setup: this must be the first promise_test.
@@ -29,12 +22,16 @@ promise_test(async (t) => {
   const registration =
       await service_worker_unregister_and_register(t, script, scope);
   worker = registration.installing;
+  if (!worker)
+      worker = registration.active;
+  worker.postMessage({port:channel.port1}, [channel.port1]);
   await wait_for_state(t, worker, 'activated');
 }, 'global setup');
 
 promise_test(async (t) => {
-  frame = await with_iframe(scope);
+  const promise = with_iframe(scope);
   const message = await wait_for_message_from_worker();
+  frame = await promise;
   assert_equals(message, 'RESOLVED');
 }, 'FetchEvent.handled should resolve when respondWith() is not called for a' +
     ' navigation request');

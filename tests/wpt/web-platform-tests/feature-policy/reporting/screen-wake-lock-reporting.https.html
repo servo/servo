@@ -9,7 +9,7 @@
       promise_test(async (t) => {
         const reportPromise = new Promise(resolve => {
           new ReportingObserver((reports, observer) => resolve(reports),
-                                {types: ["feature-policy-violation"]}).observe();
+                                {types: ["permissions-policy-violation"]}).observe();
         });
         // Even though we do not explicitly allow screen wake lock requests in
         // testdriver, per spec Permissions Policy checks should happen earlier.
@@ -19,7 +19,7 @@
 
         assert_equals(reports.length, 1);
         const report = reports[0];
-        assert_equals(report.type, "feature-policy-violation");
+        assert_equals(report.type, "permissions-policy-violation");
         assert_equals(report.url, document.location.href);
         assert_equals(report.body.featureId, "screen-wake-lock");
         assert_equals(report.body.sourceFile, document.location.href);

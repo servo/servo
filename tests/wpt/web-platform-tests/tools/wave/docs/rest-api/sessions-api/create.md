@@ -21,12 +21,13 @@ The `create` method of the sessions API creates a new session. If provided with 
     "<test_path>": "Integer"
   },
   "reference_tokens": "Array<String>",
-  "labels": "Array<String>"
+  "labels": "Array<String>",
+  "type": "String"
 }
 ```
 
 - **tests** specifies the tests of the session:
-  - **include** specifies what tests should be selected from all available tests. Can be a path to a test file or directory.
+  - **include** specifies what tests should be selected from all available tests. Can be a path to a test file or directory. Provided query parameters will be added to all matching test urls.
   - **exclude** specifies what tests should be removed from the included tests. Can be a path to a test file or directory.
 - **types** what types of tests should be included. Possible values:
   - **automatic** tests are tests that execute without user interaction.
@@ -37,6 +38,7 @@ The `create` method of the sessions API creates a new session. If provided with 
   - **custom test paths**: Set the timeout for a test file or directory by putting the path with all dots removed as the key.
 - **reference_tokens** specifies a set of completed sessions that is used to filter out all tests that have not passed in all those sessions from the session that is going to be created.
 - **labels** specifies the initial set of labels for the session.
+- **type** specifies the session type to trigger type specific behaviour like different control pages.
 
 ### Default
 

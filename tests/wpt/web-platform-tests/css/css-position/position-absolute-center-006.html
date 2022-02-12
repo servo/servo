@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1236657">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="A table should be centered with auto margins and zero insets.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative; width: 200px; height: 100px; margin-left: -50px;">
+  <div style="display: table; position: absolute; background: green; appearance: none; padding: 0; border: none; left: 0; right: 0; margin: auto; height: 100px;">
+    <div style="width: 100px; height: 100px;"></div>
+  </div>
+</div>

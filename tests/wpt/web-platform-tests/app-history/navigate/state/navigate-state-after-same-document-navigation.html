@@ -9,11 +9,11 @@ async_test(t => {
     let entry0 = appHistory.current;
 
     let navState = { statevar: "state" };
-    await appHistory.navigate("#1", { state: navState });
+    await appHistory.navigate("#1", { state: navState }).committed;
     let entry1 = appHistory.current;
 
     navState.startvar2 = "otherstate";
-    await appHistory.navigate("#2", { state: navState });
+    await appHistory.navigate("#2", { state: navState }).committed;
     let entry2 = appHistory.current;
 
     t.step_func(() => {

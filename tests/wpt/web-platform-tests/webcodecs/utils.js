@@ -195,7 +195,8 @@ function testCanvas(ctx, width, height, expected_pixel, imageSetting, assert_com
 }
 
 function makeDetachedArrayBuffer() {
-  let buffer = new Uint8Array();
+  const buffer = new ArrayBuffer(10);
+  const view = new Uint8Array(buffer);
   new MessageChannel().port1.postMessage(buffer, [buffer]);
-  return buffer;
+  return view;
 }

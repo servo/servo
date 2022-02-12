@@ -12,7 +12,7 @@ promise_test(async t => {
     e.preventDefault();
   });
 
-  await promise_rejects_dom(t, 'AbortError', appHistory.navigate("?1"));
+  await promise_rejects_dom(t, 'AbortError', appHistory.navigate("?1").committed);
   assert_true(abort_signal.aborted);
   assert_array_equals(events, ["onabort", "onnavigateerror"]);
 }, "AppHistoryNavigateEvent.preventDefault signals AppHistoryNavigateEvent.signal");

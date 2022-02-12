@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>
+  Single-line column flex fragmentation with break-inside: avoid and border-bottom.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#breaking-rules">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="columns:2; column-fill:auto; column-gap:0; height:160px;">
+    <div style="height:40px; background:green;"></div>
+    <div style="display:flex; flex-direction:column; width:50px; border-bottom:40px solid green;">
+      <div style="break-inside:avoid; height:60px; background:green;"></div>
+      <div style="break-inside:avoid; height:60px; background:green;"></div>
+    </div>
+  </div>
+</div>

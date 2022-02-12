@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Sockets test: Can be disabled by permissions policy</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+      'use strict';
+
+      promise_test(async t => {
+        await promise_rejects_dom(t, "NotAllowedError", navigator.openTCPSocket({ remotePort: 53 }));
+      }, "direct sockets (TCP) can be disabled by feature policy");
+
+      promise_test(async t => {
+        await promise_rejects_dom(t, "NotAllowedError", navigator.openUDPSocket({ remotePort: 53 }));
+      }, "direct sockets (UDP) can be disabled by feature policy");
+    </script>
+  </body>
+</html>

@@ -13,10 +13,10 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
-assert_throws_dom("SYNTAX_ERR", function() { ctx.createPattern(offscreenCanvas, "invalid"); });
+assert_throws_dom("SYNTAX_ERR", function() { ctx.createPattern(canvas, "invalid"); });
 t.done();
 
 });

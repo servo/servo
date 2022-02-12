@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(t => {
+  let i = document.createElement("iframe");
+  document.body.appendChild(i);
+  let audio = document.createElement("audio");
+  i.contentDocument.body.appendChild(audio);
+  let remote = audio.remote;
+  i.remove();
+  return promise_rejects_dom(t, "InvalidAccessError", remote.prompt());
+}, 'Calling remote.prompt() in a detached context should throw InvalidAccessError');
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@
 
 idl_test(
   ['anchors'],
-  ['hit-test', 'webxr', 'dom'],
+  ['webxr-hit-test', 'webxr', 'dom'],
   async idl_array => {
     idl_array.add_objects({
       // TODO: Add object instances

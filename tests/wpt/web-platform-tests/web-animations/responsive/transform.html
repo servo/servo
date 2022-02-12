@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    container.style.fontSize = '10px';
+    var player = element.animate([{transform: 'translateX(10em)'}, {transform: 'translateX(20em)'}], 10);
+    player.pause();
+    player.currentTime = 2;
+    container.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).transform, 'matrix(1, 0, 0, 1, 240, 0)');
+}, 'Transform responsive to font size changes');
+
+</script>

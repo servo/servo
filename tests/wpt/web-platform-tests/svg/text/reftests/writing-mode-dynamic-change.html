@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="match" href="writing-mode-dynamic-change-ref.html">
+<link rel="help" href="https://crbug.com/1273783">
+<body>
+<svg style="border: 1px solid gray;">
+  <text id="test-text" y="0" x="50" font-size="16">🎓👺👕👖👢</text>
+</svg>
+<p id="result"></p>
+
+<script>
+var text  = document.getElementById("test-text");
+text.getBBox();
+
+text.style.writingMode = "vertical-rl";
+var bbox = text.getBBox();
+result.textContent = `BBox: ${bbox.width} x ${bbox.height}`;
+</script>
+</body>

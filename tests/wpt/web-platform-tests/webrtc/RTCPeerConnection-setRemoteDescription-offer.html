@@ -193,7 +193,8 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
-    const srdPromise = pc2.setRemoteDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    const srdPromise = pc2.setRemoteDescription(await pc1.createOffer());
 
     assert_equals(pc2.signalingState, "stable", "signalingState should not be set synchronously after a call to sRD");
 
@@ -222,10 +223,12 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
-    await pc2.setLocalDescription(await pc2.createOffer({offerToReceiveAudio: true}));
+    pc2.addTransceiver('audio', { direction: 'recvonly' });
+    await pc2.setLocalDescription(await pc2.createOffer());
 
     // Implicit rollback!
-    const srdPromise = pc2.setRemoteDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    const srdPromise = pc2.setRemoteDescription(await pc1.createOffer());
 
     assert_equals(pc2.signalingState, "have-local-offer", "signalingState should not be set synchronously after a call to sRD");
 

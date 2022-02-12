@@ -1,0 +1,36 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: HTML Sanitizer API (https://wicg.github.io/sanitizer-api/)
+
+[
+  Exposed=(Window),
+  SecureContext
+] interface Sanitizer {
+  constructor(optional SanitizerConfig config = {});
+
+  DocumentFragment sanitize((Document or DocumentFragment) input);
+  Element? sanitizeFor(DOMString element, DOMString input);
+
+  SanitizerConfig getConfiguration();
+  static SanitizerConfig getDefaultConfiguration();
+};
+
+dictionary SetHTMLOptions {
+  Sanitizer sanitizer;
+};
+partial interface Element {
+  undefined setHTML(DOMString input, optional SetHTMLOptions options = {});
+};
+
+dictionary SanitizerConfig {
+  sequence<DOMString> allowElements;
+  sequence<DOMString> blockElements;
+  sequence<DOMString> dropElements;
+  AttributeMatchList allowAttributes;
+  AttributeMatchList dropAttributes;
+  boolean allowCustomElements;
+  boolean allowComments;
+};
+
+typedef record<DOMString, sequence<DOMString>> AttributeMatchList;

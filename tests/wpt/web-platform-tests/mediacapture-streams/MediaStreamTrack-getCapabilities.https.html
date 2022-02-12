@@ -2,6 +2,9 @@
 <title>MediaStreamTrack and InputDeviceInfo GetCapabilities</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
 
 const audioProperties = [
@@ -96,8 +99,9 @@ function testCapabilities(capabilities, property, testNamePrefix) {
 }
 
 {
-  audioProperties.forEach(property => {
+  audioProperties.forEach((property, i) => {
     promise_test(async t => {
+      if (i === 0) await setMediaPermission("granted", ["microphone"]);
       const stream = await navigator.mediaDevices.getUserMedia({audio: true});
       t.add_cleanup(() => stream.getAudioTracks()[0].stop());
       const audioCapabilities = stream.getAudioTracks()[0].getCapabilities();

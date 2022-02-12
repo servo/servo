@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned item dynamic change</title>
+<link rel="author" title="Filipp Riabchun" href="mailto:talpa@yandex.ru">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<meta name="assert" content="This test checks that positioned items react to grid track size changes.">
+<style>
+.green {
+  background: green;
+  width: 100px;
+  height: 50px;
+  margin-bottom: 8px;
+}
+
+.blue {
+  border: 3px solid blue;
+  box-sizing: border-box;
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+
+</style>
+
+<p>Test passes if there is a filled green rectangle on top and a green square with blue border on bottom.</p>
+
+<div class="green"></div>
+<div class="blue"></div>
+
+</html>

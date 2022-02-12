@@ -18,6 +18,9 @@ via the <code>srcObject</code> attribute.</p>
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
 'use strict';
 const vid = document.getElementById("vid");
@@ -28,6 +31,7 @@ function queueTask(f) {
 }
 
 promise_test(async t => {
+  await setMediaPermission();
   const stream = await navigator.mediaDevices.getUserMedia({video: true});
   t.add_cleanup(() => {
     vid.srcObject = null;

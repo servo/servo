@@ -1,0 +1,9 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): preserve-3d on inline and hit test</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-style-property">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1127348">
+<meta name="assert" content="This should not crash.">
+<span style="transform-style: preserve-3d; position: relative">TEST</span>
+<script>
+document.elementFromPoint(10, 10);
+</script>

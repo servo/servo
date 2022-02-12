@@ -19,22 +19,22 @@
   }
   promise_test(function(t) {
     assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
-    let observedMouseDown = false;
+    let observedPointerDown = false;
     const observerPromise = new Promise(resolve => {
       const observer = new PerformanceObserver(t.step_func(entryList => {
-        const mouseDowns = entryList.getEntriesByName('mousedown');
-        // Ignore cases in which there is no mousedown.
-        if (mouseDowns.length === 0)
+        const pointerDowns = entryList.getEntriesByName('pointerdown');
+        // Ignore cases in which there is no pointerdown.
+        if (pointerDowns.length === 0)
           return;
 
-        assert_false(observedMouseDown, 'There must only be one mousedown entry.');
-        assert_equals(mouseDowns.length, 1);
-        const entry = mouseDowns[0];
+        assert_false(observedPointerDown, 'There must only be one pointerdown entry.');
+        assert_equals(pointerDowns.length, 1);
+        const entry = pointerDowns[0];
         // This ensures that the entry is exposing timing from the second click, i.e.
         // the one from the clickAndBlockMain() call.
         assert_greater_than_equal(entry.processingStart, beforeClick);
         verifyClickEvent(entry, 'div2', true);
-        observedMouseDown = true;
+        observedPointerDown = true;
         resolve();
       }));
       observer.observe({entryTypes: ['event']});

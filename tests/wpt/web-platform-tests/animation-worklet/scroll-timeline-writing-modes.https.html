@@ -54,7 +54,6 @@ function createAndPlayTestAnimation(elements, timeline_orientation) {
 
   const timeline = new ScrollTimeline({
     scrollSource: elements.scroller,
-    timeRange: 1000,
     orientation: timeline_orientation
   });
   const animation = new WorkletAnimation('passthrough', effect, timeline);

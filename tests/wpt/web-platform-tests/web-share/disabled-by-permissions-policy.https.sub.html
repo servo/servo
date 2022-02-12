@@ -11,14 +11,16 @@
   </head>
   <body>
     <script>
-      promise_test(async t => {
+      promise_test(async (t) => {
         await test_driver.bless("web share");
-
         await promise_rejects_dom(t, "NotAllowedError", navigator.share({}));
       }, "share() can be disabled by permissions policy");
 
-      promise_test(async t => {
-        await promise_rejects_dom(t, "NotAllowedError", navigator.canShare({}));
+      test((t) => {
+        assert_false(
+          navigator.canShare({ text: "foo" }),
+          "not allowed to share"
+        );
       }, "canShare() can be disabled by permissions policy");
     </script>
   </body>

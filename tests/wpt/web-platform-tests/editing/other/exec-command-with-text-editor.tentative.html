@@ -53,31 +53,9 @@ function runTest(aTarget, aDescription) {
     {command: "getHTML", param: null,
      value: "a[b]c", expectedValue: "a[b]c",
      expectedExecCommandResult: false,
-     expectedCommandSupported: true,
-     expectedCommandEnabled: true,
+     expectedCommandSupported: false,
+     expectedCommandEnabled: false,
      beforeinputExpected: null, inputExpected: null,
-     additionalCheckFunc: aDescription => {
-       test(
-         () => assert_equals(document.queryCommandValue("getHTML"), "b"),
-         `${aDescription}: getHTML value should be "b" when ${
-           kIsTextArea ? "<textarea>" : "<input>"
-         } has focus`
-       );
-       aTarget.blur();
-       container.focus();
-       getSelection().setBaseAndExtent(
-         container.firstChild,
-         1,
-         container.querySelector("b").nextSibling,
-         2
-       );
-       test(
-         () => assert_equals(document.queryCommandValue("getHTML"), "ere <b>is</b> T"),
-         `${aDescription}: getHTML value should be "ere <b>is</b> T" when ${
-           kIsTextArea ? "<textarea>" : "<input>"
-         } does not have focus`
-        );
-      },
     },
     {command: "bold", param: "bold",
      value: "a[b]c", expectedValue: "a[b]c",
@@ -283,14 +261,14 @@ function runTest(aTarget, aDescription) {
     {command: "increasefontsize", param: null,
      value: "a[b]c", expectedValue: "a[b]c",
      expectedExecCommandResult: false,
-     expectedCommandSupported: true,
+     expectedCommandSupported: false,
      expectedCommandEnabled: false,
      beforeinputExpected: null, inputExpected: null,
     },
     {command: "decreasefontsize", param: null,
      value: "a[b]c", expectedValue: "a[b]c",
      expectedExecCommandResult: false,
-     expectedCommandSupported: true,
+     expectedCommandSupported: false,
      expectedCommandEnabled: false,
      beforeinputExpected: null, inputExpected: null,
     },
@@ -413,7 +391,7 @@ function runTest(aTarget, aDescription) {
     {command: "heading", param: "h1",
      value: "a[b]c", expectedValue: "a[b]c",
      expectedExecCommandResult: false,
-     expectedCommandSupported: true,
+     expectedCommandSupported: false,
      expectedCommandEnabled: false,
      beforeinputExpected: null, inputExpected: null,
     },
@@ -467,19 +445,19 @@ function runTest(aTarget, aDescription) {
     },
     {command: "contentReadOnly", param: "true",
      value: "a[b]c", expectedValue: "a[b]c",
-     expectedExecCommandResult: true,
-     expectedCommandSupported: true,
-     expectedCommandEnabled: true,
+     expectedExecCommandResult: false,
+     expectedCommandSupported: false,
+     expectedCommandEnabled: false,
      beforeinputExpected: null, inputExpected: null,
      additionalCheckFunc: aDescription => {
        test(
-         () => assert_equals(document.queryCommandState("contentReadOnly"), true),
+         () => assert_equals(document.queryCommandState("contentReadOnly"), false),
          `${aDescription}: contentReadOnly state should be true when ${
            kIsTextArea ? "<textarea>" : "<input>"
          } has focus`
        );
        test(
-         () => assert_equals(aTarget.readOnly, true),
+         () => assert_equals(aTarget.readOnly, false),
          `${aDescription}: readonly property should be true`
        );
        aTarget.blur();
@@ -495,9 +473,9 @@ function runTest(aTarget, aDescription) {
     },
     {command: "contentReadOnly", param: "false",
      value: "a[b]c", expectedValue: "a[b]c",
-     expectedExecCommandResult: true,
-     expectedCommandSupported: true,
-     expectedCommandEnabled: true,
+     expectedExecCommandResult: false,
+     expectedCommandSupported: false,
+     expectedCommandEnabled: false,
      beforeinputExpected: null, inputExpected: null,
      additionalCheckFunc: aDescription => {
        test(
@@ -603,7 +581,7 @@ function runTest(aTarget, aDescription) {
       } enabled`
     );
 
-    if (!document.queryCommandSupported(kTest.command)) {
+    if (!document.queryCommandSupported(kTest.command) || !kTest.expectedCommandSupported) {
       continue;
     }
 

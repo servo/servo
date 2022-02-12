@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <body>
-  <script src=/resources/testharness.js></script>
+<script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
   <script src=/common/get-host-info.sub.js></script>
   <script src=/feature-policy/resources/featurepolicy.js></script>
   <script>
   'use strict';
-
   async function gUM({audio, video}) {
     let stream;
+    if (!page_loaded_in_iframe()) {
+      await setMediaPermission();
+    }
     try {
       stream = await navigator.mediaDevices.getUserMedia({audio, video});
       // getUserMedia must guarantee the number of tracks requested or fail.

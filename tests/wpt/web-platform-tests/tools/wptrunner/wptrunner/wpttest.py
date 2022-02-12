@@ -120,8 +120,9 @@ class RunInfo(Dict[str, Any]):
             self["wasm"] = False
         if extras is not None:
             self.update(extras)
+        if "headless" not in self:
+            self["headless"] = False
 
-        self["headless"] = extras.get("headless", False)
         self["webrender"] = enable_webrender
 
     def _update_mozinfo(self, metadata_root):

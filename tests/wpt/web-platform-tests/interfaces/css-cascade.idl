@@ -1,0 +1,18 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Cascading and Inheritance Level 5 (https://drafts.csswg.org/css-cascade-5/)
+
+partial interface CSSImportRule {
+  readonly attribute CSSOMString? layerName;
+};
+
+[Exposed=Window]
+interface CSSLayerBlockRule : CSSGroupingRule {
+  readonly attribute CSSOMString name;
+};
+
+[Exposed=Window]
+interface CSSLayerStatementRule : CSSRule {
+  readonly attribute FrozenArray<CSSOMString> nameList;
+};

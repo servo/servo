@@ -1,0 +1,36 @@
+<!doctype html>
+<title>CSS Cascade Layers IDL tests</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layer-apis">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<style>
+@layer bar, baz;
+@import url('data:text/css,') layer(qux);
+@layer foo { }
+</style>
+
+<script>
+  'use strict';
+  idl_test(
+    ['css-cascade'],
+    ['cssom'],
+    idl_array => {
+      try {
+        self.statement = document.styleSheets[0].cssRules.item(0);
+        self.layeredImport = document.styleSheets[0].cssRules.item(1);
+        self.block = document.styleSheets[0].cssRules.item(2);
+      } catch (e) {
+        // Will be surfaced when any rule is undefined below.
+      }
+
+      idl_array.add_objects({
+        CSSLayerBlockRule: ['block'],
+        CSSLayerStatementRule: ['statement'],
+        CSSImportRule: ['layeredImport']
+      });
+    }
+  );
+</script>

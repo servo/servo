@@ -52,10 +52,10 @@
          data-expected-width="5" data-expected-height="5">
 </div>
 
-<div class="flexbox column" style="height: 10px;" data-expected-height="10">
-    <!-- should use min(specified, content height) = 10px as minimum height,
+<div class="flexbox column" style="height: 10px; width: 50px;" data-expected-height="10">
+    <!-- should use min(specified=100, content height=50) = 50px as minimum height,
          which the image will shrink to due to default flex-shrink. -->
-    <img src="support/10x10-green.png" style="height: 100px;" data-expected-height="10">
+    <img src="support/10x10-green.png" style="height: 100px;" data-expected-height="50">
 </div>
 
 <div class="flexbox" style="height: 10px;" data-expected-height="10">

@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 from webdriver.bidi.error import InvalidArgumentException
@@ -32,7 +30,7 @@ async def test_params_events_value_invalid_type(send_blocking_command, value):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("value", ["", "foo", "foo.bar"])
+@pytest.mark.parametrize("value", ["", "foo", "foo.bar", "log.invalidEvent"])
 async def test_params_events_value_invalid_event_name(send_blocking_command, value):
     with pytest.raises(InvalidArgumentException):
         response = await send_blocking_command("session.subscribe", {"events": [value]})

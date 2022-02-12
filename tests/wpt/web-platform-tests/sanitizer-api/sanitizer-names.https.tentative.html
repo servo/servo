@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  // Like assert_array_equals, but disregard element order.
+  function assert_array_same(actual, expected) {
+    assert_array_equals(actual.sort(), expected.sort());
+  }
+
+  // Element names:
+  const elems_valid = [
+    "p", "template", "span", "custom-elements", "svg", "svg:svg", "potato",
+
+    // Arguments will be stringified, so anything that stringifies to a valid
+    // name is also valid. (E.g. null => "null")
+    null, undefined, 123
+  ];
+  const elems_invalid = [
+    "", "svg svg", "potato:svg", [], ["*"], ["p"]
+  ];
+
+  // Attribute names:
+  const attrs_valid = [
+    "href", "span", "xlink:href"
+  ];
+  const attrs_invalid = [
+    "svg:href", "svg href", "xlink:span"
+  ];
+
+  const all_elems = elems_valid.concat(elems_invalid);
+  const all_attrs = attrs_valid.concat(attrs_invalid);
+  for (const item of ["allowElements", "dropElements", "blockElements"]) {
+    test(t => {
+      const sanitizer = new Sanitizer({[item]: all_elems});
+      assert_array_same(sanitizer.getConfiguration()[item],
+                          elems_valid.map(x => "" + x));
+    }, `Element names in config item: ${item}`);
+  }
+  for (const item of ["allowAttributes", "dropAttributes"]) {
+    test(t => {
+      const sanitizer = new Sanitizer(
+          {[item]: Object.fromEntries(all_attrs.map(x => [x, ["*"]]))});
+      assert_array_same(Object.keys(sanitizer.getConfiguration()[item]),
+                        attrs_valid.map(x => "" + x));
+    }, `Attribute names in config item: ${item}`);
+  }
+
+  // Quick sanity tests for namespaced elements.
+  // Each test case is a duo or triplet:
+  // - a Sanitizer config string for an element.
+  // - an HTML probe string.
+  // - the expected result. (If different from the probe.)
+  [
+    [ "p", "<p>Hello</p>" ],
+    [ "svg", "<svg>Hello</svg>", "Hello" ],
+    [ "svg:svg", "<svg>Hello</svg>" ],
+    [ "math", "<math>Hello</math>", "Hello" ],
+    [ "svg:math", "<math>Hello</math>", "Hello" ],
+    [ "math:math", "<math>Hello</math>" ],
+    [ "potato:math", "<math>Hello</math>", "Hello" ],
+    [ "potato:math", "<potato:math>Hello</potato:math>", "Hello" ],
+  ].forEach(([elem, probe, expected], index) => {
+    test(t => {
+      const sanitizer = new Sanitizer({allowElements: [elem]});
+      assert_equals(sanitizer.sanitizeFor("template", probe).innerHTML,
+                    expected ?? probe);
+    }, `Namespaced elements #${index}: allowElements: ["${elem}"]`);
+  });
+
+  // Same for attributes:
+  [
+    [ "style", "<p style=\"bla\"></p>" ],
+    [ "href", "<p href=\"bla\"></p>" ],
+    [ "xlink:href", "<p xlink:href=\"bla\"></p>" ],
+    [ "potato:href", "<p potato:href='bla'></p>", "<p></p>" ],
+    [ "xlink:href", "<p href='bla'></p>", "<p></p>" ],
+    [ "href", "<p xlink:href='bla'></p>", "<p></p>" ],
+  ].forEach(([attr, probe, expected], index) => {
+    test(t => {
+      const sanitizer = new Sanitizer({allowAttributes: {[attr]: ["*"]}});
+      assert_equals(sanitizer.sanitizeFor("template", probe).innerHTML,
+                    expected ?? probe);
+    }, `Namespaced attributes #${index}: allowAttributes: {"${attr}": ["*"]}`);
+  });
+
+  // Most element and attribute names are lower-cased, but "foreign content"
+  // like SVG and MathML have some mixed-cased names.
+  [
+    [ "svg:feBlend", "<feBlend></feBlend>" ],
+    [ "svg:feColorMatrix", "<feColorMatrix></feColorMatrix>" ],
+    [ "svg:textPath", "<textPath></textPath>" ],
+  ].forEach(([elem, probe], index) => {
+    const sanitize = (elem, probe) => {
+      return new Sanitizer({allowElements: ["svg:svg", elem]}).
+          sanitizeFor("template", `<svg>${probe}</svg`).
+          content.firstElementChild.innerHTML;
+    };
+    test(t => {
+      assert_equals(sanitize(elem, probe), probe);
+    }, `Mixed-case element names #${index}: "${elem}"`);
+    test(t => {
+      assert_equals(sanitize(elem.toLowerCase(), probe), probe);
+    }, `Mixed-case element names #${index}: "${elem.toLowerCase()}"`);
+    test(t => {
+      assert_equals(sanitize(elem.toUpperCase(), probe), probe);
+    }, `Mixed-case element names #${index}: "${elem.toUpperCase()}"`);
+    test(t => {
+      assert_equals(sanitize(elem, probe.toLowerCase()), probe);
+    }, `Mixed-case element names #${index}: "${elem}" with lowercase probe.`);
+    test(t => {
+      const elems = [elem];
+      assert_array_equals(
+        new Sanitizer({allowElements: elems}).getConfiguration().allowElements,
+        elems);
+    }, `Mixed case element names #${index}: "${elem}" is preserved in config.`);
+  });
+</script>
+</body>
+</html>

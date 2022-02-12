@@ -38,7 +38,7 @@ def main(request, response):
 <!doctype html>
 <meta charset=utf-8>
 <script src="/common/get-host-info.sub.js"></script>
-<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/fully-loaded.js"></script>
 <body>
 <script>
   const params = %s;

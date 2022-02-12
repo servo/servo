@@ -34,9 +34,13 @@ dictionary TaskPriorityChangeEventInit : EventInit {
   required TaskPriority previousPriority;
 };
 
+dictionary TaskControllerInit {
+  TaskPriority priority = "user-visible";
+};
+
 [Exposed=(Window,Worker)]
 interface TaskController : AbortController {
-  constructor(optional TaskPriority priority = "user-visible");
+  constructor(optional TaskControllerInit init = {});
 
   undefined setPriority(TaskPriority priority);
 };

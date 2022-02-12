@@ -166,6 +166,7 @@ valid.update(valid_relative_colon_dot)
 invalid_file = {
     "scheme-file-backslash": "file:c:\\foo\\bar.html",
     "scheme-file-single-slash-c-bar": "file:/C|/foo/bar",
+    "scheme-file-slash-slash-abc-bar": "file://abc|/foo/bar",
     "scheme-file-triple-slash-c-bar": "file:///C|/foo/bar",
 }
 invalid.update(invalid_file)
@@ -173,7 +174,6 @@ invalid.update(invalid_file)
 valid_file = {
     "scheme-file-uppercase": "File://foo/bar.html",
     "scheme-file-slash-slash-c-bar": "file://C|/foo/bar",
-    "scheme-file-slash-slash-abc-bar": "file://abc|/foo/bar",
     "scheme-file-host-included": "file://server/foo/bar",
     "scheme-file-host-empty": "file:///foo/bar.txt",
     "scheme-file-scheme-only": "file:",

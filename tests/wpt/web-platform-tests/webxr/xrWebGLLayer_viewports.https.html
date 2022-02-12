@@ -60,7 +60,10 @@ let testFunction = function(session, fakeDeviceController, t) {
 
 xr_session_promise_test(immersiveTestName, testFunction,
   fakeDeviceInitParams, 'immersive-vr');
+xr_session_promise_test(immersiveTestName + ' with secondary views requested', testFunction,
+  fakeDeviceInitParams, 'immersive-vr', {'optionalFeatures': ['secondary-views']});
 xr_session_promise_test(inlineTestName, testFunction,
   fakeDeviceInitParams, 'inline');
-
+xr_session_promise_test(inlineTestName + ' with secondary views requested', testFunction,
+  fakeDeviceInitParams, 'inline', {'optionalFeatures': ['secondary-views']});
 </script>

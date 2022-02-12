@@ -8,17 +8,35 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
+<body>
+<base href="scripts/foo/">
 <script>
 "use strict";
 
+// This test is based on the current specification, but all browser
+// implementations aren't conformant. See
+// https://bugs.chromium.org/p/chromium/issues/detail?id=1245063
+// https://github.com/heycam/webidl/pull/902
+
+// Tweak the base URL of the document here to distinguish:
+// - document URL
+// - document base URL = ../
+// - This inline script's base URL = ./scripts/foo/
+document.querySelector("base").remove();
+const base = document.createElement("base");
+base.setAttribute("href", "../");
+document.body.appendChild(base);
+
 self.ran = false;
 
+// The active script for the dynamic import is this inline script
+// (see https://html.spec.whatwg.org/C/#hostmakejobcallback).
 promise_test(t => {
   t.add_cleanup(() => {
     self.ran = false;
   })
 
-  return Promise.resolve(`import("../imports-a.js?1").then(() => { self.ran = true; })`)
+  return Promise.resolve(`import("../../../imports-a.js?1").then(() => { self.ran = true; })`)
     .then(eval)
     .then(() => {
       assert_true(self.ran);
@@ -42,7 +60,7 @@ promise_test(t => {
     self.ran = false;
   })
 
-  return Promise.resolve(`return import("../imports-a.js?2").then(() => { self.ran = true; })`)
+  return Promise.resolve(`return import("../../../imports-a.js?2").then(() => { self.ran = true; })`)
     .then(Function)
     .then(Function.prototype.call.bind(Function.prototype.call))
     .then(() => {

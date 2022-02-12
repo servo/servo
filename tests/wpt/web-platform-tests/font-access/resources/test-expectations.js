@@ -24,9 +24,6 @@ const MAC_FONTS = [
       'prep',
       'gasp',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   {
     postscriptName: 'Menlo-Regular',
@@ -40,9 +37,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   {
     postscriptName: 'Menlo-Bold',
@@ -56,9 +50,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 700,
   },
   {
     postscriptName: 'Menlo-BoldItalic',
@@ -72,9 +63,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: true,
-    stretch: 1,
-    weight: 700,
   },
   // Indic.
   {
@@ -89,9 +77,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   {
     postscriptName: 'GujaratiMT-Bold',
@@ -105,9 +90,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 700,
   },
   {
     postscriptName: 'DevanagariMT',
@@ -121,9 +103,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   {
     postscriptName: 'DevanagariMT-Bold',
@@ -137,9 +116,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 700,
   },
   // Japanese.
   {
@@ -152,9 +128,6 @@ const MAC_FONTS = [
       'CFF ',
       'VORG',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   {
     postscriptName: 'HiraMinProN-W6',
@@ -166,9 +139,6 @@ const MAC_FONTS = [
       'CFF ',
       'VORG',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 700,
   },
   // Korean.
   {
@@ -182,9 +152,6 @@ const MAC_FONTS = [
       'glyf',
       'loca',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 300,
   },
   {
     postscriptName: 'AppleMyungjo',
@@ -197,9 +164,6 @@ const MAC_FONTS = [
       'glyf',
       'loca',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   // Chinese.
   {
@@ -214,9 +178,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   {
     postscriptName: 'STHeitiTC-Medium',
@@ -230,9 +191,6 @@ const MAC_FONTS = [
       'loca',
       'prep',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 700,
   },
   // Bitmap.
   {
@@ -247,9 +205,6 @@ const MAC_FONTS = [
       // Tables related to Bitmap Glyphs.
       'sbix',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
 ];
 
@@ -268,9 +223,6 @@ const WIN_FONTS = [
       'prep',
       'gasp',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   {
     postscriptName: 'Verdana-Bold',
@@ -286,9 +238,6 @@ const WIN_FONTS = [
       'prep',
       'gasp',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 700,
   },
   {
     postscriptName: 'Verdana-Italic',
@@ -304,9 +253,6 @@ const WIN_FONTS = [
       'prep',
       'gasp',
     ],
-    italic: true,
-    stretch: 1,
-    weight: 400,
   },
   // Korean.
   {
@@ -323,9 +269,6 @@ const WIN_FONTS = [
       'prep',
       'gasp',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 700,
   },
   // Chinese.
   {
@@ -334,9 +277,6 @@ const WIN_FONTS = [
     family: 'Microsoft YaHei',
     style: 'Regular',
     label: TEST_SIZE_CATEGORY.medium,
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
   {
     postscriptName: 'MicrosoftYaHei-Bold',
@@ -344,9 +284,6 @@ const WIN_FONTS = [
     family: 'Microsoft YaHei',
     style: 'Bold',
     label: TEST_SIZE_CATEGORY.medium,
-    italic: false,
-    stretch: 1,
-    weight: 700,
   },
 ];
 
@@ -365,9 +302,6 @@ const LINUX_FONTS = [
       'prep',
       'gasp',
     ],
-    italic: false,
-    stretch: 1,
-    weight: 400,
   },
 ];
 

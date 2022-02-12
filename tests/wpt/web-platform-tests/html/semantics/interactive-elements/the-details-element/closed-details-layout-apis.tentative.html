@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/6466">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<details id=details>
+  <div style="width:100px; height:100px; background-color:red" id=innerdiv></div>
+</details>
+
+<script>
+test(() => {
+  assert_not_equals(innerdiv.getBoundingClientRect().x, 0, 'x before open');
+  assert_not_equals(innerdiv.getBoundingClientRect().y, 0, 'y before open');
+  assert_not_equals(innerdiv.getBoundingClientRect().width, 0, 'width before open');
+  assert_not_equals(innerdiv.getBoundingClientRect().height, 0, 'height before open');
+  details.open = true;
+  assert_not_equals(innerdiv.getBoundingClientRect().x, 0, 'x after open');
+  assert_not_equals(innerdiv.getBoundingClientRect().y, 0, 'y after open');
+  assert_not_equals(innerdiv.getBoundingClientRect().width, 0, 'width after open');
+  assert_not_equals(innerdiv.getBoundingClientRect().height, 0, 'height after open');
+  details.open = false;
+  assert_not_equals(innerdiv.getBoundingClientRect().x, 0, 'x after close');
+  assert_not_equals(innerdiv.getBoundingClientRect().y, 0, 'y after close');
+  assert_not_equals(innerdiv.getBoundingClientRect().width, 0, 'width after close');
+  assert_not_equals(innerdiv.getBoundingClientRect().height, 0, 'height after close');
+}, `Verifies the layout results of elements inside a closed <details> based on the usage of content-visibility:hidden.`);
+</script>

@@ -42,7 +42,10 @@ test_invalid_value("grid", '"a" / none');
 test_invalid_value("grid", 'none / [] "a"');
 test_invalid_value("grid", 'none / "a" []');
 test_invalid_value("grid", 'none / "a" [] 10px');
-
+test_invalid_value("grid", 'auto-flow 100px');
+test_invalid_value("grid", 'auto-flow / auto-flow');
+test_invalid_value("grid", 'auto-flow 1fr / auto-flow 1fr');
+test_invalid_value("grid", 'dense auto-flow / dense auto-flow');
 // FIXME: add more values to test full syntax
 
 </script>

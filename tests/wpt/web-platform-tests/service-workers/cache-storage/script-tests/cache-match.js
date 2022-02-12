@@ -413,4 +413,25 @@ cache_test(async (cache) => {
                   'overwritten and cached response mime types should match');
   }, 'MIME type should reflect Content-Type headers of response.');
 
+cache_test(async (cache) => {
+  const url = new URL('../resources/vary.py?vary=foo',
+      get_host_info().HTTPS_REMOTE_ORIGIN + self.location.pathname);
+  const original_request = new Request(url, { mode: 'no-cors',
+                                              headers: { 'foo': 'bar' } });
+  const fetch_response = await fetch(original_request);
+  assert_equals(fetch_response.type, 'opaque');
+
+  await cache.put(original_request, fetch_response);
+
+  const match_response_1 = await cache.match(original_request);
+  assert_not_equals(match_response_1, undefined);
+
+  // Verify that cache.match() finds the entry even if queried with a varied
+  // header that does not match the cache key.  Vary headers should be ignored
+  // for opaque responses.
+  const different_request = new Request(url, { headers: { 'foo': 'CHANGED' } });
+  const match_response_2 = await cache.match(different_request);
+  assert_not_equals(match_response_2, undefined);
+}, 'Cache.match ignores vary headers on opaque response.');
+
 done();

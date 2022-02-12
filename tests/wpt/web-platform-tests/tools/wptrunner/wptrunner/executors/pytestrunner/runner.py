@@ -44,14 +44,14 @@ def run(path, server_config, session_config, timeout=0, environ=None):
     old_environ = os.environ.copy()
     try:
         with TemporaryDirectory() as cache:
-            os.environ["WD_HOST"] = session_config["host"]
-            os.environ["WD_PORT"] = str(session_config["port"])
-            os.environ["WD_CAPABILITIES"] = json.dumps(session_config["capabilities"])
+            config_path = os.path.join(cache, "wd_config.json")
+            os.environ["WDSPEC_CONFIG_FILE"] = config_path
 
-            config_path = os.path.join(cache, "wd_server_config.json")
-            os.environ["WD_SERVER_CONFIG_FILE"] = config_path
+            config = session_config.copy()
+            config["wptserve"] = server_config.as_dict()
+
             with open(config_path, "w") as f:
-                json.dump(server_config.as_dict(), f)
+                json.dump(config, f)
 
             if environ:
                 os.environ.update(environ)
@@ -60,10 +60,11 @@ def run(path, server_config, session_config, timeout=0, environ=None):
             subtests = SubtestResultRecorder()
 
             try:
+                basetemp = os.path.join(cache, "pytest")
                 pytest.main(["--strict",  # turn warnings into errors
                              "-vv",  # show each individual subtest and full failure logs
                              "--capture", "no",  # enable stdout/stderr from tests
-                             "--basetemp", cache,  # temporary directory
+                             "--basetemp", basetemp,  # temporary directory
                              "--showlocals",  # display contents of variables in local scope
                              "-p", "no:mozlog",  # use the WPT result recorder
                              "-p", "no:cacheprovider",  # disable state preservation across invocations
@@ -147,7 +148,7 @@ class SubtestResultRecorder(object):
 
 class TemporaryDirectory(object):
     def __enter__(self):
-        self.path = tempfile.mkdtemp(prefix="pytest-")
+        self.path = tempfile.mkdtemp(prefix="wdspec-")
         return self.path
 
     def __exit__(self, *args):

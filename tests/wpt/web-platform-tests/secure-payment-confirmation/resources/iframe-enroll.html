@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SPC Enrollment iframe</title>
+<script src="../utils.sub.js"></script>
+<script>
+'use strict';
+
+// Assume that our parent has already created a virtual authenticator device.
+createCredential().then(credential => {
+  parent.postMessage({id: credential.id, rawId: credential.rawId}, '*');
+}).catch(e => {
+  parent.postMessage({error: e}, '*');
+});
+</script>

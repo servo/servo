@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#0f0';
 ctx.strokeStyle = '#f00';
@@ -29,10 +29,10 @@ ctx.lineTo(1000, 1000);
 ctx.lineTo(1000, 200);
 ctx.closePath();
 ctx.stroke();
-_assertPixel(offscreenCanvas, 1,1, 0,255,0,255, "1,1", "0,255,0,255");
-_assertPixel(offscreenCanvas, 48,1, 0,255,0,255, "48,1", "0,255,0,255");
-_assertPixel(offscreenCanvas, 48,48, 0,255,0,255, "48,48", "0,255,0,255");
-_assertPixel(offscreenCanvas, 1,48, 0,255,0,255, "1,48", "0,255,0,255");
+_assertPixel(canvas, 1,1, 0,255,0,255, "1,1", "0,255,0,255");
+_assertPixel(canvas, 48,1, 0,255,0,255, "48,1", "0,255,0,255");
+_assertPixel(canvas, 48,48, 0,255,0,255, "48,48", "0,255,0,255");
+_assertPixel(canvas, 1,48, 0,255,0,255, "1,48", "0,255,0,255");
 t.done();
 
 });

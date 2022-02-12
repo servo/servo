@@ -19,47 +19,39 @@
   }
   @scroll-timeline timeline_0px_100px {
     source: selector(#scroller);
-    time-range: 10s;
     start: 0px;
     end: 100px;
   }
   @scroll-timeline timeline_50px_100px {
     source: selector(#scroller);
-    time-range: 10s;
     start: 50px;
     end: 100px;
   }
   @scroll-timeline timeline_auto_auto {
     source: selector(#scroller);
-    time-range: 10s;
     start: auto;
     end: auto;
   }
   @scroll-timeline timeline_auto_auto_implicit {
     source: selector(#scroller);
-    time-range: 10s;
   }
   @scroll-timeline timeline_50px_auto {
     source: selector(#scroller);
-    time-range: 10s;
     start: 50px;
     end: auto;
   }
   @scroll-timeline timeline_auto_100px {
     source: selector(#scroller);
-    time-range: 10s;
     start: auto;
     end: 100px;
   }
   @scroll-timeline timeline_25p_75p {
     source: selector(#scroller);
-    time-range: 10s;
     start: 25%;
     end: 75%;
   }
   @scroll-timeline timeline_calc_calc {
     source: selector(#scroller);
-    time-range: 10s;
     start: calc(25% + 10px);
     end: calc(75% + 10px);
   }
@@ -152,18 +144,14 @@
   test_approximate_width_at_fraction(element_auto_auto, 0.1, '110px');
   test_approximate_width_at_fraction(element_auto_auto, 0.5, '150px');
   test_approximate_width_at_fraction(element_auto_auto, 0.9, '190px');
-  // TODO: Effects for scroll linked animations are not inclusive at max scroll
-  // https://github.com/w3c/csswg-drafts/issues/5223
-  test_approximate_width_at_fraction(element_auto_auto, 1, '0px');
+  test_approximate_width_at_fraction(element_auto_auto, 1, '200px');
 
   // [auto, auto] (implicit)
   test_approximate_width_at_fraction(element_auto_auto_implicit, 0, '100px');
   test_approximate_width_at_fraction(element_auto_auto_implicit, 0.1, '110px');
   test_approximate_width_at_fraction(element_auto_auto_implicit, 0.5, '150px');
   test_approximate_width_at_fraction(element_auto_auto_implicit, 0.9, '190px');
-  // TODO: Effects for scroll linked animations are not inclusive at max scroll
-  // https://github.com/w3c/csswg-drafts/issues/5223
-  test_approximate_width_at_fraction(element_auto_auto_implicit, 1, '0px');
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 1, '200px');
 
   // [50px, auto]
   {
@@ -173,7 +161,7 @@
     test_width_at_scroll_top(element_50px_auto, 50, '100px');
     test_approximate_width_at_fraction(element_50px_auto, offset(0.5), '150px');
     test_approximate_width_at_fraction(element_50px_auto, offset(0.9), '190px');
-    test_approximate_width_at_fraction(element_50px_auto, 1, '0px');
+    test_approximate_width_at_fraction(element_50px_auto, 1, '200px');
   }
 
   // [auto, 100px]

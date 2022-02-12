@@ -57,24 +57,24 @@ const testCases = [
     {
         title: 'A1 Layer rules with import',
         style: `
-            @import url(basic-red.css);
+            @import url(basic-green.css);
             @layer {
-                target { color: green; }
+                target { color: red; }
             }
         `
     },
     {
         title: 'A2 Layer rules with import',
         style: `
-            @import url(layer-green.css);
-            target { color: red; }
+            @import url(layer-red.css);
+            target { color: green; }
         `
     },
     {
         title: 'A3 Layer rules with import',
         style: `
-            @import url(layer-green.css);
-            @import url(basic-red.css);
+            @import url(basic-green.css);
+            @import url(layer-red.css);
         `
     },
     {
@@ -92,8 +92,8 @@ const testCases = [
     {
         title: 'B1 Anonymous imports',
         style: `
-            @import url(basic-green.css) layer;
-            target { color: red; }
+            @import url(basic-red.css) layer;
+            target { color: green; }
         `
     },
     {
@@ -122,8 +122,8 @@ const testCases = [
     {
         title: 'C1 Named imports',
         style: `
-            @import url(basic-green.css) layer(A);
-            target { color: red; }
+            @import url(basic-red.css) layer(A);
+            target { color: green; }
         `
     },
     {
@@ -145,9 +145,9 @@ const testCases = [
     {
         title: 'C4 Named imports',
         style: `
-            @import url(layer-green.css) layer(A);
+            @import url(layer-red.css) layer(A);
             @layer A {
-                target { color: red; }
+                target { color: green; }
             }
         `
     },
@@ -192,8 +192,8 @@ const testCases = [
         title: 'C9 Named imports',
         style: `
             @import url(basic-red.css) layer(A);
-            @import url(basic-green.css) layer(B.A);
-            @import url(basic-red.css) layer(B);
+            @import url(basic-red.css) layer(B.A);
+            @import url(basic-green.css) layer(B);
         `
     },
     {
@@ -252,6 +252,18 @@ const testCases = [
             }
         `
     },
+    {
+        title: 'E1 Named imports establish layer even with network errors',
+        style: `
+            @import "nonexist.css" layer(A);
+            @layer B {
+                target { color: green; }
+            }
+            @layer A {
+                target { color: red; }
+            }
+        `,
+    },
 ];
 
 for (let testCase of testCases) {
@@ -260,18 +272,21 @@ for (let testCase of testCases) {
         const styleText = testCase['style'].replaceAll(/url\((.+?)\)/g, (match, p1) => {
             return `url(data:text/css,${ encodeURI(imports[p1]) })`;
         });
-        styleElement.appendChild(document.createTextNode(styleText));
+        styleElement.textContent = styleText;
 
         await new Promise(resolve => {
             styleElement.onload = resolve;
-            document.head.appendChild(styleElement);
+            styleElement.onerror = resolve;
+            document.head.append(styleElement);
         });
 
-        const targets = document.querySelectorAll('target');
-        for (target of targets)
-            assert_equals(window.getComputedStyle(target).color, 'rgb(0, 128, 0)', testCase['title'] + ", target '" + target.classList[0] + "'");
-
-       document.head.removeChild(styleElement);
+        try {
+            const targets = document.querySelectorAll('target');
+            for (target of targets)
+                assert_equals(window.getComputedStyle(target).color, 'rgb(0, 128, 0)', testCase['title'] + ", target '" + target.classList[0] + "'");
+        } finally {
+            styleElement.remove();
+        }
     }, testCase['title']);
 }
 </script>

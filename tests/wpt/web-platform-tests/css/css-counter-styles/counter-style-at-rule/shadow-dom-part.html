@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Counter style tree-scoped references</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#the-counter-style-rule">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="shadow-dom-part-ref.html">
+<meta name="assert" content="The list in the shadow tree should use the counter style defined in the outer document, because it's styled by the outer document">
+
+<style>
+@counter-style foo {
+  system: fixed;
+  symbols: A B C;
+}
+#host::part(list) {
+  list-style-type: foo;
+}
+</style>
+
+<div id="host"></div>
+
+<script>
+document.getElementById("host").attachShadow({mode: 'open'}).innerHTML = `
+<style>
+@counter-style foo {
+  system: fixed;
+  symbols: D E F;
+}
+</style>
+<ol part="list" style="list-style-position: inside">
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+`;
+</script>

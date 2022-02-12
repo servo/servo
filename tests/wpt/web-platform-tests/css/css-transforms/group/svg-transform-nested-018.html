@@ -21,7 +21,8 @@
     <svg>
         <path d="M 2,1 100,1 198,99 100,99 Z" fill="red"/>
         <g transform="skewX(45)">
-            <rect width="200" height="100" fill="green" transform="scaleX(0.5)"/>
+            <!-- FIXME: This test will still pass if the transform= is ignored -->
+            <rect width="200" height="100" fill="green" transform="scale(0.5 1)"/>
         </g>
     </svg>
 </body>

@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
 <script>
 
 // This test verifies that ImageCapture can be created (or not) with different
@@ -31,9 +34,11 @@ function makeAsyncTest(modifyTrack, message) {
     });
 
     const onError = test.unreached_func('Error creating MediaStream.');
-    navigator.mediaDevices.getUserMedia({video: true})
-    .then(gotStream)
-    .catch(onError);
+    // both permissions are needed at some point, asking for both at once
+    setMediaPermission()
+      .then(() => navigator.mediaDevices.getUserMedia({video: true}))
+      .then(gotStream)
+      .catch(onError);
 
   }, message);
 }

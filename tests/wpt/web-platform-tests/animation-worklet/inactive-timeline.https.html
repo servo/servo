@@ -33,7 +33,6 @@ function createScroller(test) {
 function createScrollLinkedWorkletAnimation(test) {
   const timeline = new ScrollTimeline({
     scrollSource: createScroller(test),
-    timeRange: 1000
   });
   const DURATION = 1000; // ms
   const KEYFRAMES = { transform: ['translateY(100px)', 'translateY(200px)'] };
@@ -61,7 +60,6 @@ function setupAndRegisterTests() {
       const targetRef = animationRef.effect.target;
 
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-      const timeRange = animation.timeline.timeRange;
       scroller.scrollTop = 0.2 * maxScroll;
 
       // Make the timeline inactive.

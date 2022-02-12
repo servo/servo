@@ -143,7 +143,7 @@ test_attributes(WebAssembly.Memory.prototype, "WebAssembly.Memory", [
 test_operations(WebAssembly.Table.prototype, "WebAssembly.Table", [
   ["grow", 1],
   ["get", 1],
-  ["set", 2],
+  ["set", 1],
 ]);
 
 test_attributes(WebAssembly.Table.prototype, "WebAssembly.Table", [

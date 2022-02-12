@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ServiceWorker Bridge</title>
+<script>
+  // This bridge document exists to perform service worker commands on behalf
+  // of a test page. It lives within the same scope (including origin) as the
+  // service worker script, allowing it to be controlled by the service worker.
+
+  async function register({ url, options }) {
+    await navigator.serviceWorker.register(url, options);
+    return { loaded: true };
+  }
+
+  async function unregister({ scope }) {
+    const registration = await navigator.serviceWorker.getRegistration(scope);
+    if (!registration) {
+      return { unregistered: false, error: "no registration" };
+    }
+
+    const unregistered = await registration.unregister();
+    return { unregistered };
+  }
+
+  async function update({ scope }) {
+    const registration = await navigator.serviceWorker.getRegistration(scope);
+    if (!registration) {
+      return { updated: false, error: "no registration" };
+    }
+
+    const newRegistration = await registration.update();
+    return { updated: true };
+  }
+
+  // Total number of `controllerchange` events since document creation.
+  let totalNumControllerChanges = 0;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    totalNumControllerChanges++;
+  });
+
+  // Using `navigator.serviceWorker.ready` does not allow noticing new
+  // controllers after an update, so we count `controllerchange` events instead.
+  // This has the added benefit of ensuring that subsequent fetches are handled
+  // by the service worker, whereas `ready` does not guarantee that.
+  async function wait({ numControllerChanges }) {
+    if (totalNumControllerChanges >= numControllerChanges) {
+      return {
+        controlled: !!navigator.serviceWorker.controller,
+        numControllerChanges: totalNumControllerChanges,
+      };
+    }
+
+    let remaining = numControllerChanges - totalNumControllerChanges;
+    await new Promise((resolve) => {
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        remaining--;
+        if (remaining == 0) {
+          resolve();
+        }
+      });
+    });
+
+    return {
+      controlled: !!navigator.serviceWorker.controller,
+      numControllerChanges,
+    };
+  }
+
+  async function doFetch({ url, options }) {
+    const response = await fetch(url, options);
+    const body = await response.text();
+    return {
+      ok: response.ok,
+      body,
+    };
+  }
+
+  function getAction(action) {
+    switch (action) {
+      case "register":
+        return register;
+      case "unregister":
+        return unregister;
+      case "wait":
+        return wait;
+      case "update":
+        return update;
+      case "fetch":
+        return doFetch;
+    }
+  }
+
+  window.addEventListener("message", async (evt) => {
+    let message;
+    try {
+      message = await getAction(evt.data.action)(evt.data);
+    } catch(e) {
+      message = { error: e.name };
+    }
+    parent.postMessage(message, "*");
+  });
+</script>

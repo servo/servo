@@ -33,6 +33,30 @@
         })
       }
 
+      function unknownScheme() {
+        test(() => {
+          var client = new XMLHttpRequest();
+          client.open("GET", "foobar://dummy", false);
+          try {
+            client.send();
+          } catch(ex) {}
+          assert_equals(client.status, 0, "response data");
+        }, "Unknown scheme");
+      }
+
+
+      function postOnBlob() {
+        test(() => {
+          var u = URL.createObjectURL(new Blob([""], {type: 'text/plain'}));
+          var client = new XMLHttpRequest();
+          client.open("POST", u, false);
+          try {
+            client.send();
+          } catch(ex) {}
+          assert_equals(client.status, 0, "response data");
+        }, "POST on blob uri");
+      }
+
       noError('GET', 200)
       noError('GET', 400)
       noError('GET', 401)
@@ -55,6 +79,9 @@
       noError('PUT', 404)
       noError('PUT', 500)
       noError('PUT', 699)
+
+      unknownScheme();
+      postOnBlob();
     </script>
   </body>
 </html>

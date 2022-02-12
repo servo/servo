@@ -10,7 +10,7 @@ promise_test(async t => {
     onnavigated_called = true;
     assert_equals(e.info, navInfo)
   });
-  await appHistory.navigate("#1", { info: navInfo, state: navState });
+  await appHistory.navigate("#1", { info: navInfo, state: navState }).committed;
   assert_true(onnavigated_called);
   assert_not_equals(appHistory.current.getState(), navState);
   assert_equals(appHistory.current.getState().statevar, navState.statevar);

@@ -13,8 +13,8 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 100, 50);
@@ -23,8 +23,8 @@ ctx.lineWidth = 50;
 ctx.beginPath();
 ctx.bezierCurveTo(100, 50, 200, 50, 200, 50);
 ctx.stroke();
-_assertPixel(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
-_assertPixel(offscreenCanvas, 95,45, 0,255,0,255, "95,45", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 95,45, 0,255,0,255, "95,45", "0,255,0,255");
 t.done();
 
 });

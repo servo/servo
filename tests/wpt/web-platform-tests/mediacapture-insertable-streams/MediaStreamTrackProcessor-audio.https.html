@@ -10,8 +10,12 @@
 <p class="instructions">This test checks that MediaStreamTrackProcessor works as expected on audio MediaStreamTracks.</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
 <script>
 promise_test(async t => {
+  await setMediaPermission("granted", ["microphone"]);
   const stream = await navigator.mediaDevices.getUserMedia({audio: true});
   const track = stream.getTracks()[0];
   const processor = new MediaStreamTrackProcessor({track: track});

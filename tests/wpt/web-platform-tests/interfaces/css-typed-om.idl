@@ -158,10 +158,10 @@ interface CSSMathMax : CSSMathValue {
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMathClamp : CSSMathValue {
-    constructor(CSSNumberish min, CSSNumberish val, CSSNumberish max);
-    readonly attribute CSSNumericValue min;
-    readonly attribute CSSNumericValue val;
-    readonly attribute CSSNumericValue max;
+    constructor(CSSNumberish lower, CSSNumberish value, CSSNumberish upper);
+    readonly attribute CSSNumericValue lower;
+    readonly attribute CSSNumericValue value;
+    readonly attribute CSSNumericValue upper;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
@@ -242,6 +242,8 @@ interface CSSTransformValue : CSSStyleValue {
     DOMMatrix toMatrix();
 };
 
+typedef (CSSNumericValue or CSSKeywordish) CSSPerspectiveValue;
+
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSTransformComponent {
     stringifier;
@@ -299,8 +301,8 @@ interface CSSSkewY : CSSTransformComponent {
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSPerspective : CSSTransformComponent {
-    constructor(CSSNumericValue length);
-    attribute CSSNumericValue length;
+    constructor(CSSPerspectiveValue length);
+    attribute CSSPerspectiveValue length;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
@@ -321,7 +323,7 @@ interface CSSImageValue : CSSStyleValue {
 interface CSSColorValue : CSSStyleValue {
     readonly attribute CSSKeywordValue colorSpace;
     CSSColorValue to(CSSKeywordish colorSpace);
-    [Exposed=Window] static CSSColorValue parse(USVString cssText);
+    [Exposed=Window] static (CSSColorValue or CSSStyleValue) parse(USVString cssText);
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]

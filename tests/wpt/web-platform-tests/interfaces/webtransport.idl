@@ -3,56 +3,50 @@
 // (https://github.com/w3c/webref)
 // Source: WebTransport (https://w3c.github.io/webtransport/)
 
-interface mixin UnidirectionalStreamsTransport {
-  Promise<SendStream> createUnidirectionalStream(optional SendStreamParameters parameters = {});
-  /* a ReadableStream of ReceiveStream objects */
-  readonly attribute ReadableStream incomingUnidirectionalStreams;
-};
-
-dictionary SendStreamParameters {
-};
-
-[Exposed=(Window,Worker)]
-interface DatagramDuplexStream {
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransportDatagramDuplexStream {
   readonly attribute ReadableStream readable;
   readonly attribute WritableStream writable;
+
+  readonly attribute unsigned long maxDatagramSize;
+  attribute double? incomingMaxAge;
+  attribute double? outgoingMaxAge;
+  attribute long incomingHighWaterMark;
+  attribute long outgoingHighWaterMark;
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker), SecureContext]
 interface WebTransport {
   constructor(USVString url, optional WebTransportOptions options = {});
 
   Promise<WebTransportStats> getStats();
-  readonly attribute WebTransportState state;
   readonly attribute Promise<undefined> ready;
   readonly attribute Promise<WebTransportCloseInfo> closed;
   undefined close(optional WebTransportCloseInfo closeInfo = {});
-  attribute EventHandler onstatechange;
 
-  readonly attribute unsigned short maxDatagramSize;
-  readonly attribute DatagramDuplexStream datagrams;
+  readonly attribute WebTransportDatagramDuplexStream datagrams;
 
-  Promise<BidirectionalStream> createBidirectionalStream();
-  /* a ReadableStream of BidirectionalStream objects */
+  Promise<WebTransportBidirectionalStream> createBidirectionalStream();
+  /* a ReadableStream of WebTransportBidirectionalStream objects */
   readonly attribute ReadableStream incomingBidirectionalStreams;
+
+  Promise<WritableStream> createUnidirectionalStream();
+  /* a ReadableStream of ReceiveStreams */
+  readonly attribute ReadableStream incomingUnidirectionalStreams;
 };
 
-WebTransport includes UnidirectionalStreamsTransport;
+dictionary WebTransportHash {
+  DOMString algorithm;
+  BufferSource value;
+};
 
 dictionary WebTransportOptions {
   boolean allowPooling;
-  sequence<RTCDtlsFingerprint> serverCertificateFingerprints;
-};
-
-enum WebTransportState {
-  "connecting",
-  "connected",
-  "closed",
-  "failed"
+  sequence<WebTransportHash> serverCertificateHashes;
 };
 
 dictionary WebTransportCloseInfo {
-  unsigned long long errorCode = 0;
+  unsigned long closeCode = 0;
   DOMString reason = "";
 };
 
@@ -68,23 +62,26 @@ dictionary WebTransportStats {
   unsigned long numReceivedDatagramsDropped;
 };
 
-[ Exposed=(Window,Worker) ]
-interface SendStream : WritableStream /* of Uint8Array */ {
-  readonly attribute Promise<StreamAbortInfo> remoteCanceled;
-  undefined reset(optional StreamAbortInfo abortInfo = {});
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransportBidirectionalStream {
+  readonly attribute ReadableStream readable;
+  readonly attribute WritableStream writable;
 };
 
-dictionary StreamAbortInfo {
-  [EnforceRange] octet errorCode = 0;
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransportError : DOMException {
+  constructor(optional WebTransportErrorInit init = {});
+
+  readonly attribute WebTransportErrorSource source;
+  readonly attribute octet? streamErrorCode;
 };
 
-[ Exposed=(Window,Worker) ]
-interface ReceiveStream : ReadableStream /* of Uint8Array */ {
-  readonly attribute Promise<StreamAbortInfo> remoteReset;
+dictionary WebTransportErrorInit {
+  [Clamp] octet streamErrorCode;
+  DOMString message;
 };
 
-[ Exposed=(Window,Worker) ]
-interface BidirectionalStream {
-  readonly attribute ReceiveStream readable;
-  readonly attribute SendStream writable;
+enum WebTransportErrorSource {
+  "stream",
+  "session",
 };

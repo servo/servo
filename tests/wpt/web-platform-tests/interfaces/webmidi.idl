@@ -3,6 +3,10 @@
 // (https://github.com/w3c/webref)
 // Source: Web MIDI API (https://webaudio.github.io/web-midi-api/)
 
+dictionary MidiPermissionDescriptor : PermissionDescriptor {
+  boolean sysex = false;
+};
+
 partial interface Navigator {
   [SecureContext]
   Promise <MIDIAccess> requestMIDIAccess(optional MIDIOptions options = {});

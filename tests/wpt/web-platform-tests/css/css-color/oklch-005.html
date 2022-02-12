@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: OKLab and OKLCH</title>
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color/#specifying-oklab-oklch">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#oklab-lab-to-predefined">
+<link rel="match" href="oklch-005-ref.html">
+<meta name="assert" content="oklch() with no alpha">
+<style>
+    .test { background-color: red; width: 12em; height: 6em; margin-top: 0; }
+    .ref { background-color: rgb(23.056% 31.73% 82.628%); width: 12em; height: 6em; margin-bottom: 0; } /* oklch(50% 0.2 270) converted to sRGB */
+    .test { background-color: oklch(50% 0.2 270); }
+</style>
+<body>
+    <p>Test passes if you see a single square, and not two rectangles of different colors.</p>
+    <div class="ref"></div>
+    <div class="test"></div>
+</body>

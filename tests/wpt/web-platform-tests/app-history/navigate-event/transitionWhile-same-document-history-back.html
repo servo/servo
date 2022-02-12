@@ -27,8 +27,8 @@ async_test(t => {
       }
     });
 
-    appHistory.navigate("?foo")
-      .then(t.step_func(() => appHistory.navigate("?bar")))
+    appHistory.navigate("?foo").finished
+      .then(t.step_func(() => appHistory.navigate("?bar").finished))
       .then(t.step_func(() => {
         assert_equals(appHistory.entries().length, 3);
         assert_equals(appHistory.current.index, 2);

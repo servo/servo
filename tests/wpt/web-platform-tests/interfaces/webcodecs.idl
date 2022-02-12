@@ -3,7 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: WebCodecs (https://w3c.github.io/webcodecs/)
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=(Window,DedicatedWorker), SecureContext]
 interface AudioDecoder {
   constructor(AudioDecoderInit init);
 
@@ -26,7 +26,7 @@ dictionary AudioDecoderInit {
 
 callback AudioDataOutputCallback = undefined(AudioData output);
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=(Window,DedicatedWorker), SecureContext]
 interface VideoDecoder {
   constructor(VideoDecoderInit init);
 
@@ -49,7 +49,7 @@ dictionary VideoDecoderInit {
 
 callback VideoFrameOutputCallback = undefined(VideoFrame output);
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=(Window,DedicatedWorker), SecureContext]
 interface AudioEncoder {
   constructor(AudioEncoderInit init);
 
@@ -78,7 +78,7 @@ dictionary EncodedAudioChunkMetadata {
   AudioDecoderConfig decoderConfig;
 };
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=(Window,DedicatedWorker), SecureContext]
 interface VideoEncoder {
   constructor(VideoEncoderInit init);
 
@@ -91,7 +91,7 @@ interface VideoEncoder {
   undefined reset();
   undefined close();
 
-  static Promise<boolean> isConfigSupported(VideoEncoderConfig config);
+  static Promise<VideoEncoderSupport> isConfigSupported(VideoEncoderConfig config);
 };
 
 dictionary VideoEncoderInit {
@@ -105,6 +105,11 @@ callback EncodedVideoChunkOutputCallback =
 
 dictionary EncodedVideoChunkMetadata {
   VideoDecoderConfig decoderConfig;
+  SvcOutputMetadata svc;
+  BufferSource alphaSideData;
+};
+
+dictionary SvcOutputMetadata {
   unsigned long temporalLayerId;
 };
 
@@ -142,7 +147,9 @@ dictionary VideoDecoderConfig {
   [EnforceRange] unsigned long codedHeight;
   [EnforceRange] unsigned long displayAspectWidth;
   [EnforceRange] unsigned long displayAspectHeight;
-  HardwareAcceleration hardwareAcceleration = "allow";
+  VideoColorSpaceInit colorSpace;
+  HardwareAcceleration hardwareAcceleration = "no-preference";
+  boolean optimizeForLatency;
 };
 
 dictionary AudioEncoderConfig {
@@ -154,19 +161,33 @@ dictionary AudioEncoderConfig {
 
 dictionary VideoEncoderConfig {
   required DOMString codec;
-  [EnforceRange] unsigned long long bitrate;
   [EnforceRange] required unsigned long width;
   [EnforceRange] required unsigned long height;
   [EnforceRange] unsigned long displayWidth;
   [EnforceRange] unsigned long displayHeight;
-  HardwareAcceleration hardwareAcceleration = "allow";
+  [EnforceRange] unsigned long long bitrate;
+  [EnforceRange] double framerate;
+  HardwareAcceleration hardwareAcceleration = "no-preference";
+  AlphaOption alpha = "discard";
   DOMString scalabilityMode;
+  BitrateMode bitrateMode = "variable";
+  LatencyMode latencyMode = "quality";
 };
 
 enum HardwareAcceleration {
-  "allow",
-  "deny",
-  "require",
+  "no-preference",
+  "prefer-hardware",
+  "prefer-software",
+};
+
+enum AlphaOption {
+  "keep",
+  "discard",
+};
+
+enum LatencyMode {
+  "quality",
+  "realtime"
 };
 
 dictionary VideoEncoderEncodeOptions {
@@ -185,8 +206,8 @@ callback WebCodecsErrorCallback = undefined(DOMException error);
 interface EncodedAudioChunk {
   constructor(EncodedAudioChunkInit init);
   readonly attribute EncodedAudioChunkType type;
-  readonly attribute long long timestamp;    // microseconds
-  readonly attribute unsigned long duration; // microseconds
+  readonly attribute long long timestamp;          // microseconds
+  readonly attribute unsigned long long? duration; // microseconds
   readonly attribute unsigned long byteLength;
 
   undefined copyTo([AllowShared] BufferSource destination);
@@ -195,6 +216,7 @@ interface EncodedAudioChunk {
 dictionary EncodedAudioChunkInit {
   required EncodedAudioChunkType type;
   [EnforceRange] required long long timestamp;    // microseconds
+  [EnforceRange] unsigned long long duration;     // microseconds
   required BufferSource data;
 };
 
@@ -226,11 +248,11 @@ enum EncodedVideoChunkType {
     "delta",
 };
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=(Window,DedicatedWorker), Serializable, Transferable]
 interface AudioData {
   constructor(AudioDataInit init);
 
-  readonly attribute AudioSampleFormat format;
+  readonly attribute AudioSampleFormat? format;
   readonly attribute float sampleRate;
   readonly attribute unsigned long numberOfFrames;
   readonly attribute unsigned long numberOfChannels;
@@ -245,7 +267,7 @@ interface AudioData {
 
 dictionary AudioDataInit {
   required AudioSampleFormat format;
-  [EnforceRange] required float sampleRate;
+  required float sampleRate;
   [EnforceRange] required unsigned long numberOfFrames;
   [EnforceRange] required unsigned long numberOfChannels;
   [EnforceRange] required long long timestamp;  // microseconds
@@ -253,43 +275,44 @@ dictionary AudioDataInit {
 };
 
 dictionary AudioDataCopyToOptions {
-  required unsigned long planeIndex;
-  unsigned long frameOffset = 0;
-  unsigned long frameCount;
+  [EnforceRange] required unsigned long planeIndex;
+  [EnforceRange] unsigned long frameOffset = 0;
+  [EnforceRange] unsigned long frameCount;
+  AudioSampleFormat format;
 };
 
 enum AudioSampleFormat {
-  "U8",
-  "S16",
-  "S24",
-  "S32",
-  "FLT",
-  "U8P",
-  "S16P",
-  "S24P",
-  "S32P",
-  "FLTP",
+  "u8",
+  "s16",
+  "s32",
+  "f32",
+  "u8-planar",
+  "s16-planar",
+  "s32-planar",
+  "f32-planar",
 };
 
-[Exposed=(Window,DedicatedWorker)]
+[Exposed=(Window,DedicatedWorker), Serializable, Transferable]
 interface VideoFrame {
   constructor(CanvasImageSource image, optional VideoFrameInit init = {});
-  constructor(sequence<(Plane or PlaneInit)> planes,
-              VideoFramePlaneInit init);
+  constructor([AllowShared] BufferSource data, VideoFrameBufferInit init);
 
-  readonly attribute PixelFormat format;
-  readonly attribute FrozenArray<Plane>? planes;
+  readonly attribute VideoPixelFormat? format;
   readonly attribute unsigned long codedWidth;
   readonly attribute unsigned long codedHeight;
-  readonly attribute unsigned long cropLeft;
-  readonly attribute unsigned long cropTop;
-  readonly attribute unsigned long cropWidth;
-  readonly attribute unsigned long cropHeight;
+  readonly attribute DOMRectReadOnly? codedRect;
+  readonly attribute DOMRectReadOnly? visibleRect;
   readonly attribute unsigned long displayWidth;
   readonly attribute unsigned long displayHeight;
   readonly attribute unsigned long long? duration;  // microseconds
   readonly attribute long long? timestamp;          // microseconds
+  readonly attribute VideoColorSpace colorSpace;
 
+  unsigned long allocationSize(
+      optional VideoFrameCopyToOptions options = {});
+  Promise<sequence<PlaneLayout>> copyTo(
+      [AllowShared] BufferSource destination,
+      optional VideoFrameCopyToOptions options = {});
   VideoFrame clone();
   undefined close();
 };
@@ -297,42 +320,108 @@ interface VideoFrame {
 dictionary VideoFrameInit {
   unsigned long long duration;  // microseconds
   long long timestamp;          // microseconds
-};
+  AlphaOption alpha = "keep";
 
-dictionary VideoFramePlaneInit {
-  required PixelFormat format;
-  [EnforceRange] required unsigned long codedWidth;
-  [EnforceRange] required unsigned long codedHeight;
-  [EnforceRange] unsigned long cropLeft;
-  [EnforceRange] unsigned long cropTop;
-  [EnforceRange] unsigned long cropWidth;
-  [EnforceRange] unsigned long cropHeight;
+  // Default matches image. May be used to efficiently crop. Will trigger
+  // new computation of displayWidth and displayHeight using image’s pixel
+  // aspect ratio unless an explicit displayWidth and displayHeight are given.
+  DOMRectInit visibleRect;
+
+  // Default matches image unless visibleRect is provided.
   [EnforceRange] unsigned long displayWidth;
   [EnforceRange] unsigned long displayHeight;
+};
+
+dictionary VideoFrameBufferInit {
+  required VideoPixelFormat format;
+  required [EnforceRange] unsigned long codedWidth;
+  required [EnforceRange] unsigned long codedHeight;
+  required [EnforceRange] long long timestamp;  // microseconds
   [EnforceRange] unsigned long long duration;  // microseconds
-  [EnforceRange] long long timestamp;          // microseconds
+
+  // Default layout is tightly-packed.
+  sequence<PlaneLayout> layout;
+
+  // Default visible rect is coded size positioned at (0,0)
+  DOMRectInit visibleRect;
+
+  // Default display dimensions match visibleRect.
+  [EnforceRange] unsigned long displayWidth;
+  [EnforceRange] unsigned long displayHeight;
+
+  VideoColorSpaceInit colorSpace;
 };
 
-[Exposed=(Window,DedicatedWorker)]
-interface Plane {
-  readonly attribute unsigned long stride;
-  readonly attribute unsigned long rows;
-  readonly attribute unsigned long length;
-
-  undefined readInto(ArrayBufferView dst);
+dictionary VideoFrameCopyToOptions {
+  DOMRectInit rect;
+  sequence<PlaneLayout> layout;
 };
 
-dictionary PlaneInit {
-  required BufferSource src;
+dictionary PlaneLayout {
+  [EnforceRange] required unsigned long offset;
   [EnforceRange] required unsigned long stride;
-  [EnforceRange] required unsigned long rows;
 };
 
-enum PixelFormat {
-  "I420"
+enum VideoPixelFormat {
+  // 4:2:0 Y, U, V
+  "I420",
+  // 4:2:0 Y, U, V, A
+  "I420A",
+  // 4:2:2 Y, U, V
+  "I422",
+  // 4:4:4 Y, U, V
+  "I444",
+  // 4:2:0 Y, UV
+  "NV12",
+  // 32bpp RGBA
+  "RGBA",
+  // 32bpp RGBX (opaque)
+  "RGBX",
+  // 32bpp BGRA
+  "BGRA",
+  // 32bpp BGRX (opaque)
+  "BGRX",
 };
 
 [Exposed=(Window,DedicatedWorker)]
+interface VideoColorSpace {
+  constructor(optional VideoColorSpaceInit init = {});
+
+  readonly attribute VideoColorPrimaries? primaries;
+  readonly attribute VideoTransferCharacteristics? transfer;
+  readonly attribute VideoMatrixCoefficients? matrix;
+  readonly attribute boolean? fullRange;
+
+  [Default] VideoColorSpaceInit toJSON();
+};
+
+dictionary VideoColorSpaceInit {
+  VideoColorPrimaries primaries;
+  VideoTransferCharacteristics transfer;
+  VideoMatrixCoefficients matrix;
+  boolean fullRange;
+};
+
+enum VideoColorPrimaries {
+  "bt709",      // BT.709, sRGB
+  "bt470bg",    // BT.601 PAL
+  "smpte170m",  // BT.601 NTSC
+};
+
+enum VideoTransferCharacteristics {
+  "bt709",         // BT.709
+  "smpte170m",     // BT.601 (functionally the same as bt709)
+  "iec61966-2-1",  // sRGB
+};
+
+enum VideoMatrixCoefficients {
+  "rgb",        // sRGB
+  "bt709",      // BT.709
+  "bt470bg",    // BT.601 PAL
+  "smpte170m",  // BT.601 NTSC (functionally the same as bt470bg)
+};
+
+[Exposed=(Window,DedicatedWorker), SecureContext]
 interface ImageDecoder {
   constructor(ImageDecoderInit init);
 

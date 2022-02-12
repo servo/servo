@@ -1,0 +1,123 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Forms</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<form id="input_form">
+  <input type="submit" value="submit"><br>
+</form>
+<script type="module">
+import inputTypes from "./input-types.js";
+
+const form = document.querySelector("form");
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  assert_true(false, 'form should not be submitted');
+});
+
+// Create and append input elements
+for (const inputType of inputTypes) {
+  let input = document.createElement("input");
+  input.type = inputType;
+  form.appendChild(input);
+}
+
+const submit = document.querySelector("input[type=submit]");
+submit.addEventListener("click", function(e) {
+  assert_true(false, 'input submit should not be clicked');
+});
+
+// Start tests
+for (const inputType of inputTypes) {
+  let input = document.querySelector(`input[type=${inputType}]`);
+  input.addEventListener("click", function(e) {
+    assert_true(false, `input ${inputType} should not be clicked`);
+  });
+
+  test(() => {
+    // keyCode: Enter
+    input.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        keyCode: 13,
+      })
+    );
+
+    // key: Enter
+    input.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        key: "Enter",
+      })
+    );
+
+    // keyCode: Space
+    input.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        keyCode: 32,
+      })
+    );
+
+    // key: Space
+    input.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        key: " ",
+      })
+    );
+  }, `Dipatching untrusted keypress events to input ${inputType} should not cause form submission or click event`);
+
+  test(() => {
+    // keyCode: Enter
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        keyCode: 13,
+      })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        keyCode: 13,
+      })
+    );
+
+    // key: Enter
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+      })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        key: "Enter",
+      })
+    );
+
+    // keyCode: Space
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        keyCode: 32,
+      })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        keyCode: 32,
+      })
+    );
+
+    // key: Space
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: " ",
+      })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        key: " ",
+      })
+    );
+  }, `Dipatching untrusted keyup/keydown event to input ${inputType} should not cause form submission or click event`);
+}
+</script>
+</body>
+</html>

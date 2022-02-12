@@ -6,6 +6,7 @@
 <script>
 function isInterfaceRemoved(name) {
   test(function() {
+    assert_false(name in window)
     assert_equals(window[name], undefined)
   }, "Historical DOM features must be removed: " + name)
 }
@@ -28,14 +29,17 @@ var removedInterfaces = [
   "Notation",
   "TypeInfo",
   "UserDataHandler",
-  "RangeException" // DOM Range
+  "RangeException", // DOM Range
+  "SVGPathSegList"
 ]
 removedInterfaces.forEach(isInterfaceRemoved)
 
 function isRemovedFromDocument(name) {
   test(function() {
     var doc = document.implementation.createDocument(null,null,null)
+    assert_false(name in document)
     assert_equals(document[name], undefined)
+    assert_false(name in doc)
     assert_equals(doc[name], undefined)
   }, "Historical DOM features must be removed: " + name)
 }
@@ -65,22 +69,27 @@ documentRemoved.forEach(isRemovedFromDocument)
 test(function() {
   // https://github.com/whatwg/html/commit/e236f46820b93d6fe2e2caae0363331075c6c4fb
   assert_false("load" in document);
+  assert_equals(document["load"], undefined)
 }, "document.load");
 
 test(function() {
   // https://github.com/whatwg/html/commit/523f7a8773d2ab8a1eb0da6510651e8c5d2a7531
   var doc = document.implementation.createDocument(null, null, null);
   assert_false("load" in doc);
+  assert_equals(doc["load"], undefined)
 }, "XMLDocument.load");
 
 test(function() {
+  assert_false("getFeature" in document.implementation)
   assert_equals(document.implementation["getFeature"], undefined)
 }, "DOMImplementation.getFeature() must be removed.")
 
 function isRemovedFromElement(name) {
   test(function() {
     var ele = document.createElementNS("test", "test")
+    assert_false(name in document.body)
     assert_equals(document.body[name], undefined)
+    assert_false(name in ele)
     assert_equals(ele[name], undefined)
   }, "Historical DOM features must be removed: " + name)
 }
@@ -95,6 +104,7 @@ elementRemoved.forEach(isRemovedFromElement)
 function isRemovedFromAttr(name) {
   test(function() {
     var attr = document.createAttribute("test")
+    assert_false(name in attr)
     assert_equals(attr[name], undefined)
   }, "Attr member must be removed: " + name)
 }
@@ -107,6 +117,7 @@ attrRemoved.forEach(isRemovedFromAttr)
 function isRemovedFromDoctype(name) {
   test(function() {
     var doctype = document.implementation.createDocumentType("test", "", "")
+    assert_false(name in doctype)
     assert_equals(doctype[name], undefined)
   }, "DocumentType member must be removed: " + name)
 }
@@ -120,6 +131,7 @@ doctypeRemoved.forEach(isRemovedFromDoctype)
 function isRemovedFromText(name) {
   test(function() {
     var text = document.createTextNode("test")
+    assert_false(name in text)
     assert_equals(text[name], undefined)
   }, "Text member must be removed: " + name)
 }
@@ -134,8 +146,11 @@ function isRemovedFromNode(name) {
     var doc = document.implementation.createDocument(null,null,null)
     var doctype = document.implementation.createDocumentType("test", "", "")
     var text = document.createTextNode("test")
+    assert_false(name in doc)
     assert_equals(doc[name], undefined)
+    assert_false(name in doctype)
     assert_equals(doctype[name], undefined)
+    assert_false(name in text)
     assert_equals(text[name], undefined)
   }, "Node member must be removed: " + name)
 }
@@ -155,6 +170,7 @@ nodeRemoved.forEach(isRemovedFromNode)
 
 function isRemovedFromWindow(name) {
   test(function() {
+    assert_false(name in window)
     assert_equals(window[name], undefined)
   }, "Window member must be removed: " + name)
 }
@@ -165,6 +181,7 @@ windowRemoved.forEach(isRemovedFromWindow)
 
 function isRemovedFromEvent(name) {
   test(() => {
+    assert_false(name in Event)
     assert_equals(Event[name], undefined)
   }, "Event should not have this constant: " + name)
 }
@@ -190,10 +207,13 @@ EventRemoved.forEach(isRemovedFromEvent)
 
 var EventPrototypeRemoved = [
   "getPreventDefault",
+  "path"
 ]
 EventPrototypeRemoved.forEach(name => {
   test(() => {
+    assert_false(name in Event.prototype)
     assert_equals(Event.prototype[name], undefined)
+    assert_false(name in new Event("test"))
     assert_equals((new Event("test"))[name], undefined)
   }, "Event.prototype should not have this property: " + name)
 })

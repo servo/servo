@@ -7,6 +7,8 @@
 interface CSSPseudoElement : EventTarget {
     readonly attribute CSSOMString type;
     readonly attribute Element element;
+    readonly attribute (Element or CSSPseudoElement) parent;
+    CSSPseudoElement? pseudo(CSSOMString type);
 };
 
 partial interface Element {

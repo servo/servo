@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-ruby-1/#rubypos">
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/br#deprecated_attributes">
+<style>
+  #float {
+    float: left;
+    width: 100px;
+    height: 100px;
+    background: cyan;
+  }
+  #container {
+    padding-bottom: 50px;
+    line-height: 20px;
+    background: yellow;
+  }
+  ruby {
+    ruby-position: under;
+  }
+  ruby > div {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: hotpink;
+  }
+  rt > div {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+</style>
+<p>The yellow box should encompass its contents and also the cyan float, due to
+  clearance. The yellow box has bottom padding, and the blue ruby annotation box
+  is allowed to overflow into the padding area. In this case the blue box isn't
+  tall enough to even get past the float, though.</p>
+<div id="float"></div>
+<div id="container" data-expected-height="150">
+  <ruby>
+    <div></div>
+    <rt>
+      <div></div>
+    </rt>
+  </ruby>
+  <br clear="all">
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout("#container");
+</script>

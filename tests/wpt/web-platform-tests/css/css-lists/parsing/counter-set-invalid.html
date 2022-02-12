@@ -12,6 +12,8 @@
 <body>
 <script>
 test_invalid_value('counter-set', 'none chapter');
+test_invalid_value('counter-set', 'reversed(none)');
+test_invalid_value('counter-set', 'reversed(chapter)');
 test_invalid_value('counter-set', '3');
 test_invalid_value('counter-set', '99 imagenum');
 test_invalid_value('counter-set', 'section -1, imagenum 99');

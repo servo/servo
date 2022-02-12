@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>transition end event with shorthand property</title>
+  <link rel="help" href="https://drafts.csswg.org/css-transitions/#transition-property-property">
+  <style>
+    #box {
+      transition: padding 1s;
+      padding: 0px 1px 2px 3px;  // top right bottom left
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="box"></div>
+  </div>
+</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<script>
+  window.onload = () => {
+    function timeoutPromise() {
+      return waitForAnimationFrames(5);
+    }
+
+    promise_test(async t => {
+      // Make sure we have rendered the page before making the style change
+      // to ensure we get transitions.
+      await waitForAnimationFrames(2);
+
+      // Change three padding properties, but preserve padding-bottom.
+      // This should trigger 3 transitions.
+      box.style.padding = "8px 7px 2px 5px";
+
+      const animations = document.getAnimations();
+      const properties =
+          animations.map(anim => anim.transitionProperty).sort();
+      assert_array_equals(properties,
+                          ['padding-left', 'padding-right', 'padding-top']);
+
+      // Expect a transitionend event for each of the CSSTransitions.
+      const eventWatcher =
+          new EventWatcher(t, box, 'transitionend', timeoutPromise);
+
+      const eventsPromise =
+          eventWatcher.wait_for(
+              ['transitionend', 'transitionend', 'transitionend'],
+              { record: 'all' }).then(events => {
+        events.forEach(event => {
+          assert_times_equal(event.elapsedTime, 1);
+        })
+      });
+      animations.forEach(anim => {
+        anim.finish();
+      });
+      await eventsPromise;
+
+      // Ensure no unexpected events are received.
+      await waitForAnimationFrames(2);
+    }, 'Transition end events generated for transition on shorthand property');
+  };
+</script>
+</html>

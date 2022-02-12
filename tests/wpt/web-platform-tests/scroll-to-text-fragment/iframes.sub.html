@@ -14,6 +14,15 @@
     });
   }
 
+  function reset(iframe) {
+    return new Promise((resolve) => {
+      window.addEventListener('message', (e) => {
+        resolve();
+      }, {once: true});
+      iframe.contentWindow.postMessage('reset', '*');
+    });
+  }
+
   function runTests() {
     const attribute_iframe = document.getElementById('srcattrib');
     const sameorigin_iframe = document.getElementById('sameorigin');
@@ -22,6 +31,7 @@
     // Check behavior that occurs when a text fragment is specified directly in
     // an iframe's src attribute. We expect the text fragment to be blocked.
     promise_test(t => new Promise(async resolve => {
+        // No reset since we're checking the hash specified in the `src` attribute.
         const data = await getResult(attribute_iframe);
         resolve(data);
       }).then( data => {
@@ -34,6 +44,7 @@
     // a same-document navigation initiated by an origin that's same-origin
     // with the current document.
     promise_test(t => new Promise(async resolve => {
+        await reset(sameorigin_iframe);
         sameorigin_iframe.contentWindow.location = `${sameorigin_iframe.src}#:~:text=Target`;
         const data = await getResult(sameorigin_iframe);
         resolve(data);
@@ -46,6 +57,7 @@
     // cross-origin parent. The text fragment should be blocked because the
     // initiating origin is not same-origin with the current document.
     promise_test(t => new Promise(async resolve => {
+        await reset(crossorigin_iframe);
         crossorigin_iframe.contentWindow.location = `${crossorigin_iframe.src}#:~:text=Target`;
         const data = await getResult(crossorigin_iframe);
         resolve(data);
@@ -53,6 +65,29 @@
         assert_equals(data.href.indexOf(':~:'), -1, 'Expected fragment directive to be stripped from the URL.');
         assert_equals(data.scrollPosition, 'top', 'Should not to scroll to text fragment.');
     }), 'Navigate cross-origin iframe via window.location');
+
+    // Check the element-id fallback behavior when the text is not found. We
+    // should fallback to a regular element-id hash navigation.
+    promise_test(t => new Promise(async resolve => {
+        await reset(sameorigin_iframe);
+        sameorigin_iframe.contentWindow.location = `${sameorigin_iframe.src}#elementid:~:text=NonExistentText`;
+        const data = await getResult(sameorigin_iframe);
+        resolve(data);
+      }).then( data => {
+        assert_equals(data.scrollPosition, 'elementid', 'Should scroll to the element-id anchor.');
+    }), 'Non-matching text with element-id fallback');
+
+    // Check the element-id fallback behaviour when used across origins. The
+    // text fragment should be blocked across origins but the element id hash
+    // should not.
+    promise_test(t => new Promise(async resolve => {
+        await reset(crossorigin_iframe);
+        crossorigin_iframe.contentWindow.location = `${crossorigin_iframe.src}#elementid:~:text=Target%20Text`;
+        const data = await getResult(crossorigin_iframe);
+        resolve(data);
+      }).then( data => {
+        assert_equals(data.scrollPosition, 'elementid', 'Should scroll to the element-id anchor.');
+    }), 'Cross-origin with element-id fallback');
   }
 </script>
 <style>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Test showPicker() user gesture requirement</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type=module>
+import inputTypes from "./input-types.js";
+
+for (const inputType of inputTypes) {
+  test(() => {
+    const input = document.createElement("input");
+    input.setAttribute("type", inputType);
+
+    assert_throws_dom('NotAllowedError', () => { input.showPicker(); });
+  }, `input[type=${inputType}] showPicker() requires a user gesture`);
+}
+
+for (const inputType of inputTypes) {
+  promise_test(async t => {
+    const input = document.createElement("input");
+    input.setAttribute("type", inputType);
+
+    await test_driver.bless('show picker');
+    input.showPicker();
+    input.blur();
+  }, `input[type=${inputType}] showPicker() does not throw when user activation is active`);
+}
+</script>

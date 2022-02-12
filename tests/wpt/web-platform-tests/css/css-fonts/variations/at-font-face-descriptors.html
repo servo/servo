@@ -59,8 +59,9 @@
             // Single value, keyword
             { value: "normal",                  isValid: true,  description: "'normal' keyword" },
             { value: "bold",                    isValid: true,  description: "'bold' keyword" },
-            { value: "lighter",                 isValid: false, description: "'lighter' keyword iside @font-face" },
-            { value: "bolder",                  isValid: false, description: "'lighter' keyword iside @font-face" },
+            { value: "auto",                    isValid: true,  description: "'auto' keyword inside @font-face" },
+            { value: "lighter",                 isValid: false, description: "'lighter' keyword inside @font-face" },
+            { value: "bolder",                  isValid: false, description: "'bolder' keyword inside @font-face" },
             { value: "bold a",                  isValid: false, description: "Extra content after keyword" },
 
             // Single value, number
@@ -104,6 +105,7 @@
             { value: "extra-expanded",          isValid: true,  description: "'extra-expanded' keyword" },
             { value: "ultra-expanded",          isValid: true,  description: "'ultra-expanded' keyword" },
             { value: "expanded a",              isValid: false, description: "Extra content after value" },
+            { value: "auto",                    isValid: true,  description: "'auto' keyword inside @font-face" },
 
             // Single value, number
             { value: "1%",                      isValid: true,  description:"Legal percentage" },
@@ -139,6 +141,7 @@
             { value: "normal",                  isValid: true,  description: "'normal' keyword" },
             { value: "italic",                  isValid: true,  description: "'italic' keyword" },
             { value: "oblique",                 isValid: true,  description: "'oblique' keyword" },
+            { value: "auto",                    isValid: true,  description: "'auto' keyword inside @font-face" },
 
             // Single value
             { value: "italic 20deg",            isValid: false, description: "'italic' followed by angle" },

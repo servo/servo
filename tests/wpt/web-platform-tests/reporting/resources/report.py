@@ -5,6 +5,7 @@ import uuid
 
 from wptserve.utils import isomorphic_decode
 
+
 def retrieve_from_stash(request, key, timeout, default_value, min_count=None, retain=False):
   """Retrieve the set of reports for a given report ID.
 
@@ -23,13 +24,15 @@ def retrieve_from_stash(request, key, timeout, default_value, min_count=None, re
     with request.server.stash.lock:
       value = request.server.stash.take(key=key)
       if value is not None:
-        have_sufficient_reports = (min_count is None or len(value) >= min_count)
+        have_sufficient_reports = (
+          min_count is None or len(value) >= min_count)
         if retain or not have_sufficient_reports:
           request.server.stash.put(key=key, value=value)
         if have_sufficient_reports:
           return json.dumps(value)
 
   return default_value
+
 
 def main(request, response):
   # Handle CORS preflight requests
@@ -44,10 +47,23 @@ def main(request, response):
       (b"Access-Control-Allow-Headers", b"Content-Type"),
     ], u"CORS allowed"
 
+  # Delete reports as requested
+  if request.method == u'POST':
+    body = json.loads(request.body)
+    if (isinstance(body, dict) and "op" in body):
+      if body["op"] == "DELETE" and "reportIDs" in body:
+        with request.server.stash.lock:
+          for key in body["reportIDs"]:
+            request.server.stash.take(key=key)
+        return "reports cleared"
+      response.status = 400
+      return "op parameter value not recognized"
+
   if b"reportID" in request.GET:
     key = request.GET.first(b"reportID")
   elif b"endpoint" in request.GET:
-    key = uuid.uuid5(uuid.NAMESPACE_OID, isomorphic_decode(request.GET[b'endpoint'])).urn.encode('ascii')[9:]
+    key = uuid.uuid5(uuid.NAMESPACE_OID, isomorphic_decode(
+      request.GET[b'endpoint'])).urn.encode('ascii')[9:]
   else:
     response.status = 400
     return "Either reportID or endpoint parameter is required."
@@ -75,7 +91,7 @@ def main(request, response):
       return [(b"Content-Type", b"application/json")], u"{ \"reportCookies\" : " + str(retrieve_from_stash(request, cookie_key, timeout, u"\"None\"")) + u"}"
 
     if op == b"retrieve_count":
-      return [(b"Content-Type", b"application/json")], json.dumps({u'report_count': str(retrieve_from_stash(request, count_key, timeout, 0))})
+      return [(b"Content-Type", b"application/json")], u"{ \"report_count\": %s }" % retrieve_from_stash(request, count_key, timeout, 0)
 
     response.status = 400
     return "op parameter value not recognized."
@@ -85,7 +101,8 @@ def main(request, response):
     # Convert everything into strings and dump it into a dict.
     temp_cookies_dict = {}
     for dict_key in request.cookies.keys():
-      temp_cookies_dict[isomorphic_decode(dict_key)] = str(request.cookies.get_list(dict_key))
+      temp_cookies_dict[isomorphic_decode(dict_key)] = str(
+        request.cookies.get_list(dict_key))
     with request.server.stash.lock:
       # Clear any existing cookie data for this request before storing new data.
       request.server.stash.take(key=cookie_key)

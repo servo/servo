@@ -1,8 +1,0 @@
-CACHE MANIFEST
-
-appcache-ordering.is-appcached.html
-blank.html
-
-FALLBACK:
-appcache-ordering.is-appcached404.js appcache-ordering.is-appcached.js
-

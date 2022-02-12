@@ -1,0 +1,53 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+
+const info = get_host_info();
+
+const nextCSPViolation = (test) => {
+  return new Promise((resolve, reject) => {
+    document.addEventListener("securitypolicyviolation", resolve, {once: true});
+    test.step_timeout(() => reject("timeout"), 3000);
+  });
+};
+
+const redirector = get_host_info().HTTP_REMOTE_ORIGIN.replace("http", "wss") +
+  "/common/redirect.py";
+
+promise_setup(async () => {
+  const meta = document.createElement('meta');
+  meta.httpEquiv = "Content-Security-Policy";
+  meta.content = "connect-src " + redirector;
+  document.getElementsByTagName('head')[0].appendChild(meta);
+}, "Install <meta> CSP");
+
+promise_test(async test => {
+  const url = get_host_info().HTTP_ORIGIN.replace("http", "ws") + "/path";
+  const violation = nextCSPViolation(test);
+  try { new WebSocket(url); } catch (e) {}
+  assert_equals((await violation).blockedURI, url);
+}, "ws");
+
+promise_test(async test => {
+  const url = get_host_info().HTTP_ORIGIN.replace("http", "wss") + "/path";
+  const violation = nextCSPViolation(test);
+  try { new WebSocket(url); } catch (e) {}
+  assert_equals((await violation).blockedURI, url);
+}, "wss");
+
+promise_test(async test => {
+  const url = get_host_info().HTTP_REMOTE_ORIGIN.replace("http", "wss") + "/path";
+  const violation = nextCSPViolation(test);
+  try { new WebSocket(url); } catch (e) {}
+  assert_equals((await violation).blockedURI, url);
+}, "cross-origin");
+
+promise_test(async test => {
+  const url = get_host_info().HTTP_ORIGIN.replace("http", "wss") + "/path";
+  const violation = nextCSPViolation(test);
+  try {new WebSocket(redirector + "?location=" + url); } catch (e) {}
+  assert_equals((await violation).blockedURI, url);
+}, "redirect");
+
+</script>

@@ -9,7 +9,6 @@ table.t1 tr:nth-child(-n+4) { background-color : lime }
 table.t2 td:nth-child(3n+1) { background-color : lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content="" />
  </head>
  <body>
 <ul>

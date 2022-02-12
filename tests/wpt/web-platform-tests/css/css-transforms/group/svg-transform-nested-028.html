@@ -20,7 +20,7 @@
     <svg>
         <rect x="41" y="41" width="78" height="78" fill="red"/> <!-- this rect is outside the group to catch failures of the group transform -->
         <g transform="matrix(-0.5 0 0 -0.5 120 90)">
-            <rect x="2" y="-116" width="156" height="312" fill="red" transform="scaleY(0.5)"/> <!-- false positive if scaleY is between 0.4 and -0.3 -->
+            <rect x="2" y="-116" width="156" height="312" fill="red" transform="scale(1 0.5)"/> <!-- false positive if scaleY is between 0.4 and -0.3 -->
             <rect width="160" height="160" fill="green" transform="translate(0 -60)"/>
         </g>
     </svg>

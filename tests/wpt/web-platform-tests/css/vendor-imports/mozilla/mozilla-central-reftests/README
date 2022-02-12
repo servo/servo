@@ -1,5 +1,0 @@
-This directory is the remains of an earlier wpt sync system.
-
-Tests should be moved into the correct directory under css/.
-
-In the meantime, feel free to fix any test bugs in the usual way.

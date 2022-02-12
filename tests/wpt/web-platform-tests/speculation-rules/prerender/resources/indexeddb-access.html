@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="indexedb-utils.js"></script>
+<script>
+
+assert_true(document.prerendering);
+
+async function operateDatabase(){
+  const bc = new BroadcastChannel('prerender-channel');
+
+  const db = await openIndexedDatabase();
+  assert_not_equals(db, null, 'Failed to open database.');
+
+  await addData(db, PRERENDER_KEY, PRERENDER_VALUE);
+  const result = await readData(db, INITIATOR_KEY);
+  bc.postMessage(result);
+  bc.close();
+  db.close();
+}
+
+operateDatabase();
+
+</script>

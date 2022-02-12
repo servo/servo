@@ -11,6 +11,8 @@
 </head>
 
 <body>
+<input>
+
 <script>
 function createFocusableDiv() {
   const div = document.createElement("div");
@@ -63,7 +65,27 @@ for (const delegatesFocus of delegatesFocusValues) {
       assert_true(nestedShadowChild.matches(":focus"), "element in nested shadow tree matches :focus");
       assert_true(nestedHost.matches(":focus"), "host of nested shadow tree matches focus");
       assert_true(host.matches(":focus"), "topmost host matches focus");
-}, `:focus applies to host with delegatesFocus=${delegatesFocus} when an element in a nested shadow tree with delegatesFocus=${nestedDelegatesFocus} is focused`);
+    }, `:focus applies to host with delegatesFocus=${delegatesFocus} when an element in a nested shadow tree with delegatesFocus=${nestedDelegatesFocus} is focused`);
+
+    test(() => {
+      resetFocus();
+      const host = createShadowHost(delegatesFocus, document.body);
+      const nestedHost = createShadowHost(nestedDelegatesFocus, host.shadowRoot);
+      const nestedShadowChild = createFocusableDiv();
+      nestedHost.shadowRoot.appendChild(nestedShadowChild);
+      // All nested shadow hosts should has :focus applied
+      nestedShadowChild.focus();
+
+      const elementOutsideOfShadowDOM = document.querySelector("input");
+      // Move the focus to an element which is outside of the nested
+      // shadow DOM trees
+      elementOutsideOfShadowDOM.focus();
+
+      assert_false(nestedShadowChild.matches(":focus"), "element in nested shadow tree doesn't matche :focus");
+      assert_false(nestedHost.matches(":focus"), "host of nested shadow tree doesn't match focus");
+      assert_false(host.matches(":focus"), "topmost host matches focus");
+      assert_true(elementOutsideOfShadowDOM.matches(":focus"), "The element outside of shadow dom matches :focus");
+    }, `:focus should be removed from hosts with delegatesFocus=${delegatesFocus} when none of the elements in a nested shadow tree with delegatesFocus=${nestedDelegatesFocus} is focused`);
   }
 }
 </script>

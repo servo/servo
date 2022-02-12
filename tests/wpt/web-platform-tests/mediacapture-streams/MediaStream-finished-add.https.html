@@ -16,29 +16,20 @@ MediaStream is allowed.</p>
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
 <script>
-var t = async_test("Tests that adding a track to an inactive MediaStream is allowed");
-t.step(function () {
-  var audio, video;
-
-  navigator.mediaDevices.getUserMedia({audio:true}).then(gotAudio);
-  function gotAudio(stream) {
-    audio = stream;
-    navigator.mediaDevices.getUserMedia({video:true}).then(gotVideo);
-  }
-
-  function gotVideo(stream) {
-    video = stream;
-    t.step(function () {
-       audio.getAudioTracks()[0].stop();
-       assert_false(audio.active, "audio stream is inactive after stopping its only audio track");
-       assert_true(video.active, "video stream is active");
-       audio.addTrack(video.getVideoTracks()[0]);
-       audio.removeTrack(audio.getAudioTracks()[0]);
-     });
-    t.done();
-  }
-});
+promise_test(async () => {
+  await setMediaPermission();
+  const audio = await navigator.mediaDevices.getUserMedia({audio:true});
+  const video = await navigator.mediaDevices.getUserMedia({video:true});
+  audio.getAudioTracks()[0].stop();
+  assert_false(audio.active, "audio stream is inactive after stopping its only audio track");
+  assert_true(video.active, "video stream is active");
+  audio.addTrack(video.getVideoTracks()[0]);
+  audio.removeTrack(audio.getAudioTracks()[0]);
+}, "Tests that adding a track to an inactive MediaStream is allowed");
 </script>
 </body>
 </html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-values/#viewport-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body style="display: none">
+<script>
+  promise_test(async function() {
+    let frame = document.createElement("iframe");
+    let load = new Promise(resolve => {
+      frame.addEventListener("load", resolve);
+    });
+    frame.setAttribute("scrolling", "no");
+    frame.setAttribute("frameborder", "0");
+    frame.style.width = "100px";
+    frame.style.height = "100px";
+    frame.srcdoc = `
+      <!doctype html>
+      <style>
+        body { margin: 0 }
+        #parent, #child { width: 100vw; height: 100vh; }
+      </style>
+      <div id="parent">
+        <div id="child"></div>
+      </div>
+    `;
+    document.body.appendChild(frame);
+
+    await load;
+
+    {
+      let resize = new Promise(resolve => {
+        frame.contentWindow.addEventListener("resize", resolve);
+      });
+      document.body.style.display = "";
+      await resize;
+    }
+
+    let doc = frame.contentDocument;
+    function assertDimensions(expected, description) {
+      for (let id of ["parent", "child"]) {
+        let element = doc.getElementById(id);
+        let rect = element.getBoundingClientRect();
+        assert_equals(rect.width, expected, `${description}: ${id} width`);
+        assert_equals(rect.height, expected, `${description}: ${id} height`);
+      }
+    }
+    assertDimensions(100, "before resize");
+    let resize = new Promise(resolve => {
+      frame.contentWindow.addEventListener("resize", resolve);
+    });
+    frame.style.width = "200px";
+    frame.style.height = "200px";
+    await resize;
+    assertDimensions(200, "after resize");
+  })
+</script>

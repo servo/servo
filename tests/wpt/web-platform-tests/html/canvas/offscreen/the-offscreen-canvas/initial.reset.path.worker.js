@@ -13,15 +13,15 @@ var t_fail = t.step_func(function(reason) {
 });
 t.step(function() {
 
-var offscreenCanvas = new OffscreenCanvas(100, 50);
-var ctx = offscreenCanvas.getContext('2d');
+var canvas = new OffscreenCanvas(100, 50);
+var ctx = canvas.getContext('2d');
 
-offscreenCanvas.width = 100;
+canvas.width = 100;
 ctx.rect(0, 0, 100, 50);
-offscreenCanvas.width = 100;
+canvas.width = 100;
 ctx.fillStyle = '#f00';
 ctx.fill();
-_assertPixel(offscreenCanvas, 20,20, 0,0,0,0, "20,20", "0,0,0,0");
+_assertPixel(canvas, 20,20, 0,0,0,0, "20,20", "0,0,0,0");
 t.done();
 
 });

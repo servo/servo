@@ -5,7 +5,10 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <style>
-  div {
+  .testContainer div {
+    /* Note: .testContainer is just here to prevent this rule from squishing
+       the dynamically-generated human-readable divs that show this test's
+       pass/fail results. */
     width: 200px;
     height: 200px;
   }
@@ -20,54 +23,56 @@
   }
 </style>
 
-<div class=parent>
-  <div id=nonflat class=child></div>
-</div>
-
-<div class=parent style="opacity: 0.5">
-  <div id=opacity class=child></div>
-</div>
-
-<div class=parent style="overflow: hidden">
-  <div id=overflowClip class=child></div>
-</div>
-
-<div class=parent style="filter: invert(0)">
-  <div id=filter class=child></div>
-</div>
-
-<div class=parent style="backdrop-filter: invert(0)">
-  <div id=backdropFilter class=child></div>
-</div>
-
-<div class=parent style="mix-blend-mode: multiply;">
-  <div id=mixBlendMode class=child></div>
-</div>
-
-<div class=parent style="clip: rect(1px, 2px, 3px, 4px); position: absolute">
-  <div id=cssClip class=child></div>
-</div>
-
-<div class=parent style="clip-path: circle(40%)">
-  <div id=clipPath class=child></div>
-</div>
-
-<div class=parent style="isolation: isolate">
-  <div id=isolation class=child></div>
-</div>
-
-<div class=parent style="-webkit-mask:linear-gradient(black,transparent);
-                         mask:linear-gradient(black,transparent)">
-  <div id=mask class=child></div>
-</div>
-
-<div id=parentWithGrouping style="transform-style: preserve-3d; overflow: hidden">
-  <div id=absoluteUnderGrouping style="position: absolute">
+<div class=testContainer>
+  <div class=parent>
+    <div id=nonflat class=child></div>
   </div>
-</div>
 
-<div id=parentWithoutGrouping style="transform-style: preserve-3d">
-  <div id=absoluteNotUnderGrouping style="position: absolute">
+  <div class=parent style="opacity: 0.5">
+    <div id=opacity class=child></div>
+  </div>
+
+  <div class=parent style="overflow: hidden">
+    <div id=overflowClip class=child></div>
+  </div>
+
+  <div class=parent style="filter: invert(0)">
+    <div id=filter class=child></div>
+  </div>
+
+  <div class=parent style="backdrop-filter: invert(0)">
+    <div id=backdropFilter class=child></div>
+  </div>
+
+  <div class=parent style="mix-blend-mode: multiply;">
+    <div id=mixBlendMode class=child></div>
+  </div>
+
+  <div class=parent style="clip: rect(1px, 2px, 3px, 4px); position: absolute">
+    <div id=cssClip class=child></div>
+  </div>
+
+  <div class=parent style="clip-path: circle(40%)">
+    <div id=clipPath class=child></div>
+  </div>
+
+  <div class=parent style="isolation: isolate">
+    <div id=isolation class=child></div>
+  </div>
+
+  <div class=parent style="-webkit-mask:linear-gradient(black,transparent);
+                           mask:linear-gradient(black,transparent)">
+    <div id=mask class=child></div>
+  </div>
+
+  <div id=parentWithGrouping style="transform-style: preserve-3d; overflow: hidden">
+    <div id=absoluteUnderGrouping style="position: absolute">
+    </div>
+  </div>
+
+  <div id=parentWithoutGrouping style="transform-style: preserve-3d">
+    <div id=absoluteNotUnderGrouping style="position: absolute">
+    </div>
   </div>
 </div>
 

@@ -14,6 +14,9 @@
       width: 200px;
       height: 200px;
     }
+    rect {
+      transform-box: fill-box;
+    }
   </style>
  </head>
  <body>
@@ -27,7 +30,7 @@
        </linearGradient>
      </defs>
      <rect x="1" y="1" width="148" height="148" fill="red"/>
-     <rect width="150" height="150" fill="url(#grad)" transform="rotate(90deg)" transform-origin="75"/>
+     <rect width="150" height="150" fill="url(#grad)" transform="rotate(90)" transform-origin="75"/>
    </svg>
  </body>
 </html>

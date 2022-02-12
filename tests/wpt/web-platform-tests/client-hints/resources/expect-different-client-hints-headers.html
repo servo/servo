@@ -9,7 +9,7 @@
 // of client hints it receives in the request headers.
 
 fetch("../resources/echo-client-hints-received.py").then(r => {
-  if(r.status == 200 && r.headers.has("viewport-width-received")) {
+  if(r.status == 200 && r.headers.has("viewport-width-received") && r.headers.has("viewport-width-deprecated-received")) {
     window.top.opener.postMessage('PASS', '*');
   }
   else {

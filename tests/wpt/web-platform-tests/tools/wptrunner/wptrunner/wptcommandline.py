@@ -116,6 +116,10 @@ scheme host and port.""")
                             default=None,
                             help="The maximum number of minutes for the job to run",
                             type=lambda x: timedelta(minutes=float(x)))
+    mode_group.add_argument("--repeat-max-time", action="store",
+                            default=100,
+                            help="The maximum number of minutes for the test suite to attempt repeat runs",
+                            type=int)
     output_results_group = mode_group.add_mutually_exclusive_group()
     output_results_group.add_argument("--verify-no-output-results", action="store_false",
                                       dest="verify_output_results",
@@ -191,6 +195,16 @@ scheme host and port.""")
     debugging_group.add_argument("--pdb", action="store_true",
                                  help="Drop into pdb on python exception")
 
+    android_group = parser.add_argument_group("Android specific arguments")
+    android_group.add_argument("--adb-binary", action="store",
+                        help="Path to adb binary to use")
+    android_group.add_argument("--package-name", action="store",
+                        help="Android package name to run tests against")
+    android_group.add_argument("--keep-app-data-directory", action="store_true",
+                        help="Don't delete the app data directory")
+    android_group.add_argument("--device-serial", action="append", default=[],
+                        help="Running Android instances to connect to, if not emulator-5554")
+
     config_group = parser.add_argument_group("Configuration")
     config_group.add_argument("--binary", action="store",
                               type=abs_path, help="Desktop binary to run tests against")
@@ -202,12 +216,6 @@ scheme host and port.""")
     config_group.add_argument('--webdriver-arg',
                               default=[], action="append", dest="webdriver_args",
                               help="Extra argument for the WebDriver binary")
-    config_group.add_argument("--adb-binary", action="store",
-                              help="Path to adb binary to use")
-    config_group.add_argument("--package-name", action="store",
-                              help="Android package name to run tests against")
-    config_group.add_argument("--device-serial", action="store",
-                              help="Running Android instance to connect to, if not emulator-5554")
     config_group.add_argument("--metadata", action="store", type=abs_path, dest="metadata_root",
                               help="Path to root directory containing test metadata"),
     config_group.add_argument("--tests", action="store", type=abs_path, dest="tests_root",
@@ -542,6 +550,18 @@ def check_args(kwargs):
             sys.exit(1)
         if not os.path.exists(kwargs["test_groups_file"]):
             print("--test-groups file %s not found" % kwargs["test_groups_file"])
+            sys.exit(1)
+
+    # When running on Android, the number of workers is decided by the number of
+    # emulators. Each worker will use one emulator to run the Android browser.
+    if kwargs["device_serial"]:
+        if kwargs["processes"] is None:
+            kwargs["processes"] = len(kwargs["device_serial"])
+        elif len(kwargs["device_serial"]) != kwargs["processes"]:
+            print("--processes does not match number of devices")
+            sys.exit(1)
+        elif len(set(kwargs["device_serial"])) != len(kwargs["device_serial"]):
+            print("Got duplicate --device-serial value")
             sys.exit(1)
 
     if kwargs["processes"] is None:

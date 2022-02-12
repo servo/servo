@@ -70,7 +70,7 @@ class TestLoader(object):
                     paths.append(test)
                     continue
                 if test.endswith(".js"):
-                    for element in tests[test]:
+                    for element in tests[test][1:]:
                         paths.append(element[0])
                     continue
             return paths
@@ -98,6 +98,7 @@ class TestLoader(object):
         if include_list is not None and len(include_list) > 0:
             is_valid = False
             for include_test in include_list:
+                include_test = include_test.split("?")[0]
                 pattern = re.compile("^" + include_test)
                 if pattern.match(test_path) is not None:
                     is_valid = True
@@ -109,6 +110,7 @@ class TestLoader(object):
         if exclude_list is not None and len(exclude_list) > 0:
             is_valid = True
             for exclude_test in exclude_list:
+                exclude_test = exclude_test.split("?")[0]
                 pattern = re.compile("^" + exclude_test)
                 if pattern.match(test_path) is not None:
                     is_valid = False
@@ -136,13 +138,13 @@ class TestLoader(object):
 
     def get_tests(
         self,
-        types=None,
+        test_types=None,
         include_list=None,
         exclude_list=None,
         reference_tokens=None
     ):
-        if types is None:
-            types = [AUTOMATIC, MANUAL]
+        if test_types is None:
+            test_types = [AUTOMATIC, MANUAL]
         if include_list is None:
             include_list = []
         if exclude_list is None:
@@ -155,7 +157,7 @@ class TestLoader(object):
         reference_results = self._results_manager.read_common_passed_tests(
             reference_tokens)
 
-        for test_type in types:
+        for test_type in test_types:
             if test_type not in TEST_TYPES:
                 continue
             for api in self._tests[test_type]:
@@ -164,7 +166,8 @@ class TestLoader(object):
                                                include_list):
                         continue
                     if reference_results is not None and \
-                       test_path not in reference_results[api]:
+                       (api not in reference_results or
+                       (api in reference_results and test_path not in reference_results[api])):
                         continue
                     if api not in loaded_tests:
                         loaded_tests[api] = []

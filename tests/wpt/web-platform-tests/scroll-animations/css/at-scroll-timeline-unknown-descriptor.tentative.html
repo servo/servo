@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>@scroll-timeline: Unknown Descriptors</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/5109">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #contents {
+    height: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  @scroll-timeline timeline {
+    unknown: 100px;
+    source: selector(#scroller);
+    start: 0px;
+    end: 100px;
+    time-range: 10s;
+    foo: bar;
+  }
+  #element {
+    width: 0px;
+    animation: expand 10s linear timeline;
+  }
+</style>
+<div id=scroller>
+  <div id=contents></div>
+</div>
+<div id=element></div>
+<script>
+  promise_test(async (t) => {
+    scroller.scrollTop = 50;
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element).width, '150px');
+  }, 'Unknown descriptors do not invalidate the @scroll-timeline rule');
+</script>

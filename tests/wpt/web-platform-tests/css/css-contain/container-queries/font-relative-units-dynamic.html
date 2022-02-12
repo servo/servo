@@ -1,0 +1,53 @@
+<!doctype html>
+<title>CSS Container Queries Test: font-relative units - dynamic</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  :root { font-size: 10px; }
+  :root.larger { font-size: 50px; }
+  body.larger { font-size: 20px; }
+  #container {
+    container-type: inline-size;
+    width: 100px;
+    color: red;
+  }
+  @container size(width: 5em) {
+    #em_test { color: green }
+  }
+  @container size(width: 2rem) {
+    #rem_test { color: green }
+  }
+  @container size(max-width: 15ex) {
+    #ex_test { color: green }
+  }
+  @container size(max-width: 15ch) {
+    #ch_test { color: green }
+  }
+</style>
+<div id="container">
+  <div id="em_test"></div>
+  <div id="rem_test"></div>
+  <div id="ex_test"></div>
+  <div id="ch_test"></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+  const red = "rgb(255, 0, 0)";
+
+  test(() => assert_equals(getComputedStyle(em_test).color, red), "em relative before change");
+  test(() => assert_equals(getComputedStyle(rem_test).color, red), "rem relative before change");
+  test(() => assert_equals(getComputedStyle(ex_test).color, red), "ex relative before change");
+  test(() => assert_equals(getComputedStyle(ch_test).color, red), "ch relative before change");
+
+  document.documentElement.className = "larger";
+  document.body.className = "larger";
+
+  test(() => assert_equals(getComputedStyle(em_test).color, green), "em relative after change");
+  test(() => assert_equals(getComputedStyle(rem_test).color, green), "rem relative after change");
+  test(() => assert_equals(getComputedStyle(ex_test).color, green), "ex relative after change");
+  test(() => assert_equals(getComputedStyle(ch_test).color, green), "ch relative after change");
+</script>

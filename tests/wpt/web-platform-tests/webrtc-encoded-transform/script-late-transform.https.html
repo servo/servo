@@ -2,8 +2,11 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <script src="/resources/testharness.js"></script>
+<script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
     </head>
     <body>
         <video controls id="video" autoplay></video>
@@ -44,6 +47,7 @@ async function checkVideoIsUpdated(test, shouldBeUpdated, count, referenceData)
 }
 
 promise_test(async (test) => {
+    await setMediaPermission("granted", ["camera"]);
     const localStream = await navigator.mediaDevices.getUserMedia({video: true});
     const senderTransform = new SFrameTransform({ compatibilityMode: "H264" });
     const receiverTransform = new SFrameTransform({ compatibilityMode: "H264" });

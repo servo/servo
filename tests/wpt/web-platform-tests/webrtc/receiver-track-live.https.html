@@ -3,8 +3,11 @@
 <head>
     <meta charset="utf-8">
     <title>Remote tracks should not get ended except for stop/close</title>
-    <script src="/resources/testharness.js"></script>
+<script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
     <script src="RTCPeerConnection-helper.js"></script>
 </head>
 <body>
@@ -13,6 +16,7 @@
     let pc1, pc2;
     let localTrack, remoteTrack;
     promise_test(async (test) => {
+        await setMediaPermission("granted", ["microphone"]);
         const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
         localTrack = localStream.getAudioTracks()[0];
 

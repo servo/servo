@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!-- DO NOT EDIT. This file has been generated. Source:
+     /html/syntax/speculative-parsing/tools/generate.py
+-->
+<meta charset=utf-8>
+<title>Speculative parsing, document.write(): video-poster</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/utils.js></script>
+<script src=/html/syntax/speculative-parsing/resources/speculative-parsing-util.js></script>
+<script>
+  setup({single_test: true});
+  const uuid = token();
+  expect_fetched_onload(uuid, true)
+    .then(compare_with_nonspeculative(uuid, 'video-poster', true))
+    .then(done);
+  document.write(`
+    <script src="/common/slow.py?delay=1500"><\/script>
+    <script>
+     document.write('<plaintext>');
+    <\/script>
+    <\!-- speculative case in document.write -->
+    <video poster="/html/syntax/speculative-parsing/resources/stash.py?action=put&amp;uuid=${uuid}&amp;encodingcheck=&Gbreve;"></video>
+  `);
+</script>

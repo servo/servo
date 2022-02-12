@@ -18,11 +18,11 @@
     with this resource.</p>
 <body>
     <script>
-        window.addEventListener('securitypolicyviolation', function(e) {
-            log("violated-directive=" + e.violatedDirective);
-        });
         try {
             var blob = new Blob([
+                "self.addEventListener('securitypolicyviolation', e => {" +
+                "  postMessage('violated-directive=' + e.violatedDirective);" +
+                "});" +
                 "var xhr = new XMLHttpRequest;" +
                 "xhr.onerror = function () {" +
                 "  postMessage('xhr blocked');" +

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: font-synthesis-small-caps apply to ::first-letter</title>
+<link rel="match" href="font-synthesis-small-caps-first-letter-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-synthesis-small-caps">
+<meta name="assert" content="If ‘small-caps’ is not specified, user agents must not synthesize small caps faces">
+<!--Lato-Medium does not have small caps in the font-->
+<style>
+    @font-face {
+        font-family: "Lato-Medium";
+        src: url(support/fonts/Lato-Medium.ttf);
+    }
+    @supports not (font-synthesis-small-caps: none) {
+        .test {color: red;}
+    }
+    .test {
+        font-family: "Lato-Medium";
+        font-size: 3em;
+    }
+    p.nosynth::first-letter {
+        font-variant: small-caps;
+        font-synthesis-small-caps: none;
+    }
+</style>
+
+<p>Test passes if the two lines below are identical and there is no red.</p>
+<section class="test">
+    <p>placeholder</p>
+    <p class="nosynth">placeholder</p>
+</section>

@@ -1,0 +1,31 @@
+<!doctype html>
+<title>scroll-margin on input widget</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://www.w3.org/TR/css-scroll-snap-1/#scroll-margin">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1729292">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    scroll-margin-top: 200px;
+  }
+  .padding {
+    height: 5000px;
+  }
+</style>
+
+<div id="container">
+  <div class="padding"></div>
+  <input type="date" id="target">
+  <div class="padding"></div>
+</div>
+
+<script>
+test(function() {
+  document.scrollingElement.scrollTo(0, 20000);
+  document.getElementById("target").focus();
+  // Should be around 4900 (5000 - 200px of margin). Give some leeway to account for line height / borders / input padding / etc.
+  assert_between_exclusive(document.scrollingElement.scrollTop, 4750, 4850, "Should honor date input scroll-margin");
+});
+</script>

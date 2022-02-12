@@ -8,7 +8,7 @@ interface ServiceWorker : EventTarget {
   readonly attribute USVString scriptURL;
   readonly attribute ServiceWorkerState state;
   undefined postMessage(any message, sequence<object> transfer);
-  undefined postMessage(any message, optional PostMessageOptions options = {});
+  undefined postMessage(any message, optional StructuredSerializeOptions options = {});
 
   // event
   attribute EventHandler onstatechange;
@@ -115,12 +115,12 @@ interface Client {
   readonly attribute DOMString id;
   readonly attribute ClientType type;
   undefined postMessage(any message, sequence<object> transfer);
-  undefined postMessage(any message, optional PostMessageOptions options = {});
+  undefined postMessage(any message, optional StructuredSerializeOptions options = {});
 };
 
 [Exposed=ServiceWorker]
 interface WindowClient : Client {
-  readonly attribute VisibilityState visibilityState;
+  readonly attribute DocumentVisibilityState visibilityState;
   readonly attribute boolean focused;
   [SameObject] readonly attribute FrozenArray<USVString> ancestorOrigins;
   [NewObject] Promise<WindowClient> focus();

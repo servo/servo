@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <title>CSS Color Module Level 3: getComputedStyle().color</title>
 <link rel="help" href="https://drafts.csswg.org/css-color/#propdef-color">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-color-function-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-lab-lch">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-oklab-oklch">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
@@ -34,6 +37,91 @@ test_computed_value("color", "rgb(-2, 3, 4)", "rgb(0, 3, 4)");
 test_computed_value("color", "rgb(100, 200, 300)", "rgb(100, 200, 255)");
 test_computed_value("color", "rgb(20, 10, 0, -10)", "rgba(20, 10, 0, 0)");
 test_computed_value("color", "rgb(100%, 200%, 300%)", "rgb(255, 255, 255)");
+
+for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb" ]) {
+    test_computed_value("color", `color(${colorSpace} 0% 0% 0%)`, `color(${colorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 10% 10% 10%)`, `color(${colorSpace} 0.1 0.1 0.1)`);
+    test_computed_value("color", `color(${colorSpace} .2 .2 25%)`, `color(${colorSpace} 0.2 0.2 0.25)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / 1)`, `color(${colorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 0% 0 0 / 0.5)`, `color(${colorSpace} 0 0 0 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 20% 0 10/0.5)`, `color(${colorSpace} 0.2 0 1 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 20% 0 10/50%)`, `color(${colorSpace} 0.2 0 1 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 400% 0 10/50%)`, `color(${colorSpace} 1 0 1 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 50% -160 160)`, `color(${colorSpace} 0.5 0 1)`);
+    test_computed_value("color", `color(${colorSpace} 50% -200 200)`, `color(${colorSpace} 0.5 0 1)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / -10%)`, `color(${colorSpace} 0 0 0 / 0)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / 110%)`, `color(${colorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / 300%)`, `color(${colorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 50% -200)`, `color(${colorSpace} 0.5 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 50%)`, `color(${colorSpace} 0.5 0 0)`);
+    test_computed_value("color", `color(${colorSpace})`, `color(${colorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 50% -200 / 0.5)`, `color(${colorSpace} 0.5 0 0 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 50% / 0.5)`, `color(${colorSpace} 0.5 0 0 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} / 0.5)`, `color(${colorSpace} 0 0 0 / 0.5)`);
+}
+
+for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
+    const resultColorSpace = colorSpace == "xyz" ? "xyz-d65" : colorSpace;
+
+    test_computed_value("color", `color(${colorSpace} 0 0 0)`, `color(${resultColorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / 1)`, `color(${resultColorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 1 1 1)`, `color(${resultColorSpace} 1 1 1)`);
+    test_computed_value("color", `color(${colorSpace} 1 1 1 / 1)`, `color(${resultColorSpace} 1 1 1)`);
+    test_computed_value("color", `color(${colorSpace} -1 -1 -1)`, `color(${resultColorSpace} -1 -1 -1)`);
+    test_computed_value("color", `color(${colorSpace} 0.1 0.1 0.1)`, `color(${resultColorSpace} 0.1 0.1 0.1)`);
+    test_computed_value("color", `color(${colorSpace} 10 10 10)`, `color(${resultColorSpace} 10 10 10)`);
+    test_computed_value("color", `color(${colorSpace} .2 .2 .25)`, `color(${resultColorSpace} 0.2 0.2 0.25)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / 0.5)`, `color(${resultColorSpace} 0 0 0 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} .20 0 10/0.5)`, `color(${resultColorSpace} 0.2 0 10 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} .20 0 10/50%)`, `color(${resultColorSpace} 0.2 0 10 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / -10%)`, `color(${resultColorSpace} 0 0 0 / 0)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / 110%)`, `color(${resultColorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 0 0 0 / 300%)`, `color(${resultColorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 1 1)`, `color(${resultColorSpace} 1 1 0)`);
+    test_computed_value("color", `color(${colorSpace} 1)`, `color(${resultColorSpace} 1 0 0)`);
+    test_computed_value("color", `color(${colorSpace})`, `color(${resultColorSpace} 0 0 0)`);
+    test_computed_value("color", `color(${colorSpace} 1 1 / .5)`, `color(${resultColorSpace} 1 1 0 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 1 / 0.5)`, `color(${resultColorSpace} 1 0 0 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} / 50%)`, `color(${resultColorSpace} 0 0 0 / 0.5)`);
+}
+
+for (const colorSpace of [ "lab", "oklab" ]) {
+    test_computed_value("color", `${colorSpace}(0% 0 0)`, `${colorSpace}(0% 0 0)`);
+    test_computed_value("color", `${colorSpace}(0% 0 0 / 1)`, `${colorSpace}(0% 0 0)`);
+    test_computed_value("color", `${colorSpace}(0% 0 0 / 0.5)`, `${colorSpace}(0% 0 0 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(20% 0 10/0.5)`, `${colorSpace}(20% 0 10 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(20% 0 10/50%)`, `${colorSpace}(20% 0 10 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(400% 0 10/50%)`, `${colorSpace}(400% 0 10 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(50% -160 160)`, `${colorSpace}(50% -160 160)`);
+    test_computed_value("color", `${colorSpace}(50% -200 200)`, `${colorSpace}(50% -200 200)`);
+    test_computed_value("color", `${colorSpace}(0% 0 0 / -10%)`, `${colorSpace}(0% 0 0 / 0)`);
+    test_computed_value("color", `${colorSpace}(0% 0 0 / 110%)`, `${colorSpace}(0% 0 0)`);
+    test_computed_value("color", `${colorSpace}(0% 0 0 / 300%)`, `${colorSpace}(0% 0 0)`);
+    test_computed_value("color", `${colorSpace}(-40% 0 0)`, `${colorSpace}(0% 0 0)`);
+    test_computed_value("color", `${colorSpace}(50% -20 0)`, `${colorSpace}(50% -20 0)`);
+    test_computed_value("color", `${colorSpace}(50% 0 -20)`, `${colorSpace}(50% 0 -20)`);
+}
+
+for (const colorSpace of [ "lch", "oklch" ]) {
+    test_computed_value("color", `${colorSpace}(0% 0 0deg)`, `${colorSpace}(0% 0 0)`);
+    test_computed_value("color", `${colorSpace}(0% 0 0deg / 1)`, `${colorSpace}(0% 0 0)`);
+    test_computed_value("color", `${colorSpace}(0% 0 0deg / 0.5)`, `${colorSpace}(0% 0 0 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(100% 230 0deg / 0.5)`, `${colorSpace}(100% 230 0 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(20% 50 20deg/0.5)`, `${colorSpace}(20% 50 20 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(20% 50 20deg/50%)`, `${colorSpace}(20% 50 20 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(10% 20 20deg / -10%)`, `${colorSpace}(10% 20 20 / 0)`);
+    test_computed_value("color", `${colorSpace}(10% 20 20deg / 110%)`, `${colorSpace}(10% 20 20)`);
+    test_computed_value("color", `${colorSpace}(10% 20 1.28rad)`, `${colorSpace}(10% 20 73.3386)`);
+    test_computed_value("color", `${colorSpace}(10% 20 380deg)`, `${colorSpace}(10% 20 20)`);
+    test_computed_value("color", `${colorSpace}(10% 20 -340deg)`, `${colorSpace}(10% 20 20)`);
+    test_computed_value("color", `${colorSpace}(10% 20 740deg)`, `${colorSpace}(10% 20 20)`);
+    test_computed_value("color", `${colorSpace}(10% 20 -700deg)`, `${colorSpace}(10% 20 20)`);
+    test_computed_value("color", `${colorSpace}(-40% 0 0)`, `${colorSpace}(0% 0 0)`);
+    test_computed_value("color", `${colorSpace}(20% -20 0)`, `${colorSpace}(20% 0 0)`);
+    test_computed_value("color", `${colorSpace}(0% 0 0 / 0.5)`, `${colorSpace}(0% 0 0 / 0.5)`);
+    test_computed_value("color", `${colorSpace}(10% 20 20 / 110%)`, `${colorSpace}(10% 20 20)`);
+    test_computed_value("color", `${colorSpace}(10% 20 -700)`, `${colorSpace}(10% 20 20)`);
+}
 </script>
 </body>
 </html>

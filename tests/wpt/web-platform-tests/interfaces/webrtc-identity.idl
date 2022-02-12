@@ -3,15 +3,14 @@
 // (https://github.com/w3c/webref)
 // Source: Identity for WebRTC 1.0 (https://w3c.github.io/webrtc-identity/)
 
-[Global,
- Exposed=RTCIdentityProviderGlobalScope]
+[Global, Exposed=RTCIdentityProviderGlobalScope]
 interface RTCIdentityProviderGlobalScope : WorkerGlobalScope {
-    readonly attribute RTCIdentityProviderRegistrar rtcIdentityProvider;
+    readonly        attribute RTCIdentityProviderRegistrar rtcIdentityProvider;
 };
 
 [Exposed=RTCIdentityProviderGlobalScope]
 interface RTCIdentityProviderRegistrar {
-    undefined register(RTCIdentityProvider idp);
+    undefined register (RTCIdentityProvider idp);
 };
 
 dictionary RTCIdentityProvider {
@@ -19,12 +18,11 @@ dictionary RTCIdentityProvider {
     required ValidateAssertionCallback validateAssertion;
 };
 
-callback GenerateAssertionCallback = Promise<RTCIdentityAssertionResult> (DOMString contents,
-DOMString origin,
-RTCIdentityProviderOptions options);
+callback GenerateAssertionCallback = Promise<RTCIdentityAssertionResult>
+(DOMString contents, DOMString origin, RTCIdentityProviderOptions options);
 
-callback ValidateAssertionCallback = Promise<RTCIdentityValidationResult> (DOMString assertion,
-DOMString origin);
+callback ValidateAssertionCallback = Promise<RTCIdentityValidationResult>
+(DOMString assertion, DOMString origin);
 
 dictionary RTCIdentityAssertionResult {
     required RTCIdentityProviderDetails idp;
@@ -50,7 +48,7 @@ partial interface RTCPeerConnection {
 };
 
 partial dictionary RTCConfiguration {
-    DOMString peerIdentity;
+  DOMString peerIdentity;
 };
 
 dictionary RTCIdentityProviderOptions {

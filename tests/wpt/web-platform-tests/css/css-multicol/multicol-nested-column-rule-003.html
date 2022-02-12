@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#column-gaps-and-rules">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .mc {
+    columns: 2;
+    column-gap: 20px;
+    column-rule: 20px solid green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="mc" style="column-fill:auto; width:100px; height:100px; background:red;">
+  <div class="mc">
+    <div style="background:green;">
+      <div style="height:10px; break-after:column;"></div>
+      <div style="height:10px; break-after:column;"></div>
+      <div style="height:200px;"></div>
+    </div>
+  </div>
+</div>

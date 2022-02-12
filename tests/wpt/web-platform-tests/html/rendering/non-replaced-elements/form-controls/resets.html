@@ -34,9 +34,29 @@ input, select, textarea {
 input[type=reset i], input[type=button i], input[type=submit i], button {
   text-align: center;
 }
+input[type=radio i], input[type=checkbox i], input[type=reset i], input[type=button i],
+input[type=submit i], input[type=color i], input[type=search i], select, button {
+  box-sizing: border-box;
+}
+input, button {
+  display: inline-block;
+}
+/* in spec prose: */ select, textarea, meter, progress {
+  display: inline-block;
+}
+input[type=hidden i] { display: none !important; }
 marquee {
   text-align: initial;
 }
+table { display: table; box-sizing: border-box; }
+caption { display: table-caption; }
+colgroup, colgroup[hidden] { display: table-column-group; }
+col, col[hidden] { display: table-column; }
+thead, thead[hidden] { display: table-header-group; }
+tbody, tbody[hidden] { display: table-row-group; }
+tfoot, tfoot[hidden] { display: table-footer-group; }
+tr, tr[hidden] { display: table-row; }
+td, th { display: table-cell; }
 table {
   text-indent: initial;
 }
@@ -84,7 +104,9 @@ table {
                 'text-transform',
                 'text-indent',
                 'text-shadow',
-                'text-align'];
+                'text-align',
+                'display',
+                'box-sizing'];
  runUAStyleTests(props);
 
 </script>
