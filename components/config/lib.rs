@@ -16,5 +16,4 @@ pub mod pref_util;
 pub mod prefs;
 
 pub mod basedir;
-#[allow(unsafe_code)]
 pub mod opts;

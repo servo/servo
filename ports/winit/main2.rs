@@ -142,7 +142,13 @@ pub fn main() {
     }
 
     if opts::get().is_printing_version {
-        println!("{}", servo_version());
+        let cargo_version = env!("CARGO_PKG_VERSION");
+        let git_info = option_env!("GIT_INFO");
+        let version = match git_info {
+            Some(info) => format!("Servo {}{}", cargo_version, info),
+            None => format!("Servo {}", cargo_version),
+        };
+        println!("{}", version);
         process::exit(0);
     }
 
