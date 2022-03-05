@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::root::Root;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
@@ -1697,7 +1698,8 @@ impl Window {
             .take_dirty_root()
             .filter(|_| !stylesheets_changed)
             .or_else(|| document.GetDocumentElement())
-            .map(|root| root.upcast::<Node>().to_trusted_node_address());
+        //.map(|root| root.upcast::<Node>().to_trusted_node_address());
+            .map(|root| Root::upcast(root));
 
         // Send new document and relevant styles to layout.
         let needs_display = reflow_goal.needs_display();
@@ -1705,8 +1707,9 @@ impl Window {
             reflow_info: Reflow {
                 page_clip_rect: self.page_clip_rect.get(),
             },
-            document: document.upcast::<Node>().to_trusted_node_address(),
-            dirty_root,
+            //document: document.upcast::<Node>().to_trusted_node_address(),
+            document: &*document.upcast::<Node>(),
+            dirty_root: dirty_root.as_ref().map(|root| &**root),
             stylesheets_changed,
             window_size: self.window_size.get(),
             origin: self.origin().immutable().clone(),

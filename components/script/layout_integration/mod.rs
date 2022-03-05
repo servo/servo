@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use msg::constellation_msg::{BackgroundHangMonitorRegister, BrowsingContextId, PipelineId};
+use msg::constellation_msg::{BackgroundHangMonitorRegister, PipelineId};
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use servo_url::ServoUrl;
 use crossbeam_channel::{Receiver, Sender};
@@ -7,8 +7,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use net_traits::image_cache::ImageCache;
 use script_traits::LayoutMsg;
 use script_traits::{
-    ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg, ScrollState,
-    WindowSizeData, WebrenderIpcSender,
+    ConstellationControlMsg, LayoutControlMsg, WindowSizeData, WebrenderIpcSender,
 };
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;

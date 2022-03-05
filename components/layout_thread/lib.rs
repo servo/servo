@@ -48,7 +48,6 @@ use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils}
 use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
-use layout::parallel;
 use layout::query::{
     process_client_rect_query, process_content_box_request, process_content_boxes_request,
     process_element_inner_text_query, process_node_scroll_area_request,
@@ -65,7 +64,7 @@ use layout::wrapper::LayoutNodeLayoutData;
 use script::layout_integration::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
+use metrics::{/*PaintTimeMetrics,*/ ProfilerMetadataFactory, /*ProgressiveWebMetric*/};
 use msg::constellation_msg::{
     BackgroundHangMonitor, BackgroundHangMonitorRegister, HangAnnotation,
 };
@@ -97,7 +96,6 @@ use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::thread;
 use std::time::Duration;
 use style::animation::{AnimationSetKey, DocumentAnimationSet, ElementAnimationSet};
 use style::context::SharedStyleContext;
@@ -117,7 +115,7 @@ use style::stylesheets::{
     DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets,
 };
 use style::stylist::Stylist;
-use style::thread_state::{self, ThreadState};
+//use style::thread_state::{self, ThreadState};
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
@@ -348,26 +346,26 @@ impl LayoutThreadFactory for LayoutThread {
     }
 }
 
-struct ScriptReflowResult {
-    script_reflow: ScriptReflow,
+struct ScriptReflowResult<'a> {
+    script_reflow: ScriptReflow<'a>,
     result: RefCell<Option<ReflowComplete>>,
 }
 
-impl Deref for ScriptReflowResult {
-    type Target = ScriptReflow;
-    fn deref(&self) -> &ScriptReflow {
+impl<'a> Deref for ScriptReflowResult<'a> {
+    type Target = ScriptReflow<'a>;
+    fn deref(&self) -> &ScriptReflow<'a> {
         &self.script_reflow
     }
 }
 
-impl DerefMut for ScriptReflowResult {
+impl<'a> DerefMut for ScriptReflowResult<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.script_reflow
     }
 }
 
-impl ScriptReflowResult {
-    fn new(script_reflow: ScriptReflow) -> ScriptReflowResult {
+impl<'a> ScriptReflowResult<'a> {
+    fn new(script_reflow: ScriptReflow<'a>) -> ScriptReflowResult<'a> {
         ScriptReflowResult {
             script_reflow: script_reflow,
             result: RefCell::new(Some(Default::default())),
@@ -375,7 +373,7 @@ impl ScriptReflowResult {
     }
 }
 
-impl Drop for ScriptReflowResult {
+impl<'a> Drop for ScriptReflowResult<'a> {
     fn drop(&mut self) {
         self.script_reflow
             .script_join_chan
@@ -1144,7 +1142,8 @@ impl LayoutThread {
         data: &mut ScriptReflowResult,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) {
-        let document = unsafe { ServoLayoutNode::new(&data.document) };
+        //let document = unsafe { ServoLayoutNode::new(&data.document) };
+        let document = ServoLayoutNode::new_safe(&data.document);
         let document = document.as_document().unwrap();
 
         debug!("layout: received layout request for: {}", self.url);
@@ -1374,11 +1373,9 @@ impl LayoutThread {
             data.stylesheets_changed,
         );
 
-        let dirty_root = unsafe {
-            ServoLayoutNode::new(&data.dirty_root.unwrap())
-                .as_element()
-                .unwrap()
-        };
+        let dirty_root = ServoLayoutNode::new_safe(data.dirty_root.unwrap())
+            .as_element()
+            .unwrap();
 
         let traversal = RecalcStyleAndConstructFlows::new(layout_context);
         let token = {

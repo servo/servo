@@ -1,3 +1,4 @@
+use crate::dom::node::Node;
 use app_units::Au;
 use style::dom::OpaqueNode;
 use script_layout_interface::{PendingImage, TrustedNodeAddress};
@@ -9,7 +10,7 @@ use msg::constellation_msg::BrowsingContextId;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use script_traits::WindowSizeData;
 use crossbeam_channel::Sender;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ImmutableOrigin;
 
 #[derive(Debug, PartialEq)]
 pub enum NodesFromPointQueryType {
@@ -108,13 +109,13 @@ pub struct ReflowComplete {
 }
 
 /// Information needed for a script-initiated reflow.
-pub struct ScriptReflow {
+pub struct ScriptReflow<'a> {
     /// General reflow data.
     pub reflow_info: Reflow,
     /// The document node.
-    pub document: TrustedNodeAddress,
+    pub document: &'a Node,
     /// The dirty root from which to restyle.
-    pub dirty_root: Option<TrustedNodeAddress>,
+    pub dirty_root: Option<&'a Node>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
     /// The current window size.

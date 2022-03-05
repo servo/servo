@@ -535,6 +535,15 @@ impl LayoutDom<'_, Node> {
     }
 }
 
+impl<'a> LayoutDom<'a, Node> {
+    /// Create a new JS-owned value from an existing DOM reference.
+    pub fn from(node: &'a Node) -> Self {
+        LayoutDom {
+            value: node,
+        }
+    }
+}
+
 /// A holder that provides interior mutability for GC-managed values such as
 /// `Dom<T>`.  Essentially a `Cell<Dom<T>>`, but safer.
 ///

@@ -129,6 +129,10 @@ impl<'ln> ServoLayoutNode<'ln> {
         ServoLayoutNode::from_layout_js(LayoutDom::from_trusted_node_address(*address))
     }
 
+    pub fn new_safe(node: &'ln Node) -> Self {
+        ServoLayoutNode::from_layout_js(LayoutDom::from(node))
+    }
+
     fn script_type_id(&self) -> NodeTypeId {
         self.node.type_id_for_layout()
     }
