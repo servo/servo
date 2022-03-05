@@ -62,7 +62,7 @@ use layout::traversal::{
     RecalcStyleAndConstructFlows,
 };
 use layout::wrapper::LayoutNodeLayoutData;
-use script_layout_interface::LayoutThreadFactory;
+use script::layout_integration::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
@@ -280,7 +280,7 @@ impl LayoutThreadFactory for LayoutThread {
         nonincremental_layout: bool,
         trace_layout: bool,
         dump_flow_tree: bool,
-    ) -> Box<dyn script_layout_interface::Layout> {
+    ) -> Box<dyn script::layout_integration::Layout> {
         /*thread::Builder::new()
             .name(format!("Layout{}", id))
             .spawn(move || {*/
@@ -1986,7 +1986,7 @@ impl RegisteredPainters for RegisteredPaintersImpl {
     }
 }
 
-impl script_layout_interface::Layout for LayoutThread {
+impl script::layout_integration::Layout for LayoutThread {
     fn process(&mut self, msg: script_layout_interface::message::Msg) { 
         let rw_data = self.rw_data.clone();
         let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());

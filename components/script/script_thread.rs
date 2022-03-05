@@ -126,7 +126,7 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
-use script_layout_interface::{ScriptThreadFactory, LayoutThreadFactory};
+use crate::layout_integration::{ScriptThreadFactory, LayoutThreadFactory, Layout};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
     CompositionEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
@@ -512,7 +512,7 @@ pub struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContext)>>);
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitor);
-unsafe_no_jsmanaged_fields!(dyn script_layout_interface::Layout);
+unsafe_no_jsmanaged_fields!(dyn Layout);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
@@ -698,7 +698,7 @@ pub struct ScriptThread {
     // Secure context
     inherited_secure_context: Option<bool>,
 
-    layout: Box<dyn script_layout_interface::Layout>,
+    layout: Box<dyn Layout>,
 }
 
 struct BHMExitSignal {
@@ -754,7 +754,7 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 impl ScriptThreadFactory for ScriptThread {
     type Message = message::Msg;
 
-    fn create<LTF: script_layout_interface::LayoutThreadFactory<Message = message::Msg>>(
+    fn create<LTF: crate::layout_integration::LayoutThreadFactory<Message = message::Msg>>(
         state: InitialScriptState,
         load_data: LoadData,
         profile_script_events: bool,
@@ -882,7 +882,7 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn layout() -> &'static mut dyn script_layout_interface::Layout {
+    pub fn layout() -> &'static mut dyn Layout {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &mut *root.get().unwrap() };
             &mut *script_thread.layout
@@ -1320,7 +1320,7 @@ impl ScriptThread {
         headless: bool,
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
-        layout: Box<dyn script_layout_interface::Layout>,
+        layout: Box<dyn Layout>,
     ) -> ScriptThread {
         let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
 

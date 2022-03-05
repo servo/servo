@@ -59,6 +59,7 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::fetch;
 use crate::layout_image::fetch_image_for_layout;
+use crate::layout_integration::Layout;
 use crate::malloc_size_of::MallocSizeOf;
 use crate::microtask::MicrotaskQueue;
 use crate::realms::InRealm;
@@ -2453,7 +2454,7 @@ impl Window {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
 
-    pub fn layout(&self) -> &mut dyn script_layout_interface::Layout {
+    pub fn layout(&self) -> &mut dyn Layout {
         ScriptThread::layout()
     }
 }

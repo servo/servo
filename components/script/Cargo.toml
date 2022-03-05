@@ -54,6 +54,7 @@ enum-iterator = "0.3"
 euclid = "0.20"
 fnv = "1.0"
 fxhash = "0.2"
+gfx = { path = "../gfx" }
 headers = "0.3"
 html5ever = "0.25"
 http = "0.2"

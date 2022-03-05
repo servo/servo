@@ -126,7 +126,7 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
-use script_layout_interface::{LayoutThreadFactory, ScriptThreadFactory};
+use script::layout_integration::{LayoutThreadFactory, ScriptThreadFactory};
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{

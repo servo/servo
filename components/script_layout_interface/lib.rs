@@ -176,7 +176,7 @@ pub struct HTMLMediaData {
     pub current_frame: Option<(webrender_api::ImageKey, i32, i32)>,
 }
 
-/// This trait allows creating a `ScriptThread` without depending on the `script`
+/*/// This trait allows creating a `ScriptThread` without depending on the `script`
 /// crate.
 pub trait ScriptThreadFactory {
     /// Type of message sent from script to layout.
@@ -198,44 +198,13 @@ pub trait ScriptThreadFactory {
         user_agent: Cow<'static, str>,
         layout_init: script_traits::LayoutInit,
     ) /*-> (Sender<Self::Message>, Receiver<Self::Message>)*/;
-}
+}*/
 
-pub trait LayoutThreadFactory {
-    type Message;
-    fn create(
-        id: PipelineId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        url: ServoUrl,
-        is_iframe: bool,
-        chan: (Sender<Self::Message>, Receiver<Self::Message>),
-        pipeline_port: IpcReceiver<LayoutControlMsg>,
-        background_hang_monitor: Box<dyn BackgroundHangMonitorRegister>,
-        constellation_chan: IpcSender<LayoutMsg>,
-        script_chan: IpcSender<ConstellationControlMsg>,
-        image_cache: Arc<dyn ImageCache>,
-        font_cache_thread: gfx::font_cache_thread::FontCacheThread,
-        time_profiler_chan: profile_traits::time::ProfilerChan,
-        mem_profiler_chan: profile_traits::mem::ProfilerChan,
-        webrender_api_sender: WebrenderIpcSender,
-        //paint_time_metrics: metrics::PaintTimeMetrics,
-        busy: Arc<AtomicBool>,
-        load_webfonts_synchronously: bool,
-        window_size: WindowSizeData,
-        dump_display_list: bool,
-        dump_display_list_json: bool,
-        dump_style_tree: bool,
-        dump_rule_tree: bool,
-        relayout_event: bool,
-        nonincremental_layout: bool,
-        trace_layout: bool,
-        dump_flow_tree: bool,
-    ) -> Box<dyn Layout>;
-}
 
-pub trait Layout {
+/*pub trait Layout {
     fn process(&mut self, msg: message::Msg);
     fn rpc(&self) -> &dyn rpc::LayoutRPC;
-}
+}*/
 
 /*pub trait LayoutFactory {
     fn new() -> Box<Layout>;

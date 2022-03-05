@@ -41,7 +41,7 @@ use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg};
 use script_traits::{TimerSchedulerMsg, WindowSizeData};
 use script_traits::{LayoutInit};
-use script_layout_interface::{ScriptThreadFactory, LayoutThreadFactory};
+use script::layout_integration::{ScriptThreadFactory, LayoutThreadFactory};
 use servo_config::opts::{self, Opts};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;

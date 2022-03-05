@@ -36,6 +36,7 @@ net_traits = { path = "../net_traits" }
 profile_traits = { path = "../profile_traits" }
 script_traits = { path = "../script_traits" }
 script_layout_interface = { path = "../script_layout_interface" }
+script = { path = "../script" }
 serde = "1.0"
 servo_config = { path = "../config" }
 servo_rand = {path = "../rand" }
