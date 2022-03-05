@@ -107,7 +107,8 @@ use parking_lot::Mutex as ParkMutex;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::{ProfilerChan as TimeProfilerChan, ProfilerMsg};
-use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
+use script_layout_interface::message::Msg;
+use crate::layout_integration::reflow::{QueryMsg, Reflow, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
     NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
@@ -1717,7 +1718,7 @@ impl Window {
             animations: document.animations().sets.clone(),
         };
 
-        self.layout().process(Msg::Reflow(reflow));
+        self.layout().reflow(reflow);
 
         debug!("script: layout returned");
 

@@ -13,6 +13,7 @@ use script_traits::{
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
+pub mod reflow;
 
 pub trait ScriptThreadFactory {
     /// Type of message sent from script to layout.
@@ -39,6 +40,7 @@ pub trait ScriptThreadFactory {
 pub trait Layout {
     fn process(&mut self, msg: script_layout_interface::message::Msg);
     fn rpc(&self) -> &dyn script_layout_interface::rpc::LayoutRPC;
+    fn reflow(&mut self, reflow: reflow::ScriptReflow);
 }
 
 pub trait LayoutThreadFactory {

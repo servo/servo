@@ -76,8 +76,9 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQueryType, Reflow};
-use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
+use script::layout_integration::reflow::{NodesFromPointQueryType, Reflow};
+use script::layout_integration::reflow::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
+use script_layout_interface::message::{LayoutThreadInit, Msg};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
@@ -634,7 +635,7 @@ impl LayoutThread {
             Msg::AddStylesheet(..) => LayoutHangAnnotation::AddStylesheet,
             Msg::RemoveStylesheet(..) => LayoutHangAnnotation::RemoveStylesheet,
             Msg::SetQuirksMode(..) => LayoutHangAnnotation::SetQuirksMode,
-            Msg::Reflow(..) => LayoutHangAnnotation::Reflow,
+            //Msg::Reflow(..) => LayoutHangAnnotation::Reflow,
             Msg::GetRPC(..) => LayoutHangAnnotation::GetRPC,
             Msg::CollectReports(..) => LayoutHangAnnotation::CollectReports,
             Msg::PrepareToExit(..) => LayoutHangAnnotation::PrepareToExit,
@@ -742,7 +743,7 @@ impl LayoutThread {
                     .send(Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<dyn LayoutRPC + Send>)
                     .unwrap();
             },
-            Msg::Reflow(data) => {
+            /*Msg::Reflow(data) => {
                 let mut data = ScriptReflowResult::new(data);
                 profile(
                     profile_time::ProfilerCategory::LayoutPerform,
@@ -750,7 +751,7 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || self.handle_reflow(&mut data, possibly_locked_rw_data),
                 );
-            },
+            },*/
             Msg::SetScrollStates(new_scroll_states) => {
                 self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
             },
@@ -1996,7 +1997,32 @@ impl script::layout_integration::Layout for LayoutThread {
         };
         self.handle_request_helper(msg, &mut rw_data);
     }
+
     fn rpc(&self) -> &dyn script_layout_interface::rpc::LayoutRPC {
         unimplemented!()
+    }
+
+    fn reflow(&mut self, data: script::layout_integration::reflow::ScriptReflow) {
+        let rw_data = self.rw_data.clone();
+        let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
+        let mut rw_data = RwData {
+            rw_data: &rw_data,
+            possibly_locked_rw_data: &mut possibly_locked_rw_data,
+        };
+
+        self.busy.store(true, Ordering::Relaxed);
+
+        self.background_hang_monitor
+            .notify_activity(HangAnnotation::Layout(LayoutHangAnnotation::Reflow));
+
+        let mut data = ScriptReflowResult::new(data);
+        profile(
+            profile_time::ProfilerCategory::LayoutPerform,
+            self.profiler_metadata(),
+            self.time_profiler_chan.clone(),
+            || self.handle_reflow(&mut data, &mut rw_data),
+        );
+
+        self.busy.store(false, Ordering::Relaxed);
     }
 }

@@ -8,7 +8,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlinputelement::InputActivationState;
 use crate::dom::node::window_from_node;
 use crate::dom::window::ReflowReason;
-use script_layout_interface::message::ReflowGoal;
+use crate::layout_integration::reflow::ReflowGoal;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {

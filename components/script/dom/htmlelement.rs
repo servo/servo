@@ -36,7 +36,7 @@ use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use script_layout_interface::message::QueryMsg;
+use crate::layout_integration::reflow::QueryMsg;
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;

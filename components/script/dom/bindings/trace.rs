@@ -105,7 +105,7 @@ use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, Re
 use parking_lot::{Mutex as ParkMutex, RwLock};
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use script_layout_interface::message::PendingRestyle;
+use crate::layout_integration::reflow::PendingRestyle;
 use script_layout_interface::rpc::LayoutRPC;
 use script_layout_interface::StyleAndOpaqueLayoutData;
 use script_traits::serializable::BlobImpl;

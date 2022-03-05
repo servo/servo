@@ -125,8 +125,9 @@ use parking_lot::Mutex;
 use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
+use script_layout_interface::message::{self, LayoutThreadInit, Msg};
 use crate::layout_integration::{ScriptThreadFactory, LayoutThreadFactory, Layout};
+use crate::layout_integration::reflow::ReflowGoal;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
     CompositionEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
