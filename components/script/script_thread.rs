@@ -2971,29 +2971,17 @@ impl ScriptThread {
         // but also has a Document.
         debug_assert!(idx.is_none() || document.is_none());
 
-        //XXXjdm notify layout about closing pipeline
         // Remove any incomplete load.
-        /*let chan = if let Some(idx) = idx {
-            let load = self.incomplete_loads.borrow_mut().remove(idx);
-            load.layout_chan.clone()
-        } else if let Some(ref document) = document {
-            match document.window().layout_chan() {
-                Some(chan) => chan.clone(),
-                None => return warn!("Layout channel unavailable"),
-            }
+        if let Some(idx) = idx {
+            let mut load = self.incomplete_loads.borrow_mut().remove(idx);
+            load.layout.process(message::Msg::ExitNow);
+        } else if let Some(mut layout) = self.layouts.borrow_mut().remove(&id) {
+            debug!("shutting down layout for page {}", id);
+            layout.process(message::Msg::ExitNow)
         } else {
             return warn!("Exiting nonexistant pipeline {}.", id);
-        };*/
+        };
 
-        // We shut down layout before removing the document,
-        // since layout might still be in the middle of laying it out.
-        /*debug!("preparing to shut down layout for page {}", id);
-        let (response_chan, response_port) = unbounded();
-        chan.send(message::Msg::PrepareToExit(response_chan)).ok();
-        let _ = response_port.recv();*/
-
-        debug!("shutting down layout for page {}", id);
-        //chan.send(message::Msg::ExitNow).ok();
         self.script_sender
             .send((id, ScriptMsg::PipelineExited))
             .ok();
