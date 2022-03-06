@@ -169,7 +169,7 @@ use webrender_api::DocumentId;
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
-thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*mut ScriptThread>> = Cell::new(None));
+thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
@@ -838,9 +838,8 @@ impl ScriptThreadFactory for ScriptThread {
                     user_agent,
                 );
 
-                //XXXjdm bad
                 SCRIPT_THREAD_ROOT.with(|root| {
-                    root.set(Some(&script_thread as *const _ as *mut _));
+                    root.set(Some(&script_thread as *const _));
                 });
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
@@ -884,7 +883,7 @@ impl ScriptThreadFactory for ScriptThread {
 impl ScriptThread {
     pub fn with_layout<'a, T>(pipeline_id: PipelineId, call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>) -> T {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &mut *root.get().unwrap() };
+            let script_thread = unsafe { &*root.get().unwrap() };
             let mut layouts = script_thread.layouts.borrow_mut();
             let mut incompletes = script_thread.incomplete_loads.borrow_mut();
             let mut layout = layouts.get_mut(&pipeline_id)
