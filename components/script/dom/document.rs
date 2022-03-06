@@ -812,7 +812,9 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == QuirksMode::Quirks {
-            self.window.layout(Box::new(move |layout: &mut dyn Layout| layout.process(Msg::SetQuirksMode(mode))));
+            let _ = self.window.layout(Box::new(move |layout: &mut dyn Layout| {
+                layout.process(Msg::SetQuirksMode(mode))
+            }));
         }
     }
 
@@ -3835,10 +3837,12 @@ impl Document {
 
         let sheet2 = sheet.clone();
         let insertion_point2 = insertion_point.clone();
-        self.window.layout(Box::new(move |layout: &mut dyn Layout| layout.process(Msg::AddStylesheet(
-            sheet2,
-            insertion_point2.as_ref().map(|s| s.sheet.clone()),
-        ))));
+        let _ = self.window.layout(Box::new(move |layout: &mut dyn Layout| {
+            layout.process(Msg::AddStylesheet(
+                sheet2,
+                insertion_point2.as_ref().map(|s| s.sheet.clone()),
+            ))
+        }));
 
         DocumentOrShadowRoot::add_stylesheet(
             owner,
@@ -3853,7 +3857,9 @@ impl Document {
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
         let s2 = s.clone();
-        self.window.layout(Box::new(|layout: &mut dyn Layout| layout.process(Msg::RemoveStylesheet(s2))));
+        let _ = self.window.layout(Box::new(|layout: &mut dyn Layout| {
+            layout.process(Msg::RemoveStylesheet(s2))
+        }));
 
         DocumentOrShadowRoot::remove_stylesheet(
             owner,

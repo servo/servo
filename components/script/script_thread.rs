@@ -881,7 +881,10 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn with_layout<'a, T>(pipeline_id: PipelineId, call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>) -> T {
+    pub fn with_layout<'a, T>(
+        pipeline_id: PipelineId,
+        call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>,
+    ) -> Result<T, ()> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             let mut layouts = script_thread.layouts.borrow_mut();
@@ -894,9 +897,10 @@ impl ScriptThread {
                         .map(|load| &mut load.layout)
                 });
             if let Some(ref mut layout) = layout {
-                return call(&mut ***layout)
+                Ok(call(&mut ***layout))
             } else {
-                panic!("No layout found for {}", pipeline_id)
+                warn!("No layout found for {}", pipeline_id);
+                Err(())
             }
         })
     }
@@ -1236,7 +1240,9 @@ impl ScriptThread {
             },
         };
 
-        window.layout(Box::new(|layout: &mut dyn Layout| layout.process(Msg::RegisterPaint(name, properties, painter))))
+        let _ = window.layout(Box::new(|layout: &mut dyn Layout| {
+            layout.process(Msg::RegisterPaint(name, properties, painter))
+        }));
     }
 
     pub fn push_new_element_queue() {
@@ -2112,11 +2118,21 @@ impl ScriptThread {
     }
 
     fn handle_layout_message(&self, msg: LayoutControlMsg, pipeline_id: PipelineId) {
-        Self::with_layout(pipeline_id, Box::new(|layout: &mut dyn Layout| layout.handle_constellation_msg(msg)));
+        let _ = Self::with_layout(
+            pipeline_id,
+            Box::new(|layout: &mut dyn Layout| {
+                layout.handle_constellation_msg(msg)
+            })
+        );
     }
 
     fn handle_font_cache(&self, pipeline_id: PipelineId) {
-        Self::with_layout(pipeline_id, Box::new(|layout: &mut dyn Layout| layout.handle_font_cache_msg()));
+        let _ = Self::with_layout(
+            pipeline_id,
+            Box::new(|layout: &mut dyn Layout| {
+                layout.handle_font_cache_msg()
+            })
+        );
     }
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {

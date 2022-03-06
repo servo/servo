@@ -450,8 +450,10 @@ impl HTMLElementMethods for HTMLElement {
             return node.GetTextContent().unwrap();
         }
 
-        window.layout_reflow(QueryMsg::ElementInnerTextQuery(node));
-        DOMString::from(window.layout_rpc().element_inner_text())
+        if !window.layout_reflow(QueryMsg::ElementInnerTextQuery(node)) {
+            return "".into();
+        }
+        DOMString::from(window.layout_rpc().unwrap().element_inner_text())
     }
 
     // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute

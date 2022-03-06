@@ -100,7 +100,7 @@ impl DocumentOrShadowRoot {
             return vec![];
         };
 
-        self.window.layout_rpc().nodes_from_point_response()
+        self.window.layout_rpc().unwrap().nodes_from_point_response()
     }
 
     #[allow(unsafe_code)]

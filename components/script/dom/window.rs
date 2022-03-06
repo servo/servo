@@ -233,10 +233,6 @@ pub struct Window {
     /// which returns `None` if there's no layout thread anymore.
     //layout: Box<dyn script_layout_interface::Layout>,
 
-    /// A handle to perform RPC calls into the layout, quickly.
-    //#[ignore_malloc_size_of = "trait objects are hard"]
-    //layout_rpc: Box<dyn LayoutRPC + Send + 'static>,
-
     /// The current size of the window, in pixels.
     window_size: Cell<WindowSizeData>,
 
@@ -1578,10 +1574,12 @@ impl Window {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        self.layout(Box::new(move |layout: &mut dyn Layout| layout.process(Msg::UpdateScrollStateFromScript(ScrollState {
-            scroll_id,
-            scroll_offset: Vector2D::new(-x, -y),
-        }))))
+        let _ = self.layout(Box::new(move |layout: &mut dyn Layout| {
+            layout.process(Msg::UpdateScrollStateFromScript(ScrollState {
+                scroll_id,
+                scroll_offset: Vector2D::new(-x, -y),
+            }))
+        }));
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1720,7 +1718,11 @@ impl Window {
             animations: document.animations().sets.clone(),
         };
 
-        let complete = self.layout(Box::new(move |layout: &mut dyn Layout| layout.reflow(reflow)));
+        let complete = self.layout(Box::new(
+            move |layout: &mut dyn Layout| {
+                layout.reflow(reflow)
+            }
+        ));
 
         debug!("script: layout returned");
 
@@ -1734,8 +1736,10 @@ impl Window {
             self.emit_timeline_marker(marker.end());
         }
 
+        let succeeded = complete.is_ok();
+
         //XXXjdm Can be simplified with one thread.
-        for image in complete.pending_images {
+        for image in complete.map_or(vec![], |complete| complete.pending_images) {
             let id = image.id;
 
             if let PendingImageState::Unrequested(ref url) = image.state {
@@ -1766,7 +1770,7 @@ impl Window {
 
         document.update_animations_post_reflow();
 
-        true
+        succeeded
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. This
@@ -1866,20 +1870,18 @@ impl Window {
         )) {
             return None;
         }
-        self.layout_rpc().resolved_font_style()
+        self.layout_rpc().unwrap().resolved_font_style()
     }
 
-    pub fn layout_rpc(&self) -> Box<dyn LayoutRPC> {
-        //&*self.layout_rpc
+    pub fn layout_rpc(&self) -> Result<Box<dyn LayoutRPC>, ()> {
         self.layout(Box::new(|layout: &mut dyn Layout| layout.rpc()))
-        //unimplemented!()
     }
 
     pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBoxQuery(node)) {
             return None;
         }
-        let ContentBoxResponse(rect) = self.layout_rpc().content_box();
+        let ContentBoxResponse(rect) = self.layout_rpc().unwrap().content_box();
         rect
     }
 
@@ -1887,7 +1889,7 @@ impl Window {
         if !self.layout_reflow(QueryMsg::ContentBoxesQuery(node)) {
             return vec![];
         }
-        let ContentBoxesResponse(rects) = self.layout_rpc().content_boxes();
+        let ContentBoxesResponse(rects) = self.layout_rpc().unwrap().content_boxes();
         rects
     }
 
@@ -1895,14 +1897,14 @@ impl Window {
         if !self.layout_reflow(QueryMsg::ClientRectQuery(node)) {
             return Rect::zero();
         }
-        self.layout_rpc().node_geometry().client_rect
+        self.layout_rpc().unwrap().node_geometry().client_rect
     }
 
     pub fn scroll_area_query(&self, node: &Node) -> UntypedRect<i32> {
         if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node)) {
             return Rect::zero();
         }
-        self.layout_rpc().node_scroll_area().client_rect
+        self.layout_rpc().unwrap().node_scroll_area().client_rect
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
@@ -1925,7 +1927,7 @@ impl Window {
             .borrow_mut()
             .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
 
-        let NodeScrollIdResponse(scroll_id) = self.layout_rpc().node_scroll_id();
+        let NodeScrollIdResponse(scroll_id) = self.layout_rpc().unwrap().node_scroll_id();
 
         // Step 12
         self.perform_a_scroll(
@@ -1946,7 +1948,7 @@ impl Window {
         if !self.layout_reflow(QueryMsg::ResolvedStyleQuery(element, pseudo, property)) {
             return DOMString::new();
         }
-        let ResolvedStyleResponse(resolved) = self.layout_rpc().resolved_style();
+        let ResolvedStyleResponse(resolved) = self.layout_rpc().unwrap().resolved_style();
         DOMString::from(resolved)
     }
 
@@ -1957,7 +1959,7 @@ impl Window {
         if !self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery(browsing_context)) {
             return None;
         }
-        self.layout_rpc().inner_window_dimensions()
+        self.layout_rpc().unwrap().inner_window_dimensions()
     }
 
     #[allow(unsafe_code)]
@@ -1968,7 +1970,7 @@ impl Window {
 
         // FIXME(nox): Layout can reply with a garbage value which doesn't
         // actually correspond to an element, that's unsound.
-        let response = self.layout_rpc().offset_parent();
+        let response = self.layout_rpc().unwrap().offset_parent();
         let element = response.node_address.and_then(|parent_node_address| {
             let node = unsafe { from_untrusted_node_address(parent_node_address) };
             DomRoot::downcast(node)
@@ -1984,7 +1986,7 @@ impl Window {
         if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
             return TextIndexResponse(None);
         }
-        self.layout_rpc().text_index()
+        self.layout_rpc().unwrap().text_index()
     }
 
     #[allow(unsafe_code)]
@@ -2108,10 +2110,6 @@ impl Window {
     pub fn get_url(&self) -> ServoUrl {
         self.Document().url()
     }
-
-    /*pub fn layout(&self) -> &script_layout_interface::Layout {
-        &self.layout
-    }*/
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
         WindowProxyHandler(self.dom_static.windowproxy_handler.0)
@@ -2358,7 +2356,6 @@ impl Window {
         gpu_id_hub: Arc<ParkMutex<Identities>>,
         inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
-        //let layout_rpc = layout.rpc();
         let error_reporter = CSSErrorReporter {
             pipelineid,
             script_chan: Arc::new(Mutex::new(control_chan)),
@@ -2404,8 +2401,6 @@ impl Window {
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
             resize_event: Default::default(),
-            //layout,
-            //layout_rpc,
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(Rect::zero()),
             suppress_reflow: Cell::new(true),
@@ -2457,12 +2452,9 @@ impl Window {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
 
-    pub fn layout<'a, T>(&self, call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>) -> T {
+    pub fn layout<'a, T>(&self, call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>) -> Result<T, ()> {
         ScriptThread::with_layout(self.pipeline_id(), call)
     }
-    /*pub fn layout(&self) -> &mut dyn Layout {
-        ScriptThread::layout(self.pipeline_id())
-    }*/
 }
 
 /// An instance of a value associated with a particular snapshot of layout. This stored
