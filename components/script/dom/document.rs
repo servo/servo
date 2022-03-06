@@ -103,6 +103,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
+use crate::layout_integration::Layout;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
@@ -811,7 +812,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == QuirksMode::Quirks {
-            self.window.layout().process(Msg::SetQuirksMode(mode));
+            self.window.layout(Box::new(move |layout: &mut dyn Layout| layout.process(Msg::SetQuirksMode(mode))));
         }
     }
 
@@ -3832,10 +3833,12 @@ impl Document {
             })
             .cloned();
 
-        self.window.layout().process(Msg::AddStylesheet(
-            sheet.clone(),
-            insertion_point.as_ref().map(|s| s.sheet.clone()),
-        ));
+        let sheet2 = sheet.clone();
+        let insertion_point2 = insertion_point.clone();
+        self.window.layout(Box::new(move |layout: &mut dyn Layout| layout.process(Msg::AddStylesheet(
+            sheet2,
+            insertion_point2.as_ref().map(|s| s.sheet.clone()),
+        ))));
 
         DocumentOrShadowRoot::add_stylesheet(
             owner,
@@ -3849,7 +3852,8 @@ impl Document {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.window.layout().process(Msg::RemoveStylesheet(s.clone()));
+        let s2 = s.clone();
+        self.window.layout(Box::new(|layout: &mut dyn Layout| layout.process(Msg::RemoveStylesheet(s2))));
 
         DocumentOrShadowRoot::remove_stylesheet(
             owner,

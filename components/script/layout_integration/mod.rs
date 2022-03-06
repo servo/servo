@@ -42,6 +42,7 @@ pub trait Layout {
     fn reflow(&mut self, reflow: reflow::ScriptReflow);
     fn handle_constellation_msg(&mut self, msg: script_traits::LayoutControlMsg);
     fn handle_font_cache_msg(&mut self);
+    fn create_new_layout(&self, init: script_layout_interface::message::LayoutThreadInit) -> Box<dyn Layout>;
 }
 
 pub trait LayoutThreadFactory {

@@ -1578,10 +1578,10 @@ impl Window {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        self.layout().process(Msg::UpdateScrollStateFromScript(ScrollState {
+        self.layout(Box::new(move |layout: &mut dyn Layout| layout.process(Msg::UpdateScrollStateFromScript(ScrollState {
             scroll_id,
             scroll_offset: Vector2D::new(-x, -y),
-        }))
+        }))))
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1724,7 +1724,7 @@ impl Window {
             animations: document.animations().sets.clone(),
         };
 
-        self.layout().reflow(reflow);
+        self.layout(Box::new(move |layout: &mut dyn Layout| layout.reflow(reflow)));
 
         debug!("script: layout returned");
 
@@ -1876,7 +1876,8 @@ impl Window {
 
     pub fn layout_rpc(&self) -> &dyn LayoutRPC {
         //&*self.layout_rpc
-        self.layout().rpc()
+        //self.layout(&|layout: &mut dyn Layout| layout.rpc())
+        unimplemented!()
     }
 
     pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
@@ -2461,9 +2462,12 @@ impl Window {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
 
-    pub fn layout(&self) -> &mut dyn Layout {
-        ScriptThread::layout()
+    pub fn layout<'a>(&self, call: Box<dyn FnOnce(&mut dyn Layout) + 'a>) {
+        ScriptThread::with_layout(self.pipeline_id(), call)
     }
+    /*pub fn layout(&self) -> &mut dyn Layout {
+        ScriptThread::layout(self.pipeline_id())
+    }*/
 }
 
 /// An instance of a value associated with a particular snapshot of layout. This stored

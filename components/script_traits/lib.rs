@@ -409,9 +409,9 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread that WebGPU server has started
     SetWebGPUPort(IpcReceiver<WebGPUMsg>),
     ///
-    ForLayoutFromConstellation(LayoutControlMsg),
+    ForLayoutFromConstellation(LayoutControlMsg, PipelineId),
     ///
-    ForLayoutFromFontCache,
+    ForLayoutFromFontCache(PipelineId),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -451,7 +451,7 @@ impl fmt::Debug for ConstellationControlMsg {
             MediaSessionAction(..) => "MediaSessionAction",
             SetWebGPUPort(..) => "SetWebGPUPort",
             ForLayoutFromConstellation(..) => "ForLayoutFromConstellation",
-            ForLayoutFromFontCache => "ForLayoutFromFontCache",
+            ForLayoutFromFontCache(..) => "ForLayoutFromFontCache",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }

@@ -699,7 +699,7 @@ pub struct ScriptThread {
     // Secure context
     inherited_secure_context: Option<bool>,
 
-    layout: Box<dyn Layout>,
+    layouts: RefCell<HashMap<PipelineId, Box<dyn Layout>>>,
 }
 
 struct BHMExitSignal {
@@ -883,10 +883,12 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn layout() -> &'static mut dyn Layout {
+    pub fn with_layout<'a>(pipeline_id: PipelineId, call: Box<dyn FnOnce(&mut dyn Layout) + 'a>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &mut *root.get().unwrap() };
-            &mut *script_thread.layout
+            let mut layout = script_thread.layouts.borrow_mut();
+            let mut layout = layout.get_mut(&pipeline_id);
+            call(&mut ***layout.as_mut().unwrap());
         })
     }
 
@@ -1225,7 +1227,7 @@ impl ScriptThread {
             },
         };
 
-        window.layout().process(Msg::RegisterPaint(name, properties, painter))
+        window.layout(Box::new(|layout: &mut dyn Layout| layout.process(Msg::RegisterPaint(name, properties, painter))))
     }
 
     pub fn push_new_element_queue() {
@@ -1361,6 +1363,9 @@ impl ScriptThread {
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
 
+        let mut layouts = HashMap::new();
+        layouts.insert(state.id, layout);
+
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
@@ -1452,7 +1457,7 @@ impl ScriptThread {
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
 
-            layout: layout,
+            layouts: RefCell::new(layouts),
         }
     }
 
@@ -1856,8 +1861,8 @@ impl ScriptThread {
                 ExitFullScreen(id, ..) => Some(id),
                 MediaSessionAction(..) => None,
                 SetWebGPUPort(..) => None,
-                ForLayoutFromConstellation(..) => None, //FIXME this should be identifiable
-                ForLayoutFromFontCache => None,
+                ForLayoutFromConstellation(_, id) => Some(id),
+                ForLayoutFromFontCache(id) => Some(id),
             },
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -2084,11 +2089,11 @@ impl ScriptThread {
                     *self.webgpu_port.borrow_mut() = Some(p);
                 }
             },
-            ConstellationControlMsg::ForLayoutFromConstellation(msg) => {
-                self.handle_layout_message(msg)
+            ConstellationControlMsg::ForLayoutFromConstellation(msg, pipeline_id) => {
+                self.handle_layout_message(msg, pipeline_id)
             }
-            ConstellationControlMsg::ForLayoutFromFontCache => {
-                self.handle_font_cache()
+            ConstellationControlMsg::ForLayoutFromFontCache(pipeline_id) => {
+                self.handle_font_cache(pipeline_id)
             }
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
@@ -2101,12 +2106,12 @@ impl ScriptThread {
         }
     }
 
-    fn handle_layout_message(&self, msg: LayoutControlMsg) {
-        Self::layout().handle_constellation_msg(msg);
+    fn handle_layout_message(&self, msg: LayoutControlMsg, pipeline_id: PipelineId) {
+        Self::with_layout(pipeline_id, Box::new(|layout: &mut dyn Layout| layout.handle_constellation_msg(msg)));
     }
 
-    fn handle_font_cache(&self) {
-        Self::layout().handle_font_cache_msg();
+    fn handle_font_cache(&self, pipeline_id: PipelineId) {
+        Self::with_layout(pipeline_id, Box::new(|layout: &mut dyn Layout| layout.handle_font_cache_msg()));
     }
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
@@ -2535,7 +2540,7 @@ impl ScriptThread {
 
         let layout_is_busy = Arc::new(AtomicBool::new(false));
 
-        let _msg = message::Msg::CreateLayoutThread(LayoutThreadInit {
+        let msg = /*message::Msg::CreateLayoutThread(*/LayoutThreadInit {
             id: new_pipeline_id,
             url: load_data.url.clone(),
             is_parent: false,
@@ -2554,8 +2559,15 @@ impl ScriptThread {
             ),
             layout_is_busy: layout_is_busy.clone(),
             window_size,
-        });
+        }/*)*/;
 
+        let new_layout = self.layouts
+            .borrow()
+            .values()
+            .next()
+            .unwrap()
+            .create_new_layout(msg);
+        self.layouts.borrow_mut().insert(new_pipeline_id, new_layout);
         //XXXjdm notify script thread's layout of new layout
         // Pick a layout thread, any layout thread
         /*let current_layout_chan: Option<Sender<Msg>> = self

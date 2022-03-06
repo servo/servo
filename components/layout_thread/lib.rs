@@ -9,7 +9,6 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-extern crate crossbeam_channel;
 #[macro_use]
 extern crate html5ever;
 #[macro_use]
@@ -61,7 +60,7 @@ use layout::traversal::{
     RecalcStyleAndConstructFlows,
 };
 use layout::wrapper::LayoutNodeLayoutData;
-use script::layout_integration::LayoutThreadFactory;
+use script::layout_integration::{Layout, LayoutThreadFactory};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{/*PaintTimeMetrics,*/ ProfilerMetadataFactory, /*ProgressiveWebMetric*/};
@@ -518,7 +517,7 @@ impl LayoutThread {
             Box::new(move |message| {
                 let message = message.to::<LayoutControlMsg>().unwrap();
                 let _ = script_chan2.send(
-                    ConstellationControlMsg::ForLayoutFromConstellation(message)
+                    ConstellationControlMsg::ForLayoutFromConstellation(message, id)
                 );
             })
         );
@@ -533,7 +532,7 @@ impl LayoutThread {
             ipc_font_cache_receiver.to_opaque(),
             Box::new(move |_message| {
                 let _ = script_chan2.send(
-                    ConstellationControlMsg::ForLayoutFromFontCache
+                    ConstellationControlMsg::ForLayoutFromFontCache(id)
                 );
             })
         );
@@ -799,7 +798,9 @@ impl LayoutThread {
                 let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
                 sender.send(outstanding_web_fonts != 0).unwrap();
             },
-            Msg::CreateLayoutThread(info) => self.create_layout_thread(info),
+            Msg::CreateLayoutThread(info) => {
+                self.create_layout_thread(info);
+            },
             Msg::SetFinalUrl(final_url) => {
                 self.url = final_url;
             },
@@ -874,7 +875,7 @@ impl LayoutThread {
         reports_chan.send(reports);
     }
 
-    fn create_layout_thread(&self, info: LayoutThreadInit) {
+    fn create_layout_thread(&self, info: LayoutThreadInit) -> Box<dyn Layout> {
         LayoutThread::create(
             info.id,
             self.top_level_browsing_context_id,
@@ -902,7 +903,7 @@ impl LayoutThread {
             self.nonincremental_layout,
             self.trace_layout,
             self.dump_flow_tree,
-        );
+        )
     }
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
@@ -2005,7 +2006,7 @@ impl RegisteredPainters for RegisteredPaintersImpl {
     }
 }
 
-impl script::layout_integration::Layout for LayoutThread {
+impl Layout for LayoutThread {
     fn process(&mut self, msg: script_layout_interface::message::Msg) { 
         let rw_data = self.rw_data.clone();
         let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
@@ -2074,5 +2075,9 @@ impl script::layout_integration::Layout for LayoutThread {
         self.script_chan
             .send(ConstellationControlMsg::WebFontLoaded(self.id))
             .unwrap();
+    }
+
+    fn create_new_layout(&self, init: LayoutThreadInit) -> Box<dyn Layout> {
+        self.create_layout_thread(init)
     }
 }
