@@ -140,7 +140,7 @@ use script_traits::{
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg,
     ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
     TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
-    WindowSizeData, WindowSizeType,
+    WindowSizeData, WindowSizeType, LayoutControlMsg
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -1856,6 +1856,8 @@ impl ScriptThread {
                 ExitFullScreen(id, ..) => Some(id),
                 MediaSessionAction(..) => None,
                 SetWebGPUPort(..) => None,
+                ForLayoutFromConstellation(..) => None, //FIXME this should be identifiable
+                ForLayoutFromFontCache => None,
             },
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -2082,6 +2084,12 @@ impl ScriptThread {
                     *self.webgpu_port.borrow_mut() = Some(p);
                 }
             },
+            ConstellationControlMsg::ForLayoutFromConstellation(msg) => {
+                self.handle_layout_message(msg)
+            }
+            ConstellationControlMsg::ForLayoutFromFontCache => {
+                self.handle_font_cache()
+            }
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -2091,6 +2099,14 @@ impl ScriptThread {
                 panic!("should have handled {:?} already", msg)
             },
         }
+    }
+
+    fn handle_layout_message(&self, msg: LayoutControlMsg) {
+        Self::layout().handle_constellation_msg(msg);
+    }
+
+    fn handle_font_cache(&self) {
+        Self::layout().handle_font_cache_msg();
     }
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {

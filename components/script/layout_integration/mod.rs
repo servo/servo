@@ -40,6 +40,8 @@ pub trait Layout {
     fn process(&mut self, msg: script_layout_interface::message::Msg);
     fn rpc(&self) -> &dyn script_layout_interface::rpc::LayoutRPC;
     fn reflow(&mut self, reflow: reflow::ScriptReflow);
+    fn handle_constellation_msg(&mut self, msg: script_traits::LayoutControlMsg);
+    fn handle_font_cache_msg(&mut self);
 }
 
 pub trait LayoutThreadFactory {

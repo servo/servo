@@ -9,7 +9,6 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#[macro_use]
 extern crate crossbeam_channel;
 #[macro_use]
 extern crate html5ever;
@@ -143,11 +142,11 @@ pub struct LayoutThread {
     /// The port on which we receive messages from the script thread.
     port: Receiver<Msg>,
 
-    /// The port on which we receive messages from the constellation.
-    pipeline_port: Receiver<LayoutControlMsg>,
+    /*/// The port on which we receive messages from the constellation.
+    pipeline_port: Receiver<LayoutControlMsg>,*/
 
-    /// The port on which we receive messages from the font cache thread.
-    font_cache_receiver: Receiver<()>,
+    /*/// The port on which we receive messages from the font cache thread.
+    font_cache_receiver: Receiver<()>,*/
 
     /// The channel on which the font cache can send messages to us.
     font_cache_sender: IpcSender<()>,
@@ -291,7 +290,7 @@ impl LayoutThreadFactory for LayoutThread {
 
                 {
                     // Ensures layout thread is destroyed before we send shutdown message
-                    let sender = chan.0;
+                    let _sender = chan.0;
 
                     let background_hang_monitor = background_hang_monitor_register
                         .register_component(
@@ -511,12 +510,33 @@ impl LayoutThread {
         );
 
         // Proxy IPC messages from the pipeline to the layout thread.
-        let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(pipeline_port);
+        //let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(pipeline_port);
+        // Ensure messages from the constellation are routed through the script channel.
+        let script_chan2 = script_chan.clone();
+        ROUTER.add_route(
+            pipeline_port.to_opaque(),
+            Box::new(move |message| {
+                let message = message.to::<LayoutControlMsg>().unwrap();
+                let _ = script_chan2.send(
+                    ConstellationControlMsg::ForLayoutFromConstellation(message)
+                );
+            })
+        );
+
 
         // Ask the router to proxy IPC messages from the font cache thread to the layout thread.
         let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
-        let font_cache_receiver =
-            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_font_cache_receiver);
+        /*let font_cache_receiver =
+        ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_font_cache_receiver);*/
+        let script_chan2 = script_chan.clone();
+        ROUTER.add_route(
+            ipc_font_cache_receiver.to_opaque(),
+            Box::new(move |_message| {
+                let _ = script_chan2.send(
+                    ConstellationControlMsg::ForLayoutFromFontCache
+                );
+            })
+        );
 
         LayoutThread {
             id: id,
@@ -524,7 +544,7 @@ impl LayoutThread {
             url: url,
             is_iframe: is_iframe,
             port: port,
-            pipeline_port: pipeline_receiver,
+            //pipeline_port: pipeline_receiver,
             script_chan: script_chan,
             background_hang_monitor,
             constellation_chan: constellation_chan.clone(),
@@ -534,7 +554,7 @@ impl LayoutThread {
             image_cache: image_cache,
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
-            font_cache_receiver: font_cache_receiver,
+            //font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
             generation: Cell::new(0),
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
@@ -580,7 +600,7 @@ impl LayoutThread {
     }
 
     /// Starts listening on the port.
-    fn start(mut self) {
+    /*fn start(mut self) {
         let rw_data = self.rw_data.clone();
         let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
         let mut rw_data = RwData {
@@ -590,7 +610,7 @@ impl LayoutThread {
         while self.handle_request(&mut rw_data) {
             // Loop indefinitely.
         }
-    }
+    }*/
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context<'a>(
@@ -655,7 +675,7 @@ impl LayoutThread {
     }
 
     /// Receives and dispatches messages from the script and constellation threads
-    fn handle_request<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
+    /*fn handle_request<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
         enum Request {
             FromPipeline(LayoutControlMsg),
             FromScript(Msg),
@@ -705,7 +725,7 @@ impl LayoutThread {
         };
         self.busy.store(false, Ordering::Relaxed);
         result
-    }
+    }*/
 
     /// Receives and dispatches messages from other threads.
     fn handle_request_helper<'a, 'b>(
@@ -2022,5 +2042,37 @@ impl script::layout_integration::Layout for LayoutThread {
         );
 
         self.busy.store(false, Ordering::Relaxed);
+    }
+
+    fn handle_constellation_msg(&mut self, msg: script_traits::LayoutControlMsg) {
+        let rw_data = self.rw_data.clone();
+        let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
+        let mut rw_data = RwData {
+            rw_data: &rw_data,
+            possibly_locked_rw_data: &mut possibly_locked_rw_data,
+        };
+
+        let msg = match msg {
+            LayoutControlMsg::SetScrollStates(states) => Msg::SetScrollStates(states),
+            LayoutControlMsg::GetCurrentEpoch(sender) => Msg::GetCurrentEpoch(sender),
+            LayoutControlMsg::GetWebFontLoadState(sender) => Msg::GetWebFontLoadState(sender),
+            LayoutControlMsg::ExitNow => Msg::ExitNow,
+            LayoutControlMsg::PaintMetric(..) => return, //XXXjdm
+        };
+
+        self.busy.store(true, Ordering::Relaxed);
+        self.handle_request_helper(msg, &mut rw_data);
+        self.busy.store(false, Ordering::Relaxed);
+    }
+
+    fn handle_font_cache_msg(&mut self) {
+        /*let rw_data = self.rw_data.clone();
+        let mut _possibly_locked_rw_data = Some(rw_data.lock().unwrap());
+        //let rw_data = possibly_locked_rw_data.lock();*/
+        self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
+        font_context::invalidate_font_caches();
+        self.script_chan
+            .send(ConstellationControlMsg::WebFontLoaded(self.id))
+            .unwrap();
     }
 }
