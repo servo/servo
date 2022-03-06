@@ -95,7 +95,7 @@ fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
 fn is_unrooted_ty<'tcx>(
     sym: &'_ Symbols,
     cx: &LateContext<'tcx>,
-    ty: &'tcx ty::TyS<'tcx>,
+    ty: ty::Ty<'tcx>,
     in_new_function: bool,
 ) -> bool {
     let mut ret = false;
@@ -279,7 +279,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
-                if is_unrooted_ty(&self.symbols, cx, ty, false) {
+                if is_unrooted_ty(&self.symbols, cx, *ty, false) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
                         lint.build("Type must be rooted").set_span(arg.span).emit()
                     })
