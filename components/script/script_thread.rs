@@ -883,12 +883,12 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn with_layout<'a>(pipeline_id: PipelineId, call: Box<dyn FnOnce(&mut dyn Layout) + 'a>) {
+    pub fn with_layout<'a, T>(pipeline_id: PipelineId, call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>) -> T {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &mut *root.get().unwrap() };
             let mut layout = script_thread.layouts.borrow_mut();
             let mut layout = layout.get_mut(&pipeline_id);
-            call(&mut ***layout.as_mut().unwrap());
+            call(&mut ***layout.as_mut().unwrap())
         })
     }
 

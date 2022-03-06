@@ -1874,10 +1874,10 @@ impl Window {
         self.layout_rpc().resolved_font_style()
     }
 
-    pub fn layout_rpc(&self) -> &dyn LayoutRPC {
+    pub fn layout_rpc(&self) -> Box<dyn LayoutRPC> {
         //&*self.layout_rpc
-        //self.layout(&|layout: &mut dyn Layout| layout.rpc())
-        unimplemented!()
+        self.layout(Box::new(|layout: &mut dyn Layout| layout.rpc()))
+        //unimplemented!()
     }
 
     pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
@@ -2462,7 +2462,7 @@ impl Window {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
 
-    pub fn layout<'a>(&self, call: Box<dyn FnOnce(&mut dyn Layout) + 'a>) {
+    pub fn layout<'a, T>(&self, call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>) -> T {
         ScriptThread::with_layout(self.pipeline_id(), call)
     }
     /*pub fn layout(&self) -> &mut dyn Layout {

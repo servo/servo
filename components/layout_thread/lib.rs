@@ -2017,8 +2017,8 @@ impl Layout for LayoutThread {
         self.handle_request_helper(msg, &mut rw_data);
     }
 
-    fn rpc(&self) -> &dyn script_layout_interface::rpc::LayoutRPC {
-        unimplemented!()
+    fn rpc(&self) -> Box<dyn script_layout_interface::rpc::LayoutRPC> {
+        Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<dyn LayoutRPC>
     }
 
     fn reflow(&mut self, data: script::layout_integration::reflow::ScriptReflow) {
