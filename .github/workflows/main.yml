@@ -54,11 +54,11 @@ jobs:
       - name: Release build
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach build --release --target=x86_64-uwp-windows-msvc
-      - name: Package
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64
-        env:
-          CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
+      #- name: Package
+      #  working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+      #  run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64
+      #  env:
+      #    CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
       - name: Tidy
         run: python mach test-tidy --force-cpp --no-wpt
 
@@ -79,11 +79,11 @@ jobs:
       - name: Release build
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach build --release --target=aarch64-uwp-windows-msvc
-      - name: Package
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach package --release --target=aarch64-uwp-windows-msvc --uwp=arm64
-        env:
-          CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
+      #- name: Package
+      #  working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+      #  run: python mach package --release --target=aarch64-uwp-windows-msvc --uwp=arm64
+      #  env:
+      #    CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
 
   build-mac:
     name: Build (macOS)
