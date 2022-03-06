@@ -18,12 +18,3 @@ pub mod prefs;
 pub mod basedir;
 #[allow(unsafe_code)]
 pub mod opts;
-
-pub fn servo_version() -> String {
-    let cargo_version = env!("CARGO_PKG_VERSION");
-    let git_info = option_env!("GIT_INFO");
-    match git_info {
-        Some(info) => format!("Servo {}{}", cargo_version, info),
-        None => format!("Servo {}", cargo_version),
-    }
-}

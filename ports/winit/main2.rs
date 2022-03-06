@@ -26,7 +26,6 @@ mod window_trait;
 use app::App;
 use getopts::Options;
 use servo::config::opts::{self, ArgumentParsingResult};
-use servo::config::servo_version;
 use servo::servo_config::pref;
 use std::env;
 use std::io::Write;
@@ -162,4 +161,13 @@ pub fn main() {
     App::run(do_not_use_native_titlebar, device_pixels_per_px, user_agent);
 
     platform::deinit(clean_shutdown)
+}
+
+pub fn servo_version() -> String {
+    let cargo_version = env!("CARGO_PKG_VERSION");
+    let git_info = option_env!("GIT_INFO");
+    match git_info {
+        Some(info) => format!("Servo {}{}", cargo_version, info),
+        None => format!("Servo {}", cargo_version),
+    }
 }
