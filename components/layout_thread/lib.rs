@@ -74,7 +74,7 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use script::layout_integration::reflow::{NodesFromPointQueryType, Reflow};
+use script::layout_integration::reflow::{NodesFromPointQueryType, PendingImage, Reflow};
 use script::layout_integration::reflow::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::message::{LayoutThreadInit, Msg};
 use script_layout_interface::rpc::TextIndexResponse;
@@ -347,7 +347,7 @@ impl LayoutThreadFactory for LayoutThread {
 
 struct ScriptReflowResult<'a> {
     script_reflow: ScriptReflow<'a>,
-    result: RefCell<Option<ReflowComplete>>,
+    result: RefCell<Option<ReflowComplete<'a>>>,
 }
 
 impl<'a> Deref for ScriptReflowResult<'a> {
@@ -1159,11 +1159,11 @@ impl LayoutThread {
     }
 
     /// The high-level routine that performs layout threads.
-    fn handle_reflow<'a, 'b>(
+    fn handle_reflow<'a, 'b, 'c>(
         &mut self,
-        data: &mut ScriptReflowResult,
+        data: &mut ScriptReflowResult<'c>,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
-    ) -> ReflowComplete {
+    ) -> ReflowComplete<'c> {
         //let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = ServoLayoutNode::new_safe(&data.document);
         let document = document.as_document().unwrap();
@@ -1496,8 +1496,11 @@ impl LayoutThread {
         reflow_result: &mut ReflowComplete,
         shared_lock: &SharedRwLock,
     ) {
-        reflow_result.pending_images =
-            std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
+        let pending_images = std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
+        reflow_result.pending_images = pending_images
+            .into_iter()
+            .map(PendingImage::from)
+            .collect();            
 
         let mut root_flow = match self.root_flow.borrow().clone() {
             Some(root_flow) => root_flow,
@@ -2023,7 +2026,7 @@ impl Layout for LayoutThread {
         Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<dyn LayoutRPC>
     }
 
-    fn reflow(&mut self, data: script::layout_integration::reflow::ScriptReflow) -> ReflowComplete {
+    fn reflow<'a>(&mut self, data: script::layout_integration::reflow::ScriptReflow<'a>) -> ReflowComplete<'a> {
         let rw_data = self.rw_data.clone();
         let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
         let mut rw_data = RwData {

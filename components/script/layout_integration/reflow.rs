@@ -1,16 +1,18 @@
 use crate::dom::node::Node;
 use app_units::Au;
 use style::dom::OpaqueNode;
-use script_layout_interface::{PendingImage, TrustedNodeAddress};
+use script_layout_interface::{TrustedNodeAddress};
 use style::animation::DocumentAnimationSet;
 use euclid::default::{Point2D, Rect};
+use net_traits::image_cache::PendingImageId;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::PropertyId;
 use msg::constellation_msg::BrowsingContextId;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use script_traits::WindowSizeData;
-use crossbeam_channel::Sender;
 use servo_url::ImmutableOrigin;
+use script_layout_interface::PendingImageState;
+use crate::dom::node;
 
 #[derive(Debug, PartialEq)]
 pub enum NodesFromPointQueryType {
@@ -101,11 +103,37 @@ pub struct Reflow {
     pub page_clip_rect: Rect<Au>,
 }
 
+/// The data associated with an image that is not yet present in the image cache.
+/// Used by the script thread to hold on to DOM elements that need to be repainted
+/// when an image fetch is complete.
+pub struct PendingImage<'a> {
+    pub state: PendingImageState,
+    pub node: &'a Node,
+    pub id: PendingImageId,
+    pub origin: ImmutableOrigin,
+}
+
+impl<'a> From<script_layout_interface::PendingImage> for PendingImage<'a> {
+    #[allow(unsafe_code)]
+    fn from(image: script_layout_interface::PendingImage) -> PendingImage<'a> {
+        // TODO: make opaque nodes use address of rust object so we don't need
+        //       any JS conversion operations here.
+        let node = unsafe { node::from_untrusted_node_address(image.node) };
+        let node_ptr = &*node as *const Node;
+        PendingImage {
+            state: image.state,
+            node: unsafe { &*node_ptr },
+            id: image.id,
+            origin: image.origin,
+        }
+    }
+}
+
 /// Information derived from a layout pass that needs to be returned to the script thread.
 #[derive(Default)]
-pub struct ReflowComplete {
+pub struct ReflowComplete<'a> {
     /// The list of images that were encountered that are in progress.
-    pub pending_images: Vec<PendingImage>,
+    pub pending_images: Vec<PendingImage<'a>>,
 }
 
 /// Information needed for a script-initiated reflow.
@@ -120,8 +148,6 @@ pub struct ScriptReflow<'a> {
     pub stylesheets_changed: bool,
     /// The current window size.
     pub window_size: WindowSizeData,
-    /// The channel that we send a notification to.
-    pub script_join_chan: Sender<ReflowComplete>,
     /// The goal of this reflow.
     pub reflow_goal: ReflowGoal,
     /// The number of objects in the dom #10110

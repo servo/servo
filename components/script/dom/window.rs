@@ -1673,9 +1673,6 @@ impl Window {
             None
         };
 
-        // Layout will let us know when it's done.
-        let (join_chan, _join_port) = unbounded();
-
         // On debug mode, print the reflow event information.
         if self.relayout_event {
             debug_reflow_events(pipeline_id, &reflow_goal, &reason);
@@ -1717,7 +1714,6 @@ impl Window {
             window_size: self.window_size.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
-            script_join_chan: join_chan,
             dom_count: document.dom_count(),
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
@@ -1741,17 +1737,16 @@ impl Window {
         //XXXjdm Can be simplified with one thread.
         for image in complete.pending_images {
             let id = image.id;
-            let node = unsafe { from_untrusted_node_address(image.node) };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
+                fetch_image_for_layout(url.clone(), image.node, id, self.image_cache.clone());
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_insert(vec![]);
             if nodes
                 .iter()
-                .find(|n| &***n as *const _ == &*node as *const _)
+                .find(|n| &***n as *const _ == image.node as *const _)
                 .is_none()
             {
                 let (responder, responder_listener) =
@@ -1765,7 +1760,7 @@ impl Window {
                 );
                 self.image_cache
                     .add_listener(id, ImageResponder::new(responder, id));
-                nodes.push(Dom::from_ref(&*node));
+                nodes.push(Dom::from_ref(image.node));
             }
         }
 
