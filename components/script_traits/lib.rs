@@ -28,7 +28,7 @@ use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
+use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::EventLoopWaker;
 use euclid::{default::Point2D, Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};

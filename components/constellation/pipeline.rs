@@ -537,7 +537,7 @@ impl UnprivilegedPipelineContent {
         PipelineNamespace::set_installer_sender(self.namespace_request_sender);
 
         let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_image_api_sender.clone()));
-        let paint_time_metrics = PaintTimeMetrics::new(
+        let _paint_time_metrics = PaintTimeMetrics::new(
             self.id,
             self.time_profiler_chan.clone(),
             self.layout_to_constellation_chan.clone(),

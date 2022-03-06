@@ -129,7 +129,7 @@ pub struct ScriptReflow<'a> {
     /// The current window origin
     pub origin: ImmutableOrigin,
     /// Restyle snapshot map.
-    pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
+    pub pending_restyles: Vec<(&'a Node, PendingRestyle)>,
     /// The current animation timeline value.
     pub animation_timeline_value: f64,
     /// The set of animations for this document.

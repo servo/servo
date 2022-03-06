@@ -142,7 +142,6 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::Msg;
 use crate::layout_integration::reflow::{PendingRestyle, ReflowGoal};
-use script_layout_interface::TrustedNodeAddress;
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
 use script_traits::{
     MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
@@ -3935,7 +3934,7 @@ impl Document {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn drain_pending_restyles(&self) -> Vec<(TrustedNodeAddress, PendingRestyle)> {
+    pub fn drain_pending_restyles(&self) -> Vec<(DomRoot<Node>, PendingRestyle)> {
         self.pending_restyles
             .borrow_mut()
             .drain()
@@ -3945,7 +3944,7 @@ impl Document {
                     return None;
                 }
                 node.note_dirty_descendants();
-                Some((node.to_trusted_node_address(), restyle))
+                Some((DomRoot::from_ref(node), restyle))
             })
             .collect()
     }

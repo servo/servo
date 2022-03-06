@@ -75,6 +75,7 @@ impl ResourceTimingListener for LayoutImageContext {
 
 impl PreInvoke for LayoutImageContext {}
 
+#[allow(dead_code)]
 pub fn fetch_image_for_layout(
     url: ServoUrl,
     node: &Node,

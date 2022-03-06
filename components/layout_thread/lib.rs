@@ -4,6 +4,7 @@
 
 // Work around https://github.com/rust-lang/rust/issues/62132
 #![recursion_limit = "128"]
+#![allow(dead_code)]
 
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
@@ -687,7 +688,7 @@ impl LayoutThread {
             Request::FromPipeline(LayoutControlMsg::ExitNow) => {
                 self.handle_request_helper(Msg::ExitNow, possibly_locked_rw_data)
             },
-            Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time)) => {
+            Request::FromPipeline(LayoutControlMsg::PaintMetric(_epoch, _paint_time)) => {
                 //self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
                 true
             },
@@ -809,7 +810,7 @@ impl LayoutThread {
                 self.exit_now();
                 return false;
             },
-            Msg::SetNavigationStart(time) => {
+            Msg::SetNavigationStart(_time) => {
                 //self.paint_time_metrics.set_navigation_start(time);
             },
         }
@@ -1111,7 +1112,7 @@ impl LayoutThread {
                 debug!("Layout done!");
 
                 // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let (builder, is_contentful) = display_list.convert_to_webrender(self.id);
+                let (builder, _is_contentful) = display_list.convert_to_webrender(self.id);
 
                 let viewport_size = Size2D::new(
                     self.viewport_size.width.to_f32_px(),
@@ -1334,11 +1335,11 @@ impl LayoutThread {
         let elements_with_snapshot: Vec<_> = restyles
             .iter()
             .filter(|r| r.1.snapshot.is_some())
-            .map(|r| unsafe { ServoLayoutNode::new(&r.0).as_element().unwrap() })
+            .map(|r| ServoLayoutNode::new_safe(r.0).as_element().unwrap())
             .collect();
 
         for (el, restyle) in restyles {
-            let el = unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
+            let el = ServoLayoutNode::new_safe(&el).as_element().unwrap();
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
@@ -1700,7 +1701,7 @@ impl LayoutThread {
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
-                    let profiler_metadata = self.profiler_metadata();
+                    let _profiler_metadata = self.profiler_metadata();
 
                     //Sequential mode
                     LayoutThread::solve_constraints(FlowRef::deref_mut(root_flow), &context)

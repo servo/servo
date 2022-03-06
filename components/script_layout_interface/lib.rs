@@ -19,24 +19,13 @@ pub mod wrapper_traits;
 
 use atomic_refcell::AtomicRefCell;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
-use crossbeam_channel::{Receiver, Sender};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use libc::c_void;
-use msg::constellation_msg::{BackgroundHangMonitorRegister, PipelineId};
-use msg::constellation_msg::TopLevelBrowsingContextId;
-use net_traits::image_cache::ImageCache;
 use net_traits::image_cache::PendingImageId;
 use script_traits::UntrustedNodeAddress;
-use script_traits::LayoutMsg;
-use script_traits::{
-    ConstellationControlMsg, LayoutControlMsg, WebrenderIpcSender, WindowSizeData,
-};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::any::Any;
-use std::borrow::Cow;
 use std::sync::atomic::AtomicIsize;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 use style::data::ElementData;
 
 #[derive(MallocSizeOf)]

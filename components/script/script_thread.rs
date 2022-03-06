@@ -126,7 +126,7 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, LayoutThreadInit, Msg};
-use crate::layout_integration::{ScriptThreadFactory, LayoutThreadFactory, Layout};
+use crate::layout_integration::{ScriptThreadFactory, Layout};
 use crate::layout_integration::reflow::ReflowGoal;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
@@ -773,7 +773,7 @@ impl ScriptThreadFactory for ScriptThread {
         let (script_chan, script_port) = unbounded();
 
         let (sender, receiver) = unbounded();
-        let layout_chan = sender.clone();
+        //let layout_chan = sender.clone();
         thread::Builder::new()
             .name(format!("Script{}", state.id))
             .spawn(move || {
@@ -2515,11 +2515,11 @@ impl ScriptThread {
         } = new_layout_info;
 
         let layout_pair = unbounded();
-        let layout_chan = layout_pair.0.clone();
+        //let layout_chan = layout_pair.0.clone();
 
         let layout_is_busy = Arc::new(AtomicBool::new(false));
 
-        let msg = message::Msg::CreateLayoutThread(LayoutThreadInit {
+        let _msg = message::Msg::CreateLayoutThread(LayoutThreadInit {
             id: new_pipeline_id,
             url: load_data.url.clone(),
             is_parent: false,

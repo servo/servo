@@ -59,7 +59,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::fetch;
-use crate::layout_image::fetch_image_for_layout;
+//use crate::layout_image::fetch_image_for_layout;
 use crate::layout_integration::Layout;
 use crate::malloc_size_of::MallocSizeOf;
 use crate::microtask::MicrotaskQueue;
@@ -78,7 +78,7 @@ use backtrace::Backtrace;
 use base64;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use crossbeam_channel::{unbounded, Sender, TryRecvError};
+use crossbeam_channel::{unbounded, Sender};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
@@ -86,7 +86,7 @@ use embedder_traits::{EmbedderMsg, EventLoopWaker, PromptDefinition, PromptOrigi
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
-use ipc_channel::router::ROUTER;
+//use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
@@ -99,7 +99,7 @@ use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
+use net_traits::image_cache::{ImageCache, /*ImageResponder,*/ ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use net_traits::ResourceThreads;
@@ -109,12 +109,12 @@ use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::{ProfilerChan as TimeProfilerChan, ProfilerMsg};
 use script_layout_interface::message::Msg;
-use crate::layout_integration::reflow::{QueryMsg, Reflow, ReflowGoal, ScriptReflow};
+use crate::layout_integration::reflow::{QueryMsg, PendingRestyle, Reflow, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{
     NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
 };
-use script_layout_interface::{PendingImageState, TrustedNodeAddress};
+use script_layout_interface::{/*PendingImageState,*/ TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData};
 use script_traits::{
@@ -1674,7 +1674,7 @@ impl Window {
         };
 
         // Layout will let us know when it's done.
-        let (join_chan, join_port) = unbounded();
+        let (join_chan, _join_port) = unbounded();
 
         // On debug mode, print the reflow event information.
         if self.relayout_event {
@@ -1692,13 +1692,17 @@ impl Window {
             document.flush_dirty_webgl_canvases();
         }
 
-        let pending_restyles = document.drain_pending_restyles();
+        let mut pending_restyles = document.drain_pending_restyles();
+        let pending_restyles: Vec<_> = pending_restyles
+            .iter_mut()
+            .map(|(node, restyle)| {
+                (&**node, mem::replace(restyle, PendingRestyle::new()))
+            }).collect();
 
         let dirty_root = document
             .take_dirty_root()
             .filter(|_| !stylesheets_changed)
             .or_else(|| document.GetDocumentElement())
-        //.map(|root| root.upcast::<Node>().to_trusted_node_address());
             .map(|root| Root::upcast(root));
 
         // Send new document and relevant styles to layout.
@@ -1707,7 +1711,6 @@ impl Window {
             reflow_info: Reflow {
                 page_clip_rect: self.page_clip_rect.get(),
             },
-            //document: document.upcast::<Node>().to_trusted_node_address(),
             document: &*document.upcast::<Node>(),
             dirty_root: dirty_root.as_ref().map(|root| &**root),
             stylesheets_changed,

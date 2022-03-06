@@ -9,7 +9,7 @@
 // The traits are here instead of in layout so
 //   that these modules won't have to depend on layout.
 
-use crossbeam_channel::{Receiver, Sender};
+/*use crossbeam_channel::{Receiver, Sender};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
@@ -23,7 +23,7 @@ use script_traits::{
 };
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
+use std::sync::Arc;*/
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency
