@@ -372,14 +372,14 @@ impl<'a> ScriptReflowResult<'a> {
     }
 }
 
-impl<'a> Drop for ScriptReflowResult<'a> {
+/*impl<'a> Drop for ScriptReflowResult<'a> {
     fn drop(&mut self) {
         self.script_reflow
             .script_join_chan
             .send(self.result.borrow_mut().take().unwrap())
             .unwrap();
     }
-}
+}*/
 
 /// The `LayoutThread` `rw_data` lock must remain locked until the first reflow,
 /// as RPC calls don't make sense until then. Use this in combination with
@@ -1163,7 +1163,7 @@ impl LayoutThread {
         &mut self,
         data: &mut ScriptReflowResult,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
-    ) {
+    ) -> ReflowComplete {
         //let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = ServoLayoutNode::new_safe(&data.document);
         let document = document.as_document().unwrap();
@@ -1227,7 +1227,7 @@ impl LayoutThread {
                     },
                     ReflowGoal::Full | ReflowGoal::TickAnimations => {},
                 }
-                return;
+                return ReflowComplete::default();
             },
             Some(x) => x,
         };
@@ -1484,6 +1484,8 @@ impl LayoutThread {
             data.result.borrow_mut().as_mut().unwrap(),
             document_shared_lock,
         );
+
+        data.result.borrow_mut().take().unwrap()
     }
 
     fn respond_to_query_if_necessary(
@@ -2021,7 +2023,7 @@ impl Layout for LayoutThread {
         Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<dyn LayoutRPC>
     }
 
-    fn reflow(&mut self, data: script::layout_integration::reflow::ScriptReflow) {
+    fn reflow(&mut self, data: script::layout_integration::reflow::ScriptReflow) -> ReflowComplete {
         let rw_data = self.rw_data.clone();
         let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
         let mut rw_data = RwData {
@@ -2035,7 +2037,7 @@ impl Layout for LayoutThread {
             .notify_activity(HangAnnotation::Layout(LayoutHangAnnotation::Reflow));
 
         let mut data = ScriptReflowResult::new(data);
-        profile(
+        let result = profile(
             profile_time::ProfilerCategory::LayoutPerform,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
@@ -2043,6 +2045,7 @@ impl Layout for LayoutThread {
         );
 
         self.busy.store(false, Ordering::Relaxed);
+        result
     }
 
     fn handle_constellation_msg(&mut self, msg: script_traits::LayoutControlMsg) {

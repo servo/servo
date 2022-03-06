@@ -59,7 +59,7 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::fetch;
-//use crate::layout_image::fetch_image_for_layout;
+use crate::layout_image::fetch_image_for_layout;
 use crate::layout_integration::Layout;
 use crate::malloc_size_of::MallocSizeOf;
 use crate::microtask::MicrotaskQueue;
@@ -86,7 +86,7 @@ use embedder_traits::{EmbedderMsg, EventLoopWaker, PromptDefinition, PromptOrigi
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
-//use ipc_channel::router::ROUTER;
+use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
@@ -99,7 +99,7 @@ use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use media::WindowGLContext;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use net_traits::image_cache::{ImageCache, /*ImageResponder,*/ ImageResponse};
+use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use net_traits::ResourceThreads;
@@ -114,7 +114,7 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{
     NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
 };
-use script_layout_interface::{/*PendingImageState,*/ TrustedNodeAddress};
+use script_layout_interface::{PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData};
 use script_traits::{
@@ -1724,7 +1724,7 @@ impl Window {
             animations: document.animations().sets.clone(),
         };
 
-        self.layout(Box::new(move |layout: &mut dyn Layout| layout.reflow(reflow)));
+        let complete = self.layout(Box::new(move |layout: &mut dyn Layout| layout.reflow(reflow)));
 
         debug!("script: layout returned");
 
@@ -1739,7 +1739,7 @@ impl Window {
         }
 
         //XXXjdm Can be simplified with one thread.
-        /*for image in complete.pending_images {
+        for image in complete.pending_images {
             let id = image.id;
             let node = unsafe { from_untrusted_node_address(image.node) };
 
@@ -1767,7 +1767,7 @@ impl Window {
                     .add_listener(id, ImageResponder::new(responder, id));
                 nodes.push(Dom::from_ref(&*node));
             }
-        }*/
+        }
 
         document.update_animations_post_reflow();
 
