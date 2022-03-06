@@ -114,7 +114,7 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{
     NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse,
 };
-use script_layout_interface::{PendingImageState, TrustedNodeAddress};
+use script_layout_interface::PendingImageState;
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData};
 use script_traits::{
@@ -1860,7 +1860,7 @@ impl Window {
     pub fn resolved_font_style_query(&self, node: &Node, value: String) -> Option<ServoArc<Font>> {
         let id = PropertyId::Shorthand(ShorthandId::Font);
         if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery(
-            node.to_trusted_node_address(),
+            node,
             id,
             value,
         )) {
@@ -1876,7 +1876,7 @@ impl Window {
     }
 
     pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::ContentBoxQuery(node)) {
             return None;
         }
         let ContentBoxResponse(rect) = self.layout_rpc().content_box();
@@ -1884,7 +1884,7 @@ impl Window {
     }
 
     pub fn content_boxes_query(&self, node: &Node) -> Vec<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(node)) {
             return vec![];
         }
         let ContentBoxesResponse(rects) = self.layout_rpc().content_boxes();
@@ -1892,14 +1892,14 @@ impl Window {
     }
 
     pub fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::ClientRectQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::ClientRectQuery(node)) {
             return Rect::zero();
         }
         self.layout_rpc().node_geometry().client_rect
     }
 
     pub fn scroll_area_query(&self, node: &Node) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node)) {
             return Rect::zero();
         }
         self.layout_rpc().node_scroll_area().client_rect
@@ -1914,7 +1914,7 @@ impl Window {
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
     pub fn scroll_node(&self, node: &Node, x_: f64, y_: f64, behavior: ScrollBehavior) {
-        if !self.layout_reflow(QueryMsg::NodeScrollIdQuery(node.to_trusted_node_address())) {
+        if !self.layout_reflow(QueryMsg::NodeScrollIdQuery(node)) {
             return;
         }
 
@@ -1939,7 +1939,7 @@ impl Window {
 
     pub fn resolved_style_query(
         &self,
-        element: TrustedNodeAddress,
+        element: &Node,
         pseudo: Option<PseudoElement>,
         property: PropertyId,
     ) -> DOMString {
@@ -1962,7 +1962,7 @@ impl Window {
 
     #[allow(unsafe_code)]
     pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
-        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node)) {
             return (None, Rect::zero());
         }
 
@@ -1981,7 +1981,7 @@ impl Window {
         node: &Node,
         point_in_node: UntypedPoint2D<f32>,
     ) -> TextIndexResponse {
-        if !self.layout_reflow(QueryMsg::TextIndexQuery(node.to_opaque(), point_in_node)) {
+        if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
             return TextIndexResponse(None);
         }
         self.layout_rpc().text_index()

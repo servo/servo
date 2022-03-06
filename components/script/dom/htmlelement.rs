@@ -450,9 +450,7 @@ impl HTMLElementMethods for HTMLElement {
             return node.GetTextContent().unwrap();
         }
 
-        window.layout_reflow(QueryMsg::ElementInnerTextQuery(
-            node.to_trusted_node_address(),
-        ));
+        window.layout_reflow(QueryMsg::ElementInnerTextQuery(node));
         DOMString::from(window.layout_rpc().element_inner_text())
     }
 

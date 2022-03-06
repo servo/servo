@@ -1,7 +1,5 @@
 use crate::dom::node::Node;
 use app_units::Au;
-use style::dom::OpaqueNode;
-use script_layout_interface::{TrustedNodeAddress};
 use style::animation::DocumentAnimationSet;
 use euclid::default::{Point2D, Rect};
 use net_traits::image_cache::PendingImageId;
@@ -20,36 +18,52 @@ pub enum NodesFromPointQueryType {
     Topmost,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum QueryMsg {
-    ContentBoxQuery(OpaqueNode),
-    ContentBoxesQuery(OpaqueNode),
-    ClientRectQuery(OpaqueNode),
-    NodeScrollGeometryQuery(OpaqueNode),
-    OffsetParentQuery(OpaqueNode),
-    TextIndexQuery(OpaqueNode, Point2D<f32>),
+#[derive(PartialEq)]
+pub enum QueryMsg<'a> {
+    ContentBoxQuery(&'a Node),
+    ContentBoxesQuery(&'a Node),
+    ClientRectQuery(&'a Node),
+    NodeScrollGeometryQuery(&'a Node),
+    OffsetParentQuery(&'a Node),
+    TextIndexQuery(&'a Node, Point2D<f32>),
     NodesFromPointQuery(Point2D<f32>, NodesFromPointQueryType),
-
-    // FIXME(nox): The following queries use the TrustedNodeAddress to
-    // access actual DOM nodes, but those values can be constructed from
-    // garbage values such as `0xdeadbeef as *const _`, this is unsound.
-    NodeScrollIdQuery(TrustedNodeAddress),
-    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
+    NodeScrollIdQuery(&'a Node),
+    ResolvedStyleQuery(&'a Node, Option<PseudoElement>, PropertyId),
     StyleQuery,
-    ElementInnerTextQuery(TrustedNodeAddress),
-    ResolvedFontStyleQuery(TrustedNodeAddress, PropertyId, String),
+    ElementInnerTextQuery(&'a Node),
+    ResolvedFontStyleQuery(&'a Node, PropertyId, String),
     InnerWindowDimensionsQuery(BrowsingContextId),
+}
+
+impl<'a> std::fmt::Debug for QueryMsg<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.write_str(match self {
+            QueryMsg::ContentBoxQuery(..) => "ContentBoxQuery",
+            QueryMsg::ContentBoxesQuery(..) => "ContentBoxesQuery",
+            QueryMsg::ClientRectQuery(..) => "ClientRectQuery",
+            QueryMsg::NodeScrollGeometryQuery(..) => "NodeScrollGeometryQuery",
+            QueryMsg::OffsetParentQuery(..) => "OffsetParentQuery",
+            QueryMsg::TextIndexQuery(..) => "TextIndexQuery",
+            QueryMsg::NodesFromPointQuery(..) => "NodesFromPointQuery",
+            QueryMsg::NodeScrollIdQuery(..) => "NodeScrollIdQuery",
+            QueryMsg::ResolvedStyleQuery(..) => "ResolvedStyleQuery",
+            QueryMsg::StyleQuery => "StyleQuery",
+            QueryMsg::ElementInnerTextQuery(..) => "ElementInnerTextQuery",
+            QueryMsg::ResolvedFontStyleQuery(..) => "ResolvedFontStyleQuery",
+            QueryMsg::InnerWindowDimensionsQuery(..) => "InnerWindowDimensionsQuery",
+        })
+    }
 }
 
 /// Any query to perform with this reflow.
 #[derive(Debug, PartialEq)]
-pub enum ReflowGoal {
+pub enum ReflowGoal<'a> {
     Full,
     TickAnimations,
-    LayoutQuery(QueryMsg, u64),
+    LayoutQuery(QueryMsg<'a>, u64),
 }
 
-impl ReflowGoal {
+impl<'a> ReflowGoal<'a> {
     /// Returns true if the given ReflowQuery needs a full, up-to-date display list to
     /// be present or false if it only needs stacking-relative positions.
     pub fn needs_display_list(&self) -> bool {
@@ -149,7 +163,7 @@ pub struct ScriptReflow<'a> {
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The goal of this reflow.
-    pub reflow_goal: ReflowGoal,
+    pub reflow_goal: ReflowGoal<'a>,
     /// The number of objects in the dom #10110
     pub dom_count: u32,
     /// The current window origin

@@ -1510,10 +1510,10 @@ impl LayoutThread {
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
-                    rw_data.content_box_response = process_content_box_request(node, root_flow);
+                    rw_data.content_box_response = process_content_box_request(node.to_opaque(), root_flow);
                 },
                 &QueryMsg::ContentBoxesQuery(node) => {
-                    rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
+                    rw_data.content_boxes_response = process_content_boxes_request(node.to_opaque(), root_flow);
                 },
                 &QueryMsg::TextIndexQuery(node, point_in_node) => {
                     let point_in_node = Point2D::new(
@@ -1521,27 +1521,27 @@ impl LayoutThread {
                         Au::from_f32_px(point_in_node.y),
                     );
                     rw_data.text_index_response =
-                        TextIndexResponse(rw_data.indexable_text.text_index(node, point_in_node));
+                        TextIndexResponse(rw_data.indexable_text.text_index(node.to_opaque(), point_in_node));
                 },
                 &QueryMsg::ClientRectQuery(node) => {
-                    rw_data.client_rect_response = process_client_rect_query(node, root_flow);
+                    rw_data.client_rect_response = process_client_rect_query(node.to_opaque(), root_flow);
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
                     rw_data.scroll_area_response =
-                        process_node_scroll_area_request(node, root_flow);
+                        process_node_scroll_area_request(node.to_opaque(), root_flow);
                 },
                 &QueryMsg::NodeScrollIdQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node = ServoLayoutNode::new_safe(&node);
                     rw_data.scroll_id_response =
                         Some(process_node_scroll_id_request(self.id, node));
                 },
                 &QueryMsg::ResolvedStyleQuery(node, ref pseudo, ref property) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node = ServoLayoutNode::new_safe(&node);
                     rw_data.resolved_style_response =
                         process_resolved_style_request(context, node, pseudo, property, root_flow);
                 },
                 &QueryMsg::ResolvedFontStyleQuery(node, ref property, ref value) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node = ServoLayoutNode::new_safe(&node);
                     let url = self.url.clone();
                     rw_data.resolved_font_style_response = process_resolved_font_style_request(
                         context,
@@ -1553,7 +1553,7 @@ impl LayoutThread {
                     );
                 },
                 &QueryMsg::OffsetParentQuery(node) => {
-                    rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
+                    rw_data.offset_parent_response = process_offset_parent_query(node.to_opaque(), root_flow);
                 },
                 &QueryMsg::StyleQuery => {},
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
@@ -1580,7 +1580,7 @@ impl LayoutThread {
                         .collect()
                 },
                 &QueryMsg::ElementInnerTextQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let node = ServoLayoutNode::new_safe(&node);
                     rw_data.element_inner_text_response =
                         process_element_inner_text_query(node, &rw_data.indexable_text);
                 },
