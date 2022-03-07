@@ -19,7 +19,7 @@ use range::RangeIndex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Epoch(pub u32);
 
 impl Epoch {

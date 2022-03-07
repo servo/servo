@@ -69,6 +69,10 @@ pub enum LayoutMsg {
     PendingPaintMetric(PipelineId, Epoch),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
+    /// Notifies the constellation that web fonts are pending or complete.
+    WebFontStateChanged(PipelineId, bool),
+    /// Notifies the constellation of the latest epoch in use.
+    EpochChanged(PipelineId, Epoch),
 }
 
 impl fmt::Debug for LayoutMsg {
@@ -78,6 +82,8 @@ impl fmt::Debug for LayoutMsg {
             IFrameSizes(..) => "IFrameSizes",
             PendingPaintMetric(..) => "PendingPaintMetric",
             ViewportConstrained(..) => "ViewportConstrained",
+            WebFontStateChanged(..) => "WebFontStateChanged",
+            EpochChanged(..) => "EpochChanged",
         };
         write!(formatter, "LayoutMsg::{}", variant)
     }

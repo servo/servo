@@ -2205,6 +2205,32 @@ where
             FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },
+            FromLayoutMsg::WebFontStateChanged(pipeline_id, pending) => {
+                self.handle_web_font_state_changed(pipeline_id, pending);
+            },
+            FromLayoutMsg::EpochChanged(pipeline_id, epoch) => {
+                self.handle_epoch_changed(pipeline_id, epoch);
+            },
+        }
+    }
+
+    fn handle_web_font_state_changed(
+        &mut self,
+        pipeline_id: PipelineId,
+        pending: bool,
+    ) {
+        if let Some(ref mut pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            pipeline.pending_webfont = pending;
+        }
+    }
+
+    fn handle_epoch_changed(
+        &mut self,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+    ) {
+        if let Some(ref mut pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            pipeline.epoch = epoch;
         }
     }
 
@@ -5049,9 +5075,6 @@ where
             return ReadyToSave::PendingChanges;
         }
 
-        let (state_sender, state_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let (epoch_sender, epoch_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-
         // Step through the fully active browsing contexts, checking that the script
         // thread is idle, and that the current epoch of the layout thread
         // matches what the compositor has painted. If all these conditions
@@ -5076,17 +5099,13 @@ where
 
             // Check to see if there are any webfonts still loading.
             //
-            // If GetWebFontLoadState returns false, either there are no
+            // If pending_webfont returns false, either there are no
             // webfonts loading, or there's a WebFontLoaded message waiting in
             // script_chan's message queue. Therefore, we need to check this
             // before we check whether the document is ready; otherwise,
             // there's a race condition where a webfont has finished loading,
             // but hasn't yet notified the document.
-            let msg = LayoutControlMsg::GetWebFontLoadState(state_sender.clone());
-            if let Err(e) = pipeline.layout_chan.send(msg) {
-                warn!("Get web font failed ({})", e);
-            }
-            if state_receiver.recv().unwrap_or(true) {
+            if pipeline.pending_webfont {
                 return ReadyToSave::WebFontNotLoaded;
             }
 
@@ -5112,21 +5131,11 @@ where
             let compositor_epoch = pipeline_states.get(&browsing_context.pipeline_id);
             match compositor_epoch {
                 Some(compositor_epoch) => {
-                    // Synchronously query the layout thread to see if the current
-                    // epoch matches what the compositor has drawn. If they match
-                    // (and script is idle) then this pipeline won't change again
+                    // See if the last reported epoch matches what the compositor has drawn.
+                    // If they match (and script is idle) then this pipeline won't change again
                     // and can be considered stable.
-                    let message = LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone());
-                    if let Err(e) = pipeline.layout_chan.send(message) {
-                        warn!("Failed to send GetCurrentEpoch ({}).", e);
-                    }
-                    match epoch_receiver.recv() {
-                        Err(e) => warn!("Failed to receive current epoch ({:?}).", e),
-                        Ok(layout_thread_epoch) => {
-                            if layout_thread_epoch != *compositor_epoch {
-                                return ReadyToSave::EpochMismatch;
-                            }
-                        },
+                    if pipeline.epoch != *compositor_epoch {
+                        return ReadyToSave::EpochMismatch;
                     }
                 },
                 None => {

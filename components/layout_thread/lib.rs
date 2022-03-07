@@ -93,7 +93,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 use style::animation::{AnimationSetKey, DocumentAnimationSet, ElementAnimationSet};
@@ -179,7 +179,7 @@ pub struct LayoutThread {
     generation: Cell<u32>,
 
     /// The number of Web fonts that have been requested but not yet loaded.
-    outstanding_web_fonts: Arc<AtomicUsize>,
+    outstanding_web_fonts: usize,
 
     /// The root of the flow tree.
     root_flow: RefCell<Option<FlowRef>>,
@@ -437,10 +437,14 @@ fn add_font_face_rules(
     device: &Device,
     font_cache_thread: &FontCacheThread,
     font_cache_sender: &IpcSender<()>,
-    outstanding_web_fonts_counter: &Arc<AtomicUsize>,
+    outstanding_web_fonts_counter: &mut usize,
     load_webfonts_synchronously: bool,
+    constellation_chan: &IpcSender<ConstellationMsg>,
+    id: PipelineId,
 ) {
     if load_webfonts_synchronously {
+        let _ = constellation_chan.send(ConstellationMsg::WebFontStateChanged(id, true));
+        
         let (sender, receiver) = ipc::channel().unwrap();
         stylesheet.effective_font_face_rules(&device, guard, |rule| {
             if let Some(font_face) = rule.font_face() {
@@ -452,12 +456,14 @@ fn add_font_face_rules(
                 );
                 receiver.recv().unwrap();
             }
-        })
+        });
+
+        let _ = constellation_chan.send(ConstellationMsg::WebFontStateChanged(id, false));
     } else {
         stylesheet.effective_font_face_rules(&device, guard, |rule| {
             if let Some(font_face) = rule.font_face() {
                 let effective_sources = font_face.effective_sources();
-                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
+                *outstanding_web_fonts_counter += 1;
                 font_cache_thread.add_web_font(
                     font_face.family().clone(),
                     effective_sources,
@@ -556,7 +562,7 @@ impl LayoutThread {
             //font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
             generation: Cell::new(0),
-            outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
+            outstanding_web_fonts: 0,
             root_flow: RefCell::new(None),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
@@ -795,7 +801,7 @@ impl LayoutThread {
             },
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
-                let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
+                let outstanding_web_fonts = self.outstanding_web_fonts;
                 sender.send(outstanding_web_fonts != 0).unwrap();
             },
             Msg::CreateLayoutThread(info) => {
@@ -944,7 +950,7 @@ impl LayoutThread {
         self.background_hang_monitor.unregister();
     }
 
-    fn handle_add_stylesheet(&self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
+    fn handle_add_stylesheet(&mut self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
         if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
@@ -954,8 +960,10 @@ impl LayoutThread {
                 self.stylist.device(),
                 &self.font_cache_thread,
                 &self.font_cache_sender,
-                &self.outstanding_web_fonts,
+                &mut self.outstanding_web_fonts,
                 self.load_webfonts_synchronously,
+                &self.constellation_chan,
+                self.id,
             );
         }
     }
@@ -1143,6 +1151,8 @@ impl LayoutThread {
                 let mut epoch = self.epoch.get();
                 epoch.next();
                 self.epoch.set(epoch);
+
+                let _ = self.constellation_chan.send(ConstellationMsg::EpochChanged(self.id, epoch));
 
                 let viewport_size = webrender_api::units::LayoutSize::from_untyped(viewport_size);
 
@@ -2076,7 +2086,10 @@ impl Layout for LayoutThread {
         /*let rw_data = self.rw_data.clone();
         let mut _possibly_locked_rw_data = Some(rw_data.lock().unwrap());
         //let rw_data = possibly_locked_rw_data.lock();*/
-        self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
+        self.outstanding_web_fonts -= 1;
+        if self.outstanding_web_fonts == 0 {
+            let _ = self.constellation_chan.send(ConstellationMsg::WebFontStateChanged(self.id, false));
+        }
         font_context::invalidate_font_caches();
         self.script_chan
             .send(ConstellationControlMsg::WebFontLoaded(self.id))

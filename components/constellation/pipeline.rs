@@ -14,6 +14,7 @@ use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::EventLoopWaker;
 use gfx::font_cache_thread::FontCacheThread;
+use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error;
@@ -102,6 +103,12 @@ pub struct Pipeline {
 
     /// The title of this pipeline's document.
     pub title: String,
+
+    /// True if any webfonts used by this pipeline have not finished loading.
+    pub pending_webfont: bool,
+
+    /// The last epoch reported by the pipeline's layout.
+    pub epoch: Epoch,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -385,6 +392,8 @@ impl Pipeline {
             history_states: HashSet::new(),
             completely_loaded: false,
             title: String::new(),
+            pending_webfont: false,
+            epoch: Default::default(),
         };
 
         pipeline.notify_visibility(is_visible);
