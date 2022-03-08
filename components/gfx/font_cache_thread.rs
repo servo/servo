@@ -37,6 +37,25 @@ pub struct FontTemplateInfo {
     pub font_key: webrender_api::FontKey,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SerializedFontTemplateInfo {
+    pub serialized_font_template: SerializedFontTemplate,
+    pub font_key: webrender_api::FontKey,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SerializedFontTemplate {
+    identifier: Atom,
+    bytes_receiver: ipc_channel::ipc::IpcBytesReceiver,
+}
+
+impl SerializedFontTemplate {
+    pub fn to_font_template_data(&self) -> FontTemplateData {
+        let font_data = self.bytes_receiver.recv().ok();
+        FontTemplateData::new(self.identifier.clone(), font_data).unwrap()
+    }
+}
+
 impl FontTemplates {
     pub fn new() -> FontTemplates {
         FontTemplates { templates: vec![] }
@@ -123,7 +142,7 @@ pub enum Command {
 /// Reply messages sent from the font cache thread to the FontContext caller.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Reply {
-    GetFontTemplateReply(Option<FontTemplateInfo>),
+    GetFontTemplateReply(Option<SerializedFontTemplateInfo>),
 }
 
 /// The font cache thread itself. It maintains a list of reference counted
@@ -177,7 +196,27 @@ impl FontCache {
                 Command::GetFontTemplate(template_descriptor, family_descriptor, result) => {
                     let maybe_font_template =
                         self.find_font_template(&template_descriptor, &family_descriptor);
-                    let _ = result.send(Reply::GetFontTemplateReply(maybe_font_template));
+                    match maybe_font_template {
+                        None => {
+                            let _ = result.send(Reply::GetFontTemplateReply(None));
+                        },
+                        Some(font_template_info) => {
+                            let (bytes_sender, bytes_receiver) =
+                                ipc::bytes_channel().expect("failed to create IPC channel");
+                            let serialized_font_template = SerializedFontTemplate {
+                                identifier: font_template_info.font_template.identifier.clone(),
+                                bytes_receiver,
+                            };
+
+                            let _ = result.send(Reply::GetFontTemplateReply(Some(
+                                SerializedFontTemplateInfo {
+                                    serialized_font_template,
+                                    font_key: font_template_info.font_key,
+                                },
+                            )));
+                            let _ = bytes_sender.send(&*font_template_info.font_template.bytes());
+                        },
+                    };
                 },
                 Command::GetFontInstance(font_key, size, result) => {
                     let webrender_api = &self.webrender_api;
@@ -545,7 +584,19 @@ impl FontSource for FontCacheThread {
         }
 
         match reply.unwrap() {
-            Reply::GetFontTemplateReply(data) => data,
+            Reply::GetFontTemplateReply(maybe_serialized_font_template_info) => {
+                match maybe_serialized_font_template_info {
+                    None => None,
+                    Some(serialized_font_template_info) => Some(FontTemplateInfo {
+                        font_template: Arc::new(
+                            serialized_font_template_info
+                                .serialized_font_template
+                                .to_font_template_data(),
+                        ),
+                        font_key: serialized_font_template_info.font_key,
+                    }),
+                }
+            },
         }
     }
 }
