@@ -668,12 +668,25 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let mut txn = webrender_api::Transaction::new();
                 for update in updates {
                     match update {
-                        script_traits::ImageUpdate::AddImage(key, desc, data) => {
-                            txn.add_image(key, desc, data, None)
+                        script_traits::SerializedImageUpdate::AddImage(key, desc, data) => {
+                            match data.to_image_data() {
+                                Ok(data) => txn.add_image(key, desc, data, None),
+                                Err(e) => warn!("error when sending image data: {:?}", e),
+                            }
                         },
-                        script_traits::ImageUpdate::DeleteImage(key) => txn.delete_image(key),
-                        script_traits::ImageUpdate::UpdateImage(key, desc, data) => {
-                            txn.update_image(key, desc, data, &webrender_api::DirtyRect::All)
+                        script_traits::SerializedImageUpdate::DeleteImage(key) => {
+                            txn.delete_image(key)
+                        },
+                        script_traits::SerializedImageUpdate::UpdateImage(key, desc, data) => {
+                            match data.to_image_data() {
+                                Ok(data) => txn.update_image(
+                                    key,
+                                    desc,
+                                    data,
+                                    &webrender_api::DirtyRect::All,
+                                ),
+                                Err(e) => warn!("error when sending image data: {:?}", e),
+                            }
                         },
                     }
                 }

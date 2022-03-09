@@ -71,8 +71,8 @@ use webrender_api::units::{
     DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutSize, WorldPoint,
 };
 use webrender_api::{
-    BuiltDisplayList, DocumentId, ExternalScrollId, ImageData, ImageDescriptor, ImageKey,
-    ScrollClamping,
+    BuiltDisplayList, DocumentId, ExternalImageData, ExternalScrollId, ImageData, ImageDescriptor,
+    ImageKey, ScrollClamping,
 };
 use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult};
 
@@ -1138,7 +1138,7 @@ pub enum WebrenderMsg {
     /// provided channel sender.
     GenerateImageKey(IpcSender<ImageKey>),
     /// Perform a resource update operation.
-    UpdateImages(Vec<ImageUpdate>),
+    UpdateImages(Vec<SerializedImageUpdate>),
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -1219,9 +1219,48 @@ impl WebrenderIpcSender {
 
     /// Perform a resource update operation.
     pub fn update_images(&self, updates: Vec<ImageUpdate>) {
+        let mut senders = Vec::new();
+        // Convert `ImageUpdate` to `SerializedImageUpdate` because `ImageData` may contain large
+        // byes. With this conversion, we send `IpcBytesReceiver` instead and use it to send the
+        // actual bytes.
+        let updates = updates
+            .into_iter()
+            .map(|update| match update {
+                ImageUpdate::AddImage(k, d, data) => {
+                    let data = match data {
+                        ImageData::Raw(r) => {
+                            let (sender, receiver) = ipc::bytes_channel().unwrap();
+                            senders.push((sender, r));
+                            SerializedImageData::Raw(receiver)
+                        },
+                        ImageData::External(e) => SerializedImageData::External(e),
+                    };
+                    SerializedImageUpdate::AddImage(k, d, data)
+                },
+                ImageUpdate::DeleteImage(k) => SerializedImageUpdate::DeleteImage(k),
+                ImageUpdate::UpdateImage(k, d, data) => {
+                    let data = match data {
+                        ImageData::Raw(r) => {
+                            let (sender, receiver) = ipc::bytes_channel().unwrap();
+                            senders.push((sender, r));
+                            SerializedImageData::Raw(receiver)
+                        },
+                        ImageData::External(e) => SerializedImageData::External(e),
+                    };
+                    SerializedImageUpdate::UpdateImage(k, d, data)
+                },
+            })
+            .collect();
+
         if let Err(e) = self.0.send(WebrenderMsg::UpdateImages(updates)) {
             warn!("error sending image updates: {}", e);
         }
+
+        senders.into_iter().for_each(|(tx, data)| {
+            if let Err(e) = tx.send(&*data) {
+                warn!("error sending image data: {}", e);
+            }
+        });
     }
 }
 
@@ -1234,4 +1273,37 @@ pub enum ImageUpdate {
     DeleteImage(ImageKey),
     /// Update an existing image registration.
     UpdateImage(ImageKey, ImageDescriptor, ImageData),
+}
+
+#[derive(Deserialize, Serialize)]
+/// Serialized `ImageUpdate`.
+pub enum SerializedImageUpdate {
+    /// Register a new image.
+    AddImage(ImageKey, ImageDescriptor, SerializedImageData),
+    /// Delete a previously registered image registration.
+    DeleteImage(ImageKey),
+    /// Update an existing image registration.
+    UpdateImage(ImageKey, ImageDescriptor, SerializedImageData),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+/// Serialized `ImageData`. It contains IPC byte channel receiver to prevent from loading bytes too
+/// slow.
+pub enum SerializedImageData {
+    /// A simple series of bytes, provided by the embedding and owned by WebRender.
+    /// The format is stored out-of-band, currently in ImageDescriptor.
+    Raw(ipc::IpcBytesReceiver),
+    /// An image owned by the embedding, and referenced by WebRender. This may
+    /// take the form of a texture or a heap-allocated buffer.
+    External(ExternalImageData),
+}
+
+impl SerializedImageData {
+    /// Convert to ``ImageData`.
+    pub fn to_image_data(&self) -> Result<ImageData, ipc::IpcError> {
+        match self {
+            SerializedImageData::Raw(rx) => rx.recv().map(|data| ImageData::new(data)),
+            SerializedImageData::External(image) => Ok(ImageData::External(image.clone())),
+        }
+    }
 }
