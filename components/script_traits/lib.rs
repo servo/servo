@@ -1123,7 +1123,7 @@ pub enum WebrenderMsg {
         LayoutSize,
         webrender_api::PipelineId,
         LayoutSize,
-        Vec<u8>,
+        ipc::IpcBytesReceiver,
         BuiltDisplayListDescriptor,
     ),
     /// Perform a hit test operation. The result will be returned via
@@ -1181,15 +1181,20 @@ impl WebrenderIpcSender {
         (pipeline, size2, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
     ) {
         let (data, descriptor) = list.into_data();
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList(
             webrender_api::Epoch(epoch.0),
             size,
             pipeline,
             size2,
-            data,
+            receiver,
             descriptor,
         )) {
             warn!("Error sending display list: {}", e);
+        }
+
+        if let Err(e) = sender.send(&data) {
+            warn!("Error sending display data: {}", e);
         }
     }
 
