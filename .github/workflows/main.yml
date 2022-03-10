@@ -70,7 +70,7 @@ jobs:
       - name: Run tests
         run: |
           python3 ./mach test-wpt \
-            --release --processes $(nproc) --timeout-multiplier 2 \
+            --release --processes $(nproc) --timeout-multiplier 4 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
