@@ -40,7 +40,7 @@ impl<E: TElement> PreTraverseToken<E> {
     }
 
     /// Returns the traversal root for the current traversal.
-    pub(crate) fn traversal_root(self) -> Option<E> {
+    pub fn traversal_root(self) -> Option<E> {
         self.0
     }
 }

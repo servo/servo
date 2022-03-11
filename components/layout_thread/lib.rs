@@ -21,6 +21,7 @@ extern crate log;
 extern crate profile_traits;
 
 mod dom_wrapper;
+mod driver;
 
 use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use app_units::Au;
@@ -57,7 +58,7 @@ use layout::query::{
 use layout::sequential;
 use layout::traversal::{
     construct_flows_at_ancestors, ComputeStackingRelativePositions, PreorderFlowTraversal,
-    RecalcStyleAndConstructFlows,
+    RecalcStyle, ConstructFlows,
 };
 use layout::wrapper::LayoutNodeLayoutData;
 use script::layout_integration::{Layout, LayoutThreadFactory};
@@ -100,7 +101,7 @@ use style::animation::{AnimationSetKey, DocumentAnimationSet, ElementAnimationSe
 use style::context::SharedStyleContext;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
-use style::driver;
+use style::driver as style_driver;
 use style::error_reporting::RustLogReporter;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -615,7 +616,32 @@ impl LayoutThread {
         while self.handle_request(&mut rw_data) {
             // Loop indefinitely.
         }
-    }*/
+}*/
+
+    fn build_style_context<'a>(
+        &'a self,
+        guards: StylesheetGuards<'a>,
+        snapshot_map: &'a SnapshotMap,
+        animation_timeline_value: f64,
+        animations: &DocumentAnimationSet,
+        stylesheets_changed: bool,
+    ) -> SharedStyleContext<'a> {
+        let traversal_flags = match stylesheets_changed {
+            true => TraversalFlags::ForCSSRuleChanges,
+            false => TraversalFlags::empty(),
+        };
+        SharedStyleContext {
+            stylist: &self.stylist,
+            options: GLOBAL_STYLE_DATA.options.clone(),
+            guards,
+            visited_styles_enabled: false,
+            animations: animations.clone(),
+            registered_speculative_painters: &self.registered_painters,
+            current_time_for_animations: animation_timeline_value,
+            traversal_flags,
+            snapshot_map: snapshot_map,
+        }
+    }
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context<'a>(
@@ -627,25 +653,16 @@ impl LayoutThread {
         animations: &DocumentAnimationSet,
         stylesheets_changed: bool,
     ) -> LayoutContext<'a> {
-        let traversal_flags = match stylesheets_changed {
-            true => TraversalFlags::ForCSSRuleChanges,
-            false => TraversalFlags::empty(),
-        };
-
         LayoutContext {
             id: self.id,
             origin,
-            style_context: SharedStyleContext {
-                stylist: &self.stylist,
-                options: GLOBAL_STYLE_DATA.options.clone(),
+            style_context: self.build_style_context(
                 guards,
-                visited_styles_enabled: false,
-                animations: animations.clone(),
-                registered_speculative_painters: &self.registered_painters,
-                current_time_for_animations: animation_timeline_value,
-                traversal_flags,
-                snapshot_map: snapshot_map,
-            },
+                snapshot_map,
+                animation_timeline_value,
+                animations,
+                stylesheets_changed,
+            ),
             image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
@@ -1395,6 +1412,25 @@ impl LayoutThread {
 
         self.stylist.flush(&guards, Some(root_element), Some(&map));
 
+        let dirty_root = ServoLayoutNode::new_safe(data.dirty_root.unwrap())
+            .as_element()
+            .unwrap();
+
+        let traversal = RecalcStyle::new(self.build_style_context(
+            guards.clone(),
+            &map,
+            data.animation_timeline_value,
+            &data.animations,
+            data.stylesheets_changed,
+        ));
+        let token = {
+            let shared =
+                <RecalcStyle<ServoLayoutNode> as DomTraversal<ServoLayoutElement>>::shared_context(
+                    &traversal,
+                );
+            RecalcStyle::pre_traverse(dirty_root, shared)
+        };
+
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(
             guards.clone(),
@@ -1405,18 +1441,7 @@ impl LayoutThread {
             data.stylesheets_changed,
         );
 
-        let dirty_root = ServoLayoutNode::new_safe(data.dirty_root.unwrap())
-            .as_element()
-            .unwrap();
-
-        let traversal = RecalcStyleAndConstructFlows::new(layout_context);
-        let token = {
-            let shared =
-                <RecalcStyleAndConstructFlows as DomTraversal<ServoLayoutElement>>::shared_context(
-                    &traversal,
-                );
-            RecalcStyleAndConstructFlows::pre_traverse(dirty_root, shared)
-        };
+        let traversal2 = ConstructFlows::new(layout_context);
 
         if token.should_traverse() {
             // Recalculate CSS styles and rebuild flows and fragments.
@@ -1425,13 +1450,18 @@ impl LayoutThread {
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
+                    //XXXjdm reinstate parallelism for recalc style traversal
                     // Perform CSS selector matching and flow construction.
-                    let root = driver::traverse_dom::<
+                    let root = style_driver::traverse_dom::<
                         ServoLayoutElement,
-                        RecalcStyleAndConstructFlows,
+                        RecalcStyle<ServoLayoutNode>,
                     >(&traversal, token, None);
+
+                    crate::driver::traverse_dom::<
+                        ConstructFlows,
+                    >(&traversal2, root.clone(), &traversal);
                     unsafe {
-                        construct_flows_at_ancestors(traversal.context(), root.as_node());
+                        construct_flows_at_ancestors(traversal2.context(), root.as_node());
                     }
                 },
             );
@@ -1454,7 +1484,7 @@ impl LayoutThread {
             unsafe { element.unset_snapshot_flags() }
         }
 
-        layout_context = traversal.destroy();
+        layout_context = traversal2.destroy();
 
         if self.dump_style_tree {
             println!(

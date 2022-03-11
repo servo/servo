@@ -146,6 +146,9 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// The concrete `TShadowRoot` type.
     type ConcreteShadowRoot: TShadowRoot<ConcreteNode = Self>;
 
+    ///
+    fn children_count(&self) -> u32;
+
     /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;
 

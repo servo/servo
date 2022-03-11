@@ -201,6 +201,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteShadowRoot = ServoShadowRoot<'ln>;
 
+    fn children_count(&self) -> u32 {
+        self.node.children_count()
+    }
+
     fn parent_node(&self) -> Option<Self> {
         self.node
             .composed_parent_node_ref()
@@ -1028,7 +1032,7 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
 
     /// Returns the interior of this node as a `LayoutDom`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
-    unsafe fn get_jsmanaged(&self) -> LayoutDom<'ln, Node> {
+    pub(crate) unsafe fn get_jsmanaged(&self) -> LayoutDom<'ln, Node> {
         self.node.get_jsmanaged()
     }
 }

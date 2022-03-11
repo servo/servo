@@ -12,6 +12,7 @@ use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 use crate::wrapper::{GetStyleAndLayoutData, LayoutNodeLayoutData};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
+use style::dom::{SendNode, OpaqueNode};
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
@@ -19,15 +20,30 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::traversal::PerLevelTraversalData;
 use style::traversal::{recalc_style_at, DomTraversal};
+use std::sync::Mutex;
 
-pub struct RecalcStyleAndConstructFlows<'a> {
+pub struct RecalcStyle<'a, N: TNode> {
+    pub nodes: Mutex<Vec<(SendNode<N>, u32)>>,
+    context: SharedStyleContext<'a>,
+}
+
+impl<'a, N: TNode> RecalcStyle<'a, N> {
+    pub fn new(context: SharedStyleContext<'a>) -> Self {
+        RecalcStyle {
+            nodes: Mutex::new(vec![]),
+            context: context,
+        }
+    }
+}
+
+pub struct ConstructFlows<'a> {
     context: LayoutContext<'a>,
 }
 
-impl<'a> RecalcStyleAndConstructFlows<'a> {
+impl<'a> ConstructFlows<'a> {
     /// Creates a traversal context, taking ownership of the shared layout context.
     pub fn new(context: LayoutContext<'a>) -> Self {
-        RecalcStyleAndConstructFlows { context: context }
+        ConstructFlows { context: context }
     }
 
     pub fn context(&self) -> &LayoutContext<'a> {
@@ -41,8 +57,52 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
     }
 }
 
+pub trait SequentialDomTraversal<E: TElement> {
+    fn process_postorder(&self, node: E::ConcreteNode);
+
+    /// Handles the postorder step of the traversal, if it exists, by bubbling
+    /// up the parent chain.
+    ///
+    /// If we are the last child that finished processing, recursively process
+    /// our parent. Else, stop. Also, stop at the root.
+    ///
+    /// Thus, if we start with all the leaves of a tree, we end up traversing
+    /// the whole tree bottom-up because each parent will be processed exactly
+    /// once (by the last child that finishes processing).
+    ///
+    /// The only communication between siblings is that they both
+    /// fetch-and-subtract the parent's children count. This makes it safe to
+    /// call durign the parallel traversal.
+    fn handle_postorder_traversal(
+        &self,
+        root: OpaqueNode,
+        mut node: E::ConcreteNode,
+    ) {
+        // We are a leaf. Walk up the chain.
+        loop {
+            self.process_postorder(node);
+            if node.opaque() == root {
+                break;
+            }
+            let parent = node.traversal_parent().unwrap();
+            node = parent.as_node();
+        }
+    }
+}
+
+impl<'a, 'dom, E> SequentialDomTraversal<E> for ConstructFlows<'a>
+where
+    E: TElement,
+    E::ConcreteNode: LayoutNode<'dom>,
+    E::FontMetricsProvider: Send,
+{
+    fn process_postorder(&self, node: E::ConcreteNode) {
+        construct_flows_at(&self.context, node);
+    }
+}
+
 #[allow(unsafe_code)]
-impl<'a, 'dom, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
+impl<'a, 'dom, E> DomTraversal<E> for RecalcStyle<'dom, E::ConcreteNode>
 where
     E: TElement,
     E::ConcreteNode: LayoutNode<'dom>,
@@ -69,7 +129,9 @@ where
     }
 
     fn process_postorder(&self, _style_context: &mut StyleContext<E>, node: E::ConcreteNode) {
-        construct_flows_at(&self.context, node);
+        let children_count = node.children_count();
+        let node = unsafe { SendNode::new(node) };
+        self.nodes.lock().unwrap().push((node, children_count));
     }
 
     fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData) -> bool {
@@ -81,7 +143,7 @@ where
     }
 
     fn shared_context(&self) -> &SharedStyleContext {
-        &self.context.style_context
+        &self.context
     }
 }
 
