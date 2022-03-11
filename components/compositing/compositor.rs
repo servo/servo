@@ -626,25 +626,28 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 size,
                 pipeline,
                 size2,
-                data,
+                receiver,
                 descriptor,
-            )) => {
-                self.waiting_on_pending_frame = true;
-                let mut txn = webrender_api::Transaction::new();
-                txn.set_display_list(
-                    epoch,
-                    None,
-                    size,
-                    (
-                        pipeline,
-                        size2,
-                        webrender_api::BuiltDisplayList::from_data(data, descriptor),
-                    ),
-                    true,
-                );
-                txn.generate_frame();
-                self.webrender_api
-                    .send_transaction(self.webrender_document, txn);
+            )) => match receiver.recv() {
+                Ok(data) => {
+                    self.waiting_on_pending_frame = true;
+                    let mut txn = webrender_api::Transaction::new();
+                    txn.set_display_list(
+                        epoch,
+                        None,
+                        size,
+                        (
+                            pipeline,
+                            size2,
+                            webrender_api::BuiltDisplayList::from_data(data, descriptor),
+                        ),
+                        true,
+                    );
+                    txn.generate_frame();
+                    self.webrender_api
+                        .send_transaction(self.webrender_document, txn);
+                },
+                Err(e) => warn!("error receiving display data: {:?}", e),
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
@@ -668,12 +671,25 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let mut txn = webrender_api::Transaction::new();
                 for update in updates {
                     match update {
-                        script_traits::ImageUpdate::AddImage(key, desc, data) => {
-                            txn.add_image(key, desc, data, None)
+                        script_traits::SerializedImageUpdate::AddImage(key, desc, data) => {
+                            match data.to_image_data() {
+                                Ok(data) => txn.add_image(key, desc, data, None),
+                                Err(e) => warn!("error when sending image data: {:?}", e),
+                            }
                         },
-                        script_traits::ImageUpdate::DeleteImage(key) => txn.delete_image(key),
-                        script_traits::ImageUpdate::UpdateImage(key, desc, data) => {
-                            txn.update_image(key, desc, data, &webrender_api::DirtyRect::All)
+                        script_traits::SerializedImageUpdate::DeleteImage(key) => {
+                            txn.delete_image(key)
+                        },
+                        script_traits::SerializedImageUpdate::UpdateImage(key, desc, data) => {
+                            match data.to_image_data() {
+                                Ok(data) => txn.update_image(
+                                    key,
+                                    desc,
+                                    data,
+                                    &webrender_api::DirtyRect::All,
+                                ),
+                                Err(e) => warn!("error when sending image data: {:?}", e),
+                            }
                         },
                     }
                 }
