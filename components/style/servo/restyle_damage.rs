@@ -210,7 +210,8 @@ fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDam
             ServoRestyleDamage::REFLOW_OUT_OF_FLOW,
             ServoRestyleDamage::REFLOW,
             ServoRestyleDamage::RECONSTRUCT_FLOW
-        ]
+        ],
+        old.get_box().original_display != new.get_box().original_display
     ) || (new.get_box().display == Display::Inline &&
         restyle_damage_rebuild_and_reflow_inline!(
             old,

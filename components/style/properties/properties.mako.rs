@@ -4131,6 +4131,9 @@ macro_rules! longhand_properties_idents {
 % for effect_name in ["repaint", "reflow_out_of_flow", "reflow", "rebuild_and_reflow_inline", "rebuild_and_reflow"]:
     macro_rules! restyle_damage_${effect_name} {
         ($old: ident, $new: ident, $damage: ident, [ $($effect:expr),* ]) => ({
+            restyle_damage_${effect_name}!($old, $new, $damage, [$($effect),*], false)
+        });
+        ($old: ident, $new: ident, $damage: ident, [ $($effect:expr),* ], $extra:expr) => ({
             if
                 % for style_struct in data.active_style_structs():
                     % for longhand in style_struct.longhands:
@@ -4141,13 +4144,13 @@ macro_rules! longhand_properties_idents {
                     % endfor
                 % endfor
 
-                false {
+                $extra || false {
                     $damage.insert($($effect)|*);
                     true
             } else {
                 false
             }
-        })
+        });
     }
 % endfor
 % endif
