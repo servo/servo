@@ -1886,7 +1886,7 @@ class AttrDefiner(PropertyDefiner):
                 "name": m.identifier.name,
                 "attr": m,
                 "flags": "JSPROP_ENUMERATE",
-                "is_accessor": "true",
+                "kind": "JSPropertySpec_Kind::NativeAccessor",
             }
             for m in descriptor.interface.members if
             m.isAttr() and m.isStatic() == static
@@ -1906,7 +1906,7 @@ class AttrDefiner(PropertyDefiner):
                 "name": "@@toStringTag",
                 "attr": None,
                 "flags": "JSPROP_READONLY",
-                "is_accessor": "false",
+                "kind": "JSPropertySpec_Kind::Value",
             })
 
     def generateArray(self, array, name):
@@ -1963,13 +1963,13 @@ class AttrDefiner(PropertyDefiner):
 
         def specData(attr):
             if attr["name"] == "@@toStringTag":
-                return (attr["name"][2:], attr["flags"], attr["is_accessor"],
+                return (attr["name"][2:], attr["flags"], attr["kind"],
                         str_to_const_array(self.descriptor.interface.getClassName()))
 
             flags = attr["flags"]
             if self.unforgeable:
                 flags += " | JSPROP_PERMANENT"
-            return (str_to_const_array(attr["attr"].identifier.name), flags, attr["is_accessor"], getter(attr),
+            return (str_to_const_array(attr["attr"].identifier.name), flags, attr["kind"], getter(attr),
                     setter(attr))
 
         def template(m):
@@ -1977,7 +1977,7 @@ class AttrDefiner(PropertyDefiner):
                 return """    JSPropertySpec {
                     name: JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 },
                     attributes_: (%s) as u8,
-                    isAccessor_: (%s),
+                    kind_: %s,
                     u: JSPropertySpec_AccessorsOrValue {
                         value: JSPropertySpec_ValueWrapper {
                             type_: JSPropertySpec_ValueWrapper_Type::String,
@@ -1991,7 +1991,7 @@ class AttrDefiner(PropertyDefiner):
             return """    JSPropertySpec {
                     name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },
                     attributes_: (%s) as u8,
-                    isAccessor_: (%s),
+                    kind_: %s,
                     u: JSPropertySpec_AccessorsOrValue {
                         accessors: JSPropertySpec_AccessorsOrValue_Accessors {
                             getter: JSPropertySpec_Accessor {
@@ -5368,7 +5368,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             }
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(
                 template, templateValues, declType, argument.identifier.name))
-            self.cgRoot.prepend(CGGeneric("rooted!(in(*cx) let value = desc.value);"))
+            self.cgRoot.prepend(CGGeneric("rooted!(in(*cx) let value = desc.value_);"))
 
     def getArguments(self):
         args = [(a, process_arg(a.identifier.name, a)) for a in self.arguments]
@@ -5491,7 +5491,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                     ) {
                         return false;
                     }
-                    if desc.obj.is_null() {
+                    if !desc.hasValue_() {
                         return proxyhandler::cross_origin_property_fallback(cx, proxy, id, desc);
                     }
                     return true;
@@ -5507,8 +5507,8 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
-            fillDescriptor = ("desc.value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
+            fillDescriptor = ("let value = result_root.get();\n"
+                              "fill_property_descriptor(MutableHandle::from_raw(desc), value, (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5532,8 +5532,8 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = " | ".join(attrs)
             else:
                 attrs = "0"
-            fillDescriptor = ("desc.value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
+            fillDescriptor = ("let value = result_root.get();\n"
+                              "fill_property_descriptor(MutableHandle::from_raw(desc), value, (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5569,17 +5569,15 @@ get_expando_object(proxy, expando.handle_mut());
 let proxy_lt = Handle::from_raw(proxy);
 let id_lt = Handle::from_raw(id);
 if !expando.is_null() {
-    if !JS_GetPropertyDescriptorById(*cx, expando.handle().into(), id, desc) {
+    if !JS_GetOwnPropertyDescriptorById(*cx, expando.handle().into(), id, desc) {
         return false;
     }
-    if !desc.obj.is_null() {
-        // Pretend the property lives on the wrapper.
-        desc.obj = proxy.get();
+    if desc.hasValue_() {
         return true;
     }
 }
 """ + namedGet + """\
-desc.obj = ptr::null_mut();
+desc.value_ = UndefinedValue();
 return true;"""
 
     def definition_body(self):
@@ -6342,6 +6340,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSPROP_PERMANENT',
         'js::jsapi::JSPROP_READONLY',
         'js::jsapi::JSPropertySpec',
+        'js::jsapi::JSPropertySpec_Kind',
         'js::jsapi::JSPropertySpec_Accessor',
         'js::jsapi::JSPropertySpec_AccessorsOrValue',
         'js::jsapi::JSPropertySpec_AccessorsOrValue_Accessors',
@@ -6366,8 +6365,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::GetRealmObjectPrototype',
         'js::rust::wrappers::JS_GetProperty',
         'js::jsapi::JS_GetPropertyById',
-        'js::jsapi::JS_GetPropertyDescriptorById',
+        'js::jsapi::JS_GetOwnPropertyDescriptorById',
         'js::glue::JS_GetReservedSlot',
+        'js::glue::GetProxyPrivate',
         'js::jsapi::JS_HasProperty',
         'js::jsapi::JS_HasPropertyById',
         'js::rust::wrappers::JS_InitializePropertiesFromCompatibleNativeObject',

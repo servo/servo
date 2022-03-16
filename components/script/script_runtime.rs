@@ -52,8 +52,8 @@ use js::jsapi::StreamConsumer as JSStreamConsumer;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
 use js::jsapi::{Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown};
 use js::jsapi::{
-    GCReason, JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer,
-    JS_RequestInterruptCallback, JS_SetGCCallback,
+    GCOptions, GCReason, JSGCStatus, JS_AddExtraGCRootsTracer, JS_RequestInterruptCallback,
+    JS_SetGCCallback,
 };
 use js::jsapi::{HandleObject, Heap, JobQueue};
 use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
@@ -791,14 +791,11 @@ unsafe extern "C" fn gc_slice_callback(
     };
     if !desc.is_null() {
         let desc: &GCDescription = &*desc;
-        let invocation_kind = match desc.invocationKind_ {
-            JSGCInvocationKind::GC_NORMAL => "GC_NORMAL",
-            JSGCInvocationKind::GC_SHRINK => "GC_SHRINK",
+        let gc_option = match desc.options_ {
+            GCOptions::Normal => "GCOptions_Normal",
+            GCOptions::Shrink => "GCOptions_Shrink",
         };
-        println!(
-            "  isZone={}, invocation_kind={}",
-            desc.isZone_, invocation_kind
-        );
+        println!("  isZone={}, gc_option={}", desc.isZone_, gc_option);
     }
     let _ = stdout().flush();
 }

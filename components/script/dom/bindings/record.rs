@@ -140,7 +140,7 @@ where
                 return Err(());
             }
 
-            if (JSPROP_ENUMERATE as u32) & desc.attrs == 0 {
+            if !desc.enumerable_() {
                 continue;
             }
 

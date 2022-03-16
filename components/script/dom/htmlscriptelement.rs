@@ -43,9 +43,13 @@ use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::jsapi::JSObject;
+use js::jsapi::ThrowOnModuleEvaluationFailure;
 use js::jsapi::{
-    CanCompileOffThread, CompileOffThread1, FinishOffThreadScript, Heap, JSScript, OffThreadToken,
+    CanCompileOffThread, CompileToStencilOffThread1, FinishCompileToStencilOffThread, Heap,
+    InstantiateGlobalStencil, JSScript, OffThreadToken,
 };
+use js::jsapi::{InstantiateOptions, InstantiationStorage};
 use js::jsval::UndefinedValue;
 use js::rust::{transform_str_to_source_text, CompileOptionsWrapper};
 use msg::constellation_msg::PipelineId;
@@ -64,6 +68,7 @@ use std::cell::Cell;
 use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{Read, Seek, Write};
 use std::mem::replace;
+use std::ops::DerefMut;
 use std::path::PathBuf;
 use std::process::Command;
 use std::rc::Rc;
@@ -113,21 +118,28 @@ unsafe extern "C" fn off_thread_compilation_callback(
             let cx = global.get_cx();
             let _ar = enter_realm(&*global);
 
-            rooted!(in(*cx)
-                let compiled_script = FinishOffThreadScript(*cx, token.0)
+            rooted!(in(*cx) let mut storage = InstantiationStorage::default());
+            let mut compiled_script = FinishCompileToStencilOffThread(*cx, token.0, storage.deref_mut());
+            rooted!(in(*cx) let instantiation_option = InstantiateOptions::default());
+            rooted!(in(*cx) let instantiated_script =
+                InstantiateGlobalStencil(
+                    *cx,
+                    (&instantiation_option.get()) as *const _,
+                    compiled_script.deref_mut()
+                )
             );
 
-            let load = if compiled_script.get().is_null() {
+            let load = if instantiated_script.get().is_null() {
                 Err(NetworkError::Internal(
-                    "Off-thread compilation failed.".into(),
+                    "Off-thread instantiation failed.".into(),
                 ))
             } else {
                 let script_text = DOMString::from(script);
                 let heap = Heap::default();
                 let source_code = RootedTraceableBox::new(heap);
-                source_code.set(compiled_script.get());
+                source_code.set(instantiated_script.get());
                 let code = SourceCode::Compiled(CompiledSourceCode {
-                    source_code: source_code,
+                    source_code,
                     original_text: Rc::new(script_text),
                 });
 
@@ -446,7 +458,7 @@ impl FetchResponseListener for ClassicContext {
             });
 
             unsafe {
-                assert!(!CompileOffThread1(
+                assert!(!CompileToStencilOffThread1(
                     *cx,
                     options.ptr as *const _,
                     &mut transform_str_to_source_text(&context.script_text) as *mut _,
@@ -1113,12 +1125,27 @@ impl HTMLScriptElement {
                 .map(|record| record.handle());
 
             if let Some(record) = record {
-                let evaluated = module_tree.execute_module(global, record);
+                match module_tree.execute_module(&global, record) {
+                    Ok(evaluated) => {
+                        rooted!(in(*global.get_cx()) let mut evaluation_promise = std::ptr::null_mut::<JSObject>());
 
-                if let Err(exception) = evaluated {
-                    module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(&global);
-                    return;
+                        if evaluated.is_object() {
+                            *evaluation_promise.handle_mut() = evaluated.to_object();
+                        }
+
+                        unsafe {
+                            if !ThrowOnModuleEvaluationFailure(
+                                *global.get_cx(),
+                                evaluation_promise.handle().into(),
+                            ) {
+                                debug!("Evaluation failed on throw: {:?}", script.url);
+                            }
+                        }
+                    },
+                    Err(exception) => {
+                        module_tree.set_rethrow_error(exception);
+                        module_tree.report_error(&global);
+                    },
                 }
             }
         }

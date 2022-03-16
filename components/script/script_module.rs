@@ -45,14 +45,14 @@ use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleObject;
 use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::Value;
-use js::jsapi::{CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport_NoTLA};
-use js::jsapi::{DynamicImportStatus, SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
+use js::jsapi::{CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport};
+use js::jsapi::{GetModuleRequestSpecifier, ModuleEvaluate, ModuleInstantiate};
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN, JSPROP_ENUMERATE};
-use js::jsapi::{ModuleEvaluate, ModuleInstantiate};
+use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
@@ -501,7 +501,7 @@ impl ModuleTree {
         &self,
         global: &GlobalScope,
         module_record: HandleObject,
-    ) -> Result<(), RethrowError> {
+    ) -> Result<RawHandle<JSVal>, RethrowError> {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         unsafe {
@@ -521,7 +521,7 @@ impl ModuleTree {
                 ))))
             } else {
                 debug!("module evaluated successfully");
-                Ok(())
+                Ok(rval.handle().into())
             }
         }
     }
@@ -588,7 +588,7 @@ impl ModuleTree {
                 let url = ModuleTree::resolve_module_specifier(
                     *global.get_cx(),
                     &base_url,
-                    specifier.handle().into_handle(),
+                    specifier.handle(),
                 );
 
                 if url.is_err() {
@@ -616,7 +616,7 @@ impl ModuleTree {
     fn resolve_module_specifier(
         cx: *mut JSContext,
         url: &ServoUrl,
-        specifier: RawHandle<*mut JSString>,
+        specifier: Handle<*mut JSString>,
     ) -> Result<ServoUrl, UrlParseError> {
         let specifier_str = unsafe { jsstring_to_str(cx, *specifier) };
 
@@ -961,75 +961,67 @@ impl ModuleOwner {
     ) {
         let global = self.global();
 
-        let module = global.dynamic_module_list().remove(dynamic_module_id);
+        enter_realm(&*global);
 
+        let module = global.dynamic_module_list().remove(dynamic_module_id);
         let cx = global.get_cx();
         let module_tree = module_identity.get_module_tree(&global);
+
+        rooted!(in(*cx) let mut evaluation_promise = std::ptr::null_mut::<JSObject>());
 
         // In the timing of executing this `finish_dynamic_module` function,
         // we've run `find_first_parse_error` which means we've had the highest
         // priority error in the tree. So, we can just get both `network_error` and
         // `rethrow_error` directly here.
-        let network_error = module_tree.get_network_error().borrow().as_ref().cloned();
-        let existing_rethrow_error = module_tree.get_rethrow_error().borrow().as_ref().cloned();
-
-        let execution_err = if network_error.is_none() && existing_rethrow_error.is_none() {
-            let record = module_tree
-                .get_record()
-                .borrow()
-                .as_ref()
-                .map(|record| record.handle());
-
-            if let Some(record) = record {
-                let evaluated = module_tree.execute_module(&global, record).err();
-
-                if let Some(exception) = evaluated.clone() {
-                    module_tree.set_rethrow_error(exception);
-                }
-
-                evaluated
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        // Ensure any failures related to importing this dynamic module are immediately reported.
-        let status = match (network_error, existing_rethrow_error, execution_err) {
-            (Some(_), _, _) => unsafe {
+        match (
+            module_tree.get_network_error().borrow().as_ref(),
+            module_tree.get_rethrow_error().borrow().as_ref(),
+        ) {
+            (Some(_), _) => unsafe {
                 let err = gen_type_error(&global, "Dynamic import failed".to_owned());
                 JS_SetPendingException(*cx, err.handle(), ExceptionStackBehavior::Capture);
-                DynamicImportStatus::Failed
             },
-            (None, _, Some(execution_err)) => unsafe {
-                JS_SetPendingException(
-                    *cx,
-                    execution_err.handle(),
-                    ExceptionStackBehavior::Capture,
-                );
-                DynamicImportStatus::Failed
+            (None, Some(rethrow_error)) => unsafe {
+                JS_SetPendingException(*cx, rethrow_error.handle(), ExceptionStackBehavior::Capture)
             },
-            (None, Some(rethrow_error), _) => unsafe {
-                JS_SetPendingException(
-                    *cx,
-                    rethrow_error.handle(),
-                    ExceptionStackBehavior::Capture,
-                );
-                DynamicImportStatus::Failed
+            (None, None) => {
+                let record = module_tree
+                    .get_record()
+                    .borrow()
+                    .as_ref()
+                    .map(|record| record.handle());
+
+                if let Some(record) = record {
+                    match module_tree.execute_module(&global, record) {
+                        Ok(evaluated) => {
+                            if evaluated.is_object() {
+                                *evaluation_promise.handle_mut() = evaluated.to_object();
+                            }
+                        },
+                        Err(exception) => {
+                            unsafe {
+                                JS_SetPendingException(
+                                    *cx,
+                                    exception.handle(),
+                                    ExceptionStackBehavior::Capture,
+                                )
+                            };
+
+                            module_tree.set_rethrow_error(exception);
+                        },
+                    }
+                }
             },
-            // do nothing if there's no errors
-            (None, None, None) => DynamicImportStatus::Ok,
-        };
+        }
 
         debug!("Finishing dynamic import for {:?}", module_identity);
 
         unsafe {
-            FinishDynamicModuleImport_NoTLA(
+            FinishDynamicModuleImport(
                 *cx,
-                status,
+                evaluation_promise.handle().into(),
                 module.referencing_private.handle(),
-                module.specifier.handle(),
+                module.module_request.handle(),
                 module.promise.reflector().get_jsobject().into_handle(),
             );
             assert!(!JS_IsExceptionPending(*cx));
@@ -1249,7 +1241,7 @@ unsafe extern "C" fn host_release_top_level_script(value: *const Value) {
 pub unsafe extern "C" fn host_import_module_dynamically(
     cx: *mut JSContext,
     reference_private: RawHandleValue,
-    specifier: RawHandle<*mut JSString>,
+    module_request: RawHandle<*mut JSObject>,
     promise: RawHandle<*mut JSObject>,
 ) -> bool {
     // Step 1.
@@ -1275,7 +1267,7 @@ pub unsafe extern "C" fn host_import_module_dynamically(
     //Step 5 & 6.
     if let Err(e) = fetch_an_import_module_script_graph(
         &global_scope,
-        specifier,
+        module_request,
         reference_private,
         base_url,
         options,
@@ -1339,14 +1331,18 @@ unsafe fn module_script_from_reference_private<'a>(
 #[allow(unsafe_code)]
 fn fetch_an_import_module_script_graph(
     global: &GlobalScope,
-    specifier: RawHandle<*mut JSString>,
+    module_request: RawHandle<*mut JSObject>,
     reference_private: RawHandleValue,
     base_url: ServoUrl,
     options: ScriptFetchOptions,
     promise: Rc<Promise>,
 ) -> Result<(), RethrowError> {
+    rooted!(in (*global.get_cx()) let specifier = unsafe {
+        GetModuleRequestSpecifier(*global.get_cx(), module_request)
+    });
+
     // Step 1.
-    let url = ModuleTree::resolve_module_specifier(*global.get_cx(), &base_url, specifier);
+    let url = ModuleTree::resolve_module_specifier(*global.get_cx(), &base_url, specifier.handle());
 
     // Step 2.
     if url.is_err() {
@@ -1369,11 +1365,11 @@ fn fetch_an_import_module_script_graph(
 
     let dynamic_module = RootedTraceableBox::new(DynamicModule {
         promise,
-        specifier: Heap::default(),
+        module_request: Heap::default(),
         referencing_private: Heap::default(),
         id: dynamic_module_id,
     });
-    dynamic_module.specifier.set(specifier.get());
+    dynamic_module.module_request.set(module_request.get());
     dynamic_module
         .referencing_private
         .set(reference_private.get());
@@ -1402,7 +1398,7 @@ fn fetch_an_import_module_script_graph(
 unsafe extern "C" fn HostResolveImportedModule(
     cx: *mut JSContext,
     reference_private: RawHandleValue,
-    specifier: RawHandle<*mut JSString>,
+    module_request: RawHandle<*mut JSObject>,
 ) -> *mut JSObject {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global_scope = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
@@ -1417,7 +1413,12 @@ unsafe extern "C" fn HostResolveImportedModule(
     }
 
     // Step 5.
-    let url = ModuleTree::resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier);
+    rooted!(in (*global_scope.get_cx()) let specifier =
+        GetModuleRequestSpecifier(*global_scope.get_cx(), module_request)
+    );
+
+    let url =
+        ModuleTree::resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier.handle());
 
     // Step 6.
     assert!(url.is_ok());
@@ -1542,7 +1543,7 @@ struct DynamicModule {
     #[ignore_malloc_size_of = "Rc is hard"]
     promise: Rc<Promise>,
     #[ignore_malloc_size_of = "GC types are hard"]
-    specifier: Heap<*mut JSString>,
+    module_request: Heap<*mut JSObject>,
     #[ignore_malloc_size_of = "GC types are hard"]
     referencing_private: Heap<JSVal>,
     #[ignore_malloc_size_of = "Defined in uuid"]

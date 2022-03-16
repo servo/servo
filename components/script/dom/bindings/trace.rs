@@ -78,8 +78,10 @@ use http::StatusCode;
 use indexmap::IndexMap;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
+use js::jsapi::frontend::CompilationStencil;
 use js::jsapi::{
-    GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, JobQueue, TraceKind,
+    already_AddRefed, GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, JobQueue,
+    TraceKind,
 };
 use js::jsval::JSVal;
 use js::rust::{GCMethods, Handle, Runtime};
@@ -220,6 +222,8 @@ unsafe_no_jsmanaged_fields!(*mut JobQueue);
 unsafe_no_jsmanaged_fields!(Cow<'static, str>);
 
 unsafe_no_jsmanaged_fields!(CspList);
+
+unsafe_no_jsmanaged_fields!(already_AddRefed<CompilationStencil>);
 
 /// Trace a `JSScript`.
 pub fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut JSScript>) {
