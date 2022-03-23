@@ -18,7 +18,7 @@ use crate::Atom;
 use cssparser::Parser;
 use num_traits::FromPrimitive;
 use selectors::parser::SelectorParseErrorKind;
-use std::fmt::{self, Write};
+use std::fmt::{self, Debug, Formatter, Write};
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
@@ -121,7 +121,6 @@ pub enum DisplayInside {
 #[derive(
     Clone,
     Copy,
-    Debug,
     Eq,
     FromPrimitive,
     Hash,
@@ -654,6 +653,16 @@ impl SpecifiedValueInfo for Display {
             "-webkit-box",
             "-webkit-inline-box",
         ]);
+    }
+}
+
+impl Debug for Display {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Display")
+            .field("List Item", &self.is_list_item())
+            .field("Inside", &self.inside())
+            .field("Outside", &self.outside())
+            .finish()
     }
 }
 
