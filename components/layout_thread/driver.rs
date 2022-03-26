@@ -15,15 +15,10 @@ where
 {
     let nodes = std::mem::take(&mut *recalc_style.nodes.lock().unwrap());
 
-    for (node, children_count) in nodes {
-        if children_count != 0 {
-            continue;
-        }
+    for (node, _children_count) in nodes {
+        // Process the nodes in the same order that the original traversal processed them.
         let node = ServoThreadSafeLayoutNode::new(*node);
-        traversal.handle_postorder_traversal(
-            root.as_node().opaque(),
-            unsafe { node.unsafe_get() },
-        );
+        traversal.process_postorder(unsafe { node.unsafe_get() });
     }
 
     root
