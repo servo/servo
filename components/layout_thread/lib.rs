@@ -103,7 +103,7 @@ use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpecula
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
 use style::driver as style_driver;
 use style::error_reporting::RustLogReporter;
-use style::global_style_data::GLOBAL_STYLE_DATA;
+use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
@@ -176,6 +176,9 @@ pub struct LayoutThread {
 
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
+
+    /// Flag to indicate whether to use parallel operations
+    parallel_flag: bool,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -564,6 +567,7 @@ impl LayoutThread {
             first_reflow: Cell::new(true),
             //font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
+            parallel_flag: true,
             generation: Cell::new(0),
             outstanding_web_fonts: 0,
             root_flow: RefCell::new(None),
@@ -1199,8 +1203,12 @@ impl LayoutThread {
         let document = ServoLayoutNode::new_safe(&data.document);
         let document = document.as_document().unwrap();
 
+        // Parallelize if there's more than 750 objects based on rzambre's suggestion
+        // https://github.com/servo/servo/issues/10110
+        self.parallel_flag = data.dom_count > 750;
         debug!("layout: received layout request for: {}", self.url);
         debug!("Number of objects in DOM: {}", data.dom_count);
+        debug!("styling: parallel? {}", self.parallel_flag);
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1416,6 +1424,14 @@ impl LayoutThread {
 
         self.stylist.flush(&guards, Some(root_element), Some(&map));
 
+        let pool;
+        let (thread_pool, _num_threads) = if self.parallel_flag {
+            pool = STYLE_THREAD_POOL.pool();
+            (pool.as_ref(), STYLE_THREAD_POOL.num_threads.unwrap_or(1))
+        } else {
+            (None, 1)
+        };
+
         let dirty_root = ServoLayoutNode::new_safe(data.dirty_root.unwrap())
             .as_element()
             .unwrap();
@@ -1455,12 +1471,11 @@ impl LayoutThread {
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
-                    //XXXjdm reinstate parallelism for recalc style traversal
                     // Perform CSS selector matching and flow construction.
                     let root = style_driver::traverse_dom::<
                         ServoLayoutElement,
                         RecalcStyle<ServoLayoutNode>,
-                    >(&traversal, token, None);
+                    >(&traversal, token, thread_pool);
 
                     crate::driver::traverse_dom::<
                         ConstructFlows,
