@@ -417,7 +417,7 @@ impl ImageFragmentInfo {
         url: Option<ServoUrl>,
         density: Option<f64>,
         node: &impl ThreadSafeLayoutNode<'dom>,
-        layout_context: &LayoutContext,
+        layout_context: &mut LayoutContext,
     ) -> ImageFragmentInfo {
         // First use any image data present in the element...
         let image_or_metadata = node

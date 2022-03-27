@@ -298,9 +298,9 @@ impl StackingContextCollectionState {
     }
 }
 
-pub struct DisplayListBuildState<'a> {
+pub struct DisplayListBuildState<'a, 'dom> {
     /// A LayoutContext reference important for creating WebRender images.
-    pub layout_context: &'a LayoutContext<'a>,
+    pub layout_context: &'a mut LayoutContext<'dom>,
 
     /// The root of the StackingContext tree.
     pub root_stacking_context: StackingContext,
@@ -334,11 +334,11 @@ pub struct DisplayListBuildState<'a> {
     pub indexable_text: IndexableText,
 }
 
-impl<'a> DisplayListBuildState<'a> {
+impl<'a, 'dom> DisplayListBuildState<'a, 'dom> {
     pub fn new(
-        layout_context: &'a LayoutContext,
+        layout_context: &'a mut LayoutContext<'dom>,
         state: StackingContextCollectionState,
-    ) -> DisplayListBuildState<'a> {
+    ) -> DisplayListBuildState<'a, 'dom> {
         DisplayListBuildState {
             layout_context: layout_context,
             root_stacking_context: state.root_stacking_context,

@@ -46,8 +46,8 @@ impl<'a> ConstructFlows<'a> {
         ConstructFlows { context: context }
     }
 
-    pub fn context(&self) -> &LayoutContext<'a> {
-        &self.context
+    pub fn context(&mut self) -> &mut LayoutContext<'a> {
+        &mut self.context
     }
 
     /// Consumes this traversal context, returning ownership of the shared layout
@@ -58,7 +58,7 @@ impl<'a> ConstructFlows<'a> {
 }
 
 pub trait SequentialDomTraversal<E: TElement> {
-    fn process_postorder(&self, node: E::ConcreteNode);
+    fn process_postorder(&mut self, node: E::ConcreteNode);
 
     /// Handles the postorder step of the traversal, if it exists, by bubbling
     /// up the parent chain.
@@ -74,7 +74,7 @@ pub trait SequentialDomTraversal<E: TElement> {
     /// fetch-and-subtract the parent's children count. This makes it safe to
     /// call durign the parallel traversal.
     fn handle_postorder_traversal(
-        &self,
+        &mut self,
         root: OpaqueNode,
         mut node: E::ConcreteNode,
     ) {
@@ -90,14 +90,14 @@ pub trait SequentialDomTraversal<E: TElement> {
     }
 }
 
-impl<'a, 'dom, E> SequentialDomTraversal<E> for ConstructFlows<'a>
+impl<'dom, E> SequentialDomTraversal<E> for ConstructFlows<'dom>
 where
     E: TElement,
     E::ConcreteNode: LayoutNode<'dom>,
     E::FontMetricsProvider: Send,
 {
-    fn process_postorder(&self, node: E::ConcreteNode) {
-        construct_flows_at(&self.context, node);
+    fn process_postorder(&mut self, node: E::ConcreteNode) {
+        construct_flows_at(&mut self.context, node);
     }
 }
 
@@ -251,8 +251,8 @@ where
 
 #[allow(unsafe_code)]
 #[inline]
-pub unsafe fn construct_flows_at_ancestors<'dom>(
-    context: &LayoutContext,
+pub unsafe fn construct_flows_at_ancestors<'a, 'dom>(
+    context: &'a mut LayoutContext<'dom>,
     mut node: impl LayoutNode<'dom>,
 ) {
     while let Some(element) = node.traversal_parent() {
@@ -265,7 +265,7 @@ pub unsafe fn construct_flows_at_ancestors<'dom>(
 /// The flow construction traversal, which builds flows for styled nodes.
 #[inline]
 #[allow(unsafe_code)]
-fn construct_flows_at<'dom>(context: &LayoutContext, node: impl LayoutNode<'dom>) {
+fn construct_flows_at<'a, 'dom>(context: &'a mut LayoutContext<'dom>, node: impl LayoutNode<'dom>) {
     debug!("construct_flows_at: {:?}", node);
 
     // Construct flows for this node.
@@ -401,11 +401,11 @@ impl<'a> PreorderFlowTraversal for ComputeStackingRelativePositions<'a> {
     }
 }
 
-pub struct BuildDisplayList<'a> {
-    pub state: DisplayListBuildState<'a>,
+pub struct BuildDisplayList<'a, 'dom> {
+    pub state: DisplayListBuildState<'a, 'dom>,
 }
 
-impl<'a> BuildDisplayList<'a> {
+impl<'a, 'dom> BuildDisplayList<'a, 'dom> {
     #[inline]
     pub fn traverse(&mut self, flow: &mut dyn Flow) {
         if flow.has_non_invertible_transform() {

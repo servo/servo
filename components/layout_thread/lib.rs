@@ -71,7 +71,7 @@ use msg::constellation_msg::{
 use msg::constellation_msg::{BrowsingContextId, MonitoredComponentId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
-use parking_lot::RwLock;
+//use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
@@ -121,6 +121,8 @@ use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
+
+type WebrenderImageCache = FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -198,7 +200,7 @@ pub struct LayoutThread {
     /// All the other elements of this struct are read-only.
     rw_data: Arc<Mutex<LayoutThreadData>>,
 
-    webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
+    webrender_image_cache: WebrenderImageCache,
 
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
@@ -588,7 +590,7 @@ impl LayoutThread {
                 element_inner_text_response: String::new(),
                 inner_window_dimensions_response: None,
             })),
-            webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
+            webrender_image_cache: FnvHashMap::default(),
             //paint_time_metrics: paint_time_metrics,
             layout_query_waiting_time: Histogram::new(),
             last_iframe_sizes: Default::default(),
@@ -652,6 +654,7 @@ impl LayoutThread {
         animation_timeline_value: f64,
         animations: &DocumentAnimationSet,
         stylesheets_changed: bool,
+        webrender_image_cache: WebrenderImageCache,
     ) -> LayoutContext<'a> {
         LayoutContext {
             id: self.id,
@@ -664,9 +667,9 @@ impl LayoutThread {
                 stylesheets_changed,
             ),
             image_cache: self.image_cache.clone(),
-            font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
-            webrender_image_cache: self.webrender_image_cache.clone(),
-            pending_images: Mutex::new(vec![]),
+            font_cache_thread: self.font_cache_thread.clone(),
+            webrender_image_cache,
+            pending_images: vec![],
             registered_painters: &self.registered_painters,
         }
     }
@@ -1023,13 +1026,13 @@ impl LayoutThread {
 
     /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the
     /// reflow type need it, builds the display list.
-    fn compute_abs_pos_and_build_display_list(
+    fn compute_abs_pos_and_build_display_list<'a, 'dom>(
         &self,
         data: &Reflow,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
         layout_root: &mut dyn Flow,
-        layout_context: &mut LayoutContext,
+        layout_context: &'a mut LayoutContext<'dom>,
         rw_data: &mut LayoutThreadData,
     ) {
         let writing_mode = layout_root.base().writing_mode;
@@ -1190,7 +1193,8 @@ impl LayoutThread {
         &mut self,
         data: &mut ScriptReflowResult<'c>,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
-    ) -> ReflowComplete<'c> {
+        webrender_image_cache: WebrenderImageCache,
+    ) -> (ReflowComplete<'c>, WebrenderImageCache) {
         //let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = ServoLayoutNode::new_safe(&data.document);
         let document = document.as_document().unwrap();
@@ -1254,7 +1258,7 @@ impl LayoutThread {
                     },
                     ReflowGoal::Full | ReflowGoal::TickAnimations => {},
                 }
-                return ReflowComplete::default();
+                return (ReflowComplete::default(), webrender_image_cache);
             },
             Some(x) => x,
         };
@@ -1439,9 +1443,10 @@ impl LayoutThread {
             data.animation_timeline_value,
             &data.animations,
             data.stylesheets_changed,
+            webrender_image_cache,
         );
 
-        let traversal2 = ConstructFlows::new(layout_context);
+        let mut traversal2 = ConstructFlows::new(layout_context);
 
         if token.should_traverse() {
             // Recalculate CSS styles and rebuild flows and fragments.
@@ -1459,7 +1464,7 @@ impl LayoutThread {
 
                     crate::driver::traverse_dom::<
                         ConstructFlows,
-                    >(&traversal2, root.clone(), &traversal);
+                    >(&mut traversal2, root.clone(), &traversal);
                     unsafe {
                         construct_flows_at_ancestors(traversal2.context(), root.as_node());
                     }
@@ -1525,7 +1530,7 @@ impl LayoutThread {
             document_shared_lock,
         );
 
-        data.result.borrow_mut().take().unwrap()
+        (data.result.borrow_mut().take().unwrap(), std::mem::take(&mut layout_context.webrender_image_cache))
     }
 
     fn respond_to_query_if_necessary(
@@ -1536,7 +1541,7 @@ impl LayoutThread {
         reflow_result: &mut ReflowComplete,
         shared_lock: &SharedRwLock,
     ) {
-        let pending_images = std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
+        let pending_images = std::mem::take(&mut context.pending_images);
         reflow_result.pending_images = pending_images
             .into_iter()
             .map(PendingImage::from)
@@ -1704,14 +1709,14 @@ impl LayoutThread {
         }
     }
 
-    fn perform_post_style_recalc_layout_passes(
+    fn perform_post_style_recalc_layout_passes<'a, 'dom>(
         &self,
         root_flow: &mut FlowRef,
         data: &Reflow,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
         rw_data: &mut LayoutThreadData,
-        context: &mut LayoutContext,
+        context: &'a mut LayoutContext<'dom>,
     ) {
         Self::cancel_animations_for_nodes_not_in_flow_tree(
             &mut *(context.style_context.animations.sets.write()),
@@ -1794,14 +1799,14 @@ impl LayoutThread {
         );
     }
 
-    fn perform_post_main_layout_passes(
+    fn perform_post_main_layout_passes<'a, 'dom>(
         &self,
         data: &Reflow,
         mut root_flow: &mut FlowRef,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
         rw_data: &mut LayoutThreadData,
-        layout_context: &mut LayoutContext,
+        layout_context: &'a mut LayoutContext<'dom>,
     ) {
         // Build the display list if necessary, and send it to the painter.
         self.compute_abs_pos_and_build_display_list(
@@ -1809,7 +1814,7 @@ impl LayoutThread {
             reflow_goal,
             document,
             FlowRef::deref_mut(&mut root_flow),
-            &mut *layout_context,
+            layout_context,
             rw_data,
         );
 
@@ -2079,14 +2084,17 @@ impl Layout for LayoutThread {
         self.background_hang_monitor
             .notify_activity(HangAnnotation::Layout(LayoutHangAnnotation::Reflow));
 
+        let webrender_image_cache = std::mem::take(&mut self.webrender_image_cache);
+
         let mut data = ScriptReflowResult::new(data);
-        let result = profile(
+        let (result, webrender_image_cache) = profile(
             profile_time::ProfilerCategory::LayoutPerform,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
-            || self.handle_reflow(&mut data, &mut rw_data),
+            || self.handle_reflow(&mut data, &mut rw_data, webrender_image_cache),
         );
 
+        self.webrender_image_cache = webrender_image_cache;
         self.busy.store(false, Ordering::Relaxed);
         result
     }

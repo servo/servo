@@ -2,11 +2,10 @@ use crate::dom_wrapper::ServoLayoutElement;
 use crate::dom_wrapper::ServoLayoutNode;
 use crate::dom_wrapper::ServoThreadSafeLayoutNode;
 use layout::traversal::{RecalcStyle, SequentialDomTraversal};
-use style::dom::{TElement, TNode};
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 
 pub fn traverse_dom<'le, D>(
-    traversal: &D,
+    traversal: &mut D,
     root: ServoLayoutElement<'le>,
     recalc_style: &RecalcStyle<ServoLayoutNode<'le>>,
 ) -> ServoLayoutElement<'le>

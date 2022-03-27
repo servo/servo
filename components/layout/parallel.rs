@@ -9,13 +9,13 @@
 #![allow(unsafe_code)]
 
 use crate::block::BlockFlow;
-use crate::context::LayoutContext;
+//use crate::context::LayoutContext;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::flow_ref::FlowRef;
-use crate::traversal::{AssignBSizes, AssignISizes, BubbleISizes};
-use crate::traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
-use profile_traits::time::{self, profile, TimerMetadata};
-use servo_config::opts;
+use crate::traversal::{AssignBSizes/*, AssignISizes, BubbleISizes*/};
+use crate::traversal::{PostorderFlowTraversal/*, PreorderFlowTraversal*/};
+//use profile_traits::time::{self, profile, TimerMetadata};
+//use servo_config::opts;
 use smallvec::SmallVec;
 use std::mem;
 use std::ptr;
@@ -69,6 +69,7 @@ impl FlowParallelInfo {
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
+#[allow(dead_code)]
 fn bottom_up_flow(mut unsafe_flow: UnsafeFlow, assign_bsize_traversal: &AssignBSizes) {
     loop {
         // Get a real flow.
@@ -113,7 +114,7 @@ fn bottom_up_flow(mut unsafe_flow: UnsafeFlow, assign_bsize_traversal: &AssignBS
     }
 }
 
-fn top_down_flow<'scope>(
+/*fn top_down_flow<'scope>(
     unsafe_flows: &[UnsafeFlow],
     pool: &'scope rayon::ThreadPool,
     scope: &rayon::ScopeFifo<'scope>,
@@ -186,9 +187,9 @@ fn top_down_flow<'scope>(
             );
         }
     }
-}
+}*/
 
-/// Run the main layout passes in parallel.
+/*/// Run the main layout passes in parallel.
 pub fn reflow(
     root: &mut dyn Flow,
     profiler_metadata: Option<TimerMetadata>,
@@ -229,4 +230,4 @@ pub fn reflow(
             );
         });
     });
-}
+}*/

@@ -72,12 +72,12 @@ pub fn reflow(root: &mut dyn Flow, layout_context: &LayoutContext, relayout_mode
     doit(root, assign_inline_sizes, assign_block_sizes, relayout_mode);
 }
 
-pub fn build_display_list_for_subtree<'a>(
+pub fn build_display_list_for_subtree<'a, 'dom>(
     flow_root: &mut dyn Flow,
-    layout_context: &'a LayoutContext,
+    layout_context: &'a mut LayoutContext<'dom>,
     background_color: webrender_api::ColorF,
     client_size: Size2D<Au>,
-) -> DisplayListBuildState<'a> {
+) -> DisplayListBuildState<'a, 'dom> {
     let mut state = StackingContextCollectionState::new(layout_context.id);
     flow_root.collect_stacking_contexts(&mut state);
 

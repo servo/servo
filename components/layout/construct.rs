@@ -366,20 +366,20 @@ impl InlineFragmentsAccumulator {
 }
 
 /// An object that knows how to create flows.
-pub struct FlowConstructor<'a, N> {
-    /// The layout context.
-    pub layout_context: &'a LayoutContext<'a>,
+pub struct FlowConstructor<'a, 'dom, N> {
+    /// The layout cont.ext.
+    pub layout_context: &'a mut LayoutContext<'dom>,
     /// Satisfy the compiler about the unused parameters, which we use to improve the ergonomics of
     /// the ensuing impl {} by removing the need to parameterize all the methods individually.
     phantom2: PhantomData<N>,
 }
 
-impl<'a, 'dom, ConcreteThreadSafeLayoutNode> FlowConstructor<'a, ConcreteThreadSafeLayoutNode>
+impl<'a, 'dom, ConcreteThreadSafeLayoutNode> FlowConstructor<'a, 'dom, ConcreteThreadSafeLayoutNode>
 where
     ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>,
 {
     /// Creates a new flow constructor.
-    pub fn new(layout_context: &'a LayoutContext<'a>) -> Self {
+    pub fn new(layout_context: &'a mut LayoutContext<'dom>) -> Self {
         FlowConstructor {
             layout_context: layout_context,
             phantom2: PhantomData,
@@ -401,7 +401,7 @@ where
     }
 
     /// Builds the fragment for the given block or subclass thereof.
-    fn build_fragment_for_block(&self, node: &ConcreteThreadSafeLayoutNode) -> Fragment {
+    fn build_fragment_for_block(&mut self, node: &ConcreteThreadSafeLayoutNode) -> Fragment {
         let specific_fragment_info = match node.type_id() {
             Some(LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement)) => {
                 SpecificFragmentInfo::Iframe(IframeFragmentInfo::new(node))
@@ -411,7 +411,7 @@ where
                     node.image_url(),
                     node.image_density(),
                     node,
-                    &self.layout_context,
+                    self.layout_context,
                 ));
                 SpecificFragmentInfo::Image(image_info)
             },
@@ -433,7 +433,7 @@ where
                     object_data,
                     None,
                     node,
-                    &self.layout_context,
+                    self.layout_context,
                 ));
                 SpecificFragmentInfo::Image(image_info)
             },
@@ -1511,7 +1511,7 @@ where
                     url_value.url().cloned(),
                     None,
                     node,
-                    &self.layout_context,
+                    self.layout_context,
                 ));
                 vec![Fragment::new(
                     node,
@@ -1801,7 +1801,7 @@ where
 
 impl<'a, 'dom, ConcreteThreadSafeLayoutNode>
     PostorderNodeMutTraversal<'dom, ConcreteThreadSafeLayoutNode>
-    for FlowConstructor<'a, ConcreteThreadSafeLayoutNode>
+    for FlowConstructor<'a, 'dom, ConcreteThreadSafeLayoutNode>
 where
     ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>,
 {

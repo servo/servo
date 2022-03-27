@@ -14,7 +14,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };
-use parking_lot::RwLock;
+//use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
 use script_traits::Painter;
 use servo_atoms::Atom;
@@ -22,7 +22,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc/*, Mutex*/};
 use std::thread;
 use style::context::RegisteredSpeculativePainter;
 use style::context::SharedStyleContext;
@@ -38,7 +38,7 @@ where
     FONT_CONTEXT_KEY.with(|k| {
         let mut font_context = k.borrow_mut();
         if font_context.is_none() {
-            let font_cache_thread = layout_context.font_cache_thread.lock().unwrap().clone();
+            let font_cache_thread = layout_context.font_cache_thread.clone();
             *font_context = Some(FontContext::new(font_cache_thread));
         }
         f(&mut RefMut::map(font_context, |x| x.as_mut().unwrap()))
@@ -70,26 +70,22 @@ pub struct LayoutContext<'a> {
     pub image_cache: Arc<dyn ImageCache>,
 
     /// Interface to the font cache thread.
-    pub font_cache_thread: Mutex<FontCacheThread>,
+    pub font_cache_thread: FontCacheThread,
 
     /// A cache of WebRender image info.
-    pub webrender_image_cache: Arc<
-        RwLock<
-            HashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo, BuildHasherDefault<FnvHasher>>,
-        >,
-    >,
+    pub webrender_image_cache: HashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo, BuildHasherDefault<FnvHasher>>,
 
     /// Paint worklets
     pub registered_painters: &'a dyn RegisteredPainters,
 
     /// A list of in-progress image loads to be shared with the script thread.
-    pub pending_images: Mutex<Vec<PendingImage>>,
+    pub pending_images: Vec<PendingImage>,
 }
 
 impl<'a> Drop for LayoutContext<'a> {
     fn drop(&mut self) {
         if !thread::panicking() {
-            assert!(self.pending_images.lock().unwrap().is_empty());
+            assert!(self.pending_images.is_empty());
         }
     }
 }
@@ -101,7 +97,7 @@ impl<'a> LayoutContext<'a> {
     }
 
     pub fn get_or_request_image_or_meta(
-        &self,
+        &mut self,
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
@@ -125,7 +121,7 @@ impl<'a> LayoutContext<'a> {
                     id,
                     origin: self.origin.clone(),
                 };
-                self.pending_images.lock().unwrap().push(image);
+                self.pending_images.push(image);
                 None
             },
             // Not yet requested - request image or metadata from the cache
@@ -136,7 +132,7 @@ impl<'a> LayoutContext<'a> {
                     id,
                     origin: self.origin.clone(),
                 };
-                self.pending_images.lock().unwrap().push(image);
+                self.pending_images.push(image);
                 None
             },
             // Image failed to load, so just return nothing
@@ -145,14 +141,13 @@ impl<'a> LayoutContext<'a> {
     }
 
     pub fn get_webrender_image_for_url(
-        &self,
+        &mut self,
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
     ) -> Option<WebRenderImageInfo> {
         if let Some(existing_webrender_image) = self
             .webrender_image_cache
-            .read()
             .get(&(url.clone(), use_placeholder))
         {
             return Some((*existing_webrender_image).clone());
@@ -164,8 +159,7 @@ impl<'a> LayoutContext<'a> {
                 if image_info.key.is_none() {
                     Some(image_info)
                 } else {
-                    let mut webrender_image_cache = self.webrender_image_cache.write();
-                    webrender_image_cache.insert((url, use_placeholder), image_info);
+                    self.webrender_image_cache.insert((url, use_placeholder), image_info);
                     Some(image_info)
                 }
             },
