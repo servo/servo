@@ -111,16 +111,16 @@ fn is_unrooted_ty<'tcx>(
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
                 let has_attr = |did, name| has_lint_attr(sym, &cx.tcx.get_attrs(did), name);
-                if has_attr(did.did, sym.must_root) {
+                if has_attr(did.did(), sym.must_root) {
                     ret = true;
                     false
-                } else if has_attr(did.did, sym.allow_unrooted_interior) {
+                } else if has_attr(did.did(), sym.allow_unrooted_interior) {
                     false
-                } else if match_def_path(cx, did.did, &[sym.alloc, sym.rc, sym.Rc]) {
+                } else if match_def_path(cx, did.did(), &[sym.alloc, sym.rc, sym.Rc]) {
                     // Rc<Promise> is okay
                     let inner = substs.type_at(0);
                     if let ty::Adt(did, _) = inner.kind() {
-                        if has_attr(did.did, sym.allow_unrooted_in_rc) {
+                        if has_attr(did.did(), sym.allow_unrooted_in_rc) {
                             false
                         } else {
                             true
@@ -128,24 +128,24 @@ fn is_unrooted_ty<'tcx>(
                     } else {
                         true
                     }
-                } else if match_def_path(cx, did.did, &[sym::core, sym.cell, sym.Ref]) ||
-                    match_def_path(cx, did.did, &[sym::core, sym.cell, sym.RefMut]) ||
-                    match_def_path(cx, did.did, &[sym::core, sym::slice, sym::iter, sym.Iter]) ||
+                } else if match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.Ref]) ||
+                    match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.RefMut]) ||
+                    match_def_path(cx, did.did(), &[sym::core, sym::slice, sym::iter, sym.Iter]) ||
                     match_def_path(
                         cx,
-                        did.did,
+                        did.did(),
                         &[sym::core, sym::slice, sym::iter, sym.IterMut],
                     ) ||
-                    match_def_path(cx, did.did, &[sym.accountable_refcell, sym.Ref]) ||
-                    match_def_path(cx, did.did, &[sym.accountable_refcell, sym.RefMut]) ||
+                    match_def_path(cx, did.did(), &[sym.accountable_refcell, sym.Ref]) ||
+                    match_def_path(cx, did.did(), &[sym.accountable_refcell, sym.RefMut]) ||
                     match_def_path(
                         cx,
-                        did.did,
+                        did.did(),
                         &[sym::std, sym.collections, sym.hash, sym.map, sym.Entry],
                     ) ||
                     match_def_path(
                         cx,
-                        did.did,
+                        did.did(),
                         &[
                             sym::std,
                             sym.collections,
@@ -156,7 +156,7 @@ fn is_unrooted_ty<'tcx>(
                     ) ||
                     match_def_path(
                         cx,
-                        did.did,
+                        did.did(),
                         &[
                             sym::std,
                             sym.collections,
@@ -167,12 +167,12 @@ fn is_unrooted_ty<'tcx>(
                     ) ||
                     match_def_path(
                         cx,
-                        did.did,
+                        did.did(),
                         &[sym::std, sym.collections, sym.hash, sym.map, sym.Iter],
                     ) ||
                     match_def_path(
                         cx,
-                        did.did,
+                        did.did(),
                         &[sym::std, sym.collections, sym.hash, sym.set, sym.Iter],
                     )
                 {
