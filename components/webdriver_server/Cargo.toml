@@ -13,7 +13,7 @@ path = "lib.rs"
 [dependencies]
 base64 = "0.10"
 compositing = { path = "../compositing" }
-cookie = "0.11"
+cookie = "0.12"
 crossbeam-channel = "0.4"
 euclid = "0.20"
 headers = "0.3"

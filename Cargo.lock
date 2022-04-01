@@ -969,15 +969,6 @@ dependencies = [
 
 [[package]]
 name = "cookie"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9fac5e7bdefb6160fb181ee0eaa6f96704b625c70e6d61c465cb35750a4ea12"
-dependencies = [
- "time",
-]
-
-[[package]]
-name = "cookie"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "888604f00b3db336d2af898ec3c1d5d0ddf5e6d462220f2ededc33a87ac4bbd5"
@@ -2898,11 +2889,11 @@ dependencies = [
 
 [[package]]
 name = "hyper_serde"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "843b2c3c0cee11aa3042250e849a333124a6a873f8f66e5fdaab7980df1ac8ee"
+checksum = "4193ebe2b9ecb7d04dd1a777c25f3294e10310fe5583e1006a3f47779d6c6a01"
 dependencies = [
- "cookie 0.11.2",
+ "cookie",
  "headers",
  "http",
  "hyper 0.14.5",
@@ -4064,7 +4055,7 @@ dependencies = [
  "brotli",
  "bytes 1.1.0",
  "content-security-policy",
- "cookie 0.11.2",
+ "cookie",
  "crossbeam-channel 0.4.4",
  "data-url",
  "devtools_traits",
@@ -4129,7 +4120,7 @@ name = "net_traits"
 version = "0.0.1"
 dependencies = [
  "content-security-policy",
- "cookie 0.11.2",
+ "cookie",
  "embedder_traits",
  "headers",
  "http",
@@ -5300,7 +5291,7 @@ dependencies = [
  "canvas_traits",
  "chrono",
  "content-security-policy",
- "cookie 0.11.2",
+ "cookie",
  "crossbeam-channel 0.4.4",
  "cssparser",
  "data-url",
@@ -5443,7 +5434,7 @@ dependencies = [
  "bitflags",
  "bluetooth_traits",
  "canvas_traits",
- "cookie 0.11.2",
+ "cookie",
  "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
@@ -7194,7 +7185,7 @@ checksum = "3484940751923901dc09b362740cad90bcfb62ec93d8abf38add2c3ac728c596"
 dependencies = [
  "base64 0.12.0",
  "bytes 0.5.6",
- "cookie 0.12.0",
+ "cookie",
  "http",
  "log",
  "once_cell",
@@ -7215,7 +7206,7 @@ version = "0.0.1"
 dependencies = [
  "base64 0.10.1",
  "compositing",
- "cookie 0.11.2",
+ "cookie",
  "crossbeam-channel 0.4.4",
  "euclid",
  "headers",

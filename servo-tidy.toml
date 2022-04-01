@@ -34,7 +34,6 @@ packages = [
   "cfg-if",
   "cloudabi",
   "cocoa",
-  "cookie",
   "crossbeam-channel",
   "crossbeam-utils",
   "deflate",
