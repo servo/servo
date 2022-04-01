@@ -43,6 +43,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
+use std::io::Cursor;
 use std::mem;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::thread;
@@ -1589,12 +1590,12 @@ impl Handler {
         );
 
         let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
-        let mut png_data = Vec::new();
+        let mut png_data = Cursor::new(Vec::new());
         DynamicImage::ImageRgb8(rgb)
             .write_to(&mut png_data, ImageFormat::Png)
             .unwrap();
 
-        Ok(base64::encode(&png_data))
+        Ok(base64::encode(png_data.get_ref()))
     }
 
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {

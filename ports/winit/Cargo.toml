@@ -63,7 +63,7 @@ webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow",
 winit = "0.24"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
-image = "0.23"
+image = "0.24"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 sig = "1.0"

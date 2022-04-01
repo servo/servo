@@ -4,7 +4,7 @@
 
 use crate::image_cache::CorsStatus;
 use ipc_channel::ipc::IpcSharedMemory;
-use piston_image::{DynamicImage, ImageFormat};
+use piston_image::ImageFormat;
 use pixels::PixelFormat;
 use std::fmt;
 
@@ -52,10 +52,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
         },
         Ok(_) => match piston_image::load_from_memory(buffer) {
             Ok(image) => {
-                let mut rgba = match image {
-                    DynamicImage::ImageRgba8(rgba) => rgba,
-                    image => image.to_rgba(),
-                };
+                let mut rgba = image.into_rgba8();
                 pixels::rgba8_byte_swap_colors_inplace(&mut *rgba);
                 Some(Image {
                     width: rgba.width(),

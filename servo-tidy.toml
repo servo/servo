@@ -28,6 +28,7 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+  "adler",
   "arrayvec",
   "base64",
   "cfg-if",
@@ -36,11 +37,14 @@ packages = [
   "cookie",
   "crossbeam-channel",
   "crossbeam-utils",
+  "deflate",
   "env_logger",
   "fixedbitset",
   "getrandom",
   "gleam",
   "h2",
+  "image",
+  "jpeg-decoder",
   "libloading",
   "lock_api",
   "metal",
@@ -53,6 +57,7 @@ packages = [
   "phf_codegen",
   "phf_generator",
   "phf_shared",
+  "png",
   "rand",
   "rand_chacha",
   "rand_core",
