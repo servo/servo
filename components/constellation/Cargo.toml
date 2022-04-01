@@ -25,7 +25,7 @@ gfx_traits = { path = "../gfx_traits" }
 http = "0.2"
 headers = "0.3"
 ipc-channel = "0.14"
-keyboard-types = "0.5"
+keyboard-types = "0.6"
 layout_traits = { path = "../layout_traits" }
 log = "0.4"
 media = { path = "../media" }

@@ -20,7 +20,7 @@ headers = "0.3"
 http = "0.2"
 image = "0.23"
 ipc-channel = "0.14"
-keyboard-types = "0.5"
+keyboard-types = "0.6"
 log = "0.4"
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }

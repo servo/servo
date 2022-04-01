@@ -24,7 +24,7 @@ headers = "0.3"
 http = "0.2"
 hyper_serde = "0.12"
 ipc-channel = "0.14"
-keyboard-types = "0.5"
+keyboard-types = "0.6"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
