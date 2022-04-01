@@ -47,4 +47,4 @@ webrender_api = { git = "https://github.com/servo/webrender" }
 
 [dev-dependencies]
 lazy_static = "1"
-quickcheck = "0.9"
+quickcheck = "1"
