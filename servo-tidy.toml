@@ -21,7 +21,6 @@ rand = [
   "quickcheck", # Only used in tests
   "servo_rand",
   "tempfile",
-  "uuid",
   "tungstenite",
   "ws",
 ]
