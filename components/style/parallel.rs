@@ -69,7 +69,7 @@ pub const WORK_UNIT_MAX: usize = 16;
 
 /// A set of nodes, sized to the work unit. This gets copied when sent to other
 /// threads, so we keep it compact.
-type WorkUnit<N> = ArrayVec<[SendNode<N>; WORK_UNIT_MAX]>;
+type WorkUnit<N> = ArrayVec<SendNode<N>, WORK_UNIT_MAX>;
 
 /// A callback to create our thread local context.  This needs to be
 /// out of line so we don't allocate stack space for the entire struct

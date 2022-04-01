@@ -147,6 +147,9 @@ name = "arrayvec"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be4dc07131ffa69b8072d35f5007352af944213cde02545e2103680baed38fcd"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "ash"
@@ -5130,7 +5133,7 @@ version = "0.0.1"
 dependencies = [
  "accountable-refcell",
  "app_units",
- "arrayvec 0.5.1",
+ "arrayvec 0.7.1",
  "backtrace",
  "base64 0.10.1",
  "bitflags",
@@ -6052,7 +6055,7 @@ name = "style"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "arrayvec 0.5.1",
+ "arrayvec 0.7.1",
  "atomic_refcell",
  "bindgen",
  "bitflags",
@@ -7060,7 +7063,7 @@ dependencies = [
 name = "webgpu"
 version = "0.0.1"
 dependencies = [
- "arrayvec 0.5.1",
+ "arrayvec 0.7.1",
  "euclid",
  "ipc-channel",
  "log",

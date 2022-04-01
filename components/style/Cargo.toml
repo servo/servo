@@ -31,7 +31,7 @@ gecko_profiler = []
 
 [dependencies]
 app_units = "0.7"
-arrayvec = "0.5"
+arrayvec = "0.7"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"

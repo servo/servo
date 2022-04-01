@@ -11,7 +11,7 @@ name = "webgpu"
 path = "lib.rs"
 
 [dependencies]
-arrayvec = { version = "0.5.1", features = ["serde"] }
+arrayvec = { version = "0.7", features = ["serde"] }
 euclid = "0.20"
 ipc-channel = "0.14"
 log = "0.4"
