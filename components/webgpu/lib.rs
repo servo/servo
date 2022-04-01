@@ -755,10 +755,12 @@ impl<'a> WGPU<'a> {
                                 size: Size2D::new(width, height),
                                 unassigned_buffer_ids: buffer_ids,
                                 available_buffer_ids: ArrayVec::<
-                                    id::BufferId, PRESENTATION_BUFFER_COUNT,
+                                    id::BufferId,
+                                    PRESENTATION_BUFFER_COUNT,
                                 >::new(),
                                 queued_buffer_ids: ArrayVec::<
-                                    id::BufferId, PRESENTATION_BUFFER_COUNT,
+                                    id::BufferId,
+                                    PRESENTATION_BUFFER_COUNT,
                                 >::new(),
                                 buffer_stride,
                                 image_key,

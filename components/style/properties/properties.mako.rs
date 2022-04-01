@@ -2534,7 +2534,8 @@ impl PropertyDeclaration {
     }
 }
 
-type SubpropertiesVec<T> = ArrayVec<T, ${max(len(s.sub_properties) for s in data.shorthands_except_all()) \
+type SubpropertiesVec<T> = ArrayVec<T, ${max(len(s.sub_properties) \
+    for s in data.shorthands_except_all()) \
           if data.shorthands_except_all() else 0}>;
 
 /// A stack-allocated vector of `PropertyDeclaration`
