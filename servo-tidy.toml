@@ -39,6 +39,7 @@ packages = [
   "crossbeam-utils",
   "env_logger",
   "fixedbitset",
+  "getrandom",
   "gleam",
   "h2",
   "libloading",
@@ -50,6 +51,7 @@ packages = [
   "parking_lot_core",
   "petgraph",
   "ron",
+  "wasi",
   "wayland-sys",
 
   # https://github.com/servo/servo/issues/26933
