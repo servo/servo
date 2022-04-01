@@ -21,7 +21,7 @@ fxhash = "0.2"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
 histogram = "0.6.8"
-html5ever = "0.25"
+html5ever = "0.26"
 ipc-channel = "0.14"
 layout = { path = "../layout", package = "layout_2013" }
 layout_traits = { path = "../layout_traits" }

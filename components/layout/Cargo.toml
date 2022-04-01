@@ -22,7 +22,7 @@ euclid = "0.20"
 fnv = "1.0"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
-html5ever = "0.25"
+html5ever = "0.26"
 ipc-channel = "0.14"
 lazy_static = "1"
 libc = "0.2"

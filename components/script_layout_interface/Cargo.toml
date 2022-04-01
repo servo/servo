@@ -18,7 +18,7 @@ crossbeam-channel = "0.4"
 euclid = "0.20"
 fxhash = "0.2"
 gfx_traits = { path = "../gfx_traits" }
-html5ever = "0.25"
+html5ever = "0.26"
 ipc-channel = "0.14"
 libc = "0.2"
 malloc_size_of = { path = "../malloc_size_of" }
