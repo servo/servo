@@ -245,6 +245,7 @@ jobs:
             --tracker-api=default --reporter-api=default
       - name: Archive logs
         uses: actions/upload-artifact@v2
+        if: ${{ failure() }}
         with:
           name: wpt${{ matrix.chunk_id }}-logs-linux
           path: |
