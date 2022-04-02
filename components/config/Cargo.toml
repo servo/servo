@@ -31,4 +31,4 @@ url = "2.0"
 std_test_override = { path = "../std_test_override" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-dirs = "2.0.2"
+dirs-next = "2.0"

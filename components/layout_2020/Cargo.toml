@@ -23,14 +23,14 @@ fnv = "1.0"
 fxhash = "0.2"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
-html5ever = "0.25"
+html5ever = "0.26"
 ipc-channel = "0.14"
 libc = "0.2"
 log = "0.4"
 mitochondria = "1.1.2"
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
-parking_lot = "0.10"
+parking_lot = "0.11"
 range = { path = "../range" }
 rayon = "1"
 rayon_croissant = "0.2.0"
@@ -47,4 +47,4 @@ webrender_api = { git = "https://github.com/servo/webrender" }
 
 [dev-dependencies]
 lazy_static = "1"
-quickcheck = "0.9"
+quickcheck = "1"

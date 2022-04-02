@@ -22,9 +22,9 @@ embedder_traits = { path = "../embedder_traits" }
 euclid = "0.20"
 gfx_traits = { path = "../gfx_traits" }
 gleam = { version = "0.12", optional = true }
-image = "0.23"
+image = "0.24"
 ipc-channel = "0.14"
-keyboard-types = "0.5"
+keyboard-types = "0.6"
 libc = "0.2"
 log = "0.4"
 msg = { path = "../msg" }

@@ -50,7 +50,7 @@ backtrace = "0.3"
 clipboard = "0.5"
 euclid = "0.20"
 getopts = "0.2.11"
-keyboard-types = "0.5"
+keyboard-types = "0.6"
 lazy_static = "1"
 libc = "0.2"
 libservo = { path = "../../components/servo" }
@@ -63,7 +63,7 @@ webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow",
 winit = "0.24"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
-image = "0.23"
+image = "0.24"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 sig = "1.0"

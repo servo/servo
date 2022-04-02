@@ -21,7 +21,6 @@ rand = [
   "quickcheck", # Only used in tests
   "servo_rand",
   "tempfile",
-  "uuid",
   "tungstenite",
   "ws",
 ]
@@ -29,18 +28,21 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+  "adler",
   "arrayvec",
   "base64",
   "cfg-if",
   "cloudabi",
   "cocoa",
-  "cookie",
   "crossbeam-channel",
   "crossbeam-utils",
-  "env_logger",
+  "deflate",
   "fixedbitset",
+  "getrandom",
   "gleam",
   "h2",
+  "image",
+  "jpeg-decoder",
   "libloading",
   "lock_api",
   "metal",
@@ -49,7 +51,17 @@ packages = [
   "parking_lot",
   "parking_lot_core",
   "petgraph",
+  "phf",
+  "phf_codegen",
+  "phf_generator",
+  "phf_shared",
+  "png",
+  "rand",
+  "rand_chacha",
+  "rand_core",
+  "redox_syscall",
   "ron",
+  "wasi",
   "wayland-sys",
 
   # https://github.com/servo/servo/issues/26933

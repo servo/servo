@@ -37,7 +37,7 @@ use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
-use image::png::PngEncoder;
+use image::codecs::png::PngEncoder;
 use image::ColorType;
 use ipc_channel::ipc::{self as ipcchan, IpcSharedMemory};
 use js::error::throw_type_error;

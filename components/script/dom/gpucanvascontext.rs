@@ -135,7 +135,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         }
         *self.swap_chain.borrow_mut() = None;
 
-        let mut buffer_ids = ArrayVec::<[id::BufferId; PRESENTATION_BUFFER_COUNT]>::new();
+        let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
         for _ in 0..PRESENTATION_BUFFER_COUNT {
             buffer_ids.push(
                 self.global()
