@@ -17,6 +17,9 @@ jobs:
     name: Build (Windows)
     runs-on: windows-2019
     steps:
+      - name: Branch check
+        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
+        run: exit 0
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2
@@ -41,6 +44,9 @@ jobs:
     name: Build (Windows UWP x64)
     runs-on: windows-2019
     steps:
+      - name: Branch check
+        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
+        run: exit 0
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2
@@ -66,6 +72,9 @@ jobs:
     name: Build (Windows UWP arm64)
     runs-on: windows-2019
     steps:
+      - name: Branch check
+        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
+        run: exit 0
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2
@@ -89,6 +98,9 @@ jobs:
     name: Build (macOS)
     runs-on: macos-10.15
     steps:
+      - name: Branch check
+        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-mac', github.ref) }}
+        run: exit 0
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2
@@ -181,6 +193,9 @@ jobs:
     name: Build (Linux)
     runs-on: ubuntu-20.04
     steps:
+      - name: Branch check
+        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-linux refs/heads/try-wpt', github.ref) }}
+        run: exit 0
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2
@@ -214,6 +229,9 @@ jobs:
       matrix:
         chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     steps:
+      - name: Branch check
+        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-wpt', github.ref) }}
+        run: exit 0
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2
