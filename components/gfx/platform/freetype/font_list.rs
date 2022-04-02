@@ -4,14 +4,14 @@
 
 use super::c_str_to_string;
 use crate::text::util::is_cjk;
-use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
-use fontconfig::fontconfig::{FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute};
-use fontconfig::fontconfig::{FcDefaultSubstitute, FcFontMatch, FcNameParse, FcPatternGetString};
-use fontconfig::fontconfig::{FcFontSetDestroy, FcMatchPattern, FcPatternCreate, FcPatternDestroy};
-use fontconfig::fontconfig::{
+use fontconfig_sys::{FcChar8, FcResultMatch, FcSetSystem};
+use fontconfig_sys::{FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute};
+use fontconfig_sys::{FcDefaultSubstitute, FcFontMatch, FcNameParse, FcPatternGetString};
+use fontconfig_sys::{FcFontSetDestroy, FcMatchPattern, FcPatternCreate, FcPatternDestroy};
+use fontconfig_sys::{
     FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy, FcPatternAddString,
 };
-use fontconfig::fontconfig::{FcObjectSetAdd, FcPatternGetInteger};
+use fontconfig_sys::{FcObjectSetAdd, FcPatternGetInteger};
 use libc::{c_char, c_int};
 use std::ffi::CString;
 use std::ptr;

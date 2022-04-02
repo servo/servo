@@ -1741,15 +1741,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fontconfig"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a25320ad784a9578ada0b395dd7dcd2321109404bbb341ec27e64b01a1e49b47"
-dependencies = [
- "yeslogic-fontconfig-sys",
-]
-
-[[package]]
 name = "fontsan"
 version = "0.4.0"
 source = "git+https://github.com/servo/fontsan#29e879c870348c4b3fd51086e42dbb6365171479"
@@ -2014,7 +2005,6 @@ dependencies = [
  "dwrote",
  "euclid",
  "fnv",
- "fontconfig",
  "fontsan",
  "freetype",
  "gfx_traits",
@@ -2041,6 +2031,7 @@ dependencies = [
  "webrender_api",
  "xi-unicode",
  "xml-rs",
+ "yeslogic-fontconfig-sys",
 ]
 
 [[package]]
