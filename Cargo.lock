@@ -209,7 +209,7 @@ dependencies = [
  "log",
  "openssl",
  "pin-project 1.0.2",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tokio-openssl 0.4.0",
  "tungstenite",
 ]
@@ -2618,7 +2618,7 @@ dependencies = [
  "http",
  "indexmap",
  "slab",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tokio-util 0.3.1",
  "tracing",
  "tracing-futures",
@@ -2820,7 +2820,7 @@ dependencies = [
  "itoa 0.4.5",
  "pin-project 1.0.2",
  "socket2 0.3.19",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tower-service",
  "tracing",
  "want",
@@ -4080,7 +4080,7 @@ dependencies = [
  "servo_url",
  "std_test_override",
  "time",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tokio 1.15.0",
  "tokio-openssl 0.6.3",
  "tokio-stream",
@@ -4394,9 +4394,9 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "openssl"
-version = "0.10.36"
+version = "0.10.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d9facdb76fec0b73c406f125d44d86fdad818d66fef0531eec9233ca425ff4a"
+checksum = "0c7ae222234c30df141154f159066c5093ff73b63204dcda7121eb082fc56a95"
 dependencies = [
  "bitflags",
  "cfg-if 1.0.0",
@@ -4414,9 +4414,9 @@ checksum = "28988d872ab76095a6e6ac88d99b54fd267702734fd7ffe610ca27f533ddb95a"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.67"
+version = "0.9.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69df2d8dfc6ce3aaf44b40dec6f487d5a886516cf6879c49e98e0710f310a058"
+checksum = "7e46109c383602735fa0a2e48dd2b7c892b048e1bf69e5c3b1d804b7d9c203cb"
 dependencies = [
  "autocfg",
  "cc",
@@ -6585,9 +6585,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "0.2.21"
+version = "0.2.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d099fa27b9702bed751524694adbe393e18b36b204da91eb1cbbbbb4a5ee2d58"
+checksum = "099837d3464c16a808060bb3f02263b412f6fafcb5d01c533d309985fbeebe48"
 dependencies = [
  "bytes 0.5.6",
  "fnv",
@@ -6647,7 +6647,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c4b08c5f4208e699ede3df2520aca2e82401b2de33f45e96696a074480be594"
 dependencies = [
  "openssl",
- "tokio 0.2.21",
+ "tokio 0.2.24",
 ]
 
 [[package]]
@@ -6697,7 +6697,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite 0.1.11",
- "tokio 0.2.21",
+ "tokio 0.2.24",
 ]
 
 [[package]]
@@ -7004,7 +7004,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tower-service",
  "tracing",
  "tracing-futures",
@@ -7177,7 +7177,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "time",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "unicode-segmentation",
  "url",
  "warp",
