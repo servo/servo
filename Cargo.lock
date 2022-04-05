@@ -209,7 +209,7 @@ dependencies = [
  "log",
  "openssl",
  "pin-project 1.0.2",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tokio-openssl 0.4.0",
  "tungstenite",
 ]
@@ -2618,7 +2618,7 @@ dependencies = [
  "http",
  "indexmap",
  "slab",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tokio-util 0.3.1",
  "tracing",
  "tracing-futures",
@@ -2820,7 +2820,7 @@ dependencies = [
  "itoa 0.4.5",
  "pin-project 1.0.2",
  "socket2 0.3.19",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tower-service",
  "tracing",
  "want",
@@ -3971,9 +3971,9 @@ dependencies = [
 
 [[package]]
 name = "native-tls"
-version = "0.2.7"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8d96b2e1c8da3957d58100b09f102c6d9cfdfced01b7ec5a8974044bb09dbd4"
+checksum = "fd7e2f3618557f980e0b17e8856252eee3c97fa12c54dff0ca290fb6266ca4a9"
 dependencies = [
  "lazy_static",
  "libc",
@@ -4080,7 +4080,7 @@ dependencies = [
  "servo_url",
  "std_test_override",
  "time",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tokio 1.15.0",
  "tokio-openssl 0.6.3",
  "tokio-stream",
@@ -6585,9 +6585,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "0.2.21"
+version = "0.2.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d099fa27b9702bed751524694adbe393e18b36b204da91eb1cbbbbb4a5ee2d58"
+checksum = "099837d3464c16a808060bb3f02263b412f6fafcb5d01c533d309985fbeebe48"
 dependencies = [
  "bytes 0.5.6",
  "fnv",
@@ -6647,7 +6647,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c4b08c5f4208e699ede3df2520aca2e82401b2de33f45e96696a074480be594"
 dependencies = [
  "openssl",
- "tokio 0.2.21",
+ "tokio 0.2.24",
 ]
 
 [[package]]
@@ -6697,7 +6697,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite 0.1.11",
- "tokio 0.2.21",
+ "tokio 0.2.24",
 ]
 
 [[package]]
@@ -7004,7 +7004,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "tower-service",
  "tracing",
  "tracing-futures",
@@ -7177,7 +7177,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "time",
- "tokio 0.2.21",
+ "tokio 0.2.24",
  "unicode-segmentation",
  "url",
  "warp",
