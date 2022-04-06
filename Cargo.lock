@@ -7520,9 +7520,9 @@ dependencies = [
 
 [[package]]
 name = "winres"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff4fb510bbfe5b8992ff15f77a2e6fe6cf062878f0eda00c0f44963a807ca5dc"
+checksum = "b68db261ef59e9e52806f688020631e987592bd83619edccda9c47d42cde4f6c"
 dependencies = [
  "toml",
 ]
