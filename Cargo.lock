@@ -1223,7 +1223,7 @@ checksum = "2a3a85949f6cbf49a4e1ab98a98e0f9aabfe7d827a7f156da36c98a86dede2df"
 dependencies = [
  "cssparser-macros",
  "dtoa-short",
- "itoa 0.4.5",
+ "itoa 0.4.8",
  "matches",
  "phf 0.8.0",
  "proc-macro2",
@@ -2856,7 +2856,7 @@ dependencies = [
  "http-body 0.3.1",
  "httparse",
  "httpdate 0.3.2",
- "itoa 0.4.5",
+ "itoa 0.4.8",
  "pin-project 1.0.2",
  "socket2 0.3.19",
  "tokio 0.2.24",
@@ -2880,7 +2880,7 @@ dependencies = [
  "http-body 0.4.4",
  "httparse",
  "httpdate 0.3.2",
- "itoa 0.4.5",
+ "itoa 0.4.8",
  "pin-project 1.0.2",
  "socket2 0.4.2",
  "tokio 1.15.0",
@@ -3079,9 +3079,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "0.4.5"
+version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8b7a7c0c47db5545ed3fef7468ee7bb5b74691498139e4b3f6a20685dc6dd8e"
+checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
 
 [[package]]
 name = "itoa"
@@ -5583,7 +5583,7 @@ version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "799e97dc9fdae36a5c8b8f2cae9ce2ee9fdce2058c57a93e6099d919fd982f79"
 dependencies = [
- "itoa 0.4.5",
+ "itoa 0.4.8",
  "ryu",
  "serde",
 ]
@@ -5595,7 +5595,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ec5d77e2d4c73717816afac02670d5c4f534ea95ed430442cad02e7a6e32c97"
 dependencies = [
  "dtoa",
- "itoa 0.4.5",
+ "itoa 0.4.8",
  "serde",
  "url",
 ]
@@ -6263,7 +6263,7 @@ dependencies = [
  "html5ever",
  "indexmap",
  "itertools",
- "itoa 0.4.5",
+ "itoa 0.4.8",
  "lazy_static",
  "log",
  "malloc_size_of",
