@@ -2904,9 +2904,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-openssl"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9d52322a69f0a93f177d76ca82073fcec8d5b4eb6e28525d5b3142fa718195c"
+checksum = "d6ee5d7a8f718585d1c3c61dfde28ef5b0bb14734b4db13f5ada856cdc6c612b"
 dependencies = [
  "http",
  "hyper 0.14.5",
@@ -2914,7 +2914,7 @@ dependencies = [
  "once_cell",
  "openssl",
  "openssl-sys",
- "parking_lot 0.11.0",
+ "parking_lot 0.12.0",
  "tokio 1.15.0",
  "tokio-openssl 0.6.3",
  "tower-layer",
@@ -3576,10 +3576,11 @@ dependencies = [
 
 [[package]]
 name = "lock_api"
-version = "0.4.1"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28247cc5a5be2f05fbcd76dd0cf2c7d3b5400cb978a28042abcd4fa0b3f8261c"
+checksum = "327fa5b6a6940e4699ec49a9beae1ea4845c6bab9314e4f84ac68742139d8c53"
 dependencies = [
+ "autocfg",
  "scopeguard",
 ]
 
@@ -4550,8 +4551,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4893845fa2ca272e647da5d0e46660a314ead9c2fdd9a883aabc32e481a8733"
 dependencies = [
  "instant",
- "lock_api 0.4.1",
+ "lock_api 0.4.7",
  "parking_lot_core 0.8.0",
+]
+
+[[package]]
+name = "parking_lot"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87f5ec2493a61ac0506c0f4199f99070cbe83857b0337006a30f3e6719b8ef58"
+dependencies = [
+ "lock_api 0.4.7",
+ "parking_lot_core 0.9.2",
 ]
 
 [[package]]
@@ -4581,6 +4592,19 @@ dependencies = [
  "redox_syscall 0.1.56",
  "smallvec 1.8.0",
  "winapi",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "995f667a6c822200b0433ac218e05582f0e2efa1b922a3fd2fbaadc5f87bab37"
+dependencies = [
+ "cfg-if 1.0.0",
+ "libc",
+ "redox_syscall 0.2.13",
+ "smallvec 1.8.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -6184,7 +6208,7 @@ version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "511254be0c5bcf062b019a6c89c01a664aa359ded62f78aa72c6fc137c0590e5"
 dependencies = [
- "lock_api 0.4.1",
+ "lock_api 0.4.7",
 ]
 
 [[package]]
@@ -6227,7 +6251,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "418bb14643aa55a7841d5303f72cf512cfb323b8cc221d51580500a1ca75206c"
 dependencies = [
- "lock_api 0.4.1",
+ "lock_api 0.4.7",
 ]
 
 [[package]]
@@ -7514,6 +7538,49 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "windows-sys"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5acdd78cb4ba54c0045ac14f62d8f94a03d10047904ae2a40afa1e99d8f70825"
+dependencies = [
+ "windows_aarch64_msvc",
+ "windows_i686_gnu",
+ "windows_i686_msvc",
+ "windows_x86_64_gnu",
+ "windows_x86_64_msvc",
+]
+
+[[package]]
+name = "windows_aarch64_msvc"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17cffbe740121affb56fad0fc0e421804adf0ae00891205213b5cecd30db881d"
+
+[[package]]
+name = "windows_i686_gnu"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2564fde759adb79129d9b4f54be42b32c89970c18ebf93124ca8870a498688ed"
+
+[[package]]
+name = "windows_i686_msvc"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cd9d32ba70453522332c14d38814bceeb747d80b3958676007acadd7e166956"
+
+[[package]]
+name = "windows_x86_64_gnu"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfce6deae227ee8d356d19effc141a509cc503dfd1f850622ec4b0f84428e1f4"
+
+[[package]]
+name = "windows_x86_64_msvc"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d19538ccc21819d01deaf88d6a17eae6596a12e9aafdbb97916fb49896d89de9"
 
 [[package]]
 name = "winit"
