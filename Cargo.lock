@@ -2354,12 +2354,11 @@ dependencies = [
 
 [[package]]
 name = "gst-plugin-version-helper"
-version = "0.2.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc81ae3a09f23761eb3b122f50e5daedea4b44fdf8242ec133bc87aa8e24f9b8"
+checksum = "596a7ad516b556be91787f4f33823c75f10b8789aa8d85dc4a79ea1c30466334"
 dependencies = [
  "chrono",
- "toml",
 ]
 
 [[package]]
