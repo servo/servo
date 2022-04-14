@@ -20,7 +20,6 @@ rand = [
   "phf_generator",
   "quickcheck", # Only used in tests
   "servo_rand",
-  "tempfile",
   "tungstenite",
   "ws",
 ]
