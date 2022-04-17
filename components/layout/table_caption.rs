@@ -57,12 +57,20 @@ impl Flow for TableCaptionFlow {
             "assign_inline_sizes({}): assigning inline_size for flow",
             "table_caption"
         );
+        trace!("TableCaptionFlow before assigning: {:?}", &self);
+
         self.block_flow.assign_inline_sizes(layout_context);
+
+        trace!("TableCaptionFlow after assigning: {:?}", &self);
     }
 
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_caption");
+        trace!("TableCaptionFlow before assigning: {:?}", &self);
+
         self.block_flow.assign_block_size(layout_context);
+
+        trace!("TableCaptionFlow after assigning: {:?}", &self);
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {

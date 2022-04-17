@@ -1994,6 +1994,7 @@ impl BlockFlow {
                 "block"
             }
         );
+        trace!("BlockFlow before assigning: {:?}", &self);
 
         self.base.floats = Floats::new(self.base.writing_mode);
 
@@ -2003,7 +2004,9 @@ impl BlockFlow {
         // Now compute the real value.
         self.propagate_and_compute_used_inline_size(shared_context);
 
-        self.guess_inline_size_for_block_formatting_context_if_necessary()
+        self.guess_inline_size_for_block_formatting_context_if_necessary();
+
+        trace!("BlockFlow after assigning: {:?}", &self);
     }
 
     /// If this is the root flow, initialize values that would normally be set by the parent.
@@ -2304,25 +2307,32 @@ impl Flow for BlockFlow {
             self.base.flags.contains(FlowFlags::MARGINS_CANNOT_COLLAPSE)
         {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
+            debug!("{}", self.is_root());
             debug!(
-                "assign_block_size: assigning block_size for root flow {:?}",
+                "assign_block_size: assigning block_size for root flow {:#x?}",
                 self.base().debug_id()
             );
-            self.assign_block_size_block_base(
+            trace!("BlockFlow before assigning: {:?}", &self);
+            let flow = self.assign_block_size_block_base(
                 layout_context,
                 fragmentation_context,
                 MarginsMayCollapseFlag::MarginsMayNotCollapse,
-            )
+            );
+            trace!("BlockFlow after assigning: {:?}", &self);
+            flow
         } else {
             debug!(
-                "assign_block_size: assigning block_size for block {:?}",
+                "assign_block_size: assigning block_size for block {:#x?}",
                 self.base().debug_id()
             );
-            self.assign_block_size_block_base(
+            trace!("BlockFlow before assigning: {:?}", &self);
+            let flow = self.assign_block_size_block_base(
                 layout_context,
                 fragmentation_context,
                 MarginsMayCollapseFlag::MarginsMayCollapse,
-            )
+            );
+            trace!("BlockFlow after assigning: {:?}", &self);
+            flow
         }
     }
 

@@ -419,6 +419,7 @@ impl Flow for TableFlow {
             "assign_inline_sizes({}): assigning inline_size for flow",
             "table"
         );
+        trace!("TableFlow before assigning: {:?}", &self);
 
         let shared_context = layout_context.shared_context();
         // The position was set to the containing block by the flow's parent.
@@ -544,13 +545,19 @@ impl Flow for TableFlow {
                 }
             },
         );
+
+        trace!("TableFlow after assigning: {:?}", &self);
     }
 
     fn assign_block_size(&mut self, lc: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table");
+        trace!("TableFlow before assigning: {:?}", &self);
+
         let vertical_spacing = self.spacing().vertical();
         self.block_flow
-            .assign_block_size_for_table_like_flow(vertical_spacing, lc)
+            .assign_block_size_for_table_like_flow(vertical_spacing, lc);
+
+        trace!("TableFlow after assigning: {:?}", &self);
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {

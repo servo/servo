@@ -371,6 +371,7 @@ impl Flow for TableWrapperFlow {
                 "table_wrapper"
             }
         );
+        trace!("TableWrapperFlow before assigning: {:?}", &self);
 
         let shared_context = layout_context.shared_context();
         self.block_flow
@@ -454,16 +455,22 @@ impl Flow for TableWrapperFlow {
                 )
             },
         }
+
+        trace!("TableWrapperFlow after assigning: {:?}", &self);
     }
 
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_wrapper");
+        trace!("TableWrapperFlow before assigning: {:?}", &self);
+
         let remaining = self.block_flow.assign_block_size_block_base(
             layout_context,
             None,
             MarginsMayCollapseFlag::MarginsMayNotCollapse,
         );
         debug_assert!(remaining.is_none());
+
+        trace!("TableWrapperFlow after assigning: {:?}", &self);
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
