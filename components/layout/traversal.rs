@@ -7,7 +7,7 @@
 use crate::construct::FlowConstructor;
 use crate::context::LayoutContext;
 use crate::display_list::DisplayListBuildState;
-use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
+use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow};
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 use crate::wrapper::{GetStyleAndLayoutData, LayoutNodeLayoutData};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
@@ -126,8 +126,12 @@ pub trait PreorderFlowTraversal {
         if self.should_process(flow) {
             self.process(flow);
         }
+
+        let flow_addr = OpaqueFlow::from_flow(flow);
         for descendant_link in flow.mut_base().abs_descendants.iter() {
-            self.traverse_absolute_flows(descendant_link)
+            if OpaqueFlow::from_flow(descendant_link) != flow_addr {
+                self.traverse_absolute_flows(descendant_link)
+            }
         }
     }
 }

@@ -1256,14 +1256,6 @@ impl BlockFlow {
             }
         }
 
-        if (&*self as &dyn Flow).contains_roots_of_absolute_flow_tree() {
-            // Assign block-sizes for all flows in this absolute flow tree.
-            // This is preorder because the block-size of an absolute flow may depend on
-            // the block-size of its containing block, which may also be an absolute flow.
-            let assign_abs_b_sizes = AbsoluteAssignBSizesTraversal(layout_context.shared_context());
-            assign_abs_b_sizes.traverse_absolute_flows(&mut *self);
-        }
-
         // Don't remove the dirty bits yet if we're absolutely-positioned, since our final size
         // has not been calculated yet. (See `calculate_absolute_block_size_and_margins` for that.)
         // Also don't remove the dirty bits if we're a block formatting context since our inline
@@ -2302,35 +2294,43 @@ impl Flow for BlockFlow {
                     .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
             }
             None
-        } else if self.is_root() ||
-            self.formatting_context_type() != FormattingContextType::None ||
-            self.base.flags.contains(FlowFlags::MARGINS_CANNOT_COLLAPSE)
-        {
-            // Root element margins should never be collapsed according to CSS § 8.3.1.
-            debug!("{}", self.is_root());
-            debug!(
-                "assign_block_size: assigning block_size for root flow {:#x?}",
-                self.base().debug_id()
-            );
-            trace!("BlockFlow before assigning: {:?}", &self);
-            let flow = self.assign_block_size_block_base(
-                layout_context,
-                fragmentation_context,
-                MarginsMayCollapseFlag::MarginsMayNotCollapse,
-            );
-            trace!("BlockFlow after assigning: {:?}", &self);
-            flow
         } else {
             debug!(
                 "assign_block_size: assigning block_size for block {:#x?}",
                 self.base().debug_id()
             );
             trace!("BlockFlow before assigning: {:?}", &self);
+
+            // Root element margins should never be collapsed according to CSS § 8.3.1.
+            let margins_may_collapse = if self.is_root() ||
+                self.formatting_context_type() != FormattingContextType::None ||
+                self.base.flags.contains(FlowFlags::MARGINS_CANNOT_COLLAPSE)
+            {
+                MarginsMayCollapseFlag::MarginsMayNotCollapse
+            } else {
+                MarginsMayCollapseFlag::MarginsMayCollapse
+            };
+
             let flow = self.assign_block_size_block_base(
                 layout_context,
                 fragmentation_context,
-                MarginsMayCollapseFlag::MarginsMayCollapse,
+                margins_may_collapse,
             );
+
+            if self
+                .base
+                .flags
+                .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) ||
+                (&*self as &dyn Flow).contains_roots_of_absolute_flow_tree()
+            {
+                // Assign block-sizes for all flows in this absolute flow tree.
+                // This is preorder because the block-size of an absolute flow may depend on
+                // the block-size of its containing block, which may also be an absolute flow.
+                let assign_abs_b_sizes =
+                    AbsoluteAssignBSizesTraversal(layout_context.shared_context());
+                assign_abs_b_sizes.traverse_absolute_flows(&mut *self);
+            }
+
             trace!("BlockFlow after assigning: {:?}", &self);
             flow
         }
