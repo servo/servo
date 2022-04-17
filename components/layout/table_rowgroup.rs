@@ -138,6 +138,7 @@ impl Flow for TableRowGroupFlow {
             "assign_inline_sizes({}): assigning inline_size for flow",
             "table_rowgroup"
         );
+        trace!("TableRowGroupFlow before assigning: {:?}", &self);
 
         let shared_context = layout_context.shared_context();
         // The position was set to the containing block by the flow's parent.
@@ -184,12 +185,18 @@ impl Flow for TableRowGroupFlow {
                 }
             },
         );
+
+        trace!("TableRowGroupFlow after assigning: {:?}", &self);
     }
 
     fn assign_block_size(&mut self, lc: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_rowgroup");
+        trace!("TableRowGroupFlow before assigning: {:?}", &self);
+
         self.block_flow
             .assign_block_size_for_table_like_flow(self.spacing.vertical(), lc);
+
+        trace!("TableRowGroupFlow after assigning: {:?}", &self);
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {

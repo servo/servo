@@ -252,6 +252,7 @@ impl Flow for TableCellFlow {
             "assign_inline_sizes({}): assigning inline_size for flow",
             "table_cell"
         );
+        trace!("TableCellFlow before assigning: {:?}", &self);
 
         let shared_context = layout_context.shared_context();
         // The position was set to the column inline-size by the parent flow, table row flow.
@@ -280,11 +281,17 @@ impl Flow for TableCellFlow {
             content_inline_size,
             |_, _, _, _, _, _| {},
         );
+
+        trace!("TableCellFlow after assigning: {:?}", &self);
     }
 
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_cell");
+        trace!("TableCellFlow before assigning: {:?}", &self);
+
         self.assign_block_size_table_cell_base(layout_context);
+
+        trace!("TableCellFlow after assigning: {:?}", &self);
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
