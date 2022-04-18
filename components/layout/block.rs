@@ -797,8 +797,11 @@ impl BlockFlow {
             .base
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED));
-        if self.is_fixed() || self.is_root() {
-            // Initial containing block is the CB for the root
+        if self.is_fixed() ||
+            self.is_root() ||
+            self.formatting_context_type() != FormattingContextType::None
+        {
+            // Initial containing block is the CB if it's root or block formatting context.
             LogicalSize::from_physical(self.base.writing_mode, *viewport_size)
         } else {
             self.base
