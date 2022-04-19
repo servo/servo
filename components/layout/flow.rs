@@ -557,6 +557,11 @@ pub trait MutableOwnedFlowUtils {
     /// Set this flow as the Containing Block for all the absolute descendants.
     fn set_absolute_descendants(&mut self, abs_descendants: AbsoluteDescendants);
 
+    /// Push absolute descendants to this flow.
+    ///
+    /// Set this flow as the Containing Block for the provided absolute descendants.
+    fn push_absolute_descendants(&mut self, abs_descendants: AbsoluteDescendants);
+
     /// Sets the flow as the containing block for all absolute descendants that have been marked
     /// as having reached their containing block. This is needed in order to handle cases like:
     ///
@@ -1362,6 +1367,26 @@ impl MutableOwnedFlowUtils for FlowRef {
             let descendant_base = FlowRef::deref_mut(&mut descendant_link.flow).mut_base();
             descendant_base.absolute_cb.set(this.clone());
         }
+    }
+
+    /// Push absolute descendants for this flow.
+    ///
+    /// Set yourself as the Containing Block for the provided absolute descendants.
+    ///
+    /// This is called when retreiving layout root if it's not absolute positioned. We can't just
+    /// call `set_absolute_descendants` because it might contain other abs_descendants already.
+    /// We push descendants instead of replace it since it won't cause circular reference.
+    fn push_absolute_descendants(&mut self, mut abs_descendants: AbsoluteDescendants) {
+        let this = self.clone();
+        let base = FlowRef::deref_mut(self).mut_base();
+
+        for descendant_link in abs_descendants.descendant_links.iter_mut() {
+            debug_assert!(!descendant_link.has_reached_containing_block);
+            let descendant_base = FlowRef::deref_mut(&mut descendant_link.flow).mut_base();
+            descendant_base.absolute_cb.set(this.clone());
+        }
+
+        base.abs_descendants.push_descendants(abs_descendants);
     }
 
     /// Sets the flow as the containing block for all absolute descendants that have been marked

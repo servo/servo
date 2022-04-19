@@ -44,7 +44,7 @@ use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::display_list::items::WebRenderImageInfo;
 use layout::display_list::{IndexableText, ToLayout};
-use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
@@ -950,11 +950,20 @@ impl LayoutThread {
         let mut flow = match result {
             ConstructionResult::Flow(mut flow, abs_descendants) => {
                 // Note: Assuming that the root has display 'static' (as per
-                // CSS Section 9.3.1). Otherwise, if it were absolutely
-                // positioned, it would return a reference to itself in
-                // `abs_descendants` and would lead to a circular reference.
-                // Set Root as CB for any remaining absolute descendants.
-                flow.set_absolute_descendants(abs_descendants);
+                // CSS Section 9.3.1). If it was absolutely positioned,
+                // it would return a reference to itself in `abs_descendants`
+                // and would lead to a circular reference. Otherwise, we
+                // set Root as CB and push remaining absolute descendants.
+                if flow
+                    .base()
+                    .flags
+                    .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+                {
+                    flow.set_absolute_descendants(abs_descendants);
+                } else {
+                    flow.push_absolute_descendants(abs_descendants);
+                }
+
                 flow
             },
             _ => return None,
