@@ -884,7 +884,7 @@ dependencies = [
  "euclid",
  "gfx_traits",
  "gleam 0.12.1",
- "image 0.24.1",
+ "image 0.24.2",
  "ipc-channel",
  "keyboard-types",
  "libc",
@@ -1689,9 +1689,9 @@ dependencies = [
 
 [[package]]
 name = "exr"
-version = "1.4.1"
+version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4badb9489a465cb2c555af1f00f0bfd8cecd6fc12ac11da9d5b40c5dd5f0200"
+checksum = "14cc0e06fb5f67e5d6beadf3a382fec9baca1aa751c6d5368fdeee7e5932c215"
 dependencies = [
  "bit_field",
  "deflate 1.0.0",
@@ -2977,9 +2977,9 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.1"
+version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db207d030ae38f1eb6f240d5a1c1c88ff422aa005d10f8c6c6fc5e75286ab30e"
+checksum = "28edd9d7bc256be2502e325ac0628bde30b7001b9b52e0abe31a1a9dc2701212"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -4180,7 +4180,7 @@ dependencies = [
  "http",
  "hyper 0.14.5",
  "hyper_serde",
- "image 0.24.1",
+ "image 0.24.2",
  "ipc-channel",
  "lazy_static",
  "log",
@@ -5387,7 +5387,7 @@ dependencies = [
  "html5ever",
  "http",
  "hyper_serde",
- "image 0.24.1",
+ "image 0.24.2",
  "indexmap",
  "ipc-channel",
  "itertools",
@@ -5665,7 +5665,7 @@ dependencies = [
  "clipboard",
  "euclid",
  "getopts",
- "image 0.24.1",
+ "image 0.24.2",
  "keyboard-types",
  "lazy_static",
  "libc",
@@ -7301,7 +7301,7 @@ dependencies = [
  "euclid",
  "headers",
  "http",
- "image 0.24.1",
+ "image 0.24.2",
  "ipc-channel",
  "keyboard-types",
  "log",
