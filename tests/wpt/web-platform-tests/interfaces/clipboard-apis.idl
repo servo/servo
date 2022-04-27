@@ -17,31 +17,14 @@ partial interface Navigator {
   [SecureContext, SameObject] readonly attribute Clipboard clipboard;
 };
 
-typedef sequence<ClipboardItem> ClipboardItems;
+typedef Promise<(DOMString or Blob)> ClipboardItemData;
 
-[SecureContext, Exposed=Window] interface Clipboard : EventTarget {
-  Promise<ClipboardItems> read();
-  Promise<DOMString> readText();
-  Promise<undefined> write(ClipboardItems data);
-  Promise<undefined> writeText(DOMString data);
-};
-
-typedef (DOMString or Blob) ClipboardItemDataType;
-typedef Promise<ClipboardItemDataType> ClipboardItemData;
-
-callback ClipboardItemDelayedCallback = ClipboardItemData ();
-
-[Exposed=Window] interface ClipboardItem {
+[SecureContext, Exposed=Window]
+interface ClipboardItem {
   constructor(record<DOMString, ClipboardItemData> items,
-    optional ClipboardItemOptions options = {});
-  static ClipboardItem createDelayed(
-      record<DOMString, ClipboardItemDelayedCallback> items,
-      optional ClipboardItemOptions options = {});
+              optional ClipboardItemOptions options = {});
 
   readonly attribute PresentationStyle presentationStyle;
-  readonly attribute long long lastModified;
-  readonly attribute boolean delayed;
-
   readonly attribute FrozenArray<DOMString> types;
 
   Promise<Blob> getType(DOMString type);
@@ -51,6 +34,16 @@ enum PresentationStyle { "unspecified", "inline", "attachment" };
 
 dictionary ClipboardItemOptions {
   PresentationStyle presentationStyle = "unspecified";
+};
+
+typedef sequence<ClipboardItem> ClipboardItems;
+
+[SecureContext, Exposed=Window]
+interface Clipboard : EventTarget {
+  Promise<ClipboardItems> read();
+  Promise<DOMString> readText();
+  Promise<undefined> write(ClipboardItems data);
+  Promise<undefined> writeText(DOMString data);
 };
 
 dictionary ClipboardPermissionDescriptor : PermissionDescriptor {

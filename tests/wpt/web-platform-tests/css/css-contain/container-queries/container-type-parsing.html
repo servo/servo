@@ -16,14 +16,12 @@ test_valid_value('container-type', 'unset');
 test_valid_value('container-type', 'revert');
 test_valid_value('container-type', 'none');
 test_valid_value('container-type', 'style');
-test_valid_value('container-type', 'state');
 test_valid_value('container-type', 'size');
 test_valid_value('container-type', 'inline-size');
 
-test_valid_value('container-type', 'inline-size state');
-test_valid_value('container-type', 'style state');
+test_valid_value('container-type', 'inline-size style', 'style inline-size');
 test_valid_value('container-type', 'style inline-size');
-test_valid_value('container-type', 'state size');
+test_valid_value('container-type', 'style size');
 
 test_invalid_value('container-type', 'block-size');
 test_invalid_value('container-type', 'none none');

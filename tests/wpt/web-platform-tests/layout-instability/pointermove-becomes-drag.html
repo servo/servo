@@ -25,7 +25,7 @@ body { margin: 0; }
 
 const draggable = document.getElementById("draggable");
 draggable.addEventListener('touchmove', function(event) {
-  var touch = event.targetTouches[0];
+  let touch = event.targetTouches[0];
 
   // Move the element when the finger moves.
   draggable.style.top = touch.pageY - 25 + 'px';
@@ -45,14 +45,19 @@ generateTouchDragSequence = () => new test_driver.Actions()
     .pointerUp()
     .pause(100);
 
-promise_test(async () => {
+promise_test(async(test) => {
   const watcher = new ScoreWatcher;
+  let eventWatcher = new EventWatcher(test, draggable, ["pointerup"]);
+  let donePromise = eventWatcher.wait_for(["pointerup"], { record: 'all' });
 
   // Wait for the initial render to complete.
   await waitForAnimationFrames(2);
 
   // Send pointer events for a touch drag.
   await generateTouchDragSequence().send();
+
+  // wait for pointerUp before running the test
+  await donePromise;
 
   // Touch moves which drag the objects should be counted as the excluding inputs
   // for the layout shift.

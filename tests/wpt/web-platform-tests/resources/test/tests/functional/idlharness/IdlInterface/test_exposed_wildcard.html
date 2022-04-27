@@ -1,0 +1,233 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>idlharness: Exposed=*</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<script>
+"use strict";
+
+Object.defineProperty(window, "A", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function A() {}
+  });
+Object.defineProperty(window.A, "prototype", {
+    writable: false,
+    value: window.A.prototype
+  });
+A.prototype[Symbol.toStringTag] = "A";
+
+Object.defineProperty(window, "C", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function C() {}
+  });
+Object.defineProperty(window.C, "prototype", {
+    writable: false,
+    value: window.C.prototype
+  });
+C.prototype[Symbol.toStringTag] = "C";
+
+Object.defineProperty(window, "D", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function D() {}
+  });
+Object.defineProperty(window.D, "prototype", {
+    writable: false,
+    value: window.D.prototype
+  });
+C.prototype[Symbol.toStringTag] = "D";
+Object.defineProperty(window, "B", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: window.A
+  });
+
+var idlArray = new IdlArray();
+idlArray.add_idls(`
+[Exposed=*, LegacyWindowAlias=B] interface A {};
+[Exposed=*] partial interface A {};
+[Exposed=Window] interface C {};
+[Exposed=*] partial interface C {};
+[Exposed=*] interface D {};
+[Exposed=Window] partial interface D {};
+`);
+idlArray.add_objects({
+  Window: ["window"]
+});
+idlArray.test();
+</script>
+<script type="text/json" id="expected">
+{
+    "summarized_status": {
+        "message": null,
+        "status_string": "OK"
+    },
+    "summarized_tests": [
+        {
+            "name": "A interface object length",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "A interface object name",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "A interface: existence and properties of interface object",
+            "properties": {},
+            "message": "assert_throws_js: interface object didn't throw TypeError when called as a function function \"function() {\n                interface_object();\n            }\" did not throw",
+            "status_string": "FAIL"
+        },
+        {
+            "name": "A interface: existence and properties of interface prototype object",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "A interface: existence and properties of interface prototype object's \"constructor\" property",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "A interface: existence and properties of interface prototype object's @@unscopables property",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "A interface: legacy window alias",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "C interface object length",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "C interface object name",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "C interface: existence and properties of interface object",
+            "properties": {},
+            "message": "assert_throws_js: interface object didn't throw TypeError when called as a function function \"function() {\n                interface_object();\n            }\" did not throw",
+            "status_string": "FAIL"
+        },
+        {
+            "name": "C interface: existence and properties of interface prototype object",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "C interface: existence and properties of interface prototype object's \"constructor\" property",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "C interface: existence and properties of interface prototype object's @@unscopables property",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "D interface object length",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "D interface object name",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "D interface: existence and properties of interface object",
+            "properties": {},
+            "message": "assert_throws_js: interface object didn't throw TypeError when called as a function function \"function() {\n                interface_object();\n            }\" did not throw",
+            "status_string": "FAIL"
+        },
+        {
+            "name": "D interface: existence and properties of interface prototype object",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "D interface: existence and properties of interface prototype object's \"constructor\" property",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "D interface: existence and properties of interface prototype object's @@unscopables property",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "Partial interface A: original interface defined",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "Partial interface A: valid exposure set",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "Partial interface C: original interface defined",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "Partial interface C: valid exposure set",
+            "properties": {},
+            "message": "Partial C interface is exposed everywhere, the original interface is not.",
+            "status_string": "FAIL"
+        },
+        {
+            "name": "Partial interface D: original interface defined",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        },
+        {
+            "name": "Partial interface D: valid exposure set",
+            "properties": {},
+            "message": null,
+            "status_string": "PASS"
+        }
+    ],
+    "type": "complete"
+}
+</script>
+</body>
+</html>

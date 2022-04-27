@@ -20,7 +20,7 @@ from tools.wpt.utils import call
 
 logger = logging.getLogger(__name__)
 
-class Virtualenv(object):
+class Virtualenv:
     def __init__(self, path, skip_virtualenv_setup):
         self.path = path
         self.skip_virtualenv_setup = skip_virtualenv_setup
@@ -76,7 +76,7 @@ class Virtualenv(object):
             if IS_WIN:
                 site_packages = os.path.join(base, "Lib", "site-packages")
             else:
-                site_packages = os.path.join(base, "lib", "python{}".format(sys.version[:3]), "site-packages")
+                site_packages = os.path.join(base, "lib", f"python{sys.version[:3]}", "site-packages")
 
         return site_packages
 

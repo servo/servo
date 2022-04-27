@@ -8,15 +8,13 @@ import traceback
 import socket
 import sys
 from abc import ABCMeta, abstractmethod
-from http.client import HTTPConnection
-from typing import Any, Callable, ClassVar, Optional, Tuple, Type, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, Tuple, Type
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
+from . import pytestrunner
 from .actions import actions
-from .protocol import Protocol, BaseProtocolPart
+from .protocol import Protocol, WdspecProtocol
 
-if TYPE_CHECKING:
-    from ..webdriver_server import WebDriverServer
 
 here = os.path.dirname(__file__)
 
@@ -32,6 +30,7 @@ def executor_kwargs(test_type, test_environment, run_info_data, **kwargs):
 
     if test_type in ("reftest", "print-reftest"):
         executor_kwargs["screenshot_cache"] = test_environment.cache_manager.dict()
+        executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
 
     if test_type == "wdspec":
         executor_kwargs["binary"] = kwargs.get("binary")
@@ -61,7 +60,7 @@ def strip_server(url):
     return urlunsplit(url_parts)
 
 
-class TestharnessResultConverter(object):
+class TestharnessResultConverter:
     harness_codes = {0: "OK",
                      1: "ERROR",
                      2: "TIMEOUT",
@@ -169,7 +168,7 @@ class ExecutorException(Exception):
         self.message = message
 
 
-class TimedRunner(object):
+class TimedRunner:
     def __init__(self, logger, func, protocol, url, timeout, extra_timeout):
         self.func = func
         self.logger = logger
@@ -230,7 +229,7 @@ class TimedRunner(object):
         raise NotImplementedError
 
 
-class TestExecutor(object):
+class TestExecutor:
     """Abstract Base class for object that actually executes the tests in a
     specific browser. Typically there will be a different TestExecutor
     subclass for each test type and method of executing tests.
@@ -359,12 +358,13 @@ class RefTestExecutor(TestExecutor):
     is_print = False
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1, screenshot_cache=None,
-                 debug_info=None, **kwargs):
+                 debug_info=None, reftest_screenshot="unexpected", **kwargs):
         TestExecutor.__init__(self, logger, browser, server_config,
                               timeout_multiplier=timeout_multiplier,
                               debug_info=debug_info)
 
         self.screenshot_cache = screenshot_cache
+        self.reftest_screenshot = reftest_screenshot
 
 
 class CrashtestExecutor(TestExecutor):
@@ -376,7 +376,7 @@ class PrintRefTestExecutor(TestExecutor):
     is_print = True
 
 
-class RefTestImplementation(object):
+class RefTestImplementation:
     def __init__(self, executor):
         self.timeout_multiplier = executor.timeout_multiplier
         self.executor = executor
@@ -386,6 +386,7 @@ class RefTestImplementation(object):
         # retrieve the screenshot from the cache directly in the future
         self.screenshot_cache = self.executor.screenshot_cache
         self.message = None
+        self.reftest_screenshot = executor.reftest_screenshot
 
     def setup(self):
         pass
@@ -414,7 +415,7 @@ class RefTestImplementation(object):
         else:
             rv = self.screenshot_cache[key]
 
-        self.message.append("%s %s" % (test.url, rv[0]))
+        self.message.append(f"{test.url} {rv[0]}")
         return True, rv
 
     def reset(self):
@@ -431,7 +432,7 @@ class RefTestImplementation(object):
 
         if len(lhs_hashes) != len(rhs_hashes):
             self.logger.info("Got different number of pages")
-            return relation == "!=", None
+            return relation == "!=", -1
 
         assert len(lhs_screenshots) == len(lhs_hashes) == len(rhs_screenshots) == len(rhs_hashes)
 
@@ -467,7 +468,7 @@ class RefTestImplementation(object):
             if not equal:
                 return (False if relation == "==" else True, page_idx)
         # All screenshots were equal within the fuzziness
-        return (True if relation == "==" else False, None)
+        return (True if relation == "==" else False, -1)
 
     def get_differences(self, screenshots, urls, page_idx=None):
         from PIL import Image, ImageChops, ImageStat
@@ -492,7 +493,7 @@ class RefTestImplementation(object):
         extrema = image.getextrema()
         if all(min == max for min, max in extrema):
             color = ''.join('%02X' % value for value, _ in extrema)
-            self.message.append("Screenshot is solid color 0x%s for %s\n" % (color, url))
+            self.message.append(f"Screenshot is solid color 0x{color} for {url}\n")
 
     def run_test(self, test):
         viewport_size = test.viewport_size
@@ -505,7 +506,7 @@ class RefTestImplementation(object):
         # of reachings a leaf node with only pass results
 
         stack = list(((test, item[0]), item[1]) for item in reversed(test.references))
-        page_idx = None
+
         while stack:
             hashes = [None, None]
             screenshots = [None, None]
@@ -523,39 +524,43 @@ class RefTestImplementation(object):
                 urls[i] = node.url
 
             is_pass, page_idx = self.check_pass(hashes, screenshots, urls, relation, fuzzy)
+            log_data = [
+                {"url": urls[0], "screenshot": screenshots[0][page_idx],
+                 "hash": hashes[0][page_idx]},
+                relation,
+                {"url": urls[1], "screenshot": screenshots[1][page_idx],
+                 "hash": hashes[1][page_idx]}
+            ]
+
             if is_pass:
                 fuzzy = self.get_fuzzy(test, nodes, relation)
                 if nodes[1].references:
                     stack.extend(list(((nodes[1], item[0]), item[1])
                                       for item in reversed(nodes[1].references)))
                 else:
+                    test_result = {"status": "PASS", "message": None}
+                    if (self.reftest_screenshot == "always" or
+                        self.reftest_screenshot == "unexpected" and
+                        test.expected() != "PASS"):
+                        test_result["extra"] = {"reftest_screenshots": log_data}
                     # We passed
-                    return {"status": "PASS", "message": None}
+                    return test_result
 
         # We failed, so construct a failure message
 
-        if page_idx is None:
-            # default to outputting the last page
-            page_idx = -1
         for i, (node, screenshot) in enumerate(zip(nodes, screenshots)):
             if screenshot is None:
                 success, screenshot = self.retake_screenshot(node, viewport_size, dpi, page_ranges)
                 if success:
                     screenshots[i] = screenshot
 
-        log_data = [
-            {"url": nodes[0].url,
-             "screenshot": screenshots[0][page_idx],
-             "hash": hashes[0][page_idx]},
-            relation,
-            {"url": nodes[1].url,
-             "screenshot": screenshots[1][page_idx],
-             "hash": hashes[1][page_idx]},
-        ]
-
-        return {"status": "FAIL",
-                "message": "\n".join(self.message),
-                "extra": {"reftest_screenshots": log_data}}
+        test_result = {"status": "FAIL",
+                       "message": "\n".join(self.message)}
+        if (self.reftest_screenshot in ("always", "fail") or
+            self.reftest_screenshot == "unexpected" and
+            test.expected() != "FAIL"):
+            test_result["extra"] = {"reftest_screenshots": log_data}
+        return test_result
 
     def get_fuzzy(self, root_test, test_nodes, relation):
         full_key = tuple([item.url for item in test_nodes] + [relation])
@@ -598,22 +603,18 @@ class RefTestImplementation(object):
 
 class WdspecExecutor(TestExecutor):
     convert_result = pytest_result_converter
-    protocol_cls = None  # type: ClassVar[Type[Protocol]]
+    protocol_cls = WdspecProtocol  # type: ClassVar[Type[Protocol]]
 
     def __init__(self, logger, browser, server_config, webdriver_binary,
                  webdriver_args, timeout_multiplier=1, capabilities=None,
-                 debug_info=None, environ=None, **kwargs):
-        self.do_delayed_imports()
-        TestExecutor.__init__(self, logger, browser, server_config,
-                              timeout_multiplier=timeout_multiplier,
-                              debug_info=debug_info)
+                 debug_info=None, **kwargs):
+        super().__init__(logger, browser, server_config,
+                         timeout_multiplier=timeout_multiplier,
+                         debug_info=debug_info)
         self.webdriver_binary = webdriver_binary
         self.webdriver_args = webdriver_args
         self.timeout_multiplier = timeout_multiplier
         self.capabilities = capabilities
-        self.environ = environ if environ is not None else {}
-        self.output_handler_kwargs = None
-        self.output_handler_start_kwargs = None
 
     def setup(self, runner):
         self.protocol = self.protocol_cls(self, self.browser)
@@ -629,7 +630,6 @@ class WdspecExecutor(TestExecutor):
         timeout = test.timeout * self.timeout_multiplier + self.extra_timeout
 
         success, data = WdspecRun(self.do_wdspec,
-                                  self.protocol.session_config,
                                   test.abs_path,
                                   timeout).run()
 
@@ -638,22 +638,25 @@ class WdspecExecutor(TestExecutor):
 
         return (test.result_cls(*data), [])
 
-    def do_wdspec(self, session_config, path, timeout):
+    def do_wdspec(self, path, timeout):
+        session_config = {"host": self.browser.host,
+                          "port": self.browser.port,
+                          "capabilities": self.capabilities,
+                          "webdriver": {
+                              "binary": self.webdriver_binary,
+                              "args": self.webdriver_args
+                          }}
+
         return pytestrunner.run(path,
                                 self.server_config,
                                 session_config,
                                 timeout=timeout)
 
-    def do_delayed_imports(self):
-        global pytestrunner
-        from . import pytestrunner
 
-
-class WdspecRun(object):
-    def __init__(self, func, session, path, timeout):
+class WdspecRun:
+    def __init__(self, func, path, timeout):
         self.func = func
         self.result = (None, None)
-        self.session = session
         self.path = path
         self.timeout = timeout
         self.result_flag = threading.Event()
@@ -676,8 +679,8 @@ class WdspecRun(object):
 
     def _run(self):
         try:
-            self.result = True, self.func(self.session, self.path, self.timeout)
-        except (socket.timeout, IOError):
+            self.result = True, self.func(self.path, self.timeout)
+        except (socket.timeout, OSError):
             self.result = False, ("CRASH", None)
         except Exception as e:
             message = getattr(e, "message")
@@ -689,100 +692,7 @@ class WdspecRun(object):
             self.result_flag.set()
 
 
-class ConnectionlessBaseProtocolPart(BaseProtocolPart):
-    def load(self, url):
-        pass
-
-    def execute_script(self, script, asynchronous=False):
-        pass
-
-    def set_timeout(self, timeout):
-        pass
-
-    def wait(self):
-        return False
-
-    def set_window(self, handle):
-        pass
-
-    def window_handles(self):
-        return []
-
-
-class ConnectionlessProtocol(Protocol):
-    implements = [ConnectionlessBaseProtocolPart]
-
-    def connect(self):
-        pass
-
-    def after_connect(self):
-        pass
-
-
-class WdspecProtocol(Protocol):
-    server_cls = None  # type: ClassVar[Optional[Type[WebDriverServer]]]
-
-    implements = [ConnectionlessBaseProtocolPart]
-
-    def __init__(self, executor, browser):
-        Protocol.__init__(self, executor, browser)
-        self.webdriver_binary = executor.webdriver_binary
-        self.webdriver_args = executor.webdriver_args
-        self.capabilities = self.executor.capabilities
-        self.session_config = None
-        self.server = None
-        self.environ = os.environ.copy()
-        self.environ.update(executor.environ)
-        self.output_handler_kwargs = executor.output_handler_kwargs
-        self.output_handler_start_kwargs = executor.output_handler_start_kwargs
-
-    def connect(self):
-        """Connect to browser via the HTTP server."""
-        self.server = self.server_cls(
-            self.logger,
-            binary=self.webdriver_binary,
-            args=self.webdriver_args,
-            env=self.environ)
-        self.server.start(block=False,
-                          output_handler_kwargs=self.output_handler_kwargs,
-                          output_handler_start_kwargs=self.output_handler_start_kwargs)
-        self.logger.info(
-            "WebDriver HTTP server listening at %s" % self.server.url)
-        self.session_config = {
-            "webdriver": {
-                "binary": self.webdriver_binary,
-                "args": self.webdriver_args
-            },
-            "host": self.server.host,
-            "port": self.server.port,
-            "capabilities": self.capabilities
-        }
-
-    def after_connect(self):
-        pass
-
-    def teardown(self):
-        if self.server is not None and self.server.is_alive():
-            self.server.stop()
-
-    def is_alive(self):
-        """Test that the connection is still alive.
-
-        Because the remote communication happens over HTTP we need to
-        make an explicit request to the remote.  It is allowed for
-        WebDriver spec tests to not have a WebDriver session, since this
-        may be what is tested.
-
-        An HTTP request to an invalid path that results in a 404 is
-        proof enough to us that the server is alive and kicking.
-        """
-        conn = HTTPConnection(self.server.host, self.server.port)
-        conn.request("HEAD", self.server.base_path + "invalid")
-        res = conn.getresponse()
-        return res.status == 404
-
-
-class CallbackHandler(object):
+class CallbackHandler:
     """Handle callbacks from testdriver-using tests.
 
     The default implementation here makes sense for things that are roughly like
@@ -835,7 +745,7 @@ class CallbackHandler(object):
             self._send_message(cmd_id, "complete", "error")
             raise
         else:
-            self.logger.debug("Action %s completed with result %s" % (action, result))
+            self.logger.debug(f"Action {action} completed with result {result}")
             return_message = {"result": result}
             self._send_message(cmd_id, "complete", "success", json.dumps(return_message))
 
@@ -845,7 +755,7 @@ class CallbackHandler(object):
         self.protocol.testdriver.send_message(cmd_id, message_type, status, message=message)
 
 
-class ActionContext(object):
+class ActionContext:
     def __init__(self, logger, protocol, context):
         self.logger = logger
         self.protocol = protocol

@@ -3,9 +3,11 @@ from .base import require_arg
 from .base import get_timeout_multiplier  # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
 from .chrome_android import ChromeAndroidBrowserBase
-from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
+from ..executors.base import WdspecExecutor  # noqa: F401
+from ..executors.executorchrome import ChromeDriverPrintRefTestExecutor  # noqa: F401
+from ..executors.executorwebdriver import (WebDriverCrashtestExecutor,  # noqa: F401
+                                           WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor)  # noqa: F401
-from ..executors.executorchrome import ChromeDriverWdspecExecutor  # noqa: F401
 
 
 __wptrunner__ = {"product": "android_weblayer",
@@ -14,7 +16,9 @@ __wptrunner__ = {"product": "android_weblayer",
                              "wdspec": "NullBrowser"},
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
-                              "wdspec": "ChromeDriverWdspecExecutor"},
+                              "print-reftest": "ChromeDriverPrintRefTestExecutor",
+                              "wdspec": "WdspecExecutor",
+                              "crashtest": "WebDriverCrashtestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -30,6 +34,7 @@ def check_args(**kwargs):
 
 def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"binary": kwargs["binary"],
+            "adb_binary": kwargs["adb_binary"],
             "device_serial": kwargs["device_serial"],
             "webdriver_binary": kwargs["webdriver_binary"],
             "webdriver_args": kwargs.get("webdriver_args"),
@@ -82,6 +87,7 @@ class WeblayerShell(ChromeAndroidBrowserBase):
 
     def __init__(self, logger, binary,
                  webdriver_binary="chromedriver",
+                 adb_binary=None,
                  remote_queue=None,
                  device_serial=None,
                  webdriver_args=None,
@@ -89,8 +95,9 @@ class WeblayerShell(ChromeAndroidBrowserBase):
                  symbols_path=None):
         """Creates a new representation of Chrome.  The `binary` argument gives
         the browser binary to use for testing."""
-        super(WeblayerShell, self).__init__(logger,
-                webdriver_binary, remote_queue, device_serial,
-                webdriver_args, stackwalk_binary, symbols_path)
+        super().__init__(logger,
+                         webdriver_binary, adb_binary, remote_queue,
+                         device_serial, webdriver_args, stackwalk_binary,
+                         symbols_path)
         self.binary = binary
         self.wptserver_ports = _wptserve_ports

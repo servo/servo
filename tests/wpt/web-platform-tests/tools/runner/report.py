@@ -19,7 +19,7 @@ def html_escape(item, escape_quote=False):
         return item
 
 
-class Raw(object):
+class Raw:
     """Simple wrapper around a string to stop it being escaped by html_escape"""
     def __init__(self, value):
         self.value = value
@@ -28,7 +28,7 @@ class Raw(object):
         return unicode(self.value)
 
 
-class Node(object):
+class Node:
     """Node structure used when building HTML"""
     def __init__(self, name, attrs, children):
         #Need list of void elements
@@ -55,7 +55,7 @@ class Node(object):
         return unicode(self).encode("utf8")
 
 
-class RootNode(object):
+class RootNode:
     """Special Node representing the document root"""
     def __init__(self, *children):
         self.children = ["<!DOCTYPE html>"] + list(children)
@@ -81,7 +81,7 @@ def flatten(iterable):
     return rv
 
 
-class HTML(object):
+class HTML:
     """Simple HTML templating system. An instance of this class can create
     element nodes by calling methods with the same name as the element,
     passing in children as positional arguments or as a list, and attributes
@@ -117,7 +117,7 @@ class HTML(object):
 h = HTML()
 
 
-class TestResult(object):
+class TestResult:
     """Simple holder for the results of a single test in a single UA"""
     def __init__(self, test):
         self.test = test

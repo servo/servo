@@ -55,7 +55,9 @@ def get_loader(test_paths, product, debug=None, run_info_extras=None, chunker_kw
                                     verify=kwargs.get("verify"),
                                     debug=debug,
                                     extras=run_info_extras,
-                                    enable_webrender=kwargs.get("enable_webrender"))
+                                    enable_webrender=kwargs.get("enable_webrender"),
+                                    device_serials=kwargs.get("device_serial"),
+                                    adb_binary=kwargs.get("adb_binary"))
 
     test_manifests = testloader.ManifestLoader(test_paths, force_manifest_update=kwargs["manifest_update"],
                                                manifest_download=kwargs["manifest_download"]).load()
@@ -327,7 +329,7 @@ def run_tests(config, test_paths, product, **kwargs):
 
         test_status = TestStatus()
         repeat = kwargs["repeat"]
-        test_status.expected_repeat = repeat
+        test_status.expected_repeated_runs = repeat
 
         if len(test_loader.test_ids) == 0 and kwargs["test_list"]:
             logger.critical("Unable to find any tests at the path(s):")
@@ -348,6 +350,7 @@ def run_tests(config, test_paths, product, **kwargs):
                                                                        **kwargs)
 
         mojojs_path = kwargs["mojojs_path"] if kwargs["enable_mojojs"] else None
+        inject_script = kwargs["inject_script"] if kwargs["inject_script"] else None
 
         recording.set(["startup", "start_environment"])
         with env.TestEnvironment(test_paths,
@@ -359,7 +362,8 @@ def run_tests(config, test_paths, product, **kwargs):
                                  ssl_config,
                                  env_extras,
                                  kwargs["enable_webtransport_h3"],
-                                 mojojs_path) as test_environment:
+                                 mojojs_path,
+                                 inject_script) as test_environment:
             recording.set(["startup", "ensure_environment"])
             try:
                 test_environment.ensure_started()
@@ -464,6 +468,7 @@ def start(**kwargs):
         else:
             rv = not run_tests(**kwargs)[0] or logged_critical.has_log
     finally:
+        logger.shutdown()
         logger.remove_handler(handler)
     return rv
 

@@ -1,4 +1,0 @@
-Setting the cell type is now completely best effort.
-This fixes ``attrs`` on Jython.
-
-We cannot make any guarantees regarding Jython though, because our test suite cannot run due to dependency incompatabilities.

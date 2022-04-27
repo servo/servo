@@ -319,12 +319,6 @@ var validator = {
     }, data.name + " (in a form)");
   },
 
-  test_support_type: function(ctl, typ, testName) {
-    test(function () {
-      assert_equals(ctl.type, typ, "The " + typ + " type should be supported.");
-    }, testName);
-  },
-
   set_conditions: function(ctl, obj) {
     [
       "checked",
@@ -461,14 +455,6 @@ var validator = {
           }
 
           prefix = "[" + testee[i].tag.toUpperCase() + " in " + testee[i].types[typ].toUpperCase() + " status] ";
-          if (ele.type != testee[i].types[typ]) {
-            this.test_support_type(
-              ele,
-              testee[i].types[typ],
-              prefix + "The " + testee[i].types[typ] + " type must be supported."
-            );
-            continue;
-          }
 
           for (var j = 0; j < testee[i].testData.length; j++) {
             testee[i].testData[j].name = testee[i].testData[j].name.replace(/\[.*\]\s/g, prefix);

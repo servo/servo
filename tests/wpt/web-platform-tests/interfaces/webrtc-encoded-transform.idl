@@ -77,6 +77,7 @@ dictionary RTCEncodedVideoFrameMetadata {
     long spatialIndex;
     long temporalIndex;
     long synchronizationSource;
+    octet payloadType;
     sequence<long> contributingSources;
 };
 
@@ -92,6 +93,7 @@ interface RTCEncodedVideoFrame {
 
 dictionary RTCEncodedAudioFrameMetadata {
     long synchronizationSource;
+    octet payloadType;
     sequence<long> contributingSources;
 };
 
@@ -118,9 +120,15 @@ interface RTCRtpScriptTransformer {
     readonly attribute ReadableStream readable;
     readonly attribute WritableStream writable;
     readonly attribute any options;
+    Promise<undefined> generateKeyFrame(optional sequence <DOMString> rids);
+    Promise<undefined> sendKeyFrameRequest();
 };
 
 [Exposed=Window]
 interface RTCRtpScriptTransform {
     constructor(Worker worker, optional any options, optional sequence<object> transfer);
+};
+
+partial interface RTCRtpSender {
+    Promise<undefined> generateKeyFrame(optional sequence <DOMString> rids);
 };

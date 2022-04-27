@@ -1,39 +1,42 @@
 """Run testsuites written for nose."""
-from _pytest import python
-from _pytest import unittest
 from _pytest.config import hookimpl
+from _pytest.fixtures import getfixturemarker
 from _pytest.nodes import Item
+from _pytest.python import Function
+from _pytest.unittest import TestCaseFunction
 
 
 @hookimpl(trylast=True)
-def pytest_runtest_setup(item):
-    if is_potential_nosetest(item):
-        if not call_optional(item.obj, "setup"):
-            # Call module level setup if there is no object level one.
-            call_optional(item.parent.obj, "setup")
-        # XXX This implies we only call teardown when setup worked.
-        item.session._setupstate.addfinalizer((lambda: teardown_nose(item)), item)
+def pytest_runtest_setup(item: Item) -> None:
+    if not isinstance(item, Function):
+        return
+    # Don't do nose style setup/teardown on direct unittest style classes.
+    if isinstance(item, TestCaseFunction):
+        return
+
+    # Capture the narrowed type of item for the teardown closure,
+    # see https://github.com/python/mypy/issues/2608
+    func = item
+
+    call_optional(func.obj, "setup")
+    func.addfinalizer(lambda: call_optional(func.obj, "teardown"))
+
+    # NOTE: Module- and class-level fixtures are handled in python.py
+    # with `pluginmanager.has_plugin("nose")` checks.
+    # It would have been nicer to implement them outside of core, but
+    # it's not straightforward.
 
 
-def teardown_nose(item):
-    if is_potential_nosetest(item):
-        if not call_optional(item.obj, "teardown"):
-            call_optional(item.parent.obj, "teardown")
-
-
-def is_potential_nosetest(item: Item) -> bool:
-    # Extra check needed since we do not do nose style setup/teardown
-    # on direct unittest style classes.
-    return isinstance(item, python.Function) and not isinstance(
-        item, unittest.TestCaseFunction
-    )
-
-
-def call_optional(obj, name):
+def call_optional(obj: object, name: str) -> bool:
     method = getattr(obj, name, None)
-    isfixture = hasattr(method, "_pytestfixturefunction")
-    if method is not None and not isfixture and callable(method):
-        # If there's any problems allow the exception to raise rather than
-        # silently ignoring them.
-        method()
-        return True
+    if method is None:
+        return False
+    is_fixture = getfixturemarker(method) is not None
+    if is_fixture:
+        return False
+    if not callable(method):
+        return False
+    # If there are any problems allow the exception to raise rather than
+    # silently ignoring it.
+    method()
+    return True

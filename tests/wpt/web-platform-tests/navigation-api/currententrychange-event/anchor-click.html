@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<a id="a" href="#foo"></a>
+<script>
+test(t => {
+  let oncurrententrychange_called = false;
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_called = true;
+    assert_equals(e.from, navigation.entries()[0]);
+    assert_equals(e.from.index, 0);
+    assert_equals(e.navigationType, "push");
+    assert_equals(navigation.currentEntry.index, 1);
+  });
+  a.click();
+  assert_true(oncurrententrychange_called);
+}, "currententrychange fires for link click");
+</script>

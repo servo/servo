@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div style="height: 1000px; width: 1000px;"></div>
+<div id="frag"></div>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  // Throw for non-traverse
+  navigation.addEventListener("navigate", t.step_func(e => {
+    e.transitionWhile(Promise.resolve());
+    assert_throws_dom("InvalidStateError", () => e.restoreScroll());
+  }), { once : true });
+  await navigation.navigate("#frag").finished;
+
+  // Throw for non-transitionWhile() traverse
+  navigation.addEventListener("navigate", t.step_func(e => {
+    assert_throws_dom("InvalidStateError", () => e.restoreScroll());
+  }), { once : true });
+  await navigation.back().finished;
+
+  // Throw for transitionWhile() traverse with no explicit scrollRestoration behavior.
+  navigation.addEventListener("navigate", t.step_func(e => {
+    e.transitionWhile(Promise.resolve());
+    assert_throws_dom("InvalidStateError", () => e.restoreScroll());
+  }), { once : true });
+  await navigation.forward().finished;
+
+  // Throw for transitionWhile() traverse with scrollRestoration "after-transition".
+  navigation.addEventListener("navigate", t.step_func(e => {
+    e.transitionWhile(Promise.resolve(), { scrollRestoration: "after-transition" });
+    assert_throws_dom("InvalidStateError", () => e.restoreScroll());
+  }), { once : true });
+  await navigation.back().finished;
+}, "scrollRestoration: restoreScroll() should throw for a non-traverse navigation or when not in manual restoration mode");
+</script>
+</body>

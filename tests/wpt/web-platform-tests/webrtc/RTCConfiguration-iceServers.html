@@ -23,7 +23,7 @@
 
     4.2.1.  RTCConfiguration Dictionary
       dictionary RTCConfiguration {
-        sequence<RTCIceServer>   iceServers;
+        sequence<RTCIceServer>   iceServers = [];
         ...
       };
 
@@ -43,7 +43,7 @@
 
   test(() => {
     const pc = new RTCPeerConnection();
-    assert_equals(pc.getConfiguration().iceServers, undefined);
+    assert_array_equals(pc.getConfiguration().iceServers, []);
   }, 'new RTCPeerConnection() should have default configuration.iceServers of undefined');
 
   config_test(makePc => {
@@ -57,7 +57,7 @@
 
   config_test(makePc => {
     const pc = makePc({ iceServers: undefined });
-    assert_equals(pc.getConfiguration().iceServers, undefined);
+    assert_array_equals(pc.getConfiguration().iceServers, []);
   }, '{ iceServers: undefined } should succeed');
 
   config_test(makePc => {

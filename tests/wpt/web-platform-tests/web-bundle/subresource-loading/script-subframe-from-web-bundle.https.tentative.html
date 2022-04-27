@@ -7,13 +7,128 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/test-helpers.js"></script>
-
-<script>
-  window.TEST_WEB_BUNDLE_ELEMENT_TYPE = 'script';
-  setup(() => {
-    assert_true(HTMLScriptElement.supports('webbundle'));
-  });
-</script>
 <body>
-<script src="resources/subframe-from-web-bundle-test.js"></script>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    promise_test(async (t) => {
+      const bundle_url = "../resources/wbn/uuid-in-package.wbn";
+      const frame_url = "uuid-in-package:429fcc4e-0696-4bad-b099-ee9175f023ae";
+      const iframe = await createWebBundleElementAndIframe(
+        t,
+        bundle_url,
+        frame_url
+      );
+      // The iframe is cross-origin. So accessing iframe.contentWindow.location
+      // should throw a SecurityError.
+      assert_throws_dom("SecurityError", () => {
+        iframe.contentWindow.location.href;
+      });
+    }, "The uuid-in-package: URL iframe must be cross-origin.");
+
+    uuid_iframe_test(
+      "location.href",
+      "uuid-in-package:429fcc4e-0696-4bad-b099-ee9175f023ae",
+      "location.href in opaque-origin iframe."
+    );
+
+    uuid_iframe_test(
+      "(" +
+        (() => {
+          try {
+            let result = window.localStorage;
+            return "no error";
+          } catch (e) {
+            return e.name;
+          }
+        }).toString() +
+        ")()",
+      "SecurityError",
+      "Accesing window.localStorage should throw a SecurityError."
+    );
+
+    uuid_iframe_test(
+      "(" +
+        (() => {
+          try {
+            let result = window.sessionStorage;
+            return "no error";
+          } catch (e) {
+            return e.name;
+          }
+        }).toString() +
+        ")()",
+      "SecurityError",
+      "Accesing window.sessionStorage should throw a SecurityError."
+    );
+
+    uuid_iframe_test(
+      "(" +
+        (() => {
+          try {
+            let result = document.cookie;
+            return "no error";
+          } catch (e) {
+            return e.name;
+          }
+        }).toString() +
+        ")()",
+      "SecurityError",
+      "Accesing document.cookie should throw a SecurityError."
+    );
+
+    uuid_iframe_test(
+      "(" +
+        (() => {
+          try {
+            let request = window.indexedDB.open("db");
+            return "no error";
+          } catch (e) {
+            return e.name;
+          }
+        }).toString() +
+        ")()",
+      "SecurityError",
+      "Opening an indexedDB should throw a SecurityError."
+    );
+
+    uuid_iframe_test(
+      "window.caches === undefined",
+      true,
+      "window.caches should be undefined."
+    );
+
+    function uuid_iframe_test(code, expected, name) {
+      promise_test(async (t) => {
+        const bundle_url = "../resources/wbn/uuid-in-package.wbn";
+        const frame_url =
+          "uuid-in-package:429fcc4e-0696-4bad-b099-ee9175f023ae";
+        const iframe = await createWebBundleElementAndIframe(
+          t,
+          bundle_url,
+          frame_url
+        );
+        assert_equals(await evalInIframe(iframe, code), expected);
+      }, name + "uuid-in-package");
+    }
+
+    async function createWebBundleElementAndIframe(t, bundle_url, frame_url) {
+      const element = createWebBundleElement(bundle_url, [frame_url]);
+      document.body.appendChild(element);
+      const iframe = document.createElement("iframe");
+      t.add_cleanup(() => {
+        document.body.removeChild(element);
+        document.body.removeChild(iframe);
+      });
+      iframe.src = frame_url;
+      const load_promise = new Promise((resolve) => {
+        iframe.addEventListener("load", resolve);
+      });
+      document.body.appendChild(iframe);
+      await load_promise;
+      return iframe;
+    }
+  </script>
 </body>

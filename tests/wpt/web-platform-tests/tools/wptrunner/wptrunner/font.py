@@ -10,7 +10,7 @@ HERE = os.path.dirname(__file__)
 SYSTEM = platform.system().lower()
 
 
-class FontInstaller(object):
+class FontInstaller:
     def __init__(self, logger, font_dir=None, **fonts):
         self.logger = logger
         self.font_dir = font_dir
@@ -111,7 +111,7 @@ class FontInstaller(object):
         if self.created_dir:
             rmtree(self.font_dir)
         else:
-            os.remove('%s/%s' % (self.font_dir, font_name))
+            os.remove(f'{self.font_dir}/{font_name}')
         try:
             fc_cache_returncode = call('fc-cache')
             return not fc_cache_returncode

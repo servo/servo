@@ -5,34 +5,42 @@
 <script src="/resources/testharnessreport.js"></script>
 <script type="module">
   import {fedcm_test} from './support/fedcm-helper.js';
+
   const test_options = {
     federated: {
       providers: [{
         url: 'https://idp.test',
         clientId: '1',
-        nonce: '2',
       }]
     }
   };
+  const login_options = {
+    nonce: '2',
+  };
+
 
   fedcm_test(async (t, mock) => {
     mock.returnIdToken("a_token");
-    const token = await navigator.credentials.get(test_options);
-    assert_equals(token, "a_token");
+    const cred = await navigator.credentials.get(test_options);
+    const token = await cred.login(login_options);
+    assert_equals(token.idToken, "a_token");
   }, "Successfully obtaining id_token should resolve the promise.");
 
   fedcm_test(async (t, mock) => {
     mock.returnError("ApprovalDeclined");
-    const result = navigator.credentials.get(test_options);
-    return promise_rejects_dom(t, 'AbortError', result);
+    const cred = await navigator.credentials.get(test_options);
+    const token = cred.login(login_options);
+    return promise_rejects_dom(t, 'AbortError', token);
   }, "User approval decline should reject the promise.");
 
   fedcm_test(async (t, mock) => {
     mock.returnError("ErrorTooManyRequests");
     const first = await navigator.credentials.get(test_options);
+    const first_token = await first.login(login_options);
     const second = await navigator.credentials.get(test_options);
-    assert_equals(first, undefined);
-    return promise_rejects_dom(t, 'AbortError', second);
+    const second_token = await second.login(login_options);
+    assert_equals(first_token.idToken, undefined);
+    return promise_rejects_dom(t, 'AbortError', second_token);
   },
   "When there's a pending request, a second `get` call should be rejected. ",
   "Only one navigator.credentials.get request may be outstanding at one time.");
@@ -89,7 +97,7 @@
 
   fedcm_test(async (t, mock) => {
     mock.returnIdToken("a_token");
-    const token = await navigator.credentials.get({
+    const cred = await navigator.credentials.get({
     federated: {
       providers: [{
         url: 'https://idp.test',
@@ -97,22 +105,26 @@
       }]
     }
     });
+    const token = await cred.login(login_options);
 
-    assert_equals(token, "a_token");
+    assert_equals(token.idToken, "a_token");
   }, "nonce is not required in FederatedIdentityProvider.");
 
   fedcm_test(async (t, mock) => {
     let controller = new AbortController();
     mock.returnPendingPromise();
     let aborted = false;
-    const token_promise = navigator.credentials.get({
+    const cred = await navigator.credentials.get({
     federated: {
       providers: [{
         url: 'https://idp.test',
         clientId: '1',
       }],
     },
-    signal: controller.signal,
+    });
+    const token_promise = cred.login({
+      nonce: '2',
+      signal: controller.signal,
     });
     assert_equals(aborted, false);
     controller.abort();
@@ -129,14 +141,17 @@
     let controller = new AbortController();
     mock.returnPendingPromise();
     let aborted = false;
-    const token_promise = navigator.credentials.get({
+    const cred = await navigator.credentials.get({
     federated: {
       providers: [{
         url: 'https://idp.test',
         clientId: '1',
       }],
     },
-    signal: controller.signal,
+    });
+    const token_promise = cred.login({
+      nonce: '2',
+      signal: controller.signal,
     });
     assert_equals(aborted, false);
     controller.abort();
@@ -149,7 +164,22 @@
     assert_equals(aborted, true);
 
     mock.returnIdToken("a_token");
-    const token = await navigator.credentials.get(test_options);
-    assert_equals(token, "a_token");
+    const cred2 = await navigator.credentials.get(test_options);
+    const token = await cred2.login(login_options);
+    assert_equals(token.idToken, "a_token");
   }, "get after abort should work");
+
+  promise_test(async t => {
+    const result = navigator.credentials.get({
+    federated: {
+      providers: [{
+        url: 'https://other-idp.test/',
+        clientId: '1',
+        nonce: '1',
+      }]
+    }
+    });
+    return promise_rejects_dom(t, "NetworkError", result);
+  }, "Provider URL should honor Content-Security-Policy.");
+
 </script>

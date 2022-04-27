@@ -12,7 +12,6 @@ from . import testloader
 from . import wptmanifest
 from . import wpttest
 from .expected import expected_path
-from .vcs import git
 manifest = None  # Module that will be imported relative to test_root
 manifestitem = None
 
@@ -24,7 +23,7 @@ except ImportError:
     import json  # type: ignore
 
 
-class RunInfo(object):
+class RunInfo:
     """A wrapper around RunInfo dicts so that they can be hashed by identity"""
 
     def __init__(self, dict_value):
@@ -44,17 +43,15 @@ class RunInfo(object):
         return self.canonical_repr == other.canonical_repr
 
     def iteritems(self):
-        for key, value in self.data.items():
-            yield key, value
+        yield from self.data.items()
 
     def items(self):
         return list(self.items())
 
 
-def update_expected(test_paths, serve_root, log_file_names,
-                    update_properties, rev_old=None, rev_new="HEAD",
-                    full_update=False, sync_root=None, disable_intermittent=None,
-                    update_intermittent=False, remove_intermittent=False):
+def update_expected(test_paths, log_file_names,
+                    update_properties, full_update=False, disable_intermittent=None,
+                    update_intermittent=False, remove_intermittent=False, **kwargs):
     """Update the metadata files for web-platform-tests based on
     the results obtained in a previous run or runs
 
@@ -68,9 +65,16 @@ def update_expected(test_paths, serve_root, log_file_names,
     intermittent statuses which are not present in the current run will be removed from the
     metadata, else they are left in."""
 
-    do_delayed_imports(serve_root)
+    do_delayed_imports()
 
     id_test_map = load_test_data(test_paths)
+
+    msg = f"Updating metadata using properties: {','.join(update_properties[0])}"
+    if update_properties[1]:
+        dependent_strs = [f"{item}: {','.join(values)}"
+                          for item, values in update_properties[1].items()]
+        msg += f", and dependent properties: {' '.join(dependent_strs)}"
+    logger.info(msg)
 
     for metadata_path, updated_ini in update_from_logs(id_test_map,
                                                        update_properties,
@@ -85,57 +89,15 @@ def update_expected(test_paths, serve_root, log_file_names,
             for test in updated_ini.iterchildren():
                 for subtest in test.iterchildren():
                     if subtest.new_disabled:
-                        print("disabled: %s" % os.path.dirname(subtest.root.test_path) + "/" + subtest.name)
+                        logger.info("disabled: %s" % os.path.dirname(subtest.root.test_path) + "/" + subtest.name)
                     if test.new_disabled:
-                        print("disabled: %s" % test.root.test_path)
+                        logger.info("disabled: %s" % test.root.test_path)
 
 
-def do_delayed_imports(serve_root=None):
+def do_delayed_imports():
     global manifest, manifestitem
     from manifest import manifest, item as manifestitem  # type: ignore
 
-
-def files_in_repo(repo_root):
-    return git("ls-tree", "-r", "--name-only", "HEAD").split("\n")
-
-
-def rev_range(rev_old, rev_new, symmetric=False):
-    joiner = ".." if not symmetric else "..."
-    return "".join([rev_old, joiner, rev_new])
-
-
-def paths_changed(rev_old, rev_new, repo):
-    data = git("diff", "--name-status", rev_range(rev_old, rev_new), repo=repo)
-    lines = [tuple(item.strip() for item in line.strip().split("\t", 1))
-             for line in data.split("\n") if line.strip()]
-    output = set(lines)
-    return output
-
-
-def load_change_data(rev_old, rev_new, repo):
-    changes = paths_changed(rev_old, rev_new, repo)
-    rv = {}
-    status_keys = {"M": "modified",
-                   "A": "new",
-                   "D": "deleted"}
-    # TODO: deal with renames
-    for item in changes:
-        rv[item[1]] = status_keys[item[0]]
-    return rv
-
-
-def unexpected_changes(manifests, change_data, files_changed):
-    files_changed = set(files_changed)
-
-    root_manifest = None
-    for manifest, paths in manifests.items():
-        if paths["url_base"] == "/":
-            root_manifest = manifest
-            break
-    else:
-        return []
-
-    return [fn for _, fn, _ in root_manifest if fn in files_changed and change_data.get(fn) != "M"]
 
 # For each testrun
 # Load all files and scan for the suite_start entry
@@ -153,7 +115,7 @@ def unexpected_changes(manifests, change_data, files_changed):
 #   Check if all the RHS values are the same; if so collapse the conditionals
 
 
-class InternedData(object):
+class InternedData:
     """Class for interning data of any (hashable) type.
 
     This class is intended for building a mapping of int <=> value, such
@@ -271,14 +233,13 @@ def update_from_logs(id_test_map, update_properties, disable_intermittent, updat
     updater = ExpectedUpdater(id_test_map)
 
     for i, log_filename in enumerate(log_filenames):
-        print("Processing log %d/%d" % (i + 1, len(log_filenames)))
+        logger.info("Processing log %d/%d" % (i + 1, len(log_filenames)))
         with open(log_filename) as f:
             updater.update_from_log(f)
 
-    for item in update_results(id_test_map, update_properties, full_update,
-                               disable_intermittent, update_intermittent=update_intermittent,
-                               remove_intermittent=remove_intermittent):
-        yield item
+    yield from update_results(id_test_map, update_properties, full_update,
+                              disable_intermittent, update_intermittent=update_intermittent,
+                              remove_intermittent=remove_intermittent)
 
 
 def update_results(id_test_map,
@@ -340,7 +301,7 @@ def write_new_expected(metadata_path, expected):
             pass
 
 
-class ExpectedUpdater(object):
+class ExpectedUpdater:
     def __init__(self, id_test_map):
         self.id_test_map = id_test_map
         self.run_info = None
@@ -444,7 +405,7 @@ class ExpectedUpdater(object):
         try:
             self.id_test_map[test_id]
         except KeyError:
-            print("Test not found %s, skipping" % test_id)
+            logger.warning("Test not found %s, skipping" % test_id)
             return
 
         self.tests_visited[test_id] = set()
@@ -568,7 +529,7 @@ def create_test_tree(metadata_path, test_manifest):
     return id_test_map
 
 
-class PackedResultList(object):
+class PackedResultList:
     """Class for storing test results.
 
     Results are stored as an array of 2-byte integers for compactness.
@@ -615,7 +576,7 @@ class PackedResultList(object):
             yield self.unpack(i, item)
 
 
-class TestFileData(object):
+class TestFileData:
     __slots__ = ("url_base", "item_type", "test_path", "metadata_path", "tests",
                  "_requires_update", "data")
 
@@ -669,7 +630,7 @@ class TestFileData(object):
             test = expected.get_test(ensure_text(test_id))
             if not test:
                 continue
-            seen_subtests = set(ensure_text(item) for item in subtests.keys() if item is not None)
+            seen_subtests = {ensure_text(item) for item in subtests.keys() if item is not None}
             missing_subtests = set(test.subtests.keys()) - seen_subtests
             for item in missing_subtests:
                 expected_subtest = test.get_subtest(item)
@@ -713,6 +674,8 @@ class TestFileData(object):
         # even if the expectations didn't change
         if not self.requires_update and not full_update:
             return
+
+        logger.debug("Updating %s", self.metadata_path)
 
         expected = self.expected(update_properties,
                                  update_intermittent=update_intermittent,

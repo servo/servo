@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1308124">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  body {
+    margin: 0;
+  }
+  #mc {
+    columns: 2;
+    gap: 0;
+    column-fill: auto;
+    width: 600px;
+    height: 20px;
+    line-height: 20px;
+    font: 20px/1 ahem;
+  }
+</style>
+<div id="mc">
+  <span id="span" style="backface-visibility:hidden; filter:blur(1px);">
+    x<child id="firstchild">x</child><br>
+    <child id="secondchild">x</child>x
+  </span>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(document.elementFromPoint(10, 10).id, "span");
+  }, "First x");
+
+  test(()=> {
+    assert_equals(document.elementFromPoint(30, 10).id, "firstchild");
+  }, "First child");
+
+  test(()=> {
+    assert_equals(document.elementFromPoint(310, 10).id, "secondchild");
+  }, "Second child");
+
+  test(()=> {
+    assert_equals(document.elementFromPoint(330, 10).id, "span");
+  }, "Last x");
+</script>

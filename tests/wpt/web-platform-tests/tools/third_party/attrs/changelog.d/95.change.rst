@@ -1,1 +1,0 @@
-``x=X(); x.cycle = x; repr(x)`` will no longer raise a ``RecursionError``, and will instead show as ``X(x=...)``.

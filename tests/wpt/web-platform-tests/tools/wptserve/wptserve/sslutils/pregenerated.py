@@ -1,4 +1,4 @@
-class PregeneratedSSLEnvironment(object):
+class PregeneratedSSLEnvironment:
     """SSL environment to use with existing key/certificate files
     e.g. when running on a server with a public domain name
     """

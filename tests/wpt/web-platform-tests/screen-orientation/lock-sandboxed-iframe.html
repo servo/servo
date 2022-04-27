@@ -1,28 +1,45 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
-<iframe id="allowedIframe" sandbox="allow-scripts allow-same-origin allow-orientation-lock" style="display:none">
+<iframe id="allowedIframe" sandbox="allow-scripts allow-same-origin allow-orientation-lock" allowfullscreen>
 </iframe>
 
-<iframe id="disallowedIframe" sandbox="allow-scripts allow-same-origin" style="display:none">
+<iframe id="disallowedIframe" sandbox="allow-scripts allow-same-origin" allowfullscreen>
 </iframe>
 <script>
+function wait_result() {
+  return new Promise(resolve => {
+    function callback (evt) {
+      if (evt.data.type != "result") {
+        // test_driver.bless in child frame posted a message.
+        return;
+      }
+      window.removeEventListener("message", callback);
+      resolve(evt.data.msg);
+    }
+
+    window.addEventListener("message", callback);
+  });
+}
+
 promise_test(async t => {
-  const messageWatcher = new EventWatcher(t, window, "message");
   const disallowedIframe = document.getElementById("disallowedIframe");
   disallowedIframe.src = "resources/sandboxed-iframe-locking.html";
 
-  const message = await messageWatcher.wait_for("message");
-  assert_equals(message.data, "SecurityError", "screen.lockOrientation() throws a SecurityError");
+  const message = await wait_result();
+
+  assert_equals(message, "SecurityError", "screen.lockOrientation() throws a SecurityError");
 }, "Test without 'allow-orientation-lock' sandboxing directive");
 
 promise_test(async t => {
-  const messageWatcher = new EventWatcher(t, window, "message");
   const disallowedIframe = document.getElementById("allowedIframe");
   disallowedIframe.src = "resources/sandboxed-iframe-locking.html";
 
-  const message = await messageWatcher.wait_for("message");
-  assert_equals(message.data, "portrait-primary", "screen.orientation lock to portrait-primary");
+  const message = await wait_result();
+
+  assert_equals(message, "portrait-primary", "screen.orientation lock to portrait-primary");
 }, "Test with 'allow-orientation-lock' sandboxing directive");
 </script>

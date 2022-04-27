@@ -31,6 +31,15 @@ def pytest_configure(config):
     )
 
 
+def pytest_sessionfinish(session, exitstatus):
+    # Cleanup at the end of a test run
+    global _current_session
+
+    if _current_session is not None:
+        _current_session.end()
+        _current_session = None
+
+
 @pytest.fixture
 def capabilities():
     """Default capabilities to use for a new WebDriver session."""

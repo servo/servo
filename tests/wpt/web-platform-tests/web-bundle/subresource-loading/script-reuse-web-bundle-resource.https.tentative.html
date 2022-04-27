@@ -10,7 +10,6 @@
 
 <body>
   <script>
-    window.TEST_WEB_BUNDLE_ELEMENT_TYPE = "script";
     setup(() => {
       assert_true(HTMLScriptElement.supports("webbundle"));
     });
@@ -57,7 +56,11 @@
     }
 
     function createScriptWebBundle2(options) {
-      return createWebBundleElement(wbn_url, /*resources=*/ [resource2], /*options=*/ options);
+      return createWebBundleElement(
+        wbn_url,
+        /*resources=*/ [resource2],
+        /*options=*/ options
+      );
     }
 
     async function appendScriptWebBundle1AndFetchResource1() {
@@ -88,7 +91,7 @@
       script2 = createScriptWebBundle2();
       document.body.appendChild(script2);
 
-      await assertResource1CanBeFetched()
+      await assertResource1CanBeFetched();
       await assertResource2CanBeFetched();
       assert_equals(webBundleFetchCount(wbn_suffix), 1);
     }, "A webbundle should be fetched again when new script element is appended.");
@@ -215,7 +218,6 @@
       assert_equals(webBundleFetchCount(wbn_suffix), 0);
     }, "Multiple 'remove(), then append()' for the same element should reuse webbundle resources");
 
-
     promise_test(async (t) => {
       t.add_cleanup(cleanUp);
       await appendScriptWebBundle1AndFetchResource1();
@@ -225,7 +227,7 @@
       script1.remove();
 
       // Then append script2 in a separet task.
-      await new Promise(resolve => t.step_timeout(resolve, 0));
+      await new Promise((resolve) => t.step_timeout(resolve, 0));
       script2 = createScriptWebBundle2();
       document.body.append(script2);
 
@@ -233,7 +235,6 @@
       await assertResource2CanBeFetched();
       assert_equals(webBundleFetchCount(wbn_suffix), 1);
     }, "'remove(), then append() in a separate task' should not reuse webbundle resources");
-
 
     promise_test(async (t) => {
       t.add_cleanup(cleanUp);
@@ -279,13 +280,19 @@
     promise_test(async (t) => {
       t.add_cleanup(cleanUp);
       clearWebBundleFetchCount();
-      script1 = createWebBundleElement(wbn_url + "?pipe=trickle(d0.1)", resource1);
+      script1 = createWebBundleElement(
+        wbn_url + "?pipe=trickle(d0.1)",
+        [resource1]
+      );
       document.body.appendChild(script1);
 
       // While script1 is still loading, remove it and make script2
       // reuse the resources.
       script1.remove();
-      script2 = createWebBundleElement(wbn_url + "?pipe=trickle(d0.1)", resource2);
+      script2 = createWebBundleElement(
+        wbn_url + "?pipe=trickle(d0.1)",
+        [resource2]
+      );
       await addElementAndWaitForLoad(script2);
 
       assert_equals(webBundleFetchCount(wbn_suffix + "?pipe=trickle(d0.1)"), 1);

@@ -187,8 +187,8 @@ def fuzzy_prop(node):
         arg_values = {None: deque()}
         for range_str_value in ranges:
             if "=" in range_str_value:
-                name, range_str_value = [part.strip()
-                                         for part in range_str_value.split("=", 1)]
+                name, range_str_value = (part.strip()
+                                         for part in range_str_value.split("=", 1))
                 if name not in args:
                     raise ValueError("%s is not a valid fuzzy property" % name)
                 if arg_values.get(name):
@@ -519,7 +519,7 @@ def get_manifest(metadata_root, test_path, url_base, run_info):
                                   data_cls_getter=data_cls_getter,
                                   test_path=test_path,
                                   url_base=url_base)
-    except IOError:
+    except OSError:
         return None
 
 
@@ -536,5 +536,5 @@ def get_dir_manifest(path, run_info):
             return static.compile(f,
                                   run_info,
                                   data_cls_getter=lambda x,y: DirectoryManifest)
-    except IOError:
+    except OSError:
         return None

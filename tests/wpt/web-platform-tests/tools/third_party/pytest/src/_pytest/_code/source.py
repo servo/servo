@@ -2,16 +2,16 @@ import ast
 import inspect
 import textwrap
 import tokenize
+import types
 import warnings
 from bisect import bisect_right
 from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import overload
 from typing import Tuple
 from typing import Union
-
-from _pytest.compat import overload
 
 
 class Source:
@@ -22,7 +22,7 @@ class Source:
 
     def __init__(self, obj: object = None) -> None:
         if not obj:
-            self.lines = []  # type: List[str]
+            self.lines: List[str] = []
         elif isinstance(obj, Source):
             self.lines = obj.lines
         elif isinstance(obj, (tuple, list)):
@@ -30,8 +30,11 @@ class Source:
         elif isinstance(obj, str):
             self.lines = deindent(obj.split("\n"))
         else:
-            rawcode = getrawcode(obj)
-            src = inspect.getsource(rawcode)
+            try:
+                rawcode = getrawcode(obj)
+                src = inspect.getsource(rawcode)
+            except TypeError:
+                src = inspect.getsource(obj)  # type: ignore[arg-type]
             self.lines = deindent(src.split("\n"))
 
     def __eq__(self, other: object) -> bool:
@@ -46,11 +49,11 @@ class Source:
     def __getitem__(self, key: int) -> str:
         ...
 
-    @overload  # noqa: F811
-    def __getitem__(self, key: slice) -> "Source":  # noqa: F811
+    @overload
+    def __getitem__(self, key: slice) -> "Source":
         ...
 
-    def __getitem__(self, key: Union[int, slice]) -> Union[str, "Source"]:  # noqa: F811
+    def __getitem__(self, key: Union[int, slice]) -> Union[str, "Source"]:
         if isinstance(key, int):
             return self.lines[key]
         else:
@@ -123,19 +126,17 @@ def findsource(obj) -> Tuple[Optional[Source], int]:
     return source, lineno
 
 
-def getrawcode(obj, trycall: bool = True):
+def getrawcode(obj: object, trycall: bool = True) -> types.CodeType:
     """Return code object for given function."""
     try:
-        return obj.__code__
+        return obj.__code__  # type: ignore[attr-defined,no-any-return]
     except AttributeError:
-        obj = getattr(obj, "f_code", obj)
-        obj = getattr(obj, "__code__", obj)
-        if trycall and not hasattr(obj, "co_firstlineno"):
-            if hasattr(obj, "__call__") and not inspect.isclass(obj):
-                x = getrawcode(obj.__call__, trycall=False)
-                if hasattr(x, "co_firstlineno"):
-                    return x
-        return obj
+        pass
+    if trycall:
+        call = getattr(obj, "__call__", None)
+        if call and not isinstance(obj, type):
+            return getrawcode(call, trycall=False)
+    raise TypeError(f"could not get code object for {obj!r}")
 
 
 def deindent(lines: Iterable[str]) -> List[str]:
@@ -145,12 +146,17 @@ def deindent(lines: Iterable[str]) -> List[str]:
 def get_statement_startend2(lineno: int, node: ast.AST) -> Tuple[int, Optional[int]]:
     # Flatten all statements and except handlers into one lineno-list.
     # AST's line numbers start indexing at 1.
-    values = []  # type: List[int]
+    values: List[int] = []
     for x in ast.walk(node):
         if isinstance(x, (ast.stmt, ast.ExceptHandler)):
+            # Before Python 3.8, the lineno of a decorated class or function pointed at the decorator.
+            # Since Python 3.8, the lineno points to the class/def, so need to include the decorators.
+            if isinstance(x, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                for d in x.decorator_list:
+                    values.append(d.lineno - 1)
             values.append(x.lineno - 1)
             for name in ("finalbody", "orelse"):
-                val = getattr(x, name, None)  # type: Optional[List[ast.stmt]]
+                val: Optional[List[ast.stmt]] = getattr(x, name, None)
                 if val:
                     # Treat the finally/orelse part as its own statement.
                     values.append(val[0].lineno - 1 - 1)

@@ -4,19 +4,24 @@ local path implementation.
 from __future__ import with_statement
 
 from contextlib import contextmanager
-import sys, os, re, atexit, io, uuid
+import sys, os, atexit, io, uuid
 import py
 from py._path import common
 from py._path.common import iswin32, fspath
 from stat import S_ISLNK, S_ISDIR, S_ISREG
 
-from os.path import abspath, normcase, normpath, isabs, exists, isdir, isfile, islink, dirname
+from os.path import abspath, normpath, isabs, exists, isdir, isfile, islink, dirname
 
 if sys.version_info > (3,0):
     def map_as_list(func, iter):
         return list(map(func, iter))
 else:
     map_as_list = map
+
+ALLOW_IMPORTLIB_MODE = sys.version_info > (3,5)
+if ALLOW_IMPORTLIB_MODE:
+    import importlib
+
 
 class Stat(object):
     def __getattr__(self, name):
@@ -158,7 +163,10 @@ class LocalPath(FSBase):
             self.strpath = abspath(path)
 
     def __hash__(self):
-        return hash(self.strpath)
+        s = self.strpath
+        if iswin32:
+            s = s.lower()
+        return hash(s)
 
     def __eq__(self, other):
         s1 = fspath(self)
@@ -191,8 +199,8 @@ class LocalPath(FSBase):
             other = abspath(other)
         if self == other:
             return True
-        if iswin32:
-            return False # there is no samefile
+        if not hasattr(os.path, "samefile"):
+            return False
         return py.error.checked_call(
                 os.path.samefile, self.strpath, other)
 
@@ -574,14 +582,17 @@ class LocalPath(FSBase):
 
     @contextmanager
     def as_cwd(self):
-        """ return context manager which changes to current dir during the
-        managed "with" context. On __enter__ it returns the old dir.
+        """
+        Return a context manager, which changes to the path's dir during the
+        managed "with" context.
+        On __enter__ it returns the old dir, which might be ``None``.
         """
         old = self.chdir()
         try:
             yield old
         finally:
-            old.chdir()
+            if old is not None:
+                old.chdir()
 
     def realpath(self):
         """ return a new path which contains no symbolic links."""
@@ -647,9 +658,34 @@ class LocalPath(FSBase):
         If ensuresyspath=="append" the root dir will be appended
         if it isn't already contained in sys.path.
         if ensuresyspath is False no modification of syspath happens.
+
+        Special value of ensuresyspath=="importlib" is intended
+        purely for using in pytest, it is capable only of importing
+        separate .py files outside packages, e.g. for test suite
+        without any __init__.py file. It effectively allows having
+        same-named test modules in different places and offers
+        mild opt-in via this option. Note that it works only in
+        recent versions of python.
         """
         if not self.check():
             raise py.error.ENOENT(self)
+
+        if ensuresyspath == 'importlib':
+            if modname is None:
+                modname = self.purebasename
+            if not ALLOW_IMPORTLIB_MODE:
+                raise ImportError(
+                    "Can't use importlib due to old version of Python")
+            spec = importlib.util.spec_from_file_location(
+                modname, str(self))
+            if spec is None:
+                raise ImportError(
+                    "Can't find module %s at location %s" %
+                    (modname, str(self))
+                )
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
 
         pkgpath = None
         if modname is None:
@@ -669,7 +705,7 @@ class LocalPath(FSBase):
             mod = sys.modules[modname]
             if self.basename == "__init__.py":
                 return mod # we don't check anything as we might
-                       # we in a namespace package ... too icky to check
+                       # be in a namespace package ... too icky to check
             modfile = mod.__file__
             if modfile[-4:] in ('.pyc', '.pyo'):
                 modfile = modfile[:-1]
@@ -683,7 +719,9 @@ class LocalPath(FSBase):
             except py.error.ENOENT:
                 issame = False
             if not issame:
-                raise self.ImportMismatchError(modname, modfile, self)
+                ignore = os.getenv('PY_IGNORE_IMPORTMISMATCH')
+                if ignore != '1':
+                    raise self.ImportMismatchError(modname, modfile, self)
             return mod
         else:
             try:
@@ -800,7 +838,7 @@ class LocalPath(FSBase):
         return cls(py.error.checked_call(tempfile.mkdtemp, dir=str(rootdir)))
 
     def make_numbered_dir(cls, prefix='session-', rootdir=None, keep=3,
-                          lock_timeout = 172800):   # two days
+                          lock_timeout=172800):   # two days
         """ return unique directory with a number greater than the current
             maximum one.  The number is assumed to start directly after prefix.
             if keep is true directories with a number less than (maxnum-keep)
@@ -810,10 +848,10 @@ class LocalPath(FSBase):
         if rootdir is None:
             rootdir = cls.get_temproot()
 
-        nprefix = normcase(prefix)
+        nprefix = prefix.lower()
         def parse_num(path):
             """ parse the number out of a path (if it matches the prefix) """
-            nbasename = normcase(path.basename)
+            nbasename = path.basename.lower()
             if nbasename.startswith(nprefix):
                 try:
                     return int(nbasename[len(nprefix):])

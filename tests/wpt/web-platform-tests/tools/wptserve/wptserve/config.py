@@ -1,7 +1,7 @@
 import copy
 import os
 from collections import defaultdict
-from collections.abc import Mapping
+from typing import Any, Mapping
 
 from . import sslutils
 from .utils import get_port
@@ -26,7 +26,7 @@ def _merge_dict(base_dict, override_dict):
     return rv
 
 
-class Config(Mapping):
+class Config(Mapping[str, Any]):
     """wptserve configuration data
 
     Immutable configuration that's safe to be passed between processes.
@@ -85,7 +85,7 @@ def json_types(obj, skip=None):
     raise ValueError
 
 
-class ConfigBuilder(object):
+class ConfigBuilder:
     """Builder object for setting the wptserve config.
 
     Configuration can be passed in as a dictionary to the constructor, or
@@ -275,7 +275,7 @@ class ConfigBuilder(object):
 
         rv = {}
         for name, host in hosts.items():
-            rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + u"." + host)
+            rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + "." + host)
                         for subdomain in data["subdomains"]}
             rv[name][""] = host
         return rv
@@ -287,7 +287,7 @@ class ConfigBuilder(object):
 
         rv = {}
         for name, host in hosts.items():
-            rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + u"." + host)
+            rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + "." + host)
                         for subdomain in data["not_subdomains"]}
         return rv
 

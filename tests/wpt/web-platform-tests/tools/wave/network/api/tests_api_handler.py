@@ -25,7 +25,7 @@ class TestsApiHandler(ApiHandler):
         web_root,
         test_loader
     ):
-        super(TestsApiHandler, self).__init__(web_root)
+        super().__init__(web_root)
         self._tests_manager = tests_manager
         self._sessions_manager = sessions_manager
         self._wpt_port = wpt_port
@@ -293,4 +293,4 @@ class TestsApiHandler(ApiHandler):
             query = ""
         if protocol is None:
             protocol = "http"
-        return urlunsplit([protocol, "{}:{}".format(hostname, port), uri, query, ''])
+        return urlunsplit([protocol, f"{hostname}:{port}", uri, query, ''])

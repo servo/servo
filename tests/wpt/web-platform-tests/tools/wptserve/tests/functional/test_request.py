@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from urllib.parse import quote_from_bytes
@@ -125,13 +124,13 @@ class TestRequest(TestUsingServer):
         self.server.router.register(*route)
 
         # Try some non-ASCII characters and the server shouldn't crash.
-        encoded_text = u"你好".encode("utf-8")
+        encoded_text = "你好".encode("utf-8")
         resp = self.request(route[1], headers={"foo": encoded_text})
         self.assertEqual(encoded_text, resp.read())
 
         # Try a different encoding from utf-8 to make sure the binary value is
         # returned in verbatim.
-        encoded_text = u"どうも".encode("shift-jis")
+        encoded_text = "どうも".encode("shift-jis")
         resp = self.request(route[1], headers={"foo": encoded_text})
         self.assertEqual(encoded_text, resp.read())
 
@@ -144,7 +143,7 @@ class TestRequest(TestUsingServer):
         self.server.router.register(*route)
 
         # We intentionally choose an encoding that's not the default UTF-8.
-        encoded_text = u"どうも".encode("shift-jis")
+        encoded_text = "どうも".encode("shift-jis")
         quoted = quote_from_bytes(encoded_text)
         resp = self.request(route[1], query="foo="+quoted)
         self.assertEqual(encoded_text, resp.read())
@@ -158,7 +157,7 @@ class TestRequest(TestUsingServer):
         self.server.router.register(*route)
 
         # We intentionally choose an encoding that's not the default UTF-8.
-        encoded_text = u"どうも".encode("shift-jis")
+        encoded_text = "どうも".encode("shift-jis")
         # After urlencoding, the string should only contain ASCII.
         quoted = quote_from_bytes(encoded_text).encode("ascii")
         resp = self.request(route[1], method="POST", body=b"foo="+quoted)
@@ -178,7 +177,7 @@ class TestAuth(TestUsingServer):
         self.assertEqual(200, resp.getcode())
         self.assertEqual([b"test", b"PASS"], resp.read().split(b" "))
 
-        encoded_text = u"どうも".encode("shift-jis")
+        encoded_text = "どうも".encode("shift-jis")
         resp = self.request(route[1], auth=(encoded_text, encoded_text))
         self.assertEqual(200, resp.getcode())
         self.assertEqual([encoded_text, encoded_text], resp.read().split(b" "))

@@ -1,15 +1,17 @@
 from wptserve.utils import isomorphic_decode
 
+import importlib
+client_hints_list = importlib.import_module("client-hints.resources.clienthintslist").client_hints_list
+
 def main(request, response):
     """
     Simple handler that returns an HTML response that passes when the required
     Client Hints are received as request headers.
     """
-    values = [b"Sec-CH-Device-Memory", b"Device-Memory", b"Sec-CH-DPR", b"DPR", b"Sec-CH-Viewport-Width", b"Viewport-Width", b"Sec-CH-UA", b"Sec-CH-UA-Mobile"]
 
     result = u"PASS"
     log = u""
-    for value in values:
+    for value in client_hints_list():
         should = (request.GET[value.lower()] == b"true")
         present = request.headers.get(value.lower()) or request.headers.get(value)
         if present:

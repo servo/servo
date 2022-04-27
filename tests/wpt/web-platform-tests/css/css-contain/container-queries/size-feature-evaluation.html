@@ -53,39 +53,39 @@ function test_evaluation(container_class, query, expected) {
     let logical_width = (cls == 'horizontal') ? 'inline' : 'block';
     let logical_height = (cls == 'horizontal') ? 'block' : 'inline';
 
-    test_evaluation(cls, 'size(width < 100px)', false);
-    test_evaluation(cls, 'size(width >= 100px)', true);
-    test_evaluation(cls, 'size(min-width: 100px)', true);
-    test_evaluation(cls, 'size(min-width: 101px)', false);
-    test_evaluation(cls, 'size(max-width: 100px)', true);
-    test_evaluation(cls, 'size(max-width: 99px)', false);
+    test_evaluation(cls, '(width < 100px)', false);
+    test_evaluation(cls, '(width >= 100px)', true);
+    test_evaluation(cls, '(min-width: 100px)', true);
+    test_evaluation(cls, '(min-width: 101px)', false);
+    test_evaluation(cls, '(max-width: 100px)', true);
+    test_evaluation(cls, '(max-width: 99px)', false);
 
-    test_evaluation(cls, 'size(height < 200px)', false);
-    test_evaluation(cls, 'size(height >= 200px)', true);
-    test_evaluation(cls, 'size(min-height: 200px)', true);
-    test_evaluation(cls, 'size(min-height: 201px)', false);
-    test_evaluation(cls, 'size(max-height: 200px)', true);
-    test_evaluation(cls, 'size(max-height: 199px)', false);
+    test_evaluation(cls, '(height < 200px)', false);
+    test_evaluation(cls, '(height >= 200px)', true);
+    test_evaluation(cls, '(min-height: 200px)', true);
+    test_evaluation(cls, '(min-height: 201px)', false);
+    test_evaluation(cls, '(max-height: 200px)', true);
+    test_evaluation(cls, '(max-height: 199px)', false);
 
-    test_evaluation(cls, `size(${logical_width}-size < 100px)`, false);
-    test_evaluation(cls, `size(${logical_width}-size >= 100px)`, true);
-    test_evaluation(cls, `size(min-${logical_width}-size: 100px)`, true);
-    test_evaluation(cls, `size(min-${logical_width}-size: 101px)`, false);
-    test_evaluation(cls, `size(max-${logical_width}-size: 100px)`, true);
-    test_evaluation(cls, `size(max-${logical_width}-size: 99px)`, false);
+    test_evaluation(cls, `(${logical_width}-size < 100px)`, false);
+    test_evaluation(cls, `(${logical_width}-size >= 100px)`, true);
+    test_evaluation(cls, `(min-${logical_width}-size: 100px)`, true);
+    test_evaluation(cls, `(min-${logical_width}-size: 101px)`, false);
+    test_evaluation(cls, `(max-${logical_width}-size: 100px)`, true);
+    test_evaluation(cls, `(max-${logical_width}-size: 99px)`, false);
 
-    test_evaluation(cls, `size(${logical_height}-size < 200px)`, false);
-    test_evaluation(cls, `size(${logical_height}-size >= 200px)`, true);
-    test_evaluation(cls, `size(min-${logical_height}-size: 200px)`, true);
-    test_evaluation(cls, `size(min-${logical_height}-size: 201px)`, false);
-    test_evaluation(cls, `size(max-${logical_height}-size: 200px)`, true);
-    test_evaluation(cls, `size(max-${logical_height}-size: 199px)`, false);
+    test_evaluation(cls, `(${logical_height}-size < 200px)`, false);
+    test_evaluation(cls, `(${logical_height}-size >= 200px)`, true);
+    test_evaluation(cls, `(min-${logical_height}-size: 200px)`, true);
+    test_evaluation(cls, `(min-${logical_height}-size: 201px)`, false);
+    test_evaluation(cls, `(max-${logical_height}-size: 200px)`, true);
+    test_evaluation(cls, `(max-${logical_height}-size: 199px)`, false);
 
-    test_evaluation(cls, 'size(orientation: landscape)', false);
-    test_evaluation(cls, 'size(orientation: portrait)', true);
+    test_evaluation(cls, '(orientation: landscape)', false);
+    test_evaluation(cls, '(orientation: portrait)', true);
 
-    test_evaluation(cls, 'size(aspect-ratio: 1/2)', true);
-    test_evaluation(cls, 'size(aspect-ratio: 2/1)', false);
+    test_evaluation(cls, '(aspect-ratio: 1/2)', true);
+    test_evaluation(cls, '(aspect-ratio: 2/1)', false);
   }
 
 </script>

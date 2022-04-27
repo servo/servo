@@ -1,3 +1,7 @@
+// To use the functions below, be sure to include the following files in your
+// test:
+// - "/common/get-host-info.sub.js" to get the different origin values.
+
 const SAME_ORIGIN = {origin: get_host_info().HTTPS_ORIGIN, name: "SAME_ORIGIN"};
 const SAME_SITE = {origin: get_host_info().HTTPS_REMOTE_ORIGIN, name: "SAME_SITE"};
 const CROSS_ORIGIN = {origin: get_host_info().HTTPS_NOTSAMESITE_ORIGIN, name: "CROSS_ORIGIN"}

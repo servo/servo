@@ -5,13 +5,17 @@ import threading
 import queue
 import uuid
 
-from multiprocessing.managers import AcquirerProxy, BaseManager, BaseProxy, DictProxy, public_methods
+from multiprocessing.managers import BaseManager, BaseProxy
+# We also depend on some undocumented parts of multiprocessing.managers which
+# don't have any type annotations.
+from multiprocessing.managers import AcquirerProxy, DictProxy, public_methods  # type: ignore
+from typing import Dict
 
 from .utils import isomorphic_encode
 
 
 class StashManager(BaseManager):
-    shared_data = {}
+    shared_data: Dict[str, object] = {}
     lock = threading.Lock()
 
 
@@ -46,7 +50,7 @@ for method in QueueProxy._exposed_:
         _impl.__name__ = method
         return _impl
 
-    setattr(QueueProxy, method, impl_fn(method))
+    setattr(QueueProxy, method, impl_fn(method))  # type: ignore
 
 
 StashManager.register("Queue",
@@ -54,7 +58,7 @@ StashManager.register("Queue",
                       proxytype=QueueProxy)
 
 
-class StashServer(object):
+class StashServer:
     def __init__(self, address=None, authkey=None, mp_context=None):
         self.address = address
         self.authkey = authkey
@@ -102,7 +106,7 @@ def start_server(address=None, authkey=None, mp_context=None):
     return (manager, address, manager._authkey)
 
 
-class LockWrapper(object):
+class LockWrapper:
     def __init__(self, lock):
         self.lock = lock
 
@@ -122,7 +126,7 @@ class LockWrapper(object):
 #TODO: Consider expiring values after some fixed time for long-running
 #servers
 
-class Stash(object):
+class Stash:
     """Key-value store for persisting data across HTTP/S and WS/S requests.
 
     This data store is specifically designed for persisting data across server

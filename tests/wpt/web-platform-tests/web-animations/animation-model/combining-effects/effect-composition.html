@@ -41,6 +41,34 @@ for (const composite of ['accumulate', 'add']) {
 
   test(t => {
     const div = createDiv(t);
+    const anims = [];
+    anims.push(div.animate({ transform: 'translateX(100px)' }, { duration: 100, composite: 'replace' }));
+    anims.push(div.animate({ transform: 'translateY(100px)' }, { duration: 100, composite }));
+
+    for (const anim of anims) {
+      anim.currentTime = 50;
+    }
+
+    assert_equals(getComputedStyle(div).transform, 'matrix(1, 0, 0, 1, 50, 50)',
+      'Animated style at 50%');
+  }, `${composite} onto an underlying animation value with implicit from values`);
+
+  test(t => {
+    const div = createDiv(t);
+    const anims = [];
+    anims.push(div.animate([{ offset: 1, transform: 'translateX(100px)' }], { duration: 100, composite: 'replace' }));
+    anims.push(div.animate([{ offset: 1, transform: 'translateY(100px)' }], { duration: 100, composite }));
+
+    for (const anim of anims) {
+      anim.currentTime = 50;
+    }
+
+    assert_equals(getComputedStyle(div).transform, 'matrix(1, 0, 0, 1, 50, 50)',
+      'Animated style at 50%');
+  }, `${composite} onto an underlying animation value with implicit to values`);
+
+  test(t => {
+    const div = createDiv(t);
     div.style.marginLeft = '10px';
     const anim =
       div.animate([{ marginLeft: '10px', composite },

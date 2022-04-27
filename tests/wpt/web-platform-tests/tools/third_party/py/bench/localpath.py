@@ -1,6 +1,4 @@
-
 import py
-import timeit
 
 class Listdir:
     numiter = 100000
@@ -70,6 +68,6 @@ if __name__ == "__main__":
         for i in xrange(cls.numiter):
             inst.run()
         elapsed = time.time() - now
-        print "%s: %d loops took %.2f seconds, per call %.6f" %(
+        print("%s: %d loops took %.2f seconds, per call %.6f" %(
                cls.__name__,
-                cls.numiter, elapsed, elapsed / cls.numiter)
+                cls.numiter, elapsed, elapsed / cls.numiter))

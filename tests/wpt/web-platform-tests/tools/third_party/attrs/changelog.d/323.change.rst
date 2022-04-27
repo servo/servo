@@ -1,1 +1,0 @@
-If ``attr.s`` is passed a *these* argument, it will not attempt to remove attributes with the same name from the class body anymore.

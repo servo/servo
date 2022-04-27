@@ -11,7 +11,7 @@ from ...data.exceptions.not_found_exception import NotFoundException
 
 class DevicesApiHandler(ApiHandler):
     def __init__(self, devices_manager, event_dispatcher, web_root):
-        super(DevicesApiHandler, self).__init__(web_root)
+        super().__init__(web_root)
         self._devices_manager = devices_manager
         self._event_dispatcher = event_dispatcher
 
@@ -63,7 +63,7 @@ class DevicesApiHandler(ApiHandler):
             token = uri_parts[2]
             query = self.parse_query_parameters(request)
 
-            if u"device_token" in query:
+            if "device_token" in query:
                 self._devices_manager.refresh_device(query["device_token"])
 
             event = threading.Event()
@@ -89,7 +89,7 @@ class DevicesApiHandler(ApiHandler):
         try:
             query = self.parse_query_parameters(request)
 
-            if u"device_token" in query:
+            if "device_token" in query:
                 self._devices_manager.refresh_device(query["device_token"])
 
             event = threading.Event()
@@ -108,7 +108,7 @@ class DevicesApiHandler(ApiHandler):
                 self.send_json(data=message, response=response)
             self._event_dispatcher.remove_event_listener(event_listener_token)
         except Exception:
-            self.handle_exception(u"Failed to register global event listener")
+            self.handle_exception("Failed to register global event listener")
             response.status = 500
 
     def post_global_event(self, request, response):
@@ -119,7 +119,7 @@ class DevicesApiHandler(ApiHandler):
                 event = json.loads(body)
 
             query = self.parse_query_parameters(request)
-            if u"device_token" in query:
+            if "device_token" in query:
                 self._devices_manager.refresh_device(query["device_token"])
 
             event_type = None
@@ -145,7 +145,7 @@ class DevicesApiHandler(ApiHandler):
                 event = json.loads(body)
 
             query = self.parse_query_parameters(request)
-            if u"device_token" in query:
+            if "device_token" in query:
                 self._devices_manager.refresh_device(query["device_token"])
 
             event_type = None
@@ -166,18 +166,18 @@ class DevicesApiHandler(ApiHandler):
 
         # /api/devices
         if len(uri_parts) == 2:
-            if method == u"POST":
+            if method == "POST":
                 self.create_device(request, response)
                 return
-            if method == u"GET":
+            if method == "GET":
                 self.read_devices(request, response)
                 return
 
         # /api/devices/<function>
         if len(uri_parts) == 3:
             function = uri_parts[2]
-            if method == u"GET":
-                if function == u"events":
+            if method == "GET":
+                if function == "events":
                     self.register_global_event_listener(request, response)
                     return
                 self.read_device(request, response)
@@ -190,8 +190,8 @@ class DevicesApiHandler(ApiHandler):
         # /api/devices/<token>/<function>
         if len(uri_parts) == 4:
             function = uri_parts[3]
-            if method == u"GET":
-                if function == u"events":
+            if method == "GET":
+                if function == "events":
                     self.register_event_listener(request, response)
                     return
             if method == "POST":

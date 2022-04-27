@@ -4,9 +4,8 @@
 <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
 <link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
 <meta name="assert" content="Checks that a modal dialog marks outer nodes as inert,
-  but only in its document, not in the parent browsing context.
-  Also, when an iframe is marked as inert by a modal dialog,
-  all contents in the nested browsing context are marked as inert too.">
+  but only in its document, not in the parent browsing context,
+  nor in nested browsing contexts.">
 <div id="log"></div>
 <div id="wrapper">
   (main document: outer text)
@@ -103,30 +102,30 @@ promise_test(async function() {
 
   checkSelection(window, "(main document: dialog)");
   checkSelection(innerIframeWindow, "(inner iframe: outer text)(inner iframe: dialog)");
-  checkSelection(outerIframeWindow, "");
-}, "Modal dialog in the main document marks outer nodes as inert. All contents of the outer iframe are also marked as inert.");
+  checkSelection(outerIframeWindow, "(outer iframe: outer text)(outer iframe: dialog)");
+}, "Modal dialog in the main document marks outer nodes as inert. Contents of the outer iframe aren't marked as inert.");
 
 promise_test(async function() {
   showModals(this, [innerIframeWindow, window]);
 
   checkSelection(window, "(main document: dialog)");
   checkSelection(innerIframeWindow, "(inner iframe: dialog)");
-  checkSelection(outerIframeWindow, "");
-}, "Modal dialogs in the main document and inner iframe mark outer nodes as inert. All contents of the outer iframe are also marked as inert.");
+  checkSelection(outerIframeWindow, "(outer iframe: outer text)(outer iframe: dialog)");
+}, "Modal dialogs in the main document and inner iframe mark outer nodes as inert. Contents of the outer iframe aren't marked as inert.");
 
 promise_test(async function() {
   showModals(this, [outerIframeWindow, window]);
 
   checkSelection(window, "(main document: dialog)");
   checkSelection(innerIframeWindow, "(inner iframe: outer text)(inner iframe: dialog)");
-  checkSelection(outerIframeWindow, "");
-}, "Modal dialogs in the main document and outer iframe mark outer nodes as inert. All contents of the outer iframe are also marked as inert.");
+  checkSelection(outerIframeWindow, "(outer iframe: dialog)");
+}, "Modal dialogs in the main document and outer iframe mark outer nodes as inert. Contents of the outer iframe aren't marked as inert.");
 
 promise_test(async function() {
   showModals(this, [innerIframeWindow, outerIframeWindow, window]);
 
   checkSelection(window, "(main document: dialog)");
   checkSelection(innerIframeWindow, "(inner iframe: dialog)");
-  checkSelection(outerIframeWindow, "");
-}, "Modal dialogs in the main document and both iframes mark outer nodes as inert. All contents of the outer iframe are also marked as inert.");
+  checkSelection(outerIframeWindow, "(outer iframe: dialog)");
+}, "Modal dialogs in the main document and both iframes mark outer nodes as inert. Contents of the outer iframe aren't marked as inert.");
 </script>

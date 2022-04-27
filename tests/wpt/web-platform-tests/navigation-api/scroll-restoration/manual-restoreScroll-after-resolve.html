@@ -1,0 +1,27 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div style="height: 1000px; width: 1000px;"></div>
+<div id="frag"></div>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  assert_equals(window.scrollY, 0);
+  await navigation.navigate("#frag").finished;
+  assert_not_equals(window.scrollY, 0);
+
+  let navigate_event;
+  navigation.onnavigate = e => {
+    navigate_event = e;
+    e.transitionWhile(Promise.resolve(), { scrollRestoration: "manual" });
+  };
+  await navigation.back().finished;
+  assert_not_equals(window.scrollY, 0);
+  assert_throws_dom("InvalidStateError", () => navigate_event.restoreScroll());
+  assert_not_equals(window.scrollY, 0);
+}, "scrollRestoration: restoreScroll() should throw after a navigation finished promise fulfills");
+</script>
+</body>

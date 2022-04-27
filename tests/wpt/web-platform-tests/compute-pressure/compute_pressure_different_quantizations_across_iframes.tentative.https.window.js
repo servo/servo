@@ -5,10 +5,10 @@ promise_test(async t => {
   const observer1 = new ComputePressureObserver(
       update => { observer1_updates.push(update); },
       {cpuUtilizationThresholds: [0.5], cpuSpeedThresholds: [0.5]});
-  t.add_cleanup(() => observer1.stop());
+  t.add_cleanup(() => observer1.disconnect());
   // Ensure that observer1's quantization scheme gets registered as the origin's
   // scheme before observer2 starts.
-  await observer1.observe();
+  await observer1.observe('cpu');
 
   // iframe numbers are aligned with observer numbers.  The first observer is in
   // the main frame, so there is no iframe1.
@@ -23,8 +23,8 @@ promise_test(async t => {
           resolve();
         },
         {cpuUtilizationThresholds: [0.25], cpuSpeedThresholds: [0.75]});
-    t.add_cleanup(() => observer2.stop());
-    observer2.observe().catch(reject);
+    t.add_cleanup(() => observer2.disconnect());
+    observer2.observe('cpu').catch(reject);
   });
 
   // observer2 uses a different quantization scheme than observer1. After
@@ -61,8 +61,8 @@ promise_test(async t => {
           resolve();
         },
         {cpuUtilizationThresholds: [0.75], cpuSpeedThresholds: [0.25]});
-    t.add_cleanup(() => observer3.stop());
-    observer3.observe().catch(reject);
+    t.add_cleanup(() => observer3.disconnect());
+    observer3.observe('cpu').catch(reject);
   });
 
   assert_equals(

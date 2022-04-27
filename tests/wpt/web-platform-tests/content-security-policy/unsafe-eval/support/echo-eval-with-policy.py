@@ -4,11 +4,27 @@ def main(request, response):
 <!DOCTYPE html>
 <html>
 <script>
-var id = 0;
-try {
-  id = eval("id + 1");
-} catch (e) {}
-window.parent.postMessage(id === 1 ? "eval allowed" : "eval blocked");
+function check_eval(context) {
+  context.eval_check_variable = 0;
+  try {
+    id = context.eval("eval_check_variable + 1");
+  } catch (e) {
+    if (e instanceof EvalError) {
+      if (context.eval_check_variable === 0)
+        return "blocked";
+      else
+        return "EvalError exception, but eval was executed";
+    } else {
+      return "Unexpected exception: " + e.message;
+    }
+  }
+  return "allowed";
+}
+
+window.parent.postMessage({
+  evalInIframe: check_eval(window),
+  evalInParent: check_eval(parent),
+});
 </script>
 </html>
 """

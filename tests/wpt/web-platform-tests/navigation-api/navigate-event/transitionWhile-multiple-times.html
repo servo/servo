@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let p1_resolved = false;
+  let p2_resolved = false;
+  let p3_resolved = false;
+  navigation.onnavigate = t.step_func(e => {
+    let p1 = Promise.resolve().then(t.step_func(() => {
+      assert_false(p2_resolved);
+      assert_false(p3_resolved);
+      p1_resolved = true;
+    }));
+    let p2 = new Promise(resolve => t.step_timeout(resolve, 1)).then(t.step_func(() => {
+      assert_true(p1_resolved);
+      assert_false(p3_resolved);
+      p2_resolved = true;
+    }));
+    let p3 = new Promise(resolve => t.step_timeout(resolve, 1)).then(t.step_func(() => {
+      assert_true(p1_resolved);
+      assert_true(p2_resolved);
+      p3_resolved = true;
+    }));
+    e.transitionWhile(p1);
+    e.transitionWhile(p2);
+    e.transitionWhile(p3);
+  });
+
+  let promise = navigation.navigate("#1").finished;
+  assert_equals(location.hash, "#1");
+  assert_false(p1_resolved);
+  assert_false(p2_resolved);
+  assert_false(p3_resolved);
+
+  await promise;
+  assert_true(p1_resolved);
+  assert_true(p2_resolved);
+  assert_true(p3_resolved);
+}, "navigation.navigate() returns a finished promise that awaits all promises if event.transitionWhile() is called multiple times");
+</script>

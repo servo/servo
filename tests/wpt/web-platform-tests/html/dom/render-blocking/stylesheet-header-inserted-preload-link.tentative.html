@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Stylesheet can specify a web font as render-blocking via preload link header</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script src="support/test-render-blocking.js"></script>
+
+<link rel="stylesheet" href="support/font-with-preload-link-header.css">
+<span id="target" style="font: 20px/1 custom-font">Lorem ipsum</span>
+
+<script>
+test_render_blocking(
+    '/fonts/Ahem.ttf?pipe=trickle(d1)',
+    () => {
+      const target = document.getElementById('target');
+      assert_equals(target.offsetHeight, 20);
+      assert_equals(target.offsetWidth, 220);
+    },
+    'Render-blocking web font specified by the stylesheet is applied');
+</script>

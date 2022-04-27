@@ -20,6 +20,11 @@ const gTestCases = [
     cssText: 'max(1, 2, 3)',
   },
   {
+    description: 'CSSMathMax with pixel arguments',
+    value: new CSSMathMin(CSS.px(100), CSS.px(110)),
+    cssText: 'min(100px, 110px)',
+  },
+  {
     description: 'CSSMathMax containing nested CSSMathValues',
     value: new CSSMathMax(new CSSMathSum(1, 2), 3),
     cssText: 'max(1 + 2, 3)',
@@ -35,9 +40,29 @@ const gTestCases = [
     cssText: 'min(1, 2, 3)',
   },
   {
+    description: 'CSSMathMin with pixel arguments',
+    value: new CSSMathMin(CSS.px(90), CSS.px(100)),
+    cssText: 'min(90px, 100px)',
+  },
+  {
     description: 'CSSMathMin containing nested CSSMathValues',
     value: new CSSMathMin(new CSSMathSum(1, 2), 3),
     cssText: 'min(1 + 2, 3)',
+  },
+  {
+    description: 'CSSMathClamp with lower, value and upper arguments',
+    value: new CSSMathClamp(1, 2, 3),
+    cssText: 'clamp(1, 2, 3)',
+  },
+  {
+    description: 'CSSMathClamp with pixel arguments',
+    value: new CSSMathClamp(CSS.px(90), CSS.px(100), CSS.px(110)),
+    cssText: 'clamp(90px, 100px, 110px)',
+  },
+  {
+    description: 'CSSMathClamp containing nested CSSMathValues',
+    value: new CSSMathClamp(new CSSMathSum(1, 2), 3, 4),
+    cssText: 'clamp(1 + 2, 3, 4)',
   },
   {
     description: 'CSSMathSum with one argument',

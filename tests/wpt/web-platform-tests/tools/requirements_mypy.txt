@@ -1,3 +1,12 @@
-mypy==0.812
+mypy==0.942
 mypy-extensions==0.4.3
-typed-ast==1.4.3
+toml==0.10.2
+typed-ast==1.5.3
+types-atomicwrites==1.4.3
+types-python-dateutil==2.8.12
+types-PyYAML==6.0.7
+types-requests==2.27.20
+types-setuptools==57.4.14
+types-six==1.16.15
+types-ujson==4.2.1
+typing-extensions==4.1.1

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Sub Apps: Valid calls for add()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/subapps-helpers.js"></script>
+<script>
+
+subapps_test(async (t, mockSubAppsService) => {
+  const same_origin_url = document.location.origin + '/sub-app';
+  await navigator.subApps.add(same_origin_url);
+}, 'Same origin fully qualified URL.');
+
+subapps_test(async (t, mockSubAppsService) => {
+  await navigator.subApps.add('sub/app');
+}, 'Relative path.');
+
+subapps_test(async (t, mockSubAppsService) => {
+  await navigator.subApps.add('/sub/app');
+}, 'Absolute path.');
+
+</script>

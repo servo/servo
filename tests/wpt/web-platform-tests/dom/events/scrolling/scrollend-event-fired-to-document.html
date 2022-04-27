@@ -41,8 +41,6 @@ function onVerticalScrollEnd(event) {
   assert_true(event.bubbles);
   vertical_scrollend_arrived = true;
 }
-document.addEventListener("scrollend", onHorizontalScrollEnd);
-document.addEventListener("scrollend", onVerticalScrollEnd);
 
 function runTest() {
   promise_test (async (t) => {
@@ -50,13 +48,17 @@ function runTest() {
     target_div.addEventListener("scrollend",
         t.unreached_func("target_div got unexpected scrollend event."));
     await waitForCompositorCommit();
+
     // Scroll left on target div and wait for the doc to get scrollend event.
+    document.addEventListener("scrollend", onHorizontalScrollEnd);
     await touchScrollInTarget(300, target_div, 'left');
     await waitFor(() => { return horizontal_scrollend_arrived; },
         'Document did not receive scrollend event after scroll left on target.');
     assert_equals(target_div.scrollLeft, 0);
+    document.removeEventListener("scrollend", onHorizontalScrollEnd);
 
     // Scroll up on target div and wait for the doc to get scrollend event.
+    document.addEventListener("scrollend", onVerticalScrollEnd);
     await touchScrollInTarget(300, target_div, 'up');
     await waitFor(() => { return vertical_scrollend_arrived; },
         'Document did not receive scrollend event after scroll up on target.');

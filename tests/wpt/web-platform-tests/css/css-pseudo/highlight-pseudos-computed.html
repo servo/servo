@@ -5,10 +5,22 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
-  #target::selection,
-  #target::target-text,
-  #target::spelling-error,
-  #target::grammar-error,
+  #target::selection {
+    background-color: green;
+    color: lime;
+  }
+  #target::target-text {
+    background-color: green;
+    color: lime;
+  }
+  #target::spelling-error {
+    background-color: green;
+    color: lime;
+  }
+  #target::grammar-error {
+    background-color: green;
+    color: lime;
+  }
   #target::highlight(foo) {
     background-color: green;
     color: lime;

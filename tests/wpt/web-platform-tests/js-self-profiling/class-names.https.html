@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script src="resources/profile-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    // Methods should use their label as the function/frame name. Source:
+    // https://www.ecma-international.org/ecma-262/#sec-method-definitions-runtime-semantics-propertydefinitionevaluation
+    promise_test(async t => {
+      class SomeClass {
+        method(sample) {
+          sample();
+        }
+      }
+      let instance = new SomeClass();
+
+      await ProfileUtils.testFunction(instance.method.bind(instance), {
+        name: 'method',
+      });
+    }, 'class method names are logged correctly');
+  </script>
+</body>
+
+</html>

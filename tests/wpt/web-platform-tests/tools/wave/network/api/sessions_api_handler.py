@@ -20,7 +20,7 @@ class SessionsApiHandler(ApiHandler):
         web_root,
         read_sessions_enabled
     ):
-        super(SessionsApiHandler, self).__init__(web_root)
+        super().__init__(web_root)
         self._sessions_manager = sessions_manager
         self._results_manager = results_manager
         self._event_dispatcher = event_dispatcher
@@ -357,8 +357,8 @@ class SessionsApiHandler(ApiHandler):
             uri_parts = self.parse_uri(request)
             token = uri_parts[2]
             message = None
-            body = request.body.decode(u"utf-8")
-            if body != u"":
+            body = request.body.decode("utf-8")
+            if body != "":
                 message = json.loads(body)
 
             self._event_dispatcher.dispatch_event(

@@ -20,7 +20,7 @@ async function writeToFile(f) {
 }
 
 async function readWriteTest() {
-  const bc = new BroadcastChannel('prerender-channel');
+  const bc = new PrerenderChannel('prerender-channel');
   assert_true(document.prerendering);
 
   let f = await storageFoundation.open('test_file');

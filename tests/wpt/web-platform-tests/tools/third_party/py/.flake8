@@ -1,0 +1,4 @@
+[flake8]
+max-line-length = 120
+per-file-ignores =
+    **/*.pyi:E252,E301,E302,E305,E501,E701,E704,F401,F811,F821

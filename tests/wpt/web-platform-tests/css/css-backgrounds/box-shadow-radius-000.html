@@ -3,6 +3,8 @@
 <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
 <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#shadow-shape">
 <link rel="match" href="box-shadow-radius-000-ref.html">
+<!-- Allow differences of antialised pixels along rounded edges -->
+<meta name="fuzzy" content="0-25;0-80">
 
 <style>
   body > div {
@@ -93,7 +95,7 @@
     border-width: 14px;
   }
   .half.trap > .ref {
-    border-width: 18px;
+    border-width: 20px;
   }
 
   .fourth > .test {
@@ -110,7 +112,7 @@
     border-width: 18px;
   }
   .fourth.trap > .ref {
-    border-width: 22px;
+    border-width: 23px;
   }
 
   .eighth > .test {

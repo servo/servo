@@ -126,7 +126,7 @@
                             } catch (e) {}
                         }
                     }
-                    if (supports_post_message(w) && w !== self) {
+                    if (w !== self) {
                         w.postMessage(message_arg, "*");
                     }
                 });
@@ -425,6 +425,53 @@
     };
 
     /*
+     * Shadow realms.
+     * https://github.com/tc39/proposal-shadowrealm
+     *
+     * This class is used as the test_environment when testharness is running
+     * inside a shadow realm.
+     */
+    function ShadowRealmTestEnvironment() {
+        WorkerTestEnvironment.call(this);
+        this.all_loaded = false;
+        this.on_loaded_callback = null;
+    }
+
+    ShadowRealmTestEnvironment.prototype = Object.create(WorkerTestEnvironment.prototype);
+
+    /**
+     * Signal to the test environment that the tests are ready and the on-loaded
+     * callback should be run.
+     *
+     * Shadow realms are not *really* a DOM context: they have no `onload` or similar
+     * event for us to use to set up the test environment; so, instead, this method
+     * is manually triggered from the incubating realm
+     *
+     * @param {Function} message_destination - a function that receives JSON-serializable
+     * data to send to the incubating realm, in the same format as used by RemoteContext
+     */
+    ShadowRealmTestEnvironment.prototype.begin = function(message_destination) {
+        if (this.all_loaded) {
+            throw new Error("Tried to start a shadow realm test environment after it has already started");
+        }
+        var fakeMessagePort = {};
+        fakeMessagePort.postMessage = message_destination;
+        this._add_message_port(fakeMessagePort);
+        this.all_loaded = true;
+        if (this.on_loaded_callback) {
+            this.on_loaded_callback();
+        }
+    };
+
+    ShadowRealmTestEnvironment.prototype.add_on_loaded_callback = function(callback) {
+        if (this.all_loaded) {
+            callback();
+        } else {
+            this.on_loaded_callback = callback;
+        }
+    };
+
+    /*
      * JavaScript shells.
      *
      * This class is used as the test_environment when testharness is running
@@ -487,6 +534,15 @@
         if ('WorkerGlobalScope' in global_scope &&
             global_scope instanceof WorkerGlobalScope) {
             return new DedicatedWorkerTestEnvironment();
+        }
+        /* Shadow realm global objects are _ordinary_ objects (i.e. their prototype is
+         * Object) so we don't have a nice `instanceof` test to use; instead, we
+         * check if the there is a GLOBAL.isShadowRealm() property
+         * on the global object. that was set by the test harness when it
+         * created the ShadowRealm.
+         */
+        if (global_scope.GLOBAL && global_scope.GLOBAL.isShadowRealm()) {
+            return new ShadowRealmTestEnvironment();
         }
 
         return new ShellTestEnvironment();
@@ -648,7 +704,7 @@
     /**
      * Create a promise test.
      *
-     * Promise tests are tests which are represeted by a promise
+     * Promise tests are tests which are represented by a promise
      * object. If the promise is fulfilled the test passes, if it's
      * rejected the test fails, otherwise the test passes.
      *
@@ -3786,6 +3842,45 @@
     expose(fetch_tests_from_window, 'fetch_tests_from_window');
 
     /**
+     * Get test results from a shadow realm and include them in the current test.
+     *
+     * @param {ShadowRealm} realm - A shadow realm also running the test harness
+     * @returns {Promise} - A promise that's resolved once all the remote tests are complete.
+     */
+    function fetch_tests_from_shadow_realm(realm) {
+        var chan = new MessageChannel();
+        function receiveMessage(msg_json) {
+            chan.port1.postMessage(JSON.parse(msg_json));
+        }
+        var done = tests.fetch_tests_from_worker(chan.port2);
+        realm.evaluate("begin_shadow_realm_tests")(receiveMessage);
+        chan.port2.start();
+        return done;
+    }
+    expose(fetch_tests_from_shadow_realm, 'fetch_tests_from_shadow_realm');
+
+    /**
+     * Begin running tests in this shadow realm test harness.
+     *
+     * To be called after all tests have been loaded; it is an error to call
+     * this more than once or in a non-Shadow Realm environment
+     *
+     * @param {Function} postMessage - A function to send test updates to the
+     * incubating realm-- accepts JSON-encoded messages in the format used by
+     * RemoteContext
+     */
+    function begin_shadow_realm_tests(postMessage) {
+        if (!(test_environment instanceof ShadowRealmTestEnvironment)) {
+            throw new Error("beign_shadow_realm_tests called in non-Shadow Realm environment");
+        }
+
+        test_environment.begin(function (msg) {
+            postMessage(JSON.stringify(msg));
+        });
+    }
+    expose(begin_shadow_realm_tests, 'begin_shadow_realm_tests');
+
+    /**
      * Timeout the tests.
      *
      * This only has an effect when ``explict_timeout`` has been set
@@ -3963,7 +4058,7 @@
 
     Output.prototype.show_status = function() {
         if (this.phase < this.STARTED) {
-            this.init();
+            this.init({});
         }
         if (!this.enabled || this.phase === this.COMPLETE) {
             return;
@@ -4416,14 +4511,6 @@
 
     const get_stack = function() {
         var stack = new Error().stack;
-        // IE11 does not initialize 'Error.stack' until the object is thrown.
-        if (!stack) {
-            try {
-                throw new Error();
-            } catch (e) {
-                stack = e.stack;
-            }
-        }
 
         // 'Error.stack' is not supported in all browsers/versions
         if (!stack) {
@@ -4650,43 +4737,6 @@
             return location.pathname.substring(location.pathname.lastIndexOf('/') + 1, location.pathname.indexOf('.'));
         }
         return "Untitled";
-    }
-
-    function supports_post_message(w)
-    {
-        var supports;
-        var type;
-        // Given IE implements postMessage across nested iframes but not across
-        // windows or tabs, you can't infer cross-origin communication from the presence
-        // of postMessage on the current window object only.
-        //
-        // Touching the postMessage prop on a window can throw if the window is
-        // not from the same origin AND post message is not supported in that
-        // browser. So just doing an existence test here won't do, you also need
-        // to wrap it in a try..catch block.
-        try {
-            type = typeof w.postMessage;
-            if (type === "function") {
-                supports = true;
-            }
-
-            // IE8 supports postMessage, but implements it as a host object which
-            // returns "object" as its `typeof`.
-            else if (type === "object") {
-                supports = true;
-            }
-
-            // This is the case where postMessage isn't supported AND accessing a
-            // window property across origins does NOT throw (e.g. old Safari browser).
-            else {
-                supports = false;
-            }
-        } catch (e) {
-            // This is the case where postMessage isn't supported AND accessing a
-            // window property across origins throws (e.g. old Firefox browser).
-            supports = false;
-        }
-        return supports;
     }
 
     /**

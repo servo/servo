@@ -1,4 +1,4 @@
-class NoSSLEnvironment(object):
+class NoSSLEnvironment:
     ssl_enabled = False
 
     def __init__(self, *args, **kwargs):

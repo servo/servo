@@ -15,7 +15,7 @@ function tryRun(func) {
   try {
     func();
   } catch (e) {
-    const testChannel = new BroadcastChannel('test-channel');
+    const testChannel = new PrerenderChannel('test-channel');
     testChannel.postMessage({status: 'FAIL: ' + e});
   }
 }
@@ -23,7 +23,7 @@ function tryRun(func) {
 if (!isPrerendering) {
   // Ensure that the primary page can move this window.
   tryRun(() => {
-    const expectedPosition = {x: window.screenX + 1, y: window.screenY + 1};
+    const expectedPosition = {x: screen.availLeft + 1, y: screen.availTop + 1};
     window.moveTo(expectedPosition.x, expectedPosition.y);
     assert_equals(window.screenX, expectedPosition.x, 'x position for primary');
     assert_equals(window.screenY, expectedPosition.y, 'y position for primary');
@@ -38,10 +38,11 @@ if (!isPrerendering) {
         const moveToOrMoveBy = params.get('move');
         switch (moveToOrMoveBy) {
           case 'moveTo':
-            window.moveTo(window.screenX + 1, window.screenY + 1);
+            window.moveTo(screen.availLeft + 10, screen.availTop + 10);
             break;
           case 'moveBy':
-            window.moveBy(1, 1);
+            window.moveBy(screen.availLeft + 10 - window.screenX,
+                          screen.availTop + 10 - window.screenY);
             break;
           default:
             assert_unreached(`wrong parameter: ${moveToOrMoveBy}`);
@@ -49,7 +50,7 @@ if (!isPrerendering) {
       }
   );
 
-  const bc = new BroadcastChannel('test-channel');
+  const bc = new PrerenderChannel('test-channel');
   bc.postMessage({
     'status': 'PASS',
     'prevPosition': prevPosition,

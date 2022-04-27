@@ -1,13 +1,12 @@
-import base64
-import io
 import json
 import os
 import platform
 import signal
 import subprocess
 import tempfile
-import zipfile
+import time
 from abc import ABCMeta, abstractmethod
+from http.client import HTTPConnection
 
 import mozinfo
 import mozleak
@@ -20,7 +19,7 @@ from mozcrash import mozcrash
 
 from .base import (Browser,
                    ExecutorBrowser,
-                   NullBrowser,
+                   WebDriverBrowser,
                    OutputHandler,
                    OutputHandlerState,
                    browser_command,
@@ -33,10 +32,8 @@ from ..executors.executormarionette import (MarionetteTestharnessExecutor,  # no
                                             MarionettePrintRefTestExecutor,  # noqa: F401
                                             MarionetteWdspecExecutor,  # noqa: F401
                                             MarionetteCrashtestExecutor)  # noqa: F401
-from ..webdriver_server import WebDriverServer
 
 
-here = os.path.dirname(__file__)
 
 __wptrunner__ = {"product": "firefox",
                  "check_args": "check_args",
@@ -85,6 +82,8 @@ def check_args(**kwargs):
 
 def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"binary": kwargs["binary"],
+            "webdriver_binary": kwargs["webdriver_binary"],
+            "webdriver_args": kwargs["webdriver_args"],
             "prefs_root": kwargs["prefs_root"],
             "extra_prefs": kwargs["extra_prefs"],
             "test_type": test_type,
@@ -109,18 +108,8 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "browser_channel": kwargs["browser_channel"],
             "headless": kwargs["headless"],
             "preload_browser": kwargs["preload_browser"] and not kwargs["pause_after_test"] and not kwargs["num_test_groups"] == 1,
-            "specialpowers_path": kwargs["specialpowers_path"]}
-
-
-class WdSpecProfile(object):
-    def __init__(self, profile):
-        self.profile = profile
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        self.profile.cleanup()
+            "specialpowers_path": kwargs["specialpowers_path"],
+            "debug_test": kwargs["debug_test"]}
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data,
@@ -137,7 +126,6 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
         capabilities["pageLoadStrategy"] = "eager"
     if test_type in ("reftest", "print-reftest"):
         executor_kwargs["reftest_internal"] = kwargs["reftest_internal"]
-        executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
     if test_type == "wdspec":
         options = {"args": []}
         if kwargs["binary"]:
@@ -145,56 +133,10 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
         if kwargs["binary_args"]:
             options["args"] = kwargs["binary_args"]
 
-        profile_creator = ProfileCreator(logger,
-                                         kwargs["prefs_root"],
-                                         test_environment.config,
-                                         test_type,
-                                         kwargs["extra_prefs"],
-                                         kwargs["gecko_e10s"],
-                                         kwargs["enable_fission"],
-                                         kwargs["browser_channel"],
-                                         kwargs["binary"],
-                                         kwargs["certutil_binary"],
-                                         test_environment.config.ssl_config["ca_cert_path"])
-        if kwargs["processes"] > 1:
-            # With multiple processes, we would need a profile directory per process, but we
-            # don't have an easy way to do that, so include the profile in the capabilties
-            # directly instead. This means recreating it per session, which is slow
-            options["profile"] = profile_creator.create_base64()
-            profile = None
-        else:
-            profile = profile_creator.create()
-            options["args"].extend(["--profile", profile.profile])
-            test_environment.env_extras_cms.append(WdSpecProfile(profile))
+        if not kwargs["binary"] and kwargs["headless"] and "--headless" not in options["args"]:
+            options["args"].append("--headless")
 
         capabilities["moz:firefoxOptions"] = options
-
-        # This gets reused for firefox_android, but the environment setup
-        # isn't required in that case
-        if kwargs["binary"]:
-            environ = get_environ(logger,
-                                  kwargs["binary"],
-                                  kwargs["debug_info"],
-                                  kwargs["stylo_threads"],
-                                  kwargs["headless"],
-                                  kwargs["enable_webrender"],
-                                  kwargs["chaos_mode_flags"])
-            leak_report_file = setup_leak_report(kwargs["leak_check"], profile, environ)
-
-            # This doesn't work with wdspec tests
-            # In particular tests can create a session without passing in the capabilites
-            # and in those cases we get the default geckodriver profile which doesn't
-            # guarantee zero network access
-            del environ["MOZ_DISABLE_NONLOCAL_CONNECTIONS"]
-            executor_kwargs["environ"] = environ
-        else:
-            if kwargs["headless"] and "--headless" not in options["args"]:
-                options["args"].append("--headless")
-            leak_report_file = None
-
-        executor_kwargs["stackfix_dir"] = kwargs["stackfix_dir"],
-        executor_kwargs["leak_report_file"] = leak_report_file
-        executor_kwargs["asan"] = run_info_data.get("asan")
 
     if kwargs["certutil_binary"] is None:
         capabilities["acceptInsecureCerts"] = True
@@ -263,7 +205,7 @@ def run_info_browser_version(**kwargs):
 
 
 def update_properties():
-    return (["os", "debug", "webrender", "fission", "e10s", "processor", "swgl"],
+    return (["os", "debug", "fission", "e10s", "processor", "swgl", "domstreams"],
             {"os": ["version"], "processor": ["bits"]})
 
 
@@ -417,7 +359,7 @@ class PreloadInstanceManager(FirefoxInstanceManager):
     def __init__(self, *args, **kwargs):
         """FirefoxInstanceManager that keeps once Firefox instance preloaded
         to allow rapid resumption after an instance shuts down."""
-        super(PreloadInstanceManager, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.pending = None
 
     def get(self):
@@ -610,7 +552,8 @@ class FirefoxOutputHandler(OutputHandler):
 
 class ProfileCreator:
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs, e10s,
-                 enable_fission, browser_channel, binary, certutil_binary, ca_certificate_path):
+                 enable_fission, debug_test, browser_channel, binary, certutil_binary,
+                 ca_certificate_path):
         self.logger = logger
         self.prefs_root = prefs_root
         self.config = config
@@ -618,6 +561,7 @@ class ProfileCreator:
         self.extra_prefs = extra_prefs
         self.e10s = e10s
         self.enable_fission = enable_fission
+        self.debug_test = debug_test
         self.browser_channel = browser_channel
         self.ca_certificate_path = ca_certificate_path
         self.binary = binary
@@ -641,21 +585,6 @@ class ProfileCreator:
 
         return profile
 
-    def create_base64(self, **kwargs):
-        profile = self.create(**kwargs)
-        try:
-            with io.BytesIO() as buf:
-                with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
-                    for dirpath, _, filenames in os.walk(profile.profile):
-                        for filename in filenames:
-                            src_path = os.path.join(dirpath, filename)
-                            dest_path = os.path.relpath(src_path, profile.profile)
-                            with open(src_path, "rb") as f:
-                                zipf.writestr(dest_path, f.read())
-                return base64.b64encode(buf.getvalue()).decode("ascii").strip()
-        finally:
-            profile.cleanup()
-
     def _load_prefs(self):
         prefs = Preferences()
 
@@ -663,7 +592,7 @@ class ProfileCreator:
 
         profiles = os.path.join(self.prefs_root, 'profiles.json')
         if os.path.isfile(profiles):
-            with open(profiles, 'r') as fh:
+            with open(profiles) as fh:
                 for name in json.load(fh)['web-platform-tests']:
                     if self.browser_channel in (None, 'nightly'):
                         pref_paths.append(os.path.join(self.prefs_root, name, 'user.js'))
@@ -720,6 +649,9 @@ class ProfileCreator:
         if (self.e10s and platform.system() in ("Windows", "Microsoft") and
             "5.1" in platform.version()):
             self.profile.set_preferences({"layers.acceleration.disabled": True})
+
+        if self.debug_test:
+            profile.set_preferences({"devtools.console.stdout.content": True})
 
     def _setup_ssl(self, profile):
         """Create a certificate database to use in the test profile. This is configured
@@ -782,7 +714,7 @@ class FirefoxBrowser(Browser):
                  stackfix_dir=None, binary_args=None, timeout_multiplier=None, leak_check=False,
                  asan=False, stylo_threads=1, chaos_mode_flags=None, config=None,
                  browser_channel="nightly", headless=None, preload_browser=False,
-                 specialpowers_path=None, **kwargs):
+                 specialpowers_path=None, debug_test=False, **kwargs):
         Browser.__init__(self, logger)
 
         self.logger = logger
@@ -809,6 +741,7 @@ class FirefoxBrowser(Browser):
                                          extra_prefs,
                                          e10s,
                                          enable_fission,
+                                         debug_test,
                                          browser_channel,
                                          binary,
                                          certutil_binary,
@@ -866,7 +799,8 @@ class FirefoxBrowser(Browser):
         if self._settings.get("special_powers", False):
             extensions.append(self.specialpowers_path)
         return ExecutorBrowser, {"marionette_port": self.instance.marionette_port,
-                                 "extensions": extensions}
+                                 "extensions": extensions,
+                                 "supports_devtools": True}
 
     def check_crash(self, process, test):
         dump_dir = os.path.join(self.instance.runner.profile.profile, "minidumps")
@@ -878,15 +812,119 @@ class FirefoxBrowser(Browser):
                                              stackwalk_binary=self.stackwalk_binary,
                                              process=process,
                                              test=test))
-        except IOError:
+        except OSError:
             self.logger.warning("Looking for crash dump files failed")
             return False
 
 
-class FirefoxWdSpecBrowser(NullBrowser):
-    def __init__(self, logger, leak_check=False, **kwargs):
-        super().__init__(logger, **kwargs)
+class FirefoxWdSpecBrowser(WebDriverBrowser):
+    def __init__(self, logger, binary, prefs_root, webdriver_binary, webdriver_args,
+                 extra_prefs=None, debug_info=None, symbols_path=None, stackwalk_binary=None,
+                 certutil_binary=None, ca_certificate_path=None, e10s=False,
+                 enable_fission=False, stackfix_dir=None, leak_check=False,
+                 asan=False, stylo_threads=1, chaos_mode_flags=None, config=None,
+                 browser_channel="nightly", headless=None, debug_test=False, **kwargs):
+
+        super().__init__(logger, binary, webdriver_binary, webdriver_args)
+        self.binary = binary
+        self.webdriver_binary = webdriver_binary
+
+        self.stackfix_dir = stackfix_dir
+        self.symbols_path = symbols_path
+        self.stackwalk_binary = stackwalk_binary
+
+        self.asan = asan
         self.leak_check = leak_check
+        self.leak_report_file = None
+
+        self.env = self.get_env(binary, debug_info, stylo_threads, headless, chaos_mode_flags)
+
+        profile_creator = ProfileCreator(logger,
+                                         prefs_root,
+                                         config,
+                                         "wdspec",
+                                         extra_prefs,
+                                         e10s,
+                                         enable_fission,
+                                         debug_test,
+                                         browser_channel,
+                                         binary,
+                                         certutil_binary,
+                                         ca_certificate_path)
+
+        self.profile = profile_creator.create()
+        self.marionette_port = None
+
+    def get_env(self, binary, debug_info, stylo_threads, headless, chaos_mode_flags):
+        env = get_environ(self.logger,
+                          binary,
+                          debug_info,
+                          stylo_threads,
+                          headless,
+                          chaos_mode_flags)
+        env["RUST_BACKTRACE"] = "1"
+        # This doesn't work with wdspec tests
+        # In particular tests can create a session without passing in the capabilites
+        # and in those cases we get the default geckodriver profile which doesn't
+        # guarantee zero network access
+        del env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"]
+        return env
+
+    def create_output_handler(self, cmd):
+        return FirefoxOutputHandler(self.logger,
+                                    cmd,
+                                    stackfix_dir=self.stackfix_dir,
+                                    symbols_path=self.symbols_path,
+                                    asan=self.asan,
+                                    leak_report_file=self.leak_report_file)
+
+    def start(self, group_metadata, **kwargs):
+        self.leak_report_file = setup_leak_report(self.leak_check, self.profile, self.env)
+        super().start(group_metadata, **kwargs)
+
+    def stop(self, force=False):
+        # Initially wait for any WebDriver session to cleanly shutdown if the
+        # process doesn't have to be force stopped.
+        # When this is called the executor is usually sending an end session
+        # command to the browser. We don't have a synchronisation mechanism
+        # that allows us to know that process is ongoing, so poll the status
+        # endpoint until there isn't a session, before killing the driver.
+        if self.is_alive() and not force:
+            end_time = time.time() + BrowserInstance.shutdown_timeout
+            while time.time() < end_time:
+                self.logger.debug("Waiting for WebDriver session to end")
+                try:
+                    self.logger.debug(f"Connecting to http://{self.host}:{self.port}/status")
+                    conn = HTTPConnection(self.host, self.port)
+                    conn.request("GET", "/status")
+                    res = conn.getresponse()
+                    self.logger.debug(f"Got response from http://{self.host}:{self.port}/status")
+                except Exception:
+                    self.logger.debug(
+                        f"Connecting to http://{self.host}:{self.port}/status failed")
+                    break
+                if res.status != 200:
+                    self.logger.debug(f"Connecting to http://{self.host}:{self.port}/status "
+                                      f"gave status {res.status}")
+                    break
+                data = res.read()
+                try:
+                    msg = json.loads(data)
+                except ValueError:
+                    self.logger.debug("/status response was not valid JSON")
+                    break
+                if msg.get("value", {}).get("ready") is True:
+                    self.logger.debug("Got ready status")
+                    break
+                self.logger.debug(f"Got status response {data}")
+                time.sleep(1)
+            else:
+                self.logger.debug("WebDriver session didn't end")
+        super().stop(force=force)
+
+    def cleanup(self):
+        super().cleanup()
+        self.profile.cleanup()
 
     def settings(self, test):
         return {"check_leaks": self.leak_check and not test.leaks,
@@ -896,24 +934,13 @@ class FirefoxWdSpecBrowser(NullBrowser):
                 "mozleak_allowed": self.leak_check and test.mozleak_allowed,
                 "mozleak_thresholds": self.leak_check and test.mozleak_threshold}
 
-
-class GeckoDriverServer(WebDriverServer):
-    output_handler_cls = FirefoxOutputHandler
-
-    def __init__(self, logger, marionette_port=2828, binary="geckodriver",
-                 host="127.0.0.1", port=None, env=None, args=None):
-        if env is None:
-            env = os.environ.copy()
-        env["RUST_BACKTRACE"] = "1"
-        WebDriverServer.__init__(self, logger, binary,
-                                 host=host,
-                                 port=port,
-                                 env=env,
-                                 args=args)
-        self.marionette_port = marionette_port
-
     def make_command(self):
-        return [self.binary,
-                "--marionette-port", str(self.marionette_port),
+        return [self.webdriver_binary,
                 "--host", self.host,
-                "--port", str(self.port)] + self._args
+                "--port", str(self.port)] + self.webdriver_args
+
+    def executor_browser(self):
+        cls, args = super().executor_browser()
+        args["supports_devtools"] = False
+        args["profile"] = self.profile.profile
+        return cls, args

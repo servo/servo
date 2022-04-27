@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>This subframe preloads a render-blocking font</title>
+<link id="font-preload" rel="preload" as="font" blocking="render" crossorigin
+      href="/fonts/Ahem.ttf?pipe=trickle(d2)">
+
+<style>
+@font-face {
+  font-family: custom-font;
+  src: url('/fonts/Ahem.ttf?pipe=trickle(d2)');
+}
+</style>
+<span id="target" style="font: 20px/1 custom-font">Lorem ipsum</span>
+
+<div id="scroll-target" style="height: 100px; overflow: scroll">
+  <div style="height: 200px"></div>
+</div>
+
+<style>
+@keyframes anim {
+  from { height: 100px; }
+  to { height: 200px; }
+}
+</style>
+<div id="animation-target" style="height: 50px; animation: anim 100ms"></div>
+
+<!-- We will use a script-inserted element to verify if the browser flushes
+  -- autofocus candidates. If we insert the element here via markup, it may
+  -- be focused before the subframe DOMContentLoaded event, giving the parent
+  -- frame no opportunity to add a 'focus' event handler.
+-->
+
+<!-- We should also verify that the context lost steps for canvas are not run,
+  -- but there's currently no way to reliably trigger a context lost in WPT.
+  -- See https://github.com/web-platform-tests/wpt/issues/30039
+-->
+
+

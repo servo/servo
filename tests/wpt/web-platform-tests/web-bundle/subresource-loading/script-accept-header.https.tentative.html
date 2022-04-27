@@ -7,12 +7,16 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/test-helpers.js"></script>
-<script>
-  window.TEST_WEB_BUNDLE_ELEMENT_TYPE = 'script';
-  setup(() => {
-    assert_true(HTMLScriptElement.supports('webbundle'));
-  });
-</script>
 <body>
-  <script src="resources/accept-header-test.js"></script>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+    promise_test(async () => {
+      await addWebBundleElementAndWaitForLoad(
+        "../resources/check-accept-header-and-return-bundle.py",
+        /*resources=*/ []
+      );
+    }, "Accept: header in a request for a bundle should contain application/webbundle MIME type.");
+  </script>
 </body>

@@ -104,12 +104,18 @@ components:
 
   browser-chrome: {}
 
+  browser-chromium: {}
+
   browser-servo: {}
 
   tox-python3_6:
     env:
       TOXENV: py36
       PY_COLORS: 0
+    install:
+      - python3.6
+      - python3.6-distutils
+      - python3.6-dev
 
   tox-python3_9:
     env:
@@ -167,7 +173,7 @@ tasks:
                 - trigger-push
             - vars:
                 # Chromium ToT
-                browser: chrome
+                browser: chromium
                 channel: nightly
               use:
                 - trigger-daily
@@ -255,7 +261,7 @@ tasks:
                 - trigger-push
             - vars:
                 # Chromium ToT
-                browser: chrome
+                browser: chromium
                 channel: nightly
               use:
                 - trigger-daily
@@ -411,9 +417,6 @@ tasks:
         - trigger-pr
         - tox-python3_6
       command: ./tools/ci/ci_tools_unittest.sh
-      install:
-        - python3.6
-        - python3.6-dev
       env:
         HYPOTHESIS_PROFILE: ci
       schedule-if:
@@ -444,8 +447,6 @@ tasks:
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
-        - python3.6
-        - python3.6-dev
       options:
         oom-killer: true
         browser:
@@ -490,8 +491,6 @@ tasks:
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools
-        - python3.6
-        - python3.6-dev
       options:
         browser:
           - firefox

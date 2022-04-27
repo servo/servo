@@ -1,4 +1,4 @@
-class Client(object):
+class Client:
     def __init__(self, session_token):
         self.session_token = session_token
 

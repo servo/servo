@@ -3,7 +3,7 @@ import pickle
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-class BaseState(object):
+class BaseState:
     def __new__(cls, logger):
         rv = cls.load(logger)
         if rv is not None:
@@ -11,7 +11,7 @@ class BaseState(object):
             return rv
 
         logger.debug("No existing state found")
-        return super(BaseState, cls).__new__(cls)
+        return super().__new__(cls)
 
     def __init__(self, logger):
         """Object containing state variables created when running Steps.
@@ -100,13 +100,13 @@ class SavedState(BaseState):
             with open(cls.filename, "rb") as f:
                 try:
                     rv = pickle.load(f)
-                    logger.debug("Loading data %r" % (rv._data,))
+                    logger.debug(f"Loading data {rv._data!r}")
                     rv._logger = logger
                     rv._index = 0
                     return rv
                 except EOFError:
                     logger.warning("Found empty state file")
-        except IOError:
+        except OSError:
             logger.debug("IOError loading stored state")
 
     def save(self):
@@ -115,7 +115,7 @@ class SavedState(BaseState):
             pickle.dump(self, f)
 
     def clear(self):
-        super(SavedState, self).clear()
+        super().clear()
         try:
             os.unlink(self.filename)
         except OSError:
@@ -131,7 +131,7 @@ class UnsavedState(BaseState):
         return
 
 
-class StateContext(object):
+class StateContext:
     def __init__(self, state, init_values):
         self.state = state
         self.init_values = init_values

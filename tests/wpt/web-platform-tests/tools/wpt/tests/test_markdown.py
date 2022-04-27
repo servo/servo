@@ -5,12 +5,12 @@ def test_format_comment_title():
     assert '# Browser (channel) #' == markdown.format_comment_title("browser:channel")
 
 def test_markdown_adjust():
-    assert u'\\t' == markdown.markdown_adjust('\t')
-    assert u'\\r' == markdown.markdown_adjust('\r')
-    assert u'\\n' == markdown.markdown_adjust('\n')
-    assert u'' == markdown.markdown_adjust('`')
-    assert u'\\|' == markdown.markdown_adjust('|')
-    assert u'\\t\\r\\n\\|' == markdown.markdown_adjust('\t\r\n`|')
+    assert '\\t' == markdown.markdown_adjust('\t')
+    assert '\\r' == markdown.markdown_adjust('\r')
+    assert '\\n' == markdown.markdown_adjust('\n')
+    assert '' == markdown.markdown_adjust('`')
+    assert '\\|' == markdown.markdown_adjust('|')
+    assert '\\t\\r\\n\\|' == markdown.markdown_adjust('\t\r\n`|')
 
 result = ''
 def log(text):

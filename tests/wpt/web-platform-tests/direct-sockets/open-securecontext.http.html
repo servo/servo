@@ -10,12 +10,12 @@
   <body>
     <script>
         test(() => {
-          assert_false('openTCPSocket' in navigator, 'navigator has attribute \'openTCPSocket\'.');
-        }, 'navigator.openTCPSocket must be undefined in non-secure context');
+          assert_false(typeof TCPSocket !== 'undefined', 'TCPSocket is present');
+        }, 'TCPSocket must be undefined in non-secure context');
 
         test(() => {
-          assert_false('openUDPSocket' in navigator, 'navigator has attribute \'openUDPSocket\'.');
-        }, 'navigator.openUDPSocket must be undefined in non-secure context');
+          assert_false(typeof UDPSocket !== 'undefined', 'UDPSocket is present');
+        }, 'UDPSocket must be undefined in non-secure context');
     </script>
   </body>
 </html>

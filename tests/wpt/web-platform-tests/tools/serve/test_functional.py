@@ -18,7 +18,7 @@ class ServerProcSpy(serve.ServerProc):
     instances = None
 
     def start(self, *args, **kwargs):
-        result = super(ServerProcSpy, self).start(*args, **kwargs)
+        result = super().start(*args, **kwargs)
 
         if ServerProcSpy.instances is not None:
             ServerProcSpy.instances.put(self)

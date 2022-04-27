@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup document removal behavior</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id=frame1 srcdoc="<div popup=popup id=popup>Popup</div>"></iframe>
+<iframe id=frame2></iframe>
+
+<script>
+  window.onload = () => {
+    test(t => {
+      const frame1Doc = document.getElementById('frame1').contentDocument;
+      const frame2Doc = document.getElementById('frame2').contentDocument;
+      const popup = frame1Doc.querySelector('[popup]');
+      assert_true(!!popup);
+      assert_false(popup.matches(':popup-open'));
+      popup.showPopup();
+      assert_true(popup.matches(':popup-open'));
+      frame2Doc.body.appendChild(popup);
+      assert_false(popup.matches(':popup-open'));
+      popup.showPopup();
+      assert_true(popup.matches(':popup-open'));
+    }, 'Moving popup between documents shouldn\'t cause issues');
+  };
+</script>

@@ -2,12 +2,14 @@
 <meta charset="utf-8">
 <title>Tests for PaymentInstruments interface</title>
 <link rel="help" href="https://w3c.github.io/payment-handler/#paymentinstruments-interface">
-<link rel="manifest" href="basic-card.json">
+<link rel="manifest" href="manifest.json">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="register-and-activate-service-worker.js"></script>
 <script>
 function runTests(registration) {
+  const methodName = window.location.origin + '/payment-handler/payment-app/';
+
   promise_test(async t => {
     await registration.paymentManager.instruments.clear();
     await registration.paymentManager.instruments.set('instrument-key-1', {
@@ -76,8 +78,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        method: 'basic-card',
-        capabilities: {supportedNetworks: ['mir']},
+        method: methodName,
       },
     );
     const result = await registration.paymentManager.instruments.get(
@@ -103,8 +104,7 @@ function runTests(registration) {
         icons: [
           {src: '/images/green-16x16.png', sizes: '16x16', type: 'image/png'},
         ],
-        method: 'basic-card',
-        capabilities: {supportedNetworks: ['mir']},
+        method: methodName,
       },
     );
     let result = await registration.paymentManager.instruments.get(
@@ -118,7 +118,7 @@ function runTests(registration) {
     );
     assert_equals(result.icons[0].sizes, '16x16');
     assert_equals(result.icons[0].type, 'image/png');
-    assert_equals(result.method, 'basic-card');
+    assert_equals(result.method, methodName);
     assert_array_equals(result.capabilities.supportedNetworks, ['mir']);
     await registration.paymentManager.instruments.set(
       'existing-instrument-key',
@@ -131,8 +131,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        method: 'basic-card',
-        capabilities: {supportedNetworks: ['visa']},
+        method: methodName,
       },
     );
     result = await registration.paymentManager.instruments.get(
@@ -146,8 +145,7 @@ function runTests(registration) {
     );
     assert_equals(result.icons[0].sizes, '256x256');
     assert_equals(result.icons[0].type, 'image/png');
-    assert_equals(result.method, 'basic-card');
-    assert_array_equals(result.capabilities.supportedNetworks, ['visa']);
+    assert_equals(result.method, methodName);
   }, 'Resetting an existing instrument updates the instrument');
 
   promise_test(async t => {
@@ -163,8 +161,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        method: 'basic-card',
-        capabilities: {supportedNetworks: ['mir']},
+        method: methodName,
       },
     );
     await registration.paymentManager.instruments.clear();
@@ -187,7 +184,7 @@ function runTests(registration) {
             type: 'image/jif',
           },
         ],
-        method: 'basic-card',
+        method: methodName,
       },
     );
     return promise_rejects_js(t, TypeError, setPromise);
@@ -206,7 +203,7 @@ function runTests(registration) {
             type: 'image/pn' + 'g'.repeat(100000),
           },
         ],
-        method: 'basic-card',
+        method: methodName,
       },
     );
     return promise_rejects_js(t, TypeError, setPromise);
@@ -223,9 +220,37 @@ function runTests(registration) {
           type: 'image/png',
         },
       ],
-      method: 'basic-card',
+      method: methodName,
     });
   }, "Don't crash when registering an instrument with a very long icon size 888...x888...");
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    return registration.paymentManager.instruments.set('instrument-key', {
+      name: 'Instrument Name',
+      icons: [
+        {
+          src: '/images/rgrg-256x256.png',
+          type: 'image/png',
+        },
+      ],
+      method: methodName,
+    });
+  }, "Don't crash when 'sizes' missing from icon definition");
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    return registration.paymentManager.instruments.set('instrument-key', {
+      name: 'Instrument Name',
+      icons: [
+        {
+          src: '/images/rgrg-256x256.png',
+          sizes: '256x256',
+        },
+      ],
+      method: methodName,
+    });
+  }, "Don't crash when 'type' missing from icon definition");
 
   promise_test(async t => {
     await registration.paymentManager.instruments.clear();
@@ -240,7 +265,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        method: 'basic-card',
+        method: methodName,
       },
     );
     return promise_rejects_js(t, TypeError, setPromise);
@@ -259,7 +284,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        method: 'basic-card',
+        method: methodName,
       },
     );
     return promise_rejects_js(t, TypeError, setPromise);
@@ -278,7 +303,7 @@ function runTests(registration) {
             type: 'image/png',
           },
         ],
-        method: 'basic-card',
+        method: methodName,
       },
     );
     return promise_rejects_js(t, TypeError, setPromise);
@@ -298,7 +323,7 @@ function runTests(registration) {
             type: 'image/gif',
           },
         ],
-        method: 'basic-card',
+        method: methodName,
       },
     );
     return promise_rejects_js(t, TypeError, setPromise);
@@ -350,5 +375,5 @@ function runTests(registration) {
   }, "Don't crash on null characters in key, name, method, and capability strings.");
 }
 
-registerAndActiveServiceWorker('basic-card.js', 'payment-app/', runTests);
+registerAndActiveServiceWorker('app-simple.js', 'payment-app/', runTests);
 </script>

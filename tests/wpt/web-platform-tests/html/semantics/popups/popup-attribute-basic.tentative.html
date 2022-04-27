@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=popups>
+  <div popup=popup>Popup</div>
+  <div popup=hint>Popup</div>
+  <div popup=async>Popup</div>
+</div>
+
+<div id=nonpopups>
+  <div>Non-popup</div>
+  <div popup=invalid>Non-popup</div>
+  <div popup>Non-popup</div>
+</div>
+
+<script>
+  function popupVisible(popup, isPopup) {
+    const isVisible = !!(popup.offsetWidth || popup.offsetHeight || popup.getClientRects().length);
+    if (isVisible) {
+      assert_not_equals(window.getComputedStyle(popup).display,'none');
+      assert_equals(isPopup,popup.matches(':popup-open'));
+    } else {
+      assert_equals(window.getComputedStyle(popup).display,'none');
+      assert_false(popup.matches(':popup-open'));
+    }
+    return isVisible;
+  }
+  function assertIsFunctionalPopup(popup) {
+    assert_false(popupVisible(popup, /*isPopup*/true));
+    popup.showPopup();
+    assert_true(popupVisible(popup, /*isPopup*/true));
+    popup.hidePopup();
+    assert_false(popupVisible(popup, /*isPopup*/true));
+  }
+  function assertNotAPopup(nonPopup) {
+    // Non-popup elements should already be visible.
+    assert_true(popupVisible(nonPopup, /*isPopup*/false));
+    nonPopup.showPopup(); // Should do nothing
+    assert_true(popupVisible(nonPopup, /*isPopup*/false));
+    nonPopup.hidePopup(); // Should also do nothing
+    assert_true(popupVisible(nonPopup, /*isPopup*/false));
+  }
+
+  const popups = document.getElementById('popups').children;
+  for(let i=0;i<popups.length;++i) {
+    const popup = popups[i];
+    test(() => {
+      assertIsFunctionalPopup(popup);
+    }, `The .showPopup() and .hidePopup() work on a popup, case #${i}.`);
+  }
+
+  const nonPopups = document.getElementById('nonpopups').children;
+  for(let i=0;i<nonPopups.length;++i) {
+    const nonPopup = nonPopups[i];
+    test(() => {
+      assertNotAPopup(nonPopup);
+    }, `The .showPopup() and .hidePopup() do NOT work on elements without a 'popup' attribute, case #${i}.`);
+  }
+
+  function createPopup() {
+    const popup = document.createElement('div');
+    document.body.appendChild(popup);
+    popup.setAttribute('popup','popup');
+    return popup;
+  }
+
+  test(() => {
+    const popup = createPopup();
+    assert_equals(popup.popup,'popup');
+    popup.setAttribute('popup','hint');
+    assert_equals(popup.popup,'hint');
+    popup.setAttribute('popup','invalid');
+    assert_equals(popup.popup,'invalid');
+    popup.setAttribute('popup','HiNt');
+    assert_equals(popup.popup,'HiNt');
+    popup.removeAttribute('popup');
+    assert_equals(popup.popup,'');
+    popup.popup='hint';
+    assert_equals(popup.getAttribute('popup'),'hint');
+    popup.popup='popup';
+    assert_equals(popup.getAttribute('popup'),'popup');
+    popup.popup='invalid';
+    assert_equals(popup.getAttribute('popup'),'invalid');
+    popup.popup='';
+    assert_equals(popup.getAttribute('popup'),'');
+  },'IDL attribute reflection')
+
+  test(() => {
+    const popup = createPopup();
+    assertIsFunctionalPopup(popup);
+
+    popup.setAttribute('popup','hint'); // Change popup type
+    assertIsFunctionalPopup(popup);
+
+    popup.setAttribute('popup','invalid'); // Change popup type to something invalid
+    assertNotAPopup(popup);
+
+    popup.popup = 'hint'; // Change popup type via IDL
+    assertIsFunctionalPopup(popup);
+
+    popup.popup = 'invalid'; // Make invalid via IDL
+    assertNotAPopup(popup);
+  },'Changing attribute values for popup should work')
+
+  test(() => {
+    const popup = createPopup();
+    assertIsFunctionalPopup(popup);
+    popup.removeAttribute('popup');
+    assertNotAPopup(popup);
+    popup.setAttribute('popup','PoPuP');
+    assertIsFunctionalPopup(popup);
+    popup.removeAttribute('popup');
+    popup.setAttribute('PoPuP','PoPuP');
+    assertIsFunctionalPopup(popup);
+    // Via IDL also
+    popup.popup = 'popup';
+    assertIsFunctionalPopup(popup);
+    popup.popup = 'PoPuP';
+    assertIsFunctionalPopup(popup);
+  },'Popup attribute value should be case insensitive')
+</script>

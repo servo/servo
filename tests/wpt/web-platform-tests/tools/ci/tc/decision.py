@@ -323,7 +323,7 @@ def build_task_graph(event, all_tasks, tasks):
     if sink_task:
         logger.info("Scheduling sink-task")
         depends_on_ids = [x[0] for x in task_id_map.values()]
-        sink_task["command"] += " {0}".format(" ".join(depends_on_ids))
+        sink_task["command"] += " {}".format(" ".join(depends_on_ids))
         task_id_map["sink-task"] = create_tc_task(
             event, sink_task, taskgroup_id, depends_on_ids)
     else:
@@ -342,7 +342,7 @@ def get_event(queue, event_path):
         try:
             with open(event_path) as f:
                 event_str = f.read()
-        except IOError:
+        except OSError:
             logger.error("Missing event file at path %s" % event_path)
             raise
     elif "TASK_EVENT" in os.environ:

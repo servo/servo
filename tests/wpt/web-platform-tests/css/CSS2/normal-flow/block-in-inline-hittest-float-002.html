@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+section {
+  display: flow-root;
+}
+.float {
+  float: left;
+  width: 200px;
+  height: 20px;
+  background: orange;
+}
+.normal {
+  height: 10px;
+  background: blue;
+}
+</style>
+<body>
+  <section>
+    <a href="#">
+      <div>
+        <div class="float"></div>
+        <div class="normal"></div>
+      </div>
+    </a>
+  </section>
+  <section title="with background">
+    <a href="#" style="background: purple">
+      <div>
+        <div class="float"></div>
+        <div class="normal"></div>
+      </div>
+    </a>
+  </section>
+  <section title="with padding">
+    <a href="#" style="padding: 1px">
+      <div>
+        <div class="float"></div>
+        <div class="normal"></div>
+      </div>
+    </a>
+  </section>
+  <section title="floats before block-in-inline">
+    <div class="float"></div>
+    <div>
+      <a href="#">
+        <div class="normal"></div>
+      </a>
+    </div>
+  </section>
+  <section title="floats before block-in-inline with background">
+    <div class="float"></div>
+    <div>
+      <a href="#" style="background: purple">
+        <div class="normal"></div>
+      </a>
+    </div>
+  </section>
+<script>
+document.body.offsetTop;
+for (const section of document.getElementsByTagName('section')) {
+  test(() => {
+    const float_element = section.querySelector('.float');
+    const float_bounds = float_element.getBoundingClientRect();
+    const normal_element = section.querySelector('.normal');
+    const normal_bounds = normal_element.getBoundingClientRect();
+    const x = float_bounds.x + (float_bounds.width / 2);
+    const y = normal_bounds.y + (normal_bounds.height / 2);
+    const result = document.elementFromPoint(x, y);
+    assert_equals(result, float_element);
+  }, section.title);
+}
+</script>
+</body>

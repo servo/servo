@@ -7,7 +7,7 @@ from ...data.exceptions.invalid_data_exception import InvalidDataException
 
 class ResultsApiHandler(ApiHandler):
     def __init__(self, results_manager, session_manager, web_root):
-        super(ResultsApiHandler, self).__init__(web_root)
+        super().__init__(web_root)
         self._results_manager = results_manager
         self._sessions_manager = session_manager
 

@@ -122,8 +122,8 @@ def run(_venv, **kwargs):
     proc = None
     if editor:
         if ref_path:
-            path = "%s %s" % (path, ref_path)
-        proc = subprocess.Popen("%s %s" % (editor, path), shell=True)
+            path = f"{path} {ref_path}"
+        proc = subprocess.Popen(f"{editor} {path}", shell=True)
     else:
         print("Created test %s" % path)
 

@@ -1,7 +1,7 @@
 import os
 
 import moznetwork
-from mozrunner import FennecEmulatorRunner
+from mozrunner import FennecEmulatorRunner, get_app_context
 
 from .base import (get_free_port,
                    cmd_arg,
@@ -16,12 +16,14 @@ from .firefox import (get_timeout_multiplier,  # noqa: F401
                       run_info_extras as fx_run_info_extras,
                       update_properties,  # noqa: F401
                       executor_kwargs as fx_executor_kwargs,  # noqa: F401
+                      FirefoxWdSpecBrowser,
                       ProfileCreator as FirefoxProfileCreator)
 
 
 __wptrunner__ = {"product": "firefox_android",
                  "check_args": "check_args",
-                 "browser": "FirefoxAndroidBrowser",
+                 "browser": {None: "FirefoxAndroidBrowser",
+                             "wdspec": "FirefoxAndroidWdSpecBrowser"},
                  "executor": {"testharness": "MarionetteTestharnessExecutor",
                               "reftest": "MarionetteRefTestExecutor",
                               "crashtest": "MarionetteCrashtestExecutor",
@@ -41,6 +43,8 @@ def check_args(**kwargs):
 
 def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"adb_binary": kwargs["adb_binary"],
+            "webdriver_binary": kwargs["webdriver_binary"],
+            "webdriver_args": kwargs["webdriver_args"],
             "package_name": kwargs["package_name"],
             "device_serial": kwargs["device_serial"],
             "prefs_root": kwargs["prefs_root"],
@@ -65,7 +69,8 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "config": config,
             "install_fonts": kwargs["install_fonts"],
             "tests_root": config.doc_root,
-            "specialpowers_path": kwargs["specialpowers_path"]}
+            "specialpowers_path": kwargs["specialpowers_path"],
+            "debug_test": kwargs["debug_test"]}
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data,
@@ -97,12 +102,23 @@ def env_options():
             "supports_debugger": True}
 
 
+def get_environ(stylo_threads, chaos_mode_flags):
+    env = {}
+    env["MOZ_CRASHREPORTER"] = "1"
+    env["MOZ_CRASHREPORTER_SHUTDOWN"] = "1"
+    env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
+    env["STYLO_THREADS"] = str(stylo_threads)
+    if chaos_mode_flags is not None:
+        env["MOZ_CHAOSMODE"] = str(chaos_mode_flags)
+    return env
+
+
 class ProfileCreator(FirefoxProfileCreator):
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs,
-                 enable_fission, browser_channel, certutil_binary, ca_certificate_path):
-        super(ProfileCreator, self).__init__(logger, prefs_root, config, test_type, extra_prefs,
-                                             True, enable_fission, browser_channel, None,
-                                             certutil_binary, ca_certificate_path)
+                 enable_fission, debug_test, browser_channel, certutil_binary, ca_certificate_path):
+        super().__init__(logger, prefs_root, config, test_type, extra_prefs,
+                         True, enable_fission, debug_test, browser_channel, None,
+                         certutil_binary, ca_certificate_path)
 
     def _set_required_prefs(self, profile):
         profile.set_preferences({
@@ -140,9 +156,9 @@ class FirefoxAndroidBrowser(Browser):
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  stylo_threads=1, chaos_mode_flags=None, config=None, browser_channel="nightly",
                  install_fonts=False, tests_root=None, specialpowers_path=None, adb_binary=None,
-                 **kwargs):
+                 debug_test=False, **kwargs):
 
-        super(FirefoxAndroidBrowser, self).__init__(logger)
+        super().__init__(logger)
         self.prefs_root = prefs_root
         self.test_type = test_type
         self.package_name = package_name
@@ -174,6 +190,7 @@ class FirefoxAndroidBrowser(Browser):
                                               test_type,
                                               extra_prefs,
                                               False,
+                                              debug_test,
                                               browser_channel,
                                               certutil_binary,
                                               ca_certificate_path)
@@ -216,17 +233,7 @@ class FirefoxAndroidBrowser(Browser):
                                           [cmd_arg("marionette"), "about:blank"],
                                           self.debug_info)
 
-        env = {}
-        env["MOZ_CRASHREPORTER"] = "1"
-        env["MOZ_CRASHREPORTER_SHUTDOWN"] = "1"
-        env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
-        env["STYLO_THREADS"] = str(self.stylo_threads)
-        if self.chaos_mode_flags is not None:
-            env["MOZ_CHAOSMODE"] = str(self.chaos_mode_flags)
-        if self.enable_webrender:
-            env["MOZ_WEBRENDER"] = "1"
-        else:
-            env["MOZ_WEBRENDER"] = "0"
+        env = get_environ(self.stylo_threads, self.chaos_mode_flags)
 
         self.runner = FennecEmulatorRunner(app=self.package_name,
                                            profile=self.profile,
@@ -248,14 +255,14 @@ class FirefoxAndroidBrowser(Browser):
                           interactive=self.debug_info and self.debug_info.interactive)
 
         self.runner.device.device.forward(
-            local="tcp:{}".format(self.marionette_port),
-            remote="tcp:{}".format(self.marionette_port))
+            local=f"tcp:{self.marionette_port}",
+            remote=f"tcp:{self.marionette_port}")
 
         for ports in self.config.ports.values():
             for port in ports:
                 self.runner.device.device.reverse(
-                    local="tcp:{}".format(port),
-                    remote="tcp:{}".format(port))
+                    local=f"tcp:{port}",
+                    remote=f"tcp:{port}")
 
         self.logger.debug("%s Started" % self.package_name)
 
@@ -293,9 +300,66 @@ class FirefoxAndroidBrowser(Browser):
         return ExecutorBrowser, {"marionette_port": self.marionette_port,
                                  # We never want marionette to install extensions because
                                  # that doesn't work on Android; instead they are in the profile
-                                 "extensions": []}
+                                 "extensions": [],
+                                 "supports_devtools": False}
 
     def check_crash(self, process, test):
         if not os.environ.get("MINIDUMP_STACKWALK", "") and self.stackwalk_binary:
             os.environ["MINIDUMP_STACKWALK"] = self.stackwalk_binary
         return bool(self.runner.check_for_crashes(test_name=test))
+
+
+class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
+    def __init__(self, logger, prefs_root, webdriver_binary, webdriver_args,
+                 extra_prefs=None, debug_info=None, symbols_path=None, stackwalk_binary=None,
+                 certutil_binary=None, ca_certificate_path=None, e10s=False,
+                 enable_fission=False, stackfix_dir=None, leak_check=False,
+                 asan=False, stylo_threads=1, chaos_mode_flags=None, config=None,
+                 browser_channel="nightly", headless=None,
+                 package_name="org.mozilla.geckoview.test_runner", device_serial=None,
+                 adb_binary=None, **kwargs):
+
+        super().__init__(logger, None, prefs_root, webdriver_binary, webdriver_args,
+                         extra_prefs=extra_prefs, debug_info=debug_info, symbols_path=symbols_path,
+                         stackwalk_binary=stackwalk_binary, certutil_binary=certutil_binary,
+                         ca_certificate_path=ca_certificate_path, e10s=e10s,
+                         enable_fission=enable_fission, stackfix_dir=stackfix_dir,
+                         leak_check=leak_check, asan=asan, stylo_threads=stylo_threads,
+                         chaos_mode_flags=chaos_mode_flags, config=config,
+                         browser_channel=browser_channel, headless=headless, **kwargs)
+
+        self.config = config
+        self.package_name = package_name
+        self.device_serial = device_serial
+        # This is just to support the same adb lookup as for other test types
+        context = get_app_context("fennec")(adb_path=adb_binary, device_serial=device_serial)
+        self.device = context.get_device(context.adb, self.device_serial)
+
+    def start(self, group_metadata, **kwargs):
+        for ports in self.config.ports.values():
+            for port in ports:
+                self.device.reverse(
+                    local=f"tcp:{port}",
+                    remote=f"tcp:{port}")
+        super().start(group_metadata, **kwargs)
+
+    def stop(self, force=False):
+        try:
+            self.device.remove_reverses()
+        except Exception as e:
+            self.logger.warning("Failed to remove forwarded or reversed ports: %s" % e)
+        super().stop(force=force)
+
+    def get_env(self, binary, debug_info, stylo_threads, headless, chaos_mode_flags):
+        env = get_environ(stylo_threads, chaos_mode_flags)
+        env["RUST_BACKTRACE"] = "1"
+        del env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"]
+        return env
+
+    def executor_browser(self):
+        cls, args = super().executor_browser()
+        args["androidPackage"] = self.package_name
+        args["androidDeviceSerial"] = self.device_serial
+        args["env"] = self.env
+        args["supports_devtools"] = False
+        return cls, args

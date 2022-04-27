@@ -68,18 +68,24 @@ async function performChromiumSetup() {
  * @param {function{*}: Promise<*>} test_function The Web Bluetooth test to run.
  * @param {string} name The name or description of the test.
  * @param {object} properties An object containing extra options for the test.
+ * @param {Boolean} validate_response_consumed Whether to validate all response
+ *     consumed or not.
  * @returns {Promise<void>} Resolves if Web Bluetooth test ran successfully, or
  *     rejects if the test failed.
  */
-function bluetooth_test(test_function, name, properties) {
+function bluetooth_test(
+    test_function, name, properties, validate_response_consumed = true) {
   return promise_test(async (t) => {
     assert_implements(navigator.bluetooth, 'missing navigator.bluetooth');
     // Trigger Chromium-specific setup.
     await performChromiumSetup();
-    assert_implements(navigator.bluetooth.test, 'missing navigator.bluetooth.test');
+    assert_implements(
+        navigator.bluetooth.test, 'missing navigator.bluetooth.test');
     await test_function(t);
-    let consumed = await navigator.bluetooth.test.allResponsesConsumed();
-    assert_true(consumed);
+    if (validate_response_consumed) {
+      let consumed = await navigator.bluetooth.test.allResponsesConsumed();
+      assert_true(consumed);
+    }
   }, name, properties);
 }
 

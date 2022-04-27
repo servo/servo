@@ -9,14 +9,17 @@ import uuid
 
 from html import escape
 from io import BytesIO
+from typing import Any, Callable, ClassVar, Dict, Optional, TypeVar
+
+T = TypeVar('T')
 
 
 def resolve_content(response):
     return b"".join(item for item in response.iter_content(read_file=True))
 
 
-class Pipeline(object):
-    pipes = {}
+class Pipeline:
+    pipes = {}  # type: ClassVar[Dict[str, Callable[..., Any]]]
 
     def __init__(self, pipe_string):
         self.pipe_functions = self.parse(pipe_string)
@@ -38,7 +41,7 @@ class Pipeline(object):
         return response
 
 
-class PipeTokenizer(object):
+class PipeTokenizer:
     def __init__(self):
         #This whole class can likely be replaced by some regexps
         self.state = None
@@ -105,8 +108,8 @@ class PipeTokenizer(object):
         return escapes.get(char, char)
 
 
-class pipe(object):
-    def __init__(self, *arg_converters):
+class pipe:
+    def __init__(self, *arg_converters: Callable[[str], Any]):
         self.arg_converters = arg_converters
         self.max_args = len(self.arg_converters)
         self.min_args = 0
@@ -133,16 +136,16 @@ class pipe(object):
         return f
 
 
-class opt(object):
-    def __init__(self, f):
+class opt:
+    def __init__(self, f: Callable[[str], Any]):
         self.f = f
 
-    def __call__(self, arg):
+    def __call__(self, arg: str) -> Any:
         return self.f(arg)
 
 
-def nullable(func):
-    def inner(arg):
+def nullable(func: Callable[[str], T]) -> Callable[[str], Optional[T]]:
+    def inner(arg: str) -> Optional[T]:
         if arg.lower() == "null":
             return None
         else:
@@ -150,7 +153,7 @@ def nullable(func):
     return inner
 
 
-def boolean(arg):
+def boolean(arg: str) -> bool:
     if arg.lower() in ("true", "1"):
         return True
     elif arg.lower() in ("false", "0"):
@@ -253,8 +256,7 @@ def trickle(request, response, delays):
                 if i != len(delays) - 1:
                     continue
                 while offset[0] < len(content):
-                    for item in add_content(delays[-(value + 1):-1], True):
-                        yield item
+                    yield from add_content(delays[-(value + 1):-1], True)
 
         if not repeat and offset[0] < len(content):
             yield content[offset[0]:]
@@ -280,7 +282,7 @@ def slice(request, response, start, end=None):
     return response
 
 
-class ReplacementTokenizer(object):
+class ReplacementTokenizer:
     def arguments(self, token):
         unwrapped = token[1:-1].decode('utf8')
         return ("arguments", re.split(r",\s*", unwrapped) if unwrapped else [])
@@ -304,13 +306,15 @@ class ReplacementTokenizer(object):
         assert isinstance(string, bytes)
         return self.scanner.scan(string)[0]
 
-    scanner = re.Scanner([(br"\$\w+:", var),
+    # re.Scanner is missing from typeshed:
+    # https://github.com/python/typeshed/pull/3071
+    scanner = re.Scanner([(br"\$\w+:", var),  # type: ignore
                           (br"\$?\w+", ident),
                           (br"\[[^\]]*\]", index),
                           (br"\([^)]*\)", arguments)])
 
 
-class FirstWrapper(object):
+class FirstWrapper:
     def __init__(self, params):
         self.params = params
 
@@ -390,7 +394,7 @@ def sub(request, response, escape_type="html"):
     response.content = new_content
     return response
 
-class SubFunctions(object):
+class SubFunctions:
     @staticmethod
     def uuid(request):
         return str(uuid.uuid4())
@@ -414,7 +418,7 @@ class SubFunctions(object):
         try:
             with open(absolute_path, "rb") as f:
                 hash_obj.update(f.read())
-        except IOError:
+        except OSError:
             # In this context, an unhandled IOError will be interpreted by the
             # server as an indication that the template file is non-existent.
             # Although the generic "Exception" is less precise, it avoids

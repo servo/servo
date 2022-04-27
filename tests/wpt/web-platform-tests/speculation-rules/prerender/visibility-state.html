@@ -3,6 +3,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <script src="resources/utils.js"></script>
 <body>
 <script>
@@ -10,7 +11,8 @@
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
-  const bc = new BroadcastChannel('test-channel');
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
 
   const gotMessage = new Promise(resolve => {
     bc.addEventListener('message', e => {
@@ -19,7 +21,7 @@ promise_test(async t => {
       once: true
     });
   });
-  const url = `resources/visibility-state-check.html`;
+  const url = `resources/visibility-state-check.html?uid=${uid}`;
   window.open(url, '_blank', 'noopener');
 
   const result = await gotMessage;
@@ -47,6 +49,8 @@ promise_test(async t => {
     assert_equals(result[i].prerendering, expected[i].prerendering,
       `prerendering${i}`);
   }
+
+  new PrerenderChannel('close', uid).postMessage('')
 }, 'The visibilityState must be updated after prerendering.');
 
 </script>

@@ -51,3 +51,14 @@ promise_test(async testCase => {
       cookieStore.set( { name: '__Host-cookie-name', value: 'cookie-value',
                          path: "/path" }));
 }, 'cookieStore.set with __Host- prefix a path option');
+
+promise_test(async testCase => {
+    let exceptionThrown = false;
+    try {
+        await cookieStore.set(unescape('cookie-name%0D1'), 'cookie-value');
+    } catch (e) {
+        assert_equals (e.name, "TypeError", "cookieStore thrown an incorrect exception -");
+        exceptionThrown = true;
+    }
+    assert_true(exceptionThrown, "No exception thrown.");
+}, 'cookieStore.set with malformed name.');

@@ -1,15 +1,12 @@
 <!DOCTYPE HTML>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Element Reflection for aria-activedescendant and aria-errormessage</title>
-    <link rel=help href="https://wicg.github.io/aom/spec/aria-reflection.html">
-    <link rel="author" title="Meredith Lane" href="meredithl@chromium.org">
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-  </head>
-<div id="role" role="button"></div>
+<meta charset="utf-8" />
+<title>Element Reflection for ARIA properties</title>
+<link rel=help href="https://wicg.github.io/aom/spec/aria-reflection.html">
+<link rel="author" title="Meredith Lane" href="meredithl@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 
+<div id="role" role="button"></div>
 <script>
 test(function(t) {
     var element = document.getElementById("role");
@@ -20,7 +17,6 @@ test(function(t) {
 </script>
 
 <div id="atomic" aria-atomic="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("atomic");
@@ -31,7 +27,6 @@ test(function(t) {
 </script>
 
 <div id="autocomplete" aria-autocomplete="list"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("autocomplete");
@@ -42,7 +37,6 @@ test(function(t) {
 </script>
 
 <div id="busy" aria-busy="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("busy");
@@ -53,7 +47,6 @@ test(function(t) {
 </script>
 
 <div id="checked" aria-checked="mixed"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("checked");
@@ -64,7 +57,6 @@ test(function(t) {
 </script>
 
 <div id="colcount" aria-colcount="5"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("colcount");
@@ -75,7 +67,6 @@ test(function(t) {
 </script>
 
 <div id="colindex" aria-colindex="1"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("colindex");
@@ -86,7 +77,6 @@ test(function(t) {
 </script>
 
 <div id="colspan" aria-colspan="2"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("colspan");
@@ -97,7 +87,6 @@ test(function(t) {
 </script>
 
 <div id="current" aria-current="page"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("current");
@@ -110,7 +99,6 @@ test(function(t) {
 <div id="disabled" aria-disabled="true"></div>
 
 <div id="description" aria-description="cold as ice"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("description");
@@ -130,7 +118,6 @@ test(function(t) {
 </script>
 
 <div id="expanded" aria-expanded="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("expanded");
@@ -141,7 +128,6 @@ test(function(t) {
 </script>
 
 <div id="haspopup" aria-haspopup="menu"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("haspopup");
@@ -152,7 +138,6 @@ test(function(t) {
 </script>
 
 <div id="hidden" aria-hidden="true" tabindex="-1"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("hidden");
@@ -162,8 +147,17 @@ test(function(t) {
 }, "aria-hidden attribute reflects.");
 </script>
 
-<div id="keyshortcuts" aria-keyshortcuts="x"></div>
+<div id="invalid" aria-invalid="true"></div>
+<script>
+test(function(t) {
+    var element = document.getElementById("invalid");
+    assert_equals(element.ariaInvalid, "true");
+    element.ariaInvalid = "grammar";
+    assert_equals(element.getAttribute("aria-invalid"), "grammar");
+}, "aria-invalid attribute reflects.");
+</script>
 
+<div id="keyshortcuts" aria-keyshortcuts="x"></div>
 <script>
 test(function(t) {
     var element = document.getElementById("keyshortcuts");
@@ -174,7 +168,6 @@ test(function(t) {
 </script>
 
 <div id="label" aria-label="x"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("label");
@@ -185,7 +178,6 @@ test(function(t) {
 </script>
 
 <div id="level" aria-level="1"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("level");
@@ -196,7 +188,6 @@ test(function(t) {
 </script>
 
 <div id="live" aria-live="polite"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("live");
@@ -207,7 +198,6 @@ test(function(t) {
 </script>
 
 <div id="modal" aria-modal="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("modal");
@@ -218,7 +208,6 @@ test(function(t) {
 </script>
 
 <div id="multiline" aria-multiline="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("multiline");
@@ -229,7 +218,6 @@ test(function(t) {
 </script>
 
 <div id="multiselectable" aria-multiselectable="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("multiselectable");
@@ -240,7 +228,6 @@ test(function(t) {
 </script>
 
 <div id="orientation" aria-orientation="vertical"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("orientation");
@@ -251,7 +238,6 @@ test(function(t) {
 </script>
 
 <div id="placeholder" aria-placeholder="x"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("placeholder");
@@ -262,7 +248,6 @@ test(function(t) {
 </script>
 
 <div id="posinset" aria-posinset="10"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("posinset");
@@ -284,7 +269,6 @@ test(function(t) {
 </script>
 
 <div id="readonly" aria-readonly="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("readonly");
@@ -295,7 +279,6 @@ test(function(t) {
 </script>
 
 <div id="relevant" aria-relevant="text"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("relevant");
@@ -306,7 +289,6 @@ test(function(t) {
 </script>
 
 <div id="required" aria-required="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("required");
@@ -317,7 +299,6 @@ test(function(t) {
 </script>
 
 <div id="roledescription" aria-roledescription="x"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("roledescription");
@@ -328,7 +309,6 @@ test(function(t) {
 </script>
 
 <div id="rowcount" aria-rowcount="10"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("rowcount");
@@ -339,7 +319,6 @@ test(function(t) {
 </script>
 
 <div id="rowindex" aria-rowindex="1"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("rowindex");
@@ -350,7 +329,6 @@ test(function(t) {
 </script>
 
 <div id="rowspan" aria-rowspan="2"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("rowspan");
@@ -361,7 +339,6 @@ test(function(t) {
 </script>
 
 <div id="selected" aria-selected="true"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("selected");
@@ -372,7 +349,6 @@ test(function(t) {
 </script>
 
 <div id="setsize" aria-setsize="10"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("setsize");
@@ -383,7 +359,6 @@ test(function(t) {
 </script>
 
 <div id="sort" aria-sort="descending"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("sort");
@@ -394,7 +369,6 @@ test(function(t) {
 </script>
 
 <div id="valuemax" aria-valuemax="99"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("valuemax");
@@ -405,7 +379,6 @@ test(function(t) {
 </script>
 
 <div id="valuemin" aria-valuemin="3"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("valuemin");
@@ -416,7 +389,6 @@ test(function(t) {
 </script>
 
 <div id="valuenow" aria-valuenow="50"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("valuenow");
@@ -427,7 +399,6 @@ test(function(t) {
 </script>
 
 <div id="valuetext" aria-valuetext="50%"></div>
-
 <script>
 test(function(t) {
     var element = document.getElementById("valuetext");

@@ -23,7 +23,7 @@ comes as its own separate "pytest" distribution, see:
     http://pytest.org
    
 Also, the "py.cleanup|py.lookup|py.countloc" helpers are now part of
-the pycmd distribution, see http://pypi.python.org/pypi/pycmd
+the pycmd distribution, see https://pypi.org/project/pycmd/
 
 
 Changes between 1.4.0 and 1.4.1

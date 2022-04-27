@@ -16,33 +16,20 @@ enum MLDevicePreference {
 };
 
 enum MLPowerPreference {
-  // Let the user agent select the most suitable behavior.
   "default",
-
-  // Prioritizes execution speed over power consumption.
   "high-performance",
-
-  // Prioritizes power consumption over other considerations such as execution speed.
   "low-power"
 };
 
 dictionary MLContextOptions {
-  // Preferred kind of device used
   MLDevicePreference devicePreference = "default";
-
-  // Preference as related to power consumption
   MLPowerPreference powerPreference = "default";
 };
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface ML {
-  // Create a context with options
   MLContext createContext(optional MLContextOptions options = {});
-
-  // Create a context from WebGL rendering context
   MLContext createContext(WebGLRenderingContext glContext);
-
-  // Create a context from WebGPU device
   MLContext createContext(GPUDevice gpuDevice);
 };
 

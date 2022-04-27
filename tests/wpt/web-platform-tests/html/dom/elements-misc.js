@@ -14,7 +14,6 @@ var miscElements = {
     // TODO: async attribute (complicated).
     defer: "boolean",
     crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}, isNullable: true, defaultVal: null, invalidVal: "anonymous"},
-    nonce: "string",
     integrity: "string",
 
     // Obsolete

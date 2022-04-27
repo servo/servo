@@ -27,7 +27,7 @@ def setup_stdlib_logger():
     logging.root = stdadapter.std_logging_adapter(logging.root)
 
 
-class LogLevelRewriter(object):
+class LogLevelRewriter:
     """Filter that replaces log messages at specified levels with messages
     at a different level.
 
@@ -50,7 +50,7 @@ class LogLevelRewriter(object):
         return self.inner(data)
 
 
-class LoggedAboveLevelHandler(object):
+class LoggedAboveLevelHandler:
     """Filter that records whether any log message above a certain level has been
     seen.
 
@@ -99,7 +99,7 @@ class LogQueueThread(Thread):
         while True:
             try:
                 data = self.queue.get()
-            except (EOFError, IOError):
+            except (EOFError, OSError):
                 break
             if data is None:
                 # A None message is used to shut down the logging thread

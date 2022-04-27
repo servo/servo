@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<meta charset="UTF-8">
+<title>CSS Toggles: parsing toggle-trigger with valid values</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://tabatkins.github.io/css-toggle/#toggle-trigger-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<body>
+<script>
+
+test_valid_value('toggle-trigger', 'none');
+test_valid_value('toggle-trigger', 'self 1');
+test_valid_value('toggle-trigger', 'sticky 1');
+test_valid_value('toggle-trigger', 'group 1');
+test_valid_value('toggle-trigger', 'mytoggle');
+test_valid_value('toggle-trigger', 'mytoggle 0');
+test_valid_value('toggle-trigger', 'mytoggle +0', 'mytoggle 0');
+test_valid_value('toggle-trigger', 'mytoggle -0', 'mytoggle 0');
+test_valid_value('toggle-trigger', 'mytoggle +5', 'mytoggle 5');
+test_valid_value('toggle-trigger', 'mytoggle, yourtoggle');
+test_valid_value('toggle-trigger', 'mytoggle, mytoggle');
+test_valid_value('toggle-trigger', 'mytoggle 1, yourtoggle');
+test_valid_value('toggle-trigger', 'mytoggle 1 , yourtoggle 1', 'mytoggle 1, yourtoggle 1');
+test_valid_value('toggle-trigger', 'mytoggle,yourtoggle 1', 'mytoggle, yourtoggle 1');
+test_valid_value('toggle-trigger', 'mytoggle calc(-3)');
+test_valid_value('toggle-trigger', 'mytoggle calc(6)');
+test_valid_value('toggle-trigger', 'mytoggle calc(6.4)');
+test_valid_value('toggle-trigger', 'mytoggle calc(6.5)');
+test_valid_value('toggle-trigger', 'mytoggle calc(6.6)');
+
+</script>

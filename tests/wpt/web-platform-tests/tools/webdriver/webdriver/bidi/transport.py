@@ -12,10 +12,12 @@ logger = logging.getLogger("webdriver.bidi")
 def get_running_loop() -> asyncio.AbstractEventLoop:
     if sys.version_info >= (3, 7):
         return asyncio.get_running_loop()
-    # Unlike the above, this will actually create an event loop
-    # if there isn't one; hopefully running tests in Python >= 3.7
-    # will allow us to catch any behaviour difference
-    return asyncio.get_event_loop()
+    else:
+        # Unlike the above, this will actually create an event loop
+        # if there isn't one; hopefully running tests in Python >= 3.7
+        # will allow us to catch any behaviour difference
+        # (Needs to be in else for mypy to believe this is reachable)
+        return asyncio.get_event_loop()
 
 
 class Transport:

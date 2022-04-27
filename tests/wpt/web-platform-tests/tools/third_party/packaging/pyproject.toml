@@ -1,37 +1,3 @@
 [build-system]
-requires = ["flit_core >=2,<4"]
-build-backend = "flit_core.buildapi"
-
-[tool.flit.metadata]
-module = "packaging"
-author = "Donald Stufft and individual contributors"
-author-email = "donald@stufft.io"
-home-page = "https://github.com/pypa/packaging"
-description-file = "README.rst"
-classifiers = [
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: Apache Software License",
-        "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
-]
-requires-python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-requires = ["pyparsing>=2.0.2"]
-
-[tool.flit.metadata.urls]
-Documentation = "https://packaging.pypa.io/"
-Changelog = "https://packaging.pypa.io/en/latest/changelog.html"
-
-[tool.flit.sdist]
-include = ["LICENSE", "LICENSE.BSD", "LICENSE.APACHE"]
+requires = ['setuptools >= 40.8.0', 'wheel']
+build-backend = 'setuptools.build_meta'

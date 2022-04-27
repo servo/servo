@@ -2,7 +2,7 @@ import os
 import progressbar
 from urllib.request import urlopen
 
-UnicodeXMLURL = "https://github.com/w3c/xml-entities/blob/u14/unicode.xml?raw=true"
+UnicodeXMLURL = "https://raw.githubusercontent.com/w3c/xml-entities/gh-pages/unicode.xml"
 InlineAxisOperatorsURL = "https://w3c.github.io/mathml-core/tables/inline-axis-operators.txt"
 
 def downloadWithProgressBar(url, outputDirectory="./", forceDownload=False):

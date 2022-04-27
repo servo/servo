@@ -1,8 +1,7 @@
 import os
-from io import open
 
 
-class StaticHandler(object):
+class StaticHandler:
     def __init__(self, web_root, http_port, https_port):
         self.static_dir = os.path.join(
             os.getcwd(), "tools/wave/www")

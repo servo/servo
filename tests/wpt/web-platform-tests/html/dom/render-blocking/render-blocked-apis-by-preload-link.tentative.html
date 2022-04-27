@@ -1,0 +1,131 @@
+<!doctype html>
+<title>Certain APIs should not trigger while rendering is blocked by a preload link</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/test-render-blocking.js"></script>
+
+<iframe id="iframe" src="support/subframe-render-blocking-preload.html"></iframe>
+<button>fullscreen</button>
+
+<script>
+// Tests that certain steps of Update the rendering [1] are not reached when
+// the document is render-blocked and hence has no rendering opportunities.
+// This test file only tests those steps related to viewport changes. It uses a
+// subframe so that viewport-related events are easier to fire.
+// [1] https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering
+
+const iframe = document.querySelector('iframe');
+const button = document.querySelector('button');
+button.onclick = () => iframe.contentDocument.documentElement.requestFullscreen();
+
+let autofocusTest;
+let scrollTest;
+let animationTest;
+let resizeTest;
+let mediaChangeTest;
+let fullscreenChangeTest;
+let rafTest;
+let intersectionObserverTest;
+
+const setup = new Promise((resolve, reject) => {
+  if (!window.test_driver)
+    reject('This test require test_driver to emulate user actions');
+
+  iframe.contentWindow.addEventListener('DOMContentLoaded', () => {
+    const preloadLink = iframe.contentDocument.getElementById('font-preload');
+    const preloadObserver = new LoadObserver(preloadLink);
+
+    // Returns a Promise that rejects if certain events on `target` fire before
+    // the Promise `condition` fulfills.
+    function rejectIfEventsFired(condition, target, events) {
+      if (!Array.isArray(events))
+        events = [events];
+      return new Promise((resolve, reject) => {
+        for (let eventName of events) {
+          target.addEventListener(eventName,
+              () => reject(`'${eventName}' event is dispatched`));
+        }
+        condition.then(resolve);
+      });
+    }
+
+    // The autofocus target must be created and inserted after subframe DCL so
+    // that we can add the event listener here before the subframe flushes
+    // autofocus candidates.
+    function createAutofocusTest(document) {
+      const target = document.createElement('textarea');
+      target.autofocus = 'autofocus';
+      const test = rejectIfEventsFired(preloadObserver.load, target, 'focus');
+      document.body.appendChild(target);
+      return test;
+    }
+    autofocusTest = createAutofocusTest(iframe.contentDocument);
+
+    scrollTest = rejectIfEventsFired(
+        preloadObserver.load,
+        iframe.contentDocument.getElementById('scroll-target'),
+        'scroll');
+    animationTest = rejectIfEventsFired(
+        preloadObserver.load,
+        iframe.contentDocument.getElementById('animation-target'),
+        ['animationstart', 'animationend']);
+    resizeTest = rejectIfEventsFired(
+        preloadObserver.load, iframe.contentWindow, 'resize');
+    mediaChangeTest = rejectIfEventsFired(
+        preloadObserver.load,
+        iframe.contentWindow.matchMedia('(display-mode: fullscreen)'), 'change');
+    fullscreenChangeTest = rejectIfEventsFired(
+        preloadObserver.load,
+        iframe.contentDocument, ['fullscreenchange', 'fullscreenerror']);
+    rafTest = new Promise((resolve, reject) => {
+        iframe.contentWindow.requestAnimationFrame(
+            () => reject('Animation frame callback is run'));
+        preloadObserver.load.then(resolve);
+    });
+    intersectionObserverTest = new Promise((resolve, reject) => {
+        new iframe.contentWindow.IntersectionObserver(
+            () => reject('IntersectionObserver callback is run'))
+            .observe(iframe.contentDocument.documentElement);
+        preloadObserver.load.then(resolve);
+    });
+
+    // These should trigger events on the subframe if it's not render-blocked.
+    iframe.contentDocument.getElementById('scroll-target').scrollTop = 100;
+    test_driver.click(button).then(resolve);
+  });
+});
+
+promise_setup(() => setup);
+promise_test(
+    () => autofocusTest,
+    'Should not flush autofocus candidates when render-blocked');
+promise_test(
+    () => scrollTest,
+    'Should not run the scroll steps when render-blocked');
+promise_test(
+    () => animationTest,
+    'Should not run the update animations and send events steps when render-blocked');
+promise_test(
+    () => resizeTest,
+    'Should not run the resize steps when render-blocked');
+promise_test(
+    () => mediaChangeTest,
+    'Should not run the evaluate media queries and report changes steps when render-blocked');
+promise_test(
+    () => fullscreenChangeTest,
+    'Should not run the fullscreen steps when render-blocked');
+promise_test(
+    () => rafTest,
+    'Should not run animation frame callbacks when render-blocked');
+promise_test(
+    () => intersectionObserverTest,
+    'Should not run the update intersection observers step when render-blocked');
+promise_test(async () => {
+  await iframe.contentDocument.fonts.ready;
+  const target = iframe.contentDocument.getElementById('target');
+  assert_equals(target.offsetHeight, 20);
+  assert_equals(target.offsetWidth, 220);
+}, 'The render-blocking web font is applied');
+</script>

@@ -133,7 +133,7 @@ class UpdateRunner(StepRunner):
              UpdateMetadata]
 
 
-class WPTUpdate(object):
+class WPTUpdate:
     def __init__(self, logger, runner_cls=UpdateRunner, **kwargs):
         """Object that controls the running of a whole wptupdate.
 

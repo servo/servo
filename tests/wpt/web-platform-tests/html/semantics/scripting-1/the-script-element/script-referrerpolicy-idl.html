@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>&lt;script> referrerPolicy IDL</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#referrer-policy-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+  test(() => {
+    const script = document.createElement('script');
+    document.body.appendChild(script);
+    assert_equals(script.referrerPolicy,"",'Missing content attribute should reflect as empty');
+    script.setAttribute('referrerpolicy','no-referrer');
+    assert_equals(script.referrerPolicy,"no-referrer",'Valid value should reflect');
+    script.setAttribute('referrerpolicy','');
+    assert_equals(script.referrerPolicy,"",'Empty string should reflect as empty');
+    script.setAttribute('referrerpolicy','invalid-value-here');
+    assert_equals(script.referrerPolicy,"",'Invalid values should reflect as empty');
+    script.referrerPolicy = 'no-referrer';
+    assert_equals(script.referrerPolicy,"no-referrer",'Valid value via IDL');
+    script.referrerPolicy = null;
+    assert_equals(script.referrerPolicy,"",'Null should reflect as empty');
+  },'Missing/invalid/null referrerPolicy should reflect as the empty string')
+</script>

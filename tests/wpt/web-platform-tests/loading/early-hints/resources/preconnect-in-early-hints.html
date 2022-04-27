@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+    const params = new URLSearchParams(window.location.search);
+    const resource_url = params.get("resource-url");
+    await fetchScript(resource_url);
+
+    // Check the resource's connect timing.
+    const entries = performance.getEntriesByName(resource_url);
+    assert_equals(entries.length, 1);
+    const connect_start = entries[0].connectStart;
+    const connect_end = entries[0].connectEnd;
+    assert_equals(connect_start, connect_end,
+        "Connection establishment should not take time for a resource from a preconnected origin.");
+}, "Preconnect in early hints.");
+</script>
+</body>

@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Multiple from and to keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+
+@keyframes multiple-from-to-keyframes {
+    from, to { animation-timing-function: cubic-bezier(0, 0, 1, 1) }
+    from { left: 50px }
+    to { left: 150px }
+}
+
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'multiple-from-to-keyframes 100s -50s linear';
+  assert_equals(getComputedStyle(div).left, "100px");
+}, 'Animations should not use an implicit value when the first rule within a @keyframes rule specifies "from" and "to" but only specifies a timing function.');
+
+</script>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  function ensureShadowDom(host) {
+    host.querySelectorAll('my-element').forEach(host => {
+      if (host.shadowRoot)
+        return; // Declarative Shadow DOM is enabled
+      const template = host.firstElementChild;
+      assert_true(template instanceof HTMLTemplateElement);
+      const shadow = host.attachShadow({mode: 'open'});
+      shadow.appendChild(template.content);
+      template.remove();
+    })
+  }
+  function findPopups(root) {
+    let popups = [];
+    if (!root)
+      return popups;
+    if (root instanceof Element && root.matches('[popup]'))
+      popups.push(root);
+    popups.push(...findPopups(root.shadowRoot));
+    root.childNodes.forEach(child => {
+      popups.push(...findPopups(child));
+    })
+    return popups;
+  }
+  function getPopupReferences(testId) {
+    const testRoot = document.querySelector(`#${testId}`);
+    assert_true(!!testRoot);
+    ensureShadowDom(testRoot);
+    return findPopups(testRoot);
+  }
+  function popupVisible(popup) {
+    return !!(popup.offsetWidth || popup.offsetHeight || popup.getClientRects().length);
+  }
+  function showPopup(testId,popupNum) {
+    getPopupReferences(testId)[popupNum].showPopup();
+  }
+</script>
+
+<div id=test1>
+  <button onclick='showPopup("test1",0)'>Test1 Popup</button>
+  <my-element>
+    <template shadowroot=open>
+      <div popup=popup>
+        <p>This should show, even though it is inside shadow DOM.</p>
+      </div>
+    </template>
+  </my-element>
+</div>
+
+<script>
+  test(function() {
+    const popup = getPopupReferences('test1')[0];
+    popup.showPopup();
+    assert_true(popup.matches(':popup-open'));
+    assert_true(popupVisible(popup));
+  }, "Popups located inside shadow DOM can still be shown");
+</script>
+
+
+<div id=test2>
+  <button id=t2b1 onclick='showPopup("test2",0)'>Test 2 Popup 1</button>
+  <div popup=popup anchor=t2b1 style="top: 400px;">
+    <p>Popup 1</p>
+    <button id=t2b2 onclick='showPopup("test2",1)'>Test 2 Popup 2</button>
+  </div>
+  <my-element>
+    <template shadowroot=open>
+      <div popup=popup anchor=t2b2 style="top: 400px;">
+        <p>Hiding this popup will hide *all* open popups,</p>
+        <p>because t2b2 doesn't exist in this context.</p>
+      </div>
+    </template>
+  </my-element>
+</div>
+
+<script>
+  test(function() {
+    const [popup1,popup2] = getPopupReferences('test2');
+    popup1.showPopup();
+    assert_true(popup1.matches(':popup-open'));
+    assert_true(popupVisible(popup1));
+    popup2.showPopup();
+    assert_false(popup1.matches(':popup-open'), 'popup1 open'); // P1 was closed by P2
+    assert_false(popupVisible(popup1), 'popup1 visible');
+    assert_true(popup2.matches(':popup-open'), 'popup2 open'); // P2 is open
+    assert_true(popupVisible(popup2), 'popup2 visible');
+  }, "anchor references do not cross shadow boundaries");
+</script>
+
+
+<div id=test3>
+  <my-element>
+    <template shadowroot=open>
+      <button id=t3b1 onclick='showPopup("test3",0)'>Test 3 Popup 1</button>
+      <div popup=popup anchor=t3b1>
+        <p>This popup will stay open when popup2 shows.</p>
+        <slot></slot>
+      </div>
+    </template>
+    <button id=t3b2 onclick='showPopup("test3",1)'>Test 3 Popup 2</button>
+  </my-element>
+  <div popup=popup anchor=t3b2>Popup 2</div>
+</div>
+
+<script>
+  test(function() {
+    const [popup1,popup2] = getPopupReferences('test3');
+    popup1.showPopup();
+    assert_true(popup1.matches(':popup-open'));
+    assert_true(popupVisible(popup1));
+    // Showing popup2 should not close popup1, since it is a flat
+    // tree ancestor of popup2's anchor button.
+    popup2.showPopup();
+    assert_true(popup2.matches(':popup-open'));
+    assert_true(popupVisible(popup2));
+    assert_true(popup1.matches(':popup-open'));
+    assert_true(popupVisible(popup1));
+    popup1.hidePopup();
+    assert_false(popup2.matches(':popup-open'));
+    assert_false(popup1.matches(':popup-open'));
+  }, "anchor references use the flat tree not the DOM tree");
+</script>
+
+
+<div id=test4>
+  <button id=t4b1 onclick='showPopup("test4",0)'>Test 4 Popup 1</button>
+  <div popup=popup anchor=t4b1>
+    <p>This should not get hidden when popup2 opens.</p>
+    <my-element>
+      <template shadowroot=open>
+        <button id=t4b2 onclick='showPopup("test4",1)'>Test 4 Popup 2</button>
+        <div popup=popup anchor=t4b2>
+          <p>This should not hide popup1.</p>
+        </div>
+      </template>
+    </my-element>
+  </div>
+</div>
+
+<script>
+  test(function() {
+    const [popup1,popup2] = getPopupReferences('test4');
+    popup1.showPopup();
+    popup2.showPopup();
+    // Both 1 and 2 should be open at this point.
+    assert_true(popup1.matches(':popup-open'), 'popup1 not open');
+    assert_true(popupVisible(popup1));
+    assert_true(popup2.matches(':popup-open'), 'popup2 not open');
+    assert_true(popupVisible(popup2));
+    // This should hide both of them.
+    popup1.hidePopup();
+    assert_false(popup2.matches(':popup-open'));
+    assert_false(popupVisible(popup2));
+  }, "The popup stack is preserved across shadow-inclusive ancestors");
+</script>

@@ -13,7 +13,7 @@ from ..data.exceptions.not_found_exception import NotFoundException
 DEVICE_TIMEOUT = 60000  # 60sec
 RECONNECT_TIME = 5000   # 5sec
 
-class DevicesManager(object):
+class DevicesManager:
     def initialize(self, event_dispatcher):
         self.devices = {}
         self._event_dispatcher = event_dispatcher
@@ -39,7 +39,7 @@ class DevicesManager(object):
 
     def read_device(self, token):
         if token not in self.devices:
-            raise NotFoundException("Could not find device '{}'".format(token))
+            raise NotFoundException(f"Could not find device '{token}'")
         return self.devices[token]
 
     def read_devices(self):

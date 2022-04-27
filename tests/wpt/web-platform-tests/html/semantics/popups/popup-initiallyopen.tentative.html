@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div popup=popup id=p1 initiallyopen>This is a popup, which should be open upon load</div>
+<script></script> <!-- Possibly yield the parser, just to double-check -->
+<div popup=popup id=p2 initiallyopen>This is a second popup with initiallyopen, which should NOT be open upon load</div>
+<div popup=popup id=p3>Also not visible</div>
+
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      test(function(){
+        assert_true(p1.matches(':popup-open'),'initiallyopen should open the popup');
+        assert_true(p1.hasAttribute('initiallyopen'));
+        assert_true(p1.initiallyOpen,'initiallyopen should be reflected in the IDL attribute');
+        assert_false(p2.matches(':popup-open'), 'Only the first popup with initiallyopen should be open on load');
+        assert_true(p2.hasAttribute('initiallyopen'),'initiallyopen should be present/true, even if not opened');
+        assert_true(p2.initiallyOpen,'initiallyopen should be present/true, even if not opened');
+
+        assert_false(p3.matches(':popup-open'));
+        p3.setAttribute('initiallyopen','');
+        assert_false(p3.matches(':popup-open'), 'Changing initiallyopen should not affect open status');
+        assert_true(p3.hasAttribute('initiallyopen'));
+        assert_true(p3.initiallyOpen,'initiallyopen should still reflect to IDL');
+
+        p1.removeAttribute('initiallyopen');
+        assert_true(p1.matches(':popup-open'),'removing initiallyopen should not close the popup');
+        assert_false(p1.hasAttribute('initiallyopen'),'...but it should reflect to IDL');
+
+        p1.hidePopup();
+      }, "The initiallyopen attribute should affect page load only");
+    });
+  });
+</script>

@@ -29,35 +29,6 @@ for (const property of ['cpuUtilizationThresholds', 'cpuSpeedThresholds']) {
     }, `ComputePressureObserver constructor accepts ${property} value ` +
        `[${valid_value}]`);
   }
-
-  promise_test(async t => {
-    const many_thresholds = [0.5];
-    for (let i = 0.01; i < 0.5; i += 0.0001) {
-      many_thresholds.push(0.5 + i);
-      many_thresholds.push(0.5 - i);
-    }
-
-    const options = {
-        cpuUtilizationThresholds: [0.5], cpuSpeedThresholds: [0.5] };
-    options[property] = many_thresholds;
-
-    const update = await new Promise((resolve, reject) => {
-      const observer = new ComputePressureObserver(resolve, options);
-      t.add_cleanup(() => observer.stop());
-      observer.observe().catch(reject);
-    });
-
-    const effective_thresholds = update.options[property];
-    assert_less_than(effective_thresholds.length, many_thresholds.length,
-                     'only a small number of thresholds are selected');
-
-    const expected_thresholds =
-        many_thresholds.slice(0, effective_thresholds.length);
-    expected_thresholds.sort();
-    assert_array_equals(
-        effective_thresholds, expected_thresholds,
-        'thresholds are selected in the given order, before sorting');
-  }, `ComputePressureObserver filters thresholds in ${property}`);
 }
 
 test(t => {

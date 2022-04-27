@@ -176,7 +176,7 @@ class TestRaises:
 
     def test_reinterpret_fails_with_print_for_the_fun_of_it(self):
         items = [1, 2, 3]
-        print("items is {!r}".format(items))
+        print(f"items is {items!r}")
         a, b = items.pop()
 
     def test_some_error(self):

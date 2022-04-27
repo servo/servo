@@ -1,11 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
-let msg = "";
-screen.orientation.lock("portrait-primary")
-.then(() => {
-  msg = screen.orientation.type;
-}).catch(error => {
-  msg = error.name;
-}).finally(() => {
-  parent.window.postMessage(msg, "*");
+test_driver.set_test_context(parent);
+test_driver.bless("request full screen", async () => {
+  await document.documentElement.requestFullscreen();
+
+  let msg = "";
+  try {
+    await screen.orientation.lock("portrait-primary")
+    msg = screen.orientation.type;
+  } catch (error) {
+    msg = error.name;
+  }
+
+  try {
+    screen.orientation.unlock();
+    await document.exitFullscreen();
+  } catch (error) {
+  }
+  parent.window.postMessage({ type: "result", msg }, "*");
 });
 </script>

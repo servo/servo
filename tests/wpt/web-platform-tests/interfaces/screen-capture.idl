@@ -7,9 +7,15 @@ partial interface MediaDevices {
   Promise<MediaStream> getDisplayMedia(optional DisplayMediaStreamConstraints constraints = {});
 };
 
+enum SelfCapturePreferenceEnum {
+  "include",
+  "exclude"
+};
+
 dictionary DisplayMediaStreamConstraints {
   (boolean or MediaTrackConstraints) video = true;
   (boolean or MediaTrackConstraints) audio = false;
+  SelfCapturePreferenceEnum selfBrowserSurface;
 };
 
 partial dictionary MediaTrackSupportedConstraints {
@@ -44,7 +50,6 @@ partial dictionary MediaTrackCapabilities {
 enum DisplayCaptureSurfaceType {
   "monitor",
   "window",
-  "application",
   "browser"
 };
 

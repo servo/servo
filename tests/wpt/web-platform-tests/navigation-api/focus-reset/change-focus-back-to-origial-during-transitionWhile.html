@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  let transitionWhile_resolve;
+  navigation.addEventListener("navigate", e => {
+    e.transitionWhile(new Promise(resolve => transitionWhile_resolve = resolve),
+                      { focusReset: "after-transition" });
+  }, { once: true });
+
+  const button = document.body.appendChild(document.createElement("button"));
+  const button2 = document.body.appendChild(document.createElement("button"));
+  button2.tabIndex = 0;
+  t.add_cleanup(() => {
+    button.remove();
+    button2.remove();
+  });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  button.focus();
+  assert_equals(document.activeElement, button, "focus() worked");
+
+  const finished = navigation.navigate("#1").finished;
+  button2.focus();
+  assert_equals(document.activeElement, button2, "focus() worked");
+  button.focus();
+  assert_equals(document.activeElement, button, "focus() worked");
+
+  transitionWhile_resolve();
+  await finished;
+  assert_equals(document.activeElement, button, "Focus was not reset after the transition");
+}, "");
+</script>
+</body>

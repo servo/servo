@@ -89,6 +89,7 @@ class BidiSession:
         # Modules.
         # For each module, have a property representing that module
         self.session = modules.Session(self)
+        self.browsing_context = modules.BrowsingContext(self)
 
     @classmethod
     def from_http(cls,

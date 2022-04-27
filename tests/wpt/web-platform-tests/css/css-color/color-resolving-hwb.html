@@ -4,7 +4,6 @@
 <link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
 <link rel="help" href="https://drafts.csswg.org/css-color-4/#hwb-to-rgb">
 <meta name="assert" content="Tests if HWB color values are resolved properly">
-<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -75,44 +74,60 @@
       return rgb;
     }
 
-    // Test HWB parsing.
-    for (var hue of [0, 30, 60, 90, 120, 180, 210, 240, 270, 300, 330, 360]) {
-        for (var white of [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1]) {
-            for (var black of [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1]) {
-                rgb_channels = hwbToRgb(hue / 60, white, black);
-                for (var alpha of [undefined, 0, 0.2, 1]) {
-                    rgb_channels[3] = alpha;
-
-                    // Test hue using angle notation.
-                    let hwb_color_using_degrees = `hwb(${hue}deg ${white * 100}% ${black * 100}%)`;
-                    if (alpha !== undefined) {
-                        hwb_color_using_degrees = `hwb(${hue}deg ${white * 100}% ${black * 100}% / ${alpha})`;
-                    }
-                    color_test(hwb_color_using_degrees, expected_value(rgb_channels), "HWB value should parse and round correctly");
-
-                    // Test hue using number notation.
-                    let hwb_color_using_number = `hwb(${hue} ${white * 100}% ${black * 100}%)`;
-                    if (alpha !== undefined) {
-                        hwb_color_using_number = `hwb(${hue} ${white * 100}% ${black * 100}% / ${alpha})`;
-                    }
-
-                    color_test(hwb_color_using_number, expected_value(rgb_channels), "HWB value should parse and round correctly");
-
-                    // Test comma syntax
-                    let comma_deg = `hwb(${hue}deg, ${white * 100}%, ${black * 100}%)`;
-                    if (alpha !== undefined) {
-                        comma_deg = `hwb(${hue}deg, ${white * 100}%, ${black * 100}%, ${alpha})`;
-                    }
-                    color_test(comma_deg, null, "HWB value with commas should not be parsed");
-
-                    // Test comma syntax
-                    let comma_num = `hwb(${hue}, ${white * 100}%, ${black * 100}%)`;
-                    if (alpha !== undefined) {
-                        comma_num = `hwb(${hue}, ${white * 100}%, ${black * 100}%, ${alpha})`;
-                    }
-                    color_test(comma_num, null, "HWB value with commas should not be parsed");
-                }
-            }
-        }
+    function alphaPart(alpha) {
+        if (alpha === undefined)
+            return '';
+        return ` / ${alpha}`;
     }
+
+    const DEFAULT_HUE = 90;
+    const DEFAULT_HUE_UNIT = '';
+    const DEFAULT_WHITE = 0.5;
+    const DEFAULT_BLACK = 0.5;
+    const DEFAULT_ALPHA = undefined;
+
+    let seen = {};
+
+    function hwb_test(hue, hue_unit, white, black, alpha) {
+        let rgb_channels = hwbToRgb(hue / 60, white, black);
+        rgb_channels[3] = alpha;
+        let actual = `hwb(${hue}${hue_unit} ${white * 100}% ${black * 100}%${alphaPart(alpha)})`;
+        // We allow calling this function multiple times with the same
+        // parameters, since this makes it clearer at the call site which
+        // values are relevant for each parameter. However, we don't actually
+        // need to run the same test twice. (And duplicate testnames are not
+        // allowed).
+        if (seen[actual])
+            return;
+        seen[actual] = true;
+        color_test(actual, expected_value(rgb_channels), "HWB value should parse and round correctly");
+    }
+
+    for (var hue of [0, 30, 60, 90, 120, 180, 210, 240, 270, 300, 330, 360]) {
+        hwb_test(hue, DEFAULT_HUE_UNIT, DEFAULT_WHITE, DEFAULT_BLACK, DEFAULT_ALPHA);
+    }
+
+    for (var hue_unit of ["", "deg"]) {
+        hwb_test(DEFAULT_HUE, hue_unit, DEFAULT_WHITE, DEFAULT_BLACK, DEFAULT_ALPHA);
+    }
+
+    for (var white of [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1]) {
+        hwb_test(DEFAULT_HUE, DEFAULT_HUE_UNIT, white, DEFAULT_BLACK, DEFAULT_ALPHA);
+    }
+
+    for (var black of [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1]) {
+        hwb_test(DEFAULT_HUE, DEFAULT_HUE_UNIT, DEFAULT_WHITE, black, DEFAULT_ALPHA);
+    }
+
+    for (var alpha of [undefined, 0, 0.2, 1]) {
+        hwb_test(DEFAULT_HUE, DEFAULT_HUE_UNIT, DEFAULT_WHITE, DEFAULT_BLACK, alpha);
+    }
+
+    // Comma syntax is not allowed for hwb().
+    // https://drafts.csswg.org/css-color-4/#funcdef-hwb
+    color_test("hwb(90deg, 50%, 50%)", null, "HWB value with commas should not be parsed");
+    color_test("hwb(90deg, 50%, 50%, 0.2)", null, "HWB value with commas should not be parsed");
+    color_test("hwb(90, 50%, 50%)", null, "HWB value with commas should not be parsed");
+    color_test("hwb(90, 50%, 50%, 0.2)", null, "HWB value with commas should not be parsed");
+
 </script>

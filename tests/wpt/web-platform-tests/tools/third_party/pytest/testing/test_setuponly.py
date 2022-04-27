@@ -2,6 +2,7 @@ import sys
 
 import pytest
 from _pytest.config import ExitCode
+from _pytest.pytester import Pytester
 
 
 @pytest.fixture(params=["--setup-only", "--setup-plan", "--setup-show"], scope="module")
@@ -9,8 +10,10 @@ def mode(request):
     return request.param
 
 
-def test_show_only_active_fixtures(testdir, mode, dummy_yaml_custom_test):
-    testdir.makepyfile(
+def test_show_only_active_fixtures(
+    pytester: Pytester, mode, dummy_yaml_custom_test
+) -> None:
+    pytester.makepyfile(
         '''
         import pytest
         @pytest.fixture
@@ -24,7 +27,7 @@ def test_show_only_active_fixtures(testdir, mode, dummy_yaml_custom_test):
     '''
     )
 
-    result = testdir.runpytest(mode)
+    result = pytester.runpytest(mode)
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -33,8 +36,8 @@ def test_show_only_active_fixtures(testdir, mode, dummy_yaml_custom_test):
     result.stdout.no_fnmatch_line("*_arg0*")
 
 
-def test_show_different_scopes(testdir, mode):
-    p = testdir.makepyfile(
+def test_show_different_scopes(pytester: Pytester, mode) -> None:
+    p = pytester.makepyfile(
         '''
         import pytest
         @pytest.fixture
@@ -48,7 +51,7 @@ def test_show_different_scopes(testdir, mode):
     '''
     )
 
-    result = testdir.runpytest(mode, p)
+    result = pytester.runpytest(mode, p)
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -62,8 +65,8 @@ def test_show_different_scopes(testdir, mode):
     )
 
 
-def test_show_nested_fixtures(testdir, mode):
-    testdir.makeconftest(
+def test_show_nested_fixtures(pytester: Pytester, mode) -> None:
+    pytester.makeconftest(
         '''
         import pytest
         @pytest.fixture(scope='session')
@@ -71,7 +74,7 @@ def test_show_nested_fixtures(testdir, mode):
             """session scoped fixture"""
         '''
     )
-    p = testdir.makepyfile(
+    p = pytester.makepyfile(
         '''
         import pytest
         @pytest.fixture(scope='function')
@@ -82,7 +85,7 @@ def test_show_nested_fixtures(testdir, mode):
     '''
     )
 
-    result = testdir.runpytest(mode, p)
+    result = pytester.runpytest(mode, p)
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -96,8 +99,8 @@ def test_show_nested_fixtures(testdir, mode):
     )
 
 
-def test_show_fixtures_with_autouse(testdir, mode):
-    p = testdir.makepyfile(
+def test_show_fixtures_with_autouse(pytester: Pytester, mode) -> None:
+    p = pytester.makepyfile(
         '''
         import pytest
         @pytest.fixture
@@ -111,7 +114,7 @@ def test_show_fixtures_with_autouse(testdir, mode):
     '''
     )
 
-    result = testdir.runpytest(mode, p)
+    result = pytester.runpytest(mode, p)
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -123,8 +126,8 @@ def test_show_fixtures_with_autouse(testdir, mode):
     )
 
 
-def test_show_fixtures_with_parameters(testdir, mode):
-    testdir.makeconftest(
+def test_show_fixtures_with_parameters(pytester: Pytester, mode) -> None:
+    pytester.makeconftest(
         '''
         import pytest
         @pytest.fixture(scope='session', params=['foo', 'bar'])
@@ -132,7 +135,7 @@ def test_show_fixtures_with_parameters(testdir, mode):
             """session scoped fixture"""
         '''
     )
-    p = testdir.makepyfile(
+    p = pytester.makepyfile(
         '''
         import pytest
         @pytest.fixture(scope='function')
@@ -143,7 +146,7 @@ def test_show_fixtures_with_parameters(testdir, mode):
     '''
     )
 
-    result = testdir.runpytest(mode, p)
+    result = pytester.runpytest(mode, p)
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -156,8 +159,8 @@ def test_show_fixtures_with_parameters(testdir, mode):
     )
 
 
-def test_show_fixtures_with_parameter_ids(testdir, mode):
-    testdir.makeconftest(
+def test_show_fixtures_with_parameter_ids(pytester: Pytester, mode) -> None:
+    pytester.makeconftest(
         '''
         import pytest
         @pytest.fixture(
@@ -166,7 +169,7 @@ def test_show_fixtures_with_parameter_ids(testdir, mode):
             """session scoped fixture"""
         '''
     )
-    p = testdir.makepyfile(
+    p = pytester.makepyfile(
         '''
         import pytest
         @pytest.fixture(scope='function')
@@ -177,7 +180,7 @@ def test_show_fixtures_with_parameter_ids(testdir, mode):
     '''
     )
 
-    result = testdir.runpytest(mode, p)
+    result = pytester.runpytest(mode, p)
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -185,8 +188,8 @@ def test_show_fixtures_with_parameter_ids(testdir, mode):
     )
 
 
-def test_show_fixtures_with_parameter_ids_function(testdir, mode):
-    p = testdir.makepyfile(
+def test_show_fixtures_with_parameter_ids_function(pytester: Pytester, mode) -> None:
+    p = pytester.makepyfile(
         """
         import pytest
         @pytest.fixture(params=['foo', 'bar'], ids=lambda p: p.upper())
@@ -197,7 +200,7 @@ def test_show_fixtures_with_parameter_ids_function(testdir, mode):
     """
     )
 
-    result = testdir.runpytest(mode, p)
+    result = pytester.runpytest(mode, p)
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -205,8 +208,8 @@ def test_show_fixtures_with_parameter_ids_function(testdir, mode):
     )
 
 
-def test_dynamic_fixture_request(testdir):
-    p = testdir.makepyfile(
+def test_dynamic_fixture_request(pytester: Pytester) -> None:
+    p = pytester.makepyfile(
         """
         import pytest
         @pytest.fixture()
@@ -220,7 +223,7 @@ def test_dynamic_fixture_request(testdir):
     """
     )
 
-    result = testdir.runpytest("--setup-only", p)
+    result = pytester.runpytest("--setup-only", p)
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -231,8 +234,8 @@ def test_dynamic_fixture_request(testdir):
     )
 
 
-def test_capturing(testdir):
-    p = testdir.makepyfile(
+def test_capturing(pytester: Pytester) -> None:
+    p = pytester.makepyfile(
         """
         import pytest, sys
         @pytest.fixture()
@@ -247,15 +250,15 @@ def test_capturing(testdir):
     """
     )
 
-    result = testdir.runpytest("--setup-only", p)
+    result = pytester.runpytest("--setup-only", p)
     result.stdout.fnmatch_lines(
         ["this should be captured", "this should also be captured"]
     )
 
 
-def test_show_fixtures_and_execute_test(testdir):
+def test_show_fixtures_and_execute_test(pytester: Pytester) -> None:
     """Verify that setups are shown and tests are executed."""
-    p = testdir.makepyfile(
+    p = pytester.makepyfile(
         """
         import pytest
         @pytest.fixture
@@ -266,7 +269,7 @@ def test_show_fixtures_and_execute_test(testdir):
     """
     )
 
-    result = testdir.runpytest("--setup-show", p)
+    result = pytester.runpytest("--setup-show", p)
     assert result.ret == 1
 
     result.stdout.fnmatch_lines(
@@ -274,8 +277,8 @@ def test_show_fixtures_and_execute_test(testdir):
     )
 
 
-def test_setup_show_with_KeyboardInterrupt_in_test(testdir):
-    p = testdir.makepyfile(
+def test_setup_show_with_KeyboardInterrupt_in_test(pytester: Pytester) -> None:
+    p = pytester.makepyfile(
         """
         import pytest
         @pytest.fixture
@@ -285,7 +288,7 @@ def test_setup_show_with_KeyboardInterrupt_in_test(testdir):
             raise KeyboardInterrupt()
     """
     )
-    result = testdir.runpytest("--setup-show", p, no_reraise_ctrlc=True)
+    result = pytester.runpytest("--setup-show", p, no_reraise_ctrlc=True)
     result.stdout.fnmatch_lines(
         [
             "*SETUP    F arg*",
@@ -298,9 +301,9 @@ def test_setup_show_with_KeyboardInterrupt_in_test(testdir):
     assert result.ret == ExitCode.INTERRUPTED
 
 
-def test_show_fixture_action_with_bytes(testdir):
+def test_show_fixture_action_with_bytes(pytester: Pytester) -> None:
     # Issue 7126, BytesWarning when using --setup-show with bytes parameter
-    test_file = testdir.makepyfile(
+    test_file = pytester.makepyfile(
         """
         import pytest
 
@@ -309,7 +312,7 @@ def test_show_fixture_action_with_bytes(testdir):
             pass
         """
     )
-    result = testdir.run(
+    result = pytester.run(
         sys.executable, "-bb", "-m", "pytest", "--setup-show", str(test_file)
     )
     assert result.ret == 0

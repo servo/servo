@@ -57,7 +57,7 @@ Changes between 2.0.0 and 2.0.1
 - refinements to "collecting" output on non-ttys
 - refine internal plugin registration and --traceconfig output
 - introduce a mechanism to prevent/unregister plugins from the
-  command line, see http://pytest.org/en/stable/plugins.html#cmdunregister
+  command line, see http://pytest.org/en/stable/how-to/plugins.html#cmdunregister
 - activate resultlog plugin by default
 - fix regression wrt yielded tests which due to the
   collection-before-running semantics were not

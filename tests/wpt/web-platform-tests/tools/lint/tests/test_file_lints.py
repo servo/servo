@@ -540,16 +540,16 @@ def test_testdriver_vendor_path():
         check_errors(errors)
 
         if kind == "python":
-            expected = set([("PARSE-FAILED", "Unable to parse file", filename, 1)])
+            expected = {("PARSE-FAILED", "Unable to parse file", filename, 1)}
         elif kind in ["web-lax", "web-strict"]:
-            expected = set([
+            expected = {
                 ("MISSING-TESTDRIVER-VENDOR", "Missing `<script src='/resources/testdriver-vendor.js'>`", filename, None),
                 ("TESTDRIVER-VENDOR-PATH", "testdriver-vendor.js script seen with incorrect path", filename, None),
                 ("TESTDRIVER-VENDOR-PATH", "testdriver-vendor.js script seen with incorrect path", filename, None),
                 ("TESTDRIVER-VENDOR-PATH", "testdriver-vendor.js script seen with incorrect path", filename, None),
                 ("TESTDRIVER-VENDOR-PATH", "testdriver-vendor.js script seen with incorrect path", filename, None),
                 ("TESTDRIVER-VENDOR-PATH", "testdriver-vendor.js script seen with incorrect path", filename, None)
-            ])
+            }
         else:
             expected = set()
 
@@ -609,8 +609,8 @@ def test_variant_missing():
 # SourceFile implementation raises a runtime exception for the condition this
 # linting rule describes
 @pytest.mark.parametrize("content", ["",
-                                     "?"
-                                     "#"])
+                                     "?foo"
+                                     "#bar"])
 def test_variant_malformed_negative(content):
     code = """\
 <html xmlns="http://www.w3.org/1999/xhtml">

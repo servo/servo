@@ -1,5 +1,6 @@
 import pytest
 from _pytest._io.saferepr import _pformat_dispatch
+from _pytest._io.saferepr import DEFAULT_REPR_MAX_SIZE
 from _pytest._io.saferepr import saferepr
 
 
@@ -12,6 +13,13 @@ def test_maxsize():
     s = saferepr("x" * 50, maxsize=25)
     assert len(s) == 25
     expected = repr("x" * 10 + "..." + "x" * 10)
+    assert s == expected
+
+
+def test_no_maxsize():
+    text = "x" * DEFAULT_REPR_MAX_SIZE * 10
+    s = saferepr(text, maxsize=None)
+    expected = repr(text)
     assert s == expected
 
 

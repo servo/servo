@@ -70,12 +70,12 @@ def test_wptreport_lone_surrogate(capfd):
     logger.suite_start(["test-id-1"])  # no run_info arg!
     logger.test_start("test-id-1")
     logger.test_status("test-id-1",
-                       subtest=u"Name with surrogate\uD800",
+                       subtest="Name with surrogate\uD800",
                        status="FAIL",
-                       message=u"\U0001F601 \uDE0A\uD83D")
+                       message="\U0001F601 \uDE0A\uD83D")
     logger.test_end("test-id-1",
                     status="PASS",
-                    message=u"\uDE0A\uD83D \U0001F601")
+                    message="\uDE0A\uD83D \U0001F601")
     logger.suite_end()
 
     # check nothing got output to stdout/stderr
@@ -88,10 +88,10 @@ def test_wptreport_lone_surrogate(capfd):
     output.seek(0)
     output_obj = json.load(output)
     test = output_obj["results"][0]
-    assert test["message"] == u"U+de0aU+d83d \U0001F601"
+    assert test["message"] == "U+de0aU+d83d \U0001F601"
     subtest = test["subtests"][0]
-    assert subtest["name"] == u"Name with surrogateU+d800"
-    assert subtest["message"] == u"\U0001F601 U+de0aU+d83d"
+    assert subtest["name"] == "Name with surrogateU+d800"
+    assert subtest["message"] == "\U0001F601 U+de0aU+d83d"
 
 
 def test_wptreport_known_intermittent(capfd):
@@ -121,10 +121,10 @@ def test_wptreport_known_intermittent(capfd):
     output.seek(0)
     output_obj = json.load(output)
     test = output_obj["results"][0]
-    assert test["status"] == u"OK"
+    assert test["status"] == "OK"
     subtest = test["subtests"][0]
-    assert subtest["expected"] == u"PASS"
-    assert subtest["known_intermittent"] == [u'FAIL']
+    assert subtest["expected"] == "PASS"
+    assert subtest["known_intermittent"] == ['FAIL']
 
 
 def test_wptscreenshot_test_end(capfd):

@@ -26,15 +26,15 @@ def test_defined_entity(s):
     p = XMLParser()
     p.feed(s)
     d = p.close()
-    assert d.tag == u"foo"
-    assert d.text == u"\u00A0"
+    assert d.tag == "foo"
+    assert d.text == "\u00A0"
 
 
 def test_pi():
     p = XMLParser()
     p.feed('<foo><?foo bar?></foo>')
     d = p.close()
-    assert d.tag == u"foo"
+    assert d.tag == "foo"
     assert len(d) == 0
 
 
@@ -42,13 +42,13 @@ def test_comment():
     p = XMLParser()
     p.feed('<foo><!-- data --></foo>')
     d = p.close()
-    assert d.tag == u"foo"
+    assert d.tag == "foo"
     assert len(d) == 0
 
 
 def test_unsupported_encoding():
     p = XMLParser()
-    p.feed(u"<?xml version='1.0' encoding='Shift-JIS'?><foo>\u3044</foo>".encode("shift-jis"))
+    p.feed("<?xml version='1.0' encoding='Shift-JIS'?><foo>\u3044</foo>".encode("shift-jis"))
     d = p.close()
-    assert d.tag == u"foo"
-    assert d.text == u"\u3044"
+    assert d.tag == "foo"
+    assert d.text == "\u3044"

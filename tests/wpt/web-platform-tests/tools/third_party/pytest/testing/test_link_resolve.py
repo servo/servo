@@ -3,15 +3,14 @@ import subprocess
 import sys
 import textwrap
 from contextlib import contextmanager
+from pathlib import Path
 from string import ascii_lowercase
 
-import py.path
-
-from _pytest import pytester
+from _pytest.pytester import Pytester
 
 
 @contextmanager
-def subst_path_windows(filename):
+def subst_path_windows(filepath: Path):
     for c in ascii_lowercase[7:]:  # Create a subst drive from H-Z.
         c += ":"
         if not os.path.exists(c):
@@ -20,14 +19,14 @@ def subst_path_windows(filename):
     else:
         raise AssertionError("Unable to find suitable drive letter for subst.")
 
-    directory = filename.dirpath()
-    basename = filename.basename
+    directory = filepath.parent
+    basename = filepath.name
 
     args = ["subst", drive, str(directory)]
     subprocess.check_call(args)
     assert os.path.exists(drive)
     try:
-        filename = py.path.local(drive) / basename
+        filename = Path(drive, os.sep, basename)
         yield filename
     finally:
         args = ["subst", "/D", drive]
@@ -35,9 +34,9 @@ def subst_path_windows(filename):
 
 
 @contextmanager
-def subst_path_linux(filename):
-    directory = filename.dirpath()
-    basename = filename.basename
+def subst_path_linux(filepath: Path):
+    directory = filepath.parent
+    basename = filepath.name
 
     target = directory / ".." / "sub2"
     os.symlink(str(directory), str(target), target_is_directory=True)
@@ -49,11 +48,11 @@ def subst_path_linux(filename):
         pass
 
 
-def test_link_resolve(testdir: pytester.Testdir) -> None:
+def test_link_resolve(pytester: Pytester) -> None:
     """See: https://github.com/pytest-dev/pytest/issues/5965."""
-    sub1 = testdir.mkpydir("sub1")
-    p = sub1.join("test_foo.py")
-    p.write(
+    sub1 = pytester.mkpydir("sub1")
+    p = sub1.joinpath("test_foo.py")
+    p.write_text(
         textwrap.dedent(
             """
         import pytest
@@ -68,7 +67,7 @@ def test_link_resolve(testdir: pytester.Testdir) -> None:
         subst = subst_path_windows
 
     with subst(p) as subst_p:
-        result = testdir.runpytest(str(subst_p), "-v")
+        result = pytester.runpytest(str(subst_p), "-v")
         # i.e.: Make sure that the error is reported as a relative path, not as a
         # resolved path.
         # See: https://github.com/pytest-dev/pytest/issues/5965
@@ -77,7 +76,5 @@ def test_link_resolve(testdir: pytester.Testdir) -> None:
 
         # i.e.: Expect drive on windows because we just have drive:filename, whereas
         # we expect a relative path on Linux.
-        expect = (
-            "*{}*".format(subst_p) if sys.platform == "win32" else "*sub2/test_foo.py*"
-        )
+        expect = f"*{subst_p}*" if sys.platform == "win32" else "*sub2/test_foo.py*"
         result.stdout.fnmatch_lines([expect])

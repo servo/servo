@@ -5,7 +5,21 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   test(() => {
-    assert_false("getGamepads" in Navigator.prototype, "not in prototype");
-    assert_false("getGamepads" in navigator, "not on instance");
-  }, "Gamepad API is not exposed in insecure contexts");
+    // To avoid breaking legacy apps getGamepads() should always be exposed on
+    // the navigator object, even in non-secure contexts.
+    assert_true("getGamepads" in Navigator.prototype, "in prototype");
+    assert_true("getGamepads" in navigator, "on instance");
+
+    // Calling navigator.getGamepads() should return an empty array even if
+    // there are connected gamepads.
+    assert_array_equals(navigator.getGamepads(), [],
+                        "getGamepads returns an empty array");
+
+    // Gamepad API types should not be exposed in non-secure contexts.
+    assert_equals(typeof(Gamepad), "undefined", "Gamepad type is undefined");
+    assert_equals(typeof(GamepadButton), "undefined",
+                  "GamepadButton type is undefined");
+    assert_equals(typeof(GamepadEvent), "undefined",
+                  "GamepadEvent type is undefined");
+  }, "Gamepad API is not exposed in non-secure contexts");
 </script>

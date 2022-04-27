@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup document removal behavior</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div popup=popup id=popup>Popup</div>
+
+<script>
+promise_test(async t => {
+  function loadCompleted() {
+    return new Promise(resolve => {
+      window.addEventListener('load', resolve);
+    });
+  }
+  const popup = document.querySelector('[popup]');
+  assert_false(popup.matches(':popup-open'));
+  popup.showPopup();
+  assert_true(popup.matches(':popup-open'));
+  popup.remove(); // Shouldn't cause any issues
+  document.body.click(); // Shouldn't cause light dismiss problems
+  await loadCompleted(); // The document should finish loading
+}, 'Removal from the document shouldn\'t cause issues');
+
+</script>

@@ -1,20 +1,20 @@
 import os
+from pathlib import Path
 from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+from typing import TYPE_CHECKING
 from typing import Union
 
 import iniconfig
 
 from .exceptions import UsageError
-from _pytest.compat import TYPE_CHECKING
 from _pytest.outcomes import fail
 from _pytest.pathlib import absolutepath
 from _pytest.pathlib import commonpath
-from _pytest.pathlib import Path
 
 if TYPE_CHECKING:
     from . import Config
@@ -27,7 +27,7 @@ def _parse_ini_config(path: Path) -> iniconfig.IniConfig:
     Raise UsageError if the file cannot be parsed.
     """
     try:
-        return iniconfig.IniConfig(path)
+        return iniconfig.IniConfig(str(path))
     except iniconfig.ParseError as exc:
         raise UsageError(str(exc)) from exc
 
@@ -64,9 +64,13 @@ def load_config_dict_from_file(
 
     # '.toml' files are considered if they contain a [tool.pytest.ini_options] table.
     elif filepath.suffix == ".toml":
-        import toml
+        import tomli
 
-        config = toml.load(str(filepath))
+        toml_text = filepath.read_text(encoding="utf-8")
+        try:
+            config = tomli.loads(toml_text)
+        except tomli.TOMLDecodeError as exc:
+            raise UsageError(str(exc)) from exc
 
         result = config.get("tool", {}).get("pytest", {}).get("ini_options", None)
         if result is not None:
@@ -83,9 +87,7 @@ def load_config_dict_from_file(
 
 def locate_config(
     args: Iterable[Path],
-) -> Tuple[
-    Optional[Path], Optional[Path], Dict[str, Union[str, List[str]]],
-]:
+) -> Tuple[Optional[Path], Optional[Path], Dict[str, Union[str, List[str]]]]:
     """Search in the list of arguments for a valid ini-file for pytest,
     and return a tuple of (rootdir, inifile, cfg-dict)."""
     config_names = [
@@ -110,7 +112,7 @@ def locate_config(
 
 
 def get_common_ancestor(paths: Iterable[Path]) -> Path:
-    common_ancestor = None  # type: Optional[Path]
+    common_ancestor: Optional[Path] = None
     for path in paths:
         if not path.exists():
             continue
@@ -175,10 +177,10 @@ def determine_setup(
     dirs = get_dirs_from_args(args)
     if inifile:
         inipath_ = absolutepath(inifile)
-        inipath = inipath_  # type: Optional[Path]
+        inipath: Optional[Path] = inipath_
         inicfg = load_config_dict_from_file(inipath_) or {}
         if rootdir_cmd_arg is None:
-            rootdir = get_common_ancestor(dirs)
+            rootdir = inipath_.parent
     else:
         ancestor = get_common_ancestor(dirs)
         rootdir, inipath, inicfg = locate_config([ancestor])

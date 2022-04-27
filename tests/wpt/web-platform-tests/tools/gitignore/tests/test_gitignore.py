@@ -26,6 +26,7 @@ match_data = [
     (b"a?c", True, [b"abc"]),
     (b"a[^b]c", True, [b"acc"]),
     (b"a[b-c]c", True, [b"abc", b"acc"]),
+    (b"a[]c", True, [b"ac"]),
 ]  # type: Sequence[Tuple[bytes, bool, Iterable[bytes]]]
 
 mismatch_data = [

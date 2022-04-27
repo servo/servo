@@ -167,7 +167,7 @@ let actions = new test_driver.Actions()
     .setContext(frames[0])
     .keyDown("p")
     .keyUp("p");
-actions.send();
+await actions.send();
 ```
 
 Note that if an action uses an element reference, the context will be

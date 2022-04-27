@@ -2,7 +2,7 @@
 import argparse
 import os
 
-import server
+from .server import WebTestHttpd
 
 def abs_path(path):
     return os.path.abspath(path)
@@ -24,10 +24,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    httpd = server.WebTestHttpd(host=args.host, port=args.port,
-                                use_ssl=False, certificate=None,
-                                doc_root=args.document_root)
+    httpd = WebTestHttpd(host=args.host, port=args.port,
+                         use_ssl=False, certificate=None,
+                         doc_root=args.document_root)
     httpd.start()
 
 if __name__ == "__main__":
-    main()
+    main()  # type: ignore

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+
+    let agent = await spawnWindow(t);
+    let nextUrl = agent.getExecutorURL({ page: 2 });
+    await agent.forceSinglePrefetch(nextUrl, { invalid_key: "value" });
+    await agent.navigate(nextUrl);
+
+    assert_not_prefetched(await agent.getRequestHeaders());
+  }, "an unrecognized key in a prefetch rule should prevent it from being fetched");
+</script>

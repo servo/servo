@@ -16,7 +16,7 @@
 
 // "none" in Edge, "none 100% / 1 / 0 stretch" in Firefox and Blink.
 test_valid_value("border-image", "none", ["none", "none 100% / 1 / 0 stretch"]);
-test_valid_value("border-image", "stretch", ["none", "none 100% / 1 / 0 stretch"]);
+test_valid_value("border-image", "stretch", ["stretch", "none", "none 100% / 1 / 0 stretch"]);
 test_valid_value("border-image", "none 100% / 1 / 0 stretch", ["none", "none 100% / 1 / 0 stretch"]);
 
 test_valid_value("border-image", 'url("http://www.example.com/") 1 2 3 4 fill', ['url("http://www.example.com/") 1 2 3 4 fill', 'url("http://www.example.com/") 1 2 3 4 fill / 1 / 0 stretch']);
@@ -28,11 +28,11 @@ test_valid_value("border-image", "repeat round", ["repeat round", "none repeat r
 test_valid_value("border-image", "none repeat round", ["repeat round", "none repeat round", "none 100% / 1 / 0 repeat round"]);
 
 test_valid_value("border-image", "space", ["space", "none space space", "none 100% / 1 / 0 space"]);
-test_valid_value("border-image", "none space space", ["space", "none space space", "none 100% / 1 / 0 space"]);
+test_valid_value("border-image", "none space space", ["space", "none space space", "none space", "none 100% / 1 / 0 space"]);
 test_valid_value("border-image", "none 100% / 1 / 0 space", ["space", "none space space", "none 100% / 1 / 0 space"]);
 
 test_valid_value("border-image", "1", ["1", "none 1 1 1 1", "none 1 / 1 / 0 stretch"]);
-test_valid_value("border-image", "none 1 1 1 1", ["1", "none 1 1 1 1", "none 1 / 1 / 0 stretch"]);
+test_valid_value("border-image", "none 1 1 1 1", ["1", "none 1 1 1 1", "none 1", "none 1 / 1 / 0 stretch"]);
 test_valid_value("border-image", "none 1 / 1 / 0 stretch", ["1", "none 1 1 1 1", "none 1 / 1 / 0 stretch"]);
 
 test_valid_value("border-image", 'url("http://www.example.com/") 1 2% 3 4%', ['url("http://www.example.com/") 1 2% 3 4%', 'url("http://www.example.com/") 1 2% 3 4% / 1 / 0 stretch']);

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: only serialize 'grid' when the value can roundtrip</title>
+<link rel="author" title="Daniel Libby" href="mailto:dlibby@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#propdef-grid">
+<meta name="assert" content="grid shorthand must not serialize when the value cannot roundtrip.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  let element = document.createElement('div');
+  const autoFlowRows = "auto-flow auto / 100px 100px";
+  element.style.grid = autoFlowRows;
+  test(() => {
+    assert_equals(element.style.grid, autoFlowRows, autoFlowRows + " must be serialized via `grid` property");
+    assert_equals(element.style.cssText, "grid: " + autoFlowRows + ";", autoFlowRows + " must be serialized via `cssText`");
+    assert_equals(element.style.gridTemplateAreas, "none");
+  }, "Serialization without grid-template-areas");
+
+  const gridTemplateAreasValue = '"one two" "three four"';
+  element.style.gridTemplateAreas = gridTemplateAreasValue;
+  test(() => {
+    assert_equals(element.style.grid, "", "grid shorthand must not be serialized when grid-template-areas and grid-auto-flow/rows are both set");
+    assert_equals(element.style.gridTemplateAreas, gridTemplateAreasValue);
+    assert_equals(element.style.gridAutoFlow, "row");
+    assert_equals(element.style.gridAutoRows, "auto");
+  }, "Serialization with grid-template-areas");
+</script>

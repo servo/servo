@@ -878,6 +878,56 @@ async function getHealthThermometerDeviceWithServicesDiscovered(options) {
 }
 
 /**
+ * Returns the device requested and connected in the given iframe context and
+ * fakes from populateHealthThermometerFakes().
+ * @param {object} iframe The iframe element set up by the caller document.
+ * @returns {Promise<{device: BluetoothDevice, fakes: {
+ *         fake_peripheral: FakePeripheral,
+ *         fake_generic_access: FakeRemoteGATTService,
+ *         fake_health_thermometer: FakeRemoteGATTService,
+ *         fake_measurement_interval: FakeRemoteGATTCharacteristic,
+ *         fake_cccd: FakeRemoteGATTDescriptor,
+ *         fake_user_description: FakeRemoteGATTDescriptor,
+ *         fake_temperature_measurement: FakeRemoteGATTCharacteristic,
+ *         fake_temperature_type: FakeRemoteGATTCharacteristic}}>} An object
+ *         containing a requested BluetoothDevice and all of the GATT fake
+ *         objects.
+ */
+async function getHealthThermometerDeviceFromIframe(iframe) {
+  const fake_peripheral = await setUpConnectableHealthThermometerDevice();
+  const fakes = await populateHealthThermometerFakes(fake_peripheral);
+  await new Promise(resolve => {
+    let src = '/bluetooth/resources/health-thermometer-iframe.html';
+    iframe.src = src;
+    document.body.appendChild(iframe);
+    iframe.addEventListener('load', resolve, {once: true});
+  });
+  await new Promise((resolve, reject) => {
+    callWithTrustedClick(() => {
+      iframe.contentWindow.postMessage(
+          {
+            type: 'RequestAndConnect',
+            options: {filters: [{services: [health_thermometer.name]}]}
+          },
+          '*');
+    });
+
+    function messageHandler(messageEvent) {
+      if (messageEvent.data == 'Connected') {
+        window.removeEventListener('message', messageHandler);
+        resolve();
+      } else {
+        reject(new Error(`Unexpected message: ${messageEvent.data}`));
+      }
+    }
+    window.addEventListener('message', messageHandler, {once: true});
+  });
+  const devices = await iframe.contentWindow.navigator.bluetooth.getDevices();
+  assert_equals(devices.length, 1);
+  return Object.assign({device: devices[0]}, {fakes});
+}
+
+/**
  * Similar to getHealthThermometerDevice() except the device
  * is not connected and thus its services have not been
  * discovered.

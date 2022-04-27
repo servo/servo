@@ -59,9 +59,9 @@ test(() => {
     "u4-n-t",
     "i488jh6-g18-fck-yb-v7-i",
     "x-x-t-t-c34-o",
-    "basic-card",
-    // gets coerced to "basic-card", for compat with old version of spec
-    ["basic-card"],
+    "secure-payment-confirmation",
+    // gets coerced to "secure-payment-confirmation", for compat with old version of spec
+    ["secure-payment-confirmation"],
   ];
   for (const validMethod of validMethods) {
     try {
@@ -77,9 +77,9 @@ test(() => {
 
 test(() => {
   const invalidMethods = [
-    "basic-💳",
-    "¡basic-*-card!",
-    "Basic-Card",
+    "secure-💳",
+    "¡secure-*-payment-confirmation!",
+    "Secure-Payment-Confirmation",
     "0",
     "-",
     "--",
@@ -98,13 +98,13 @@ test(() => {
     "\t\na-b",
     "a-b ",
     "a-b\n\t",
-    "basic-card?not-really",
-    "basic-card://not-ok",
-    "basic card",
-    "/basic card/",
-    "BaSicCarD",
-    "BASIC-CARD",
-    " basic-card ",
+    "secure-payment-confirmation?not-really",
+    "secure-payment-confirmation://not-ok",
+    "secure payment confirmation",
+    "/secure payment confirmation/",
+    "SeCuRePaYmEnTcOnFiRmAtIoN",
+    "SECURE-PAYMENT-CONFIRMATION",
+    " secure-payment-confirmation ",
     "this is not supported",
     " ",
     "foo,var",

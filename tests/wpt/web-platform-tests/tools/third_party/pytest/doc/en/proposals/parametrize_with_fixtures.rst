@@ -120,7 +120,7 @@ all parameters marked as a fixture.
 
 .. note::
 
-    The `pytest-lazy-fixture <https://pypi.org/project/pytest-lazy-fixture/>`_ plugin implements a very
+    The :pypi:`pytest-lazy-fixture` plugin implements a very
     similar solution to the proposal below, make sure to check it out.
 
 .. code-block:: python

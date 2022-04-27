@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<link rel=match href="popup-inside-display-none-ref.tentative.html">
+
+No popup should be displayed here.<p>
+
+<div style="display:none">
+    <div popup=popup>This content should be hidden</div>
+</div>
+
+<script>
+  const popup = document.querySelector('[popup]');
+  popup.showPopup();
+  if (!popup.matches(':popup-open'))
+    document.body.appendChild(document.createTextNode('FAIL'));
+</script>

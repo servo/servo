@@ -236,10 +236,11 @@ usb_test(() => {
   return getFakeDevice().then(({ device }) => {
     assert_equals(device.configuration, null);
     return device.open()
-      .then(() => assertRejectsWithError(
-            device.selectConfiguration(3), 'NotFoundError',
-            'The configuration value provided is not supported by the device.'))
-      .then(() => device.close());
+        .then(
+            () => assertRejectsWithError(
+                device.selectConfiguration(10), 'NotFoundError',
+                'The configuration value provided is not supported by the device.'))
+        .then(() => device.close());
   });
 }, 'selectConfiguration rejects on invalid configurations');
 
@@ -430,6 +431,30 @@ usb_test(() => {
       .then(() => device.close());
   });
 }, 'can select an alternate interface');
+
+usb_test(
+    async () => {
+      const {device} = await getFakeDevice();
+      await device.open();
+      await device.selectConfiguration(3);
+      await device.claimInterface(2);
+      await device.selectAlternateInterface(2, 0);
+      await device.close();
+    },
+    'can select an alternate interface on a setting with non-sequential ' +
+        'interface number');
+
+usb_test(
+    async () => {
+      const {device} = await getFakeDevice();
+      await device.open();
+      await device.selectConfiguration(3);
+      await device.claimInterface(0);
+      await device.selectAlternateInterface(0, 2);
+      await device.close();
+    },
+    'can select an alternate interface on a setting with non-sequential ' +
+        'alternative setting value');
 
 usb_test(() => {
   return getFakeDevice().then(({ device }) => {

@@ -4,7 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/cq-testcommon.js"></script>
-<div style="container:size; width:100px; height:100px">
+<div style="container-name:name;container-type:size; width:100px; height:100px">
   <main id=main></main>
 </div>
 <script>
@@ -25,7 +25,7 @@
   function test_query_invalid(query) {
     test(t => {
       t.add_cleanup(cleanup_main);
-      let style = set_style(`@container ${query} {}`);
+      let style = set_style(`@container name ${query} {}`);
       assert_equals(style.sheet.rules.length, 0);
     }, query);
   }
@@ -36,8 +36,8 @@
     test(t => {
       t.add_cleanup(cleanup_main);
       let style = set_style(`
-        @container ${query} {}
-        @container (${query} or (not ${query})) { main { --match:true; } }
+        @container name ${query} {}
+        @container name (${query} or (not ${query})) { main { --match:true; } }
       `);
       assert_equals(style.sheet.rules.length, 2);
       const expected = unknown ? '' : 'true';
@@ -69,42 +69,67 @@
     }, `Container selector: ${container_selector}`);
   }
 
-  test_query_known('size(width)');
-  test_query_known('size(min-width: 0px)');
-  test_query_known('size(max-width: 0px)');
-  test_query_known('size(height)');
-  test_query_known('size(min-height: 0px)');
-  test_query_known('size(max-height: 0px)');
-  test_query_known('size(aspect-ratio)');
-  test_query_known('size(min-aspect-ratio: 1/2)');
-  test_query_known('size(max-aspect-ratio: 1/2)');
-  test_query_known('size(orientation: portrait)');
-  test_query_known('size(inline-size)');
-  test_query_known('size(min-inline-size: 0px)');
-  test_query_known('size(max-inline-size: 0px)');
-  test_query_known('size(block-size)');
-  test_query_known('size(min-block-size: 0px)');
-  test_query_known('size(max-block-size: 0px)');
+  test_query_known('(width)');
+  test_query_known('(min-width: 0px)');
+  test_query_known('(max-width: 0px)');
+  test_query_known('(height)');
+  test_query_known('(min-height: 0px)');
+  test_query_known('(max-height: 0px)');
+  test_query_known('(aspect-ratio)');
+  test_query_known('(min-aspect-ratio: 1/2)');
+  test_query_known('(max-aspect-ratio: 1/2)');
+  test_query_known('(orientation: portrait)');
+  test_query_known('(inline-size)');
+  test_query_known('(min-inline-size: 0px)');
+  test_query_known('(max-inline-size: 0px)');
+  test_query_known('(block-size)');
+  test_query_known('(min-block-size: 0px)');
+  test_query_known('(max-block-size: 0px)');
 
-  test_query_known('size(width: 100px)');
-  test_query_known('size((width: 100px))');
-  test_query_known('size(not (width: 100px))');
-  test_query_known('size((width: 100px) and (height: 100px))');
-  test_query_known('size((width: 50px) or (height: 100px))');
-  test_query_known('size(width < 100px)');
-  test_query_known('size(100px < width)');
-  test_query_known('size(100px < width < 200px)');
+  test_query_known('(width: 100px)');
+  test_query_known('((width: 100px))');
+  test_query_known('(not (width: 100px))');
+  test_query_known('((width: 100px) and (height: 100px))');
+  test_query_known('(((width: 40px) or (width: 50px)) and (height: 100px))');
+  test_query_known('((width: 100px) and ((height: 40px) or (height: 50px)))');
+  test_query_known('(((width: 40x) and (height: 50px)) or (height: 100px))');
+  test_query_known('((width: 50px) or ((width: 40px) and (height: 50px)))');
+  test_query_known('((width: 100px) and (not (height: 100px)))');
+  test_query_known('(width < 100px)');
+  test_query_known('(width <= 100px)');
+  test_query_known('(width = 100px)');
+  test_query_known('(width > 100px)');
+  test_query_known('(width >= 100px)');
+  test_query_known('(100px < width)');
+  test_query_known('(100px <= width)');
+  test_query_known('(100px = width)');
+  test_query_known('(100px > width)');
+  test_query_known('(100px >= width)');
+  test_query_known('(100px < width < 200px)');
+  test_query_known('(100px < width <= 200px)');
+  test_query_known('(100px <= width < 200px)');
+  test_query_known('(100px > width > 200px)');
+  test_query_known('(100px > width >= 200px)');
+  test_query_known('(100px >= width > 200px)');
 
   test_query_unknown('foo(width)');
-  test_query_unknown('size(asdf)');
-  test_query_unknown('size(resolution > 100dpi)');
-  test_query_unknown('size(resolution: 150dpi)');
-  test_query_unknown('size(color)');
-  test_query_unknown('size(min-color: 1)');
-  test_query_unknown('size(color-index >= 1)');
+  test_query_unknown('size(width)');
+  test_query_unknown('(asdf)');
+  test_query_unknown('(resolution > 100dpi)');
+  test_query_unknown('(resolution: 150dpi)');
+  test_query_unknown('(color)');
+  test_query_unknown('(min-color: 1)');
   test_query_unknown('(color-index >= 1)');
   test_query_unknown('size(grid)');
   test_query_unknown('(grid)');
+  test_query_unknown('(width == 100px)');
+  test_query_unknown('(100px == width)');
+  test_query_unknown('(100px = width = 200px)');
+  test_query_unknown('(100px < width > 200px)');
+  test_query_unknown('(100px <= width >= 200px)');
+  test_query_unknown('(100px <= width > 200px)');
+  test_query_unknown('(100px < width >= 200px)');
+  test_query_unknown('(100px : width : 200px)');
 
   test_query_invalid('screen');
   test_query_invalid('print');
@@ -115,29 +140,22 @@
   test_query_invalid('not screen and (width: 100px)');
   test_query_invalid('not screen or (width: 100px)');
   test_query_invalid('(width: 100px), (height: 100px)');
+  test_query_invalid('(width: 100px) and (height: 100px)');
+  test_query_invalid('(width: 100px) or (height: 100px)');
+  test_query_invalid('not (width: 100px)');
+  test_query_invalid('foo (width: 100px)');
 
+  test_container_selector_valid('foo');
   test_container_selector_valid(' foo');
   test_container_selector_valid(' foo ');
-  test_container_selector_valid('name(foo)');
-  test_container_selector_valid('name( foo )');
-  test_container_selector_valid('type(size)');
-  test_container_selector_valid('type( size )');
-  test_container_selector_valid('type(inline-size)');
-  test_container_selector_valid('type(block-size)');
-  test_container_selector_valid('name(bar) type(block-size)');
-  test_container_selector_valid('type(block-size) name(bar)');
 
   test_container_selector_invalid('foo foo');
   test_container_selector_invalid('1px');
   test_container_selector_invalid('50gil');
-  test_container_selector_invalid('name(1px)');
-  test_container_selector_invalid('type(1px)');
-  test_container_selector_invalid('type(red)');
-  test_container_selector_invalid('type(size) type(size)');
-  test_container_selector_invalid('type(inline-size) type(block-size)');
-  test_container_selector_invalid('name(foo) name(bar)');
-  test_container_selector_invalid('type(inline-size) name(foo) type(block-size)');
-  test_container_selector_invalid('name(foo) type(size) name(bar)');
-  test_container_selector_invalid('name(type(size))');
-  test_container_selector_invalid('type(name(bar))');
+  test_container_selector_invalid('name(foo)');
+  test_container_selector_invalid('type(inline-size)');
+  test_container_selector_invalid('"foo"');
+  test_container_selector_invalid('"inherit"');
+  test_container_selector_invalid('none');
+  test_container_selector_invalid('None');
 </script>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script>
+const url_prefix = 'https://{{host}}:{{ports[https][0]}}/credential-management/support/';
+promise_test(async t => {
+  // Install and wait for the identity provider's cookie to be installed.
+  await new Promise(resolve => {
+    const img = document.createElement('img');
+    img.src = url_prefix + 'set_cookie';
+    img.addEventListener('error', resolve);
+    document.body.appendChild(img);
+  });
+  const result = await navigator.credentials.get({
+    federated: {
+      providers: [{
+        url: url_prefix,
+        clientId: '1',
+      }]
+    }
+  });
+  const token = await result.login({nonce: '1'});
+  assert_equals(token.idToken, 'token');
+}, 'Test that COEP policy do not apply to FedCM requests');
+</script>

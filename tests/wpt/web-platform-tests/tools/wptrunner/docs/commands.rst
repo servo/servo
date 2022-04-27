@@ -48,13 +48,6 @@ additional fields. All paths are relative to the commands.json.
   When True, the subcommand is executed with a virtualenv environment. Default
   to True.
 
-:code:`install`
-  A list of strings where each string represents a
-  `requirement object <https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-objects>`_.
-  These requirements are installed into the virtualenv environment before
-  running the subcommand. :code:`virtualenv` must be true when this field is
-  set.
-
 :code:`requirements`
   A list of paths where each path specifies a requirements.txt. All requirements
   listed in these files are installed into the virtualenv environment before

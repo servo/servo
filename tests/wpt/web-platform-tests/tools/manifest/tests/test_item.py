@@ -79,8 +79,8 @@ def test_url_not_subdomain(path):
 
 
 @pytest.mark.parametrize("fuzzy", [
-    {('/foo/test.html', u'/foo/ref.html', '=='): [[1, 1], [200, 200]]},
-    {('/foo/test.html', u'/foo/ref.html', '=='): [[0, 1], [100, 200]]},
+    {('/foo/test.html', '/foo/ref.html', '=='): [[1, 1], [200, 200]]},
+    {('/foo/test.html', '/foo/ref.html', '=='): [[0, 1], [100, 200]]},
     {None: [[0, 1], [100, 200]]},
     {None: [[1, 1], [200, 200]]},
 ])
@@ -106,8 +106,8 @@ def test_reftest_fuzzy(fuzzy):
 
 
 @pytest.mark.parametrize("fuzzy", [
-    {('/foo/test.html', u'/foo/ref-2.html', '=='): [[0, 1], [100, 200]]},
-    {None: [[1, 1], [200, 200]], ('/foo/test.html', u'/foo/ref-2.html', '=='): [[0, 1], [100, 200]]},
+    {('/foo/test.html', '/foo/ref-2.html', '=='): [[0, 1], [100, 200]]},
+    {None: [[1, 1], [200, 200]], ('/foo/test.html', '/foo/ref-2.html', '=='): [[0, 1], [100, 200]]},
 ])
 def test_reftest_fuzzy_multi(fuzzy):
     t = RefTest('/',

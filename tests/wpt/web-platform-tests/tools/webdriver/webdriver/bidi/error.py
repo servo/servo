@@ -10,7 +10,7 @@ class BidiException(Exception):
     error_code = None  # type: ClassVar[str]
 
     def __init__(self, error: str, message: str, stacktrace: Optional[str]):
-        super(BidiException, self)
+        super()
 
         self.error = error
         self.message = message
@@ -32,6 +32,10 @@ class BidiException(Exception):
 
 class InvalidArgumentException(BidiException):
     error_code = "invalid argument"
+
+
+class NoSuchFrameException(BidiException):
+    error_code = "no such frame"
 
 
 class UnknownCommandException(BidiException):

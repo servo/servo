@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>SPC Authentication iframe</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="../utils.sub.js"></script>
 <script>
 'use strict';
@@ -9,7 +11,8 @@
 window.addEventListener('message', async function handler(evt) {
   window.removeEventListener('message', handler);
 
-  const credentialId = evt.data;
+  const credentialId = evt.data[0];
+  const rpId = evt.data[1];
 
   // Assume that our parent has already created a virtual authenticator device
   // and set the SPC transaction mode.
@@ -22,6 +25,7 @@ window.addEventListener('message', async function handler(evt) {
       credentialIds: [credentialId],
       challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
       payeeOrigin,
+      rpId,
       timeout: 60000,
       instrument: {
         displayName,
@@ -30,6 +34,8 @@ window.addEventListener('message', async function handler(evt) {
     }
   }], PAYMENT_DETAILS);
 
+  test_driver.set_test_context(window.parent);
+  await test_driver.bless('user activation');
   const responsePromise = request.show();
 
   const response = await responsePromise;
@@ -40,9 +46,9 @@ window.addEventListener('message', async function handler(evt) {
   // Let our parent know the results. Some WebAuthn fields cannot be cloned, so
   // we have to do some teardown ourselves.
   const clientDataJSON = JSON.parse(arrayBufferToString(cred.response.clientDataJSON))
-  window.parent.postMessage({ id: cred.id, clientDataJSON }, '*');
+  window.parent.postMessage({ type: 'spc_result', id: cred.id, clientDataJSON }, '*');
 });
 
 // Now let our parent know that we are ready to receive the credential ID.
-window.parent.postMessage(true, '*');
+window.parent.postMessage({ type: 'loaded' }, '*');
 </script>

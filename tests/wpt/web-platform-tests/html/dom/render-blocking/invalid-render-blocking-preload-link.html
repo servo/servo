@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>An invalid preload link should not block rendering</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<link rel="preload" as="invalid" blocking="render"
+      href="/fonts/Ahem.ttf?pipe=trickle(d1)">
+<script>
+promise_test(async () => {
+  // requestAnimationFrame() should be eventually run, and the invalid preload
+  // link should not be loaded.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  verifyNumberOfResourceTimingEntries('/fonts/Ahem.ttf?pipe=trickle(d1)', 0);
+});
+</script>

@@ -120,14 +120,14 @@ promise_test(t => workerFetchTest(t, {
 promise_test(t => workerFetchTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
-    server: Server.HTTP_LOCAL,
+    server: Server.HTTP_PRIVATE,
     behavior: {
       preflight: PreflightBehavior.success(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: WorkerFetchTestResult.FAILURE,
-}), "pubiic https to local: failure.");
+}), "public https to private: failure.");
 
 promise_test(t => workerFetchTest(t, {
   source: { server: Server.HTTPS_PUBLIC },

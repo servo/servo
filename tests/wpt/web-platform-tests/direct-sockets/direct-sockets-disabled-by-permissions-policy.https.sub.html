@@ -12,13 +12,12 @@
     <script>
       'use strict';
 
-      promise_test(async t => {
-        await promise_rejects_dom(t, "NotAllowedError", navigator.openTCPSocket({ remotePort: 53 }));
-      }, "direct sockets (TCP) can be disabled by feature policy");
-
-      promise_test(async t => {
-        await promise_rejects_dom(t, "NotAllowedError", navigator.openUDPSocket({ remotePort: 53 }));
-      }, "direct sockets (UDP) can be disabled by feature policy");
+      test(() => {
+        assert_throws_dom("NotAllowedError", () => new TCPSocket("address.com", 53), "constructor should throw");
+      }, "tcp disabled by permissions-policy");
+      test(() => {
+        assert_throws_dom("NotAllowedError", () => new UDPSocket("address.com", 53), "constructor should throw");
+      }, "udp disabled by permissions-policy");
     </script>
   </body>
 </html>

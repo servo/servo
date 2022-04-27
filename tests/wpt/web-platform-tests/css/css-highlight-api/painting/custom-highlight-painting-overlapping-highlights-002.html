@@ -18,21 +18,18 @@
     background-color: rgba(100, 0, 100, 0.5);
   }
 </style>
-<body><div><span id="affected1">Green on lime.</span><span id="affected2">Black on maroon.</span></div>
+<body><div><span id="affected1">Green on lime.</span><span id="affected2">Red on maroon.</span></div>
 <script>
   /*
     This test is meant to verify that:
       - UAs must not define any styles for custom highlight pseudo-elements in
       the default UA stylesheet.
-      - A custom highlight pseudo-element inherits the styles of its originating
-      element.
+      - UAs do not paint unstyled custom highlights.
 
     In this test, highlight1 has higher priority, so it is painted over
     highlight2. This includes painting for span#affected2, where there is no CSS
-    rule for highlight1. The result is that highlight1 paints on top for
-    span#affected2, using the originating element's color (black) and background
-    color (transparent). Thus, span#affected2 gets text color black, and the
-    background remains the same color as that applied by highlight2 (maroon).
+    rule for highlight1. But since unstyled custom highlights are not painted,
+    span#affected2 is still painted with the styles for highlight2.
 
     See https://drafts.csswg.org/css-highlight-api-1/#default-styles
   */

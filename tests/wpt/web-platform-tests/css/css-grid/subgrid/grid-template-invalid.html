@@ -22,6 +22,7 @@ test_invalid_value("grid-template-rows", 'subgrid repeat(auto-fill, line)');
 test_invalid_value("grid-template-rows", 'subgrid repeat(2, 1px)');
 test_invalid_value("grid-template-rows", 'subgrid repeat(2, line)');
 test_invalid_value("grid-template-rows", 'subgrid repeat(2,');
+test_invalid_value("grid-template-rows", 'subgrid repeat(auto-fill, [a]) repeat(auto-fill, [b]');
 
 test_invalid_value("grid-template-columns", 'subgrid subgrid');
 test_invalid_value("grid-template-columns", 'subgrid none');
@@ -32,6 +33,7 @@ test_invalid_value("grid-template-columns", 'subgrid repeat(auto-fill, line)');
 test_invalid_value("grid-template-columns", 'subgrid repeat(2, 1px)');
 test_invalid_value("grid-template-columns", 'subgrid repeat(2, line)');
 test_invalid_value("grid-template-columns", 'subgrid repeat(2,');
+test_invalid_value("grid-template-columns", 'subgrid repeat(auto-fill, [a]) repeat(auto-fill, [b]');
 
 
 </script>

@@ -64,6 +64,11 @@ function assert_style_value_equals(a, b) {
     case 'CSSMathMax':
       assert_style_value_array_equals(a.values, b.values);
       break;
+    case 'CSSMathClamp':
+      assert_style_value_equals(a.lower, b.lower);
+      assert_style_value_equals(a.value, b.value);
+      assert_style_value_equals(a.upper, b.upper);
+      break;
     case 'CSSMathInvert':
     case 'CSSMathNegate':
       assert_style_value_equals(a.value, b.value);
@@ -137,6 +142,17 @@ const gValidUnits = [
 function createDivWithStyle(test, cssText) {
   let element = document.createElement('div');
   element.style = cssText || '';
+  document.body.appendChild(element);
+  test.add_cleanup(() => {
+    element.remove();
+  });
+  return element;
+}
+
+// Creates a new div element without inline style.
+// The created element is deleted during test cleanup.
+function createDivWithoutStyle(test) {
+  let element = document.createElement('div');
   document.body.appendChild(element);
   test.add_cleanup(() => {
     element.remove();

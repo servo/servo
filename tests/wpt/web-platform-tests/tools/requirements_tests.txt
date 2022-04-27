@@ -1,5 +1,5 @@
+httpx[http2]==0.22.0
 json-e==4.4.3
 jsonschema==3.2.0
-pyyaml==5.4.1
-requests==2.27.1
-taskcluster==44.2.2
+pyyaml==6.0
+taskcluster==44.12.3

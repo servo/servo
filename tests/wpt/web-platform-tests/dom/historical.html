@@ -175,7 +175,8 @@ function isRemovedFromWindow(name) {
   }, "Window member must be removed: " + name)
 }
 var windowRemoved = [
-  "attachEvent"
+  "attachEvent",
+  "content",
 ]
 windowRemoved.forEach(isRemovedFromWindow)
 

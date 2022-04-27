@@ -1,5 +1,4 @@
-
-class ClickAction(object):
+class ClickAction:
     name = "click"
 
     def __init__(self, logger, protocol):
@@ -13,7 +12,7 @@ class ClickAction(object):
         self.protocol.click.element(element)
 
 
-class DeleteAllCookiesAction(object):
+class DeleteAllCookiesAction:
     name = "delete_all_cookies"
 
     def __init__(self, logger, protocol):
@@ -25,7 +24,7 @@ class DeleteAllCookiesAction(object):
         self.protocol.cookies.delete_all_cookies()
 
 
-class SendKeysAction(object):
+class SendKeysAction:
     name = "send_keys"
 
     def __init__(self, logger, protocol):
@@ -40,7 +39,7 @@ class SendKeysAction(object):
         self.protocol.send_keys.send_keys(element, keys)
 
 
-class MinimizeWindowAction(object):
+class MinimizeWindowAction:
     name = "minimize_window"
 
     def __init__(self, logger, protocol):
@@ -51,7 +50,7 @@ class MinimizeWindowAction(object):
         return self.protocol.window.minimize()
 
 
-class SetWindowRectAction(object):
+class SetWindowRectAction:
     name = "set_window_rect"
 
     def __init__(self, logger, protocol):
@@ -63,7 +62,7 @@ class SetWindowRectAction(object):
         self.protocol.window.set_rect(rect)
 
 
-class ActionSequenceAction(object):
+class ActionSequenceAction:
     name = "action_sequence"
 
     def __init__(self, logger, protocol):
@@ -85,7 +84,7 @@ class ActionSequenceAction(object):
         return self.protocol.select.element_by_selector(element_selector)
 
 
-class GenerateTestReportAction(object):
+class GenerateTestReportAction:
     name = "generate_test_report"
 
     def __init__(self, logger, protocol):
@@ -97,7 +96,7 @@ class GenerateTestReportAction(object):
         self.logger.debug("Generating test report: %s" % message)
         self.protocol.generate_test_report.generate_test_report(message)
 
-class SetPermissionAction(object):
+class SetPermissionAction:
     name = "set_permission"
 
     def __init__(self, logger, protocol):
@@ -113,7 +112,7 @@ class SetPermissionAction(object):
         self.logger.debug("Setting permission %s to %s, oneRealm=%s" % (name, state, one_realm))
         self.protocol.set_permission.set_permission(descriptor, state, one_realm)
 
-class AddVirtualAuthenticatorAction(object):
+class AddVirtualAuthenticatorAction:
     name = "add_virtual_authenticator"
 
     def __init__(self, logger, protocol):
@@ -127,7 +126,7 @@ class AddVirtualAuthenticatorAction(object):
         self.logger.debug("Authenticator created with ID %s" % authenticator_id)
         return authenticator_id
 
-class RemoveVirtualAuthenticatorAction(object):
+class RemoveVirtualAuthenticatorAction:
     name = "remove_virtual_authenticator"
 
     def __init__(self, logger, protocol):
@@ -140,7 +139,7 @@ class RemoveVirtualAuthenticatorAction(object):
         return self.protocol.virtual_authenticator.remove_virtual_authenticator(authenticator_id)
 
 
-class AddCredentialAction(object):
+class AddCredentialAction:
     name = "add_credential"
 
     def __init__(self, logger, protocol):
@@ -153,7 +152,7 @@ class AddCredentialAction(object):
         self.logger.debug("Adding credential to virtual authenticator %s " % authenticator_id)
         return self.protocol.virtual_authenticator.add_credential(authenticator_id, credential)
 
-class GetCredentialsAction(object):
+class GetCredentialsAction:
     name = "get_credentials"
 
     def __init__(self, logger, protocol):
@@ -165,7 +164,7 @@ class GetCredentialsAction(object):
         self.logger.debug("Getting credentials from virtual authenticator %s " % authenticator_id)
         return self.protocol.virtual_authenticator.get_credentials(authenticator_id)
 
-class RemoveCredentialAction(object):
+class RemoveCredentialAction:
     name = "remove_credential"
 
     def __init__(self, logger, protocol):
@@ -178,7 +177,7 @@ class RemoveCredentialAction(object):
         self.logger.debug("Removing credential %s from authenticator %s" % (credential_id, authenticator_id))
         return self.protocol.virtual_authenticator.remove_credential(authenticator_id, credential_id)
 
-class RemoveAllCredentialsAction(object):
+class RemoveAllCredentialsAction:
     name = "remove_all_credentials"
 
     def __init__(self, logger, protocol):
@@ -190,7 +189,7 @@ class RemoveAllCredentialsAction(object):
         self.logger.debug("Removing all credentials from authenticator %s" % authenticator_id)
         return self.protocol.virtual_authenticator.remove_all_credentials(authenticator_id)
 
-class SetUserVerifiedAction(object):
+class SetUserVerifiedAction:
     name = "set_user_verified"
 
     def __init__(self, logger, protocol):
@@ -204,7 +203,7 @@ class SetUserVerifiedAction(object):
             "Setting user verified flag on authenticator %s to %s" % (authenticator_id, uv["isUserVerified"]))
         return self.protocol.virtual_authenticator.set_user_verified(authenticator_id, uv)
 
-class SetSPCTransactionModeAction(object):
+class SetSPCTransactionModeAction:
     name = "set_spc_transaction_mode"
 
     def __init__(self, logger, protocol):

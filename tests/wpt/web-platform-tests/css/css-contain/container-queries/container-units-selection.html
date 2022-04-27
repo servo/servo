@@ -43,22 +43,22 @@
   test(() => {
     try {
       c1.className = 'inline w500'; // Selected by nothing.
-      c2.className = 'size h400 w300'; // Selected by qh, qb.
-      c3.className = 'inline w100'; // Selected by qw, qi.
-      assert_unit_equals(child, '10qw', '10px');
-      assert_unit_equals(child, '10qi', '10px');
-      assert_unit_equals(child, '10qh', '40px');
-      assert_unit_equals(child, '10qb', '40px');
-      assert_unit_equals(child, '10qmin', '10px');
-      assert_unit_equals(child, '10qmax', '40px');
+      c2.className = 'size h400 w300'; // Selected by cqh, cqb.
+      c3.className = 'inline w100'; // Selected by cqw, cqi.
+      assert_unit_equals(child, '10cqw', '10px');
+      assert_unit_equals(child, '10cqi', '10px');
+      assert_unit_equals(child, '10cqh', '40px');
+      assert_unit_equals(child, '10cqb', '40px');
+      assert_unit_equals(child, '10cqmin', '10px');
+      assert_unit_equals(child, '10cqmax', '40px');
 
-      c3.className = ''; // qw, qi now selects c2 instead.
-      assert_unit_equals(child, '10qw', '30px');
-      assert_unit_equals(child, '10qi', '30px');
-      assert_unit_equals(child, '10qh', '40px');
-      assert_unit_equals(child, '10qb', '40px');
-      assert_unit_equals(child, '10qmin', '30px');
-      assert_unit_equals(child, '10qmax', '40px');
+      c3.className = ''; // cqw, cqi now selects c2 instead.
+      assert_unit_equals(child, '10cqw', '30px');
+      assert_unit_equals(child, '10cqi', '30px');
+      assert_unit_equals(child, '10cqh', '40px');
+      assert_unit_equals(child, '10cqb', '40px');
+      assert_unit_equals(child, '10cqmin', '30px');
+      assert_unit_equals(child, '10cqmax', '40px');
 
     } finally {
       for (let c of [c1, c2, c3, c4, child])
@@ -69,61 +69,33 @@
   test(() => {
     try {
       c1.className = 'size w500 h400';
-      c2.className = 'inline w300';
-      c3.className = 'inline w100 h200 vertical';
+      c2.className = 'inline w300 h200';
 
-      // Should select c2, and resolve against w300.
-      assert_unit_equals(child, '10qw', '30px');
-
-      // Should select c3, and resolve against h200.
-      assert_unit_equals(child, '10qi', '20px');
-
-      // Should select c3, and resolve against h200.
-      assert_unit_equals(child, '10qh', '20px');
-
-      // Should select c1, and resolve against h400.
-      assert_unit_equals(child, '10qb', '40px');
-
-      c3.classList.remove('vertical');
-
-      // Should select c3, and resolve against w100.
-      assert_unit_equals(child, '10qw', '10px');
-
-      // Should select c3, and resolve against w100.
-      assert_unit_equals(child, '10qi', '10px');
-
-      // Should select c1, and resolve against h400.
-      assert_unit_equals(child, '10qh', '40px');
-
-      // Should select c1, and resolve against h400.
-      assert_unit_equals(child, '10qb', '40px');
-
-    } finally {
-      for (let c of [c1, c2, c3, c4, child])
-        c.className = '';
-    }
-  }, 'Container with vertical writing mode');
-
-  test(() => {
-    try {
-      c1.className = 'size w500 h400';
-      c2.className = 'inline w300';
-
-      assert_unit_equals(child, '10qw', '30px');
-      assert_unit_equals(child, '10qi', '30px');
-      assert_unit_equals(child, '10qh', '40px');
-      assert_unit_equals(child, '10qb', '40px');
+      // [cqi, cqb] corresponds to [cqw, cqh].
+      assert_unit_equals(child, '10cqw', '30px');
+      assert_unit_equals(child, '10cqi', '30px');
+      assert_unit_equals(child, '10cqh', '40px');
+      assert_unit_equals(child, '10cqb', '40px');
 
       child.className = 'vertical';
+      // [cqi, cqb] now corresponds to [cqh, cqw].
+      assert_unit_equals(child, '10cqw', '30px');
+      assert_unit_equals(child, '10cqi', '40px');
+      assert_unit_equals(child, '10cqh', '40px');
+      assert_unit_equals(child, '10cqb', '30px');
 
-      assert_unit_equals(child, '10qw', '30px');
-      assert_unit_equals(child, '10qi', '30px');
-      assert_unit_equals(child, '10qh', '40px');
-      assert_unit_equals(child, '10qb', '40px');
+      c2.classList.add('vertical');
+      // The inline containment on #c2 now applies to the vertical axis.
+      // [cqi, cqb] still corresponds to [cqh, cqw], but we now expect
+      // cqh to resolve against #c2, and cqw to resolve against #c1.
+      assert_unit_equals(child, '10cqw', '50px');
+      assert_unit_equals(child, '10cqi', '20px');
+      assert_unit_equals(child, '10cqh', '20px');
+      assert_unit_equals(child, '10cqb', '50px');
 
     } finally {
       for (let c of [c1, c2, c3, c4, child])
         c.className = '';
     }
-  }, 'Units are not affected by the writing-mode of the current element');
+  }, 'Units respond to the writing-mode of the element');
 </script>

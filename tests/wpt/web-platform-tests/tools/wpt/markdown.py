@@ -17,11 +17,11 @@ def format_comment_title(product):
 
 def markdown_adjust(s):
     """Escape problematic markdown sequences."""
-    s = s.replace('\t', u'\\t')
-    s = s.replace('\n', u'\\n')
-    s = s.replace('\r', u'\\r')
-    s = s.replace('`', u'')
-    s = s.replace('|', u'\\|')
+    s = s.replace('\t', '\\t')
+    s = s.replace('\n', '\\n')
+    s = s.replace('\r', '\\r')
+    s = s.replace('`', '')
+    s = s.replace('|', '\\|')
     return s
 
 

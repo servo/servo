@@ -1,0 +1,3 @@
+cache-control: max-age=600
+access-control-allow-origin: *
+timing-allow-origin: *

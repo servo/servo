@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
 
 <selectmenu id="selectMenu0">
-  <popup slot="listbox" behavior="listbox">
+  <div popup=popup slot="listbox" behavior="listbox">
     <option>
       option with image displayed
-      <img src="support/cat.png" alt="Image download support must be enabled" />
+      <img src="/images/green-256x256.png">
     </option>
-  </popup>
+  </div>
 </selectmenu>
-<div>
+<div id=fakelistbox>
   option with image displayed
-  <img src="support/cat.png" alt="Image download support must be enabled" />
+  <img src="/images/green-256x256.png">
 </div>
 
 <style>
-  div {
+  html {
+    font-family: Ahem;
+  }
+  #fakelistbox {
     /* Per spec: */
     display: block;
     position: fixed;

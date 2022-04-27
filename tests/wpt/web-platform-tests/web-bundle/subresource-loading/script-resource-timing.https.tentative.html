@@ -1,17 +1,55 @@
-<!DOCTYPE HTML>
-<meta charset=utf-8>
-<title>Resource timing entries present for urn:uuid resources</title>
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Resource timing entries present for uuid-in-package resources</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/test-helpers.js"></script>
-
-<script>
-  window.TEST_WEB_BUNDLE_ELEMENT_TYPE = 'script';
-  setup(() => {
-    assert_true(HTMLScriptElement.supports('webbundle'));
-  });
-</script>
 <body>
-<script src="resources/resource-timing-test.js"></script>
-</body>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
 
+    promise_test(async (t) => {
+      const frame_id = "uuid-in-package:429fcc4e-0696-4bad-b099-ee9175f023ae";
+      const script_id = "uuid-in-package:020111b3-437a-4c5c-ae07-adb6bbffb720";
+      const element = createWebBundleElement(
+        "../resources/wbn/uuid-in-package.wbn",
+        /*resources=*/ [frame_id, script_id]
+      );
+      document.body.appendChild(element);
+      let iframe_entries = 0;
+      let script_entries = 0;
+      // Declare the report_result function as outputting into stderr
+      // because it is used in the WebBundle script to report the script load.
+      window.report_result = console.error;
+      const promise = new Promise((resolve) => {
+        new PerformanceObserver(
+          t.step_func((entryList) => {
+            let entries = entryList.getEntriesByType("resource");
+            for (let i = 0; i < entries.length; ++i) {
+              // Ignore any entries for the test harness files if present.
+              if (/testharness(report)?\.js/.test(entries[i].name)) {
+                continue;
+              }
+
+              if (entries[i].name === frame_id) ++iframe_entries;
+              if (entries[i].name === script_id) ++script_entries;
+            }
+            if (iframe_entries == 1 && script_entries == 1) {
+              resolve();
+            }
+          })
+        ).observe({ entryTypes: ["resource"] });
+      });
+      // Add iframe and the script so we get the ResourceTiming
+      const iframe = document.createElement("iframe");
+      iframe.src = frame_id;
+      document.body.appendChild(iframe);
+      const script = document.createElement("script");
+      script.src = script_id;
+      document.body.appendChild(script);
+      return promise;
+    }, "Each uuid-in-package resource should have exactly 1 ResourceTiming entry.");
+  </script>
+</body>

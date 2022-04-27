@@ -39,6 +39,7 @@ dictionary VideoConfiguration {
   ColorGamut colorGamut;
   TransferFunction transferFunction;
   DOMString scalabilityMode;
+  boolean spatialScalability;
 };
 
 enum HdrMetadataType {

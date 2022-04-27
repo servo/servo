@@ -6,13 +6,13 @@ from tools.wpt import testfiles
 
 
 def test_getrevish_kwarg():
-    assert testfiles.get_revish(revish=u"abcdef") == u"abcdef"
-    assert testfiles.get_revish(revish=u"123456\n") == u"123456"
+    assert testfiles.get_revish(revish="abcdef") == "abcdef"
+    assert testfiles.get_revish(revish="123456\n") == "123456"
 
 
 def test_getrevish_implicit():
-    with patch("tools.wpt.testfiles.branch_point", return_value=u"base"):
-        assert testfiles.get_revish() == u"base..HEAD"
+    with patch("tools.wpt.testfiles.branch_point", return_value="base"):
+        assert testfiles.get_revish() == "base..HEAD"
 
 
 def test_affected_testfiles():
@@ -43,7 +43,7 @@ def test_affected_testfiles():
         full_test_path = os.path.join(
             testfiles.wpt_root, "a", "b", "c", "foo-crash.html")
         tests_changed, _ = testfiles.affected_testfiles([full_test_path])
-        assert tests_changed == set([full_test_path])
+        assert tests_changed == {full_test_path}
 
 
 def test_exclude_ignored():

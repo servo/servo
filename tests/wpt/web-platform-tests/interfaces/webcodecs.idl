@@ -8,7 +8,7 @@ interface AudioDecoder {
   constructor(AudioDecoderInit init);
 
   readonly attribute CodecState state;
-  readonly attribute long decodeQueueSize;
+  readonly attribute unsigned long decodeQueueSize;
 
   undefined configure(AudioDecoderConfig config);
   undefined decode(EncodedAudioChunk chunk);
@@ -31,7 +31,7 @@ interface VideoDecoder {
   constructor(VideoDecoderInit init);
 
   readonly attribute CodecState state;
-  readonly attribute long decodeQueueSize;
+  readonly attribute unsigned long decodeQueueSize;
 
   undefined configure(VideoDecoderConfig config);
   undefined decode(EncodedVideoChunk chunk);
@@ -54,7 +54,7 @@ interface AudioEncoder {
   constructor(AudioEncoderInit init);
 
   readonly attribute CodecState state;
-  readonly attribute long encodeQueueSize;
+  readonly attribute unsigned long encodeQueueSize;
 
   undefined configure(AudioEncoderConfig config);
   undefined encode(AudioData data);
@@ -83,7 +83,7 @@ interface VideoEncoder {
   constructor(VideoEncoderInit init);
 
   readonly attribute CodecState state;
-  readonly attribute long encodeQueueSize;
+  readonly attribute unsigned long encodeQueueSize;
 
   undefined configure(VideoEncoderConfig config);
   undefined encode(VideoFrame frame, optional VideoEncoderEncodeOptions options = {});
@@ -425,6 +425,7 @@ enum VideoMatrixCoefficients {
 interface ImageDecoder {
   constructor(ImageDecoderInit init);
 
+  readonly attribute DOMString type;
   readonly attribute boolean complete;
   readonly attribute Promise<undefined> completed;
   readonly attribute ImageTrackList tracks;
@@ -462,16 +463,16 @@ interface ImageTrackList {
   getter ImageTrack (unsigned long index);
 
   readonly attribute Promise<undefined> ready;
-  [EnforceRange] readonly attribute unsigned long length;
-  [EnforceRange] readonly attribute long selectedIndex;
+  readonly attribute unsigned long length;
+  readonly attribute long selectedIndex;
   readonly attribute ImageTrack? selectedTrack;
 };
 
 [Exposed=(Window,DedicatedWorker)]
 interface ImageTrack : EventTarget {
   readonly attribute boolean animated;
-  [EnforceRange] readonly attribute unsigned long frameCount;
-  [EnforceRange] readonly attribute unrestricted float repetitionCount;
+  readonly attribute unsigned long frameCount;
+  readonly attribute unrestricted float repetitionCount;
   attribute EventHandler onchange;
   attribute boolean selected;
 };

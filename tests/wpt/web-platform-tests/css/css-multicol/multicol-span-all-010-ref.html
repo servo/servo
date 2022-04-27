@@ -1,33 +1,53 @@
 <!DOCTYPE html>
 <html>
   <meta charset="utf-8">
-  <title>CSS Multi-column Layout Test Reference: Test the position of the out-of-flow block is relative to the fragment divided by column-span:all</title>
+  <title>CSS Multi-column Layout Test Reference: column-span:all does not create a spanner, inside an element establishing a containing block for fixed-position descendants</title>
   <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
   <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
 
   <style>
-  body {
-    column-count: 1;
+  article {
+    column-count: 3;
     column-rule: 6px solid;
-    width: 400px;
-    outline: 1px solid black;
+    width: 500px;
+    border: 1px solid black;
+    margin-bottom: 3px;
   }
   h3 {
-    /* "column-count: 1" makes this behave like a real spanner. */
     outline: 1px solid blue;
-  }
-  .out-of-flow {
-    position: absolute;
-    top: 0;
-    left: 0;
   }
   </style>
 
   <body>
-    <article id="column">
-      <h3>spanner</h3>
+    <article>
       <div style="transform: scale(1)">
-        <div class="out-of-flow">out-of-flow</div>
+        <h3>non-spanner</h3>
+      </div>
+    </article>
+    <article>
+      <div style="filter: contrast(100%)">
+        <h3>non-spanner</h3>
+      </div>
+    </article>
+    <article>
+      <div style="contain: paint">
+        <h3>non-spanner</h3>
+      </div>
+    </article>
+    <article>
+      <div style="contain: layout">
+        <h3>non-spanner</h3>
+      </div>
+    </article>
+    <article>
+      <div style="contain: content">
+        <h3>non-spanner</h3>
+      </div>
+    </article>
+    <article>
+      <div style="contain: strict; width: 50px; height: 50px;">
+        <h3>n</h3>
       </div>
     </article>
   </body>

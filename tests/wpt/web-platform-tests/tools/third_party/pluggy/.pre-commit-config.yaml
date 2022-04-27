@@ -1,16 +1,14 @@
 repos:
 -   repo: https://github.com/ambv/black
-    rev: 19.3b0
+    rev: 21.7b0
     hooks:
     -   id: black
         args: [--safe, --quiet]
-        language_version: python3.6
 -   repo: https://github.com/asottile/blacken-docs
-    rev: v0.5.0
+    rev: v1.10.0
     hooks:
     -   id: blacken-docs
-        additional_dependencies: [black==19.3b0]
-        language_version: python3.6
+        additional_dependencies: [black==21.7b0]
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.1.0
     hooks:
@@ -25,8 +23,12 @@ repos:
         files: ^(CHANGELOG.rst|HOWTORELEASE.rst|README.rst|changelog/.*)$
         language: python
         additional_dependencies: [pygments, restructuredtext_lint]
-        language_version: python3.6
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.3.0
+    rev: v1.9.0
     hooks:
     -   id: rst-backticks
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.23.3
+    hooks:
+    -   id: pyupgrade
+        args: [--py36-plus]

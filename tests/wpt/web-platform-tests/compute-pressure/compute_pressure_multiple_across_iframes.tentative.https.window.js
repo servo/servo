@@ -4,8 +4,8 @@ promise_test(async t => {
   const update1_promise = new Promise((resolve, reject) => {
     const observer = new ComputePressureObserver(
         resolve, {cpuUtilizationThresholds: [0.5], cpuSpeedThresholds: [0.5]});
-    t.add_cleanup(() => observer.stop());
-    observer.observe().catch(reject);
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe('cpu').catch(reject);
   });
 
   // iframe numbers are aligned with observer numbers. The first observer is in
@@ -16,8 +16,8 @@ promise_test(async t => {
   const update2_promise = new Promise((resolve, reject) => {
     const observer = new iframe2.contentWindow.ComputePressureObserver(
         resolve, {cpuUtilizationThresholds: [0.5], cpuSpeedThresholds: [0.5]});
-    t.add_cleanup(() => observer.stop());
-    observer.observe().catch(reject);
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe('cpu').catch(reject);
   });
 
   const iframe3 = document.createElement('iframe');
@@ -26,8 +26,8 @@ promise_test(async t => {
   const update3_promise = new Promise((resolve, reject) => {
     const observer = new iframe3.contentWindow.ComputePressureObserver(
         resolve, {cpuUtilizationThresholds: [0.5], cpuSpeedThresholds: [0.5]});
-    t.add_cleanup(() => observer.stop());
-    observer.observe().catch(reject);
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe('cpu').catch(reject);
   });
 
   const [update1, update2, update3] =

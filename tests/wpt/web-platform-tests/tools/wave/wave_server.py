@@ -21,7 +21,7 @@ from .testing.event_dispatcher import EventDispatcher
 VERSION_STRING = "v3.3.0"
 
 
-class WaveServer(object):
+class WaveServer:
     def initialize(self,
                    tests,
                    configuration_file_path=None,

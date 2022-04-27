@@ -50,4 +50,23 @@ promise_test(async t => {
   const data2 = await (new Response(blobOutput2)).text();
   assert_equals(data2, 'input data 2');
 }, 'Verify write and read clipboard given 2 platform-neutral custom format inputs');
+
+promise_test(async t => {
+  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+
+  const customFormatArray = [];
+  const customFormatMap = {};
+  for (let i = 0; i <= 100; i++) {
+    customFormatArray.push("CustomFormat" + i);
+    const blobInput = new Blob(['input data'], {type: customFormatArray[i]});
+    customFormatMap[customFormatArray[i]] = blobInput;
+  }
+  const clipboardItemInput = new ClipboardItem(customFormatMap,
+      {unsanitized: customFormatArray});
+  await waitForUserActivation();
+  await promise_rejects_dom(t, 'NotAllowedError',
+      navigator.clipboard.write([clipboardItemInput]));
+}, 'navigator.clipboard.write() fails for more than 100 custom formats');
+
 </script>

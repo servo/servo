@@ -152,6 +152,10 @@ serial_test(async (t, fake) => {
   await port.open({baudRate: 9600, bufferSize: 64});
 
   const writer = port.writable.getWriter();
+  // Wait for microtasks to execute in order to ensure that the WritableStream
+  // has been set up completely.
+  await Promise.resolve();
+
   const data = new Uint8Array(1024);  // Much larger than bufferSize above.
   for (let i = 0; i < data.byteLength; ++i)
     data[i] = i & 0xff;
@@ -211,6 +215,30 @@ serial_test(async (t, fake) => {
 
   await port.close();
 }, 'close() waits for the write buffer to be cleared');
+
+serial_test(async (t, fake) => {
+  const {port, fakePort} = await getFakeSerialPort(fake);
+  // Select a buffer size smaller than the amount of data transferred.
+  await port.open({baudRate: 9600, bufferSize: 64});
+
+  const writer = port.writable.getWriter();
+  // Wait for microtasks to execute in order to ensure that the WritableStream
+  // has been set up completely.
+  await Promise.resolve();
+
+  const data = new Uint8Array(1024);  // Much larger than bufferSize above.
+  for (let i = 0; i < data.byteLength; ++i)
+    data[i] = i & 0xff;
+  const writePromise =
+      promise_rejects_exactly(t, 'Aborting.', writer.write(data));
+  const closePromise = promise_rejects_exactly(t, 'Aborting.', writer.close());
+
+  await writer.abort('Aborting.');
+  await writePromise;
+  await closePromise;
+  await port.close();
+  assert_equals(port.writable, null);
+}, 'Can abort while closing');
 
 serial_test(async (t, fake) => {
   const {port, fakePort} = await getFakeSerialPort(fake);

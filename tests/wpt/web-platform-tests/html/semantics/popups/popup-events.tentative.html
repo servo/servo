@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup events</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div popup=popup>Popup</div>
+
+<script>
+function waitUntilChange(fn) {
+  return new Promise((resolve, reject) => {
+    const original = fn();
+    function tick() {
+      if (original != fn()) {
+        resolve();
+      } else {
+        requestAnimationFrame(tick.bind(this));
+      }
+    }
+    tick();
+  });
+}
+function requestAnimationFramePromise() {
+  return new Promise((resolve) => window.requestAnimationFrame(resolve));
+}
+
+promise_test(async t => {
+  const popup = document.querySelector('[popup]');
+  let showCount = 0;
+  let hideCount = 0;
+  await new Promise(resolve => window.addEventListener('load',() => resolve()));
+  assert_false(popup.matches(':popup-open'));
+  document.addEventListener('show',() => ++showCount);
+  document.addEventListener('hide',() => ++hideCount);
+  assert_equals(0,showCount);
+  assert_equals(0,hideCount);
+  popup.showPopup();
+  assert_true(popup.matches(':popup-open'));
+  await waitUntilChange(() => showCount);
+  assert_equals(1,showCount);
+  assert_equals(0,hideCount);
+  await requestAnimationFramePromise();
+  assert_true(popup.matches(':popup-open'));
+  popup.hidePopup();
+  assert_false(popup.matches(':popup-open'));
+  await waitUntilChange(() => hideCount);
+  assert_equals(1,showCount);
+  assert_equals(1,hideCount);
+  await requestAnimationFramePromise();
+  // No additional events after animation frame
+  assert_false(popup.matches(':popup-open'));
+  assert_equals(1,showCount);
+  assert_equals(1,hideCount);
+}, 'Show and hide events get properly dispatched for popups');
+
+</script>

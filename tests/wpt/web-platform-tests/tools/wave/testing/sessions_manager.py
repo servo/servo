@@ -20,7 +20,7 @@ DEFAULT_TEST_AUTOMATIC_TIMEOUT = 60000
 DEFAULT_TEST_MANUAL_TIMEOUT = 300000
 
 
-class SessionsManager(object):
+class SessionsManager:
     def initialize(self,
                    test_loader,
                    event_dispatcher,
@@ -72,7 +72,7 @@ class SessionsManager(object):
 
         for test_type in test_types:
             if test_type != "automatic" and test_type != "manual":
-                raise InvalidDataException("Unknown type '{}'".format(test_type))
+                raise InvalidDataException(f"Unknown type '{test_type}'")
 
         token = str(uuid.uuid1())
         pending_tests = self._test_loader.get_tests(
@@ -297,7 +297,7 @@ class SessionsManager(object):
             return None
 
         info_data = None
-        with open(info_file, "r") as file:
+        with open(info_file) as file:
             info_data = file.read()
         parsed_info_data = json.loads(info_data)
 
@@ -459,7 +459,7 @@ class SessionsManager(object):
             pattern = re.compile("^" + include_test)
             if pattern.match(test) is not None:
                 query_string += query + "&"
-        return "{}?{}".format(test, query_string)
+        return f"{test}?{query_string}"
 
     def find_token(self, fragment):
         if len(fragment) < 8:

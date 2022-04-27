@@ -128,22 +128,27 @@ function sourceResolveOptions({ server, treatAsPublic }) {
   return options;
 }
 
-// Computes options to pass to `resolveUrl()` for `resources/preflight.py`.
+// Computes the URL of a preflight handler configured with the given options.
 //
 // `server` identifies the server from which to load the resource.
 // `behavior` specifies the behavior of the target server. It may contain:
 //   - `preflight`: The result of calling one of `PreflightBehavior`'s methods.
 //   - `response`: The result of calling one of `ResponseBehavior`'s methods.
-function targetResolveOptions({ server, behavior }) {
+//   - `redirect`: A URL to which the target should redirect GET requests.
+function preflightUrl({ server, behavior }) {
   const options = {...server};
   if (behavior) {
-    const { preflight, response } = behavior;
+    const { preflight, response, redirect } = behavior;
     options.searchParams = {
       ...preflight,
       ...response,
     };
+    if (redirect !== undefined) {
+      options.searchParams.redirect = redirect;
+    }
   }
-  return options;
+
+  return resolveUrl("resources/preflight.py", options);
 }
 
 // Methods generate behavior specifications for how `resources/preflight.py`
@@ -170,6 +175,14 @@ const PreflightBehavior = {
   success: (uuid) => ({
     "preflight-uuid": uuid,
     "preflight-headers": "cors+pna",
+  }),
+
+  // The preflight response should succeed only if it is the first preflight.
+  // `uuid` should be a UUID that uniquely identifies the preflight request.
+  singlePreflight: (uuid) => ({
+    "preflight-uuid": uuid,
+    "preflight-headers": "cors+pna",
+    "expect-single-preflight": true,
   }),
 };
 
@@ -206,7 +219,7 @@ const FetchTestResult = {
 //     // Optional. Passed to `sourceResolveOptions()`.
 //     source,
 //
-//     // Optional. Passed to `targetResolveOptions()`.
+//     // Optional. Passed to `preflightUrl()`.
 //     target,
 //
 //     // Optional. Passed to `fetch()`.
@@ -220,8 +233,7 @@ async function fetchTest(t, { source, target, fetchOptions, expected }) {
   const sourceUrl =
       resolveUrl("resources/fetcher.html", sourceResolveOptions(source));
 
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
 
   const iframe = await appendIframe(t, document, sourceUrl);
   const reply = futureMessage();
@@ -264,7 +276,7 @@ const XhrTestResult = {
 //     // Optional. Passed to `sourceResolveOptions()`.
 //     source,
 //
-//     // Optional. Passed to `targetResolveOptions()`.
+//     // Optional. Passed to `preflightUrl()`.
 //     target,
 //
 //     // Optional. Method to use when sending the request. Defaults to "GET".
@@ -278,8 +290,7 @@ async function xhrTest(t, { source, target, method, expected }) {
   const sourceUrl =
       resolveUrl("resources/xhr-sender.html", sourceResolveOptions(source));
 
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
 
   const iframe = await appendIframe(t, document, sourceUrl);
   const reply = futureMessage();
@@ -343,14 +354,20 @@ const WorkerScriptTestResult = {
   FAILURE: { error: "unknown error" },
 };
 
+function workerScriptUrl(target) {
+  const url = preflightUrl(target);
+
+  url.searchParams.append("body", "postMessage({ loaded: true })")
+  url.searchParams.append("mime-type", "application/javascript")
+
+  return url;
+}
+
 async function workerScriptTest(t, { source, target, expected }) {
   const sourceUrl =
       resolveUrl("resources/worker-fetcher.html", sourceResolveOptions(source));
 
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
-  targetUrl.searchParams.append("body", "postMessage({ loaded: true })")
-  targetUrl.searchParams.append("mime-type", "application/javascript")
+  const targetUrl = workerScriptUrl(target);
 
   const iframe = await appendIframe(t, document, sourceUrl);
   const reply = futureMessage();
@@ -363,12 +380,32 @@ async function workerScriptTest(t, { source, target, expected }) {
   assert_equals(loaded, expected.loaded, "response loaded");
 }
 
+async function nestedWorkerScriptTest(t, { source, target, expected }) {
+  const targetUrl = workerScriptUrl(target);
+
+  const sourceUrl = resolveUrl(
+      "resources/worker-fetcher.js", sourceResolveOptions(source));
+  sourceUrl.searchParams.append("url", targetUrl);
+
+  // Iframe must be same-origin with the parent worker.
+  const iframeUrl = new URL("worker-fetcher.html", sourceUrl);
+
+  const iframe = await appendIframe(t, document, iframeUrl);
+  const reply = futureMessage();
+
+  iframe.contentWindow.postMessage({ url: sourceUrl.href }, "*");
+
+  const { error, loaded } = await reply;
+
+  assert_equals(error, expected.error, "worker error");
+  assert_equals(loaded, expected.loaded, "response loaded");
+}
+
 async function sharedWorkerScriptTest(t, { source, target, expected }) {
   const sourceUrl = resolveUrl("resources/shared-worker-fetcher.html",
                                sourceResolveOptions(source));
 
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
   targetUrl.searchParams.append(
       "body", "onconnect = (e) => e.ports[0].postMessage({ loaded: true })")
 
@@ -390,8 +427,7 @@ const WorkerFetchTestResult = {
 };
 
 async function workerFetchTest(t, { source, target, expected }) {
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
 
   const sourceUrl =
       resolveUrl("resources/fetcher.js", sourceResolveOptions(source));
@@ -411,8 +447,7 @@ async function workerFetchTest(t, { source, target, expected }) {
 }
 
 async function sharedWorkerFetchTest(t, { source, target, expected }) {
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
 
   const sourceUrl =
       resolveUrl("resources/shared-fetcher.js", sourceResolveOptions(source));

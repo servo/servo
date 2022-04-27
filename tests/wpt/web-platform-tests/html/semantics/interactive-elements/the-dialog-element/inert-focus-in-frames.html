@@ -37,7 +37,11 @@ promise_test(async () => {
     let focusedElement = null;
     element.addEventListener('focus', function() { focusedElement = element; }, false);
     element.focus();
-    assert_equals(focusedElement === element, expectFocus, element.id);
+    if (expectFocus) {
+      assert_equals(focusedElement, element, element.id);
+    } else {
+      assert_not_equals(focusedElement, element, element.id);
+    }
   }
 
   // Opening a modal dialog in frame1. It blocks other nodes in its document.
@@ -46,7 +50,7 @@ promise_test(async () => {
 
   testFocus(frame1.querySelector('.target'), false);
   const iframe = frame1.querySelector('#iframe1').contentDocument;
-  testFocus(iframe.querySelector('.target'), false);
+  testFocus(iframe.querySelector('.target'), true);
 
   // Even a modal dialog in the iframe is blocked by the modal dialog in the parent frame1.
   iframe.querySelector('dialog').showModal();

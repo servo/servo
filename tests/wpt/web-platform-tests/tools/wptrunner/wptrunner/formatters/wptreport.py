@@ -5,7 +5,7 @@ from mozlog.structured.formatters.base import BaseFormatter
 from ..executors.base import strip_server
 
 
-LONE_SURROGATE_RE = re.compile(u"[\uD800-\uDFFF]")
+LONE_SURROGATE_RE = re.compile("[\uD800-\uDFFF]")
 
 
 def surrogate_replacement(match):

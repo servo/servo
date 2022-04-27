@@ -33,8 +33,16 @@
     // Test nesting relative colors.
     test_computed_value(`color`, `rgb(from rgb(from rebeccapurple r g b) r g b)`, `rgb(102, 51, 153)`);
 
-    // Testing non-sRGB origin colors to see gamut clipping.
-    test_computed_value(`color`, `rgb(from color(display-p3 0 1 0) r g b / alpha)`, `rgb(0, 255, 0)`);
+    // Testing non-sRGB origin colors to see gamut mapping.
+    test_computed_value(`color`, `rgb(from color(display-p3 0 1 0) r g b / alpha)`, `rgb(0, 249, 66)`); // Naive clip based mapping would give rgb(0, 255, 0).
+    test_computed_value(`color`, `rgb(from lab(100% 104.3 -50.9) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
+    test_computed_value(`color`, `rgb(from lab(0% 104.3 -50.9) r g b)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
+    test_computed_value(`color`, `rgb(from lch(100% 116 334) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
+    test_computed_value(`color`, `rgb(from lch(0% 116 334) r g b)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
+    test_computed_value(`color`, `rgb(from oklab(100% 0.365 -0.16) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
+    test_computed_value(`color`, `rgb(from oklab(0% 0.365 -0.16) r g b)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(19, 0, 24).
+    test_computed_value(`color`, `rgb(from oklch(100% 0.399 336.3) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
+    test_computed_value(`color`, `rgb(from oklch(0% 0.399 336.3) r g b)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(20, 0, 24).
 
     // Testing replacement with 0.
     test_computed_value(`color`, `rgb(from rebeccapurple 0 0 0)`, `rgb(0, 0, 0)`);
@@ -105,6 +113,20 @@
     test_computed_value(`color`, `rgb(from rebeccapurple r calc(b * .5 - g * .5) 10)`, `rgb(102, 51, 10)`);
     test_computed_value(`color`, `rgb(from rgb(20%, 40%, 60%, 80%) calc(r) calc(g) calc(b) / calc(alpha))`, `rgba(51, 102, 153, 0.8)`);
 
+    // Testing with 'none'.
+    // NOTE: Serialization of rgb() with 'none' components is still under discussion - https://github.com/w3c/csswg-drafts/issues/6959
+    test_computed_value(`color`, `rgb(from rebeccapurple none none none)`,                         `rgb(0, 0, 0)`);
+    test_computed_value(`color`, `rgb(from rebeccapurple none none none / none)`,                  `rgba(0, 0, 0, 0)`);
+    test_computed_value(`color`, `rgb(from rebeccapurple r g none)`,                               `rgb(102, 51, 0)`);
+    test_computed_value(`color`, `rgb(from rebeccapurple r g none / alpha)`,                       `rgb(102, 51, 0)`);
+    test_computed_value(`color`, `rgb(from rebeccapurple r g b / none)`,                           `rgba(102, 51, 153, 0)`);
+    test_computed_value(`color`, `rgb(from rgb(20% 40% 60% / 80%) r g none / alpha)`,              `rgba(51, 102, 0, 0.8)`);
+    test_computed_value(`color`, `rgb(from rgb(20% 40% 60% / 80%) r g b / none)`,                  `rgba(51, 102, 153, 0)`);
+    // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+    test_computed_value(`color`, `rgb(from rgb(none none none) r g b)`,                            `rgb(0, 0, 0)`);
+    test_computed_value(`color`, `rgb(from rgb(none none none / none) r g b / alpha)`,             `rgba(0, 0, 0, 0)`);
+    test_computed_value(`color`, `rgb(from rgb(20% none 60%) r g b)`,                              `rgb(51, 0, 153)`);
+    test_computed_value(`color`, `rgb(from rgb(20% 40% 60% / none) r g b / alpha)`,                `rgba(51, 102, 153, 0)`);
 
     // hsl(from ...)
 
@@ -117,8 +139,16 @@
     // Test nesting relative colors.
     test_computed_value(`color`, `hsl(from hsl(from rebeccapurple h s l) h s l)`, `rgb(102, 51, 153)`);
 
-    // Testing non-sRGB origin colors to see gamut clipping.
-    test_computed_value(`color`, `hsl(from color(display-p3 0 1 0) h s l / alpha)`, `rgb(0, 255, 0)`);
+    // Testing non-sRGB origin colors to see gamut mapping.
+    test_computed_value(`color`, `hsl(from color(display-p3 0 1 0) h s l / alpha)`, `rgb(0, 249, 66)`); // Naive clip based mapping would give rgb(0, 255, 0).
+    test_computed_value(`color`, `hsl(from lab(100% 104.3 -50.9) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
+    test_computed_value(`color`, `hsl(from lab(0% 104.3 -50.9) h s l)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
+    test_computed_value(`color`, `hsl(from lch(100% 116 334) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
+    test_computed_value(`color`, `hsl(from lch(0% 116 334) h s l)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
+    test_computed_value(`color`, `hsl(from oklab(100% 0.365 -0.16) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
+    test_computed_value(`color`, `hsl(from oklab(0% 0.365 -0.16) h s l)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(19, 0, 24).
+    test_computed_value(`color`, `hsl(from oklch(100% 0.399 336.3) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
+    test_computed_value(`color`, `hsl(from oklch(0% 0.399 336.3) h s l)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(20, 0, 24).
 
     // Testing replacement with 0.
     test_computed_value(`color`, `hsl(from rebeccapurple 0 0% 0%)`, `rgb(0, 0, 0)`);
@@ -162,6 +192,22 @@
     test_computed_value(`color`, `hsl(from rebeccapurple calc(h) calc(s) calc(l))`, `rgb(102, 51, 153)`);
     test_computed_value(`color`, `hsl(from rgb(20%, 40%, 60%, 80%) calc(h) calc(s) calc(l) / calc(alpha))`, `rgba(51, 102, 153, 0.8)`);
 
+    // Testing with 'none'.
+    test_computed_value(`color`, `hsl(from rebeccapurple none none none)`,                         `rgb(0, 0, 0)`);
+    test_computed_value(`color`, `hsl(from rebeccapurple none none none / none)`,                  `rgba(0, 0, 0, 0)`);
+    test_computed_value(`color`, `hsl(from rebeccapurple h s none)`,                               `rgb(0, 0, 0)`);
+    test_computed_value(`color`, `hsl(from rebeccapurple h s none / alpha)`,                       `rgb(0, 0, 0)`);
+    test_computed_value(`color`, `hsl(from rebeccapurple h s l / none)`,                           `rgba(102, 51, 153, 0)`);
+    test_computed_value(`color`, `hsl(from rebeccapurple none s l / alpha)`,                       `rgb(153, 51, 51)`);
+    test_computed_value(`color`, `hsl(from hsl(120deg 20% 50% / .5) h s none / alpha)`,            `rgba(0, 0, 0, 0.5)`);
+    test_computed_value(`color`, `hsl(from hsl(120deg 20% 50% / .5) h s l / none)`,                `rgba(102, 153, 102, 0)`);
+    test_computed_value(`color`, `hsl(from hsl(120deg 20% 50% / .5) none s l / alpha)`,            `rgba(153, 102, 102, 0.5)`);
+    // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+    test_computed_value(`color`, `hsl(from hsl(none none none) h s l)`,                            `rgb(0, 0, 0)`);
+    test_computed_value(`color`, `hsl(from hsl(none none none / none) h s l / alpha)`,             `rgba(0, 0, 0, 0)`);
+    test_computed_value(`color`, `hsl(from hsl(120deg none 50% / .5) h s l)`,                      `rgb(128, 128, 128)`);
+    test_computed_value(`color`, `hsl(from hsl(120deg 20% 50% / none) h s l / alpha)`,             `rgba(102, 153, 102, 0)`);
+    test_computed_value(`color`, `hsl(from hsl(none 20% 50% / .5) h s l / alpha)`,                 `rgba(153, 102, 102, 0.5)`);
 
     // hwb(from ...)
 
@@ -174,8 +220,16 @@
     // Test nesting relative colors.
     test_computed_value(`color`, `hwb(from hwb(from rebeccapurple h w b) h w b)`, `rgb(102, 51, 153)`);
 
-    // Testing non-sRGB origin colors to see gamut clipping.
-    test_computed_value(`color`, `hwb(from color(display-p3 0 1 0) h w b / alpha)`, `rgb(0, 255, 0)`);
+    // Testing non-sRGB origin colors to see gamut mapping.
+    test_computed_value(`color`, `hwb(from color(display-p3 0 1 0) h w b / alpha)`, `rgb(0, 249, 66)`); // Naive clip based mapping would give rgb(0, 255, 0).
+    test_computed_value(`color`, `hwb(from lab(100% 104.3 -50.9) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
+    test_computed_value(`color`, `hwb(from lab(0% 104.3 -50.9) h w b)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
+    test_computed_value(`color`, `hwb(from lch(100% 116 334) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
+    test_computed_value(`color`, `hwb(from lch(0% 116 334) h w b)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
+    test_computed_value(`color`, `hwb(from oklab(100% 0.365 -0.16) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
+    test_computed_value(`color`, `hwb(from oklab(0% 0.365 -0.16) h w b)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(19, 0, 24).
+    test_computed_value(`color`, `hwb(from oklch(100% 0.399 336.3) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
+    test_computed_value(`color`, `hwb(from oklch(0% 0.399 336.3) h w b)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(20, 0, 24).
 
     // Testing replacement with 0.
     test_computed_value(`color`, `hwb(from rebeccapurple 0 0% 0%)`, `rgb(255, 0, 0)`);
@@ -219,11 +273,30 @@
     test_computed_value(`color`, `hwb(from rebeccapurple calc(h) calc(w) calc(b))`, `rgb(102, 51, 153)`);
     test_computed_value(`color`, `hwb(from rgb(20%, 40%, 60%, 80%) calc(h) calc(w) calc(b) / calc(alpha))`, `rgba(51, 102, 153, 0.8)`);
 
+    // Testing with 'none'.
+    test_computed_value(`color`, `hwb(from rebeccapurple none none none)`,                         `rgb(255, 0, 0)`);
+    test_computed_value(`color`, `hwb(from rebeccapurple none none none / none)`,                  `rgba(255, 0, 0, 0)`);
+    test_computed_value(`color`, `hwb(from rebeccapurple h w none)`,                               `rgb(153, 51, 255)`);
+    test_computed_value(`color`, `hwb(from rebeccapurple h w none / alpha)`,                       `rgb(153, 51, 255)`);
+    test_computed_value(`color`, `hwb(from rebeccapurple h w b / none)`,                           `rgba(102, 51, 153, 0)`);
+    test_computed_value(`color`, `hwb(from rebeccapurple none w b / alpha)`,                       `rgb(153, 51, 51)`);
+    test_computed_value(`color`, `hwb(from hwb(120deg 20% 50% / .5) h w none / alpha)`,            `rgba(51, 255, 51, 0.5)`);
+    test_computed_value(`color`, `hwb(from hwb(120deg 20% 50% / .5) h w b / none)`,                `rgba(51, 128, 51, 0)`);
+    test_computed_value(`color`, `hwb(from hwb(120deg 20% 50% / .5) none w b / alpha)`,            `rgba(128, 51, 51, 0.5)`);
+    // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+    test_computed_value(`color`, `hwb(from hwb(none none none) h w b)`,                            `rgb(255, 0, 0)`);
+    test_computed_value(`color`, `hwb(from hwb(none none none / none) h w b / alpha)`,             `rgba(255, 0, 0, 0)`);
+    test_computed_value(`color`, `hwb(from hwb(120deg none 50% / .5) h w b)`,                      `rgb(0, 128, 0)`);
+    test_computed_value(`color`, `hwb(from hwb(120deg 20% 50% / none) h w b / alpha)`,             `rgba(51, 128, 51, 0)`);
+    test_computed_value(`color`, `hwb(from hwb(none 20% 50% / .5) h w b / alpha)`,                 `rgba(128, 51, 51, 0.5)`);
+
     for (const colorSpace of [ "lab", "oklab" ]) {
         // Testing no modifications.
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) l a b)`, `${colorSpace}(25% 20 50)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) l a b / alpha)`, `${colorSpace}(25% 20 50)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50 / 40%) l a b / alpha)`, `${colorSpace}(25% 20 50 / 0.4)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(200% 300 400 / 500%) l a b / alpha)`, `${colorSpace}(200% 300 400)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(-200% -300 -400 / -500%) l a b / alpha)`, `${colorSpace}(0% -300 -400 / 0)`);
 
         // Test nesting relative colors.
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(from ${colorSpace}(25% 20 50) l a b) l a b)`, `${colorSpace}(25% 20 50)`);
@@ -252,6 +325,8 @@
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50 / 40%) l 35 b / alpha)`, `${colorSpace}(25% 35 50 / 0.4)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50 / 40%) l a 35 / alpha)`, `${colorSpace}(25% 20 35 / 0.4)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50 / 40%) l a b / .35)`, `${colorSpace}(25% 20 50 / 0.35)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) 200% 300 400 / 500)`, `${colorSpace}(200% 300 400)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) -200% -300 -400 / -500)`, `${colorSpace}(0% -300 -400 / 0)`);
 
         // Testing valid permutation (types match).
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) l b a)`, `${colorSpace}(25% 50 20)`);
@@ -262,6 +337,20 @@
         // Testing with calc().
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) calc(l) calc(a) calc(b))`, `${colorSpace}(25% 20 50)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50 / 40%) calc(l) calc(a) calc(b) / calc(alpha))`, `${colorSpace}(25% 20 50 / 0.4)`);
+
+        // Testing with 'none'.
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) none none none)`, `${colorSpace}(none none none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) none none none / none)`, `${colorSpace}(none none none / none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) l a none)`, `${colorSpace}(25% 20 none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) l a none / alpha)`, `${colorSpace}(25% 20 none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50) l a b / none)`, `${colorSpace}(25% 20 50 / none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50 / 40%) l a none / alpha)`, `${colorSpace}(25% 20 none / 0.4)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50 / 40%) l a b / none)`, `${colorSpace}(25% 20 50 / none)`);
+        // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(none none none) l a b)`, `${colorSpace}(0% 0 0)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(none none none / none) l a b / alpha)`, `${colorSpace}(0% 0 0 / 0)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% none 50) l a b)`, `${colorSpace}(25% 0 50)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(25% 20 50 / none) l a b / alpha)`, `${colorSpace}(25% 20 50 / 0)`);
     }
 
     for (const colorSpace of [ "lch", "oklch" ]) {
@@ -270,12 +359,14 @@
         // Testing no modifications.
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30) l c h)`, `${colorSpace}(70% 45 30)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30) l c h / alpha)`, `${colorSpace}(70% 45 30)`);
-        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) l c h/ alpha)`, `${colorSpace}(70% 45 30 / 0.4)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) l c h / alpha)`, `${colorSpace}(70% 45 30 / 0.4)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(200% 300 400 / 500%) l c h / alpha)`, `${colorSpace}(200% 300 40)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(-200% -300 -400 / -500%) l c h / alpha)`, `${colorSpace}(0% 0 320 / 0)`);
 
         // Test nesting relative colors.
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(from ${colorSpace}(70% 45 30) l c h) l c h)`, `${colorSpace}(70% 45 30)`);
 
-        // Testing non-sRGB origin colors to see gamut clipping.
+        // Testing non-sRGB origin colors (no gamut mapping will happen since the destination is not a bounded RGB color space).
         test_computed_value(`color`, `${colorSpace}(from color(display-p3 0 0 0) l c h / alpha)`, `${colorSpace}(0% 0 0)`);
         test_computed_value(`color`, `${colorSpace}(from ${rectangularForm}(70% 45 30) l c h / alpha)`, `${colorSpace}(70% 54.08327 33.690067)`);
 
@@ -306,6 +397,10 @@
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) l c 25 / alpha)`, `${colorSpace}(70% 45 25 / 0.4)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) l c 25deg / alpha)`, `${colorSpace}(70% 45 25 / 0.4)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) l c h / .25)`, `${colorSpace}(70% 45 30 / 0.25)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) 200% 300 400 / 500)`, `${colorSpace}(200% 300 40)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) -200% -300 -400 / -500)`, `${colorSpace}(0% 0 320 / 0)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) 50% 120 400deg / 500)`, `${colorSpace}(50% 120 40)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) 50% 120 -400deg / -500)`, `${colorSpace}(50% 120 320 / 0)`);
 
         // Testing valid permutation (types match).
         // NOTE: 'c' is a vaild hue, as hue is <angle>|<number>.
@@ -321,6 +416,20 @@
         // Testing with calc().
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30) calc(l) calc(c) calc(h))`, `${colorSpace}(70% 45 30)`);
         test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) calc(l) calc(c) calc(h) / calc(alpha))`, `${colorSpace}(70% 45 30 / 0.4)`);
+
+        // Testing with 'none'.
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30) none none none)`,                                   `${colorSpace}(none none none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30) none none none / none)`,                            `${colorSpace}(none none none / none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30) l c none)`,                                         `${colorSpace}(70% 45 none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30) l c none / alpha)`,                                 `${colorSpace}(70% 45 none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30) l c h / none)`,                                     `${colorSpace}(70% 45 30 / none)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) l c none / alpha)`,                           `${colorSpace}(70% 45 none / 0.4)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / 40%) l c h / none)`,                               `${colorSpace}(70% 45 30 / none)`);
+        // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(none none none) l c h)`,                                       `${colorSpace}(0% 0 0)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(none none none / none) l c h / alpha)`,                        `${colorSpace}(0% 0 0 / 0)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% none 30) l c h)`,                                          `${colorSpace}(70% 0 30)`);
+        test_computed_value(`color`, `${colorSpace}(from ${colorSpace}(70% 45 30 / none) l c h / alpha)`,                             `${colorSpace}(70% 45 30 / 0)`);
     }
 
     for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb" ]) {
@@ -362,6 +471,14 @@
         test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g 20% / alpha)`,              `color(${colorSpace} 0.7 0.5 0.2 / 0.4)`);
         test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g b / 0.2)`,                  `color(${colorSpace} 0.7 0.5 0.3 / 0.2)`);
         test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g b / 20%)`,                  `color(${colorSpace} 0.7 0.5 0.3 / 0.2)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} 2 3 4)`,                              `color(${colorSpace} 2 3 4)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} 2 3 4 / 5)`,                          `color(${colorSpace} 2 3 4)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} -2 -3 -4)`,                           `color(${colorSpace} -2 -3 -4)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} -2 -3 -4 / -5)`,                      `color(${colorSpace} -2 -3 -4 / 0)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} 200% 300% 400%)`,                     `color(${colorSpace} 2 3 4)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} 200% 300% 400% / 500%)`,              `color(${colorSpace} 2 3 4)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} -200% -300% -400%)`,                  `color(${colorSpace} -2 -3 -4)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} -200% -300% -400% / -500%)`,          `color(${colorSpace} -2 -3 -4 / 0)`);
 
         // Testing valid permutation (types match).
         test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} g b r)`,                              `color(${colorSpace} 0.5 0.3 0.7)`);
@@ -373,9 +490,33 @@
         test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r r r / r)`,                    `color(${colorSpace} 0.7 0.7 0.7 / 0.7)`);
         test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} alpha alpha alpha / alpha)`,    `color(${colorSpace} 0.4 0.4 0.4 / 0.4)`);
 
+        // Testing out of gamut components.
+        test_computed_value(`color`, `color(from color(${colorSpace} 1.7 1.5 1.3) ${colorSpace} r g b)`,                              `color(${colorSpace} 1.7 1.5 1.3)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 1.7 1.5 1.3) ${colorSpace} r g b / alpha)`,                      `color(${colorSpace} 1.7 1.5 1.3)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 1.7 1.5 1.3 / 140%) ${colorSpace} r g b)`,                       `color(${colorSpace} 1.7 1.5 1.3)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 1.7 1.5 1.3 / 140%) ${colorSpace} r g b / alpha)`,               `color(${colorSpace} 1.7 1.5 1.3)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} -0.7 -0.5 -0.3) ${colorSpace} r g b)`,                           `color(${colorSpace} -0.7 -0.5 -0.3)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} -0.7 -0.5 -0.3) ${colorSpace} r g b / alpha)`,                   `color(${colorSpace} -0.7 -0.5 -0.3)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} -0.7 -0.5 -0.3 / -40%) ${colorSpace} r g b)`,                    `color(${colorSpace} -0.7 -0.5 -0.3)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} -0.7 -0.5 -0.3 / -40%) ${colorSpace} r g b / alpha)`,            `color(${colorSpace} -0.7 -0.5 -0.3 / 0)`);
+
         // Testing with calc().
         test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} calc(r) calc(g) calc(b))`,                        `color(${colorSpace} 0.7 0.5 0.3)`);
         test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} calc(r) calc(g) calc(b) / calc(alpha))`,    `color(${colorSpace} 0.7 0.5 0.3 / 0.4)`);
+
+        // Testing with 'none'.
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} none none none)`,                     `color(${colorSpace} none none none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} none none none / none)`,              `color(${colorSpace} none none none / none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r g none)`,                           `color(${colorSpace} 0.7 0.5 none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r g none / alpha)`,                   `color(${colorSpace} 0.7 0.5 none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r g b / none)`,                       `color(${colorSpace} 0.7 0.5 0.3 / none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g none / alpha)`,             `color(${colorSpace} 0.7 0.5 none / 0.4)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g b / none)`,                 `color(${colorSpace} 0.7 0.5 0.3 / none)`);
+        // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+        test_computed_value(`color`, `color(from color(${colorSpace} none none none) ${colorSpace} r g b)`,                           `color(${colorSpace} 0 0 0)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} none none none / none) ${colorSpace} r g b / alpha)`,            `color(${colorSpace} 0 0 0 / 0)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 none 0.3) ${colorSpace} r g b)`,                             `color(${colorSpace} 0.7 0 0.3)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3 / none) ${colorSpace} r g b / alpha)`,               `color(${colorSpace} 0.7 0.5 0.3 / 0)`);
     }
 
     for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
@@ -422,6 +563,20 @@
         // Testing with calc().
         test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} calc(x) calc(y) calc(z))`,                        `color(${resultColorSpace} 7 -20.5 100)`);
         test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} calc(x) calc(y) calc(z) / calc(alpha))`,    `color(${resultColorSpace} 7 -20.5 100 / 0.4)`);
+
+        // Testing with 'none'.
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} none none none)`,                     `color(${resultColorSpace} none none none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} none none none / none)`,              `color(${resultColorSpace} none none none / none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x y none)`,                           `color(${resultColorSpace} 7 -20.5 none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x y none / alpha)`,                   `color(${resultColorSpace} 7 -20.5 none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x y z / none)`,                       `color(${resultColorSpace} 7 -20.5 100 / none)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} x y none / alpha)`,             `color(${resultColorSpace} 7 -20.5 none / 0.4)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} x y z / none)`,                 `color(${resultColorSpace} 7 -20.5 100 / none)`);
+        // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+        test_computed_value(`color`, `color(from color(${colorSpace} none none none) ${colorSpace} x y z)`,                           `color(${resultColorSpace} 0 0 0)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} none none none / none) ${colorSpace} x y z / alpha)`,            `color(${resultColorSpace} 0 0 0 / 0)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 none 100) ${colorSpace} x y z)`,                               `color(${resultColorSpace} 7 0 100)`);
+        test_computed_value(`color`, `color(from color(${colorSpace} 7 -20.5 100 / none) ${colorSpace} x y z / alpha)`,               `color(${resultColorSpace} 7 -20.5 100 / 0)`);
     }
 
     // Spec Examples

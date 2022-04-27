@@ -6,7 +6,7 @@ from .logger import get_logger
 
 any_method = object()
 
-class RouteTokenizer(object):
+class RouteTokenizer:
     def literal(self, scanner, token):
         return ("literal", token)
 
@@ -26,7 +26,7 @@ class RouteTokenizer(object):
                               (r"(?:\\.|[^{\*/])*", self.literal),])
         return scanner.scan(input_str)
 
-class RouteCompiler(object):
+class RouteCompiler:
     def __init__(self):
         self.reset()
 
@@ -84,7 +84,7 @@ def compile_path_match(route_pattern):
 
     return compiler.compile(tokens)
 
-class Router(object):
+class Router:
     """Object for matching handler functions to requests.
 
     :param doc_root: Absolute path of the filesystem location from

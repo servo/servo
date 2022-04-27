@@ -9,14 +9,14 @@
 <script>
   setup(() => assert_implements_container_queries());
 
-  const units = ['qw', 'qh', 'qi', 'qb', 'qmin', 'qmax'];
+  const units = ['cqw', 'cqh', 'cqi', 'cqb', 'cqmin', 'cqmax'];
   const functions = {
-    qw: CSS.qw,
-    qh: CSS.qh,
-    qi: CSS.qi,
-    qb: CSS.qb,
-    qmin: CSS.qmin,
-    qmax: CSS.qmax,
+    cqw: CSS.cqw,
+    cqh: CSS.cqh,
+    cqi: CSS.cqi,
+    cqb: CSS.cqb,
+    cqmin: CSS.cqmin,
+    cqmax: CSS.cqmax,
   };
 
   for (let unit of units) {

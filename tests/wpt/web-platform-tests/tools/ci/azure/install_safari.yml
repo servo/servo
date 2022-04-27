@@ -8,7 +8,8 @@ steps:
   condition: eq(variables['safaridriver_diagnose'], true)
 - ${{ if eq(parameters.channel, 'preview') }}:
   - script: |
-      set -eux
+      set -eux -o pipefail
+      export SYSTEM_VERSION_COMPAT=0
       HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask tools/ci/azure/safari-technology-preview.rb
       # Workaround for `sudo safardriver --enable` not working on Catalina:
       # https://github.com/web-platform-tests/wpt/issues/21751
@@ -19,7 +20,8 @@ steps:
     displayName: 'Install Safari Technology Preview'
 - ${{ if eq(parameters.channel, 'stable') }}:
   - script: |
-      set -eux
+      set -eux -o pipefail
+      export SYSTEM_VERSION_COMPAT=0
       sudo softwareupdate --install $( softwareupdate -l | grep -o '\* Label: \(Safari.*\)' | sed -e 's/* Label: //' )
       sudo safaridriver --enable
       defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1

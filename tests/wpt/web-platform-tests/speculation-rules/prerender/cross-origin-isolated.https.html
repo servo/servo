@@ -3,6 +3,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <script src="resources/utils.js"></script>
 <body>
 <script>
@@ -10,7 +11,8 @@
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
-  const testChannel = new BroadcastChannel('test-channel');
+  const uid = token();
+  const testChannel = new PrerenderChannel('test-channel', uid);
   t.add_cleanup(() => {
     testChannel.close();
   });
@@ -18,7 +20,7 @@ promise_test(async t => {
     testChannel.addEventListener('message', e => resolve(e.data), {once: true});
   });
 
-  startPrerendering('resources/cross-origin-isolated.https.html');
+  startPrerendering(`resources/cross-origin-isolated.https.html?uid=${uid}`);
   assert_true(await gotMessage);
 }, 'Allow crossOriginIsolated in prerendered page');
 

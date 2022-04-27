@@ -12,7 +12,7 @@
       let nonce = token();
       let a = document.createElement('a');
       a.download = '';
-      a.text = nonce;
+      a.text = 'Download URL';
 
       let url = `https://${host}/fetch/metadata/resources/record-header.py?file=download` + nonce;
       a.href = url;

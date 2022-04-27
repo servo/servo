@@ -67,6 +67,17 @@ import importlib
 myhelper = importlib.import_module('common.security-features.myhelper')
 ```
 
+**Note on __init__ files**: Importing helper scripts like this
+requires a 'path' of empty `__init__.py` files in every directory down
+to the helper. For example, if your helper is
+`css/css-align/resources/myhelper.py`, you need to have:
+
+```
+css/__init__.py
+css/css-align/__init__.py
+css/css-align/resources/__init__.py
+```
+
 ## Example: Dynamic HTTP headers
 
 The following code defines a Python handler that allows the requester to

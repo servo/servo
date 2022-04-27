@@ -1,0 +1,14 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let i_entry = i.contentWindow.navigation.currentEntry;
+    assert_true(i_entry.sameDocument);
+    i.onload = t.step_func_done(() => assert_false(i_entry.sameDocument));
+    i.contentWindow.location = "about:blank";
+  });
+}, "entry.sameDocument after cross-document navigation");
+</script>

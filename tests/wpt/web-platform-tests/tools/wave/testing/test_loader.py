@@ -7,7 +7,7 @@ MANUAL = "manual"
 TEST_TYPES = [AUTOMATIC, MANUAL]
 
 
-class TestLoader(object):
+class TestLoader:
     def initialize(
         self,
         exclude_list_file_path,

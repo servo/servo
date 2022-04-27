@@ -16,21 +16,19 @@
     color: green;
   }
 </style>
-<body><span id="affected1">This should have default style (black).</span><span id="affected2">This should have 'highlight2' style (green).</span>
+<body><span id="affected1">This should have 'highlight1' style (red).</span><span id="affected2">This should have 'highlight2' style (green).</span>
 <script>
   /*
     This test is meant to verify that:
       - UAs must not define any styles for custom highlight pseudo-elements in
       the default UA stylesheet.
-      - A custom highlight pseudo-element inherits the styles of its originating
-      element.
+      - UAs do not paint unstyled custom highlights.
 
     In this test, highlight2 has higher priority because it was registered
     later, so it is painted over highlight1. This includes painting for
-    span#affected1, where there is no CSS rule for highlight2. The result is
-    that highlight2 paints on top for span#affected1, using the originating
-    element's color. Thus it appears as if no highlight was painted at all for
-    span#affected1.
+    span#affected1, where there is no CSS rule for highlight2. But since unstyled
+    custom highlights are not painted, span#affected1 is still painted with the
+    styles for highlight1.
 
     See https://drafts.csswg.org/css-highlight-api-1/#default-styles
   */

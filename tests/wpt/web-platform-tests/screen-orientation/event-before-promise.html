@@ -19,8 +19,12 @@
       screen.orientation.addEventListener("change", resolve);
     });
 
+    const newOrientationType =
+      screen.orientation.type.includes("portrait") ? "landscape" :
+                                                     "portrait";
+
     const result = await Promise.race([
-      screen.orientation.lock("landscape"),
+      screen.orientation.lock(newOrientationType),
       promiseToChange,
     ]);
 

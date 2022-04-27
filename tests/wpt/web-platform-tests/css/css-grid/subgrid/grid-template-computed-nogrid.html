@@ -16,12 +16,15 @@
 <script src="/css/support/computed-testcommon.js"></script>
 <div id="target"></div>
 <script>
+test_computed_value("grid-template-columns", "subgrid []");
 test_computed_value("grid-template-columns", "subgrid [a]");
 test_computed_value("grid-template-columns", "subgrid [a] [b]");
+test_computed_value("grid-template-columns", "subgrid [] [b]");
 test_computed_value("grid-template-columns", "subgrid [a] [b] [b] [c]");
 test_computed_value("grid-template-columns", "subgrid [a] [b c d] [e f] [e f] [g]");
 test_computed_value("grid-template-columns", "subgrid [a b c] [d] [e f]");
 test_computed_value("grid-template-columns", "subgrid repeat(auto-fill, [c])");
+test_computed_value("grid-template-columns", "subgrid repeat(auto-fill, [])");
 test_computed_value("grid-template-columns", "subgrid repeat(auto-fill, [c]) [g] [h i]");
 test_computed_value("grid-template-columns", "subgrid [a] repeat(auto-fill, [c]) [g] [h i]");
 test_computed_value("grid-template-columns", "subgrid [a b] repeat(auto-fill, [c]) [g]");

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text reference: soft hyphens in vertical writing mode</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+    div {
+        font: 16px monospace;
+        writing-mode: vertical-rl;
+        border: 1px solid gray;
+        margin: 10px;
+        padding: 2px;
+        hyphens: manual;
+        width: 3em;
+        height: 9ch;
+        hyphenate-character: "+=";
+    }
+</style>
+
+<p>Test passes if the two boxes look the same:</p>
+
+<div>
+    hyphen+=<br>ation
+</div>
+
+<div>
+    hyphen+=<br>ation
+</div>

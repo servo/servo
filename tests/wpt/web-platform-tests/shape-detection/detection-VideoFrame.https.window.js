@@ -2,7 +2,7 @@
 
 function createVideoFrame() {
   const canvas = document.createElement('canvas');
-  return new VideoFrame(canvas);
+  return new VideoFrame(canvas, {timestamp: 0});
 }
 
 promise_test(async (t) => {

@@ -14,11 +14,11 @@ from mod_pywebsocket.handshake.base import HandshakerBase
 
 
 def check_connect_method(request):
-    if request.method != u'CONNECT':
+    if request.method != 'CONNECT':
         raise HandshakeException('Method is not CONNECT: %r' % request.method)
 
 
-class WsH2Handshaker(HandshakerBase):
+class WsH2Handshaker(HandshakerBase):  # type: ignore
     def __init__(self, request, dispatcher):
         """Bootstrapping handshake processor for the WebSocket protocol with HTTP/2 (RFC 8441).
 
@@ -29,7 +29,7 @@ class WsH2Handshaker(HandshakerBase):
         WsH2Handshaker will add attributes such as ws_resource during handshake.
         """
 
-        super(WsH2Handshaker, self).__init__(request, dispatcher)
+        super().__init__(request, dispatcher)
 
     def _transform_header(self, header):
         return header.lower()

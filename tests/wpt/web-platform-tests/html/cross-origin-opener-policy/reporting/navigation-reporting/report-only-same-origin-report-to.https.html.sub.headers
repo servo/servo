@@ -1,3 +1,3 @@
 Cross-Origin-Opener-Policy-Report-Only: same-origin; report-to="coop-report-only-endpoint"
 Referrer-Policy: origin
-report-to: { "group": "coop-report-endpoint", "max_age": 10886400, "endpoints": [{ "url": "/reporting/resources/report.py?reportID=380ca360-d1ae-4329-b1dd-69cea49cd705" }] }, { "group": "coop-report-only-endpoint", "max_age": 10886400, "endpoints": [{ "url": "/reporting/resources/report.py?reportID=cf9ac91d-6c5d-4489-a420-10be9402ef84" }]}
+Reporting-Endpoints: coop-report-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=380ca360-d1ae-4329-b1dd-69cea49cd705", coop-report-only-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=cf9ac91d-6c5d-4489-a420-10be9402ef84"

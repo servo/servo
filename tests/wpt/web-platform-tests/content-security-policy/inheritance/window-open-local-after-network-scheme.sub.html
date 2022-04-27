@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 
 <meta http-equiv="Content-Security-Policy" content="img-src 'none'">
 <title>about:blank in popup inherits CSPs from the navigation initiator</title>
 <body>
 
 <script>
-  const message_from = (w) => {
+  const message_from = (source_token, w) => {
     return new Promise(resolve => {
       window.addEventListener('message', msg => {
-        if (msg.source == w)
-          resolve(msg.data);
+        if (msg.data.token === source_token)
+          resolve(msg.data.msg);
       });
     });
   };
@@ -30,9 +31,14 @@
   testCases.forEach(testCase => {
     promise_test(async t => {
       // Create a popup and navigate it.
-      const popup = window.open("about:blank", testCase.name);
-      const loaded = message_from(popup);
-      window.open(testCase.previous_origin + "/content-security-policy/inheritance/support/postmessage-opener.html", testCase.name);
+      const popup_token = token();
+      // const popup = window.open("about:blank", testCase.name);
+      const loaded = message_from(popup_token);
+      const popup = window.open(
+        testCase.previous_origin +
+          "/content-security-policy/inheritance/support" +
+          `/postmessage-opener.html?token=${popup_token}`,
+        testCase.name);
       t.add_cleanup(() => popup.close());
 
       assert_equals(await loaded, "ready");
@@ -60,15 +66,16 @@
       popup.document.head.appendChild(script);
       const div = popup.document.createElement('div');
 
+      const img_token = token();
       const img_url = window.origin + "/content-security-policy/support/fail.png";
       div.innerHTML = `
         <img src="${img_url}"
-             onload="messageBack('img loaded');"
-             onerror="messageBack('img blocked');"
+             onload="messageBack({msg: 'img loaded', token: '${img_token}'});"
+             onerror="messageBack({msg: 'img blocked', token: '${img_token}'});"
         >
       `;
 
-      const msg = message_from(popup);
+      const msg = message_from(img_token);
       popup.document.body.appendChild(div);
       assert_equals(await msg, "img blocked");
     }, testCase.name);

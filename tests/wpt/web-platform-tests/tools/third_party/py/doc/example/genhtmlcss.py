@@ -20,4 +20,4 @@ doc = my.html(
     )
 )
 
-print doc.unicode(indent=2)
+print(doc.unicode(indent=2))

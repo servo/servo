@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'contain' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runPropertyTests('container-name', [
+  { syntax: 'none' },
+  // FIXME: This should be <custom-ident>, but the test harness doesn't
+  // currently support it.
+  { syntax: 'my-container' },
+]);
+
+runUnsupportedPropertyTests('container-type', [
+  'name1 name2'
+]);
+
+</script>

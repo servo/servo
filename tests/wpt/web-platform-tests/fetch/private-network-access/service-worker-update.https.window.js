@@ -28,8 +28,7 @@ async function makeTest(t, { target, expected }) {
       "resources/service-worker-bridge.html",
       sourceResolveOptions({ server: target.server }));
 
-  const scriptUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const scriptUrl = preflightUrl(target);
   scriptUrl.searchParams.append("treat-as-public-once", token());
   scriptUrl.searchParams.append("mime-type", "application/javascript");
   scriptUrl.searchParams.append("file", "service-worker.js");

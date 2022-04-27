@@ -22,19 +22,47 @@
     }
   </script>
   <style type="text/css">
-    @import '../resources/wbn/static-element/resources/style-imported-from-tag.css';
-    @import '../resources/wbn/static-element/scopes/style-imported-from-tag.css';
+    @import "../resources/wbn/static-element/resources/style-imported-from-tag.css";
+    @import "../resources/wbn/static-element/scopes/style-imported-from-tag.css";
   </style>
-  <link href="../resources/wbn/static-element/resources/style.css" rel=stylesheet>
-  <link href="../resources/wbn/static-element/scopes/style.css" rel=stylesheet>
+  <link
+    href="../resources/wbn/static-element/resources/style.css"
+    rel="stylesheet"
+  />
+  <link
+    href="../resources/wbn/static-element/scopes/style.css"
+    rel="stylesheet"
+  />
   <script src="../resources/wbn/static-element/resources/script.js"></script>
   <script src="../resources/wbn/static-element/scopes/script.js"></script>
   <script src="../resources/wbn/static-element/out-of-scope/script.js"></script>
 
   <script>
     setup(() => {
-      assert_true(HTMLScriptElement.supports('webbundle'));
+      assert_true(HTMLScriptElement.supports("webbundle"));
     });
+
+    promise_test(async () => {
+      assert_equals(resources_script_result, "loaded from webbundle");
+      assert_equals(scopes_script_result, "loaded from webbundle");
+      assert_equals(out_of_scope_script_result, "loaded from network");
+
+      ["resources_", "scopes_"].forEach((type) => {
+        [
+          "style_target",
+          "style_imported_from_file_target",
+          "style_imported_from_tag_target",
+        ].forEach((target) => {
+          const element = document.createElement("div");
+          element.id = type + target;
+          document.body.appendChild(element);
+          assert_equals(
+            window.getComputedStyle(element).color,
+            "rgb(0, 0, 255)",
+            element.id + " color must be blue"
+          );
+        });
+      });
+    }, "Subresources from static elements should be loaded from web bundle.");
   </script>
-  <script src="resources/static-element-with-test.js"></script>
 </body>

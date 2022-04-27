@@ -396,7 +396,7 @@ class SvnAuth(object):
     def __str__(self):
         return "<SvnAuth username=%s ...>" %(self.username,)
 
-rex_blame = re.compile(r'\s*(\d+)\s*(\S+) (.*)')
+rex_blame = re.compile(r'\s*(\d+)\s+(\S+) (.*)')
 
 class SvnWCCommandPath(common.PathBase):
     """ path implementation offering access/modification to svn working copies.

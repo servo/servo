@@ -41,9 +41,9 @@ as a clone of ``py.test`` when py.test was in the ``0.8`` release
 cycle so some of the newer features_ introduced with py.test-1.0
 and py.test-1.1 have no counterpart in nose_.
 
-.. _nose: http://somethingaboutorange.com/mrl/projects/nose/0.11.1/
+.. _nose: https://nose.readthedocs.io/
 .. _features: test/features.html
-.. _apipkg: http://pypi.python.org/pypi/apipkg
+.. _apipkg: https://pypi.org/project/apipkg/
 
 
 What's this "magic" with py.test?
@@ -112,7 +112,7 @@ and will safely find all factory functions for the ``MYARG`` function
 argument.  It helps to alleviate the de-coupling of function
 argument usage and creation.
 
-.. _`Convention over Configuration`: http://en.wikipedia.org/wiki/Convention_over_Configuration
+.. _`Convention over Configuration`: https://en.wikipedia.org/wiki/Convention_over_configuration
 
 Can I yield multiple values from a factory function?
 -----------------------------------------------------
@@ -134,7 +134,7 @@ Use the `pytest_generate_tests`_ hook to solve both issues
 and implement the `parametrization scheme of your choice`_.
 
 .. _`pytest_generate_tests`: test/funcargs.html#parametrizing-tests
-.. _`parametrization scheme of your choice`: http://tetamap.wordpress.com/2009/05/13/parametrizing-python-tests-generalized/
+.. _`parametrization scheme of your choice`: https://holgerkrekel.net/2009/05/13/parametrizing-python-tests-generalized/
 
 
 py.test interaction with other packages
@@ -167,6 +167,4 @@ script with this content and invoke that with the python version::
 
 .. _`directly use a checkout`: install.html#directly-use-a-checkout
 
-.. _`install distribute`: http://pypi.python.org/pypi/distribute#installation-instructions
-
-
+.. _`install distribute`: https://pypi.org/project/distribute/

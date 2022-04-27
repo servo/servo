@@ -9,13 +9,14 @@
 <p>When the payment sheet is shown, please authorize the mock payment.</p>
 <script>
 async function setInstrumentsAndRunTests(registration) {
+  const methodName = window.location.origin + '/payment-handler/payment-app/';
   await registration.paymentManager.instruments.clear();
   await registration.paymentManager.instruments.set('instrument-key', {
     name: 'Instrument Name',
     icons: [
       {src: '/images/rgrg-256x256.png', sizes: '256x256', type: 'image/png'},
     ],
-    method: 'basic-card',
+    method: methodName,
     capabilities: {supportedNetworks: ['mir']},
   });
   runTests();
@@ -25,7 +26,7 @@ function runTests() {
   promise_test(async t => {
     const response = await new PaymentRequest(
       [
-        {supportedMethods: 'basic-card', data: {}},
+        {supportedMethods: methodName, data: {}},
         {supportedMethods: 'interledger', data: {supportedNetworks: ['mir']}},
       ],
       {
@@ -37,7 +38,7 @@ function runTests() {
         ],
         modifiers: [
           {
-            supportedMethods: 'basic-card',
+            supportedMethods: methodName,
             data: {supportedNetworks: ['mir']},
             total: {
               label: 'MIR total',
@@ -48,7 +49,7 @@ function runTests() {
             ],
           },
           {
-            supportedMethods: 'basic-card',
+            supportedMethods: methodName,
             data: {supportedNetworks: ['visa']},
             total: {
               label: 'VISA total',
@@ -74,30 +75,13 @@ function runTests() {
     ).show();
     const promise = response.complete('success');
     assert_equals(response.requestId, 'test-payment-request-identifier');
-    assert_equals(response.methodName, 'basic-card');
-    assert_array_equals(response.details.billingAddress.addressLine, [
-      '1875 Explorer St #1000',
-    ]);
-    assert_equals(response.details.billingAddress.city, 'Reston');
-    assert_equals(response.details.billingAddress.country, 'US');
-    assert_equals(response.details.billingAddress.dependentLocality, '');
-    assert_equals(response.details.billingAddress.organization, 'Google');
-    assert_equals(response.details.billingAddress.phone, '+15555555555');
-    assert_equals(response.details.billingAddress.postalCode, '20190');
-    assert_equals(response.details.billingAddress.recipient, 'Jon Doe');
-    assert_equals(response.details.billingAddress.region, 'VA');
-    assert_equals(response.details.billingAddress.sortingCode, '');
-    assert_equals(response.details.cardNumber, '4111111111111111');
-    assert_equals(response.details.cardSecurityCode, '123');
-    assert_equals(response.details.cardholderName, 'Jon Doe');
-    assert_equals(response.details.expiryMonth, '12');
-    assert_equals(response.details.expiryYear, '2028');
+    assert_equals(response.methodName, methodName);
     return promise;
   }, 'Can perform payment');
 }
 
 registerAndActiveServiceWorker(
-  'basic-card.js',
+  'app-simple.js',
   'payment-app/',
   setInstrumentsAndRunTests,
 );

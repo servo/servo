@@ -150,3 +150,16 @@ def create_frame(session):
         return session.execute_script(append)
 
     return create_frame
+
+
+@pytest.fixture
+def current_time(current_session):
+    """Get the current time stamp in ms from the remote end.
+
+    This is required especially when tests are run on different devices like
+    for Android, where it's not guaranteed that both machines are in sync.
+    """
+    def _timestamp():
+        return current_session.execute_script("return Date.now();")
+
+    return _timestamp

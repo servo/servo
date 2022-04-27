@@ -23,7 +23,7 @@ promise_test(async t => {
   try {
     await test_driver.bless();
     const request = new PaymentRequest(
-      [{ supportedMethods: 'basic-card' }],
+      [{ supportedMethods: 'https://example.com/pay' }],
       { total: { label: 'Total', amount: { currency: 'USD', value: 0 }}},
       {});
     await request.show()

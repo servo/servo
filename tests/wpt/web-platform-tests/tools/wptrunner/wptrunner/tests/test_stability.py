@@ -1,5 +1,12 @@
-from .. import stability
+import sys
 from collections import OrderedDict, defaultdict
+from unittest import mock
+
+from mozlog.structuredlog import StructuredLogger
+from mozlog.formatters import TbplFormatter
+from mozlog.handlers import StreamHandler
+
+from .. import stability, wptrunner
 
 def test_is_inconsistent():
     assert stability.is_inconsistent({"PASS": 10}, 10) is False
@@ -121,22 +128,58 @@ def test_log_handler():
 
 def test_err_string():
     assert stability.err_string(
-        {u'OK': 1, u'FAIL': 1}, 1) == u"**Duplicate subtest name**"
+        {'OK': 1, 'FAIL': 1}, 1) == "**Duplicate subtest name**"
     assert stability.err_string(
-        {u'OK': 2, u'FAIL': 1}, 2) == u"**Duplicate subtest name**"
-    assert stability.err_string({u'SKIP': 1}, 0) == u"Duplicate subtest name"
+        {'OK': 2, 'FAIL': 1}, 2) == "**Duplicate subtest name**"
+    assert stability.err_string({'SKIP': 1}, 0) == "Duplicate subtest name"
     assert stability.err_string(
-        {u'SKIP': 1, u'OK': 1}, 1) == u"Duplicate subtest name"
+        {'SKIP': 1, 'OK': 1}, 1) == "Duplicate subtest name"
 
     assert stability.err_string(
-        {u'FAIL': 1}, 2) == u"**FAIL: 1/2, MISSING: 1/2**"
+        {'FAIL': 1}, 2) == "**FAIL: 1/2, MISSING: 1/2**"
     assert stability.err_string(
-        {u'FAIL': 1, u'OK': 1}, 3) == u"**FAIL: 1/3, OK: 1/3, MISSING: 1/3**"
+        {'FAIL': 1, 'OK': 1}, 3) == "**FAIL: 1/3, OK: 1/3, MISSING: 1/3**"
 
     assert stability.err_string(
-        {u'OK': 1, u'FAIL': 1}, 2) == u"**FAIL: 1/2, OK: 1/2**"
+        {'OK': 1, 'FAIL': 1}, 2) == "**FAIL: 1/2, OK: 1/2**"
 
     assert stability.err_string(
-        {u'OK': 2, u'FAIL': 1, u'SKIP': 1}, 4) == u"FAIL: 1/4, OK: 2/4, SKIP: 1/4"
+        {'OK': 2, 'FAIL': 1, 'SKIP': 1}, 4) == "FAIL: 1/4, OK: 2/4, SKIP: 1/4"
     assert stability.err_string(
-        {u'FAIL': 1, u'SKIP': 1, u'OK': 2}, 4) == u"FAIL: 1/4, OK: 2/4, SKIP: 1/4"
+
+        {'FAIL': 1, 'SKIP': 1, 'OK': 2}, 4) == "FAIL: 1/4, OK: 2/4, SKIP: 1/4"
+
+
+def test_check_stability_iterations():
+    logger = StructuredLogger("test-stability")
+    logger.add_handler(StreamHandler(sys.stdout, TbplFormatter()))
+
+    kwargs = {"verify_log_full": False}
+
+    def mock_run_tests(**kwargs):
+        repeats = kwargs.get("repeat", 1)
+        for _ in range(repeats):
+            logger.suite_start(tests=[], name="test")
+            for _ in range(kwargs.get("rerun", 1)):
+                logger.test_start("/example/test.html")
+                logger.test_status("/example/test.html", subtest="test1", status="PASS")
+                logger.test_end("/example/test.html", status="OK")
+            logger.suite_end()
+
+        status = wptrunner.TestStatus()
+        status.total_tests = 1
+        status.repeated_runs = repeats
+        status.expected_repeated_runs = repeats
+
+        return (None, status)
+
+    # Don't actually load wptrunner, because that will end up starting a browser
+    # which we don't want to do in this test.
+    with mock.patch("wptrunner.stability.wptrunner.run_tests") as mock_run:
+        mock_run.side_effect = mock_run_tests
+        assert stability.check_stability(logger,
+                                         repeat_loop=10,
+                                         repeat_restart=5,
+                                         chaos_mode=False,
+                                         output_results=False,
+                                         **kwargs) is None

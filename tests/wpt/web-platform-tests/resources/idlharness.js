@@ -817,6 +817,13 @@ IdlArray.prototype.merge_partials = function()
                     test(function () {
                         const partialExposure = exposure_set(parsed_idl);
                         const memberExposure = exposure_set(this.members[parsed_idl.name]);
+                        if (memberExposure === "*") {
+                            return;
+                        }
+                        if (partialExposure === "*") {
+                            throw new IdlHarnessError(
+                                `Partial ${parsed_idl.name} ${parsed_idl.type} is exposed everywhere, the original ${parsed_idl.type} is not.`);
+                        }
                         partialExposure.forEach(name => {
                             if (!memberExposure || !memberExposure.has(name)) {
                                 throw new IdlHarnessError(
@@ -955,7 +962,7 @@ IdlArray.prototype.assert_type_is = function(value, type)
         return;
     }
 
-    if (type.generic === "sequence")
+    if (type.generic === "sequence" || type.generic == "ObservableArray")
     {
         assert_true(Array.isArray(value), "should be an Array");
         if (!value.length)
@@ -1593,7 +1600,7 @@ IdlInterface.prototype.test_self = function()
             if (this.is_callback()) {
                 throw new IdlHarnessError("Invalid IDL: LegacyWindowAlias extended attribute on non-interface " + this.name);
             }
-            if (!this.exposureSet.has("Window")) {
+            if (!(this.exposureSet === "*" || this.exposureSet.has("Window"))) {
                 throw new IdlHarnessError("Invalid IDL: LegacyWindowAlias extended attribute on " + this.name + " which is not exposed in Window");
             }
             // TODO: when testing of [LegacyNoInterfaceObject] interfaces is supported,

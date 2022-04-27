@@ -12,9 +12,9 @@
 <selectmenu id="selectmenu1">
   <template shadowroot=open>
     <button behavior="button">Custom button</button>
-    <popup behavior="listbox">
+    <div popup=popup behavior="listbox">
       <slot></slot>
-    </popup>
+    </div>
   </template>
   <option>one</option>
   <option id="selectmenu1-child2">two</option>
@@ -58,12 +58,12 @@
       </style>
       <button behavior="button">Open select!</button>
       <div id="value" behavior="selected-value"></div>
-      <popup behavior="listbox">
+      <div popup=popup behavior="listbox">
         <input type="text" placeholder="Filter options">
         <option>Thing 1</option>
         <option>Thing 2</option>
         <option id="option3">Thing 3</option>
-    </popup>`;
+    </div>`;
     assert_equals(selectMenu.shadowRoot.querySelectorAll("option").length, 3);
     assert_equals(selectMenu.open, false);
     await clickOn(selectMenu);
@@ -71,6 +71,8 @@
     assert_equals(selectMenu.value, "Thing 1", "value should start with the text of the first option part");
     await test_driver.send_keys(selectMenu, KEY_CODE_MAP.ArrowDown);
     assert_equals(selectMenu.value, "Thing 2", "Down arrow should go to next option");
+    await test_driver.send_keys(selectMenu, KEY_CODE_MAP.Enter); // Close the menu
+    assert_equals(selectMenu.open, false);
   }, "Test that the UA provided shadow root can be replaced");
 
   promise_test(async () => {

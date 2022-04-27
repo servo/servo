@@ -10,7 +10,6 @@ import pytest
 
 wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer, TestUsingH2Server, doc_root
-from h2.exceptions import ProtocolError
 
 def send_body_as_header(self):
     if self._response.add_required_headers:
@@ -95,7 +94,7 @@ class TestResponse(TestUsingServer):
         resp = self.request(route[1])
         assert resp.getcode() == 200
         assert resp.read() == resp_content
-        assert sorted([x.lower() for x in resp.info().keys()]) == sorted(['test-header', 'date', 'server', 'content-length'])
+        assert sorted(x.lower() for x in resp.info().keys()) == sorted(['test-header', 'date', 'server', 'content-length'])
 
     def test_write_content_no_status_no_required_headers(self):
         resp_content = b"TEST"
@@ -199,60 +198,11 @@ class TestH2Response(TestUsingH2Server):
 
         route = ("GET", "/h2test/test", handler)
         self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        resp = self.conn.get_response()
+        resp = self.client.get(route[1])
 
-        assert resp.status == 202
-        assert [x for x in resp.headers.items()] == [(b'server', b'test-h2'), (b'test', b'PASS')]
-        assert resp.read() == data
-
-    def test_push(self):
-        data = b"TEST"
-        push_data = b"PUSH TEST"
-
-        @wptserve.handlers.handler
-        def handler(request, response):
-            headers = [
-                ('server', 'test-h2'),
-                ('test', 'PASS'),
-            ]
-            response.writer.write_headers(headers, 202)
-
-            promise_headers = [
-                (':method', 'GET'),
-                (':path', '/push-test'),
-                (':scheme', 'https'),
-                (':authority', '%s:%i' % (self.server.host, self.server.port))
-            ]
-            push_headers = [
-                ('server', 'test-h2'),
-                ('content-length', str(len(push_data))),
-                ('content-type', 'text'),
-            ]
-
-            response.writer.write_push(
-                promise_headers,
-                push_stream_id=10,
-                status=203,
-                response_headers=push_headers,
-                response_data=push_data
-            )
-            response.writer.write_data_frame(data, True)
-
-        route = ("GET", "/h2test/test_push", handler)
-        self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        resp = self.conn.get_response()
-
-        assert resp.status == 202
-        assert [x for x in resp.headers.items()] == [(b'server', b'test-h2'), (b'test', b'PASS')]
-        assert resp.read() == data
-
-        push_promise = next(self.conn.get_pushes())
-        push = push_promise.get_response()
-        assert push_promise.path == b'/push-test'
-        assert push.status == 203
-        assert push.read() == push_data
+        assert resp.status_code == 202
+        assert [x for x in resp.headers.items()] == [('server', 'test-h2'), ('test', 'PASS')]
+        assert resp.content == data
 
     def test_set_error(self):
         @wptserve.handlers.handler
@@ -261,11 +211,10 @@ class TestH2Response(TestUsingH2Server):
 
         route = ("GET", "/h2test/test_set_error", handler)
         self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        resp = self.conn.get_response()
+        resp = self.client.get(route[1])
 
-        assert resp.status == 503
-        assert json.loads(resp.read()) == json.loads("{\"error\": {\"message\": \"Test error\", \"code\": 503}}")
+        assert resp.status_code == 503
+        assert json.loads(resp.content) == json.loads("{\"error\": {\"message\": \"Test error\", \"code\": 503}}")
 
     def test_file_like_response(self):
         @wptserve.handlers.handler
@@ -275,11 +224,10 @@ class TestH2Response(TestUsingH2Server):
 
         route = ("GET", "/h2test/test_file_like_response", handler)
         self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        resp = self.conn.get_response()
+        resp = self.client.get(route[1])
 
-        assert resp.status == 200
-        assert resp.read() == b"Hello, world!"
+        assert resp.status_code == 200
+        assert resp.content == b"Hello, world!"
 
     def test_list_response(self):
         @wptserve.handlers.handler
@@ -288,11 +236,10 @@ class TestH2Response(TestUsingH2Server):
 
         route = ("GET", "/h2test/test_file_like_response", handler)
         self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        resp = self.conn.get_response()
+        resp = self.client.get(route[1])
 
-        assert resp.status == 200
-        assert resp.read() == b"helloworld"
+        assert resp.status_code == 200
+        assert resp.content == b"helloworld"
 
     def test_content_longer_than_frame_size(self):
         @wptserve.handlers.handler
@@ -303,28 +250,27 @@ class TestH2Response(TestUsingH2Server):
 
         route = ("GET", "/h2test/test_content_longer_than_frame_size", handler)
         self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        resp = self.conn.get_response()
+        resp = self.client.get(route[1])
 
-        assert resp.status == 200
-        payload_size = int(resp.headers['payload_size'][0])
+        assert resp.status_code == 200
+        payload_size = int(resp.headers['payload_size'])
         assert payload_size
-        assert resp.read() == b"a" * (payload_size + 5)
+        assert resp.content == b"a" * (payload_size + 5)
 
     def test_encode(self):
         @wptserve.handlers.handler
         def handler(request, response):
             response.encoding = "utf8"
-            t = response.writer.encode(u"hello")
-            assert t == "hello"
+            t = response.writer.encode("hello")
+            assert t == b"hello"
 
             with pytest.raises(ValueError):
                 response.writer.encode(None)
 
         route = ("GET", "/h2test/test_content_longer_than_frame_size", handler)
         self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        self.conn.get_response()
+        resp = self.client.get(route[1])
+        assert resp.status_code == 200
 
     def test_raw_header_frame(self):
         @wptserve.handlers.handler
@@ -336,38 +282,23 @@ class TestH2Response(TestUsingH2Server):
 
         route = ("GET", "/h2test/test_file_like_response", handler)
         self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        resp = self.conn.get_response()
+        resp = self.client.get(route[1])
 
-        assert resp.status == 204
-        assert resp.headers['server'][0] == b'TEST-H2'
-        assert resp.read() == b''
-
-    def test_raw_header_frame_invalid(self):
-        @wptserve.handlers.handler
-        def handler(request, response):
-            response.writer.write_raw_header_frame([
-                ('server', 'TEST-H2'),
-                (':status', '204')
-            ], end_headers=True)
-
-        route = ("GET", "/h2test/test_file_like_response", handler)
-        self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        with pytest.raises(ProtocolError):
-            # The server can send an invalid HEADER frame, which will cause a protocol error in client
-            self.conn.get_response()
+        assert resp.status_code == 204
+        assert resp.headers['server'] == 'TEST-H2'
+        assert resp.content == b''
 
     def test_raw_data_frame(self):
         @wptserve.handlers.handler
         def handler(request, response):
+            response.write_status_headers()
             response.writer.write_raw_data_frame(data=b'Hello world', end_stream=True)
 
         route = ("GET", "/h2test/test_file_like_response", handler)
         self.server.router.register(*route)
-        sid = self.conn.request(route[0], route[1])
+        resp = self.client.get(route[1])
 
-        assert self.conn.streams[sid]._read() == b'Hello world'
+        assert resp.content == b'Hello world'
 
     def test_raw_header_continuation_frame(self):
         @wptserve.handlers.handler
@@ -382,12 +313,11 @@ class TestH2Response(TestUsingH2Server):
 
         route = ("GET", "/h2test/test_file_like_response", handler)
         self.server.router.register(*route)
-        self.conn.request(route[0], route[1])
-        resp = self.conn.get_response()
+        resp = self.client.get(route[1])
 
-        assert resp.status == 204
-        assert resp.headers['server'][0] == b'TEST-H2'
-        assert resp.read() == b''
+        assert resp.status_code == 204
+        assert resp.headers['server'] == 'TEST-H2'
+        assert resp.content == b''
 
 if __name__ == '__main__':
     unittest.main()

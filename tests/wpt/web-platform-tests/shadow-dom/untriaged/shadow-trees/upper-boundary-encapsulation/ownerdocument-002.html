@@ -11,7 +11,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../../../html/resources/common.js"></script>
-<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -21,7 +20,7 @@ function testElement(elementName) {
     var element = doc.createElement(elementName);
     doc.body.appendChild(element);
     var shadowRoot = element.attachShadow({mode: 'open'});
-    ATTACHSHADOW_SAFELISTED_ELEMENTS.forEach(function (name) {
+    HTML5_SHADOW_ALLOWED_ELEMENTS.forEach(function (name) {
         shadowRoot.appendChild(doc.createElement(name));
     });
 
@@ -32,7 +31,7 @@ function testElement(elementName) {
     }
 }
 
-var testParameters = ATTACHSHADOW_SAFELISTED_ELEMENTS.map(function (name) {
+var testParameters = HTML5_SHADOW_ALLOWED_ELEMENTS.map(function (name) {
     return [
         'ownerDocument property of any elements in a shadow tree should ' +
         'match the document of the shadow host, when the host is a "' +

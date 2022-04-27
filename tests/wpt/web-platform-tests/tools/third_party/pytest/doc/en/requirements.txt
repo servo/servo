@@ -1,5 +1,7 @@
 pallets-sphinx-themes
-pygments-pytest>=1.1.0
+pluggy>=1.0
+pygments-pytest>=2.2.0
 sphinx-removed-in>=0.2.0
 sphinx>=3.1,<4
 sphinxcontrib-trio
+sphinxcontrib-svg2pdfconverter

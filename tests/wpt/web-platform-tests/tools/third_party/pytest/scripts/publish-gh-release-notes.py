@@ -1,7 +1,7 @@
 """
 Script used to publish GitHub release notes extracted from CHANGELOG.rst.
 
-This script is meant to be executed after a successful deployment in Travis.
+This script is meant to be executed after a successful deployment in GitHub actions.
 
 Uses the following environment variables:
 
@@ -12,11 +12,8 @@ Uses the following environment variables:
 
     https://github.com/settings/tokens
 
-  It should be encrypted using:
-
-    $travis encrypt GH_RELEASE_NOTES_TOKEN=<token> -r pytest-dev/pytest
-
-  And the contents pasted in the ``deploy.env.secure`` section in the ``travis.yml`` file.
+  This token should be set in a secret in the repository, which is exposed as an
+  environment variable in the main.yml workflow file.
 
 The script also requires ``pandoc`` to be previously installed in the system.
 

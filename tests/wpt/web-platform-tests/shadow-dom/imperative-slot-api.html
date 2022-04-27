@@ -13,10 +13,12 @@
 <script>
 test(() => {
   let tTree = createTestTree(test_basic);
-  assert_not_equals(tTree.host1.attachShadow({ mode: 'open', slotAssignment: 'manual'}),
-                    null, 'slot assignment manual should work');
-  assert_not_equals(tTree.host2.attachShadow({ mode: 'open', slotAssignment: 'named'}),
-                    null, 'slot assignment named should work');
+  const shadow1 = tTree.host1.attachShadow({ mode: 'open', slotAssignment: 'manual'});
+  assert_not_equals(shadow1, null, 'slot assignment manual should work');
+  assert_equals(shadow1.slotAssignment, "manual", 'slotAssignment should return "manual"');
+  const shadow2 = tTree.host2.attachShadow({ mode: 'open', slotAssignment: 'named'});
+  assert_not_equals(shadow2, null, 'slot assignment named should work');
+  assert_equals(shadow2.slotAssignment, "named", 'slotAssignment should return "named"');
   assert_throws_js(TypeError, () => {
     tTree.host3.attachShadow({ mode: 'open', slotAssignment: 'exceptional' })},
                 'others should throw exception');

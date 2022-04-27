@@ -210,13 +210,13 @@ promise_test(async t => {
     });
 
   const controller = new AbortController();
-  const detector = new IdleDetector();
+  const detector = new IdleDetector({ signal: controller.signal });
 
   const watcher = new EventWatcher(t, detector, ["change"]);
   const initial_state = watcher.wait_for("change");
 
   // Only the first call to start() is allowed.
-  const start_promise = detector.start();
+  const start_promise = detector.start({ signal: controller.signal });
   await promise_rejects_dom(t, 'InvalidStateError', detector.start());
   await start_promise;
 
@@ -229,7 +229,7 @@ promise_test(async t => {
   controller.abort();
   controller.abort();
   controller.abort();
-}, 'Safe to call start() or stop() multiple times');
+}, 'Calling start() and abort() multiple times');
 
 promise_test(async t => {
   expect(addMonitor).andReturn(async (monitorPtr) => {
@@ -245,12 +245,64 @@ promise_test(async t => {
   const controller = new AbortController();
   const detector = new IdleDetector();
 
-  // Calling abort() before start() causes start() to fail.
   controller.abort();
 
   await promise_rejects_dom(
       t, 'AbortError', detector.start({ signal: controller.signal }));
-}, 'Calling stop() after start() is a no-op');
+}, 'Calling abort() before start() makes it fail');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+    });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+
+  const promise = promise_rejects_dom(
+      t, 'AbortError', detector.start({ signal: controller.signal }))
+  controller.abort();
+
+  await promise;
+}, 'Calling abort() after start() makes it fail');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+    });
+
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+
+  let controller = new AbortController();
+  const first_start = promise_rejects_dom(
+      t, 'AbortError', detector.start({ signal: controller.signal }))
+  controller.abort();
+
+  controller = new AbortController();
+  const initial_state = watcher.wait_for("change");
+  const second_start = detector.start({ signal: controller.signal });
+
+  await first_start;
+  await second_start;
+  await initial_state;
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "unlocked");
+
+  controller.abort();
+}, 'A start() that has been aborted can be retried');
 
 promise_test(async t => {
   expect(addMonitor).andReturn(async (monitorPtr) => {
@@ -270,6 +322,8 @@ promise_test(async t => {
 
   await detector.start({ signal: controller.signal });
   await initial_state;
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "unlocked");
 
   controller.abort();
 
@@ -293,6 +347,6 @@ promise_test(async t => {
   assert_equals(detector.screenState, "locked");
 
   controller.abort();
-}, 'Calling start() after stop(): re-starting monitor.');
+}, 'Calling start() after abort(): re-starting monitor.');
 
 </script>

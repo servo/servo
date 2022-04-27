@@ -1,3 +1,6 @@
+import importlib
+client_hints_ua_list = importlib.import_module("client-hints.resources.clienthintslist").client_hints_ua_list
+
 def main(request, response):
     """
   Simple handler that sets a response header based on which client hint
@@ -8,16 +11,7 @@ def main(request, response):
     response.headers.append(b"Access-Control-Allow-Headers", b"*")
     response.headers.append(b"Access-Control-Expose-Headers", b"*")
 
-    client_hint_headers = [
-        b"sec-ch-ua",
-        b"sec-ch-ua-arch",
-        b"sec-ch-ua-platform",
-        b"sec-ch-ua-platform-version",
-        b"sec-ch-ua-model",
-        b"sec-ch-ua-full-version",
-        b"sec-ch-ua-full-version-list",
-    ]
-
+    client_hint_headers = client_hints_ua_list()
     request_client_hints = {i: request.headers.get(i) for i in client_hint_headers}
 
     for header in client_hint_headers:

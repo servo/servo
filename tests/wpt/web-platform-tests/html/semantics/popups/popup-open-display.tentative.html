@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<link rel=match href="popup-open-display-ref.tentative.html">
+
+<div popup=popup>This is a popup</div>
+<div class=topmost></div>
+
+<style>
+  [popup] {
+    width: fit-content;
+    height: fit-content;
+    border: 1px solid;
+    padding: 1em;
+    margin: 1em;
+    background: white;
+    color: black;
+  }
+  .topmost {
+    position:fixed;
+    z-index: 999999;
+    top:0;
+    left:0;
+    width:1000px;
+    height:1000px;
+    background:green;
+    margin:0;
+    padding:0;
+  }
+</style>
+
+<script>
+  document.querySelector('[popup]').showPopup();
+</script>

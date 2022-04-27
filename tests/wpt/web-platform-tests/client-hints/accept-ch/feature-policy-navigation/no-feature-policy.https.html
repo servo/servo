@@ -1,0 +1,36 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/client-hints/resources/export.js"></script>
+<script src="/client-hints/resources/feature-policy-navigation.js"></script>
+<script>
+(async () => {
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    expect_iframe_no_hints,
+    "",
+    "Client hints not loaded on cross-origin iframe request with no feature policy.");
+  await test_frame(
+    "HTTPS_ORIGIN",
+    expect_iframe_hints,
+    "",
+    "Client hints loaded on same-origin iframe request with no feature policy.");
+
+    let allow = "ch-device-memory *; ch-dpr 'none'; ch-viewport-width 'self'; ch-ua 'self'; ch-ua-mobile 'none';";  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    cross_origin_client_hints,
+    allow,
+    "Client hints loaded on cross-origin iframe request with allow list.");
+  await test_frame(
+    "HTTPS_ORIGIN",
+    same_origin_client_hints,
+    allow,
+    "Client hints loaded on same-origin iframe request with allow list.");
+})();
+
+</script>
+</body>
+</html>
+

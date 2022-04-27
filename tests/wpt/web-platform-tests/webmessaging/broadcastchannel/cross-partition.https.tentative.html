@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<!-- Pull in executor_path needed by newPopup / newIframe -->
+<script src="/html/cross-origin-embedder-policy/credentialless/resources/common.js"></script>
+<!-- Pull in importScript / newPopup / newIframe -->
+<script src="/html/anonymous-iframe/resources/common.js"></script>
+<body>
+<script>
+
+const emit_script = (channel_name, message, done_queue_name) => `
+  const bc = new BroadcastChannel("${channel_name}");
+  bc.postMessage("${message}");
+  send("${done_queue_name}", "done");
+`;
+
+promise_test(t => {
+  return new Promise(async (resolve, reject) => {
+    const origin = get_host_info().HTTPS_ORIGIN;
+    const not_same_site_origin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+    const response_queue_uuid = token();
+
+    const popup_init_script = `
+      const importScript = ${importScript};
+      await importScript("/html/cross-origin-embedder-policy/credentialless" +
+                         "/resources/common.js");
+      await importScript("/html/anonymous-iframe/resources/common.js");
+      await importScript("/common/utils.js");
+      send("${response_queue_uuid}", newIframe("${origin}"));
+    `;
+
+    // Create a same-origin iframe in a cross-site popup.
+    const not_same_site_popup_uuid = newPopup(t, not_same_site_origin);
+    send(not_same_site_popup_uuid, popup_init_script);
+    const iframe_1_uuid = await receive(response_queue_uuid);
+
+    // Create a same-origin iframe in a same-site popup.
+    const same_origin_popup_uuid = newPopup(t, origin);
+    send(same_origin_popup_uuid, popup_init_script);
+    const iframe_2_uuid = await receive(response_queue_uuid);
+
+    // Note that both popups must be created before it's possible for `resolve`
+    // to be called to ensure that both get cleaned up correctly.
+
+    const channel_name = token();
+    const bc = new BroadcastChannel(channel_name);
+    bc.onmessage = resolve;
+
+    // Instruct the not-same-top-level-site iframe to send a message on the BC
+    // channel we are listening on. This message should not be received since
+    // the iframe should be in a different partition.
+    send(iframe_1_uuid,
+         emit_script(channel_name, "msg from iframe1", response_queue_uuid));
+    if (await receive(response_queue_uuid) != "done") {
+      reject("Unable to trigger iframe1 BroadcastChannel message creation");
+    }
+
+    // Now instruct the same-top-level-site iframe to send a BC message. By
+    // the time we send the script to execute, have it send the BC message,
+    // and then receive the BC message in our BC instance, it should be
+    // reasonable to assume that the message from the first iframe would have
+    // been delivered if it was going to be.
+    send(iframe_2_uuid,
+         emit_script(channel_name, "msg from iframe2", response_queue_uuid));
+    if (await receive(response_queue_uuid) != "done") {
+      reject("Unable to trigger iframe2 BroadcastChannel message creation");
+    }
+
+  }).then(event => {
+    assert_equals(event.data, "msg from iframe2");
+  });
+
+}, "BroadcastChannel messages aren't received from a cross-partition iframe");
+
+// Optional Test: Checking for partitioned BroadcastChannels in an A->B->A
+// (nested-iframe with cross-site ancestor chain) scenario.
+promise_test(t => {
+  return new Promise(async (resolve, reject) => {
+    const same_site_origin = get_host_info().HTTPS_ORIGIN;
+    const cross_site_origin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+    const response_queue_uuid = token();
+
+    const add_an_iframe_script = (iframe_origin) => `
+      const importScript = ${importScript};
+      await importScript("/html/cross-origin-embedder-policy/credentialless" +
+                       "/resources/common.js");
+      await importScript("/html/anonymous-iframe/resources/common.js");
+      await importScript("/common/utils.js");
+      send("${response_queue_uuid}", newIframe("${iframe_origin}"));
+    `;
+
+    // Create a same-origin iframe in a cross-origin iframe in a same-site popup.
+    // Create the same-site popup (A).
+    const same_origin_popup_uuid = newPopup(t, same_site_origin);
+    // Create the cross-site iframe (A->B).
+    send(same_origin_popup_uuid, add_an_iframe_script(cross_site_origin));
+    const cross_site_iframe_uuid = await receive(response_queue_uuid);
+    // Create the same-site child iframe of the cross-site iframe (A->B->A).
+    send(cross_site_iframe_uuid, add_an_iframe_script(same_site_origin));
+    const same_site_iframe_uuid = await receive(response_queue_uuid);
+
+    // Create a same-origin iframe in a same-origin iframe in a same-site popup.
+    // Create the same-site popup (A).
+    const all_same_popup_uuid = newPopup(t, same_site_origin);
+    // Create the same-site iframe (A->A).
+    send(all_same_popup_uuid, add_an_iframe_script(same_site_origin));
+    const all_same_parent_iframe_uuid = await receive(response_queue_uuid);
+    // Create the same-site child iframe of the same-site parent iframe (A->A->A).
+    send(all_same_parent_iframe_uuid, add_an_iframe_script(same_site_origin));
+    const all_same_child_iframe_uuid = await receive(response_queue_uuid);
+
+    const channel_name = token();
+    const bc = new BroadcastChannel(channel_name);
+    bc.onmessage = resolve;
+
+    // Instruct the A->B->A child iframe to send a message on the BC
+    // channel we are listening on. This message should not be received since
+    // the iframe should be in a different partition.
+    send(same_site_iframe_uuid,
+      emit_script(channel_name, "msg from iframe1", response_queue_uuid));
+    if (await receive(response_queue_uuid) != "done") {
+      reject("Unable to trigger A->B->A BroadcastChannel message creation");
+    }
+
+    // Now instruct the A->A->A child iframe to send a BC message. By
+    // the time we send the script to execute, send the BC message,
+    // and receive the BC message in our BC instance, it should be
+    // reasonable to assume that the message from the first iframe would have
+    // been delivered if it was going to be.
+    send(all_same_child_iframe_uuid,
+      emit_script(channel_name, "msg from iframe2", response_queue_uuid));
+    if (await receive(response_queue_uuid) != "done") {
+      reject("Unable to trigger A->A->A BroadcastChannel message creation");
+    }
+
+  }).then(event => {
+    assert_equals(event.data, "msg from iframe2");
+  });
+
+}, "BroadcastChannel messages aren't received from a nested iframe with a cross-site ancestor");
+
+</script>
+</body>

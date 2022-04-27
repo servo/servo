@@ -59,15 +59,15 @@ def sourcefile_strategy(draw):
                     item.ConformanceCheckerTest, item.SupportFile]
     cls = draw(hs.sampled_from(item_classes))
 
-    path = u"a"
+    path = "a"
     rel_path_parts = tuple(path.split(os.path.sep))
-    hash = draw(hs.text(alphabet=u"0123456789abcdef", min_size=40, max_size=40))
+    hash = draw(hs.text(alphabet="0123456789abcdef", min_size=40, max_size=40))
     s = mock.Mock(rel_path=path,
                   rel_path_parts=rel_path_parts,
                   hash=hash)
 
     if cls in (item.RefTest, item.PrintRefTest):
-        ref_path = u"b"
+        ref_path = "b"
         ref_eq = draw(hs.sampled_from(["==", "!="]))
         test = cls("/foobar", path, "/", utils.from_os_path(path), references=[(utils.from_os_path(ref_path), ref_eq)])
     elif cls is item.SupportFile:
@@ -81,7 +81,7 @@ def sourcefile_strategy(draw):
 
 @hs.composite
 def manifest_tree(draw):
-    names = hs.text(alphabet=hs.characters(blacklist_characters=u"\0/\\:*\"?<>|"), min_size=1)
+    names = hs.text(alphabet=hs.characters(blacklist_characters="\0/\\:*\"?<>|"), min_size=1)
     tree = hs.recursive(sourcefile_strategy(),
                         lambda children: hs.dictionaries(names, children, min_size=1),
                         max_leaves=10)
@@ -107,7 +107,7 @@ def manifest_tree(draw):
                         possible_urls = hs.sampled_from(reftest_urls) | names
                     else:
                         possible_urls = names
-                    reference = hs.tuples(hs.sampled_from([u"==", u"!="]),
+                    reference = hs.tuples(hs.sampled_from(["==", "!="]),
                                           possible_urls)
                     references = hs.lists(reference, min_size=1, unique=True)
                     test_item.references = draw(references)

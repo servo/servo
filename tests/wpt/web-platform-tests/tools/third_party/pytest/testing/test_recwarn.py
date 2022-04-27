@@ -3,6 +3,7 @@ import warnings
 from typing import Optional
 
 import pytest
+from _pytest.pytester import Pytester
 from _pytest.recwarn import WarningsRecorder
 
 
@@ -12,8 +13,8 @@ def test_recwarn_stacklevel(recwarn: WarningsRecorder) -> None:
     assert warn.filename == __file__
 
 
-def test_recwarn_functional(testdir) -> None:
-    testdir.makepyfile(
+def test_recwarn_functional(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import warnings
         def test_method(recwarn):
@@ -22,13 +23,24 @@ def test_recwarn_functional(testdir) -> None:
             assert isinstance(warn.message, UserWarning)
     """
     )
-    reprec = testdir.inline_run()
+    reprec = pytester.inline_run()
     reprec.assertoutcome(passed=1)
+
+
+@pytest.mark.filterwarnings("")
+def test_recwarn_captures_deprecation_warning(recwarn: WarningsRecorder) -> None:
+    """
+    Check that recwarn can capture DeprecationWarning by default
+    without custom filterwarnings (see #8666).
+    """
+    warnings.warn(DeprecationWarning("some deprecation"))
+    assert len(recwarn) == 1
+    assert recwarn.pop(DeprecationWarning)
 
 
 class TestWarningsRecorderChecker:
     def test_recording(self) -> None:
-        rec = WarningsRecorder()
+        rec = WarningsRecorder(_ispytest=True)
         with rec:
             assert not rec.list
             warnings.warn_explicit("hello", UserWarning, "xyz", 13)
@@ -45,7 +57,7 @@ class TestWarningsRecorderChecker:
 
     def test_warn_stacklevel(self) -> None:
         """#4243"""
-        rec = WarningsRecorder()
+        rec = WarningsRecorder(_ispytest=True)
         with rec:
             warnings.warn("test", DeprecationWarning, 2)
 
@@ -53,21 +65,21 @@ class TestWarningsRecorderChecker:
         from _pytest.recwarn import WarningsChecker
 
         with pytest.raises(TypeError):
-            WarningsChecker(5)  # type: ignore
+            WarningsChecker(5, _ispytest=True)  # type: ignore[arg-type]
         with pytest.raises(TypeError):
-            WarningsChecker(("hi", RuntimeWarning))  # type: ignore
+            WarningsChecker(("hi", RuntimeWarning), _ispytest=True)  # type: ignore[arg-type]
         with pytest.raises(TypeError):
-            WarningsChecker([DeprecationWarning, RuntimeWarning])  # type: ignore
+            WarningsChecker([DeprecationWarning, RuntimeWarning], _ispytest=True)  # type: ignore[arg-type]
 
     def test_invalid_enter_exit(self) -> None:
         # wrap this test in WarningsRecorder to ensure warning state gets reset
-        with WarningsRecorder():
+        with WarningsRecorder(_ispytest=True):
             with pytest.raises(RuntimeError):
-                rec = WarningsRecorder()
+                rec = WarningsRecorder(_ispytest=True)
                 rec.__exit__(None, None, None)  # can't exit before entering
 
             with pytest.raises(RuntimeError):
-                rec = WarningsRecorder()
+                rec = WarningsRecorder(_ispytest=True)
                 with rec:
                     with rec:
                         pass  # can't enter twice
@@ -251,7 +263,7 @@ class TestWarns:
             with pytest.warns(RuntimeWarning):
                 warnings.warn("user", UserWarning)
         excinfo.match(
-            r"DID NOT WARN. No warnings of type \(.+RuntimeWarning.+,\) was emitted. "
+            r"DID NOT WARN. No warnings of type \(.+RuntimeWarning.+,\) were emitted. "
             r"The list of emitted warnings is: \[UserWarning\('user',?\)\]."
         )
 
@@ -259,7 +271,7 @@ class TestWarns:
             with pytest.warns(UserWarning):
                 warnings.warn("runtime", RuntimeWarning)
         excinfo.match(
-            r"DID NOT WARN. No warnings of type \(.+UserWarning.+,\) was emitted. "
+            r"DID NOT WARN. No warnings of type \(.+UserWarning.+,\) were emitted. "
             r"The list of emitted warnings is: \[RuntimeWarning\('runtime',?\)\]."
         )
 
@@ -267,7 +279,7 @@ class TestWarns:
             with pytest.warns(UserWarning):
                 pass
         excinfo.match(
-            r"DID NOT WARN. No warnings of type \(.+UserWarning.+,\) was emitted. "
+            r"DID NOT WARN. No warnings of type \(.+UserWarning.+,\) were emitted. "
             r"The list of emitted warnings is: \[\]."
         )
 
@@ -278,7 +290,7 @@ class TestWarns:
                 warnings.warn("import", ImportWarning)
 
         message_template = (
-            "DID NOT WARN. No warnings of type {0} was emitted. "
+            "DID NOT WARN. No warnings of type {0} were emitted. "
             "The list of emitted warnings is: {1}."
         )
         excinfo.match(
@@ -297,13 +309,25 @@ class TestWarns:
         assert str(record[0].message) == "user"
 
     def test_record_only(self) -> None:
-        with pytest.warns(None) as record:
+        with pytest.warns() as record:
             warnings.warn("user", UserWarning)
             warnings.warn("runtime", RuntimeWarning)
 
         assert len(record) == 2
         assert str(record[0].message) == "user"
         assert str(record[1].message) == "runtime"
+
+    def test_record_only_none_deprecated_warn(self) -> None:
+        # This should become an error when WARNS_NONE_ARG is removed in Pytest 8.0
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            with pytest.warns(None) as record:  # type: ignore[call-overload]
+                warnings.warn("user", UserWarning)
+                warnings.warn("runtime", RuntimeWarning)
+
+            assert len(record) == 2
+            assert str(record[0].message) == "user"
+            assert str(record[1].message) == "runtime"
 
     def test_record_by_subclass(self) -> None:
         with pytest.warns(Warning) as record:
@@ -328,9 +352,9 @@ class TestWarns:
         assert str(record[0].message) == "user"
         assert str(record[1].message) == "runtime"
 
-    def test_double_test(self, testdir) -> None:
+    def test_double_test(self, pytester: Pytester) -> None:
         """If a test is run again, the warning should still be raised"""
-        testdir.makepyfile(
+        pytester.makepyfile(
             """
             import pytest
             import warnings
@@ -341,7 +365,7 @@ class TestWarns:
                     warnings.warn("runtime", RuntimeWarning)
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["*2 passed in*"])
 
     def test_match_regex(self) -> None:

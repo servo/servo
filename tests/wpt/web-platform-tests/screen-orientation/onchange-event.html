@@ -41,8 +41,10 @@ promise_test(async t => {
   const orientationWatcher = new EventWatcher(t, screen.orientation, 'change');
 
   for (const orientation of orientations) {
-    await screen.orientation.lock(orientation);
+    // change event is fired before resolving promise by lock.
+    const promise = screen.orientation.lock(orientation);
     await orientationWatcher.wait_for('change');
+    await promise;
     assert_equals(screen.orientation.type, orientation);
   }
 }, "Test that orientationchange event is fired when the orientation changes.");

@@ -117,6 +117,7 @@ CONSOLE: service-workers/service-worker/navigation-redirect.https.html
 CONSOLE: service-workers/service-worker/resources/clients-get-other-origin.html
 CONSOLE: webrtc/tools/*
 CONSOLE: webaudio/resources/audit.js:41
+CONSOLE: webusb/resources/usb-helpers.js
 
 # use of console in a public library - annotation-model ensures
 # it is not actually used
@@ -143,6 +144,7 @@ SET TIMEOUT: common/reftest-wait.js
 SET TIMEOUT: conformance-checkers/*
 SET TIMEOUT: content-security-policy/*
 SET TIMEOUT: css/css-display/display-contents-shadow-dom-1.html
+SET TIMEOUT: css/CSS2/normal-flow/crashtests/block-in-inline-ax-crash.html
 SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-001.html
 SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-002.html
 SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-003.html
@@ -151,7 +153,14 @@ SET TIMEOUT: css/selectors/selector-required-type-change-002.html
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
+SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-outer.sub.html
+SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-middle.sub.html
+SET TIMEOUT: focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-outer.sub.html
+SET TIMEOUT: focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-middle.sub.html
+SET TIMEOUT: focus/support/iframe-focuses-parent-different-site-inner.html
+SET TIMEOUT: focus/support/iframe-focuses-parent-same-site-inner.html
 SET TIMEOUT: generic-sensor/resources/iframe_sensor_handler.html
+SET TIMEOUT: html/browsers/browsing-the-web/back-forward-cache/resources/inflight-fetch-helper.js
 SET TIMEOUT: html/browsers/browsing-the-web/history-traversal/*
 SET TIMEOUT: html/browsers/browsing-the-web/navigating-across-documents/*
 SET TIMEOUT: html/browsers/browsing-the-web/scroll-to-fragid/*
@@ -165,6 +174,8 @@ SET TIMEOUT: html/cross-origin-opener-policy/resources/fully-loaded.js
 SET TIMEOUT: html/editing/dnd/*
 SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
+SET TIMEOUT: html/semantics/embedded-content/the-object-element/object-param-url.html
+SET TIMEOUT: html/semantics/embedded-content/the-object-element/object-param-url-ref.html
 SET TIMEOUT: html/semantics/scripting-1/the-script-element/*
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/0*
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/resources/history-frame.html
@@ -182,11 +193,13 @@ SET TIMEOUT: measure-memory/*
 SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html
 SET TIMEOUT: mixed-content/generic/sanity-checker.js
+SET TIMEOUT: navigation-api/navigation-history-entry/entries-after-bfcache-in-iframe.html
 SET TIMEOUT: navigation-timing/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
 SET TIMEOUT: paint-timing/resources/subframe-painting.html
 SET TIMEOUT: portals/resources/portals-adopt-predecessor-portal.html
 SET TIMEOUT: preload/single-download-preload.html
+SET TIMEOUT: preload/resources/slow-exec.js
 SET TIMEOUT: resize-observer/resources/iframe.html
 SET TIMEOUT: resource-timing/resources/nested-contexts.js
 SET TIMEOUT: reporting/resources/first-csp-report.https.sub.html
@@ -211,6 +224,7 @@ SET TIMEOUT: shadow-dom/slotchange-event.html
 SET TIMEOUT: trusted-types/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.tentative.html
 SET TIMEOUT: trusted-types/DOMWindowTimers-setTimeout-setInterval.tentative.html
 SET TIMEOUT: user-timing/*
+SET TIMEOUT: web-animations/crashtests/reparent-animating-element-002.html
 SET TIMEOUT: web-animations/timing-model/animations/*
 SET TIMEOUT: web-locks/crashtests/after-worker-termination.https.html
 SET TIMEOUT: webaudio/the-audio-api/the-mediaelementaudiosourcenode-interface/mediaElementAudioSourceToScriptProcessorTest.html
@@ -222,12 +236,6 @@ SET TIMEOUT: webvtt/*
 SET TIMEOUT: workers/*
 SET TIMEOUT: xhr/resources/init.htm
 SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
-SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-outer.sub.html
-SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-middle.sub.html
-SET TIMEOUT: focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-outer.sub.html
-SET TIMEOUT: focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-middle.sub.html
-SET TIMEOUT: focus/support/iframe-focuses-parent-different-site-inner.html
-SET TIMEOUT: focus/support/iframe-focuses-parent-same-site-inner.html
 
 # generate_tests implementation and sample usage
 GENERATE_TESTS: resources/test/tests/functional/generate-callback.html
@@ -327,8 +335,10 @@ SET TIMEOUT: resources/*
 SET TIMEOUT: scheduler/tentative/current-task-signal-async-abort.any.js
 SET TIMEOUT: scheduler/tentative/current-task-signal-async-priority.any.js
 SET TIMEOUT: speculation-rules/prerender/resources/activation-start.html
+SET TIMEOUT: speculation-rules/prerender/resources/prerender-response-code.html
 SET TIMEOUT: speculation-rules/prerender/resources/deferred-promise-utils.js
 SET TIMEOUT: speculation-rules/prerender/resources/utils.js
+SET TIMEOUT: html/browsers/browsing-the-web/back-forward-cache/timers.html
 
 # setTimeout use in reftests
 SET TIMEOUT: acid/acid3/test.html
@@ -356,9 +366,7 @@ CONTENT-VISUAL: css/*
 CONTENT-MANUAL: css/*
 
 ## Support files not in /support/ or similar
-SUPPORT-WRONG-DIR: css/requirements.txt
 SUPPORT-WRONG-DIR: css/README.md
-SUPPORT-WRONG-DIR: css/build-css-testsuites.sh
 SUPPORT-WRONG-DIR: css/*/reftest.list
 SUPPORT-WRONG-DIR: css/*/README
 SUPPORT-WRONG-DIR: css/*/README.md
@@ -720,6 +728,7 @@ MISSING DEPENDENCY: resources/chromium/contacts_manager_mock.js
 MISSING DEPENDENCY: resources/chromium/web-bluetooth-test.js
 MISSING DEPENDENCY: resources/chromium/webusb-test.js
 MISSING DEPENDENCY: resources/chromium/fake-serial.js
+MISSING DEPENDENCY: resources/chromium/fake-hid.js
 MISSING DEPENDENCY: resources/chromium/generic_sensor_mocks.js
 MISSING DEPENDENCY: resources/chromium/mock-barcodedetection.js
 MISSING DEPENDENCY: resources/chromium/mock-direct-sockets.js
@@ -727,6 +736,7 @@ MISSING DEPENDENCY: resources/chromium/mock-facedetection.js
 MISSING DEPENDENCY: resources/chromium/mock-idle-detection.js
 MISSING DEPENDENCY: resources/chromium/mock-imagecapture.js
 MISSING DEPENDENCY: resources/chromium/mock-managed-config.js
+MISSING DEPENDENCY: resources/chromium/mock-subapps.js
 MISSING DEPENDENCY: resources/chromium/mock-textdetection.js
 MISSING DEPENDENCY: resources/chromium/nfc-mock.js
 MISSING DEPENDENCY: resources/chromium/webxr-test.js
@@ -742,6 +752,8 @@ AHEM SYSTEM FONT: css/css-font-loading/fontface-size-adjust-descriptor.html
 AHEM SYSTEM FONT: css/css-font-loading/fontface-size-adjust-descriptor-ref.html
 AHEM SYSTEM FONT: css/css-fonts/ascent-descent-override.html
 AHEM SYSTEM FONT: css/css-fonts/line-gap-override.html
+AHEM SYSTEM FONT: html/dom/render-blocking/remove-attr-unblocks-rendering.optional.html
+AHEM SYSTEM FONT: html/dom/render-blocking/remove-element-unblocks-rendering.optional.html
 
 # TODO: The following should be deleted along with the Ahem web font cleanup
 # PR (https://github.com/web-platform-tests/wpt/pull/18702)
@@ -810,8 +822,11 @@ CSS-COLLIDING-REF-NAME: css/css-break/background-image-001-ref.html
 
 # Ported crashtests from Mozilla
 SET TIMEOUT: editing/crashtests/backcolor-in-nested-editing-host-td-from-DOMAttrModified.html
+SET TIMEOUT: editing/crashtests/contenteditable-will-be-blurred-by-focus-event-listener.html
+SET TIMEOUT: editing/crashtests/designMode-document-will-be-blurred-by-focus-event-listener.html
 SET TIMEOUT: editing/crashtests/inserthtml-after-temporarily-removing-document-element.html
 SET TIMEOUT: editing/crashtests/inserthtml-in-text-adopted-to-other-document.html
 SET TIMEOUT: editing/crashtests/insertorderedlist-in-text-adopted-to-other-document.html
 SET TIMEOUT: editing/crashtests/make-editable-div-inline-and-set-contenteditable-of-input-to-false.html
 SET TIMEOUT: editing/crashtests/outdent-across-svg-boundary.html
+SET TIMEOUT: editing/crashtests/textarea-will-be-blurred-by-focus-event-listener.html

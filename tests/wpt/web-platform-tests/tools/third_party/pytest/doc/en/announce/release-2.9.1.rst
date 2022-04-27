@@ -37,31 +37,21 @@ The py.test Development Team
 **Bug Fixes**
 
 * Improve error message when a plugin fails to load.
-  Thanks `@nicoddemus`_ for the PR.
+  Thanks :user:`nicoddemus` for the PR.
 
-* Fix (`#1178 <https://github.com/pytest-dev/pytest/issues/1178>`_):
+* Fix (:issue:`1178`):
   ``pytest.fail`` with non-ascii characters raises an internal pytest error.
-  Thanks `@nicoddemus`_ for the PR.
+  Thanks :user:`nicoddemus` for the PR.
 
-* Fix (`#469`_): junit parses report.nodeid incorrectly, when params IDs
-  contain ``::``. Thanks `@tomviner`_ for the PR (`#1431`_).
+* Fix (:issue:`469`): junit parses report.nodeid incorrectly, when params IDs
+  contain ``::``. Thanks :user:`tomviner` for the PR (:pull:`1431`).
 
-* Fix (`#578 <https://github.com/pytest-dev/pytest/issues/578>`_): SyntaxErrors
+* Fix (:issue:`578`): SyntaxErrors
   containing non-ascii lines at the point of failure generated an internal
   py.test error.
-  Thanks `@asottile`_ for the report and `@nicoddemus`_ for the PR.
+  Thanks :user:`asottile` for the report and :user:`nicoddemus` for the PR.
 
-* Fix (`#1437`_): When passing in a bytestring regex pattern to parameterize
+* Fix (:issue:`1437`): When passing in a bytestring regex pattern to parameterize
   attempt to decode it as utf-8 ignoring errors.
 
-* Fix (`#649`_): parametrized test nodes cannot be specified to run on the command line.
-
-
-.. _#1437: https://github.com/pytest-dev/pytest/issues/1437
-.. _#469: https://github.com/pytest-dev/pytest/issues/469
-.. _#1431: https://github.com/pytest-dev/pytest/pull/1431
-.. _#649: https://github.com/pytest-dev/pytest/issues/649
-
-.. _@asottile: https://github.com/asottile
-.. _@nicoddemus: https://github.com/nicoddemus
-.. _@tomviner: https://github.com/tomviner
+* Fix (:issue:`649`): parametrized test nodes cannot be specified to run on the command line.

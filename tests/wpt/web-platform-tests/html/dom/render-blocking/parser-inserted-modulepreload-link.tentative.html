@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Parser-inserted modulepreload links with "blocking=render" are render-blocking</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script src="support/test-render-blocking.js"></script>
+
+<link rel="modulepreload" blocking="render" href="support/dummy-1.mjs?pipe=trickle(d1)">
+<div id="dummy">Lorem ipsum</div>
+
+<script>
+test_render_blocking(
+    document.querySelector('link'),
+    async () => {
+      // Attach the module script into document.
+      // It should not start a new load as it's already preloaded.
+      const script = document.createElement('script');
+      const scriptObserver = new LoadObserver(script);
+      script.type = 'module';
+      script.src = 'support/dummy-1.mjs?pipe=trickle(d1)';
+      document.body.appendChild(script);
+      await scriptObserver.load;
+      verifyLoadedAndNoDoubleDownload('support/dummy-1.mjs?pipe=trickle(d1)');
+      assert_equals(document.getElementById('dummy').textContent, '1',
+                    'preloadedmodule script should be executed');
+    },
+    'Parser-inserted render-blocking module script is preloaded and evaluated');
+</script>

@@ -1,4 +1,4 @@
-// Define an universal message passing API. It works cross-origin and across
+// Define a universal message passing API. It works cross-origin and across
 // browsing context groups.
 const dispatcher_path = "/common/dispatcher/dispatcher.py";
 const dispatcher_url = new URL(dispatcher_path, location.href).href;
@@ -106,7 +106,7 @@ class RemoteContext {
   //   `execute_script()` returns a rejected Promise with the error's
   //   `message`.
   //   Note that currently the type of error (e.g. DOMException) is not
-  //   preserved.
+  //   preserved, except for `TypeError`.
   // The values should be able to be serialized by JSON.stringify().
   async execute_script(fn, args) {
     const receiver = token();
@@ -117,6 +117,9 @@ class RemoteContext {
     }
 
     // exception
+    if (response.name === 'TypeError') {
+      throw new TypeError(response.value);
+    }
     throw new Error(response.value);
   }
 
@@ -180,6 +183,7 @@ class Executor {
       } catch(e) {
         response = JSON.stringify({
           status: 'exception',
+          name: e.name,
           value: e.message
         });
       }

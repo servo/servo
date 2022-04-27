@@ -7,14 +7,14 @@ hookimpl = HookimplMarker("example")
 
 
 def test_argmismatch(pm):
-    class Api(object):
+    class Api:
         @hookspec
         def hello(self, arg):
             "api hook 1"
 
     pm.add_hookspecs(Api)
 
-    class Plugin(object):
+    class Plugin:
         @hookimpl
         def hello(self, argwrong):
             pass
@@ -26,7 +26,7 @@ def test_argmismatch(pm):
 
 
 def test_only_kwargs(pm):
-    class Api(object):
+    class Api:
         @hookspec
         def hello(self, arg):
             "api hook 1"
@@ -44,17 +44,17 @@ def test_opt_in_args(pm):
     under the same spec.
     """
 
-    class Api(object):
+    class Api:
         @hookspec
         def hello(self, arg1, arg2, common_arg):
             "api hook 1"
 
-    class Plugin1(object):
+    class Plugin1:
         @hookimpl
         def hello(self, arg1, common_arg):
             return arg1 + common_arg
 
-    class Plugin2(object):
+    class Plugin2:
         @hookimpl
         def hello(self, arg2, common_arg):
             return arg2 + common_arg
@@ -68,29 +68,29 @@ def test_opt_in_args(pm):
 
 
 def test_call_order(pm):
-    class Api(object):
+    class Api:
         @hookspec
         def hello(self, arg):
             "api hook 1"
 
     pm.add_hookspecs(Api)
 
-    class Plugin1(object):
+    class Plugin1:
         @hookimpl
         def hello(self, arg):
             return 1
 
-    class Plugin2(object):
+    class Plugin2:
         @hookimpl
         def hello(self, arg):
             return 2
 
-    class Plugin3(object):
+    class Plugin3:
         @hookimpl
         def hello(self, arg):
             return 3
 
-    class Plugin4(object):
+    class Plugin4:
         @hookimpl(hookwrapper=True)
         def hello(self, arg):
             assert arg == 0
@@ -106,29 +106,29 @@ def test_call_order(pm):
 
 
 def test_firstresult_definition(pm):
-    class Api(object):
+    class Api:
         @hookspec(firstresult=True)
         def hello(self, arg):
             "api hook 1"
 
     pm.add_hookspecs(Api)
 
-    class Plugin1(object):
+    class Plugin1:
         @hookimpl
         def hello(self, arg):
             return arg + 1
 
-    class Plugin2(object):
+    class Plugin2:
         @hookimpl
         def hello(self, arg):
             return arg - 1
 
-    class Plugin3(object):
+    class Plugin3:
         @hookimpl
         def hello(self, arg):
             return None
 
-    class Plugin4(object):
+    class Plugin4:
         @hookimpl(hookwrapper=True)
         def hello(self, arg):
             assert arg == 3
@@ -144,22 +144,21 @@ def test_firstresult_definition(pm):
 
 
 def test_firstresult_force_result(pm):
-    """Verify forcing a result in a wrapper.
-    """
+    """Verify forcing a result in a wrapper."""
 
-    class Api(object):
+    class Api:
         @hookspec(firstresult=True)
         def hello(self, arg):
             "api hook 1"
 
     pm.add_hookspecs(Api)
 
-    class Plugin1(object):
+    class Plugin1:
         @hookimpl
         def hello(self, arg):
             return arg + 1
 
-    class Plugin2(object):
+    class Plugin2:
         @hookimpl(hookwrapper=True)
         def hello(self, arg):
             assert arg == 3
@@ -167,7 +166,7 @@ def test_firstresult_force_result(pm):
             assert outcome.get_result() == 4
             outcome.force_result(0)
 
-    class Plugin3(object):
+    class Plugin3:
         @hookimpl
         def hello(self, arg):
             return None
@@ -184,14 +183,14 @@ def test_firstresult_returns_none(pm):
     the multi-call loop returns a None value.
     """
 
-    class Api(object):
+    class Api:
         @hookspec(firstresult=True)
         def hello(self, arg):
             "api hook 1"
 
     pm.add_hookspecs(Api)
 
-    class Plugin1(object):
+    class Plugin1:
         @hookimpl
         def hello(self, arg):
             return None
@@ -206,7 +205,7 @@ def test_firstresult_no_plugin(pm):
     hook the multi-call loop should return a None value.
     """
 
-    class Api(object):
+    class Api:
         @hookspec(firstresult=True)
         def hello(self, arg):
             "api hook 1"

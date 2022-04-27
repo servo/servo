@@ -330,12 +330,20 @@ promise_test(async () => {
 promise_test(async () => {
     var video = document.createElement("video");
     assert_implements_optional(video.canPlayType("video/ogg"), "video/ogg not supported");
+    let waitForFrame;
+    if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
+        waitForFrame = new Promise((resolve) => {
+            video.requestVideoFrameCallback(resolve);
+        });
+    } else {
+        waitForFrame = new Promise((resolve, reject) => {
+            video.onloadeddata = resolve;
+            video.onerror = reject;
+        });
+    }
     video.preload = "auto";
     video.src = 'resources/pattern-srgb-fullcolor.ogv'
-    await new Promise((resolve, reject) => {
-        video.onloadeddata = resolve;
-        video.onerror = reject;
-    });
+    await waitForFrame;
     await testImageBitmapVideoSource(video);
 }, 'createImageBitmap in e-sRGB from a sRGB HTMLVideoElement with resize.');
 

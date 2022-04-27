@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<link rel=match href="popup-open-overflow-display-ref.tentative.html">
+
+<div id=container>
+  <div popup=popup id=p1>This is popup 1<div id=anchor2></div></div>
+  <div popup=popup id=p2 anchor=anchor2>This is popup 2<div id=anchor3></div></div>
+  <div popup=popup id=p3 anchor=anchor3>This is popup 3</div>
+</div>
+
+<style>
+  #container {
+    overflow:hidden;
+    position: absolute;
+    top: 100px;
+    left: 50px;
+    width: 30px;
+    height: 30px;
+  }
+  #p2 {
+    position: absolute;
+    top: 100px;
+  }
+  #p3 {
+    position: relative;
+    top:200px;
+  }
+  [popup] {
+    width: fit-content;
+    height: fit-content;
+    border: 1px solid;
+    padding: 1em;
+    background: white;
+    color: black;
+  }
+</style>
+
+<script>
+  document.querySelector('#p1').showPopup();
+  document.querySelector('#p2').showPopup();
+  document.querySelector('#p3').showPopup();
+</script>

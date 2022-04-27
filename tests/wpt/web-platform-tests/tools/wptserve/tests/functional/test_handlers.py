@@ -316,75 +316,66 @@ class TestAsIsHandler(TestUsingServer):
 
 class TestH2Handler(TestUsingH2Server):
     def test_handle_headers(self):
-        self.conn.request("GET", '/test_h2_headers.py')
-        resp = self.conn.get_response()
+        resp = self.client.get('/test_h2_headers.py')
 
-        assert resp.status == 203
-        assert resp.headers['test'][0] == b'passed'
-        assert resp.read() == b''
+        assert resp.status_code == 203
+        assert resp.headers['test'] == 'passed'
+        assert resp.content == b''
 
     def test_only_main(self):
-        self.conn.request("GET", '/test_tuple_3.py')
-        resp = self.conn.get_response()
+        resp = self.client.get('/test_tuple_3.py')
 
-        assert resp.status == 202
-        assert resp.headers['Content-Type'][0] == b'text/html'
-        assert resp.headers['X-Test'][0] == b'PASS'
-        assert resp.read() == b'PASS'
+        assert resp.status_code == 202
+        assert resp.headers['Content-Type'] == 'text/html'
+        assert resp.headers['X-Test'] == 'PASS'
+        assert resp.content == b'PASS'
 
     def test_handle_data(self):
-        self.conn.request("POST", '/test_h2_data.py', body="hello world!")
-        resp = self.conn.get_response()
+        resp = self.client.post('/test_h2_data.py', content=b'hello world!')
 
-        assert resp.status == 200
-        assert resp.read() == b'!dlrow olleh'
+        assert resp.status_code == 200
+        assert resp.content == b'HELLO WORLD!'
 
     def test_handle_headers_data(self):
-        self.conn.request("POST", '/test_h2_headers_data.py', body="hello world!")
-        resp = self.conn.get_response()
+        resp = self.client.post('/test_h2_headers_data.py', content=b'hello world!')
 
-        assert resp.status == 203
-        assert resp.headers['test'][0] == b'passed'
-        assert resp.read() == b'!dlrow olleh'
+        assert resp.status_code == 203
+        assert resp.headers['test'] == 'passed'
+        assert resp.content == b'HELLO WORLD!'
 
     def test_no_main_or_handlers(self):
-        self.conn.request("GET", '/no_main.py')
-        resp = self.conn.get_response()
+        resp = self.client.get('/no_main.py')
 
-        assert resp.status == 500
-        assert "No main function or handlers in script " in json.loads(resp.read())["error"]["message"]
+        assert resp.status_code == 500
+        assert "No main function or handlers in script " in json.loads(resp.content)["error"]["message"]
 
     def test_not_found(self):
-        self.conn.request("GET", '/no_exist.py')
-        resp = self.conn.get_response()
+        resp = self.client.get('/no_exist.py')
 
-        assert resp.status == 404
+        assert resp.status_code == 404
 
     def test_requesting_multiple_resources(self):
         # 1st .py resource
-        self.conn.request("GET", '/test_h2_headers.py')
-        resp = self.conn.get_response()
+        resp = self.client.get('/test_h2_headers.py')
 
-        assert resp.status == 203
-        assert resp.headers['test'][0] == b'passed'
-        assert resp.read() == b''
+        assert resp.status_code == 203
+        assert resp.headers['test'] == 'passed'
+        assert resp.content == b''
 
         # 2nd .py resource
-        self.conn.request("GET", '/test_tuple_3.py')
-        resp = self.conn.get_response()
+        resp = self.client.get('/test_tuple_3.py')
 
-        assert resp.status == 202
-        assert resp.headers['Content-Type'][0] == b'text/html'
-        assert resp.headers['X-Test'][0] == b'PASS'
-        assert resp.read() == b'PASS'
+        assert resp.status_code == 202
+        assert resp.headers['Content-Type'] == 'text/html'
+        assert resp.headers['X-Test'] == 'PASS'
+        assert resp.content == b'PASS'
 
         # 3rd .py resource
-        self.conn.request("GET", '/test_h2_headers.py')
-        resp = self.conn.get_response()
+        resp = self.client.get('/test_h2_headers.py')
 
-        assert resp.status == 203
-        assert resp.headers['test'][0] == b'passed'
-        assert resp.read() == b''
+        assert resp.status_code == 203
+        assert resp.headers['test'] == 'passed'
+        assert resp.content == b''
 
 
 class TestWorkersHandler(TestWrapperHandlerUsingServer):

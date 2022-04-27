@@ -22,7 +22,7 @@ as "pytest-2.0.0", see here for the revamped docs:
     http://pytest.org
    
 And "py.cleanup|py.lookup|py.countloc" etc. helpers are now part of
-the pycmd distribution, see http://pypi.python.org/pypi/pycmd
+the pycmd distribution, see https://pypi.org/project/pycmd/
 
 This makes "py-1.4.0" a simple library which does not install
 any command line utilities anymore.

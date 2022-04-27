@@ -1,0 +1,27 @@
+<!doctype html>
+<title>Parser-inserted preload links with "blocking=render" are render-blocking</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-render-blocking.js"></script>
+
+<link id="font-preload" rel="preload" as="font" blocking="render" crossorigin
+      href="/fonts/Ahem.ttf?pipe=trickle(d1)">
+<style>
+@font-face {
+  font-family: custom-font;
+  src: url('/fonts/Ahem.ttf?pipe=trickle(d1)');
+}
+</style>
+<span id="target" style="font: 20px/1 custom-font">Lorem ipsum</span>
+
+<script>
+const preload = document.getElementById('font-preload');
+test_render_blocking(
+    preload,
+    () => {
+      const target = document.getElementById('target');
+      assert_equals(target.offsetHeight, 20);
+      assert_equals(target.offsetWidth, 220);
+    },
+    'Render-blocking web font is applied');
+</script>

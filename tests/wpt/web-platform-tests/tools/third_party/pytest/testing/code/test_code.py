@@ -28,11 +28,12 @@ def test_code_gives_back_name_for_not_existing_file() -> None:
     assert code.fullsource is None
 
 
-def test_code_with_class() -> None:
+def test_code_from_function_with_class() -> None:
     class A:
         pass
 
-    pytest.raises(TypeError, Code, A)
+    with pytest.raises(TypeError):
+        Code.from_function(A)
 
 
 def x() -> None:
@@ -40,13 +41,13 @@ def x() -> None:
 
 
 def test_code_fullsource() -> None:
-    code = Code(x)
+    code = Code.from_function(x)
     full = code.fullsource
     assert "test_code_fullsource()" in str(full)
 
 
 def test_code_source() -> None:
-    code = Code(x)
+    code = Code.from_function(x)
     src = code.source()
     expected = """def x() -> None:
     raise NotImplementedError()"""
@@ -73,7 +74,7 @@ def test_getstatement_empty_fullsource() -> None:
 
 
 def test_code_from_func() -> None:
-    co = Code(test_frame_getsourcelineno_myself)
+    co = Code.from_function(test_frame_getsourcelineno_myself)
     assert co.firstlineno
     assert co.path
 
@@ -92,25 +93,25 @@ def test_code_getargs() -> None:
     def f1(x):
         raise NotImplementedError()
 
-    c1 = Code(f1)
+    c1 = Code.from_function(f1)
     assert c1.getargs(var=True) == ("x",)
 
     def f2(x, *y):
         raise NotImplementedError()
 
-    c2 = Code(f2)
+    c2 = Code.from_function(f2)
     assert c2.getargs(var=True) == ("x", "y")
 
     def f3(x, **z):
         raise NotImplementedError()
 
-    c3 = Code(f3)
+    c3 = Code.from_function(f3)
     assert c3.getargs(var=True) == ("x", "z")
 
     def f4(x, *y, **z):
         raise NotImplementedError()
 
-    c4 = Code(f4)
+    c4 = Code.from_function(f4)
     assert c4.getargs(var=True) == ("x", "y", "z")
 
 
