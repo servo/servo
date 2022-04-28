@@ -10,7 +10,6 @@ set -o pipefail
 
 REMOTE_NAME=sync-fork
 
-BRANCH_NAME="wpt_update"
 REMOTE_BRANCH_NAME="wpt_update_${CURRENT_DATE}"
 
 # Using an existing log file, update the expected test results and amend the
@@ -35,7 +34,7 @@ function unsafe_open_pull_request() {
     # If the branch doesn't exist, we'll silently exit. This deals with the
     # case where an earlier step either failed or discovered that syncing
     # is unnecessary.
-    git checkout "${BRANCH_NAME}" # TODO: || return 0
+    git checkout "${REMOTE_BRANCH_NAME}" # TODO: || return 0
 
     if [[ -z "${WPT_SYNC_TOKEN+set}" ]]; then
         echo "Github auth token missing from WPT_SYNC_TOKEN."

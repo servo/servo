@@ -124,6 +124,16 @@ jobs:
         run: |
           export CURRENT_DATE=$(date +"%d-%m-%Y")
           echo $CURRENT_DATE
+          echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
           ./etc/ci/wpt-nightly.sh update-expectations
-          git push -f sync-fork "wpt_update:wpt_update_${CURRENT_DATE}"
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: wpt_update_${{ env.CURRENT_DATE }}
+          repository: servo-wpt-sync/servo
+      - name: Open PR
+        env:
+          WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
+        run: |
           ./etc/ci/wpt-nightly.sh open-pr
