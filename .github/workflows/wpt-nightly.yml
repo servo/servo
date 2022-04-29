@@ -113,7 +113,6 @@ jobs:
           git config --local user.name "WPT Sync Bot"
           git remote add upstream https://github.com/servo/servo.git
           git fetch --unshallow upstream
-          git remote add sync-fork https://servo-wpt-sync:${{ secrets.WPT_SYNC_TOKEN }}@github.com/servo-wpt-sync/servo.git
       - name: Fetch upstream changes before syncing
         run: |
           ./etc/ci/update-wpt-checkout fetch-upstream-changes
@@ -130,10 +129,13 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: wpt_update_${{ env.CURRENT_DATE }}
-          repository: servo-wpt-sync/servo
+          branch: wpt_update_${{ env.CURRENT_DATE }}_try
+          repository: cybai/servo
       - name: Open PR
         env:
           WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
+          REMOTE_BRANCH_NAME: wpt_update_${{ env.CURRENT_DATE }}_try
         run: |
+          git remote add sync-fork https://github.com/cybai/servo.git
+          git fetch sync-fork ${{ env.REMOTE_BRANCH_NAME }}
           ./etc/ci/wpt-nightly.sh open-pr

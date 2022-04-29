@@ -8,10 +8,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-REMOTE_NAME=sync-fork
-
-REMOTE_BRANCH_NAME="wpt_update_${CURRENT_DATE}"
-
 # Using an existing log file, update the expected test results and amend the
 # last commit with the new results.
 function unsafe_update_metadata() {
