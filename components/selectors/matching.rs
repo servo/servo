@@ -63,7 +63,7 @@ impl ElementSelectorFlags {
 /// Holds per-compound-selector data.
 struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     shared: &'a mut MatchingContext<'b, Impl>,
-    matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk,
+    quirks_data: Option<(Rightmost, SelectorIter<'a, Impl>)>,
 }
 
 #[inline(always)]
@@ -165,15 +165,6 @@ enum SelectorMatchingResult {
     NotMatchedGlobally,
 }
 
-/// Whether the :hover and :active quirk applies.
-///
-/// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum MatchesHoverAndActiveQuirk {
-    Yes,
-    No,
-}
-
 /// Matches a selector, fast-rejecting against a bloom filter.
 ///
 /// We accept an offset to allow consumers to represent and match against
@@ -239,7 +230,7 @@ where
 
     let mut local_context = LocalMatchingContext {
         shared: context,
-        matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
+        quirks_data: None,
     };
 
     // Find the end of the selector or the next combinator, then match
@@ -334,18 +325,20 @@ where
     matches!(result, SelectorMatchingResult::Matched)
 }
 
-#[inline]
-fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
+/// Whether the :hover and :active quirk applies.
+///
+/// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
+fn hover_and_active_quirk_applies<Impl: SelectorImpl>(
     selector_iter: &SelectorIter<Impl>,
     context: &MatchingContext<Impl>,
     rightmost: Rightmost,
-) -> MatchesHoverAndActiveQuirk {
+) -> bool {
     if context.quirks_mode() != QuirksMode::Quirks {
-        return MatchesHoverAndActiveQuirk::No;
+        return false;
     }
 
     if context.is_nested() {
-        return MatchesHoverAndActiveQuirk::No;
+        return false;
     }
 
     // This compound selector had a pseudo-element to the right that we
@@ -353,10 +346,10 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
     if rightmost == Rightmost::Yes &&
         context.matching_mode() == MatchingMode::ForStatelessPseudoElement
     {
-        return MatchesHoverAndActiveQuirk::No;
+        return false;
     }
 
-    let all_match = selector_iter.clone().all(|simple| match *simple {
+    selector_iter.clone().all(|simple| match *simple {
         Component::LocalName(_) |
         Component::AttributeInNoNamespaceExists { .. } |
         Component::AttributeInNoNamespace { .. } |
@@ -378,13 +371,7 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
         Component::OnlyOfType => false,
         Component::NonTSPseudoClass(ref pseudo_class) => pseudo_class.is_active_or_hover(),
         _ => true,
-    });
-
-    if all_match {
-        MatchesHoverAndActiveQuirk::Yes
-    } else {
-        MatchesHoverAndActiveQuirk::No
-    }
+    })
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -596,8 +583,11 @@ fn matches_compound_selector<E>(
 where
     E: Element,
 {
-    let matches_hover_and_active_quirk =
-        matches_hover_and_active_quirk(&selector_iter, context, rightmost);
+    let quirks_data = if context.quirks_mode() == QuirksMode::Quirks {
+        Some((rightmost, selector_iter.clone()))
+    } else {
+        None
+    };
 
     // Handle some common cases first.
     // We may want to get rid of this at some point if we can make the
@@ -629,7 +619,7 @@ where
 
     let mut local_context = LocalMatchingContext {
         shared: context,
-        matches_hover_and_active_quirk,
+        quirks_data,
     };
     iter::once(selector)
         .chain(selector_iter)
@@ -775,14 +765,11 @@ where
             )
         },
         Component::NonTSPseudoClass(ref pc) => {
-            if context.matches_hover_and_active_quirk == MatchesHoverAndActiveQuirk::Yes &&
-                !context.shared.is_nested() &&
-                pc.is_active_or_hover() &&
-                !element.is_link()
-            {
-                return false;
+            if let Some((ref rightmost, ref iter)) = context.quirks_data {
+                if pc.is_active_or_hover() && !element.is_link() && hover_and_active_quirk_applies(iter, context.shared, *rightmost) {
+                    return false;
+                }
             }
-
             element.match_non_ts_pseudo_class(pc, &mut context.shared)
         },
         Component::FirstChild => matches_first_child(element, context.shared),
