@@ -490,19 +490,21 @@ where
         Combinator::PseudoElement => SelectorMatchingResult::NotMatchedGlobally,
     };
 
-    let mut next_element =
-        next_element_for_combinator(element, combinator, &selector_iter, &context);
-
     // Stop matching :visited as soon as we find a link, or a combinator for
     // something that isn't an ancestor.
-    let mut visited_handling = if element.is_link() || combinator.is_sibling() {
+    let mut visited_handling = if combinator.is_sibling() {
         VisitedHandlingMode::AllLinksUnvisited
     } else {
         context.visited_handling()
     };
 
+    let mut element = element.clone();
     loop {
-        let element = match next_element {
+        if element.is_link() {
+            visited_handling = VisitedHandlingMode::AllLinksUnvisited;
+        }
+
+        element = match next_element_for_combinator(&element, combinator, &selector_iter, &context) {
             None => return candidate_not_found,
             Some(next_element) => next_element,
         };
@@ -549,12 +551,6 @@ where
             // matching on the next candidate element.
             _ => {},
         }
-
-        if element.is_link() {
-            visited_handling = VisitedHandlingMode::AllLinksUnvisited;
-        }
-
-        next_element = next_element_for_combinator(&element, combinator, &selector_iter, &context);
     }
 }
 
