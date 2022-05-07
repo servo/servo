@@ -25,6 +25,7 @@ cssparser = "0.29"
 derive_more = "0.99"
 fxhash = "0.2"
 log = "0.4"
+new_debug_unreachable = "1"
 phf = "0.10"
 precomputed-hash = "0.1"
 servo_arc = { version = "0.2", path = "../servo_arc" }

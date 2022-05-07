@@ -9,6 +9,7 @@ use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use crate::tree::Element;
 use bitflags::bitflags;
+use debug_unreachable::debug_unreachable;
 use log::debug;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
@@ -832,7 +833,9 @@ where
             }
             true
         }),
-        Component::Combinator(_) => unreachable!(),
+        Component::Combinator(_) => unsafe {
+            debug_unreachable!("Shouldn't try to selector-match combinators")
+        },
     }
 }
 

@@ -5050,6 +5050,7 @@ dependencies = [
  "derive_more",
  "fxhash",
  "log",
+ "new_debug_unreachable",
  "phf",
  "phf_codegen",
  "precomputed-hash",
