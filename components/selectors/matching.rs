@@ -634,70 +634,13 @@ where
     debug_assert!(context.shared.is_nested() || !context.shared.in_negation());
 
     match *selector {
-        Component::Combinator(_) => unreachable!(),
-        Component::Part(ref parts) => {
-            let mut hosts = SmallVec::<[E; 4]>::new();
-
-            let mut host = match element.containing_shadow_host() {
-                Some(h) => h,
-                None => return false,
-            };
-
-            let current_host = context.shared.current_host;
-            if current_host != Some(host.opaque()) {
-                loop {
-                    let outer_host = host.containing_shadow_host();
-                    if outer_host.as_ref().map(|h| h.opaque()) == current_host {
-                        break;
-                    }
-                    let outer_host = match outer_host {
-                        Some(h) => h,
-                        None => return false,
-                    };
-                    // TODO(emilio): if worth it, we could early return if
-                    // host doesn't have the exportparts attribute.
-                    hosts.push(host);
-                    host = outer_host;
-                }
-            }
-
-            // Translate the part into the right scope.
-            parts.iter().all(|part| {
-                let mut part = part.clone();
-                for host in hosts.iter().rev() {
-                    part = match host.imported_part(&part) {
-                        Some(p) => p,
-                        None => return false,
-                    };
-                }
-                element.is_part(&part)
-            })
-        },
-        Component::Slotted(ref selector) => {
-            // <slots> are never flattened tree slottables.
-            !element.is_html_slot_element() &&
-                context.shared.nest(|context| {
-                    matches_complex_selector(selector.iter(), element, context)
-                })
-        },
-        Component::PseudoElement(ref pseudo) => {
-            element.match_pseudo_element(pseudo, context.shared)
-        },
-        Component::LocalName(ref local_name) => matches_local_name(element, local_name),
-        Component::ExplicitUniversalType | Component::ExplicitAnyNamespace => true,
-        Component::Namespace(_, ref url) | Component::DefaultNamespace(ref url) => {
-            element.has_namespace(&url.borrow())
-        },
-        Component::ExplicitNoNamespace => {
-            let ns = crate::parser::namespace_empty_string::<E::Impl>();
-            element.has_namespace(&ns.borrow())
-        },
         Component::ID(ref id) => {
             element.has_id(id, context.shared.classes_and_ids_case_sensitivity())
         },
         Component::Class(ref class) => {
             element.has_class(class, context.shared.classes_and_ids_case_sensitivity())
         },
+        Component::LocalName(ref local_name) => matches_local_name(element, local_name),
         Component::AttributeInNoNamespaceExists {
             ref local_name,
             ref local_name_lower,
@@ -759,6 +702,62 @@ where
                     },
                 },
             )
+        },
+        Component::Part(ref parts) => {
+            let mut hosts = SmallVec::<[E; 4]>::new();
+
+            let mut host = match element.containing_shadow_host() {
+                Some(h) => h,
+                None => return false,
+            };
+
+            let current_host = context.shared.current_host;
+            if current_host != Some(host.opaque()) {
+                loop {
+                    let outer_host = host.containing_shadow_host();
+                    if outer_host.as_ref().map(|h| h.opaque()) == current_host {
+                        break;
+                    }
+                    let outer_host = match outer_host {
+                        Some(h) => h,
+                        None => return false,
+                    };
+                    // TODO(emilio): if worth it, we could early return if
+                    // host doesn't have the exportparts attribute.
+                    hosts.push(host);
+                    host = outer_host;
+                }
+            }
+
+            // Translate the part into the right scope.
+            parts.iter().all(|part| {
+                let mut part = part.clone();
+                for host in hosts.iter().rev() {
+                    part = match host.imported_part(&part) {
+                        Some(p) => p,
+                        None => return false,
+                    };
+                }
+                element.is_part(&part)
+            })
+        },
+        Component::Slotted(ref selector) => {
+            // <slots> are never flattened tree slottables.
+            !element.is_html_slot_element() &&
+                context.shared.nest(|context| {
+                    matches_complex_selector(selector.iter(), element, context)
+                })
+        },
+        Component::PseudoElement(ref pseudo) => {
+            element.match_pseudo_element(pseudo, context.shared)
+        },
+        Component::ExplicitUniversalType | Component::ExplicitAnyNamespace => true,
+        Component::Namespace(_, ref url) | Component::DefaultNamespace(ref url) => {
+            element.has_namespace(&url.borrow())
+        },
+        Component::ExplicitNoNamespace => {
+            let ns = crate::parser::namespace_empty_string::<E::Impl>();
+            element.has_namespace(&ns.borrow())
         },
         Component::NonTSPseudoClass(ref pc) => {
             if let Some((ref rightmost, ref iter)) = context.quirks_data {
@@ -833,6 +832,7 @@ where
             }
             true
         }),
+        Component::Combinator(_) => unreachable!(),
     }
 }
 
