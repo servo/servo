@@ -20,6 +20,7 @@ headers = "0.3"
 http = "0.2"
 hyper = "0.14"
 hyper_serde = "0.13"
+image = "0.24"
 ipc-channel = "0.14"
 lazy_static = "1"
 log = "0.4"
@@ -29,7 +30,6 @@ mime = "0.3"
 msg = { path = "../msg" }
 num-traits = "0.2"
 percent-encoding = "2.0"
-piston_image = { package = "image", version = "0.24" }
 pixels = { path = "../pixels" }
 serde = "1.0"
 servo_arc = { path = "../servo_arc" }
