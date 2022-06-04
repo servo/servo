@@ -5,6 +5,10 @@
 # TRAILING WHITESPACE:example/file.html:128
 # to allow trailing whitespace on example/file.html line 128
 
+## Will this work?
+
+IGNORED PATH: uievents/legacy-domevents-tests/submissions/Microsoft/*
+
 ## Whitespace rules that we can't enforce yet ##
 
 INDENT TABS: conformance-checkers/*
