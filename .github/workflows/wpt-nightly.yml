@@ -133,9 +133,16 @@ jobs:
           repository: cybai/servo
       - name: Open PR
         env:
-          WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
-          REMOTE_BRANCH_NAME: wpt_update_${{ env.CURRENT_DATE }}_try
+          GH_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
+          UPDATE_BRANCH: wpt_update_${{ env.CURRENT_DATE }}_try
         run: |
+          BODY=$(cat <<EOF
+          Automated downstream sync of changes from upstream as of ${{ env.CURRENT_DATE }}
+          [no-wpt-sync]
+          r? @servo-wpt-sync
+          EOF
+          )
           git remote add sync-fork https://github.com/cybai/servo.git
-          git fetch sync-fork ${{ env.REMOTE_BRANCH_NAME }}
-          ./etc/ci/wpt-nightly.sh open-pr
+          git fetch sync-fork ${{ env.UPDATE_BRANCH }}
+          git checkout ${{ env.UPDATE_BRANCH }}
+          gh pr create --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" --body "$BODY"
