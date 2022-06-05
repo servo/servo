@@ -192,7 +192,6 @@ def _activate_virtualenv(topdir, is_firefox):
         os.path.join("python", "requirements.txt"),
         wptrunner_path(is_firefox, topdir, "requirements.txt",),
         wptrunner_path(is_firefox, topdir, "requirements_firefox.txt"),
-        wptrunner_path(is_firefox, topdir, "requirements_servo.txt"),
     ]
 
     if need_pip_upgrade:
