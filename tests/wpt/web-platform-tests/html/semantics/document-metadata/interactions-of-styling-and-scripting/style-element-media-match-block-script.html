@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Style element is script-blocking when media matches</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<style>
+@import url('stylesheet.py?delay=1');
+</style>
+<h1>Some text</h1>
+<script>
+test(() => {
+  assert_true(styleExists("h1 { color: purple; }"),
+              'script should be blocked until the stylesheet is loaded');
+  const h1 = document.querySelector('h1');
+  assert_equals(getComputedStyle(h1).color, 'rgb(128, 0, 128)');
+});
+</script>

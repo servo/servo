@@ -1,5 +1,5 @@
 // META: title=IDBObjectStore.get() - throw DataError when using invalid key
-// META: script=support.js
+// META: script=resources/support.js
 // @author YuichiNukiyama <https://github.com/YuichiNukiyama>
 
 "use strict";

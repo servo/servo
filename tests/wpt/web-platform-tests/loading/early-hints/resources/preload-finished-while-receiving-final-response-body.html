@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+    const params = new URLSearchParams(window.location.search);
+    const resource_url = params.get("resource-url");
+    await fetchScript(resource_url);
+    assert_true(isPreloadedByEarlyHints(resource_url));
+}, "Early hints preload finished while loading the final response body.");
+</script>
+</body>

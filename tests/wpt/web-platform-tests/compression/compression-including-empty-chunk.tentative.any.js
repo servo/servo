@@ -54,4 +54,10 @@ for (const chunkList of chunkLists) {
     // decompress with pako, and check that we got the same result as our original string
     assert_array_equals(expectedValue, pako.inflate(compressedData), 'value should match');
   }, `the result of compressing [${chunkList}] with gzip should be 'HelloHello'`);
+
+  promise_test(async t => {
+    const compressedData = await compressChunkList(chunkList, 'deflate-raw');
+    // decompress with pako, and check that we got the same result as our original string
+    assert_array_equals(expectedValue, pako.inflateRaw(compressedData), 'value should match');
+  }, `the result of compressing [${chunkList}] with deflate-raw should be 'HelloHello'`);
 }

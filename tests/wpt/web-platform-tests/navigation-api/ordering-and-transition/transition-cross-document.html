@@ -1,0 +1,44 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="i" src="/common/blank.html"></iframe>
+
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("navigatesuccess must not fire");
+  i.contentWindow.navigation.onnavigateerror = t.unreached_func("navigateerror must not fire");
+
+  assert_equals(i.contentWindow.navigation.transition, null);
+  i.contentWindow.navigation.reload();
+  assert_equals(i.contentWindow.navigation.transition, null);
+
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+}, "cross-document reload() must leave transition null");
+
+promise_test(async t => {
+  i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("navigatesuccess must not fire");
+  i.contentWindow.navigation.onnavigateerror = t.unreached_func("navigateerror must not fire");
+
+  assert_equals(i.contentWindow.navigation.transition, null);
+  i.contentWindow.navigation.navigate("?1");
+  assert_equals(i.contentWindow.navigation.transition, null);
+
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+}, "cross-document navigate() must leave transition null");
+
+promise_test(async t => {
+  i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("navigatesuccess must not fire");
+  i.contentWindow.navigation.onnavigateerror = t.unreached_func("navigateerror must not fire");
+
+  assert_equals(i.contentWindow.navigation.transition, null);
+  i.contentWindow.navigation.back();
+  assert_equals(i.contentWindow.navigation.transition, null);
+
+  await new Promise(r => i.onload = r);
+}, "cross-document back() must leave transition null");
+</script>

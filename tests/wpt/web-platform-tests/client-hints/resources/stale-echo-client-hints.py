@@ -2,33 +2,15 @@ import random
 import string
 
 from wptserve.utils import isomorphic_encode
+import importlib
+client_hints_full_list = importlib.import_module("client-hints.resources.clienthintslist").client_hints_full_list
 
 def id_token():
    letters = string.ascii_lowercase
    return u''.join(random.choice(letters) for i in range(20))
 
 def main(request, response):
-    client_hint_headers = [
-        b"sec-ch-device-memory",
-        b"device-memory",
-        b"sec-ch-dpr",
-        b"dpr",
-        b"sec-ch-width",
-        b"width",
-        b"sec-ch-viewport-width",
-        b"viewport-width",
-        b"rtt",
-        b"downlink",
-        b"ect",
-        b"sec-ch-ua",
-        b"sec-ch-ua-arch",
-        b"sec-ch-ua-platform",
-        b"sec-ch-ua-platform-version",
-        b"sec-ch-ua-model",
-        b"sec-ch-prefers-color-scheme",
-        b"sec-ch-viewport-height",
-    ]
-
+    client_hint_headers = client_hints_full_list()
     client_hints_curr = {i:request.headers.get(i) for i in client_hint_headers}
 
     token = request.GET.first(b"token", None)

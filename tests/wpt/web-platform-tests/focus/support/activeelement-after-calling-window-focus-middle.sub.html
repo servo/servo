@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus test middle document</title>
+<h1>Middle</h1><br>
+<iframe src="https://{{hosts[][www]}}:{{ports[https][0]}}/focus/support/activeelement-after-calling-window-focus-inner.html"></iframe>
+<script>
+let middlelog = "middlelog:";
+
+let iframe = document.querySelector("iframe");
+window.onmessage = function(e) {
+  if (e.data == "ready") {
+    parent.postMessage(e.data, "*");
+  } else if (e.data == "focusinnerinput" || e.data == "focusinner" || e.data == "getlog") {
+    iframe.contentWindow.postMessage(e.data, "*");
+  } else if (e.data == "focusmiddle") {
+    window.focus();
+    middlelog += document.activeElement.tagName + ",";
+  } else {
+    parent.postMessage(middlelog + e.data, "*");
+  }
+};
+
+window.onfocus = function() {
+  middlelog += "windowfocus,";
+};
+
+window.onblur = function() {
+  middlelog += "windowblur,";
+};
+</script>

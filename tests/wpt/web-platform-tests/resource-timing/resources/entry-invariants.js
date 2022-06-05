@@ -177,6 +177,34 @@ const invariants = {
     ]);
   },
 
+  assert_tao_pass_404_with_redirect_http: entry => {
+    assert_ordered_(entry, [
+      "startTime",
+      "redirectStart",
+      "redirectEnd",
+      "fetchStart",
+      "domainLookupStart",
+      "domainLookupEnd",
+      "connectStart",
+      "connectEnd",
+      "requestStart",
+      "responseStart",
+      "responseEnd",
+    ]);
+
+    assert_zeroed_(entry, [
+      "workerStart",
+    ]);
+
+    assert_not_negative_(entry, [
+      "duration",
+    ]);
+
+    assert_positive_(entry, [
+      "redirectStart",
+    ]);
+  },
+
   // Like assert_tao_pass_no_redirect_http but, since the resource's bytes
   // won't be retransmitted, the encoded and decoded sizes must be zero.
   assert_tao_pass_304_not_modified_http: entry => {

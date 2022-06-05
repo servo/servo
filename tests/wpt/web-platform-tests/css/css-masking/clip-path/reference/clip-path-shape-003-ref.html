@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reference of CSS Masking: Test clip-path property and shape function with nonzero fill</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+</head>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+  #ref {
+    background-color: green;
+    clip-path: path(nonzero, "M 10 10, Q 40 0 60 20, T 90 0, c 10 40 20 20 -20 60, s -10 70 -40 -10");
+    position: absolute;
+  }
+</style>
+<body>
+  <p>You should see no red.</p>
+  <div id="ref"></div>
+</body>
+</html>

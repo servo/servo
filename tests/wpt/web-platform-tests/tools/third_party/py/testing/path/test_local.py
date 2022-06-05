@@ -125,6 +125,19 @@ class TestLocalPath(common.CommonFSTests):
         assert path1.chdir() is None
         assert os.getcwd() == str(path1)
 
+        with pytest.raises(py.error.ENOENT):
+            with p.as_cwd():
+                raise NotImplementedError
+
+    @skiponwin32
+    def test_chdir_gone_in_as_cwd(self, path1):
+        p = path1.ensure("dir_to_be_removed", dir=1)
+        p.chdir()
+        p.remove()
+
+        with path1.as_cwd() as old:
+            assert old is None
+
     def test_as_cwd(self, path1):
         dir = path1.ensure("subdir", dir=1)
         old = py.path.local()
@@ -151,6 +164,17 @@ class TestLocalPath(common.CommonFSTests):
         p = py.path.local("~", expanduser=True)
         assert p == os.path.expanduser("~")
 
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win32"), reason="case insensitive only on windows"
+    )
+    def test_eq_hash_are_case_insensitive_on_windows(self):
+        a = py.path.local("/some/path")
+        b = py.path.local("/some/PATH")
+        assert a == b
+        assert hash(a) == hash(b)
+        assert a in {b}
+        assert a in {b: 'b'}
+
     def test_eq_with_strings(self, path1):
         path1 = path1.join('sampledir')
         path2 = str(path1)
@@ -161,7 +185,31 @@ class TestLocalPath(common.CommonFSTests):
         assert path2 != path3
 
     def test_eq_with_none(self, path1):
-        assert path1 != None  # noqa
+        assert path1 != None  # noqa: E711
+
+    @pytest.mark.skipif(
+        sys.platform.startswith("win32"), reason="cannot remove cwd on Windows"
+    )
+    @pytest.mark.skipif(
+        sys.version_info < (3, 0) or sys.version_info >= (3, 5),
+        reason="only with Python 3 before 3.5"
+    )
+    def test_eq_with_none_and_custom_fspath(self, monkeypatch, path1):
+        import os
+        import shutil
+        import tempfile
+
+        d = tempfile.mkdtemp()
+        monkeypatch.chdir(d)
+        shutil.rmtree(d)
+
+        monkeypatch.delitem(sys.modules, 'pathlib', raising=False)
+        monkeypatch.setattr(sys, 'path', [''] + sys.path)
+
+        with pytest.raises(FileNotFoundError):
+            import pathlib  # noqa: F401
+
+        assert path1 != None  # noqa: E711
 
     def test_eq_non_ascii_unicode(self, path1):
         path2 = path1.join(u'temp')
@@ -425,24 +473,23 @@ class TestExecution:
             if i >= 3:
                 assert not numdir.new(ext=str(i-3)).check()
 
-    def test_make_numbered_dir_case_insensitive(self, tmpdir, monkeypatch):
-        # https://github.com/pytest-dev/pytest/issues/708
-        monkeypatch.setattr(py._path.local, 'normcase',
-                            lambda path: path.lower())
-        monkeypatch.setattr(tmpdir, 'listdir',
-                            lambda: [tmpdir._fastjoin('case.0')])
-        numdir = local.make_numbered_dir(prefix='CAse.', rootdir=tmpdir,
-                                         keep=2, lock_timeout=0)
-        assert numdir.basename.endswith('.1')
+    def test_make_numbered_dir_case(self, tmpdir):
+        """make_numbered_dir does not make assumptions on the underlying
+        filesystem based on the platform and will assume it _could_ be case
+        insensitive.
 
-    def test_make_numbered_dir_case_sensitive(self, tmpdir, monkeypatch):
-        # https://github.com/pytest-dev/pytest/issues/708
-        monkeypatch.setattr(py._path.local, 'normcase', lambda path: path)
-        monkeypatch.setattr(tmpdir, 'listdir',
-                            lambda: [tmpdir._fastjoin('case.0')])
-        numdir = local.make_numbered_dir(prefix='CAse.', rootdir=tmpdir,
-                                         keep=2, lock_timeout=0)
-        assert numdir.basename.endswith('.0')
+        See issues:
+        - https://github.com/pytest-dev/pytest/issues/708
+        - https://github.com/pytest-dev/pytest/issues/3451
+        """
+        d1 = local.make_numbered_dir(
+            prefix='CAse.', rootdir=tmpdir, keep=2, lock_timeout=0,
+        )
+        d2 = local.make_numbered_dir(
+            prefix='caSE.', rootdir=tmpdir, keep=2, lock_timeout=0,
+        )
+        assert str(d1).lower() != str(d2).lower()
+        assert str(d2).endswith('.1')
 
     def test_make_numbered_dir_NotImplemented_Error(self, tmpdir, monkeypatch):
         def notimpl(x, y):
@@ -476,10 +523,19 @@ class TestImport:
         assert obj.x == 42
         assert obj.__name__ == 'execfile'
 
-    def test_pyimport_renamed_dir_creates_mismatch(self, tmpdir):
+    def test_pyimport_renamed_dir_creates_mismatch(self, tmpdir, monkeypatch):
         p = tmpdir.ensure("a", "test_x123.py")
         p.pyimport()
         tmpdir.join("a").move(tmpdir.join("b"))
+        with pytest.raises(tmpdir.ImportMismatchError):
+            tmpdir.join("b", "test_x123.py").pyimport()
+
+        # Errors can be ignored.
+        monkeypatch.setenv('PY_IGNORE_IMPORTMISMATCH', '1')
+        tmpdir.join("b", "test_x123.py").pyimport()
+
+        # PY_IGNORE_IMPORTMISMATCH=0 does not ignore error.
+        monkeypatch.setenv('PY_IGNORE_IMPORTMISMATCH', '0')
         with pytest.raises(tmpdir.ImportMismatchError):
             tmpdir.join("b", "test_x123.py").pyimport()
 
@@ -573,6 +629,39 @@ class TestImport:
         assert str(root1) not in sys.path[:-1]
 
 
+class TestImportlibImport:
+    pytestmark = py.test.mark.skipif("sys.version_info < (3, 5)")
+
+    OPTS = {'ensuresyspath': 'importlib'}
+
+    def test_pyimport(self, path1):
+        obj = path1.join('execfile.py').pyimport(**self.OPTS)
+        assert obj.x == 42
+        assert obj.__name__ == 'execfile'
+
+    def test_pyimport_dir_fails(self, tmpdir):
+        p = tmpdir.join("hello_123")
+        p.ensure("__init__.py")
+        with pytest.raises(ImportError):
+            p.pyimport(**self.OPTS)
+
+    def test_pyimport_execfile_different_name(self, path1):
+        obj = path1.join('execfile.py').pyimport(modname="0x.y.z", **self.OPTS)
+        assert obj.x == 42
+        assert obj.__name__ == '0x.y.z'
+
+    def test_pyimport_relative_import_fails(self, path1):
+        otherdir = path1.join('otherdir')
+        with pytest.raises(ImportError):
+            otherdir.join('a.py').pyimport(**self.OPTS)
+
+    def test_pyimport_doesnt_use_sys_modules(self, tmpdir):
+        p = tmpdir.ensure('file738jsk.py')
+        mod = p.pyimport(**self.OPTS)
+        assert mod.__name__ == 'file738jsk'
+        assert 'file738jsk' not in sys.modules
+
+
 def test_pypkgdir(tmpdir):
     pkg = tmpdir.ensure('pkg1', dir=1)
     pkg.ensure("__init__.py")
@@ -626,6 +715,18 @@ def test_samefile(tmpdir):
         p2 = p.__class__(str(p).upper())
         assert p1.samefile(p2)
 
+@pytest.mark.skipif(not hasattr(os, "symlink"), reason="os.symlink not available")
+def test_samefile_symlink(tmpdir):
+    p1 = tmpdir.ensure("foo.txt")
+    p2 = tmpdir.join("linked.txt")
+    try:
+        os.symlink(str(p1), str(p2))
+    except (OSError, NotImplementedError) as e:
+        # on Windows this might fail if the user doesn't have special symlink permissions
+        # pypy3 on Windows doesn't implement os.symlink and raises NotImplementedError
+        pytest.skip(str(e.args[0]))
+
+    assert p1.samefile(p2)
 
 def test_listdir_single_arg(tmpdir):
     tmpdir.ensure("hello")

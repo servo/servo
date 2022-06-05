@@ -396,13 +396,18 @@ def genTestUtils_union(TEMPLATEFILE, NAME2DIRFILE):
                 f = codecs.open('%s/%s%s.html' % (CANVASOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
                 f.write(templates['w3ccanvas'] % template_params)
             if OffscreenCanvas_test:
-                f = codecs.open('%s/%s%s.html' % (OFFSCREENCANVASOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
-                f.write(templates['w3coffscreencanvas'] % template_params)
-
-                # Create test case for offscreencanvas worker.
-                timeout = '// META: timeout=%s\n' % test['timeout'] if 'timeout' in test else ''
-                template_params['timeout'] = timeout
-                f = codecs.open('%s/%s%s.worker.js' % (OFFSCREENCANVASOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
-                f.write(templates['w3cworker'] % template_params)
-
+                f_html = codecs.open('%s/%s%s.html' % (OFFSCREENCANVASOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
+                f_worker = codecs.open('%s/%s%s.worker.js' % (OFFSCREENCANVASOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
+                if ("then(t_pass, t_fail);" in code_canvas):
+                    temp_offscreen = templates['w3coffscreencanvas'].replace("t.done();\n", "")
+                    temp_worker = templates['w3cworker'].replace("t.done();\n", "")
+                    f_html.write(temp_offscreen % template_params)
+                    timeout = '// META: timeout=%s\n' % test['timeout'] if 'timeout' in test else ''
+                    template_params['timeout'] = timeout
+                    f_worker.write(temp_worker % template_params)
+                else:
+                    f_html.write(templates['w3coffscreencanvas'] % template_params)
+                    timeout = '// META: timeout=%s\n' % test['timeout'] if 'timeout' in test else ''
+                    template_params['timeout'] = timeout
+                    f_worker.write(templates['w3cworker'] % template_params)
     print()

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel=stylesheet href=/fonts/ahem.css>
+<link rel=match href=/css/reference/pass_if_square_96px_black.html>
+<link rel=help href=https://github.com/whatwg/html/issues/2291>
+<link rel=help href=https://drafts.csswg.org/css-content/#content-property>
+<style>
+.test, .ref {
+  font: 16px/1 Ahem;
+  margin: 0;
+}
+.test br {
+  /* This should have no affect. Per css-content, <string> when applied to elements. */
+  content: "";
+}
+</style>
+<p>Test passes if there is a square below.</p>
+<p class=test>xxxxxx<br>xxxxxx<br>xxxxxx</p>
+<p class=ref>xxxxxx<br>xxxxxx<br>xxxxxx</p>

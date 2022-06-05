@@ -3,4 +3,4 @@ Cross-Origin-Opener-Policy-Report-Only: same-origin; report-to="coop-report-only
 Cross-Origin-Embedder-Policy: require-corp
 Cross-Origin-Embedder-Policy-Report-Only: require-corp
 Referrer-Policy: origin
-report-to: { "group": "coop-report-endpoint", "max_age": 10886400, "endpoints": [{ "url": "/reporting/resources/report.py?reportID=47b45e17-51c5-4691-bdd5-8f343bbfcf42" }] }, { "group": "coop-report-only-endpoint", "max_age": 10886400, "endpoints": [{ "url": "/reporting/resources/report.py?reportID=3eb3ad1d-872e-4ea8-8b40-0e98783a0683" }]}
+Reporting-Endpoints: coop-report-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=47b45e17-51c5-4691-bdd5-8f343bbfcf42", coop-report-only-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=3eb3ad1d-872e-4ea8-8b40-0e98783a0683"

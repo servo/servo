@@ -1,0 +1,11 @@
+<script>
+'use strict';
+
+window.onload = function() {
+  self.queryLocalFonts().then(() => {
+    parent.postMessage({ type: 'availability-result', enabled: true }, '*');
+  }, error => {
+    parent.postMessage({ type: 'availability-result', enabled: false }, '*');
+  });
+}
+</script>

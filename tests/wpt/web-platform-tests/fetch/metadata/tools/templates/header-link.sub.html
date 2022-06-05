@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for HTTP "Link" header</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url, rel, test) {
+    const iframe = document.createElement('iframe');
+
+    iframe.setAttribute(
+      'src',
+      '/fetch/metadata/resources/header-link.py' +
+        `?location=${encodeURIComponent(url)}&rel=${rel}`
+    );
+
+    document.body.appendChild(iframe);
+    test.add_cleanup(() => iframe.remove());
+
+    return new Promise((resolve) => {
+        iframe.onload = iframe.onerror = resolve;
+      });
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, [% subtest.origins %], {mime: 'text/html'}),
+        '[%subtest.rel%]',
+        t
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] rel=[%subtest.rel%][%subtest.description | pad("start", " - ")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

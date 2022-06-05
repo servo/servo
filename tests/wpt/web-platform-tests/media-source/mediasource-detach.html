@@ -38,12 +38,16 @@
 
     mediasource_detach_test(function(test, mediaElement, mediaSource, sourceBuffer, mediaData)
     {
-        sourceBuffer.addEventListener('updateend', test.step_func(function (event)
+        test.expectEvent(sourceBuffer, 'updateend', 'updateend after appending data');
+        test.expectEvent(mediaElement, 'loadedmetadata', 'media element loadedmetata');
+        test.waitForExpectedEvents(() =>
         {
-            assert_greater_than(mediaElement.readyState, HTMLMediaElement.HAVE_NOTHING, 'media readyState is greater than "HAVE_NOTHING"')
+            assert_greater_than(mediaElement.readyState, HTMLMediaElement.HAVE_NOTHING,
+                                'media element readyState is greater than "HAVE_NOTHING"');
             assert_false(sourceBuffer.updating, 'updating attribute is false');
+            assert_equals(mediaSource.readyState, 'open');
             mediaElement.load();
-        }));
+        });
 
         sourceBuffer.appendBuffer(mediaData);
     }, 'Test media.load() after appending data will trigger MediaSource detaching from a media element.');

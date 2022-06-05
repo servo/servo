@@ -20,10 +20,10 @@ test_valid_value("animation-name", 'infinite');
 test_valid_value("animation-name", 'paused');
 test_valid_value("animation-name", 'first, second, third');
 
-test_valid_value("animation-name", '"string"');
-test_valid_value("animation-name", '"multi word string"');
+test_valid_value("animation-name", '"string"', ['"string"', "string"]);
+test_valid_value("animation-name", '"multi word string"', ['"multi word string"', "multi\\ word\\ string"]);
 test_valid_value("animation-name", '"initial"');
-test_valid_value("animation-name", '"---\\22---"', '\"---\\\"---\"');
+test_valid_value("animation-name", '"---\\22---"', ['\"---\\\"---\"', '---\\\"---']);
 </script>
 </body>
 </html>

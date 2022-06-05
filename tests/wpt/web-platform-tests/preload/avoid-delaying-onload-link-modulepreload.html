@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<link rel=modulepreload href="resources/dummy.js?pipe=trickle(d5)">
+<script>
+    setup(() => {
+        const link = window.document.createElement("link");
+        assert_implements(
+            'relList' in link,
+            'HTMLLinkElement.relList is not supported');
+
+        assert_implements(
+            link.relList.supports("modulepreload"),
+            'modulepreload is not supported');
+    });
+
+    promise_test(async t => {
+        await new Promise(r => window.addEventListener("load", r));
+        verifyNumberOfResourceTimingEntries("resources/dummy.js?pipe=trickle(d5)", 0);
+    }, "Fetching modulepreload should not block the window's load event");
+</script>

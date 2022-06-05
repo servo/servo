@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import base64
 import json
 import os
@@ -11,17 +13,14 @@ from mozprocess import ProcessHandler
 
 from tools.serve.serve import make_hosts_file
 
-from .base import (ConnectionlessProtocol,
-                   RefTestImplementation,
+from .base import (RefTestImplementation,
                    crashtest_result_converter,
                    testharness_result_converter,
                    reftest_result_converter,
-                   TimedRunner,
-                   WdspecExecutor,
-                   WdspecProtocol)
+                   TimedRunner)
 from .process import ProcessTestExecutor
+from .protocol import ConnectionlessProtocol
 from ..browsers.base import browser_command
-from ..webdriver_server import ServoDriverServer
 
 
 pytestrunner = None
@@ -46,7 +45,7 @@ def build_servo_command(test, test_url_func, browser, binary, pause_after_test, 
     for stylesheet in browser.user_stylesheets:
         args += ["--user-stylesheet", stylesheet]
     for pref, value in test.environment.get('prefs', {}).items():
-        args += ["--pref", "%s=%s" % (pref, value)]
+        args += ["--pref", f"{pref}={value}"]
     if browser.ca_certificate_path:
         args += ["--certificate-path", browser.ca_certificate_path]
     if extra_args:
@@ -160,7 +159,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.result_flag.set()
 
 
-class TempFilename(object):
+class TempFilename:
     def __init__(self, directory):
         self.directory = directory
         self.path = None
@@ -278,14 +277,6 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             self.logger.process_output(self.proc.pid,
                                        line,
                                        " ".join(self.command))
-
-
-class ServoDriverProtocol(WdspecProtocol):
-    server_cls = ServoDriverServer
-
-
-class ServoWdspecExecutor(WdspecExecutor):
-    protocol_cls = ServoDriverProtocol
 
 
 class ServoTimedRunner(TimedRunner):

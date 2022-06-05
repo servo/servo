@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for HTML "script" element source</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url, attributes) {
+    const script = document.createElement('script');
+    script.setAttribute('src', url);
+
+    for (const [ name, value ] of Object.entries(attributes)) {
+      script.setAttribute(name, value);
+    }
+
+    return new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = () => reject('Failed to load script');
+        document.body.appendChild(script);
+      })
+      .then(() => script.remove());
+  }
+  {%- for subtest in subtests %}
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [% subtest.origins %], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url,
+        [%subtest.elementAttrs | default({}) | tojson%]
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("end", ", ")%][%-subtest.elementAttrs | collection("attributes")%]');
+
+  {%- endfor %}
+  </script>
+</html>

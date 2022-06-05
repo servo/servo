@@ -8,7 +8,7 @@
 <link rel=assert title="When a record is stored in a object store which uses a key generator, and an explicit key is defined, if the key's value is a float greater than or equal to the key generator's current number, then the key generator's current number is set to the smallest integer number larger than the explicit key. Only explicit keys which are float values affect the current number of the key generator.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     function keygenerator(objects, expected_keys, desc, func) {

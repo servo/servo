@@ -1,4 +1,5 @@
 // META: global=window,worker
+// META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js
 
 // Helpers that return headers objects with a particular guard
@@ -89,3 +90,47 @@ promise_test(async () => {
     assert_equals(await response.json(), 'identity', `Expect identity accept-encoding if range header is ${JSON.stringify(rangeHeader)}`);
   }
 }, `Fetch with range header will be sent with Accept-Encoding: identity`);
+
+promise_test(async () => {
+  const wavURL = new URL(get_host_info().HTTP_REMOTE_ORIGIN + '/fetch/range/resources/long-wav.py');
+  const stashTakeURL = new URL('resources/stash-take.py', location);
+
+  function changeToken() {
+    const stashToken = token();
+    wavURL.searchParams.set('accept-encoding-key', stashToken);
+    stashTakeURL.searchParams.set('key', stashToken);
+  }
+
+  const rangeHeaders = [
+    'bytes=10-9',
+    'bytes=-0',
+    'bytes=0000000000000000000000000000000000000000000000000000000000011-0000000000000000000000000000000000000000000000000000000000111',
+  ];
+
+  for (const rangeHeader of rangeHeaders) {
+    changeToken();
+    await fetch(wavURL, { headers: { Range : rangeHeader} }).then(() => { throw "loaded with range header " + rangeHeader }, () => { });
+  }
+}, `Cross Origin Fetch with non safe range header`);
+
+promise_test(async () => {
+  const wavURL = new URL(get_host_info().HTTP_REMOTE_ORIGIN + '/fetch/range/resources/long-wav.py');
+  const stashTakeURL = new URL('resources/stash-take.py', location);
+
+  function changeToken() {
+    const stashToken = token();
+    wavURL.searchParams.set('accept-encoding-key', stashToken);
+    stashTakeURL.searchParams.set('key', stashToken);
+  }
+
+  const rangeHeaders = [
+    'bytes=0-10',
+    'bytes=0-',
+    'bytes=00000000000000000000000000000000000000000000000000000000011-00000000000000000000000000000000000000000000000000000000000111',
+  ];
+
+  for (const rangeHeader of rangeHeaders) {
+    changeToken();
+    await fetch(wavURL, { headers: { Range: rangeHeader } }).then(() => { }, () => { throw "failed load with range header " + rangeHeader });
+  }
+}, `Cross Origin Fetch with safe range header`);

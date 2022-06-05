@@ -53,7 +53,7 @@ promise_test(async (test) => {
         createConnections(test, (firstConnection) => {
             localChannel = firstConnection.createDataChannel('sendDataChannel');
             worker.postMessage({channel: localChannel}, [localChannel]);
-
+            data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
         }, (secondConnection) => {
             secondConnection.ondatachannel = (event) => {
                 remoteChannel = event.channel;
@@ -61,6 +61,8 @@ promise_test(async (test) => {
             };
         });
     });
+
+    assert_equals(await data, "opened");
 
     data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
     remoteChannel.send("OK");

@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import argparse
 import logging
 import os
@@ -22,10 +24,10 @@ def check_task_statuses(task_ids, github_checks_outputter):
         status = queue.status(task)
         state = status['status']['state']
         if state == 'failed' or state == 'exception':
-            logger.error('Task {0} failed with state "{1}"'.format(task, state))
+            logger.error(f'Task {task} failed with state "{state}"')
             failed_tasks.append(status)
         elif state != 'completed':
-            logger.error('Task {0} had unexpected state "{1}"'.format(task, state))
+            logger.error(f'Task {task} had unexpected state "{state}"')
             failed_tasks.append(status)
 
     if failed_tasks and github_checks_outputter:

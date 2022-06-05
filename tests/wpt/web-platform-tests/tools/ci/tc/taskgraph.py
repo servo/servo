@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import json
 import os
 import re
@@ -115,7 +117,7 @@ def expand_maps(task):
         return [task]
 
     map_data = task["$map"]
-    if set(map_data.keys()) != set(["for", "do"]):
+    if set(map_data.keys()) != {"for", "do"}:
         raise ValueError("$map objects must have exactly two properties named 'for' "
                          "and 'do' (got %s)" % ("no properties" if not map_data.keys()
                                                 else ", ". join(map_data.keys())))

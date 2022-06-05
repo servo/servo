@@ -1,6 +1,6 @@
 This directory contains the Indexed Database API test suite.
 
-To run the tests in this test suite within a browser, go to: <https://w3c-test.org/IndexedDB/>.
+To run the tests in this test suite within a browser, go to: <https://wpt.live/IndexedDB/>.
 
 The latest Editor's Draft of Indexed Database API is: <https://w3c.github.io/IndexedDB/>.
 

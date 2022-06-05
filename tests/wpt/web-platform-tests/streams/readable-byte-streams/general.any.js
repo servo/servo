@@ -2876,3 +2876,26 @@ promise_test(async t => {
 
 }, 'ReadableStream with byte source: read(view) with 1 element Uint16Array, respond(1), releaseLock(), read() on ' +
    'second reader, enqueue()');
+
+promise_test(async t => {
+  // Tests https://github.com/nodejs/node/issues/41886
+  const stream = new ReadableStream({
+    type: 'bytes',
+    autoAllocateChunkSize: 10,
+    pull: t.step_func((c) => {
+      const newView = new Uint8Array(c.byobRequest.view.buffer, 0, 3);
+      newView.set([20, 21, 22]);
+      c.byobRequest.respondWithNewView(newView);
+    })
+  });
+
+  const reader = stream.getReader();
+  const result = await reader.read();
+  assert_false(result.done, 'result.done');
+
+  const view = result.value;
+  assert_equals(view.byteOffset, 0, 'result.value.byteOffset');
+  assert_equals(view.byteLength, 3, 'result.value.byteLength');
+  assert_equals(view.buffer.byteLength, 10, 'result.value.buffer.byteLength');
+  assert_array_equals([...new Uint8Array(view)], [20, 21, 22], 'result.value');
+}, 'ReadableStream with byte source: autoAllocateChunkSize, read(), respondWithNewView()');

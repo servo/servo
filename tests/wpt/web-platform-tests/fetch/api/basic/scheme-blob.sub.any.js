@@ -42,4 +42,7 @@ invalidRequestMethods.forEach(function(method) {
   checkKoUrl(URL.createObjectURL(blob2), method, "Fetching [" + method + "] URL.createObjectURL(blob) is KO");
 });
 
+checkKoUrl("blob:not-backed-by-a-blob/", "GET",
+           "Fetching [GET] blob:not-backed-by-a-blob/ is KO");
+
 done();

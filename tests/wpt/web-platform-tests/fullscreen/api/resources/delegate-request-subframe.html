@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Fullscreen request delegation test: subframe</title>
+<body>Subframe body</body>
+
+<script>
+  function reportResult(msg) {
+      window.top.postMessage({"type": "result", "result": msg}, "*");
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) {
+          reportResult("success");
+          document.exitFullscreen();
+      }
+  });
+
+  document.addEventListener('fullscreenerror', () => {
+      reportResult("failure");
+  });
+
+  window.addEventListener("message", e => {
+      if (e.data.type == "make-fullscreen-request") {
+          document.body.requestFullscreen();
+      }
+  });
+
+  window.top.postMessage({"type": "subframe-loaded"}, "*");
+</script>

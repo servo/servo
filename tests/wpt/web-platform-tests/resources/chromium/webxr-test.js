@@ -2094,7 +2094,7 @@ class MockXRPresentationProvider {
     this.submitFrameClient_.onSubmitFrameRendered();
   }
 
-  submitFrameWithTextureHandle(frameId, texture) {}
+  submitFrameWithTextureHandle(frameId, texture, syncToken) {}
 
   submitFrameDrawnIntoTexture(frameId, syncToken, timeWaited) {}
 

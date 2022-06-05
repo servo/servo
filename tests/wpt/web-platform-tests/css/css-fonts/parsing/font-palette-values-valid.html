@@ -103,6 +103,10 @@
 <body>
 <script>
 let rules = document.getElementById("style").sheet.cssRules;
+let supports_lab = CSS.supports('color', 'lab(29.2345% 39.3825 20.0664)');
+let supports_display_p3_color_space =
+    CSS.supports('color', 'color(display-p3 100% 100% 100%)');
+
 test(function() {
     let text = rules[0].cssText;
     assert_not_equals(text.indexOf("@font-palette-values "), -1);
@@ -259,7 +263,8 @@ test(function() {
 test(function() {
     let text = rules[9].cssText;
     assert_not_equals(text.indexOf("override-colors"), -1);
-    assert_not_equals(text.indexOf("rgb(0, 128, 0)"), -1);
+    assert_true(text.includes("rgb(0, 128, 0)") ||
+                text.includes("green"));
 });
 
 test(function() {
@@ -268,13 +273,15 @@ test(function() {
     assert_equals(rule.fontFamily, "");
     assert_equals(rule.basePalette, "");
     assert_equals(rule.overrideColors.indexOf("),"), -1);
-    assert_not_equals(rule.overrideColors.indexOf("rgb(0, 128, 0)"), -1);
+    assert_true(rule.overrideColors.includes("rgb(0, 128, 0)") ||
+                rule.overrideColors.includes("green"))
 });
 
 test(function() {
     let text = rules[10].cssText;
     assert_not_equals(text.indexOf("override-colors"), -1);
-    assert_not_equals(text.indexOf("rgba(0, 0, 0, 0)"), -1);
+    assert_true(text.includes("rgba(0, 0, 0, 0)") ||
+                text.includes("transparent"));
 });
 
 test(function() {
@@ -283,7 +290,8 @@ test(function() {
     assert_equals(rule.fontFamily, "");
     assert_equals(rule.basePalette, "");
     assert_equals(rule.overrideColors.indexOf("),"), -1);
-    assert_not_equals(rule.overrideColors.indexOf("rgba(0, 0, 0, 0)"), -1);
+    assert_true(rule.overrideColors.includes("rgba(0, 0, 0, 0)") ||
+                rule.overrideColors.includes("transparent"));
 });
 
 test(function() {
@@ -303,8 +311,10 @@ test(function() {
 
 test(function() {
     let text = rules[12].cssText;
-    assert_not_equals(text.indexOf("override-colors"), -1);
-    assert_not_equals(text.indexOf("29"), -1);
+    if (supports_lab) {
+        assert_not_equals(text.indexOf("override-colors"), -1);
+        assert_not_equals(text.indexOf("29"), -1);
+    }
 });
 
 test(function() {
@@ -312,14 +322,18 @@ test(function() {
     assert_equals(rule.name, "--M");
     assert_equals(rule.fontFamily, "");
     assert_equals(rule.basePalette, "");
-    assert_equals(rule.overrideColors.indexOf("),"), -1);
-    assert_not_equals(rule.overrideColors.indexOf("lab"), -1);
+    if (supports_lab) {
+        assert_equals(rule.overrideColors.indexOf("),"), -1);
+        assert_not_equals(rule.overrideColors.indexOf("lab"), -1);
+    }
 });
 
 test(function() {
     let text = rules[13].cssText;
-    assert_not_equals(text.indexOf("override-colors"), -1);
-    assert_not_equals(text.indexOf("display-p3"), -1);
+    if (supports_display_p3_color_space) {
+        assert_not_equals(text.indexOf("override-colors"), -1);
+        assert_not_equals(text.indexOf("display-p3"), -1);
+    }
 });
 
 test(function() {
@@ -327,8 +341,10 @@ test(function() {
     assert_equals(rule.name, "--N");
     assert_equals(rule.fontFamily, "");
     assert_equals(rule.basePalette, "");
-    assert_equals(rule.overrideColors.indexOf("),"), -1);
-    assert_not_equals(rule.overrideColors.indexOf("display-p3"), -1);
+    if (supports_display_p3_color_space) {
+        assert_equals(rule.overrideColors.indexOf("),"), -1);
+        assert_not_equals(rule.overrideColors.indexOf("display-p3"), -1);
+    }
 });
 
 test(function() {

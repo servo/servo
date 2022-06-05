@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup attribute is unscopable</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button onclick="popup()">Click me</button>
+<script>
+let clicked = false;
+function popup() {
+  clicked=true;
+}
+test(() => {
+  // If the `popup` attribute isn't unscopable, then the onclick handler
+  // will call `this.popup()` which will refer to the `popup` content attribute
+  // on HTMLButtonElement, rather than the `popup()` function.
+  assert_false(clicked);
+  document.querySelector('button').click();
+  assert_true(clicked);
+},'The `popup` attribute should be unscopable');
+</script>

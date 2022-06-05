@@ -8,6 +8,7 @@
   <li><span id="testReplaceFollowing">A</span> B</li>
   <li>A <span id="testReplaceBoth">B</span> C</li>
   <li><span id="testRemove">Testing</span> removing node using outerText.</li>
+  <li><span id="testNewlines">Replace this child with lots of newlines</span></li>
 </ul>
 
 <div id="container"></div>
@@ -68,7 +69,6 @@ test(t => {
 
   container.append(document.createElement("span"));
   const node = container.childNodes[0];
-  // https://github.com/whatwg/html/issues/7508
   node.outerText = "";
 
   assert_equals(container.childNodes.length, 1, "Creates text node for the empty string");
@@ -88,6 +88,19 @@ test(t => {
   assert_equals(container.childNodes[1].data, "23");
   assert_equals(container.childNodes[2].data, "4");
 }, "Empty string with surrounding text nodes");
+
+test(t => {
+  const node = document.getElementById("testNewlines");
+  const parent = node.parentNode;
+
+  node.outerText = "\n\r\n\r";
+
+  assert_equals(parent.innerHTML, "<br><br><br>");
+  assert_equals(parent.childNodes.length, 3);
+  assert_equals(parent.childNodes[0].localName, "br", "node 1");
+  assert_equals(parent.childNodes[1].localName, "br", "node 2");
+  assert_equals(parent.childNodes[2].localName, "br", "node 3");
+}, "Setting outerText to a bunch of newlines creates a bunch of <br>s with no text nodes");
 
 test(() => {
   const node = document.getElementById("testRemove");

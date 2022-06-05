@@ -9,45 +9,54 @@ interface mixin NavigatorML {
 Navigator includes NavigatorML;
 WorkerNavigator includes NavigatorML;
 
-enum MLDevicePreference {
-  "default",
-  "gpu",
-  "cpu"
+enum MLDeviceType {
+  "cpu",
+  "gpu"
 };
 
 enum MLPowerPreference {
-  // Let the user agent select the most suitable behavior.
   "default",
-
-  // Prioritizes execution speed over power consumption.
   "high-performance",
-
-  // Prioritizes power consumption over other considerations such as execution speed.
   "low-power"
 };
 
 dictionary MLContextOptions {
-  // Preferred kind of device used
-  MLDevicePreference devicePreference = "default";
-
-  // Preference as related to power consumption
+  MLDeviceType deviceType = "cpu";
   MLPowerPreference powerPreference = "default";
 };
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface ML {
-  // Create a context with options
   MLContext createContext(optional MLContextOptions options = {});
-
-  // Create a context from WebGL rendering context
-  MLContext createContext(WebGLRenderingContext glContext);
-
-  // Create a context from WebGPU device
   MLContext createContext(GPUDevice gpuDevice);
+  MLContext createContext(WebGLRenderingContext glContext);
 };
+
+dictionary MLArrayInput {
+  required ArrayBufferView resource;
+  required sequence<long> dimensions;
+};
+
+typedef record<DOMString, (ArrayBufferView or MLArrayInput)> MLNamedArrayInputs;
+typedef record<DOMString, ArrayBufferView> MLNamedArrayOutputs;
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLContext {};
+
+partial interface MLContext {
+  [Exposed=(DedicatedWorker)]
+  undefined compute(MLGraph graph, MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
+};
+
+partial interface MLContext {
+  Promise<undefined> computeAsync(MLGraph graph, MLNamedArrayInputs inputs,
+
+                    MLNamedArrayOutputs outputs);
+};
+
+partial interface MLContext {
+  MLCommandEncoder createCommandEncoder();
+};
 
 enum MLInputOperandLayout {
   "nchw",
@@ -103,6 +112,7 @@ interface MLGraphBuilder {
   MLOperand constant(double value, optional MLOperandType type = "float32");
 
   // Compile the graph up to the specified output operands
+  [Exposed=(DedicatedWorker)]
   MLGraph build(MLNamedOperands outputs);
 };
 
@@ -467,17 +477,30 @@ partial interface MLGraphBuilder {
   MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
 };
 
-typedef (MLBufferView or WebGLTexture or GPUTexture) MLResource;
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLGraph {};
 
-dictionary MLInput {
-  required MLResource resource;
+typedef (GPUBuffer or GPUTexture) MLGPUResource;
+
+dictionary MLGPUInput {
+  required MLGPUResource resource;
   required sequence<long> dimensions;
 };
 
-typedef record<DOMString, (MLResource or MLInput)> MLNamedInputs;
-typedef record<DOMString, MLResource> MLNamedOutputs;
+typedef record<DOMString, (MLGPUResource or MLGPUInput)> MLNamedGPUInputs;
+typedef record<DOMString, MLGPUResource> MLNamedGPUOutputs;
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
-interface MLGraph {
-  undefined compute(MLNamedInputs inputs, MLNamedOutputs outputs);
+interface MLCommandEncoder {};
+
+partial interface MLCommandEncoder {
+  undefined initializeGraph(MLGraph graph);
+};
+
+partial interface MLCommandEncoder {
+  undefined dispatch(MLGraph graph, MLNamedGPUInputs inputs, MLNamedGPUOutputs outputs);
+};
+
+partial interface MLCommandEncoder {
+  GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
 };

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<title>The animation-timeline: scroll() notation</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation">
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/6674">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes anim {
+    from { translate: 50px; }
+    to { translate: 150px; }
+  }
+  html {
+    min-height: 100vh;
+    /* This makes the max scrollable ragne be 100px in root element */
+    padding-bottom: 100px;
+  }
+  #container {
+    width: 300px;
+    height: 300px;
+    overflow: scroll;
+  }
+  #target {
+    width: 100px;
+    /* This makes the max scrollable ragne be 100px in the block direction */
+    height: 100px;
+  }
+  /* large block content */
+  .block-content {
+    block-size: 100%;
+  }
+  /* large inline content */
+  .inline-content {
+    inline-size: 100%;
+    block-size: 5px;
+    /* This makes the max scrollable ragne be 100px in the inline direction */
+    padding-inline-end: 100px;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+const root = document.scrollingElement;
+const createTargetWithStuff = function(t, contentClass) {
+  let container = document.createElement('div');
+  container.id = 'container';
+  let target = document.createElement('div');
+  target.id = 'target';
+  let content = document.createElement('div');
+  content.className = contentClass;
+
+  // <div id='container'>
+  //   <div id='target'></div>
+  //   <div class=contentClass></div>
+  // </div>
+  document.body.appendChild(container);
+  container.appendChild(target);
+  container.appendChild(content);
+
+  if (t && typeof t.add_cleanup === 'function') {
+    t.add_cleanup(() => {
+      content.remove();
+      target.remove();
+      container.remove();
+    });
+  }
+
+  return [container, target];
+};
+
+test(t => {
+  let [container, div] = createTargetWithStuff(t, 'block-content');
+  div.style.animation = "anim 10s linear scroll(nearest)";
+
+  root.scrollTop = 50;
+  assert_equals(getComputedStyle(div).translate, '50px');
+
+  container.scrollTop = 50;
+  assert_equals(getComputedStyle(div).translate, '100px');
+
+  root.scrollTop = 0;
+}, 'animation-timeline: scroll(nearest)');
+
+test(t => {
+  let [container, div] = createTargetWithStuff(t, 'block-content');
+  div.style.animation = "anim 10s linear scroll(root)";
+
+  container.scrollTop = 50;
+  assert_equals(getComputedStyle(div).translate, '50px');
+
+  root.scrollTop = 50;
+  assert_equals(getComputedStyle(div).translate, '100px');
+
+  root.scrollTop = 0;
+}, 'animation-timeline: scroll(root)');
+
+test(t => {
+  let [container, div] = createTargetWithStuff(t, 'inline-content');
+  div.style.animation = "anim 10s linear scroll(inline)";
+
+  container.scrollLeft = 50;
+  assert_equals(getComputedStyle(div).translate, '100px');
+}, 'animation-timeline: scroll(inline)');
+
+test(t => {
+  let [container, div] = createTargetWithStuff(t, 'block-content');
+  container.style.writingMode = 'vertical-lr';
+  div.style.animation = "anim 10s linear scroll(horizontal)";
+
+  container.scrollLeft = 50;
+  assert_equals(getComputedStyle(div).translate, '100px');
+}, 'animation-timeline: scroll(horizontal)');
+
+test(t => {
+  let [container, div] = createTargetWithStuff(t, 'inline-content');
+  container.style.writingMode = 'vertical-lr';
+  div.style.animation = "anim 10s linear scroll(vertical)";
+
+  container.scrollTop = 50;
+  assert_equals(getComputedStyle(div).translate, '100px');
+}, 'animation-timeline: scroll(vertical)');
+
+// TODO: Add more tests which change the overflow property of the container for
+// scroll(nearest)
+
+</script>
+</body>

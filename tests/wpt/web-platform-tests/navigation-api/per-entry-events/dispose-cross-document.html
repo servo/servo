@@ -1,0 +1,37 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe" src="/common/blank.html"></iframe>
+<script>
+promise_test(async (t) => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  iframe.contentWindow.location.search = "?1";
+  await new Promise(r => iframe.onload = () => t.step_timeout(r, 0));
+
+  const keyFor1 = iframe.contentWindow.navigation.currentEntry.key;
+
+  iframe.contentWindow.location.search = "?2";
+  await new Promise(r => iframe.onload = () => t.step_timeout(r, 0));
+  iframe.contentWindow.location.search = "?3";
+  await new Promise(r => iframe.onload = () => t.step_timeout(r, 0));
+
+  iframe.contentWindow.navigation.traverseTo(keyFor1);
+  await new Promise(r => iframe.onload = () => t.step_timeout(r, 0));
+
+  assert_equals((new URL(iframe.contentWindow.location.href)).search, "?1");
+
+  assert_equals(iframe.contentWindow.navigation.entries().length, 4);
+  const [, entry2, entry3] = iframe.contentWindow.navigation.entries();
+
+  entry2.ondispose = t.unreached_func("entry2 dispose must not fire");
+  entry2.addEventListener("dispose", t.unreached_func("entry3 dispose must not fire"));
+
+  iframe.contentWindow.navigation.navigate("/common/blank.html?fork");
+  await new Promise(r => iframe.onload = r);
+
+  // Test passes if we reached this point with no dispose events firing.
+}, "No dispose events are fired due to cross-document forward pruning");
+</script>

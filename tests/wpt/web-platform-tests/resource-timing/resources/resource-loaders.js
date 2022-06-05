@@ -98,6 +98,9 @@ const load = {
     const object = document.createElement("object");
     const loaded = new Promise(resolve => {
       object.onload = object.onerror = resolve;
+      // Object loads may sometimes not fire a load/error event. Catch that with
+      // a PerformanceObserver.
+      (new PerformanceObserver(resolve)).observe({type: "resource"});
     });
     object.data = load.cache_bust(path);
     if (type) {

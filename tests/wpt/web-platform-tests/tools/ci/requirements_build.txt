@@ -1,4 +1,5 @@
 cairocffi==1.3.0
-fonttools==3.13.1
-pyyaml
-genshi
+fonttools==4.33.2
+genshi==0.7.7
+jinja2==3.1.2
+pyyaml==6.0

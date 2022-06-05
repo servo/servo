@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation: Negative margins.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 500px;
+  }
+  #flex > div {
+    height: 100px;
+    width: 10px;
+  }
+  #flex > div:nth-child(odd) {
+    background: green;
+    margin-top: -100px;
+    break-before: column;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="height: 100px; width: 100px; background: red; position: absolute">
+  <div style="position: absolute; left: 10px; width: 10px; height: 100px; background: green;"></div>
+  <div style="margin-top: 100px; width: 100px; height: 100px; columns: 5; column-gap: 0; column-fill: auto;">
+    <div id="flex">
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div style="background: white;"></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+</div>

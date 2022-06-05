@@ -38,7 +38,7 @@ self.GenericSensorTest = (() => {
   // Class that mocks Sensor interface defined in
   // https://cs.chromium.org/chromium/src/services/device/public/mojom/sensor.mojom
   class MockSensor {
-    constructor(sensorRequest, handle, offset, size, reportingMode) {
+    constructor(sensorRequest, buffer, reportingMode) {
       this.client_ = null;
       this.startShouldFail_ = false;
       this.notifyOnReadingChange_ = true;
@@ -51,11 +51,7 @@ self.GenericSensorTest = (() => {
       // In this mock implementation we use a starting value
       // and an increment step value that resemble a platform timestamp reasonably enough.
       this.timestamp_ = window.performance.timeOrigin;
-      let rv = handle.mapBuffer(offset, size);
-      if (rv.result != Mojo.RESULT_OK) {
-        throw new Error("MockSensor(): Failed to map shared buffer");
-      }
-      this.buffer_ = new Float64Array(rv.buffer);
+      this.buffer_ = buffer;
       this.buffer_.fill(0);
       this.receiver_ = new SensorReceiver(this);
       this.receiver_.$.bindHandle(sensorRequest.handle);
@@ -198,11 +194,22 @@ self.GenericSensorTest = (() => {
           Number(SensorInitParams_READ_BUFFER_SIZE_FOR_TESTS);
       this.sharedBufferSizeInBytes_ =
           this.readingSizeInBytes_ * (SensorType.MAX_VALUE + 1);
-      const rv = Mojo.createSharedBuffer(this.sharedBufferSizeInBytes_);
+      let rv = Mojo.createSharedBuffer(this.sharedBufferSizeInBytes_);
+      if (rv.result != Mojo.RESULT_OK) {
+        throw new Error('MockSensorProvider: Failed to create shared buffer');
+      }
+      const handle = rv.handle;
+      rv = handle.mapBuffer(0, this.sharedBufferSizeInBytes_);
       if (rv.result != Mojo.RESULT_OK) {
         throw new Error("MockSensorProvider: Failed to map shared buffer");
       }
-      this.sharedBufferHandle_ = rv.handle;
+      this.shmemArrayBuffer_ = rv.buffer;
+      rv = handle.duplicateBufferHandle({readOnly: true});
+      if (rv.result != Mojo.RESULT_OK) {
+        throw new Error(
+            'MockSensorProvider: failed to duplicate shared buffer');
+      }
+      this.readOnlySharedBufferHandle_ = rv.handle;
       this.activeSensors_ = new Map();
       this.resolveFuncs_ = new Map();
       this.getSensorShouldFail_ = new Map();
@@ -252,16 +259,19 @@ self.GenericSensorTest = (() => {
 
       const sensor = new SensorRemote();
       if (!this.activeSensors_.has(type)) {
+        const shmemView = new Float64Array(
+            this.shmemArrayBuffer_, offset,
+            this.readingSizeInBytes_ / Float64Array.BYTES_PER_ELEMENT);
         const mockSensor = new MockSensor(
-            sensor.$.bindNewPipeAndPassReceiver(), this.sharedBufferHandle_,
-            offset, this.readingSizeInBytes_, reportingMode);
+            sensor.$.bindNewPipeAndPassReceiver(), shmemView, reportingMode);
         this.activeSensors_.set(type, mockSensor);
         this.activeSensors_.get(type).client_ = new SensorClientRemote();
       }
 
-      const rv = this.sharedBufferHandle_.duplicateBufferHandle();
+      const rv = this.readOnlySharedBufferHandle_.duplicateBufferHandle(
+          {readOnly: true});
       if (rv.result != Mojo.RESULT_OK) {
-        throw new Error("getSensor(): failed to duplicate Mojo buffer handler");
+        throw new Error('getSensor(): failed to duplicate shared buffer');
       }
 
       const defaultConfig = { frequency: DEFAULT_FREQUENCY };
@@ -288,7 +298,7 @@ self.GenericSensorTest = (() => {
       const initParams = {
         sensor,
         clientReceiver: client.$.bindNewPipeAndPassReceiver(),
-        memory: rv.handle,
+        memory: {buffer: rv.handle},
         bufferOffset: BigInt(offset),
         mode: reportingMode,
         defaultConfiguration: defaultConfig,

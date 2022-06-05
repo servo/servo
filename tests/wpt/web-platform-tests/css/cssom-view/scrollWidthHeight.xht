@@ -78,54 +78,33 @@
                 assert_equals(elemOverflow.clientHeight, 90);
             }, "elemOverflow.clientHeight is the height of the padding edge");
 
-            /* This test differs from the spec. Opera and Webkit meet the spec, IE9 and Firefox
-               give the result here. It seems that in this case Opera and Webkit place
-               the padding-bottom below elemOverflow's child (i.e. below elemOverflow's bottom border);
-               you can scroll to it. IE9 and Firefox do not. I believe this is a Webkit/Opera bug
-               (If you remove overflow:hidden then the padding-bottom moves back to be above the bottom
-               border, as expected.)
-               The underlying issue seems to be whether bottom padding on a scrollable element is
-               always placed at the element's bottom border and not scrolled, or else deemed to
-               belong to the scrolled content and placed below the scrolled element's children.
-               Commenting out for now, because this is not really a CSSOM issue, but an issue
-               over the layout of elements with 'overflow'.
-
             test(function(){
-                assert_equals(elemOverflow.scrollHeight, 150);
-            }, "elemOverflow.scrollHeight is the height of its scrolled contents (ignoring padding, since we overflowed)");
-            */
+                assert_equals(elemOverflow.scrollHeight, 200);
+            }, "elemOverflow.scrollHeight is the height of its scrolled contents (including padding)");
 
             test(function(){
                 assert_equals(elemOverflow.clientWidth, 240);
             }, "elemOverflow.clientWidth is the width of the padding edge");
 
-            /* This test differs from the spec. All major browsers give the result here, ignoring
-               the right padding.
-            */
             test(function(){
-                assert_equals(elemOverflow.scrollWidth, 250);
-            }, "elemOverflow.scrollHeight is the width of its scrolled contents (ignoring padding, since we overflowed)");
+                assert_equals(elemOverflow.scrollWidth, 290);
+            }, "elemOverflow.scrollHeight is the width of its scrolled contents (including padding)");
 
             test(function(){
                 assert_equals(elemNestedOverflow.clientHeight, 90);
             }, "elemNestedOverflow.clientHeight is the height of the padding edge");
 
-            /* This test differs from the spec. All major browsers give the result here.
-            */
             test(function(){
                 assert_equals(elemNestedOverflow.scrollHeight, 150);
-            }, "elemNestedOverflow.scrollHeight is the height of its scrolled contents (ignoring padding, since we overflowed)");
+            }, "elemNestedOverflow.scrollHeight is the height of its scrolled contents (ignoring padding)");
 
             test(function(){
                 assert_equals(elemNestedOverflow.clientWidth, 240);
             }, "elemNestedOverflow.clientWidth is the height of the padding edge");
 
-            /* This test differs from the spec. All major browsers give the result here, ignoring
-               the right padding.
-            */
             test(function(){
                 assert_equals(elemNestedOverflow.scrollWidth, 250);
-            }, "elemNestedOverflow.scrollWidth is the width of its scrolled contents (ignoring padding, since we overflowed)");
+            }, "elemNestedOverflow.scrollWidth is the width of its scrolled contents (ignoring padding)");
 
         ]]></script>
     </body>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>:modal pseudo-class</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors/#modal-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog id="dialog">Just another dialog.</dialog>
+
+<script>
+  setup({ single_test: true });
+
+  const dialog = document.getElementById("dialog");
+  assert_false(dialog.matches(":modal"), "dialog is initially closed (does not match :modal)");
+
+  dialog.showModal();
+  assert_true(dialog.matches(":modal"), "dialog should match :modal after showModal() call");
+
+  dialog.close();
+  assert_false(dialog.matches(":modal"), "dialog should no longer match :modal after close() call");
+
+  dialog.show();
+  assert_false(dialog.matches(":modal"), "dialog shouldn't match :modal after show() call");
+
+  dialog.close();
+  dialog.showModal();
+  assert_true(dialog.matches(":modal"), "dialog should match :modal after showModal() call");
+
+  dialog.remove();
+  assert_false(dialog.matches(":modal"), "dialog shouldn't match :modal after being removed from document");
+  document.body.append(dialog);
+  assert_false(dialog.matches(":modal"), "dialog shouldn't match :modal after being re-appended to document");
+
+  dialog.close();
+
+  done();
+</script>

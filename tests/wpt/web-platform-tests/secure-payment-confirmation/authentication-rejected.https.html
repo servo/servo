@@ -33,6 +33,7 @@ promise_test(async t => {
     data: {
       credentialIds: [credential.rawId],
       challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+      rpId: window.location.hostname,
       payeeOrigin,
       timeout: 60000,
       instrument: {
@@ -42,6 +43,7 @@ promise_test(async t => {
     }
   }], PAYMENT_DETAILS);
 
+  await test_driver.bless('user activation');
   return promise_rejects_dom(t, "NotAllowedError", request.show());
 }, 'Rejected SPC authentication');
 </script>

@@ -95,12 +95,33 @@ promise_test(t => sharedWorkerFetchTest(t, {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
   },
+  target: { server: Server.HTTPS_LOCAL },
+  expected: WorkerFetchTestResult.FAILURE,
+}), "treat-as-public to local: failed preflight.");
+
+promise_test(t => sharedWorkerFetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
   target: {
     server: Server.HTTPS_LOCAL,
     behavior: { preflight: PreflightBehavior.success(token()) },
   },
+  expected: WorkerFetchTestResult.SUCCESS,
+}), "treat-as-public to local: success.");
+
+promise_test(t => sharedWorkerFetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_PRIVATE,
+    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+  },
   expected: WorkerFetchTestResult.FAILURE,
-}), "treat-as-public to local: failure.");
+}), "treat-as-public to private: failed preflight.");
 
 promise_test(t => sharedWorkerFetchTest(t, {
   source: {
@@ -114,8 +135,8 @@ promise_test(t => sharedWorkerFetchTest(t, {
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
-  expected: WorkerFetchTestResult.FAILURE,
-}), "treat-as-public to private: failure.");
+  expected: WorkerFetchTestResult.SUCCESS,
+}), "treat-as-public to private: success.");
 
 promise_test(t => sharedWorkerFetchTest(t, {
   source: {

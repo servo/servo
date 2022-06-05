@@ -1,19 +1,13 @@
+# mypy: allow-untyped-defs
+
 import importlib
 import imp
 
 from .browsers import product_list
 
 
-def products_enabled(config):
-    names = config.get("products", {}).keys()
-    if not names:
-        return product_list
-    else:
-        return names
-
-
 def product_module(config, product):
-    if product not in products_enabled(config):
+    if product not in product_list:
         raise ValueError("Unknown product %s" % product)
 
     path = config.get("products", {}).get(product, None)
@@ -28,7 +22,7 @@ def product_module(config, product):
     return module
 
 
-class Product(object):
+class Product:
     def __init__(self, config, product):
         module = product_module(config, product)
         data = module.__wptrunner__
@@ -68,6 +62,6 @@ def load_product_update(config, product):
     data = module.__wptrunner__
 
     update_properties = (getattr(module, data["update_properties"])()
-                         if "update_properties" in data else {})
+                         if "update_properties" in data else (["product"], {}))
 
     return update_properties

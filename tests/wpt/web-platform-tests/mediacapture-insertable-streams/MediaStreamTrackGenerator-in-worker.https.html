@@ -2,25 +2,11 @@
 <title>Test creation of MediaStreamTrackGenerator in a worker</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script id="workerCode" type="javascript/worker">
-self.onmessage = (e) => {
-  try {
-    const mstg = new MediaStreamTrackGenerator({kind: 'video'});
-    self.postMessage({result: 'Success'});
-  } catch (e) {
-    self.postMessage({result: 'Failure', error: e});
-  }
-}
-</script>
 <script>
 'use strict';
 
-promise_test(async t => {
-  const workerBlob = new Blob([document.querySelector('#workerCode').textContent],
-                              {type: "text/javascript"});
-  const workerUrl = window.URL.createObjectURL(workerBlob);
-  const worker = new Worker(workerUrl);
-  window.URL.revokeObjectURL(workerUrl);
+function initWorker(){
+  const worker = new Worker('dedicated-worker.js');
   const result = new Promise((resolve, reject) => {
     worker.onmessage = (e) => {
       if (e.data.result === 'Failure') {
@@ -30,7 +16,24 @@ promise_test(async t => {
       }
     };
   });
-  worker.postMessage('Hello there');
+  return [worker,result];
+}
+
+promise_test(async t => {
+  const [worker,result] = initWorker();
+  worker.postMessage({msg: 'Hello there'});
   return result;
 }, 'A worker is able to initialize a MediaStreamTrackGenerator without crashing');
+
+promise_test(async t => {
+  const [worker,result] = initWorker();
+  worker.postMessage({enable: true});
+  return result;
+}, 'A worker is able to enable a MediaStreamTrackGenerator without crashing');
+
+promise_test(async t => {
+  const [worker,result] = initWorker();
+  worker.postMessage({enable: false});
+  return result;
+}, 'A worker is able to disable a MediaStreamTrackGenerator without crashing');
 </script>

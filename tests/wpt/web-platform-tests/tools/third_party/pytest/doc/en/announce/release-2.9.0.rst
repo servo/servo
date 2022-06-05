@@ -45,29 +45,29 @@ The py.test Development Team
 **New Features**
 
 * New ``pytest.mark.skip`` mark, which unconditionally skips marked tests.
-  Thanks `@MichaelAquilina`_ for the complete PR (`#1040`_).
+  Thanks :user:`MichaelAquilina` for the complete PR (:pull:`1040`).
 
 * ``--doctest-glob`` may now be passed multiple times in the command-line.
-  Thanks `@jab`_ and `@nicoddemus`_ for the PR.
+  Thanks :user:`jab` and :user:`nicoddemus` for the PR.
 
 * New ``-rp`` and ``-rP`` reporting options give the summary and full output
-  of passing tests, respectively. Thanks to `@codewarrior0`_ for the PR.
+  of passing tests, respectively. Thanks to :user:`codewarrior0` for the PR.
 
 * ``pytest.mark.xfail`` now has a ``strict`` option which makes ``XPASS``
   tests to fail the test suite, defaulting to ``False``. There's also a
   ``xfail_strict`` ini option that can be used to configure it project-wise.
-  Thanks `@rabbbit`_ for the request and `@nicoddemus`_ for the PR (`#1355`_).
+  Thanks :user:`rabbbit` for the request and :user:`nicoddemus` for the PR (:issue:`1355`).
 
 * ``Parser.addini`` now supports options of type ``bool``. Thanks
-  `@nicoddemus`_ for the PR.
+  :user:`nicoddemus` for the PR.
 
 * New ``ALLOW_BYTES`` doctest option strips ``b`` prefixes from byte strings
   in doctest output (similar to ``ALLOW_UNICODE``).
-  Thanks `@jaraco`_ for the request and `@nicoddemus`_ for the PR (`#1287`_).
+  Thanks :user:`jaraco` for the request and :user:`nicoddemus` for the PR (:issue:`1287`).
 
 * give a hint on KeyboardInterrupt to use the --fulltrace option to show the errors,
-  this fixes `#1366`_.
-  Thanks to `@hpk42`_ for the report and `@RonnyPfannschmidt`_ for the PR.
+  this fixes :issue:`1366`.
+  Thanks to :user:`hpk42` for the report and :user:`RonnyPfannschmidt` for the PR.
 
 * catch IndexError exceptions when getting exception source location. This fixes
   pytest internal error for dynamically generated code (fixtures and tests)
@@ -91,69 +91,44 @@ The py.test Development Team
   `pylib <https://pylib.readthedocs.io/en/stable/>`_.
 
 * ``pytest_enter_pdb`` now optionally receives the pytest config object.
-  Thanks `@nicoddemus`_ for the PR.
+  Thanks :user:`nicoddemus` for the PR.
 
 * Removed code and documentation for Python 2.5 or lower versions,
   including removal of the obsolete ``_pytest.assertion.oldinterpret`` module.
-  Thanks `@nicoddemus`_ for the PR (`#1226`_).
+  Thanks :user:`nicoddemus` for the PR (:issue:`1226`).
 
 * Comparisons now always show up in full when ``CI`` or ``BUILD_NUMBER`` is
   found in the environment, even when -vv isn't used.
-  Thanks `@The-Compiler`_ for the PR.
+  Thanks :user:`The-Compiler` for the PR.
 
 * ``--lf`` and ``--ff`` now support long names: ``--last-failed`` and
   ``--failed-first`` respectively.
-  Thanks `@MichaelAquilina`_ for the PR.
+  Thanks :user:`MichaelAquilina` for the PR.
 
 * Added expected exceptions to pytest.raises fail message
 
 * Collection only displays progress ("collecting X items") when in a terminal.
   This avoids cluttering the output when using ``--color=yes`` to obtain
-  colors in CI integrations systems (`#1397`_).
+  colors in CI integrations systems (:issue:`1397`).
 
 **Bug Fixes**
 
 * The ``-s`` and ``-c`` options should now work under ``xdist``;
   ``Config.fromdictargs`` now represents its input much more faithfully.
-  Thanks to `@bukzor`_ for the complete PR (`#680`_).
+  Thanks to :user:`bukzor` for the complete PR (:issue:`680`).
 
-* Fix (`#1290`_): support Python 3.5's ``@`` operator in assertion rewriting.
-  Thanks `@Shinkenjoe`_ for report with test case and `@tomviner`_ for the PR.
+* Fix (:issue:`1290`): support Python 3.5's ``@`` operator in assertion rewriting.
+  Thanks :user:`Shinkenjoe` for report with test case and :user:`tomviner` for the PR.
 
-* Fix formatting utf-8 explanation messages (`#1379`_).
-  Thanks `@biern`_ for the PR.
+* Fix formatting utf-8 explanation messages (:issue:`1379`).
+  Thanks :user:`biern` for the PR.
 
 * Fix `traceback style docs`_ to describe all of the available options
   (auto/long/short/line/native/no), with ``auto`` being the default since v2.6.
-  Thanks `@hackebrot`_ for the PR.
+  Thanks :user:`hackebrot` for the PR.
 
-* Fix (`#1422`_): junit record_xml_property doesn't allow multiple records
+* Fix (:issue:`1422`): junit record_xml_property doesn't allow multiple records
   with same name.
 
 
-.. _`traceback style docs`: https://pytest.org/en/stable/usage.html#modifying-python-traceback-printing
-
-.. _#1422: https://github.com/pytest-dev/pytest/issues/1422
-.. _#1379: https://github.com/pytest-dev/pytest/issues/1379
-.. _#1366: https://github.com/pytest-dev/pytest/issues/1366
-.. _#1040: https://github.com/pytest-dev/pytest/pull/1040
-.. _#680: https://github.com/pytest-dev/pytest/issues/680
-.. _#1287: https://github.com/pytest-dev/pytest/pull/1287
-.. _#1226: https://github.com/pytest-dev/pytest/pull/1226
-.. _#1290: https://github.com/pytest-dev/pytest/pull/1290
-.. _#1355: https://github.com/pytest-dev/pytest/pull/1355
-.. _#1397: https://github.com/pytest-dev/pytest/issues/1397
-.. _@biern: https://github.com/biern
-.. _@MichaelAquilina: https://github.com/MichaelAquilina
-.. _@bukzor: https://github.com/bukzor
-.. _@hpk42: https://github.com/hpk42
-.. _@nicoddemus: https://github.com/nicoddemus
-.. _@jab: https://github.com/jab
-.. _@codewarrior0: https://github.com/codewarrior0
-.. _@jaraco: https://github.com/jaraco
-.. _@The-Compiler: https://github.com/The-Compiler
-.. _@Shinkenjoe: https://github.com/Shinkenjoe
-.. _@tomviner: https://github.com/tomviner
-.. _@RonnyPfannschmidt: https://github.com/RonnyPfannschmidt
-.. _@rabbbit: https://github.com/rabbbit
-.. _@hackebrot: https://github.com/hackebrot
+.. _`traceback style docs`: https://pytest.org/en/stable/how-to/output.html#modifying-python-traceback-printing

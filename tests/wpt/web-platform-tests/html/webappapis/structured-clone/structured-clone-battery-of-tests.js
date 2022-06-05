@@ -481,6 +481,23 @@ check('Object with non-configurable property', function() {
   return rv;
 }, compare_Object(check_configurable_property('foo')));
 
+structuredCloneBatteryOfTests.push({
+  description: 'Object with a getter that throws',
+  async f(runner, t) {
+    const exception = new Error();
+    const testObject = {
+      get testProperty() {
+        throw exception;
+      }
+    };
+    await promise_rejects_exactly(
+      t,
+      exception,
+      runner.structuredClone(testObject)
+    );
+  }
+});
+
 /* The tests below are inspired by @zcorpan’s work but got some
 more substantial changed due to their previous async setup */
 

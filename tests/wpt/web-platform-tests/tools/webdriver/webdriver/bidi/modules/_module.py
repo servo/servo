@@ -53,7 +53,7 @@ class command:
             params = params_fn(self, **kwargs)
 
             # Convert the classname and the method name to a bidi command name
-            mod_name = owner.__name__.lower()
+            mod_name = owner.__name__[0].lower() + owner.__name__[1:]
             if hasattr(owner, "prefix"):
                 mod_name = f"{owner.prefix}:{mod_name}"
             cmd_name = f"{mod_name}.{to_camelcase(name)}"

@@ -1,0 +1,95 @@
+<!-- This is an autogen file. Run support/generate_object_view_box_tests.py to update -->
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box with object-fit:fill</title>
+<script src="support/testHelper.js"></script>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="object-view-box-fit-fill-img-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<body>
+<style>
+/* The test uses clip-path to avoid comparing edges with minor pixel differences
+   due to differences in scaling on highdpi devices */
+
+.view_box_subset {
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: fill;
+  margin: 5px;
+  clip-path: inset(1px 0px 0px 0px);
+}
+
+.view_box_subset_with_position {
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: fill;
+  margin: 5px;
+  object-position: 10px 10px;
+  background-color: grey;
+}
+
+.view_box_subset_with_scaling {
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: fill;
+  margin: 5px;
+  width: 50px;
+  height: 100px;
+
+  /* The top row of pixels can have minor differences due to difference in order
+     of clipping and scaling operations */
+  clip-path: inset(1px 0px 0px 0px);
+}
+
+.view_box_superset {
+  object-view-box: inset(0px -50px 0px 0px);
+  object-fit: fill;
+  margin: 5px;
+  background-color: grey;
+}
+
+.view_box_superset_with_position {
+  object-view-box: inset(0px -50px 0px 0px);
+  object-fit: fill;
+  margin: 5px;
+  background-color: grey;
+  object-position: 10px 10px;
+}
+
+.view_box_superset_with_scaling {
+  object-view-box: inset(0px -50px 0px 0px);
+  object-fit: fill;
+  margin: 5px;
+  background-color: grey;
+  width: 50px;
+  height: 50px;
+}
+
+.view_box_intersection {
+  object-view-box: inset(-50px 25px 50px 0px);
+  object-fit: fill;
+  margin: 5px;
+  background-color: grey;
+  clip-path: inset(0px 0px 1px 0px);
+}
+
+.view_box_no_intersection {
+  object-view-box: inset(-50px 25px 100px 0px);
+  object-fit: fill;
+  margin: 5px;
+  background-color: grey;
+}
+</style>
+<img class="view_box_subset"></img>
+<img class="view_box_subset_with_position"></img>
+<img class="view_box_subset_with_scaling"></img>
+
+<img class="view_box_superset"></img>
+<img class="view_box_superset_with_position"></img>
+<img class="view_box_superset_with_scaling"></img>
+
+<img class="view_box_intersection"></img>
+
+<img class="view_box_no_intersection"></img>
+</body>
+<script>
+  populateElements("support/exif-orientation-6-ru.jpg");
+</script>

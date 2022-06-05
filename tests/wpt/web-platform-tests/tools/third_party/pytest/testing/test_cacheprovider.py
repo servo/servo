@@ -1,30 +1,33 @@
 import os
 import shutil
-import stat
-import sys
-
-import py
+from pathlib import Path
+from typing import Generator
+from typing import List
 
 import pytest
 from _pytest.config import ExitCode
-from _pytest.pytester import Testdir
+from _pytest.monkeypatch import MonkeyPatch
+from _pytest.pytester import Pytester
+from _pytest.tmpdir import TempPathFactory
 
 pytest_plugins = ("pytester",)
 
 
 class TestNewAPI:
-    def test_config_cache_makedir(self, testdir):
-        testdir.makeini("[pytest]")
-        config = testdir.parseconfigure()
+    def test_config_cache_mkdir(self, pytester: Pytester) -> None:
+        pytester.makeini("[pytest]")
+        config = pytester.parseconfigure()
+        assert config.cache is not None
         with pytest.raises(ValueError):
-            config.cache.makedir("key/name")
+            config.cache.mkdir("key/name")
 
-        p = config.cache.makedir("name")
-        assert p.check()
+        p = config.cache.mkdir("name")
+        assert p.is_dir()
 
-    def test_config_cache_dataerror(self, testdir):
-        testdir.makeini("[pytest]")
-        config = testdir.parseconfigure()
+    def test_config_cache_dataerror(self, pytester: Pytester) -> None:
+        pytester.makeini("[pytest]")
+        config = pytester.parseconfigure()
+        assert config.cache is not None
         cache = config.cache
         pytest.raises(TypeError, lambda: cache.set("key/name", cache))
         config.cache.set("key/name", 0)
@@ -33,75 +36,83 @@ class TestNewAPI:
         assert val == -2
 
     @pytest.mark.filterwarnings("ignore:could not create cache path")
-    def test_cache_writefail_cachfile_silent(self, testdir):
-        testdir.makeini("[pytest]")
-        testdir.tmpdir.join(".pytest_cache").write("gone wrong")
-        config = testdir.parseconfigure()
+    def test_cache_writefail_cachfile_silent(self, pytester: Pytester) -> None:
+        pytester.makeini("[pytest]")
+        pytester.path.joinpath(".pytest_cache").write_text("gone wrong")
+        config = pytester.parseconfigure()
         cache = config.cache
+        assert cache is not None
         cache.set("test/broken", [])
 
-    @pytest.mark.skipif(sys.platform.startswith("win"), reason="no chmod on windows")
+    @pytest.fixture
+    def unwritable_cache_dir(self, pytester: Pytester) -> Generator[Path, None, None]:
+        cache_dir = pytester.path.joinpath(".pytest_cache")
+        cache_dir.mkdir()
+        mode = cache_dir.stat().st_mode
+        cache_dir.chmod(0)
+        if os.access(cache_dir, os.W_OK):
+            pytest.skip("Failed to make cache dir unwritable")
+
+        yield cache_dir
+        cache_dir.chmod(mode)
+
     @pytest.mark.filterwarnings(
         "ignore:could not create cache path:pytest.PytestWarning"
     )
-    def test_cache_writefail_permissions(self, testdir):
-        testdir.makeini("[pytest]")
-        cache_dir = str(testdir.tmpdir.ensure_dir(".pytest_cache"))
-        mode = os.stat(cache_dir)[stat.ST_MODE]
-        testdir.tmpdir.ensure_dir(".pytest_cache").chmod(0)
-        try:
-            config = testdir.parseconfigure()
-            cache = config.cache
-            cache.set("test/broken", [])
-        finally:
-            testdir.tmpdir.ensure_dir(".pytest_cache").chmod(mode)
+    def test_cache_writefail_permissions(
+        self, unwritable_cache_dir: Path, pytester: Pytester
+    ) -> None:
+        pytester.makeini("[pytest]")
+        config = pytester.parseconfigure()
+        cache = config.cache
+        assert cache is not None
+        cache.set("test/broken", [])
 
-    @pytest.mark.skipif(sys.platform.startswith("win"), reason="no chmod on windows")
     @pytest.mark.filterwarnings("default")
-    def test_cache_failure_warns(self, testdir, monkeypatch):
+    def test_cache_failure_warns(
+        self,
+        pytester: Pytester,
+        monkeypatch: MonkeyPatch,
+        unwritable_cache_dir: Path,
+    ) -> None:
         monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
-        cache_dir = str(testdir.tmpdir.ensure_dir(".pytest_cache"))
-        mode = os.stat(cache_dir)[stat.ST_MODE]
-        testdir.tmpdir.ensure_dir(".pytest_cache").chmod(0)
-        try:
-            testdir.makepyfile("def test_error(): raise Exception")
-            result = testdir.runpytest()
-            assert result.ret == 1
-            # warnings from nodeids, lastfailed, and stepwise
-            result.stdout.fnmatch_lines(
-                [
-                    # Validate location/stacklevel of warning from cacheprovider.
-                    "*= warnings summary =*",
-                    "*/cacheprovider.py:*",
-                    "  */cacheprovider.py:*: PytestCacheWarning: could not create cache path "
-                    "{}/v/cache/nodeids".format(cache_dir),
-                    '    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))',
-                    "*1 failed, 3 warnings in*",
-                ]
-            )
-        finally:
-            testdir.tmpdir.ensure_dir(".pytest_cache").chmod(mode)
 
-    def test_config_cache(self, testdir):
-        testdir.makeconftest(
+        pytester.makepyfile("def test_error(): raise Exception")
+        result = pytester.runpytest()
+        assert result.ret == 1
+        # warnings from nodeids, lastfailed, and stepwise
+        result.stdout.fnmatch_lines(
+            [
+                # Validate location/stacklevel of warning from cacheprovider.
+                "*= warnings summary =*",
+                "*/cacheprovider.py:*",
+                "  */cacheprovider.py:*: PytestCacheWarning: could not create cache path "
+                f"{unwritable_cache_dir}/v/cache/nodeids",
+                '    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))',
+                "*1 failed, 3 warnings in*",
+            ]
+        )
+
+    def test_config_cache(self, pytester: Pytester) -> None:
+        pytester.makeconftest(
             """
             def pytest_configure(config):
                 # see that we get cache information early on
                 assert hasattr(config, "cache")
         """
         )
-        testdir.makepyfile(
+        pytester.makepyfile(
             """
             def test_session(pytestconfig):
                 assert hasattr(pytestconfig, "cache")
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         assert result.ret == 0
         result.stdout.fnmatch_lines(["*1 passed*"])
 
-    def test_cachefuncarg(self, testdir):
-        testdir.makepyfile(
+    def test_cachefuncarg(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             """
             import pytest
             def test_cachefuncarg(cache):
@@ -113,13 +124,13 @@ class TestNewAPI:
                 assert val == [1]
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         assert result.ret == 0
         result.stdout.fnmatch_lines(["*1 passed*"])
 
-    def test_custom_rel_cache_dir(self, testdir):
+    def test_custom_rel_cache_dir(self, pytester: Pytester) -> None:
         rel_cache_dir = os.path.join("custom_cache_dir", "subdir")
-        testdir.makeini(
+        pytester.makeini(
             """
             [pytest]
             cache_dir = {cache_dir}
@@ -127,14 +138,16 @@ class TestNewAPI:
                 cache_dir=rel_cache_dir
             )
         )
-        testdir.makepyfile(test_errored="def test_error():\n    assert False")
-        testdir.runpytest()
-        assert testdir.tmpdir.join(rel_cache_dir).isdir()
+        pytester.makepyfile(test_errored="def test_error():\n    assert False")
+        pytester.runpytest()
+        assert pytester.path.joinpath(rel_cache_dir).is_dir()
 
-    def test_custom_abs_cache_dir(self, testdir, tmpdir_factory):
-        tmp = str(tmpdir_factory.mktemp("tmp"))
-        abs_cache_dir = os.path.join(tmp, "custom_cache_dir")
-        testdir.makeini(
+    def test_custom_abs_cache_dir(
+        self, pytester: Pytester, tmp_path_factory: TempPathFactory
+    ) -> None:
+        tmp = tmp_path_factory.mktemp("tmp")
+        abs_cache_dir = tmp / "custom_cache_dir"
+        pytester.makeini(
             """
             [pytest]
             cache_dir = {cache_dir}
@@ -142,13 +155,15 @@ class TestNewAPI:
                 cache_dir=abs_cache_dir
             )
         )
-        testdir.makepyfile(test_errored="def test_error():\n    assert False")
-        testdir.runpytest()
-        assert py.path.local(abs_cache_dir).isdir()
+        pytester.makepyfile(test_errored="def test_error():\n    assert False")
+        pytester.runpytest()
+        assert abs_cache_dir.is_dir()
 
-    def test_custom_cache_dir_with_env_var(self, testdir, monkeypatch):
+    def test_custom_cache_dir_with_env_var(
+        self, pytester: Pytester, monkeypatch: MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("env_var", "custom_cache_dir")
-        testdir.makeini(
+        pytester.makeini(
             """
             [pytest]
             cache_dir = {cache_dir}
@@ -156,31 +171,33 @@ class TestNewAPI:
                 cache_dir="$env_var"
             )
         )
-        testdir.makepyfile(test_errored="def test_error():\n    assert False")
-        testdir.runpytest()
-        assert testdir.tmpdir.join("custom_cache_dir").isdir()
+        pytester.makepyfile(test_errored="def test_error():\n    assert False")
+        pytester.runpytest()
+        assert pytester.path.joinpath("custom_cache_dir").is_dir()
 
 
 @pytest.mark.parametrize("env", ((), ("TOX_ENV_DIR", "/tox_env_dir")))
-def test_cache_reportheader(env, testdir, monkeypatch):
-    testdir.makepyfile("""def test_foo(): pass""")
+def test_cache_reportheader(env, pytester: Pytester, monkeypatch: MonkeyPatch) -> None:
+    pytester.makepyfile("""def test_foo(): pass""")
     if env:
         monkeypatch.setenv(*env)
         expected = os.path.join(env[1], ".pytest_cache")
     else:
         monkeypatch.delenv("TOX_ENV_DIR", raising=False)
         expected = ".pytest_cache"
-    result = testdir.runpytest("-v")
+    result = pytester.runpytest("-v")
     result.stdout.fnmatch_lines(["cachedir: %s" % expected])
 
 
-def test_cache_reportheader_external_abspath(testdir, tmpdir_factory):
-    external_cache = tmpdir_factory.mktemp(
+def test_cache_reportheader_external_abspath(
+    pytester: Pytester, tmp_path_factory: TempPathFactory
+) -> None:
+    external_cache = tmp_path_factory.mktemp(
         "test_cache_reportheader_external_abspath_abs"
     )
 
-    testdir.makepyfile("def test_hello(): pass")
-    testdir.makeini(
+    pytester.makepyfile("def test_hello(): pass")
+    pytester.makeini(
         """
     [pytest]
     cache_dir = {abscache}
@@ -188,31 +205,29 @@ def test_cache_reportheader_external_abspath(testdir, tmpdir_factory):
             abscache=external_cache
         )
     )
-    result = testdir.runpytest("-v")
-    result.stdout.fnmatch_lines(
-        ["cachedir: {abscache}".format(abscache=external_cache)]
-    )
+    result = pytester.runpytest("-v")
+    result.stdout.fnmatch_lines([f"cachedir: {external_cache}"])
 
 
-def test_cache_show(testdir):
-    result = testdir.runpytest("--cache-show")
+def test_cache_show(pytester: Pytester) -> None:
+    result = pytester.runpytest("--cache-show")
     assert result.ret == 0
     result.stdout.fnmatch_lines(["*cache is empty*"])
-    testdir.makeconftest(
+    pytester.makeconftest(
         """
         def pytest_configure(config):
             config.cache.set("my/name", [1,2,3])
             config.cache.set("my/hello", "world")
             config.cache.set("other/some", {1:2})
-            dp = config.cache.makedir("mydb")
-            dp.ensure("hello")
-            dp.ensure("world")
+            dp = config.cache.mkdir("mydb")
+            dp.joinpath("hello").touch()
+            dp.joinpath("world").touch()
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     assert result.ret == 5  # no tests executed
 
-    result = testdir.runpytest("--cache-show")
+    result = pytester.runpytest("--cache-show")
     result.stdout.fnmatch_lines(
         [
             "*cachedir:*",
@@ -229,7 +244,7 @@ def test_cache_show(testdir):
     )
     assert result.ret == 0
 
-    result = testdir.runpytest("--cache-show", "*/hello")
+    result = pytester.runpytest("--cache-show", "*/hello")
     result.stdout.fnmatch_lines(
         [
             "*cachedir:*",
@@ -247,25 +262,27 @@ def test_cache_show(testdir):
 
 
 class TestLastFailed:
-    def test_lastfailed_usecase(self, testdir, monkeypatch):
+    def test_lastfailed_usecase(
+        self, pytester: Pytester, monkeypatch: MonkeyPatch
+    ) -> None:
         monkeypatch.setattr("sys.dont_write_bytecode", True)
-        p = testdir.makepyfile(
+        p = pytester.makepyfile(
             """
             def test_1(): assert 0
             def test_2(): assert 0
             def test_3(): assert 1
             """
         )
-        result = testdir.runpytest(str(p))
+        result = pytester.runpytest(str(p))
         result.stdout.fnmatch_lines(["*2 failed*"])
-        p = testdir.makepyfile(
+        p = pytester.makepyfile(
             """
             def test_1(): assert 1
             def test_2(): assert 1
             def test_3(): assert 0
             """
         )
-        result = testdir.runpytest(str(p), "--lf")
+        result = pytester.runpytest(str(p), "--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 3 items / 1 deselected / 2 selected",
@@ -273,7 +290,7 @@ class TestLastFailed:
                 "*= 2 passed, 1 deselected in *",
             ]
         )
-        result = testdir.runpytest(str(p), "--lf")
+        result = pytester.runpytest(str(p), "--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 3 items",
@@ -281,27 +298,27 @@ class TestLastFailed:
                 "*1 failed*2 passed*",
             ]
         )
-        testdir.tmpdir.join(".pytest_cache").mkdir(".git")
-        result = testdir.runpytest(str(p), "--lf", "--cache-clear")
+        pytester.path.joinpath(".pytest_cache", ".git").mkdir(parents=True)
+        result = pytester.runpytest(str(p), "--lf", "--cache-clear")
         result.stdout.fnmatch_lines(["*1 failed*2 passed*"])
-        assert testdir.tmpdir.join(".pytest_cache", "README.md").isfile()
-        assert testdir.tmpdir.join(".pytest_cache", ".git").isdir()
+        assert pytester.path.joinpath(".pytest_cache", "README.md").is_file()
+        assert pytester.path.joinpath(".pytest_cache", ".git").is_dir()
 
         # Run this again to make sure clear-cache is robust
         if os.path.isdir(".pytest_cache"):
             shutil.rmtree(".pytest_cache")
-        result = testdir.runpytest("--lf", "--cache-clear")
+        result = pytester.runpytest("--lf", "--cache-clear")
         result.stdout.fnmatch_lines(["*1 failed*2 passed*"])
 
-    def test_failedfirst_order(self, testdir):
-        testdir.makepyfile(
+    def test_failedfirst_order(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             test_a="def test_always_passes(): pass",
             test_b="def test_always_fails(): assert 0",
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         # Test order will be collection order; alphabetical
         result.stdout.fnmatch_lines(["test_a.py*", "test_b.py*"])
-        result = testdir.runpytest("--ff")
+        result = pytester.runpytest("--ff")
         # Test order will be failing tests first
         result.stdout.fnmatch_lines(
             [
@@ -312,40 +329,42 @@ class TestLastFailed:
             ]
         )
 
-    def test_lastfailed_failedfirst_order(self, testdir):
-        testdir.makepyfile(
+    def test_lastfailed_failedfirst_order(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             test_a="def test_always_passes(): assert 1",
             test_b="def test_always_fails(): assert 0",
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         # Test order will be collection order; alphabetical
         result.stdout.fnmatch_lines(["test_a.py*", "test_b.py*"])
-        result = testdir.runpytest("--lf", "--ff")
+        result = pytester.runpytest("--lf", "--ff")
         # Test order will be failing tests first
         result.stdout.fnmatch_lines(["test_b.py*"])
         result.stdout.no_fnmatch_line("*test_a.py*")
 
-    def test_lastfailed_difference_invocations(self, testdir, monkeypatch):
+    def test_lastfailed_difference_invocations(
+        self, pytester: Pytester, monkeypatch: MonkeyPatch
+    ) -> None:
         monkeypatch.setattr("sys.dont_write_bytecode", True)
-        testdir.makepyfile(
+        pytester.makepyfile(
             test_a="""
                 def test_a1(): assert 0
                 def test_a2(): assert 1
             """,
             test_b="def test_b1(): assert 0",
         )
-        p = testdir.tmpdir.join("test_a.py")
-        p2 = testdir.tmpdir.join("test_b.py")
+        p = pytester.path.joinpath("test_a.py")
+        p2 = pytester.path.joinpath("test_b.py")
 
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["*2 failed*"])
-        result = testdir.runpytest("--lf", p2)
+        result = pytester.runpytest("--lf", p2)
         result.stdout.fnmatch_lines(["*1 failed*"])
 
-        testdir.makepyfile(test_b="def test_b1(): assert 1")
-        result = testdir.runpytest("--lf", p2)
+        pytester.makepyfile(test_b="def test_b1(): assert 1")
+        result = pytester.runpytest("--lf", p2)
         result.stdout.fnmatch_lines(["*1 passed*"])
-        result = testdir.runpytest("--lf", p)
+        result = pytester.runpytest("--lf", p)
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items / 1 deselected / 1 selected",
@@ -354,21 +373,23 @@ class TestLastFailed:
             ]
         )
 
-    def test_lastfailed_usecase_splice(self, testdir, monkeypatch):
+    def test_lastfailed_usecase_splice(
+        self, pytester: Pytester, monkeypatch: MonkeyPatch
+    ) -> None:
         monkeypatch.setattr("sys.dont_write_bytecode", True)
-        testdir.makepyfile(
+        pytester.makepyfile(
             "def test_1(): assert 0", test_something="def test_2(): assert 0"
         )
-        p2 = testdir.tmpdir.join("test_something.py")
-        result = testdir.runpytest()
+        p2 = pytester.path.joinpath("test_something.py")
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["*2 failed*"])
-        result = testdir.runpytest("--lf", p2)
+        result = pytester.runpytest("--lf", p2)
         result.stdout.fnmatch_lines(["*1 failed*"])
-        result = testdir.runpytest("--lf")
+        result = pytester.runpytest("--lf")
         result.stdout.fnmatch_lines(["*2 failed*"])
 
-    def test_lastfailed_xpass(self, testdir):
-        testdir.inline_runsource(
+    def test_lastfailed_xpass(self, pytester: Pytester) -> None:
+        pytester.inline_runsource(
             """
             import pytest
             @pytest.mark.xfail
@@ -376,15 +397,16 @@ class TestLastFailed:
                 assert 1
         """
         )
-        config = testdir.parseconfigure()
+        config = pytester.parseconfigure()
+        assert config.cache is not None
         lastfailed = config.cache.get("cache/lastfailed", -1)
         assert lastfailed == -1
 
-    def test_non_serializable_parametrize(self, testdir):
+    def test_non_serializable_parametrize(self, pytester: Pytester) -> None:
         """Test that failed parametrized tests with unmarshable parameters
         don't break pytest-cache.
         """
-        testdir.makepyfile(
+        pytester.makepyfile(
             r"""
             import pytest
 
@@ -395,26 +417,26 @@ class TestLastFailed:
                 assert False
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["*1 failed in*"])
 
-    def test_terminal_report_lastfailed(self, testdir):
-        test_a = testdir.makepyfile(
+    def test_terminal_report_lastfailed(self, pytester: Pytester) -> None:
+        test_a = pytester.makepyfile(
             test_a="""
             def test_a1(): pass
             def test_a2(): pass
         """
         )
-        test_b = testdir.makepyfile(
+        test_b = pytester.makepyfile(
             test_b="""
             def test_b1(): assert 0
             def test_b2(): assert 0
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["collected 4 items", "*2 failed, 2 passed in*"])
 
-        result = testdir.runpytest("--lf")
+        result = pytester.runpytest("--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items",
@@ -423,7 +445,7 @@ class TestLastFailed:
             ]
         )
 
-        result = testdir.runpytest(test_a, "--lf")
+        result = pytester.runpytest(test_a, "--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items",
@@ -432,7 +454,7 @@ class TestLastFailed:
             ]
         )
 
-        result = testdir.runpytest(test_b, "--lf")
+        result = pytester.runpytest(test_b, "--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items",
@@ -441,7 +463,7 @@ class TestLastFailed:
             ]
         )
 
-        result = testdir.runpytest("test_b.py::test_b1", "--lf")
+        result = pytester.runpytest("test_b.py::test_b1", "--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 1 item",
@@ -450,17 +472,17 @@ class TestLastFailed:
             ]
         )
 
-    def test_terminal_report_failedfirst(self, testdir):
-        testdir.makepyfile(
+    def test_terminal_report_failedfirst(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             test_a="""
             def test_a1(): assert 0
             def test_a2(): pass
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["collected 2 items", "*1 failed, 1 passed in*"])
 
-        result = testdir.runpytest("--ff")
+        result = pytester.runpytest("--ff")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items",
@@ -469,9 +491,11 @@ class TestLastFailed:
             ]
         )
 
-    def test_lastfailed_collectfailure(self, testdir, monkeypatch):
+    def test_lastfailed_collectfailure(
+        self, pytester: Pytester, monkeypatch: MonkeyPatch
+    ) -> None:
 
-        testdir.makepyfile(
+        pytester.makepyfile(
             test_maybe="""
             import os
             env = os.environ
@@ -486,8 +510,9 @@ class TestLastFailed:
             monkeypatch.setenv("FAILIMPORT", str(fail_import))
             monkeypatch.setenv("FAILTEST", str(fail_run))
 
-            testdir.runpytest("-q")
-            config = testdir.parseconfigure()
+            pytester.runpytest("-q")
+            config = pytester.parseconfigure()
+            assert config.cache is not None
             lastfailed = config.cache.get("cache/lastfailed", -1)
             return lastfailed
 
@@ -500,8 +525,10 @@ class TestLastFailed:
         lastfailed = rlf(fail_import=0, fail_run=1)
         assert list(lastfailed) == ["test_maybe.py::test_hello"]
 
-    def test_lastfailed_failure_subset(self, testdir, monkeypatch):
-        testdir.makepyfile(
+    def test_lastfailed_failure_subset(
+        self, pytester: Pytester, monkeypatch: MonkeyPatch
+    ) -> None:
+        pytester.makepyfile(
             test_maybe="""
             import os
             env = os.environ
@@ -512,7 +539,7 @@ class TestLastFailed:
         """
         )
 
-        testdir.makepyfile(
+        pytester.makepyfile(
             test_maybe2="""
             import os
             env = os.environ
@@ -531,8 +558,9 @@ class TestLastFailed:
             monkeypatch.setenv("FAILIMPORT", str(fail_import))
             monkeypatch.setenv("FAILTEST", str(fail_run))
 
-            result = testdir.runpytest("-q", "--lf", *args)
-            config = testdir.parseconfigure()
+            result = pytester.runpytest("-q", "--lf", *args)
+            config = pytester.parseconfigure()
+            assert config.cache is not None
             lastfailed = config.cache.get("cache/lastfailed", -1)
             return result, lastfailed
 
@@ -553,61 +581,63 @@ class TestLastFailed:
         assert list(lastfailed) == ["test_maybe.py"]
         result.stdout.fnmatch_lines(["*2 passed*"])
 
-    def test_lastfailed_creates_cache_when_needed(self, testdir):
+    def test_lastfailed_creates_cache_when_needed(self, pytester: Pytester) -> None:
         # Issue #1342
-        testdir.makepyfile(test_empty="")
-        testdir.runpytest("-q", "--lf")
+        pytester.makepyfile(test_empty="")
+        pytester.runpytest("-q", "--lf")
         assert not os.path.exists(".pytest_cache/v/cache/lastfailed")
 
-        testdir.makepyfile(test_successful="def test_success():\n    assert True")
-        testdir.runpytest("-q", "--lf")
+        pytester.makepyfile(test_successful="def test_success():\n    assert True")
+        pytester.runpytest("-q", "--lf")
         assert not os.path.exists(".pytest_cache/v/cache/lastfailed")
 
-        testdir.makepyfile(test_errored="def test_error():\n    assert False")
-        testdir.runpytest("-q", "--lf")
+        pytester.makepyfile(test_errored="def test_error():\n    assert False")
+        pytester.runpytest("-q", "--lf")
         assert os.path.exists(".pytest_cache/v/cache/lastfailed")
 
-    def test_xfail_not_considered_failure(self, testdir):
-        testdir.makepyfile(
+    def test_xfail_not_considered_failure(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             """
             import pytest
             @pytest.mark.xfail
             def test(): assert 0
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["*1 xfailed*"])
-        assert self.get_cached_last_failed(testdir) == []
+        assert self.get_cached_last_failed(pytester) == []
 
-    def test_xfail_strict_considered_failure(self, testdir):
-        testdir.makepyfile(
+    def test_xfail_strict_considered_failure(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             """
             import pytest
             @pytest.mark.xfail(strict=True)
             def test(): pass
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["*1 failed*"])
-        assert self.get_cached_last_failed(testdir) == [
+        assert self.get_cached_last_failed(pytester) == [
             "test_xfail_strict_considered_failure.py::test"
         ]
 
     @pytest.mark.parametrize("mark", ["mark.xfail", "mark.skip"])
-    def test_failed_changed_to_xfail_or_skip(self, testdir, mark):
-        testdir.makepyfile(
+    def test_failed_changed_to_xfail_or_skip(
+        self, pytester: Pytester, mark: str
+    ) -> None:
+        pytester.makepyfile(
             """
             import pytest
             def test(): assert 0
         """
         )
-        result = testdir.runpytest()
-        assert self.get_cached_last_failed(testdir) == [
+        result = pytester.runpytest()
+        assert self.get_cached_last_failed(pytester) == [
             "test_failed_changed_to_xfail_or_skip.py::test"
         ]
         assert result.ret == 1
 
-        testdir.makepyfile(
+        pytester.makepyfile(
             """
             import pytest
             @pytest.{mark}
@@ -616,66 +646,69 @@ class TestLastFailed:
                 mark=mark
             )
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         assert result.ret == 0
-        assert self.get_cached_last_failed(testdir) == []
+        assert self.get_cached_last_failed(pytester) == []
         assert result.ret == 0
 
     @pytest.mark.parametrize("quiet", [True, False])
     @pytest.mark.parametrize("opt", ["--ff", "--lf"])
-    def test_lf_and_ff_prints_no_needless_message(self, quiet, opt, testdir):
+    def test_lf_and_ff_prints_no_needless_message(
+        self, quiet: bool, opt: str, pytester: Pytester
+    ) -> None:
         # Issue 3853
-        testdir.makepyfile("def test(): assert 0")
+        pytester.makepyfile("def test(): assert 0")
         args = [opt]
         if quiet:
             args.append("-q")
-        result = testdir.runpytest(*args)
+        result = pytester.runpytest(*args)
         result.stdout.no_fnmatch_line("*run all*")
 
-        result = testdir.runpytest(*args)
+        result = pytester.runpytest(*args)
         if quiet:
             result.stdout.no_fnmatch_line("*run all*")
         else:
             assert "rerun previous" in result.stdout.str()
 
-    def get_cached_last_failed(self, testdir):
-        config = testdir.parseconfigure()
+    def get_cached_last_failed(self, pytester: Pytester) -> List[str]:
+        config = pytester.parseconfigure()
+        assert config.cache is not None
         return sorted(config.cache.get("cache/lastfailed", {}))
 
-    def test_cache_cumulative(self, testdir):
+    def test_cache_cumulative(self, pytester: Pytester) -> None:
         """Test workflow where user fixes errors gradually file by file using --lf."""
         # 1. initial run
-        test_bar = testdir.makepyfile(
+        test_bar = pytester.makepyfile(
             test_bar="""
             def test_bar_1(): pass
             def test_bar_2(): assert 0
         """
         )
-        test_foo = testdir.makepyfile(
+        test_foo = pytester.makepyfile(
             test_foo="""
             def test_foo_3(): pass
             def test_foo_4(): assert 0
         """
         )
-        testdir.runpytest()
-        assert self.get_cached_last_failed(testdir) == [
+        pytester.runpytest()
+        assert self.get_cached_last_failed(pytester) == [
             "test_bar.py::test_bar_2",
             "test_foo.py::test_foo_4",
         ]
 
         # 2. fix test_bar_2, run only test_bar.py
-        testdir.makepyfile(
+        pytester.makepyfile(
             test_bar="""
             def test_bar_1(): pass
             def test_bar_2(): pass
         """
         )
-        result = testdir.runpytest(test_bar)
+        result = pytester.runpytest(test_bar)
         result.stdout.fnmatch_lines(["*2 passed*"])
         # ensure cache does not forget that test_foo_4 failed once before
-        assert self.get_cached_last_failed(testdir) == ["test_foo.py::test_foo_4"]
+        assert self.get_cached_last_failed(pytester) == ["test_foo.py::test_foo_4"]
 
-        result = testdir.runpytest("--last-failed")
+        result = pytester.runpytest("--last-failed")
         result.stdout.fnmatch_lines(
             [
                 "collected 1 item",
@@ -683,16 +716,16 @@ class TestLastFailed:
                 "*= 1 failed in *",
             ]
         )
-        assert self.get_cached_last_failed(testdir) == ["test_foo.py::test_foo_4"]
+        assert self.get_cached_last_failed(pytester) == ["test_foo.py::test_foo_4"]
 
         # 3. fix test_foo_4, run only test_foo.py
-        test_foo = testdir.makepyfile(
+        test_foo = pytester.makepyfile(
             test_foo="""
             def test_foo_3(): pass
             def test_foo_4(): pass
         """
         )
-        result = testdir.runpytest(test_foo, "--last-failed")
+        result = pytester.runpytest(test_foo, "--last-failed")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items / 1 deselected / 1 selected",
@@ -700,29 +733,31 @@ class TestLastFailed:
                 "*= 1 passed, 1 deselected in *",
             ]
         )
-        assert self.get_cached_last_failed(testdir) == []
+        assert self.get_cached_last_failed(pytester) == []
 
-        result = testdir.runpytest("--last-failed")
+        result = pytester.runpytest("--last-failed")
         result.stdout.fnmatch_lines(["*4 passed*"])
-        assert self.get_cached_last_failed(testdir) == []
+        assert self.get_cached_last_failed(pytester) == []
 
-    def test_lastfailed_no_failures_behavior_all_passed(self, testdir):
-        testdir.makepyfile(
+    def test_lastfailed_no_failures_behavior_all_passed(
+        self, pytester: Pytester
+    ) -> None:
+        pytester.makepyfile(
             """
             def test_1(): pass
             def test_2(): pass
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["*2 passed*"])
-        result = testdir.runpytest("--lf")
+        result = pytester.runpytest("--lf")
         result.stdout.fnmatch_lines(["*2 passed*"])
-        result = testdir.runpytest("--lf", "--lfnf", "all")
+        result = pytester.runpytest("--lf", "--lfnf", "all")
         result.stdout.fnmatch_lines(["*2 passed*"])
 
         # Ensure the list passed to pytest_deselected is a copy,
         # and not a reference which is cleared right after.
-        testdir.makeconftest(
+        pytester.makeconftest(
             """
             deselected = []
 
@@ -735,7 +770,7 @@ class TestLastFailed:
         """
         )
 
-        result = testdir.runpytest("--lf", "--lfnf", "none")
+        result = pytester.runpytest("--lf", "--lfnf", "none")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items / 2 deselected",
@@ -746,26 +781,28 @@ class TestLastFailed:
         )
         assert result.ret == ExitCode.NO_TESTS_COLLECTED
 
-    def test_lastfailed_no_failures_behavior_empty_cache(self, testdir):
-        testdir.makepyfile(
+    def test_lastfailed_no_failures_behavior_empty_cache(
+        self, pytester: Pytester
+    ) -> None:
+        pytester.makepyfile(
             """
             def test_1(): pass
             def test_2(): assert 0
         """
         )
-        result = testdir.runpytest("--lf", "--cache-clear")
+        result = pytester.runpytest("--lf", "--cache-clear")
         result.stdout.fnmatch_lines(["*1 failed*1 passed*"])
-        result = testdir.runpytest("--lf", "--cache-clear", "--lfnf", "all")
+        result = pytester.runpytest("--lf", "--cache-clear", "--lfnf", "all")
         result.stdout.fnmatch_lines(["*1 failed*1 passed*"])
-        result = testdir.runpytest("--lf", "--cache-clear", "--lfnf", "none")
+        result = pytester.runpytest("--lf", "--cache-clear", "--lfnf", "none")
         result.stdout.fnmatch_lines(["*2 desel*"])
 
-    def test_lastfailed_skip_collection(self, testdir):
+    def test_lastfailed_skip_collection(self, pytester: Pytester) -> None:
         """
         Test --lf behavior regarding skipping collection of files that are not marked as
         failed in the cache (#5172).
         """
-        testdir.makepyfile(
+        pytester.makepyfile(
             **{
                 "pkg1/test_1.py": """
                 import pytest
@@ -783,10 +820,10 @@ class TestLastFailed:
             }
         )
         # first run: collects 8 items (test_1: 3, test_2: 5)
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["collected 8 items", "*2 failed*6 passed*"])
         # second run: collects only 5 items from test_2, because all tests from test_1 have passed
-        result = testdir.runpytest("--lf")
+        result = pytester.runpytest("--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items",
@@ -796,14 +833,14 @@ class TestLastFailed:
         )
 
         # add another file and check if message is correct when skipping more than 1 file
-        testdir.makepyfile(
+        pytester.makepyfile(
             **{
                 "pkg1/test_3.py": """
                 def test_3(): pass
             """
             }
         )
-        result = testdir.runpytest("--lf")
+        result = pytester.runpytest("--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items",
@@ -812,18 +849,20 @@ class TestLastFailed:
             ]
         )
 
-    def test_lastfailed_with_known_failures_not_being_selected(self, testdir):
-        testdir.makepyfile(
+    def test_lastfailed_with_known_failures_not_being_selected(
+        self, pytester: Pytester
+    ) -> None:
+        pytester.makepyfile(
             **{
                 "pkg1/test_1.py": """def test_1(): assert 0""",
                 "pkg1/test_2.py": """def test_2(): pass""",
             }
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["collected 2 items", "* 1 failed, 1 passed in *"])
 
-        py.path.local("pkg1/test_1.py").remove()
-        result = testdir.runpytest("--lf")
+        Path("pkg1/test_1.py").unlink()
+        result = pytester.runpytest("--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 1 item",
@@ -833,8 +872,8 @@ class TestLastFailed:
         )
 
         # Recreate file with known failure.
-        testdir.makepyfile(**{"pkg1/test_1.py": """def test_1(): assert 0"""})
-        result = testdir.runpytest("--lf")
+        pytester.makepyfile(**{"pkg1/test_1.py": """def test_1(): assert 0"""})
+        result = pytester.runpytest("--lf")
         result.stdout.fnmatch_lines(
             [
                 "collected 1 item",
@@ -844,8 +883,8 @@ class TestLastFailed:
         )
 
         # Remove/rename test: collects the file again.
-        testdir.makepyfile(**{"pkg1/test_1.py": """def test_renamed(): assert 0"""})
-        result = testdir.runpytest("--lf", "-rf")
+        pytester.makepyfile(**{"pkg1/test_1.py": """def test_renamed(): assert 0"""})
+        result = pytester.runpytest("--lf", "-rf")
         result.stdout.fnmatch_lines(
             [
                 "collected 2 items",
@@ -857,7 +896,7 @@ class TestLastFailed:
             ]
         )
 
-        result = testdir.runpytest("--lf", "--co")
+        result = pytester.runpytest("--lf", "--co")
         result.stdout.fnmatch_lines(
             [
                 "collected 1 item",
@@ -868,13 +907,13 @@ class TestLastFailed:
             ]
         )
 
-    def test_lastfailed_args_with_deselected(self, testdir: Testdir) -> None:
+    def test_lastfailed_args_with_deselected(self, pytester: Pytester) -> None:
         """Test regression with --lf running into NoMatch error.
 
         This was caused by it not collecting (non-failed) nodes given as
         arguments.
         """
-        testdir.makepyfile(
+        pytester.makepyfile(
             **{
                 "pkg1/test_1.py": """
                     def test_pass(): pass
@@ -882,11 +921,11 @@ class TestLastFailed:
                 """,
             }
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["collected 2 items", "* 1 failed, 1 passed in *"])
         assert result.ret == 1
 
-        result = testdir.runpytest("pkg1/test_1.py::test_pass", "--lf", "--co")
+        result = pytester.runpytest("pkg1/test_1.py::test_pass", "--lf", "--co")
         assert result.ret == 0
         result.stdout.fnmatch_lines(
             [
@@ -899,7 +938,7 @@ class TestLastFailed:
             consecutive=True,
         )
 
-        result = testdir.runpytest(
+        result = pytester.runpytest(
             "pkg1/test_1.py::test_pass", "pkg1/test_1.py::test_fail", "--lf", "--co"
         )
         assert result.ret == 0
@@ -910,13 +949,13 @@ class TestLastFailed:
                 "",
                 "<Module pkg1/test_1.py>",
                 "  <Function test_fail>",
-                "*= 1 deselected in *",
+                "*= 1/2 tests collected (1 deselected) in *",
             ],
         )
 
-    def test_lastfailed_with_class_items(self, testdir: Testdir) -> None:
+    def test_lastfailed_with_class_items(self, pytester: Pytester) -> None:
         """Test regression with --lf deselecting whole classes."""
-        testdir.makepyfile(
+        pytester.makepyfile(
             **{
                 "pkg1/test_1.py": """
                     class TestFoo:
@@ -927,11 +966,11 @@ class TestLastFailed:
                 """,
             }
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["collected 3 items", "* 2 failed, 1 passed in *"])
         assert result.ret == 1
 
-        result = testdir.runpytest("--lf", "--co")
+        result = pytester.runpytest("--lf", "--co")
         assert result.ret == 0
         result.stdout.fnmatch_lines(
             [
@@ -940,16 +979,16 @@ class TestLastFailed:
                 "",
                 "<Module pkg1/test_1.py>",
                 "  <Class TestFoo>",
-                "      <Function test_fail>",
+                "    <Function test_fail>",
                 "  <Function test_other>",
                 "",
-                "*= 1 deselected in *",
+                "*= 2/3 tests collected (1 deselected) in *",
             ],
             consecutive=True,
         )
 
-    def test_lastfailed_with_all_filtered(self, testdir: Testdir) -> None:
-        testdir.makepyfile(
+    def test_lastfailed_with_all_filtered(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             **{
                 "pkg1/test_1.py": """
                     def test_fail(): assert 0
@@ -957,19 +996,19 @@ class TestLastFailed:
                 """,
             }
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["collected 2 items", "* 1 failed, 1 passed in *"])
         assert result.ret == 1
 
         # Remove known failure.
-        testdir.makepyfile(
+        pytester.makepyfile(
             **{
                 "pkg1/test_1.py": """
                     def test_pass(): pass
                 """,
             }
         )
-        result = testdir.runpytest("--lf", "--co")
+        result = pytester.runpytest("--lf", "--co")
         result.stdout.fnmatch_lines(
             [
                 "collected 1 item",
@@ -978,16 +1017,46 @@ class TestLastFailed:
                 "<Module pkg1/test_1.py>",
                 "  <Function test_pass>",
                 "",
-                "*= no tests ran in*",
+                "*= 1 test collected in*",
             ],
             consecutive=True,
         )
         assert result.ret == 0
 
+    def test_packages(self, pytester: Pytester) -> None:
+        """Regression test for #7758.
+
+        The particular issue here was that Package nodes were included in the
+        filtering, being themselves Modules for the __init__.py, even if they
+        had failed Modules in them.
+
+        The tests includes a test in an __init__.py file just to make sure the
+        fix doesn't somehow regress that, it is not critical for the issue.
+        """
+        pytester.makepyfile(
+            **{
+                "__init__.py": "",
+                "a/__init__.py": "def test_a_init(): assert False",
+                "a/test_one.py": "def test_1(): assert False",
+                "b/__init__.py": "",
+                "b/test_two.py": "def test_2(): assert False",
+            },
+        )
+        pytester.makeini(
+            """
+            [pytest]
+            python_files = *.py
+            """
+        )
+        result = pytester.runpytest()
+        result.assert_outcomes(failed=3)
+        result = pytester.runpytest("--lf")
+        result.assert_outcomes(failed=3)
+
 
 class TestNewFirst:
-    def test_newfirst_usecase(self, testdir):
-        testdir.makepyfile(
+    def test_newfirst_usecase(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             **{
                 "test_1/test_1.py": """
                 def test_1(): assert 1
@@ -997,24 +1066,24 @@ class TestNewFirst:
             """,
             }
         )
-        testdir.tmpdir.join("test_1/test_1.py").setmtime(1)
 
-        result = testdir.runpytest("-v")
+        p1 = pytester.path.joinpath("test_1/test_1.py")
+        os.utime(p1, ns=(p1.stat().st_atime_ns, int(1e9)))
+
+        result = pytester.runpytest("-v")
         result.stdout.fnmatch_lines(
             ["*test_1/test_1.py::test_1 PASSED*", "*test_2/test_2.py::test_1 PASSED*"]
         )
 
-        result = testdir.runpytest("-v", "--nf")
+        result = pytester.runpytest("-v", "--nf")
         result.stdout.fnmatch_lines(
             ["*test_2/test_2.py::test_1 PASSED*", "*test_1/test_1.py::test_1 PASSED*"]
         )
 
-        testdir.tmpdir.join("test_1/test_1.py").write(
-            "def test_1(): assert 1\n" "def test_2(): assert 1\n"
-        )
-        testdir.tmpdir.join("test_1/test_1.py").setmtime(1)
+        p1.write_text("def test_1(): assert 1\n" "def test_2(): assert 1\n")
+        os.utime(p1, ns=(p1.stat().st_atime_ns, int(1e9)))
 
-        result = testdir.runpytest("--nf", "--collect-only", "-q")
+        result = pytester.runpytest("--nf", "--collect-only", "-q")
         result.stdout.fnmatch_lines(
             [
                 "test_1/test_1.py::test_2",
@@ -1024,15 +1093,15 @@ class TestNewFirst:
         )
 
         # Newest first with (plugin) pytest_collection_modifyitems hook.
-        testdir.makepyfile(
+        pytester.makepyfile(
             myplugin="""
             def pytest_collection_modifyitems(items):
                 items[:] = sorted(items, key=lambda item: item.nodeid)
                 print("new_items:", [x.nodeid for x in items])
             """
         )
-        testdir.syspathinsert()
-        result = testdir.runpytest("--nf", "-p", "myplugin", "--collect-only", "-q")
+        pytester.syspathinsert()
+        result = pytester.runpytest("--nf", "-p", "myplugin", "--collect-only", "-q")
         result.stdout.fnmatch_lines(
             [
                 "new_items: *test_1.py*test_1.py*test_2.py*",
@@ -1042,8 +1111,8 @@ class TestNewFirst:
             ]
         )
 
-    def test_newfirst_parametrize(self, testdir):
-        testdir.makepyfile(
+    def test_newfirst_parametrize(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             **{
                 "test_1/test_1.py": """
                 import pytest
@@ -1058,9 +1127,10 @@ class TestNewFirst:
             }
         )
 
-        testdir.tmpdir.join("test_1/test_1.py").setmtime(1)
+        p1 = pytester.path.joinpath("test_1/test_1.py")
+        os.utime(p1, ns=(p1.stat().st_atime_ns, int(1e9)))
 
-        result = testdir.runpytest("-v")
+        result = pytester.runpytest("-v")
         result.stdout.fnmatch_lines(
             [
                 "*test_1/test_1.py::test_1[1*",
@@ -1070,7 +1140,7 @@ class TestNewFirst:
             ]
         )
 
-        result = testdir.runpytest("-v", "--nf")
+        result = pytester.runpytest("-v", "--nf")
         result.stdout.fnmatch_lines(
             [
                 "*test_2/test_2.py::test_1[1*",
@@ -1080,20 +1150,20 @@ class TestNewFirst:
             ]
         )
 
-        testdir.tmpdir.join("test_1/test_1.py").write(
+        p1.write_text(
             "import pytest\n"
             "@pytest.mark.parametrize('num', [1, 2, 3])\n"
             "def test_1(num): assert num\n"
         )
-        testdir.tmpdir.join("test_1/test_1.py").setmtime(1)
+        os.utime(p1, ns=(p1.stat().st_atime_ns, int(1e9)))
 
         # Running only a subset does not forget about existing ones.
-        result = testdir.runpytest("-v", "--nf", "test_2/test_2.py")
+        result = pytester.runpytest("-v", "--nf", "test_2/test_2.py")
         result.stdout.fnmatch_lines(
             ["*test_2/test_2.py::test_1[1*", "*test_2/test_2.py::test_1[2*"]
         )
 
-        result = testdir.runpytest("-v", "--nf")
+        result = pytester.runpytest("-v", "--nf")
         result.stdout.fnmatch_lines(
             [
                 "*test_1/test_1.py::test_1[3*",
@@ -1106,28 +1176,29 @@ class TestNewFirst:
 
 
 class TestReadme:
-    def check_readme(self, testdir):
-        config = testdir.parseconfigure()
+    def check_readme(self, pytester: Pytester) -> bool:
+        config = pytester.parseconfigure()
+        assert config.cache is not None
         readme = config.cache._cachedir.joinpath("README.md")
         return readme.is_file()
 
-    def test_readme_passed(self, testdir):
-        testdir.makepyfile("def test_always_passes(): pass")
-        testdir.runpytest()
-        assert self.check_readme(testdir) is True
+    def test_readme_passed(self, pytester: Pytester) -> None:
+        pytester.makepyfile("def test_always_passes(): pass")
+        pytester.runpytest()
+        assert self.check_readme(pytester) is True
 
-    def test_readme_failed(self, testdir):
-        testdir.makepyfile("def test_always_fails(): assert 0")
-        testdir.runpytest()
-        assert self.check_readme(testdir) is True
+    def test_readme_failed(self, pytester: Pytester) -> None:
+        pytester.makepyfile("def test_always_fails(): assert 0")
+        pytester.runpytest()
+        assert self.check_readme(pytester) is True
 
 
-def test_gitignore(testdir):
+def test_gitignore(pytester: Pytester) -> None:
     """Ensure we automatically create .gitignore file in the pytest_cache directory (#3286)."""
     from _pytest.cacheprovider import Cache
 
-    config = testdir.parseconfig()
-    cache = Cache.for_config(config)
+    config = pytester.parseconfig()
+    cache = Cache.for_config(config, _ispytest=True)
     cache.set("foo", "bar")
     msg = "# Created by pytest automatically.\n*\n"
     gitignore_path = cache._cachedir.joinpath(".gitignore")
@@ -1139,17 +1210,28 @@ def test_gitignore(testdir):
     assert gitignore_path.read_text(encoding="UTF-8") == "custom"
 
 
-def test_does_not_create_boilerplate_in_existing_dirs(testdir):
+def test_preserve_keys_order(pytester: Pytester) -> None:
+    """Ensure keys order is preserved when saving dicts (#9205)."""
     from _pytest.cacheprovider import Cache
 
-    testdir.makeini(
+    config = pytester.parseconfig()
+    cache = Cache.for_config(config, _ispytest=True)
+    cache.set("foo", {"z": 1, "b": 2, "a": 3, "d": 10})
+    read_back = cache.get("foo", None)
+    assert list(read_back.items()) == [("z", 1), ("b", 2), ("a", 3), ("d", 10)]
+
+
+def test_does_not_create_boilerplate_in_existing_dirs(pytester: Pytester) -> None:
+    from _pytest.cacheprovider import Cache
+
+    pytester.makeini(
         """
         [pytest]
         cache_dir = .
         """
     )
-    config = testdir.parseconfig()
-    cache = Cache.for_config(config)
+    config = pytester.parseconfig()
+    cache = Cache.for_config(config, _ispytest=True)
     cache.set("foo", "bar")
 
     assert os.path.isdir("v")  # cache contents
@@ -1157,13 +1239,13 @@ def test_does_not_create_boilerplate_in_existing_dirs(testdir):
     assert not os.path.exists("README.md")
 
 
-def test_cachedir_tag(testdir):
+def test_cachedir_tag(pytester: Pytester) -> None:
     """Ensure we automatically create CACHEDIR.TAG file in the pytest_cache directory (#4278)."""
     from _pytest.cacheprovider import Cache
     from _pytest.cacheprovider import CACHEDIR_TAG_CONTENT
 
-    config = testdir.parseconfig()
-    cache = Cache.for_config(config)
+    config = pytester.parseconfig()
+    cache = Cache.for_config(config, _ispytest=True)
     cache.set("foo", "bar")
     cachedir_tag_path = cache._cachedir.joinpath("CACHEDIR.TAG")
     assert cachedir_tag_path.read_bytes() == CACHEDIR_TAG_CONTENT

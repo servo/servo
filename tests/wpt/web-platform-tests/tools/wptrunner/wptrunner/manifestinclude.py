@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 """Manifest structure used to store paths that should be included in a test run.
 
 The manifest is represented by a tree of IncludeManifest objects, the root

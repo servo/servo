@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="252" height="542">
+    <style>
+        text {
+            font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+            dominant-baseline: middle;
+            text-anchor: middle;
+            fill: #062886;
+            font-size: medium;
+        }
+        ellipse.fixture, rect.test {
+            fill: #eeffcc;
+            stroke: #007020;
+            stroke-width: 2;
+        }
+        text.fixture {
+            color: #06287e;
+        }
+        circle.class {
+            fill: #c3e0ec;
+            stroke: #0e84b5;
+            stroke-width: 2;
+        }
+        text.class {
+            fill: #0e84b5;
+        }
+        path, line {
+            stroke: black;
+            stroke-width: 2;
+            fill: none;
+        }
+    </style>
+    <path d="M126,446 L26,376 L26,236" />
+    <path d="M226,306 L126,236 L126,166" />
+    <line x1="126" x2="126" y1="516" y2="446" />
+    <line x1="226" x2="226" y1="376" y2="306" />
+    <line x1="226" x2="226" y1="306" y2="236" />
+    <line x1="226" x2="126" y1="236" y2="166" />
+    <line x1="126" x2="226" y1="446" y2="376" />
+    <line x1="26" x2="126" y1="236" y2="166" />
+    <line x1="126" x2="126" y1="166" y2="96" />
+    <line x1="126" x2="126" y1="96" y2="26" />
+    <ellipse class="fixture" rx="50" ry="25" cx="126" cy="26" />
+    <text x="126" y="26">order</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="126" cy="96" />
+    <text x="126" y="96">a</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="126" cy="166" />
+    <text x="126" y="166">b</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="26" cy="236" />
+    <text x="26" y="236">c</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="226" cy="236" />
+    <text x="226" y="236">d</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="226" cy="306" />
+    <text x="226" y="306">e</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="226" cy="376" />
+    <text x="226" y="376">f</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="126" cy="446" />
+    <text x="126" y="446">g</text>
+    <rect class="test" width="110" height="50" x="71" y="491" />
+    <text x="126" y="516">test_order</text>
+</svg>

@@ -4,7 +4,7 @@
 // Source: WebGPU (https://gpuweb.github.io/gpuweb/)
 
 interface mixin GPUObjectBase {
-    attribute USVString? label;
+    attribute USVString label;
 };
 
 dictionary GPUObjectDescriptorBase {
@@ -84,6 +84,7 @@ interface GPUAdapter {
 dictionary GPUDeviceDescriptor : GPUObjectDescriptorBase {
     sequence<GPUFeatureName> requiredFeatures = [];
     record<DOMString, GPUSize64> requiredLimits = {};
+    GPUQueueDescriptor defaultQueue = {};
 };
 
 enum GPUFeatureName {
@@ -95,6 +96,7 @@ enum GPUFeatureName {
     "texture-compression-astc",
     "timestamp-query",
     "indirect-first-instance",
+    "shader-f16",
 };
 
 [Exposed=(Window, DedicatedWorker), SecureContext]
@@ -181,6 +183,7 @@ dictionary GPUTextureDescriptor : GPUObjectDescriptorBase {
     GPUTextureDimension dimension = "2d";
     required GPUTextureFormat format;
     required GPUTextureUsageFlags usage;
+    sequence<GPUTextureFormat> viewFormats = [];
 };
 
 enum GPUTextureDimension {
@@ -354,6 +357,7 @@ enum GPUTextureFormat {
 
 [Exposed=(Window, DedicatedWorker), SecureContext]
 interface GPUExternalTexture {
+    readonly attribute boolean expired;
 };
 GPUExternalTexture includes GPUObjectBase;
 
@@ -373,7 +377,7 @@ dictionary GPUSamplerDescriptor : GPUObjectDescriptorBase {
     GPUAddressMode addressModeW = "clamp-to-edge";
     GPUFilterMode magFilter = "nearest";
     GPUFilterMode minFilter = "nearest";
-    GPUFilterMode mipmapFilter = "nearest";
+    GPUMipmapFilterMode mipmapFilter = "nearest";
     float lodMinClamp = 0;
     float lodMaxClamp = 32;
     GPUCompareFunction compare;
@@ -387,6 +391,11 @@ enum GPUAddressMode {
 };
 
 enum GPUFilterMode {
+    "nearest",
+    "linear",
+};
+
+enum GPUMipmapFilterMode {
     "nearest",
     "linear",
 };
@@ -562,7 +571,7 @@ dictionary GPUProgrammableStage {
     record<USVString, GPUPipelineConstantValue> constants;
 };
 
-typedef double GPUPipelineConstantValue; // May represent WGSL’s bool, f32, i32, u32.
+typedef double GPUPipelineConstantValue; // May represent WGSL’s bool, f32, i32, u32, and f16 if enabled.
 
 [Exposed=(Window, DedicatedWorker), SecureContext]
 interface GPUComputePipeline {
@@ -624,7 +633,7 @@ dictionary GPUMultisampleState {
 };
 
 dictionary GPUFragmentState : GPUProgrammableStage {
-    required sequence<GPUColorTargetState> targets;
+    required sequence<GPUColorTargetState?> targets;
 };
 
 dictionary GPUColorTargetState {
@@ -863,7 +872,7 @@ dictionary GPUImageCopyExternalImage {
     boolean flipY = false;
 };
 
-interface mixin GPUProgrammablePassEncoder {
+interface mixin GPUBindingCommandsMixin {
     undefined setBindGroup(GPUIndex32 index, GPUBindGroup bindGroup,
                       optional sequence<GPUBufferDynamicOffset> dynamicOffsets = []);
 
@@ -882,15 +891,15 @@ interface mixin GPUDebugCommandsMixin {
 [Exposed=(Window, DedicatedWorker), SecureContext]
 interface GPUComputePassEncoder {
     undefined setPipeline(GPUComputePipeline pipeline);
-    undefined dispatch(GPUSize32 x, optional GPUSize32 y = 1, optional GPUSize32 z = 1);
-    undefined dispatchIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
+    undefined dispatchWorkgroups(GPUSize32 workgroupCountX, optional GPUSize32 workgroupCountY = 1, optional GPUSize32 workgroupCountZ = 1);
+    undefined dispatchWorkgroupsIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
 
-    undefined endPass();
+    undefined end();
 };
 GPUComputePassEncoder includes GPUObjectBase;
 GPUComputePassEncoder includes GPUCommandsMixin;
 GPUComputePassEncoder includes GPUDebugCommandsMixin;
-GPUComputePassEncoder includes GPUProgrammablePassEncoder;
+GPUComputePassEncoder includes GPUBindingCommandsMixin;
 
 enum GPUComputePassTimestampLocation {
     "beginning",
@@ -909,7 +918,90 @@ dictionary GPUComputePassDescriptor : GPUObjectDescriptorBase {
     GPUComputePassTimestampWrites timestampWrites = [];
 };
 
-interface mixin GPURenderEncoderBase {
+[Exposed=(Window, DedicatedWorker), SecureContext]
+interface GPURenderPassEncoder {
+    undefined setViewport(float x, float y,
+                     float width, float height,
+                     float minDepth, float maxDepth);
+
+    undefined setScissorRect(GPUIntegerCoordinate x, GPUIntegerCoordinate y,
+                        GPUIntegerCoordinate width, GPUIntegerCoordinate height);
+
+    undefined setBlendConstant(GPUColor color);
+    undefined setStencilReference(GPUStencilValue reference);
+
+    undefined beginOcclusionQuery(GPUSize32 queryIndex);
+    undefined endOcclusionQuery();
+
+    undefined executeBundles(sequence<GPURenderBundle> bundles);
+    undefined end();
+};
+GPURenderPassEncoder includes GPUObjectBase;
+GPURenderPassEncoder includes GPUCommandsMixin;
+GPURenderPassEncoder includes GPUDebugCommandsMixin;
+GPURenderPassEncoder includes GPUBindingCommandsMixin;
+GPURenderPassEncoder includes GPURenderCommandsMixin;
+
+enum GPURenderPassTimestampLocation {
+    "beginning",
+    "end",
+};
+
+dictionary GPURenderPassTimestampWrite {
+    required GPUQuerySet querySet;
+    required GPUSize32 queryIndex;
+    required GPURenderPassTimestampLocation location;
+};
+
+typedef sequence<GPURenderPassTimestampWrite> GPURenderPassTimestampWrites;
+
+dictionary GPURenderPassDescriptor : GPUObjectDescriptorBase {
+    required sequence<GPURenderPassColorAttachment?> colorAttachments;
+    GPURenderPassDepthStencilAttachment depthStencilAttachment;
+    GPUQuerySet occlusionQuerySet;
+    GPURenderPassTimestampWrites timestampWrites = [];
+};
+
+dictionary GPURenderPassColorAttachment {
+    required GPUTextureView view;
+    GPUTextureView resolveTarget;
+
+    GPUColor clearValue;
+    required GPULoadOp loadOp;
+    required GPUStoreOp storeOp;
+};
+
+dictionary GPURenderPassDepthStencilAttachment {
+    required GPUTextureView view;
+
+    float depthClearValue = 0;
+    GPULoadOp depthLoadOp;
+    GPUStoreOp depthStoreOp;
+    boolean depthReadOnly = false;
+
+    GPUStencilValue stencilClearValue = 0;
+    GPULoadOp stencilLoadOp;
+    GPUStoreOp stencilStoreOp;
+    boolean stencilReadOnly = false;
+};
+
+enum GPULoadOp {
+    "load",
+    "clear",
+};
+
+enum GPUStoreOp {
+    "store",
+    "discard",
+};
+
+dictionary GPURenderPassLayout: GPUObjectDescriptorBase {
+    required sequence<GPUTextureFormat?> colorFormats;
+    GPUTextureFormat depthStencilFormat;
+    GPUSize32 sampleCount = 1;
+};
+
+interface mixin GPURenderCommandsMixin {
     undefined setPipeline(GPURenderPipeline pipeline);
 
     undefined setIndexBuffer(GPUBuffer buffer, GPUIndexFormat indexFormat, optional GPUSize64 offset = 0, optional GPUSize64 size);
@@ -927,85 +1019,6 @@ interface mixin GPURenderEncoderBase {
 };
 
 [Exposed=(Window, DedicatedWorker), SecureContext]
-interface GPURenderPassEncoder {
-    undefined setViewport(float x, float y,
-                     float width, float height,
-                     float minDepth, float maxDepth);
-
-    undefined setScissorRect(GPUIntegerCoordinate x, GPUIntegerCoordinate y,
-                        GPUIntegerCoordinate width, GPUIntegerCoordinate height);
-
-    undefined setBlendConstant(GPUColor color);
-    undefined setStencilReference(GPUStencilValue reference);
-
-    undefined beginOcclusionQuery(GPUSize32 queryIndex);
-    undefined endOcclusionQuery();
-
-    undefined executeBundles(sequence<GPURenderBundle> bundles);
-    undefined endPass();
-};
-GPURenderPassEncoder includes GPUObjectBase;
-GPURenderPassEncoder includes GPUCommandsMixin;
-GPURenderPassEncoder includes GPUDebugCommandsMixin;
-GPURenderPassEncoder includes GPUProgrammablePassEncoder;
-GPURenderPassEncoder includes GPURenderEncoderBase;
-
-enum GPURenderPassTimestampLocation {
-    "beginning",
-    "end",
-};
-
-dictionary GPURenderPassTimestampWrite {
-    required GPUQuerySet querySet;
-    required GPUSize32 queryIndex;
-    required GPURenderPassTimestampLocation location;
-};
-
-typedef sequence<GPURenderPassTimestampWrite> GPURenderPassTimestampWrites;
-
-dictionary GPURenderPassDescriptor : GPUObjectDescriptorBase {
-    required sequence<GPURenderPassColorAttachment> colorAttachments;
-    GPURenderPassDepthStencilAttachment depthStencilAttachment;
-    GPUQuerySet occlusionQuerySet;
-    GPURenderPassTimestampWrites timestampWrites = [];
-};
-
-dictionary GPURenderPassColorAttachment {
-    required GPUTextureView view;
-    GPUTextureView resolveTarget;
-
-    required (GPULoadOp or GPUColor) loadValue;
-    required GPUStoreOp storeOp;
-};
-
-dictionary GPURenderPassDepthStencilAttachment {
-    required GPUTextureView view;
-
-    required (GPULoadOp or float) depthLoadValue;
-    required GPUStoreOp depthStoreOp;
-    boolean depthReadOnly = false;
-
-    required (GPULoadOp or GPUStencilValue) stencilLoadValue;
-    required GPUStoreOp stencilStoreOp;
-    boolean stencilReadOnly = false;
-};
-
-enum GPULoadOp {
-    "load",
-};
-
-enum GPUStoreOp {
-    "store",
-    "discard",
-};
-
-dictionary GPURenderPassLayout: GPUObjectDescriptorBase {
-    required sequence<GPUTextureFormat> colorFormats;
-    GPUTextureFormat depthStencilFormat;
-    GPUSize32 sampleCount = 1;
-};
-
-[Exposed=(Window, DedicatedWorker), SecureContext]
 interface GPURenderBundle {
 };
 GPURenderBundle includes GPUObjectBase;
@@ -1020,12 +1033,15 @@ interface GPURenderBundleEncoder {
 GPURenderBundleEncoder includes GPUObjectBase;
 GPURenderBundleEncoder includes GPUCommandsMixin;
 GPURenderBundleEncoder includes GPUDebugCommandsMixin;
-GPURenderBundleEncoder includes GPUProgrammablePassEncoder;
-GPURenderBundleEncoder includes GPURenderEncoderBase;
+GPURenderBundleEncoder includes GPUBindingCommandsMixin;
+GPURenderBundleEncoder includes GPURenderCommandsMixin;
 
 dictionary GPURenderBundleEncoderDescriptor : GPURenderPassLayout {
     boolean depthReadOnly = false;
     boolean stencilReadOnly = false;
+};
+
+dictionary GPUQueueDescriptor : GPUObjectDescriptorBase {
 };
 
 [Exposed=(Window, DedicatedWorker), SecureContext]
@@ -1090,6 +1106,7 @@ dictionary GPUCanvasConfiguration {
     required GPUDevice device;
     required GPUTextureFormat format;
     GPUTextureUsageFlags usage = 0x10;  // GPUTextureUsage.RENDER_ATTACHMENT
+    sequence<GPUTextureFormat> viewFormats = [];
     GPUPredefinedColorSpace colorSpace = "srgb";
     GPUCanvasCompositingAlphaMode compositingAlphaMode = "opaque";
     GPUExtent3D size;

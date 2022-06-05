@@ -1,5 +1,5 @@
 // META: title=Delete range
-// META: script=support.js
+// META: script=resources/support.js
 
 "use strict";
 

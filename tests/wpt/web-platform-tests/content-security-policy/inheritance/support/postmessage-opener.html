@@ -1,3 +1,4 @@
 <script>
-  opener.postMessage("ready", "*");
+  const params = new URLSearchParams(window.location.search);
+  opener.postMessage({msg: "ready", token: params.get("token")}, "*");
 </script>

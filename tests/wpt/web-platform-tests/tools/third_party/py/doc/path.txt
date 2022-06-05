@@ -2,6 +2,12 @@
 py.path
 =======
 
+    **Note**: The 'py' library is in "maintenance mode" and so is not
+    recommended for new projects. Please check out
+    `pathlib <https://docs.python.org/3/library/pathlib.html>`_ or
+    `pathlib2 <https://pypi.org/project/pathlib2/>`_ for path
+    operations.
+
 The 'py' lib provides a uniform high-level api to deal with filesystems
 and filesystem-like interfaces: ``py.path``.  It aims to offer a central
 object to fs-like object trees (reading from and writing to files, adding

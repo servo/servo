@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Sub Apps: Valid calls for list()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/subapps-helpers.js"></script>
+<script>
+
+subapps_test(async (t, mockSubAppsService) => {
+  const result = await navigator.subApps.list();
+  assert_array_equals(result, []);
+}, 'List API call works.');
+
+</script>

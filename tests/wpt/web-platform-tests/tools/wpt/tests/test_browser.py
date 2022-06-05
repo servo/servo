@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import logging
 import inspect
 import subprocess
@@ -109,6 +111,31 @@ def test_chrome_webdriver_supports_browser():
     assert chrome.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome', 'dev')
     chrome.webdriver_version = mock.MagicMock(return_value='71.0.1')
     assert chrome.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome', 'dev')
+
+
+def test_chromium_webdriver_supports_browser():
+    # ChromeDriver binary cannot be called.
+    chromium = browser.Chromium(logger)
+    chromium.webdriver_version = mock.MagicMock(return_value=None)
+    assert not chromium.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome')
+
+    # Browser binary cannot be called.
+    chromium = browser.Chromium(logger)
+    chromium.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chromium.version = mock.MagicMock(return_value=None)
+    assert chromium.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome')
+
+    # Browser version matches.
+    chromium = browser.Chromium(logger)
+    chromium.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chromium.version = mock.MagicMock(return_value='70.0.1')
+    assert chromium.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome')
+
+    # Browser version doesn't match.
+    chromium = browser.Chromium(logger)
+    chromium.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chromium.version = mock.MagicMock(return_value='69.0.1')
+    assert not chromium.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome', 'stable')
 
 
 # On Windows, webdriver_version directly calls _get_fileversion, so there is no

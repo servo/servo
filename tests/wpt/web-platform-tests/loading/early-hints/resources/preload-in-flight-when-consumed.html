@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+    const params = new URLSearchParams(window.location.search);
+    const resource_id = params.get("resource-id");
+    const resource_url = params.get("resource-url");
+
+    const promise = fetchScript(resource_url);
+    await fetch("resume-delayed-js.h2.py?id=" + resource_id);
+    await promise;
+    assert_true(isPreloadedByEarlyHints(resource_url));
+}, "Early hints preload is in-flight when consumed.");
+</script>
+</body>

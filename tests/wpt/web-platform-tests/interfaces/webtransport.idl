@@ -21,6 +21,7 @@ interface WebTransport {
 
   Promise<WebTransportStats> getStats();
   readonly attribute Promise<undefined> ready;
+  readonly attribute WebTransportReliabilityMode reliability;
   readonly attribute Promise<WebTransportCloseInfo> closed;
   undefined close(optional WebTransportCloseInfo closeInfo = {});
 
@@ -30,9 +31,15 @@ interface WebTransport {
   /* a ReadableStream of WebTransportBidirectionalStream objects */
   readonly attribute ReadableStream incomingBidirectionalStreams;
 
-  Promise<WritableStream> createUnidirectionalStream();
-  /* a ReadableStream of ReceiveStreams */
+  Promise<WebTransportSendStream> createUnidirectionalStream();
+  /* a ReadableStream of WebTransportReceiveStream objects */
   readonly attribute ReadableStream incomingUnidirectionalStreams;
+};
+
+enum WebTransportReliabilityMode {
+  "pending",
+  "reliable-only",
+  "supports-unreliable",
 };
 
 dictionary WebTransportHash {
@@ -41,7 +48,8 @@ dictionary WebTransportHash {
 };
 
 dictionary WebTransportOptions {
-  boolean allowPooling;
+  boolean allowPooling = false;
+  boolean requireUnreliable = false;
   sequence<WebTransportHash> serverCertificateHashes;
 };
 
@@ -54,12 +62,45 @@ dictionary WebTransportStats {
   DOMHighResTimeStamp timestamp;
   unsigned long long bytesSent;
   unsigned long long packetsSent;
+  unsigned long long packetsLost;
   unsigned long numOutgoingStreamsCreated;
   unsigned long numIncomingStreamsCreated;
   unsigned long long bytesReceived;
   unsigned long long packetsReceived;
+  DOMHighResTimeStamp smoothedRtt;
+  DOMHighResTimeStamp rttVariation;
   DOMHighResTimeStamp minRtt;
-  unsigned long numReceivedDatagramsDropped;
+  WebTransportDatagramStats datagrams;
+};
+
+dictionary WebTransportDatagramStats {
+  DOMHighResTimeStamp timestamp;
+  unsigned long long expiredOutgoing;
+  unsigned long long droppedIncoming;
+  unsigned long long lostOutgoing;
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransportSendStream : WritableStream {
+  Promise<WebTransportSendStreamStats> getStats();
+};
+
+dictionary WebTransportSendStreamStats {
+  DOMHighResTimeStamp timestamp;
+  unsigned long long bytesWritten;
+  unsigned long long bytesSent;
+  unsigned long long bytesAcknowledged;
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransportReceiveStream : ReadableStream {
+  Promise<WebTransportReceiveStreamStats> getStats();
+};
+
+dictionary WebTransportReceiveStreamStats {
+  DOMHighResTimeStamp timestamp;
+  unsigned long long bytesReceived;
+  unsigned long long bytesRead;
 };
 
 [Exposed=(Window,Worker), SecureContext]

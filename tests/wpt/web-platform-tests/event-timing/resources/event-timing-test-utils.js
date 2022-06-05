@@ -275,3 +275,51 @@ async function testEventType(t, eventType, looseCount=false) {
 
   await observerPromise;
 }
+
+function addListeners(element, events) {
+  const clickHandler = (e) => {
+    mainThreadBusy(200);
+  };
+  events.forEach(e => { element.addEventListener(e, clickHandler); });
+}
+
+// The testdriver.js, testdriver-vendor.js and testdriver-actions.js need to be
+// included to use this function.
+async function tap(element) {
+  let actions = new test_driver.Actions()
+    .addPointer("tapPointer", "touch")
+    .pointerMove(0, 0, { origin: element })
+    .pointerDown()
+    .pointerUp();
+  await actions.send();
+}
+
+// The testdriver.js, testdriver-vendor.js need to be included to use this
+// function.
+async function pressKey(element, key) {
+  await test_driver.send_keys(element, key);
+}
+
+// The testdriver.js, testdriver-vendor.js and testdriver-actions.js need to be
+// included to use this function.
+async function addListenersAndTap(element, events) {
+  addListeners(element, events);
+  tap(element);
+}
+
+// The testdriver.js, testdriver-vendor.js need to be included to use this
+// function.
+async function addListenersAndPress(element, key, events) {
+  addListeners(element, events);
+  pressKey(element, key);
+}
+
+function filterAndAddToMap(events, map) {
+  return function (entry) {
+    if (events.includes(entry.name)) {
+      map.set(entry.name, entry.interactionId);
+      return true;
+    }
+    return false;
+  }
+}

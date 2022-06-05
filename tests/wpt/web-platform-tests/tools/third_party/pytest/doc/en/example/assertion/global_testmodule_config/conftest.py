@@ -11,4 +11,4 @@ def pytest_runtest_setup(item):
             return
         mod = item.getparent(pytest.Module).obj
         if hasattr(mod, "hello"):
-            print("mod.hello {!r}".format(mod.hello))
+            print(f"mod.hello {mod.hello!r}")

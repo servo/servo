@@ -21,14 +21,14 @@
     background: skyblue;
   }
   .contents {
-    display: none;
+    display: contents;
   }
 
-  @container size(width: 30px) {
+  @container (width: 30px) {
     .target { --x:30; }
   }
 
-  @container size(width: 50px) {
+  @container (width: 50px) {
     .target { --x:50; }
   }
 

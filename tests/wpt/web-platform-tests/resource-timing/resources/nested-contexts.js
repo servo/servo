@@ -1,7 +1,10 @@
 let destination = location;
-if (location.search == "?crossorigin") {
-  const {REMOTE_HOST} = get_host_info();
-  destination = `${location.protocol}//${REMOTE_HOST}:${location.port}`;
+
+if (location.search == "?cross-site") {
+    const https = destination.protocol.startsWith("https");
+    destination = get_host_info()[https ? 'HTTPS_NOTSAMESITE_ORIGIN' : 'HTTP_NOTSAMESITE_ORIGIN'];
+} else if (location.search == "?crossorigin") {
+    destination =  get_host_info().REMOTE_ORIGIN;
 }
 
 const pre_navigate_url =

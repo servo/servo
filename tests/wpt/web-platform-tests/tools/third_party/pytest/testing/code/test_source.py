@@ -6,17 +6,18 @@ import inspect
 import linecache
 import sys
 import textwrap
+from pathlib import Path
 from types import CodeType
 from typing import Any
 from typing import Dict
 from typing import Optional
 
-import py.path
-
-import _pytest._code
 import pytest
+from _pytest._code import Code
+from _pytest._code import Frame
 from _pytest._code import getfslineno
 from _pytest._code import Source
+from _pytest.pathlib import import_path
 
 
 def test_source_str_function() -> None:
@@ -35,7 +36,7 @@ def test_source_str_function() -> None:
 
 
 def test_source_from_function() -> None:
-    source = _pytest._code.Source(test_source_str_function)
+    source = Source(test_source_str_function)
     assert str(source).startswith("def test_source_str_function() -> None:")
 
 
@@ -44,13 +45,13 @@ def test_source_from_method() -> None:
         def test_method(self):
             pass
 
-    source = _pytest._code.Source(TestClass().test_method)
+    source = Source(TestClass().test_method)
     assert source.lines == ["def test_method(self):", "    pass"]
 
 
 def test_source_from_lines() -> None:
     lines = ["a \n", "b\n", "c"]
-    source = _pytest._code.Source(lines)
+    source = Source(lines)
     assert source.lines == ["a ", "b", "c"]
 
 
@@ -58,7 +59,7 @@ def test_source_from_inner_function() -> None:
     def f():
         raise NotImplementedError()
 
-    source = _pytest._code.Source(f)
+    source = Source(f)
     assert str(source).startswith("def f():")
 
 
@@ -220,7 +221,7 @@ def test_getstartingblock_singleline() -> None:
     class A:
         def __init__(self, *args) -> None:
             frame = sys._getframe(1)
-            self.source = _pytest._code.Frame(frame).statement
+            self.source = Frame(frame).statement
 
     x = A("x", "y")
 
@@ -250,8 +251,8 @@ def test_getfuncsource_dynamic() -> None:
     def g():
         pass  # pragma: no cover
 
-    f_source = _pytest._code.Source(f)
-    g_source = _pytest._code.Source(g)
+    f_source = Source(f)
+    g_source = Source(g)
     assert str(f_source).strip() == "def f():\n    raise NotImplementedError()"
     assert str(g_source).strip() == "def g():\n    pass  # pragma: no cover"
 
@@ -268,7 +269,7 @@ def test_getfuncsource_with_multine_string() -> None:
     pass
 """
 '''
-    assert str(_pytest._code.Source(f)) == expected.rstrip()
+    assert str(Source(f)) == expected.rstrip()
 
 
 def test_deindent() -> None:
@@ -285,19 +286,20 @@ def test_deindent() -> None:
     assert lines == ["def f():", "    def g():", "        pass"]
 
 
-def test_source_of_class_at_eof_without_newline(tmpdir, _sys_snapshot) -> None:
+def test_source_of_class_at_eof_without_newline(_sys_snapshot, tmp_path: Path) -> None:
     # this test fails because the implicit inspect.getsource(A) below
     # does not return the "x = 1" last line.
-    source = _pytest._code.Source(
+    source = Source(
         """
-        class A(object):
+        class A:
             def method(self):
                 x = 1
     """
     )
-    path = tmpdir.join("a.py")
-    path.write(source)
-    s2 = _pytest._code.Source(tmpdir.join("a.py").pyimport().A)
+    path = tmp_path.joinpath("a.py")
+    path.write_text(str(source))
+    mod: Any = import_path(path, root=tmp_path)
+    s2 = Source(mod.A)
     assert str(source).strip() == str(s2).strip()
 
 
@@ -337,7 +339,7 @@ def test_findsource(monkeypatch) -> None:
     assert src is not None
     assert "if 1:" in str(src)
 
-    d = {}  # type: Dict[str, Any]
+    d: Dict[str, Any] = {}
     eval(co, d)
     src, lineno = findsource(d["x"])
     assert src is not None
@@ -351,8 +353,8 @@ def test_getfslineno() -> None:
 
     fspath, lineno = getfslineno(f)
 
-    assert isinstance(fspath, py.path.local)
-    assert fspath.basename == "test_source.py"
+    assert isinstance(fspath, Path)
+    assert fspath.name == "test_source.py"
     assert lineno == f.__code__.co_firstlineno - 1  # see findsource
 
     class A:
@@ -361,8 +363,8 @@ def test_getfslineno() -> None:
     fspath, lineno = getfslineno(A)
 
     _, A_lineno = inspect.findsource(A)
-    assert isinstance(fspath, py.path.local)
-    assert fspath.basename == "test_source.py"
+    assert isinstance(fspath, Path)
+    assert fspath.name == "test_source.py"
     assert lineno == A_lineno
 
     assert getfslineno(3) == ("", -1)
@@ -373,39 +375,31 @@ def test_getfslineno() -> None:
     B.__name__ = B.__qualname__ = "B2"
     assert getfslineno(B)[1] == -1
 
-    co = compile("...", "", "eval")
-    assert co.co_filename == ""
-
-    if hasattr(sys, "pypy_version_info"):
-        assert getfslineno(co) == ("", -1)
-    else:
-        assert getfslineno(co) == ("", 0)
-
 
 def test_code_of_object_instance_with_call() -> None:
     class A:
         pass
 
-    pytest.raises(TypeError, lambda: _pytest._code.Source(A()))
+    pytest.raises(TypeError, lambda: Source(A()))
 
     class WithCall:
         def __call__(self) -> None:
             pass
 
-    code = _pytest._code.Code(WithCall())
+    code = Code.from_function(WithCall())
     assert "pass" in str(code.source())
 
     class Hello:
         def __call__(self) -> None:
             pass
 
-    pytest.raises(TypeError, lambda: _pytest._code.Code(Hello))
+    pytest.raises(TypeError, lambda: Code.from_function(Hello))
 
 
 def getstatement(lineno: int, source) -> Source:
     from _pytest._code.source import getstatementrange_ast
 
-    src = _pytest._code.Source(source)
+    src = Source(source)
     ast, start, end = getstatementrange_ast(lineno, src)
     return src[start:end]
 
@@ -490,7 +484,7 @@ def test_source_with_decorator() -> None:
 
     src = inspect.getsource(deco_fixture)
     assert src == "    @pytest.fixture\n    def deco_fixture():\n        assert False\n"
-    # currenly Source does not unwrap decorators, testing the
+    # currently Source does not unwrap decorators, testing the
     # existing behavior here for explicitness, but perhaps we should revisit/change this
     # in the future
     assert str(Source(deco_fixture)).startswith("@functools.wraps(function)")
@@ -624,6 +618,19 @@ def something():
     assert str(source) == "def func(): raise ValueError(42)"
 
 
+def test_decorator() -> None:
+    s = """\
+def foo(f):
+    pass
+
+@foo
+def bar():
+    pass
+    """
+    source = getstatement(3, s)
+    assert "@foo" in str(source)
+
+
 def XXX_test_expression_multiline() -> None:
     source = """\
 something
@@ -637,7 +644,7 @@ def test_getstartingblock_multiline() -> None:
     class A:
         def __init__(self, *args):
             frame = sys._getframe(1)
-            self.source = _pytest._code.Frame(frame).statement
+            self.source = Frame(frame).statement
 
     # fmt: off
     x = A('x',

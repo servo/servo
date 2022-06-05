@@ -16,7 +16,7 @@ def main(request, response):
     }
     key = 0
     if b'endpoint' in request.GET:
-        key = uuidMap[request.GET[b'endpoint']]
+        key = uuidMap.get(request.GET[b'endpoint'], 0)
 
     if b'key' in request.GET:
         key = request.GET[b'key']

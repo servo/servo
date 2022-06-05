@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="match" href="table-col-paint-vlr-rtl-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#fragmentation">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#rendering">
+<style>
+body {
+  writing-mode: vertical-lr;
+  direction: rtl;
+}
+.multicol {
+  inline-size: 400px;
+  block-size: 100px;
+  columns: 4;
+  column-fill: auto;
+  gap: 0;
+}
+.pattern1 {
+  background: repeating-linear-gradient(to right,lime, lime 20px, blue 20px, blue 40px);
+}
+.pattern2 {
+  background: repeating-linear-gradient(to right, orange, orange 30px, dodgerblue 30px, dodgerblue 60px);
+}
+</style>
+<div class="multicol">
+  <table style="border-spacing: 10px; inline-size: 100%;">
+    <caption style="background: red; block-size: 50px;"></caption>
+    <col class="pattern1"></col>
+    <col class="pattern2"></col>
+    <tr style="block-size: 110px;">
+      <td></td>
+      <td></td>
+    </tr>
+    <tr style="block-size: 135px;">
+      <td></td>
+      <td></td>
+    </tr>
+    <caption style="caption-side: bottom; background: red; block-size: 75px;"></caption>
+  </table>
+</div>

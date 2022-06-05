@@ -22,7 +22,7 @@
             }
 
             var blendModes = ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn",
-                      "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"];
+                      "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "plus-lighter"];
 
             for (var i = 0; i < blendModes.length; i++) {
                 test(function() {assert_equals(testParse("mix-blend-mode: " + blendModes[i]), blendModes[i] )}, "Mix-blend-mode " + blendModes[i]);

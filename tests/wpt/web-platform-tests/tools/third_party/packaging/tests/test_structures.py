@@ -1,7 +1,6 @@
 # This file is dual licensed under the terms of the Apache License, Version
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
-from __future__ import absolute_import, division, print_function
 
 import pytest
 
@@ -44,7 +43,7 @@ def test_negative_infinity_lesser(left):
     assert left >= NegativeInfinity
 
 
-def test_infinty_equal():
+def test_infinity_equal():
     assert Infinity == Infinity
 
 

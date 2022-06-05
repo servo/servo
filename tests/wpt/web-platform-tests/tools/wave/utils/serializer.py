@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 from datetime import datetime
 
 

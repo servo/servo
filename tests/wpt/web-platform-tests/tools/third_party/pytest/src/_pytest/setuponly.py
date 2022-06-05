@@ -9,6 +9,7 @@ from _pytest.config import ExitCode
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureDef
 from _pytest.fixtures import SubRequest
+from _pytest.scope import Scope
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -64,7 +65,9 @@ def _show_fixture_action(fixturedef: FixtureDef[object], msg: str) -> None:
 
     tw = config.get_terminal_writer()
     tw.line()
-    tw.write(" " * 2 * fixturedef.scopenum)
+    # Use smaller indentation the higher the scope: Session = 0, Package = 1, etc.
+    scope_indent = list(reversed(Scope)).index(fixturedef._scope)
+    tw.write(" " * 2 * scope_indent)
     tw.write(
         "{step} {scope} {fixture}".format(
             step=msg.ljust(8),  # align the output to TEARDOWN
@@ -79,7 +82,7 @@ def _show_fixture_action(fixturedef: FixtureDef[object], msg: str) -> None:
             tw.write(" (fixtures used: {})".format(", ".join(deps)))
 
     if hasattr(fixturedef, "cached_param"):
-        tw.write("[{}]".format(saferepr(fixturedef.cached_param, maxsize=42)))  # type: ignore[attr-defined]
+        tw.write(f"[{saferepr(fixturedef.cached_param, maxsize=42)}]")  # type: ignore[attr-defined]
 
     tw.flush()
 

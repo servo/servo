@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 import subprocess
 import sys
@@ -11,7 +13,7 @@ atom_reset = atoms["Reset"]
 enabled_tests = {"testharness", "reftest", "wdspec", "crashtest", "print-reftest"}
 
 
-class Result(object):
+class Result:
     def __init__(self,
                  status,
                  message,
@@ -29,10 +31,10 @@ class Result(object):
         self.stack = stack
 
     def __repr__(self):
-        return "<%s.%s %s>" % (self.__module__, self.__class__.__name__, self.status)
+        return f"<{self.__module__}.{self.__class__.__name__} {self.status}>"
 
 
-class SubtestResult(object):
+class SubtestResult:
     def __init__(self, name, status, message, stack=None, expected=None, known_intermittent=None):
         self.name = name
         if status not in self.statuses:
@@ -44,7 +46,7 @@ class SubtestResult(object):
         self.known_intermittent = known_intermittent if known_intermittent is not None else []
 
     def __repr__(self):
-        return "<%s.%s %s %s>" % (self.__module__, self.__class__.__name__, self.name, self.status)
+        return f"<{self.__module__}.{self.__class__.__name__} {self.name} {self.status}>"
 
 
 class TestharnessResult(Result):
@@ -89,7 +91,9 @@ class RunInfo(Dict[str, Any]):
                  browser_channel=None,
                  verify=None,
                  extras=None,
-                 enable_webrender=False):
+                 enable_webrender=False,
+                 device_serials=None,
+                 adb_binary=None):
         import mozinfo
         self._update_mozinfo(metadata_root)
         self.update(mozinfo.info)
@@ -125,6 +129,59 @@ class RunInfo(Dict[str, Any]):
 
         self["webrender"] = enable_webrender
 
+        if adb_binary:
+            self["adb_binary"] = adb_binary
+        if device_serials:
+            # Assume all emulators are identical, so query an arbitrary one.
+            self._update_with_emulator_info(device_serials[0])
+            self.pop("linux_distro", None)
+
+    def _adb_run(self, device_serial, args, **kwargs):
+        adb_binary = self.get("adb_binary", "adb")
+        cmd = [adb_binary, "-s", device_serial, *args]
+        return subprocess.check_output(cmd, **kwargs)
+
+    def _adb_get_property(self, device_serial, prop, **kwargs):
+        args = ["shell", "getprop", prop]
+        value = self._adb_run(device_serial, args, **kwargs)
+        return value.strip()
+
+    def _update_with_emulator_info(self, device_serial):
+        """Override system info taken from the host if using an Android
+        emulator."""
+        try:
+            self._adb_run(device_serial, ["wait-for-device"])
+            emulator_info = {
+                "os": "android",
+                "os_version": self._adb_get_property(
+                    device_serial,
+                    "ro.build.version.release",
+                    encoding="utf-8",
+                ),
+            }
+            emulator_info["version"] = emulator_info["os_version"]
+
+            # Detect CPU info (https://developer.android.com/ndk/guides/abis#sa)
+            abi64, *_ = self._adb_get_property(
+                device_serial,
+                "ro.product.cpu.abilist64",
+                encoding="utf-8",
+            ).split(',')
+            if abi64:
+                emulator_info["processor"] = abi64
+                emulator_info["bits"] = 64
+            else:
+                emulator_info["processor"], *_ = self._adb_get_property(
+                    device_serial,
+                    "ro.product.cpu.abilist32",
+                    encoding="utf-8",
+                ).split(',')
+                emulator_info["bits"] = 32
+
+            self.update(emulator_info)
+        except (OSError, subprocess.CalledProcessError):
+            pass
+
     def _update_mozinfo(self, metadata_root):
         """Add extra build information from a mozinfo.json file in a parent
         directory"""
@@ -149,7 +206,7 @@ def server_protocol(manifest_item):
     return "http"
 
 
-class Test(object):
+class Test:
 
     result_cls = None  # type: ClassVar[Type[Result]]
     subtest_result_cls = None  # type: ClassVar[Type[SubtestResult]]
@@ -224,8 +281,7 @@ class Test(object):
                 if subtest_meta is not None:
                     yield subtest_meta
             yield self._get_metadata()
-        for metadata in reversed(self._inherit_metadata):
-            yield metadata
+        yield from reversed(self._inherit_metadata)
 
     def disabled(self, subtest=None):
         for meta in self.itermeta(subtest):
@@ -392,7 +448,7 @@ class Test(object):
             return False
 
     def __repr__(self):
-        return "<%s.%s %s>" % (self.__module__, self.__class__.__name__, self.id)
+        return f"<{self.__module__}.{self.__class__.__name__} {self.id}>"
 
 
 class TestharnessTest(Test):
@@ -619,14 +675,14 @@ class PrintReftestTest(ReftestTest):
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, references,
                  timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None,
                  page_ranges=None, protocol="http", subdomain=False):
-        super(PrintReftestTest, self).__init__(url_base, tests_root, url, inherit_metadata, test_metadata,
-                                               references, timeout, path, viewport_size, dpi,
-                                               fuzzy, protocol, subdomain=subdomain)
+        super().__init__(url_base, tests_root, url, inherit_metadata, test_metadata,
+                         references, timeout, path, viewport_size, dpi,
+                         fuzzy, protocol, subdomain=subdomain)
         self._page_ranges = page_ranges
 
     @classmethod
     def cls_kwargs(cls, manifest_test):
-        rv = super(PrintReftestTest, cls).cls_kwargs(manifest_test)
+        rv = super().cls_kwargs(manifest_test)
         rv["page_ranges"] = manifest_test.page_ranges
         return rv
 

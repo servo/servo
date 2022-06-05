@@ -5,11 +5,15 @@
 
 [Exposed=Window]
 interface CloseWatcher : EventTarget {
-  constructor();
+  constructor(optional CloseWatcherOptions options = {});
 
   undefined destroy();
-  undefined signalClose();
+  undefined close();
 
   attribute EventHandler oncancel;
   attribute EventHandler onclose;
+};
+
+dictionary CloseWatcherOptions {
+  AbortSignal signal;
 };

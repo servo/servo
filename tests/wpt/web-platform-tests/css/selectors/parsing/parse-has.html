@@ -32,5 +32,8 @@
   test_valid_selector('.a:has(.b):has(.c)');
   test_valid_selector('*|*:has(*)', ':has(*)');
   test_valid_selector(':has(*|*)', ':has(*)');
-  test_invalid_selector('.a:has()');
+  test_valid_selector('.a:has()', '.a:has()');
+  test_invalid_selector(':has');
+  test_invalid_selector('.a:has');
+  test_invalid_selector('.a:has b');
 </script>

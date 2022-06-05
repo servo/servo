@@ -1,5 +1,5 @@
 // META: title=IDBObjectStore.get() - returns the record with the first key in the range
-// META: script=support.js
+// META: script=resources/support.js
 // @author Microsoft <https://www.microsoft.com>
 
 "use strict";

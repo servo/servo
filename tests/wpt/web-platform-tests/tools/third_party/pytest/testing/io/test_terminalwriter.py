@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import sys
+from pathlib import Path
 from typing import Generator
 from unittest import mock
 
@@ -64,10 +65,10 @@ win32 = int(sys.platform == "win32")
 class TestTerminalWriter:
     @pytest.fixture(params=["path", "stringio"])
     def tw(
-        self, request, tmpdir
+        self, request, tmp_path: Path
     ) -> Generator[terminalwriter.TerminalWriter, None, None]:
         if request.param == "path":
-            p = tmpdir.join("tmpfile")
+            p = tmp_path.joinpath("tmpfile")
             f = open(str(p), "w+", encoding="utf8")
             tw = terminalwriter.TerminalWriter(f)
 
@@ -257,13 +258,22 @@ class TestTerminalWriterLineWidth:
             id="with markup and code_highlight",
         ),
         pytest.param(
-            True, False, "assert 0\n", id="with markup but no code_highlight",
+            True,
+            False,
+            "assert 0\n",
+            id="with markup but no code_highlight",
         ),
         pytest.param(
-            False, True, "assert 0\n", id="without markup but with code_highlight",
+            False,
+            True,
+            "assert 0\n",
+            id="without markup but with code_highlight",
         ),
         pytest.param(
-            False, False, "assert 0\n", id="neither markup nor code_highlight",
+            False,
+            False,
+            "assert 0\n",
+            id="neither markup nor code_highlight",
         ),
     ],
 )

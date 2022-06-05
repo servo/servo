@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import json
 import os
 import socket
@@ -74,8 +76,7 @@ class SeleniumBaseProtocolPart(BaseProtocolPart):
 addEventListener("__test_restart", e => {e.preventDefault(); callback(true)})""")
             except exceptions.TimeoutException:
                 pass
-            except (socket.timeout, exceptions.NoSuchWindowException,
-                    exceptions.ErrorInResponseException, IOError):
+            except (socket.timeout, exceptions.NoSuchWindowException, exceptions.ErrorInResponseException, OSError):
                 break
             except Exception:
                 self.logger.error(traceback.format_exc())
@@ -251,7 +252,7 @@ class SeleniumProtocol(Protocol):
     def __init__(self, executor, browser, capabilities, **kwargs):
         do_delayed_imports()
 
-        super(SeleniumProtocol, self).__init__(executor, browser)
+        super().__init__(executor, browser)
         self.capabilities = capabilities
         self.url = browser.webdriver_url
         self.webdriver = None

@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 from ..testing.test_loader import MANUAL, AUTOMATIC
 
 PAUSED = "paused"
@@ -8,7 +10,7 @@ PENDING = "pending"
 UNKNOWN = "unknown"
 
 
-class Session(object):
+class Session:
     def __init__(
             self,
             token=None,

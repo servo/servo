@@ -4538,16 +4538,6 @@
     "hash": ""
   },
   {
-    "input": "sc://\u0000/",
-    "base": "about:blank",
-    "failure": true
-  },
-  {
-    "input": "sc:// /",
-    "base": "about:blank",
-    "failure": true
-  },
-  {
     "input": "sc://%/",
     "base": "about:blank",
     "href": "sc://%/",
@@ -4578,21 +4568,6 @@
   },
   {
     "input": "sc://:12/",
-    "base": "about:blank",
-    "failure": true
-  },
-  {
-    "input": "sc://[/",
-    "base": "about:blank",
-    "failure": true
-  },
-  {
-    "input": "sc://\\/",
-    "base": "about:blank",
-    "failure": true
-  },
-  {
-    "input": "sc://]/",
     "base": "about:blank",
     "failure": true
   },
@@ -4707,42 +4682,47 @@
   },
   "Forbidden host code points",
   {
-    "input": "http://a<b",
+    "input": "sc://a\u0000b/",
     "base": "about:blank",
     "failure": true
   },
   {
-    "input": "http://a>b",
+    "input": "sc://a b/",
     "base": "about:blank",
     "failure": true
   },
   {
-    "input": "http://a^b",
+    "input": "sc://a<b",
     "base": "about:blank",
     "failure": true
   },
   {
-    "input": "non-special://a<b",
+    "input": "sc://a>b",
     "base": "about:blank",
     "failure": true
   },
   {
-    "input": "non-special://a>b",
+    "input": "sc://a[b/",
     "base": "about:blank",
     "failure": true
   },
   {
-    "input": "non-special://a^b",
+    "input": "sc://a\\b/",
     "base": "about:blank",
     "failure": true
   },
   {
-    "input": "foo://ho\u0000st/",
+    "input": "sc://a]b/",
     "base": "about:blank",
     "failure": true
   },
   {
-    "input": "foo://ho|st/",
+    "input": "sc://a^b",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "sc://a|b/",
     "base": "about:blank",
     "failure": true
   },
@@ -4789,9 +4769,283 @@
     "search": "",
     "username": ""
   },
-  "Encoded forbidden host codepoints in special URLs",
+  "Forbidden domain code-points",
+  {
+    "input": "http://a\u0000b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0001b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0002b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0003b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0004b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0005b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0006b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0007b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0008b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u000Bb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u000Cb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u000Eb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u000Fb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0010b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0011b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0012b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0013b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0014b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0015b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0016b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0017b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0018b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u0019b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u001Ab/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u001Bb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u001Cb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u001Db/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u001Eb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u001Fb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a%b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a<b",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a>b",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a[b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a]b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a^b",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a|b/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://a\u007Fb/",
+    "base": "about:blank",
+    "failure": true
+  },
+  "Forbidden domain codepoints: tabs and newlines are removed during preprocessing",
+  {
+    "input": "http://ho\u0009st/",
+    "base": "about:blank",
+    "hash": "",
+    "host": "host",
+    "hostname": "host",
+    "href":"http://host/",
+    "password": "",
+    "pathname": "/",
+    "port":"",
+    "protocol": "http:",
+    "search": "",
+    "username": ""
+  },
+  {
+    "input": "http://ho\u000Ast/",
+    "base": "about:blank",
+    "hash": "",
+    "host": "host",
+    "hostname": "host",
+    "href":"http://host/",
+    "password": "",
+    "pathname": "/",
+    "port":"",
+    "protocol": "http:",
+    "search": "",
+    "username": ""
+  },
+  {
+    "input": "http://ho\u000Dst/",
+    "base": "about:blank",
+    "hash": "",
+    "host": "host",
+    "hostname": "host",
+    "href":"http://host/",
+    "password": "",
+    "pathname": "/",
+    "port":"",
+    "protocol": "http:",
+    "search": "",
+    "username": ""
+  },
+  "Encoded forbidden domain codepoints in special URLs",
   {
     "input": "http://ho%00st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%01st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%02st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%03st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%04st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%05st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%06st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%07st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%08st/",
     "base": "about:blank",
     "failure": true
   },
@@ -4806,7 +5060,107 @@
     "failure": true
   },
   {
+    "input": "http://ho%0Bst/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%0Cst/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
     "input": "http://ho%0Dst/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%0Est/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%0Fst/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%10st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%11st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%12st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%13st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%14st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%15st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%16st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%17st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%18st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%19st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%1Ast/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%1Bst/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%1Cst/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%1Dst/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%1Est/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%1Fst/",
     "base": "about:blank",
     "failure": true
   },
@@ -4817,6 +5171,11 @@
   },
   {
     "input": "http://ho%23st/",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "http://ho%25st/",
     "base": "about:blank",
     "failure": true
   },
@@ -4870,32 +5229,37 @@
     "base": "about:blank",
     "failure": true
   },
-  "Allowed host code points",
   {
-    "input": "http://\u001F!\"$&'()*+,-.;=_`{}~/",
+    "input": "http://ho%7Fst/",
     "base": "about:blank",
-    "href": "http://\u001F!\"$&'()*+,-.;=_`{}~/",
-    "origin": "http://\u001F!\"$&'()*+,-.;=_`{}~",
+    "failure": true
+  },
+  "Allowed host/domain code points",
+  {
+    "input": "http://!\"$&'()*+,-.;=_`{}~/",
+    "base": "about:blank",
+    "href": "http://!\"$&'()*+,-.;=_`{}~/",
+    "origin": "http://!\"$&'()*+,-.;=_`{}~",
     "protocol": "http:",
     "username": "",
     "password": "",
-    "host": "\u001F!\"$&'()*+,-.;=_`{}~",
-    "hostname": "\u001F!\"$&'()*+,-.;=_`{}~",
+    "host": "!\"$&'()*+,-.;=_`{}~",
+    "hostname": "!\"$&'()*+,-.;=_`{}~",
     "port": "",
     "pathname": "/",
     "search": "",
     "hash": ""
   },
   {
-    "input": "sc://\u001F!\"$&'()*+,-.;=_`{}~/",
+    "input": "sc://\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u0008\u000B\u000C\u000E\u000F\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F\u007F!\"$%&'()*+,-.;=_`{}~/",
     "base": "about:blank",
-    "href": "sc://%1F!\"$&'()*+,-.;=_`{}~/",
+    "href": "sc://%01%02%03%04%05%06%07%08%0B%0C%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F!\"$%&'()*+,-.;=_`{}~/",
     "origin": "null",
     "protocol": "sc:",
     "username": "",
     "password": "",
-    "host": "%1F!\"$&'()*+,-.;=_`{}~",
-    "hostname": "%1F!\"$&'()*+,-.;=_`{}~",
+    "host": "%01%02%03%04%05%06%07%08%0B%0C%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F!\"$%&'()*+,-.;=_`{}~",
+    "hostname": "%01%02%03%04%05%06%07%08%0B%0C%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F!\"$%&'()*+,-.;=_`{}~",
     "port": "",
     "pathname": "/",
     "search": "",

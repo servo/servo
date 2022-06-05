@@ -91,7 +91,15 @@ font.math.StretchStackTopShiftUp = 0
 font.math.AccentBaseHeight = 2 * mathfont.em
 font.math.OverbarVerticalGap = 0
 
-mathfont.createSizeVariants(font)
+mathfont.createSizeVariants(font, True)
+
+# Ensure a glyph exists for the combining characters that are handled specially
+# in the specification:
+# U+0338 COMBINING LONG SOLIDUS OVERLAY
+# U+20D2 COMBINING LONG VERTICAL LINE OVERLAY
+for combining_character in [0x338, 0x20D2]:
+    mathfont.createSquareGlyph(font, combining_character)
+
 for key in operatorDictionary:
     value = operatorDictionary[key]
     for c in value["characters"]:

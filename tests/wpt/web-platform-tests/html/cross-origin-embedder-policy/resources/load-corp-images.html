@@ -8,22 +8,26 @@ function remote(path) {
   return new URL(path, REMOTE_ORIGIN);
 }
 
-const image_path = "/html/cross-origin-embedder-policy/resources/corp-image.py";
+let params = new URLSearchParams(location.search);
+let token = params.get('token');
+let revalidate = params.get('revalidate');
+
+let image_path = `/html/cross-origin-embedder-policy/resources/corp-image.py?token=${token}&revalidate=${revalidate}`;
 
 window.addEventListener("load", async () => {
   await new Promise(resolve => {
     let img = document.createElement("img");
     img.src = remote(image_path);
-    img.onload = () => { window.parent.postMessage({loaded: true, src: img.src}, "*"); resolve(); };
-    img.onerror = (e) => { window.parent.postMessage({loaded: false, src: img.src}, "*"); resolve(); };
+    img.onload = () => { window.parent.postMessage({corp: false, loaded: true}, "*"); resolve(); };
+    img.onerror = (e) => { window.parent.postMessage({corp: false, loaded: false}, "*"); resolve(); };
     document.body.appendChild(img);
   });
 
   await new Promise(resolve => {
     let img = document.createElement("img");
-    img.src = remote(image_path + "?corp-cross-origin=1");
-    img.onload = () => { window.parent.postMessage({loaded: true, src: img.src}, "*"); resolve(); };
-    img.onerror = (e) => { window.parent.postMessage({loaded: false, src: img.src}, "*"); resolve(); };
+    img.src = remote(image_path + "&corp-cross-origin=1");
+    img.onload = () => { window.parent.postMessage({corp: true, loaded: true}, "*"); resolve(); };
+    img.onerror = (e) => { window.parent.postMessage({corp: true, loaded: false}, "*"); resolve(); };
     document.body.appendChild(img);
   });
 

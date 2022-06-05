@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div popup id=p1 defaultopen>This is a popup, which should be open upon load</div>
+<script></script> <!-- Possibly yield the parser, just to double-check -->
+<div popup id=p2 defaultopen>This is a second popup with defaultopen, which should NOT be open upon load</div>
+<div popup=hint id=p2b defaultopen>This is a hint popup with defaultopen, which should NOT be open upon load</div>
+<div popup id=p3>Also not visible</div>
+
+<div popup=async id=p4 defaultopen>This is an async popup with defaultopen, which should be open upon load</div>
+<div popup=async id=p5 defaultopen>This is an async popup with defaultopen, which should be open upon load</div>
+
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      test(function(){
+        assert_true(p1.matches(':top-layer'),'defaultopen should open the popup');
+        assert_true(p1.hasAttribute('defaultopen'));
+        assert_true(p1.defaultOpen,'defaultopen should be reflected in the IDL attribute');
+        assert_false(p2.matches(':top-layer'), 'Only the first popup with defaultopen should be open on load');
+        assert_true(p2.hasAttribute('defaultopen'),'defaultopen should be present/true, even if not opened');
+        assert_true(p2.defaultOpen,'defaultopen should be present/true, even if not opened');
+
+        assert_false(p2b.matches(':top-layer'),'Only the first popup/hint with defaultopen should be open on load');
+        assert_true(p4.matches(':top-layer'),'defaultopen should open all async popups');
+        assert_true(p5.matches(':top-layer'),'defaultopen should open all async popups');
+
+        assert_false(p3.matches(':top-layer'));
+        p3.setAttribute('defaultopen','');
+        assert_false(p3.matches(':top-layer'), 'Changing defaultopen should not affect open status');
+        assert_true(p3.hasAttribute('defaultopen'));
+        assert_true(p3.defaultOpen,'defaultopen should still reflect to IDL');
+
+        p1.removeAttribute('defaultopen');
+        assert_true(p1.matches(':top-layer'),'removing defaultopen should not close the popup');
+        assert_false(p1.hasAttribute('defaultopen'),'...but it should reflect to IDL');
+
+        p1.hidePopup();
+      }, "The defaultopen attribute should affect page load only");
+    });
+  });
+</script>

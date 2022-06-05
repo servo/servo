@@ -25,7 +25,7 @@ programs/libraries in Python like
 `method overriding <https://en.wikipedia.org/wiki/Method_overriding>`_
 (e.g. Jinja2) or
 `monkey patching <https://en.wikipedia.org/wiki/Monkey_patch>`_ (e.g. gevent
-or for :std:doc:`writing tests <pytest:monkeypatch>`).
+or for :std:doc:`writing tests <pytest:how-to/monkeypatch>`).
 These strategies become problematic though when several parties want to
 participate in the modification of the same program. Therefore ``pluggy``
 does not rely on these mechanisms to enable a more structured approach and
@@ -268,6 +268,40 @@ then the *hookimpl* should be marked with the ``"optionalhook"`` option:
 
         return config
 
+.. _specname:
+
+Hookspec name matching
+^^^^^^^^^^^^^^^^^^^^^^
+
+During plugin :ref:`registration <registration>`, pluggy attempts to match each
+hook implementation declared by the *plugin* to a hook
+:ref:`specification <specs>` in the *host* program with the **same name** as
+the function being decorated by ``@hookimpl`` (e.g. ``setup_project`` in the
+example above).  Note: there is *no* strict requirement that each *hookimpl*
+has a corresponding *hookspec* (see
+:ref:`enforcing spec validation <enforcing>`).
+
+*new in version 0.13.2:*
+
+To override the default behavior, a *hookimpl* may also be matched to a
+*hookspec* in the *host* program with a non-matching function name by using
+the ``specname`` option.  Continuing the example above, the *hookimpl* function
+does not need to be named ``setup_project``, but if the argument
+``specname="setup_project"`` is provided to the ``hookimpl`` decorator, it will
+be matched and checked against the ``setup_project`` hookspec:
+
+.. code-block:: python
+
+    @hookimpl(specname="setup_project")
+    def any_plugin_function(config, args):
+        """This hook is used to process the initial config
+        and possibly input arguments.
+        """
+        if args:
+            config.process_args(args)
+
+        return config
+
 Call time order
 ^^^^^^^^^^^^^^^
 By default hooks are :ref:`called <calling>` in LIFO registered order, however,
@@ -285,17 +319,15 @@ will be executed *first* or *last* respectively in the hook call loop:
 
     @hookimpl(trylast=True)
     def setup_project(config, args):
-        """Default implementation.
-        """
+        """Default implementation."""
         if args:
             config.process_args(args)
 
         return config
 
 
-    class SomeOtherPlugin(object):
-        """Some other plugin defining the same hook.
-        """
+    class SomeOtherPlugin:
+        """Some other plugin defining the same hook."""
 
         @hookimpl(tryfirst=True)
         def setup_project(self, config, args):
@@ -315,7 +347,7 @@ will be executed *first* or *last* respectively in the hook call loop:
     # load a plugin defined on a class
     pm.register(SomeOtherPlugin())
 
-For another example see the `hook function ordering`_ section of the
+For another example see the :ref:`pytest:plugin-hookorder` section of the
 ``pytest`` docs.
 
 .. note::
@@ -361,17 +393,17 @@ be implemented as generator function with a single ``yield`` in its body:
         if config.use_defaults:
             outcome.force_result(defaults)
 
-The generator is :py:meth:`sent <python:generator.send>` a :py:class:`pluggy.callers._Result` object which can
+The generator is :py:meth:`sent <python:generator.send>` a :py:class:`pluggy._callers._Result` object which can
 be assigned in the ``yield`` expression and used to override or inspect
 the final result(s) returned back to the caller using the
-:py:meth:`~pluggy.callers._Result.force_result` or
-:py:meth:`~pluggy.callers._Result.get_result` methods.
+:py:meth:`~pluggy._callers._Result.force_result` or
+:py:meth:`~pluggy._callers._Result.get_result` methods.
 
 .. note::
     Hook wrappers can **not** return results (as per generator function
     semantics); they can only modify them using the ``_Result`` API.
 
-Also see the `hookwrapper`_ section in the ``pytest`` docs.
+Also see the :ref:`pytest:hookwrapper` section in the ``pytest`` docs.
 
 .. _specs:
 
@@ -422,6 +454,8 @@ delayed hook validation.
     The term *hookspec* can sometimes refer to the plugin-namespace
     which defines ``hookspec`` decorated functions as in the case of
     ``pytest``'s `hookspec module`_
+
+.. _enforcing:
 
 Enforcing spec validation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -487,7 +521,7 @@ then ``None``.
 
 This can be useful for optimizing a call loop for which you are only
 interested in a single core *hookimpl*. An example is the
-`pytest_cmdline_main`_ central routine of ``pytest``.
+:func:`~_pytest.hookspec.pytest_cmdline_main` central routine of ``pytest``.
 Note that all ``hookwrappers`` are still invoked with the first result.
 
 Also see the :ref:`pytest:firstresult` section in the ``pytest`` docs.
@@ -497,7 +531,7 @@ Also see the :ref:`pytest:firstresult` section in the ``pytest`` docs.
 Historic hooks
 ^^^^^^^^^^^^^^
 You can mark a *hookspec* as being *historic* meaning that the hook
-can be called with :py:meth:`~pluggy.hooks._HookCaller.call_historic()` **before**
+can be called with :py:meth:`~pluggy._hooks._HookCaller.call_historic()` **before**
 having been registered:
 
 .. code-block:: python
@@ -553,6 +587,7 @@ scans for *hook* functions :ref:`defined on a plugin <define>`.
 This allows for multiple plugin managers from multiple projects
 to define hooks alongside each other.
 
+.. _registration:
 
 Registration
 ------------
@@ -574,7 +609,7 @@ registered by passing its name to the
 Loading ``setuptools`` entry points
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You can automatically load plugins registered through
-:ref:`setuptools entry points <setuptools:entry points>`
+:ref:`setuptools entry points <setuptools:entry_points>`
 with the :py:meth:`~pluggy.PluginManager.load_setuptools_entrypoints()`
 method.
 
@@ -618,13 +653,13 @@ The core functionality of ``pluggy`` enables an extension provider
 to override function calls made at certain points throughout a program.
 
 A particular *hook* is invoked by calling an instance of
-a :py:class:`pluggy.hooks._HookCaller` which in turn *loops* through the
+a :py:class:`pluggy._hooks._HookCaller` which in turn *loops* through the
 ``1:N`` registered *hookimpls* and calls them in sequence.
 
 Every :py:class:`~pluggy.PluginManager` has a ``hook`` attribute
-which is an instance of this :py:class:`pluggy.hooks._HookRelay`.
-The :py:class:`~pluggy.hooks._HookRelay` itself contains references
-(by hook name) to each registered *hookimpl*'s :py:class:`~pluggy.hooks._HookCaller` instance.
+which is an instance of this :py:class:`pluggy._hooks._HookRelay`.
+The :py:class:`~pluggy._hooks._HookRelay` itself contains references
+(by hook name) to each registered *hookimpl*'s :py:class:`~pluggy._hooks._HookCaller` instance.
 
 More practically you call a *hook* like so:
 
@@ -656,27 +691,24 @@ assertion should not error:
     hookimpl = HookimplMarker("myproject")
 
 
-    class Plugin1(object):
+    class Plugin1:
         @hookimpl
         def myhook(self, args):
-            """Default implementation.
-            """
+            """Default implementation."""
             return 1
 
 
-    class Plugin2(object):
+    class Plugin2:
         @hookimpl
         def myhook(self, args):
-            """Default implementation.
-            """
+            """Default implementation."""
             return 2
 
 
-    class Plugin3(object):
+    class Plugin3:
         @hookimpl
         def myhook(self, args):
-            """Default implementation.
-            """
+            """Default implementation."""
             return 3
 
 
@@ -714,19 +746,19 @@ hook invocation point:
     hookimpl = HookimplMarker("myproject")
 
 
-    class Plugin1(object):
+    class Plugin1:
         @hookimpl
         def myhook(self, args):
             return 1
 
 
-    class Plugin2(object):
+    class Plugin2:
         @hookimpl
         def myhook(self, args):
             raise RuntimeError
 
 
-    class Plugin3(object):
+    class Plugin3:
         @hookimpl
         def myhook(self, args):
             return 3
@@ -764,7 +796,7 @@ only useful if you expect that some *hookimpls* may be registered **after** the
 hook is initially invoked.
 
 Historic hooks must be :ref:`specially marked <historic>` and called
-using the :py:meth:`~pluggy.hooks._HookCaller.call_historic()` method:
+using the :py:meth:`~pluggy._hooks._HookCaller.call_historic()` method:
 
 .. code-block:: python
 
@@ -785,8 +817,8 @@ using the :py:meth:`~pluggy.hooks._HookCaller.call_historic()` method:
     # historic callback is invoked here
     pm.register(mylateplugin)
 
-Note that if you :py:meth:`~pluggy.hooks._HookCaller.call_historic()`
-the :py:class:`~pluggy.hooks._HookCaller` (and thus your calling code)
+Note that if you :py:meth:`~pluggy._hooks._HookCaller.call_historic()`
+the :py:class:`~pluggy._hooks._HookCaller` (and thus your calling code)
 can not receive results back from the underlying *hookimpl* functions.
 Instead you can provide a *callback* for processing results (like the
 ``callback`` function above) which will be called as each new plugin
@@ -801,19 +833,19 @@ Calling with extras
 -------------------
 You can call a hook with temporarily participating *implementation* functions
 (that aren't in the registry) using the
-:py:meth:`pluggy.hooks._HookCaller.call_extra()` method.
+:py:meth:`pluggy._hooks._HookCaller.call_extra()` method.
 
 
 Calling with a subset of registered plugins
 -------------------------------------------
 You can make a call using a subset of plugins by asking the
 :py:class:`~pluggy.PluginManager` first for a
-:py:class:`~pluggy.hooks._HookCaller` with those plugins removed
+:py:class:`~pluggy._hooks._HookCaller` with those plugins removed
 using the :py:meth:`pluggy.PluginManager.subset_hook_caller()` method.
 
-You then can use that :py:class:`_HookCaller <pluggy.hooks._HookCaller>`
-to make normal, :py:meth:`~pluggy.hooks._HookCaller.call_historic`, or
-:py:meth:`~pluggy.hooks._HookCaller.call_extra` calls as necessary.
+You then can use that :py:class:`_HookCaller <pluggy._hooks._HookCaller>`
+to make normal, :py:meth:`~pluggy._hooks._HookCaller.call_historic`, or
+:py:meth:`~pluggy._hooks._HookCaller.call_extra` calls as necessary.
 
 Built-in tracing
 ****************
@@ -896,14 +928,8 @@ Table of contents
 
 
 .. hyperlinks
-.. _pytest_cmdline_main:
-    https://docs.pytest.org/en/latest/_modules/_pytest/hookspec.html#pytest_cmdline_main
 .. _hookspec module:
     https://docs.pytest.org/en/latest/_modules/_pytest/hookspec.html
-.. _hookwrapper:
-    http://doc.pytest.org/en/latest/writing_plugins.html#hookwrapper-executing-around-other-hooks
-.. _hook function ordering:
-    http://doc.pytest.org/en/latest/writing_plugins.html#hook-function-ordering-call-example
 .. _request-response pattern:
     https://en.wikipedia.org/wiki/Request%E2%80%93response
 .. _publish-subscribe:

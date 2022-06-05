@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for HTML "picture" element source</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url, sourceEl, sourceAttr, attributes) {
+    const picture = document.createElement('picture');
+    const els = {
+      img: document.createElement('img'),
+      source: document.createElement('source')
+    };
+    picture.appendChild(els.source);
+    picture.appendChild(els.img);
+    document.body.appendChild(picture);
+
+    for (const [ name, value ] of Object.entries(attributes)) {
+      els.img.setAttribute(name, value);
+    }
+
+    return new Promise((resolve) => {
+        els[sourceEl].setAttribute(sourceAttr, url);
+        els.img.onload = els.img.onerror = resolve;
+      });
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, [% subtest.origins %]),
+        'img',
+        'src',
+        [%subtest.elementAttrs | default({}) | tojson%]
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - img[src] - [%subtest.description | pad("end", ", ")%][%subtest.elementAttrs | collection("attributes")%]');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, [% subtest.origins %]),
+        'img',
+        'srcset',
+        [%subtest.elementAttrs | default({}) | tojson%]
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - img[srcset] - [%subtest.description | pad("end", ", ")%][%subtest.elementAttrs | collection("attributes")%]');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, [% subtest.origins %]),
+        'source',
+        'srcset',
+        [%subtest.elementAttrs | default({}) | tojson%]
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - source[srcset] - [%subtest.description | pad("end", ", ")%][%subtest.elementAttrs | collection("attributes")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>
+

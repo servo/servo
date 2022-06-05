@@ -4,7 +4,7 @@ if MYPY:
     from typing import Optional, Text
 
 
-class GitHubChecksOutputter(object):
+class GitHubChecksOutputter:
     """Provides a method to output data to be shown in the GitHub Checks UI.
 
     This can be useful to provide a summary of a given check (e.g. the lint)

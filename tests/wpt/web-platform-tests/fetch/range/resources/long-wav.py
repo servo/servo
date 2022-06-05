@@ -46,9 +46,15 @@ def create_wav_header(sample_rate, bit_depth, channels, duration):
 
 
 def main(request, response):
+    if request.method == u"OPTIONS":
+        response.status = (404, b"Not Found")
+        response.headers.set(b"Content-Type", b"text/plain")
+        return b"Preflight not accepted"
+
     response.headers.set(b"Content-Type", b"audio/wav")
     response.headers.set(b"Accept-Ranges", b"bytes")
     response.headers.set(b"Cache-Control", b"no-cache")
+    response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b'Origin', b''))
 
     range_header = request.headers.get(b'Range', b'')
     range_header_match = range_header and re.search(r'^bytes=(\d*)-(\d*)$', isomorphic_decode(range_header))

@@ -2,14 +2,10 @@
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
 
-import json
 import itertools
+import json
 import os.path
-
-try:
-    import xmlrpc.client as xmlrpc_client
-except ImportError:
-    import xmlrpclib as xmlrpc_client
+import xmlrpc.client
 
 import invoke
 import pkg_resources
@@ -35,7 +31,7 @@ def pep440(cached=False):
     # possible
     if cached:
         try:
-            with open(cache_path, "r") as fp:
+            with open(cache_path) as fp:
                 data = json.load(fp)
         except Exception:
             data = None
@@ -45,14 +41,12 @@ def pep440(cached=False):
     # If we don't have data, then let's go fetch it from PyPI
     if data is None:
         bar = progress.bar.ShadyBar("Fetching Versions")
-        client = xmlrpc_client.Server("https://pypi.python.org/pypi")
+        client = xmlrpc.client.Server("https://pypi.python.org/pypi")
 
-        data = dict(
-            [
-                (project, client.package_releases(project, True))
-                for project in bar.iter(client.list_packages())
-            ]
-        )
+        data = {
+            project: client.package_releases(project, True)
+            for project in bar.iter(client.list_packages())
+        }
 
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         with open(cache_path, "w") as fp:

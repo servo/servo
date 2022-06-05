@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import http.client as httplib
 import sys
 import logging
@@ -7,7 +9,7 @@ import traceback
 global logger
 logger = logging.getLogger("wave-api-handler")
 
-class HttpHandler(object):
+class HttpHandler:
     def __init__(
         self,
         static_handler,
@@ -112,9 +114,9 @@ class HttpHandler(object):
             response.headers = proxy_response.getheaders()
             response.status = proxy_response.status
 
-        except IOError:
+        except OSError:
             message = "Failed to perform proxy request"
             info = sys.exc_info()
             traceback.print_tb(info[2])
-            logger.error("{}: {}: {}".format(message, info[0].__name__, info[1].args[0]))
+            logger.error(f"{message}: {info[0].__name__}: {info[1].args[0]}")
             response.status = 500

@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<meta charset="UTF-8">
+<title>CSS Toggles: getComputedStyle() for toggle-trigger property</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://tabatkins.github.io/css-toggle/#toggle-trigger-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<body>
+<div id="target"></div>
+<script>
+
+test_computed_value('toggle-trigger', 'none');
+test_computed_value('toggle-trigger', 'self 1');
+test_computed_value('toggle-trigger', 'sticky 1');
+test_computed_value('toggle-trigger', 'group 1');
+test_computed_value('toggle-trigger', 'mytoggle');
+test_computed_value('toggle-trigger', 'mytoggle 0');
+test_computed_value('toggle-trigger', 'mytoggle +0', 'mytoggle 0');
+test_computed_value('toggle-trigger', 'mytoggle -0', 'mytoggle 0');
+test_computed_value('toggle-trigger', 'mytoggle +5', 'mytoggle 5');
+test_computed_value('toggle-trigger', 'mytoggle, yourtoggle');
+test_computed_value('toggle-trigger', 'mytoggle, mytoggle');
+test_computed_value('toggle-trigger', 'mytoggle 1, yourtoggle');
+test_computed_value('toggle-trigger', 'mytoggle 1 , yourtoggle 1', 'mytoggle 1, yourtoggle 1');
+test_computed_value('toggle-trigger', 'mytoggle,yourtoggle 1', 'mytoggle, yourtoggle 1');
+test_computed_value('toggle-trigger', 'mytoggle calc(-3)', 'mytoggle 0');
+test_computed_value('toggle-trigger', 'mytoggle calc(6)', 'mytoggle 6');
+test_computed_value('toggle-trigger', 'mytoggle calc(6.4)', 'mytoggle 6');
+test_computed_value('toggle-trigger', 'mytoggle calc(6.5)', 'mytoggle 7');
+test_computed_value('toggle-trigger', 'mytoggle calc(6.6)', 'mytoggle 7');
+
+</script>

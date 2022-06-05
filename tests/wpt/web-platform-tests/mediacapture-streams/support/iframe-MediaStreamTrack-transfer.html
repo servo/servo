@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>iframe</title>
+    <script>
+      function onMsg(e) {
+        if(e.data instanceof MediaStreamTrack) {
+          parent.postMessage({result: 'Success'});
+        } else {
+          parent.postMessage({
+            result: 'Failure',
+            error: `${e.data} is not a MediaStreamTrack`
+          });
+        }
+      }
+      window.addEventListener("message", onMsg);
+    </script>
+  </head>
+  <body>
+  </body>
+</html>

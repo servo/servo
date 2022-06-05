@@ -19,9 +19,10 @@ var expected = [
   "Path2D",
   "PromiseRejectionEvent",
   "EventSource",
+  "BroadcastChannel",
+  // https://websockets.spec.whatwg.org/
   "WebSocket",
   "CloseEvent",
-  "BroadcastChannel",
   // https://tc39.github.io/ecma262/
   "ArrayBuffer",
   "Int8Array",

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<title>CSS Containment Test: Scrolling overflow works when paint is contained"</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-paint">
+<meta name="assert" content="Scrolling overflow works when paint is contained.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#container {
+  width: 100px;
+  height: 100px;
+  overflow: auto;
+  contain: paint;
+}
+.content {
+  position: absolute;
+  height: 500%;
+  width: 100%;
+}
+</style>
+
+<div id="container">
+  <div class="content">
+  </div>
+</div>
+
+<script>
+  test(() => {
+    container.scrollTo(0, 100);
+    assert_equals(container.scrollTop, 100);
+  }, "Scrolling overflow works when paint is contained");
+</script>

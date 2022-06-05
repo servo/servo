@@ -76,38 +76,38 @@ order doesn't even matter. You probably want to think of your marks as a set her
 
 
 If you are unsure or have any questions, please consider opening
-`an issue <https://github.com/pytest-dev/pytest/issues>`_.
+:issue:`an issue <new>`.
 
 Related issues
 ~~~~~~~~~~~~~~
 
 Here is a non-exhaustive list of issues fixed by the new implementation:
 
-* Marks don't pick up nested classes (`#199 <https://github.com/pytest-dev/pytest/issues/199>`_).
+* Marks don't pick up nested classes (:issue:`199`).
 
-* Markers stain on all related classes (`#568 <https://github.com/pytest-dev/pytest/issues/568>`_).
+* Markers stain on all related classes (:issue:`568`).
 
-* Combining marks - args and kwargs calculation (`#2897 <https://github.com/pytest-dev/pytest/issues/2897>`_).
+* Combining marks - args and kwargs calculation (:issue:`2897`).
 
-* ``request.node.get_marker('name')`` returns ``None`` for markers applied in classes (`#902 <https://github.com/pytest-dev/pytest/issues/902>`_).
+* ``request.node.get_marker('name')`` returns ``None`` for markers applied in classes (:issue:`902`).
 
-* Marks applied in parametrize are stored as markdecorator (`#2400 <https://github.com/pytest-dev/pytest/issues/2400>`_).
+* Marks applied in parametrize are stored as markdecorator (:issue:`2400`).
 
-* Fix marker interaction in a backward incompatible way (`#1670 <https://github.com/pytest-dev/pytest/issues/1670>`_).
+* Fix marker interaction in a backward incompatible way (:issue:`1670`).
 
-* Refactor marks to get rid of the current "marks transfer" mechanism (`#2363 <https://github.com/pytest-dev/pytest/issues/2363>`_).
+* Refactor marks to get rid of the current "marks transfer" mechanism (:issue:`2363`).
 
-* Introduce FunctionDefinition node, use it in generate_tests (`#2522 <https://github.com/pytest-dev/pytest/issues/2522>`_).
+* Introduce FunctionDefinition node, use it in generate_tests (:issue:`2522`).
 
-* Remove named marker attributes and collect markers in items (`#891 <https://github.com/pytest-dev/pytest/issues/891>`_).
+* Remove named marker attributes and collect markers in items (:issue:`891`).
 
-* skipif mark from parametrize hides module level skipif mark (`#1540 <https://github.com/pytest-dev/pytest/issues/1540>`_).
+* skipif mark from parametrize hides module level skipif mark (:issue:`1540`).
 
-* skipif + parametrize not skipping tests (`#1296 <https://github.com/pytest-dev/pytest/issues/1296>`_).
+* skipif + parametrize not skipping tests (:issue:`1296`).
 
-* Marker transfer incompatible with inheritance (`#535 <https://github.com/pytest-dev/pytest/issues/535>`_).
+* Marker transfer incompatible with inheritance (:issue:`535`).
 
-More details can be found in the `original PR <https://github.com/pytest-dev/pytest/pull/3317>`_.
+More details can be found in the :pull:`original PR <3317>`.
 
 .. note::
 
@@ -125,6 +125,7 @@ as a third party plugin named ``pytest-cache``.  The core plugin
 is compatible regarding command line options and API usage except that you
 can only store/receive data between test runs that is json-serializable.
 
+.. _historical funcargs and pytest.funcargs:
 
 funcargs and ``pytest_funcarg__``
 ---------------------------------

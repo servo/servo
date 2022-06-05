@@ -1,72 +1,42 @@
-<!DOCTYPE html>
-<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta http-equiv="Content-Security-Policy" content="child-src 'self' http://www1.{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inline'; connect-src 'self';"> </head>
+<body></body>
 
-<head>
-    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
-    <meta http-equiv="Content-Security-Policy" content="child-src 'self' http://www1.{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inline'; connect-src 'self';">
-    <title>child-src-cross-origin-load</title>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["PASS IFrame %231 generated a load event.","PASS IFrame %232 generated a load event.","PASS IFrame %233 generated a load event.", "violated-directive=frame-src"]'></script>
-    <script>
-        window.addEventListener("message", function(event) {
-            alert_assert(event.data);
-        }, false);
+<script>
+async_test(test => {
+  let count = 0;
+  window.addEventListener("message", test.step_func((event) => {
+    assert_equals(event.data, "PASS");
+    count++;
+    assert_less_than_equal(count, 2);
+    if (count == 2) {
+      // Use a timeout, to let some time for additional messages to show up
+      // before declaring this test as completed.
+      test.step_timeout(() => test.done(), 1000);
+    }
+  }));
+}, "Two of the three iframe are expected to load.");
 
-        window.addEventListener("securitypolicyviolation", function(e) {
-            log("violated-directive=" + e.violatedDirective);
-        });
+// IFrames blocked by CSP should generate a 'load', not 'error' event,
+// regardless of blocked state. This means they appear to be normal
+// cross-origin loads, thereby not leaking URL information directly to JS.
+const runTest = (description, src) => {
+  async_test(test => {
+    const iframe = document.createElement("iframe");
+    iframe.src = src;
+    iframe.onload = () => test.done();
+    iframe.onerror = () => test.assert_unreached('unexpected onerror')
+    document.body.appendChild(iframe);
+  }, description);
+};
 
-        var t_alert = async_test('Expecting alerts: ["PASS","PASS"]');
-        var expected_alerts = ["PASS", "PASS"];
+runTest("Navigation in iframe allowed by child-src 'self'",
+  "/content-security-policy/support/postmessage-pass.html");
 
-        function alert_assert(msg) {
-            t_alert.step(function() {
-                if (msg.match(/^FAIL/i)) {
-                    assert_unreached(msg);
-                    t_alert.done();
-                }
-                for (var i = 0; i < expected_alerts.length; i++) {
-                    if (expected_alerts[i] == msg) {
-                        assert_equals(expected_alerts[i], msg);
-                        expected_alerts.splice(i, 1);
-                        if (expected_alerts.length == 0) {
-                            t_alert.done();
-                        }
-                        return;
-                    }
-                }
-                assert_unreached('unexpected alert: ' + msg);
-                t_alert.done();
-            });
-        }
+runTest("Navigation in iframe allowed by child-src explicit CSP source",
+  "http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-pass.html");
 
-    </script>
-    <!-- enforcing policy:
-child-src 'self' http://www1.{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inline'; connect-src 'self';
--->
-    <p>
-        IFrames blocked by CSP should generate a 'load', not 'error' event, regardless of blocked state. This means they appear to be normal cross-origin loads, thereby not leaking URL information directly to JS.
-    </p>
-    <script>
-        window.wasPostTestScriptParsed = true;
-        var loads = 0;
-
-        function loadEvent() {
-            loads++;
-            log("PASS " + "IFrame #" + loads + " generated a load event.");
-            if (loads == 3)
-                log("TEST COMPLETE");
-        }
-
-    </script>
-</head>
-
-<body>
-    <iframe src="/content-security-policy/support/postmessage-pass.html" onload="loadEvent()"></iframe>
-    <iframe src="http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-pass.html" onload="loadEvent()"></iframe>
-    <iframe src="http://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-fail.html" onload="loadEvent()" onerror="log('FAIL')"></iframe>
-    <div id="log"></div>
-</body>
-
-</html>
+runTest("Navigation in iframe not allowed by child-src",
+  "http://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-fail.html");
+</script>

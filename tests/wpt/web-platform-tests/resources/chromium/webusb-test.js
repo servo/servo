@@ -386,6 +386,10 @@ class FakeWebUsbService {
       this.client_.onDeviceAdded(fakeDeviceInitToDeviceInfo(device.guid, info));
   }
 
+  async forgetDevice(guid) {
+    // Permissions are currently untestable through WPT.
+  }
+
   removeDevice(fakeDevice) {
     let device = this.devices_.get(fakeDevice);
     if (!device)

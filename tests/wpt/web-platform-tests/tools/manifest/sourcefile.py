@@ -50,7 +50,7 @@ python_meta_re = re.compile(br"#\s*META:\s*(\w*)=(.*)$")
 
 reference_file_re = re.compile(r'(^|[\-_])(not)?ref[0-9]*([\-_]|$)')
 
-space_chars = u"".join(html5lib.constants.spaceCharacters)  # type: Text
+space_chars = "".join(html5lib.constants.spaceCharacters)  # type: Text
 
 
 def replace_end(s, old, new):
@@ -91,6 +91,7 @@ _any_variants = {
     "dedicatedworker-module": {"suffix": ".any.worker-module.html"},
     "worker": {"longhand": {"dedicatedworker", "sharedworker", "serviceworker"}},
     "worker-module": {},
+    "shadowrealm": {},
     "jsshell": {"suffix": ".any.js"},
 }  # type: Dict[Text, Dict[Text, Any]]
 
@@ -174,7 +175,9 @@ def _parse_html(f):
     doc = html5lib.parse(f, treebuilder="etree", useChardet=False)
     if MYPY:
         return cast(ElementTree.Element, doc)
-    return doc
+    else:
+        # (needs to be in else for mypy to believe this is reachable)
+        return doc
 
 def _parse_xml(f):
     # type: (BinaryIO) -> ElementTree.Element
@@ -187,20 +190,20 @@ def _parse_xml(f):
         return ElementTree.parse(f, XMLParser.XMLParser()).getroot()  # type: ignore
 
 
-class SourceFile(object):
-    parsers = {u"html":_parse_html,
-               u"xhtml":_parse_xml,
-               u"svg":_parse_xml}  # type: Dict[Text, Callable[[BinaryIO], ElementTree.Element]]
+class SourceFile:
+    parsers = {"html":_parse_html,
+               "xhtml":_parse_xml,
+               "svg":_parse_xml}  # type: Dict[Text, Callable[[BinaryIO], ElementTree.Element]]
 
-    root_dir_non_test = {u"common"}
+    root_dir_non_test = {"common"}
 
-    dir_non_test = {u"resources",
-                    u"support",
-                    u"tools"}
+    dir_non_test = {"resources",
+                    "support",
+                    "tools"}
 
-    dir_path_non_test = {(u"css21", u"archive"),
-                         (u"css", u"CSS2", u"archive"),
-                         (u"css", u"common")}  # type: Set[Tuple[Text, ...]]
+    dir_path_non_test = {("css21", "archive"),
+                         ("css", "CSS2", "archive"),
+                         ("css", "common")}  # type: Set[Tuple[Text, ...]]
 
     def __init__(self, tests_root, rel_path, url_base, hash=None, contents=None):
         # type: (Text, Text, Text, Optional[Text], Optional[bytes]) -> None
@@ -215,7 +218,7 @@ class SourceFile(object):
         assert not os.path.isabs(rel_path), rel_path
         if os.name == "nt":
             # do slash normalization on Windows
-            rel_path = rel_path.replace(u"/", u"\\")
+            rel_path = rel_path.replace("/", "\\")
 
         dir_path, filename = os.path.split(rel_path)
         name, ext = os.path.splitext(filename)
@@ -334,11 +337,11 @@ class SourceFile(object):
         """Check if the file name matches the conditions for the file to
         be a non-test file"""
         return (self.is_dir() or
-                self.name_prefix(u"MANIFEST") or
-                self.filename == u"META.yml" or
-                self.filename.startswith(u".") or
-                self.filename.endswith(u".headers") or
-                self.filename.endswith(u".ini") or
+                self.name_prefix("MANIFEST") or
+                self.filename == "META.yml" or
+                self.filename.startswith(".") or
+                self.filename.endswith(".headers") or
+                self.filename.endswith(".ini") or
                 self.in_non_test_dir())
 
     @property
@@ -438,14 +441,14 @@ class SourceFile(object):
 
         if not ext:
             return None
-        if ext[0] == u".":
+        if ext[0] == ".":
             ext = ext[1:]
-        if ext in [u"html", u"htm"]:
-            return u"html"
-        if ext in [u"xhtml", u"xht", u"xml"]:
-            return u"xhtml"
-        if ext == u"svg":
-            return u"svg"
+        if ext in ["html", "htm"]:
+            return "html"
+        if ext in ["xhtml", "xht", "xml"]:
+            return "xhtml"
+        if ext == "svg":
+            return "svg"
         return None
 
     @cached_property
@@ -548,9 +551,9 @@ class SourceFile(object):
 
     def parse_ref_keyed_meta(self, node):
         # type: (ElementTree.Element) -> Tuple[Optional[Tuple[Text, Text, Text]], Text]
-        item = node.attrib.get(u"content", u"")  # type: Text
+        item = node.attrib.get("content", "")  # type: Text
 
-        parts = item.rsplit(u":", 1)
+        parts = item.rsplit(":", 1)
         if len(parts) == 1:
             key = None  # type: Optional[Tuple[Text, Text, Text]]
             value = parts[0]
@@ -561,7 +564,7 @@ class SourceFile(object):
                 if ref[0] == key_part:
                     reftype = ref[1]
                     break
-            if reftype not in (u"==", u"!="):
+            if reftype not in ("==", "!="):
                 raise ValueError("Key %s doesn't correspond to a reference" % key_part)
             key = (self.url, key_part, reftype)
             value = parts[1]
@@ -588,26 +591,26 @@ class SourceFile(object):
         if not self.fuzzy_nodes:
             return rv
 
-        args = [u"maxDifference", u"totalPixels"]
+        args = ["maxDifference", "totalPixels"]
 
         for node in self.fuzzy_nodes:
             key, value = self.parse_ref_keyed_meta(node)
-            ranges = value.split(u";")
+            ranges = value.split(";")
             if len(ranges) != 2:
                 raise ValueError("Malformed fuzzy value %s" % value)
             arg_values = {}  # type: Dict[Text, List[int]]
             positional_args = deque()  # type: Deque[List[int]]
             for range_str_value in ranges:  # type: Text
                 name = None  # type: Optional[Text]
-                if u"=" in range_str_value:
-                    name, range_str_value = [part.strip()
-                                             for part in range_str_value.split(u"=", 1)]
+                if "=" in range_str_value:
+                    name, range_str_value = (part.strip()
+                                             for part in range_str_value.split("=", 1))
                     if name not in args:
                         raise ValueError("%s is not a valid fuzzy property" % name)
                     if arg_values.get(name):
                         raise ValueError("Got multiple values for argument %s" % name)
-                if u"-" in range_str_value:
-                    range_min, range_max = range_str_value.split(u"-")
+                if "-" in range_str_value:
+                    range_min, range_max = range_str_value.split("-")
                 else:
                     range_min = range_str_value
                     range_max = range_str_value
@@ -714,7 +717,12 @@ class SourceFile(object):
                     rv.append(variant)
 
         for variant in rv:
-            assert variant == "" or variant[0] in ["#", "?"], variant
+            if variant != "":
+                if variant[0] not in ("#", "?"):
+                    raise ValueError("Non-empty variant must start with either a ? or a #")
+                if len(variant) == 1 or (variant[0] == "?" and variant[1] == "#"):
+                    raise ValueError("Variants must not have empty fragment or query " +
+                                     "(omit the empty part instead)")
 
         if not rv:
             rv = [""]
@@ -985,7 +993,7 @@ class SourceFile(object):
                 )]
 
         elif self.name_is_multi_global:
-            globals = u""
+            globals = ""
             script_metadata = self.script_metadata
             assert script_metadata is not None
             for (key, value) in script_metadata:

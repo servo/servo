@@ -58,7 +58,7 @@ async function fetchEventHandler(event){
         <html>
         Promise created by ${url_search}
         <script>self.parent.postMessage({ ID:${ID}, source: "${url_search}"
-          });</script>
+          }, '*');</script>
         </html>
         `, {headers: {'Content-Type': 'text/html'}}
       ));
@@ -66,12 +66,11 @@ async function fetchEventHandler(event){
   }
   else if ( request_url.href.endsWith('resolve.fakehtml') ) {
     var has_pending = !!pending_resolve_func;
-
     event.respondWith(new Response(`
       <html>
       Promise settled for ${url_search}
       <script>self.parent.postMessage({ ID:${ID}, has_pending: ${has_pending},
-        source: "${url_search}"  });</script>
+        source: "${url_search}"  }, '*');</script>
       </html>
     `, {headers: {'Content-Type': 'text/html'}}));
 

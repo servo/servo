@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<title>Subresource Integrity for font
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+    const integrities = {
+        sha256: 'sha256-xkrni1nquuAzPoWieTZ22i9RONF4y11sJyWgYQDVlxE=',
+        sha384: 'sha384-Vif8vpq+J5UhnTqtncDDyol01dZx9nurRqQcSGtlCf0L1G8P+YeTyUYyZn4LMGrl',
+        sha512: 'sha512-CVkJJeS4/8zBdqBHmpzMvbI987MEWpTVd1Y/w20UFU0+NWlJAQpl1d3lIyCF97CQ/N+t/gn4IkWP4pjuWWrg6A==',
+        incorrect_sha256: 'sha256-wrongwrongwrongwrongwrongwrongwrongvalue====',
+        incorrect_sha512: 'sha512-wrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrong===',
+        unknown_algo: 'foo666-8aBiAJl3ukQwSJ6eTs5wl6hGjnOtyXjcTRdAf89uIfY='
+    };
+
+    const run_test = (preload_success, main_load_success, name,
+                      resource_url, extra_attributes, number_of_requests) => {
+        const test = async_test(name);
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'font';
+        link.href = resource_url;
+
+        for (const attribute_name in extra_attributes) {
+            link[attribute_name] = extra_attributes[attribute_name];
+        }
+
+        const valid_preload_failed = test.step_func(() => {
+            assert_unreached('Valid preload fired error handler.');
+        });
+        const invalid_preload_succeeded = test.step_func(() => {
+            assert_unreached('Invalid preload load succeeded.');
+        });
+        const valid_main_load_failed = test.step_func(() => {
+            assert_unreached('Valid main load fired error handler.');
+        });
+        const invalid_main_load_succeeded = test.step_func(() => {
+            assert_unreached('Invalid main load succeeded.');
+        });
+        const main_load_pass = test.step_func(() => {
+            verifyNumberOfResourceTimingEntries(resource_url, number_of_requests);
+            test.done();
+        });
+
+        const preload_pass = test.step_func(async () => {
+            try {
+                await new FontFace('CanvasTest', `url("${resource_url}")`).load();
+            } catch (error) {
+                if (main_load_success) {
+                    valid_main_load_failed();
+                } else {
+                    main_load_pass();
+                }
+            }
+
+            if (main_load_success) {
+                main_load_pass();
+            } else {
+                invalid_main_load_succeeded();
+            }
+        });
+
+        if (preload_success) {
+            link.onload = preload_pass;
+            link.onerror = valid_preload_failed;
+        } else {
+            link.onload = invalid_preload_succeeded;
+            link.onerror = preload_pass;
+        }
+
+        document.body.appendChild(link);
+    };
+
+    verifyPreloadAndRTSupport();
+
+    const anonymous = '&pipe=header(Access-Control-Allow-Origin,*)';
+    const use_credentials = '&pipe=header(Access-Control-Allow-Credentials,true)|' +
+                            'header(Access-Control-Allow-Origin,' + location.origin + ')';
+    const cross_origin_prefix = get_host_info().REMOTE_ORIGIN;
+    const file_path = '/fonts/CanvasTest.ttf';
+
+    // Note: About preload + font + CORS
+    //
+    // The CSS Font spec defines that font files always have to be fetched using
+    // anonymous-mode CORS.
+    //
+    // https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/preload#cors-enabled_fetches
+    // https://www.w3.org/TR/css-fonts-3/#font-fetching-requirements
+    //
+    // So that font loading (@font-face in CSS and FontFace.load()) always
+    // sends requests with anonymous-mode CORS. The crossOrigin attribute of
+    // <link rel="preload" as="font"> should be set as anonymout mode,
+    // too, even for same origin fetch. Otherwise, main font loading
+    // doesn't match the corresponding preloading due to credentials
+    // mode mismatch and the main font loading invokes another request.
+
+    // Needs CORS request even for same origin preload.
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with correct sha256 hash.',
+             file_path + '?' + token(),
+             {integrity: integrities.sha256, crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with correct sha384 hash.',
+             file_path + '?' + token(),
+             {integrity: integrities.sha384, crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with correct sha512 hash.',
+             file_path + '?' + token(),
+             {integrity: integrities.sha512, crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with empty integrity.',
+             file_path + '?' + token(),
+             {integrity: '', crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with no integrity.',
+             file_path + '?' + token(),
+             {crossOrigin: 'anonymous'}, 1);
+
+    run_test(false, false, '<crossorigin="anonymous"> Same-origin with incorrect hash.',
+             file_path + '?' + token(),
+             {integrity: integrities.incorrect_sha256, crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with correct sha256 hash, options.',
+             file_path + '?' + token(),
+             {integrity: `${integrities.sha256}?foo=bar?spam=eggs`, crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with unknown algorithm only.',
+             file_path + '?' + token(),
+             {integrity: integrities.unknown_algo, crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with multiple sha256 hashes, including correct.',
+             file_path + '?' + token(),
+             {integrity: `${integrities.sha256} ${integrities.incorrect_sha256}`, crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with multiple sha256 hashes, including unknown algorithm.',
+             file_path + '?' + token(),
+             {integrity: `${integrities.sha256} ${integrities.unknown_algo}`, crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, '<crossorigin="anonymous"> Same-origin with sha256 mismatch, sha512 match.',
+             file_path + '?' + token(),
+             {integrity: `${integrities.incorrect_sha256} ${integrities.sha512}`, crossOrigin: 'anonymous'}, 1);
+
+    run_test(false, false, '<crossorigin="anonymous"> Same-origin with sha256 match, sha512 mismatch.',
+             file_path + '?' + token(),
+             {integrity: `${integrities.sha256} ${integrities.incorrect_sha512}`, crossOrigin: 'anonymous'}, 1);
+
+    // Main loading shouldn't match preloading due to credentials mode mismatch
+    // so the number of requests should be two.
+    run_test(true, true, 'Same-origin, not CORS request, with correct sha256 hash.',
+             file_path + '?' + token(),
+             {integrity: integrities.sha256}, 2);
+
+    // Main loading shouldn't match preloading due to credentials mode mismatch
+    // and the main loading should invoke another request. The main font loading
+    // always sends CORS request and doesn't support SRI by itself, so it should succeed.
+    run_test(false, true, 'Same-origin, not CORS request, with incorrect sha256 hash.',
+             file_path + '?' + token(),
+             {integrity: integrities.incorrect_sha256}, 2);
+
+    run_test(true, true, '<crossorigin="anonymous"> Cross-origin with correct sha256 hash, ACAO: *.',
+             cross_origin_prefix + file_path + '?' + token() + anonymous,
+             {integrity: integrities.sha256, crossOrigin: 'anonymous'}, 1);
+
+    run_test(false, false, '<crossorigin="anonymous"> Cross-origin with incorrect sha256 hash, ACAO: *.',
+             cross_origin_prefix + file_path + '?' + token() + anonymous,
+             {integrity: integrities.incorrect_sha256, crossOrigin: 'anonymous'}, 1);
+
+    run_test(false, false, '<crossorigin="anonymous"> Cross-origin with correct sha256 hash, with CORS-ineligible resource.',
+             cross_origin_prefix + file_path + '?' + token(),
+             {integrity: integrities.sha256, crossOrigin: 'anonymous'}, 1);
+
+    run_test(false, true, 'Cross-origin, not CORS request, with correct sha256.',
+             cross_origin_prefix + file_path + '?' + token() + anonymous,
+             {integrity: integrities.sha256}, 2);
+
+    run_test(false, true, 'Cross-origin, not CORS request, with incorrect sha256.',
+             cross_origin_prefix + file_path + '?' + token() + anonymous,
+             {integrity: integrities.incorrect_sha256}, 2);
+
+    run_test(true, true, '<crossorigin="anonymous"> Cross-origin with empty integrity.',
+             cross_origin_prefix + file_path + '?' + token() + anonymous,
+             {integrity: '', crossOrigin: 'anonymous'}, 1);
+
+    run_test(true, true, 'Cross-origin, not CORS request, with empty integrity.',
+             cross_origin_prefix + file_path + '?' + token() + anonymous,
+             {integrity: ''}, 2);
+
+    // Non-anonymous mode CORS preload request should mismatch the main load.
+    run_test(true, true, '<crossorigin="use-credentials"> Cross-origin with correct sha256 hash, CORS-eligible.',
+             cross_origin_prefix + file_path + '?' + token() + use_credentials,
+             {integrity: integrities.sha256, crossOrigin: 'use-credentials'}, 2);
+
+    run_test(false, true, '<crossorigin="use-credentials"> Cross-origin with incorrect sha256 hash, CORS-eligible.',
+             cross_origin_prefix + file_path + '?' + token() + use_credentials,
+             {integrity: integrities.incorrect_sha256, crossOrigin: 'use-credentials'}, 2);
+</script>
+</body>
+</html>

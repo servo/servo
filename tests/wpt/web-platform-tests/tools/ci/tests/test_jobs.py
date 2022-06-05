@@ -1,7 +1,8 @@
+# mypy: allow-untyped-defs
+
 from tools.ci import jobs
 
 all_jobs = {
-    "build_css",
     "lint",
     "manifest_upload",
     "resources_unittest",
@@ -102,15 +103,6 @@ def test_wptrunner_unittest():
                          includes=["wptrunner_unittest"]) == {"wptrunner_unittest"}
     assert jobs.get_jobs(["tools/example.py"],
                          includes=["wptrunner_unittest"]) == {"wptrunner_unittest"}
-
-
-def test_build_css():
-    assert jobs.get_jobs(["css/css-build-testsuites.sh"],
-                         includes=["build_css"]) == {"build_css"}
-    assert jobs.get_jobs(["css/CSS21/test.html"],
-                         includes=["build_css"]) == {"build_css"}
-    assert jobs.get_jobs(["html/css/CSS21/test.html"],
-                         includes=["build_css"]) == set()
 
 
 def test_update_built():

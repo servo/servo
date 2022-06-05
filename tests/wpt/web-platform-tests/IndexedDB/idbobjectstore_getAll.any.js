@@ -1,5 +1,5 @@
 // META: title=IndexedDB: Test IDBObjectStore.getAll
-// META: script=support.js
+// META: script=resources/support.js
 
 'use strict';
 

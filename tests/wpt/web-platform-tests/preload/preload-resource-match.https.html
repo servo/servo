@@ -11,7 +11,7 @@ const {HTTPS_REMOTE_ORIGIN} = get_host_info();
 function createEchoURL(text, type) {
     return `/preload/resources/echo-with-cors.py?type=${
         encodeURIComponent(type)}&content=${
-        encodeURIComponent(text)}`
+        encodeURIComponent(text)}&uid=${token()}`
 }
 const urls = {
     image: createEchoURL('<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2" />', 'image/svg+xml'),
@@ -74,7 +74,7 @@ const loaders = {
             img.addEventListener('error', resolve);
         });
     },
-    font: (href, attr, t) => {
+    font: async (href, attr, t) => {
         const style = document.createElement('style');
         style.innerHTML = `@font-face {
             font-family: 'MyFont';
@@ -87,6 +87,7 @@ const loaders = {
         p.style.fontFamily = 'MyFont';
         document.body.appendChild(p);
         t.add_cleanup(() => p.remove());
+        await document.fonts.ready;
     },
     shape: (href, attr, t) => {
         const div = document.createElement('div');
@@ -126,13 +127,15 @@ const loaders = {
         document.body.appendChild(script);
         await new Promise(resolve => { script.onload = resolve });
     },
-    style: (href, attr, t) => {
+    style: async (href, attr, t) => {
         const style = document.createElement('link');
         style.rel = 'stylesheet';
+        style.href = href;
         t.add_cleanup(() => style.remove());
         if (attr.crossOrigin)
             style.setAttribute('crossorigin', attr.crossOrigin);
         document.body.appendChild(style);
+        await new Promise(resolve => style.addEventListener('load', resolve));
     }
 }
 
@@ -144,15 +147,19 @@ function preload_reuse_test(type, as, url, preloadConfig, resourceConfig) {
     }&${token()}`)
     promise_test(async t => {
         await preload({href, as, ...configs[preloadConfig].attributes}, t);
-        await loaders[as](href, configs[resourceConfig].attributes, t)
-        verifyNumberOfResourceTimingEntries(href, expected === "reuse" ? 1 : 2)
+        await loaders[as](href, configs[resourceConfig].attributes, t);
+        const expectedEntries = expected === "reuse" ? 1 : 2;
+
+        if (numberOfResourceTimingEntries(href) < expectedEntries)
+            await new Promise(resolve => t.step_timeout(resolve, 300));
+        verifyNumberOfResourceTimingEntries(href, expectedEntries);
     }, `Loading ${type} (${resourceConfig}) with link (${preloadConfig}) should ${expected} the preloaded response`);
 }
 
 for (const [resourceTypeName, resourceInfo] of Object.entries(resourceTypes)) {
     const configNames = resourceInfo.config ? [resourceInfo.config, 'same-origin'] : Object.keys(configs)
     for (const resourceConfigName of configNames) {
-        for (const preloadConfigName of Object.keys(configs)) {
+        for (const preloadConfigName in configs) {
             // Same-origin requests ignore their CORS attributes, so no need to match all of them.
             if ((resourceConfigName === 'same-origin' && preloadConfigName === 'same-origin') ||
                 (resourceConfigName !== 'same-origin' && preloadConfigName !== 'same-origin'))

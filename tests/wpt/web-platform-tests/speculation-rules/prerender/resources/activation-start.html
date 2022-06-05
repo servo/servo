@@ -20,7 +20,7 @@ function getActivationStart() {
 }
 
 (async () => {
-  const testChannel = new BroadcastChannel('test-channel');
+  const testChannel = new PrerenderChannel('test-channel');
   const params = new URLSearchParams(location.search);
   const isPrerenderingMainFrame = params.has('prerendering') &&
                                   !params.has('iframe');
@@ -36,9 +36,9 @@ function getActivationStart() {
   // 3. The prerendering document opens the iframe document (isIframe).
   try {
     if (isInitiator) {
-      // We use a BroadcastChannel to receive a message from the prerendering
+      // We use a PrerenderChannel to receive a message from the prerendering
       // iframe.
-      const prerenderChannel = new BroadcastChannel('prerender-channel');
+      const prerenderChannel = new PrerenderChannel('prerender-channel');
       const prerendering_url = new URL(document.URL);
       prerendering_url.searchParams.set('prerendering', '');
       startPrerendering(prerendering_url);
@@ -80,7 +80,7 @@ function getActivationStart() {
       // Finishes the test.
       testChannel.postMessage('Done');
     } else if (isIframe) {
-      const prerenderChannel = new BroadcastChannel('prerender-channel');
+      const prerenderChannel = new PrerenderChannel('prerender-channel');
       const initial_value = getActivationStart();
       const activation_start_promise = new Promise(resolve => {
         document.addEventListener('prerenderingchange', () => {

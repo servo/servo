@@ -20,10 +20,10 @@ def main(request, response):
         }, 0);
     }
     </script><body onload='checkResponseEnd()'>"""
-    response.headers.set(b"Content-Length", str(len(head) + 10000))
+    response.headers.set(b"Content-Length", str(len(head) + 1000))
     response.headers.set(b"Content-Type", b"text/html")
     response.write_status_headers()
     response.writer.write_content(head)
-    for i in range(1000):
+    for i in range(100):
         response.writer.write_content(b"1234567890")
-        time.sleep(0.001)
+        time.sleep(0.01)

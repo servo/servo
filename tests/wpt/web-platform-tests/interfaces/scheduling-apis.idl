@@ -53,5 +53,5 @@ interface TaskSignal : AbortSignal {
 };
 
 partial interface mixin WindowOrWorkerGlobalScope {
-  readonly attribute Scheduler scheduler;
+  [Replaceable] readonly attribute Scheduler scheduler;
 };

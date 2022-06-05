@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  {%- if subtests|length > 10 %}
+  <meta name="timeout" content="long">
+  {%- endif %}
+  <title>HTTP headers on request for navigation via the HTML History API</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  {%- if subtests|selectattr('userActivated')|list %}
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  {%- endif %}
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  const whenDone = (win) => {
+    return new Promise((resolve) => {
+      addEventListener('message', function handle(event) {
+        if (event.source === win) {
+          resolve();
+          removeEventListener('message', handle);
+        }
+      });
+    })
+  };
+
+  /**
+   * Prime the UA's session history such that the location of the request is
+   * immediately behind the current entry. Because the location may not be
+   * same-origin with the current browsing context, this must be done via a
+   * true navigation and not, e.g. the `history.pushState` API. The initial
+   * navigation will alter the WPT server's internal state; in order to avoid
+   * false positives, clear that state prior to initiating the second
+   * navigation via `history.back`.
+   */
+  function induceBackRequest(url, test, clear) {
+    const win = window.open(url);
+
+    test.add_cleanup(() => win.close());
+
+    return whenDone(win)
+      .then(clear)
+      .then(() => win.history.back())
+      .then(() => whenDone(win));
+  }
+
+  /**
+   * Prime the UA's session history such that the location of the request is
+   * immediately ahead of the current entry. Because the location may not be
+   * same-origin with the current browsing context, this must be done via a
+   * true navigation and not, e.g. the `history.pushState` API. The initial
+   * navigation will alter the WPT server's internal state; in order to avoid
+   * false positives, clear that state prior to initiating the second
+   * navigation via `history.forward`.
+   */
+  function induceForwardRequest(url, test, clear) {
+    const win = window.open(messageOpenerUrl);
+
+    test.add_cleanup(() => win.close());
+
+    return whenDone(win)
+      .then(() => win.location = url)
+      .then(() => whenDone(win))
+      .then(clear)
+      .then(() => win.history.go(-2))
+      .then(() => whenDone(win))
+      .then(() => win.history.forward())
+      .then(() => whenDone(win));
+  }
+
+  const messageOpenerUrl = new URL(
+    '/fetch/metadata/resources/message-opener.html', location
+  );
+  // For these tests to function, replacement must *not* be enabled during
+  // navigation. Assignment must therefore take place after the document has
+  // completely loaded [1]. This event is not directly observable, but it is
+  // scheduled as a task immediately following the global object's `load`
+  // event [2]. By queuing a task during the dispatch of the `load` event,
+  // navigation can be consistently triggered without replacement.
+  //
+  // [1] https://html.spec.whatwg.org/multipage/history.html#location-object-setter-navigate
+  // [2] https://html.spec.whatwg.org/multipage/parsing.html#the-end
+  const responseParams = {
+    mime: 'text/html',
+    body: `<script>
+      window.addEventListener('load', () => {
+        set`+`Timeout(() => location.assign('${messageOpenerUrl}'));
+      });
+    <`+`/script>`
+  };
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [% subtest.origins %], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("right", " - ")%]history.back[%subtest.api%][% " with user activation" if subtest.userActivated%]');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [% subtest.origins %], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("right", " - ")%]history.forward[%subtest.api%][% " with user activation" if subtest.userActivated%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

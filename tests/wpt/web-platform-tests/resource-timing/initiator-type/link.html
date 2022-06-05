@@ -18,6 +18,7 @@
     href="/resource-timing/resources/resource_timing_test0.css?id=preload">
 <link rel="prerender" href="/resource-timing/resources/green.html?id=prerender">
 <link rel="manifest" href="/resource-timing/resources/manifest.json">
+<link rel="modulepreload" href="resources/empty.js?id=modulePreload">
 <script>
   initiator_type_test("nested.css", "link", "<link>");
 
@@ -30,6 +31,7 @@
   initiator_type_test("resource_timing_test0.css?id=preload", "link", "<link preload>");
   initiator_type_test("green.html?id=prerender", "link", "<link prerender>");
   initiator_type_test("manifest.json", "link", "<link manifest>");
+  initiator_type_test("resources/empty.js?id=modulePreload", "other", "module preload");
 </script>
 <ol>This content forces a font to get fetched</ol>
 </body>

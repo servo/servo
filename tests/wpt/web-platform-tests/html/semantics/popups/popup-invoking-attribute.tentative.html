@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup invoking attribute</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+const buttonLogic = (t,s,h) => {
+  // This mimics the expected logic for button invokers:
+  let expectedBehavior = t ? "toggle" : (s ? "show" : (h ? "hide" : "none"));
+  let expectedId = t || s || h || 1;
+  if (!t && s && h) {
+    // Special case - only use toggle if the show/hide idrefs match.
+    expectedBehavior = (s === h) ? "toggle" : "show";
+  }
+  return {expectedBehavior, expectedId};
+}
+const textLogic = (t,s,h) => {
+  // This mimics the expected logic for text field invokers, which can
+  // only be shown via the down arrow, and never hidden.
+  return {expectedBehavior: (t || s) ? "show" : "none", expectedId: t || s || 1};
+};
+const noActivationLogic = (t,s,h) => {
+  // This does not activate any popups.
+  return {expectedBehavior: "none", expectedId: 1};
+}
+function activateTextInputFn(arrowChoice) {
+  return async (el) => {
+    // Press the down arrow
+    let key;
+    switch (arrowChoice) {
+      case 'down': key = '\uE015'; break; // ArrowDown
+      case 'right': key = '\uE014'; break; // ArrowRight
+      default: assert_unreached('invalid choice');
+    }
+    await new test_driver.send_keys(el,key);
+  };
+}
+function makeElementWithType(element,type) {
+  return (test) => {
+    const el = Object.assign(document.createElement(element),{type});
+    document.body.appendChild(el);
+    test.add_cleanup(() => el.remove());
+    return el;
+  };
+}
+const supportedButtonTypes = ['button','reset','submit',''].map(type => {
+  return   {
+    name: `<button type="${type}">`,
+    makeElement: makeElementWithType('button',type),
+    invokeFn: el => el.click(),
+    getExpectedLogic: buttonLogic,
+    supported: true,
+  };
+});
+const supportedInputButtonTypes = ['button','reset','submit','image'].map(type => {
+  return   {
+    name: `<input type="${type}"">`,
+    makeElement: makeElementWithType('input',type),
+    invokeFn: el => el.click(),
+    getExpectedLogic: buttonLogic,
+    supported: true,
+  };
+});
+const supportedTextTypes = ['text','email','password','search','tel','url'].map(type => {
+  return {
+    name: `<input type="${type}"">`,
+    makeElement: makeElementWithType('input',type),
+    invokeFn: activateTextInputFn('down'),
+    getExpectedLogic: textLogic, // Down arrow should work
+    supported: true,
+  };
+});
+const unsupportedTypes = ['checkbox','radio','range','file','color','date','datetime-local','month','time','week','number'].map(type => {
+  return {
+    name: `<input type="${type}"">`,
+    makeElement: makeElementWithType('input',type),
+    invokeFn: activateTextInputFn('down'),
+    getExpectedLogic: noActivationLogic, // None of these support popup invocation
+    supported: false,
+  };
+});
+const invokers = [
+  ...supportedButtonTypes,
+  ...supportedInputButtonTypes,
+  ...supportedTextTypes,
+  ...unsupportedTypes,
+  {
+    name: '<input type=text> with right arrow invocation',
+    makeElement: makeElementWithType('input','text'),
+    invokeFn: activateTextInputFn('right'),
+    getExpectedLogic: noActivationLogic, // Right arrow should not work
+    supported: false,
+  },
+  {
+    name: '<input type=text> focus only',
+    makeElement: makeElementWithType('input','text'),
+    invokeFn: el => el.focus(),
+    getExpectedLogic: noActivationLogic, // Just focusing the control should not work
+    supported: false,
+  },
+];
+["auto","hint","async"].forEach(type => {
+  invokers.forEach(testcase => {
+    let t_set = [1], s_set = [1], h_set = [1];
+    if (testcase.supported) {
+      t_set = s_set = h_set = [0,1,2]; // Test all permutations
+    }
+    t_set.forEach(t => {
+      s_set.forEach(s => {
+        h_set.forEach(h => {
+          promise_test(async test => {
+            const popup1 = Object.assign(document.createElement('div'),{popup: type, id: 'popup-1'});
+            const popup2 = Object.assign(document.createElement('div'),{popup: type, id: 'popup-2'});
+            assert_equals(popup1.popup,type);
+            assert_equals(popup2.popup,type);
+            assert_not_equals(popup1.id,popup2.id);
+            const invoker = testcase.makeElement(test);
+            if (t) invoker.setAttribute('togglepopup',t===1 ? popup1.id : popup2.id);
+            if (s) invoker.setAttribute('showpopup',s===1 ? popup1.id : popup2.id);
+            if (h) invoker.setAttribute('hidepopup',h===1 ? popup1.id : popup2.id);
+            assert_true(!document.getElementById(popup1.id));
+            assert_true(!document.getElementById(popup2.id));
+            document.body.appendChild(popup1);
+            document.body.appendChild(popup2);
+            test.add_cleanup(() => {
+              popup1.remove();
+              popup2.remove();
+            });
+            const {expectedBehavior, expectedId} = testcase.getExpectedLogic(t,s,h);
+            const otherId = expectedId !== 1 ? 1 : 2;
+            function assert_popup(num,state,message) {
+              assert_true(num>0,`Invalid expectedId ${num}`);
+              assert_equals((num===1 ? popup1 : popup2).matches(':top-layer'),state,message || "");
+            }
+            assert_popup(expectedId,false);
+            assert_popup(otherId,false);
+            await testcase.invokeFn(invoker);
+            assert_popup(otherId,false,'The other popup should never change');
+            switch (expectedBehavior) {
+              case "toggle":
+              case "show":
+                assert_popup(expectedId,true,'Toggle or show should show the popup');
+                (expectedId===1 ? popup1 : popup2).hidePopup(); // Hide the popup
+                break;
+              case "hide":
+              case "none":
+                assert_popup(expectedId,false,'Hide or none should leave the popup hidden');
+                break;
+              default:
+                assert_unreached();
+            }
+            (expectedId===1 ? popup1 : popup2).showPopup(); // Show the popup directly
+            assert_popup(expectedId,true);
+            assert_popup(otherId,false);
+            await testcase.invokeFn(invoker);
+            assert_popup(otherId,false,'The other popup should never change');
+            switch (expectedBehavior) {
+              case "toggle":
+              case "hide":
+                assert_popup(expectedId,false,'Toggle or hide should hide the popup');
+                break;
+              case "show":
+              case "none":
+                assert_popup(expectedId,true,'Show or none should leave the popup showing');
+                break;
+              default:
+                assert_unreached();
+            }
+          },`Test ${testcase.name}, t=${t}, s=${s}, h=${h}, with popup=${type}`);
+        });
+      });
+    });
+  });
+});
+</script>
+
+
+
+<button togglepopup=p1>Toggle Popup 1</button>
+<div popup id=p1 style="border: 5px solid red;top: 100px;left: 100px;">This is popup #1</div>
+
+<script>
+function clickOn(element) {
+  const actions = new test_driver.Actions();
+  return actions.pointerMove(0, 0, {origin: element})
+    .pointerDown({button: actions.ButtonType.LEFT})
+    .pointerUp({button: actions.ButtonType.LEFT})
+    .send();
+}
+
+const popup = document.querySelector('[popup]');
+const button = document.querySelector('button');
+let showCount = 0;
+let hideCount = 0;
+popup.addEventListener('show',() => ++showCount);
+popup.addEventListener('hide',() => ++hideCount);
+
+async function assertState(expectOpen,expectShow,expectHide) {
+  assert_equals(popup.matches(':top-layer'),expectOpen,'Popup open state is incorrect');
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_equals(showCount,expectShow,'Show count is incorrect');
+  assert_equals(hideCount,expectHide,'Hide count is incorrect');
+}
+
+promise_test(async () => {
+  showCount = hideCount = 0;
+  await assertState(false,0,0);
+  await clickOn(button);
+  await assertState(true,1,0);
+  popup.hidePopup();
+  await assertState(false,1,1);
+  button.click();
+  await assertState(true,2,1);
+  popup.hidePopup();
+  await assertState(false,2,2);
+}, "Clicking a togglepopup button opens a closed popup (also check event counts)");
+
+promise_test(async () => {
+  showCount = hideCount = 0;
+  await assertState(false,0,0);
+  await clickOn(button);
+  await assertState(true,1,0);
+  await clickOn(button);
+  await assertState(false,1,1);
+}, "Clicking a togglepopup button closes an open popup (also check event counts)");

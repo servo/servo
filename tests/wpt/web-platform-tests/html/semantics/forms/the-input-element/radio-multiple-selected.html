@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Multiple required input radio elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<form id='testForm'>
+  <input type=radio name=foo required checked>
+  <input type=radio name=foo required>
+  <input type=submit>
+</form>
+<script>
+  test(function() {
+    assert_true(document.getElementById('testForm').reportValidity());
+  }, "Form should be valid since one of the radio elements is checked");
+</script>
+</body>
+</html>

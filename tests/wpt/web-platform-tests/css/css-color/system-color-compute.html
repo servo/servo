@@ -99,13 +99,13 @@
         let inherited_value =
           getComputedStyle(document.getElementById("inherited"))
             .getPropertyValue(property);
-        assert_equals(inherited_value, specified_value);
-    }, "System color computes to itself on " + property);
+        assert_not_equals(inherited_value, specified_value);
+    }, "System color doesn't compute to itself on " + property);
     test(function() {
       let inherited_value =
         document.getElementById("inherited").computedStyleMap()
           .get(property);
-      assert_regexp_match(inherited_value, /menu/i);
+      assert_false(/menu/i.test(inherited_value));
     }, "Inherited system color keyword is observable on " + property);
   }
 </script>

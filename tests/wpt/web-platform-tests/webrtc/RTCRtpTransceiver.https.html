@@ -598,10 +598,11 @@
         }
       ]);
 
-    hasPropsAndUniqueMids(pc2.getTransceivers(),
-      [
-        {sender: {track}}
-      ]);
+    // addTransceiver-transceivers cannot attach to a remote offers, so a second
+    // transceiver is created and associated whilst the first transceiver
+    // remains unassociated.
+    assert_equals(pc2.getTransceivers()[0].mid, null);
+    assert_not_equals(pc2.getTransceivers()[1].mid, null);
   };
 
   const checkAddTrackPairs = async t => {
@@ -1005,7 +1006,7 @@
     hasProps(pc2.getTransceivers(), [{currentDirection: "sendrecv"}]);
 
     pc2.close();
-    hasProps(pc2.getTransceivers(), [{currentDirection: null}]);
+    hasProps(pc2.getTransceivers(), [{currentDirection: "stopped"}]);
   };
 
   const checkSendrecvWithNoSendTrack = async t => {
@@ -1286,7 +1287,7 @@
           sender: {track: {kind: "audio"}},
           receiver: {track: {kind: "audio", readyState: "ended"}},
           currentDirection: "stopped",
-          direction: "sendrecv"
+          direction: "stopped"
         }
       ]);
     // After setLocalDescription(answer), the transceiver has
@@ -1807,7 +1808,7 @@
     hasProps(removedTransceiver,
       {
         mid: null,
-        currentDirection: null
+        currentDirection: "stopped"
       }
     );
 
@@ -1817,7 +1818,7 @@
       {
         receiver: {track: {readyState: "ended"}},
         mid: null,
-        currentDirection: null
+        currentDirection: "stopped"
       }
     );
 
@@ -1967,14 +1968,14 @@
         {
           receiver: {track: {kind: "audio"}},
           sender: {track: track2},
-          direction: "sendrecv",
-          mid: null,
-          currentDirection: null,
+          direction: "stopped",
+          mid: mid0,
+          currentDirection: "stopped",
         }
       ]);
 
     // stop() cannot be rolled back!
-    // Transceiver should have [[stopping]]=true, [[stopped]]=false
+    // Transceiver should have [[stopping]]=true, [[stopped]]=false.
     await pc2.setRemoteDescription({type: "rollback"});
     hasProps(pc2.getTransceivers(),
       [
@@ -1982,8 +1983,8 @@
           receiver: {track: {kind: "audio"}},
           sender: {track: {kind: "audio"}},
           direction: "stopped",
-          mid: null,
-          currentDirection: "sendrecv",
+          mid: mid0,
+          currentDirection: "stopped",
         }
       ]);
   };
@@ -2023,34 +2024,46 @@
     t.add_cleanup(() => stopTracks(stream));
     const track = stream.getAudioTracks()[0];
     pc1.addTrack(track, stream);
+    const [pc1Transceiver] = pc1.getTransceivers();
 
-    let offer = await pc1.createOffer();
-    await pc1.setLocalDescription(offer);
-    await pc2.setRemoteDescription(offer);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
 
-    // answerer stops transceiver to reject m-section
+    // Answerer stops transceiver. The m-section is not immediately rejected
+    // (a follow-up O/A exchange is needed) but it should become inactive in
+    // the meantime.
     const stoppedMid0 = pc2.getTransceivers()[0].mid;
-    pc2.getTransceivers()[0].stop();
+    const [pc2Transceiver] = pc2.getTransceivers();
+    pc2Transceiver.stop();
+    assert_equals(pc2.getTransceivers()[0].direction, "stopped");
+    assert_not_equals(pc2.getTransceivers()[0].currentDirection, "stopped");
 
-    let answer = await pc2.createAnswer();
-    await pc2.setLocalDescription(answer);
-    await pc1.setRemoteDescription(answer);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
 
-    hasProps(pc1.getTransceivers(),
-      [
-        {
-          mid: null,
-          currentDirection: null,
-        }
-      ]);
+    // Still not stopped - but inactive is reflected!
+    assert_equals(pc1Transceiver.mid, stoppedMid0);
+    assert_equals(pc1Transceiver.direction, "sendrecv");
+    assert_equals(pc1Transceiver.currentDirection, "inactive");
+    assert_equals(pc2Transceiver.mid, stoppedMid0);
+    assert_equals(pc2Transceiver.direction, "stopped");
+    assert_equals(pc2Transceiver.currentDirection, "inactive");
 
-    hasProps(pc2.getTransceivers(),
-      [
-        {
-          mid: null,
-          currentDirection: null,
-        }
-      ]);
+    // Now do the follow-up O/A exchange pc2 -> pc1.
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+
+    // Now they're stopped, and have been removed from the PCs.
+    assert_equals(pc1.getTransceivers().length, 0);
+    assert_equals(pc2.getTransceivers().length, 0);
+    assert_equals(pc1Transceiver.mid, null);
+    assert_equals(pc1Transceiver.direction, "stopped");
+    assert_equals(pc1Transceiver.currentDirection, "stopped");
+    assert_equals(pc2Transceiver.mid, null);
+    assert_equals(pc2Transceiver.direction, "stopped");
+    assert_equals(pc2Transceiver.currentDirection, "stopped");
 
     // Check that m-section is reused on both ends
     const stream2 = await getNoiseStream({audio: true});
@@ -2058,19 +2071,17 @@
     const track2 = stream2.getAudioTracks()[0];
 
     pc1.addTrack(track2, stream2);
-    offer = await pc1.createOffer();
+    let offer = await pc1.createOffer();
     assert_equals(offer.sdp.match(/m=/g).length, 1,
                   "Exactly one m-line in offer, because it was reused");
     hasProps(pc1.getTransceivers(),
       [
         {
-        },
-        {
           sender: {track: track2}
         }
       ]);
 
-    assert_not_equals(pc1.getTransceivers()[1].mid, stoppedMid0);
+    assert_not_equals(pc1.getTransceivers()[0].mid, stoppedMid0);
 
     pc2.addTrack(track, stream);
     offer = await pc2.createOffer();
@@ -2079,37 +2090,29 @@
     hasProps(pc2.getTransceivers(),
       [
         {
-        },
-        {
           sender: {track}
         }
       ]);
 
-    assert_not_equals(pc2.getTransceivers()[1].mid, stoppedMid0);
+    assert_not_equals(pc2.getTransceivers()[0].mid, stoppedMid0);
 
     await pc2.setLocalDescription(offer);
     await pc1.setRemoteDescription(offer);
-    answer = await pc1.createAnswer();
+    let answer = await pc1.createAnswer();
     await pc1.setLocalDescription(answer);
     await pc2.setRemoteDescription(answer);
     hasPropsAndUniqueMids(pc1.getTransceivers(),
       [
-        {
-          mid: null
-        },
         {
           sender: {track: track2},
           currentDirection: "sendrecv"
         }
       ]);
 
-    const mid0 = pc1.getTransceivers()[1].mid;
+    const mid0 = pc1.getTransceivers()[0].mid;
 
     hasProps(pc2.getTransceivers(),
       [
-        {
-          mid: null
-        },
         {
           sender: {track},
           currentDirection: "sendrecv",
@@ -2120,8 +2123,8 @@
     // stop the transceiver, and add a track. Verify that we don't reuse
     // prematurely in our offer. (There should be one rejected m-section, and a
     // new one for the new track)
-    const stoppedMid1 = pc1.getTransceivers()[1].mid;
-    pc1.getTransceivers()[1].stop();
+    const stoppedMid1 = pc1.getTransceivers()[0].mid;
+    pc1.getTransceivers()[0].stop();
     const stream3 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stopTracks(stream3));
     const track3 = stream3.getAudioTracks()[0];
@@ -2138,7 +2141,7 @@
     hasProps(trackEvents,
       [
         {
-          track: pc2.getTransceivers()[2].receiver.track,
+          track: pc2.getTransceivers()[1].receiver.track,
           streams: [{id: stream3.id}]
         }
       ]);
@@ -2152,19 +2155,13 @@
     hasPropsAndUniqueMids(pc2.getTransceivers(),
       [
         {
-          mid: null
-        },
-        {
-          mid: null,
-        },
-        {
           sender: {track: null},
           currentDirection: "recvonly"
         }
       ]);
 
     // Verify that we don't reuse the mid from the stopped transceiver
-    const mid1 = pc2.getTransceivers()[2].mid;
+    const mid1 = pc2.getTransceivers()[0].mid;
     assert_not_equals(mid1, stoppedMid1);
 
     pc2.addTrack(track3, stream3);
@@ -2178,9 +2175,6 @@
 
     hasProps(pc2.getTransceivers(),
       [
-        {},
-        {
-        },
         {
           mid: mid1,
           sender: {track: track3},
@@ -2199,12 +2193,6 @@
     hasPropsAndUniqueMids(pc2.getTransceivers(),
       [
         {
-           mid: null
-        },
-        {
-           mid: null
-        },
-        {
           mid: mid1
         },
         {
@@ -2213,8 +2201,8 @@
       ]);
 
     // Fourth transceiver should have a new mid
-    assert_not_equals(pc2.getTransceivers()[3].mid, stoppedMid0);
-    assert_not_equals(pc2.getTransceivers()[3].mid, stoppedMid1);
+    assert_not_equals(pc2.getTransceivers()[1].mid, stoppedMid0);
+    assert_not_equals(pc2.getTransceivers()[1].mid, stoppedMid1);
 
     assert_equals(offer.sdp.match(/m=/g).length, 2,
                   "Exactly 2 m-lines in offer, because m-section was reused");

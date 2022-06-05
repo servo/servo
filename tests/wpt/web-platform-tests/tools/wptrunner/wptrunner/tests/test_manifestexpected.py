@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 from io import BytesIO
 
 import pytest
@@ -14,12 +16,12 @@ from .. import manifestexpected
     (b"totalPixels=200;1", [(None, ((1, 1), (200, 200)))]),
     (b"maxDifference=1;200", [(None, ((1, 1), (200, 200)))]),
     (b"test.html==ref.html:maxDifference=1;totalPixels=200",
-     [((u"test.html", u"ref.html", "=="), ((1, 1), (200, 200)))]),
+     [(("test.html", "ref.html", "=="), ((1, 1), (200, 200)))]),
     (b"test.html!=ref.html:maxDifference=1;totalPixels=200",
-     [((u"test.html", u"ref.html", "!="), ((1, 1), (200, 200)))]),
+     [(("test.html", "ref.html", "!="), ((1, 1), (200, 200)))]),
     (b"[test.html!=ref.html:maxDifference=1;totalPixels=200, test.html==ref1.html:maxDifference=5-10;100]",
-     [((u"test.html", u"ref.html", "!="), ((1, 1), (200, 200))),
-      ((u"test.html", u"ref1.html", "=="), ((5,10), (100, 100)))]),
+     [(("test.html", "ref.html", "!="), ((1, 1), (200, 200))),
+      (("test.html", "ref1.html", "=="), ((5,10), (100, 100)))]),
 ])
 def test_fuzzy(fuzzy, expected):
     data = b"""

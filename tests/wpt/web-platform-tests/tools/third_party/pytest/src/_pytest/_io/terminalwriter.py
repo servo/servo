@@ -76,7 +76,7 @@ class TerminalWriter:
         self._file = file
         self.hasmarkup = should_do_markup(file)
         self._current_line = ""
-        self._terminal_width = None  # type: Optional[int]
+        self._terminal_width: Optional[int] = None
         self.code_highlight = True
 
     @property
@@ -97,7 +97,7 @@ class TerminalWriter:
     def markup(self, text: str, **markup: bool) -> str:
         for name in markup:
             if name not in self._esctable:
-                raise ValueError("unknown markup: {!r}".format(name))
+                raise ValueError(f"unknown markup: {name!r}")
         if self.hasmarkup:
             esc = [self._esctable[name] for name, on in markup.items() if on]
             if esc:
@@ -109,7 +109,7 @@ class TerminalWriter:
         sepchar: str,
         title: Optional[str] = None,
         fullwidth: Optional[int] = None,
-        **markup: bool
+        **markup: bool,
     ) -> None:
         if fullwidth is None:
             fullwidth = self.fullwidth
@@ -128,7 +128,7 @@ class TerminalWriter:
             #         N <= (fullwidth - len(title) - 2) // (2*len(sepchar))
             N = max((fullwidth - len(title) - 2) // (2 * len(sepchar)), 1)
             fill = sepchar * N
-            line = "{} {} {}".format(fill, title, fill)
+            line = f"{fill} {title} {fill}"
         else:
             # we want len(sepchar)*N <= fullwidth
             # i.e.    N <= fullwidth // len(sepchar)
@@ -195,16 +195,39 @@ class TerminalWriter:
 
     def _highlight(self, source: str) -> str:
         """Highlight the given source code if we have markup support."""
+        from _pytest.config.exceptions import UsageError
+
         if not self.hasmarkup or not self.code_highlight:
             return source
         try:
             from pygments.formatters.terminal import TerminalFormatter
             from pygments.lexers.python import PythonLexer
             from pygments import highlight
+            import pygments.util
         except ImportError:
             return source
         else:
-            highlighted = highlight(
-                source, PythonLexer(), TerminalFormatter(bg="dark")
-            )  # type: str
-            return highlighted
+            try:
+                highlighted: str = highlight(
+                    source,
+                    PythonLexer(),
+                    TerminalFormatter(
+                        bg=os.getenv("PYTEST_THEME_MODE", "dark"),
+                        style=os.getenv("PYTEST_THEME"),
+                    ),
+                )
+                return highlighted
+            except pygments.util.ClassNotFound:
+                raise UsageError(
+                    "PYTEST_THEME environment variable had an invalid value: '{}'. "
+                    "Only valid pygment styles are allowed.".format(
+                        os.getenv("PYTEST_THEME")
+                    )
+                )
+            except pygments.util.OptionError:
+                raise UsageError(
+                    "PYTEST_THEME_MODE environment variable had an invalid value: '{}'. "
+                    "The only allowed values are 'dark' and 'light'.".format(
+                        os.getenv("PYTEST_THEME_MODE")
+                    )
+                )

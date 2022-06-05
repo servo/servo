@@ -1,11 +1,11 @@
 // This file defines a directory_test() function that can be used to define
 // tests that require a FileSystemDirectoryHandle. The implementation of that
-// function in this file will ask the user to select an empty directory and
-// uses that directory.
+// function in this file will ask the user to select an empty directory and uses
+// that directory.
 //
 // Another implementation of this function exists in
-// sandboxed-fs-test-helpers.js, where that version uses the sandboxed file
-// system instead.
+// fs/resources/sandboxed-fs-test-helpers.js, where that version uses the
+// sandboxed file system instead.
 
 const directory_promise = (async () => {
   await new Promise(resolve => {

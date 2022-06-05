@@ -33,7 +33,7 @@
   /* The counter-increment inside the container should not affect the size of
      #item2 because of style containment. Otherwise we would have a
      circularity. */
-  @container size(min-width: 125px) {
+  @container (min-width: 125px) {
     #inner {
       counter-increment: my-count 10;
       background-color: green;

@@ -4,50 +4,6 @@
 // META: script=/webusb/resources/usb-helpers.js
 'use strict';
 
-function assertRejectsWithNotFoundError(promise) {
-  return assertRejectsWithError(promise, 'NotFoundError');
-}
-
-function assertRejectsWithTypeError(promise) {
-  return assertRejectsWithError(promise, 'TypeError');
-}
-
-function assertRejectsWithNotOpenError(promise) {
-  return assertRejectsWithError(
-      promise, 'InvalidStateError', 'The device must be opened first.');
-}
-
-function assertRejectsWithNotConfiguredError(promise) {
-  return assertRejectsWithError(
-      promise, 'InvalidStateError',
-      'The device must have a configuration selected.');
-}
-
-function assertRejectsWithNotClaimedError(promise) {
-  return assertRejectsWithError(
-      promise, 'InvalidStateError',
-      'The specified interface has not been claimed.');
-}
-
-function assertRejectsWithEndpointNotFoundError(promise) {
-  return assertRejectsWithError(
-      promise, 'NotFoundError',
-      'The specified endpoint is not part of a claimed and selected ' +
-      'alternate interface.');
-}
-
-function assertRejectsWithDeviceStateChangeInProgressError(promise) {
-  return assertRejectsWithError(
-    promise, 'InvalidStateError',
-    'An operation that changes the device state is in progress.');
-}
-
-function assertRejectsWithInterfaceStateChangeInProgressError(promise) {
-  return assertRejectsWithError(
-    promise, 'InvalidStateError',
-    'An operation that changes interface state is in progress.');
-}
-
 function detachBuffer(buffer) {
   if (self.GLOBAL.isWindow())
     window.postMessage('', '*', [buffer]);
@@ -55,10 +11,10 @@ function detachBuffer(buffer) {
     self.postMessage('', [buffer]);
 }
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return waitForDisconnect(fakeDevice)
-      .then(() => assertRejectsWithNotFoundError(device.open()));
+        .then(() => promise_rejects_dom(t, 'NotFoundError', device.open()));
   });
 }, 'open rejects when called on a disconnected device');
 
@@ -97,107 +53,122 @@ usb_test(() => {
   });
 }, 'open and close can be called multiple times');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   await Promise.all([
     device.open(),
-    assertRejectsWithDeviceStateChangeInProgressError(device.open()),
-    assertRejectsWithDeviceStateChangeInProgressError(device.close()),
+    promise_rejects_dom(t, 'InvalidStateError', device.open()),
+    promise_rejects_dom(t, 'InvalidStateError', device.close()),
   ]);
   await Promise.all([
     device.close(),
-    assertRejectsWithDeviceStateChangeInProgressError(device.open()),
-    assertRejectsWithDeviceStateChangeInProgressError(device.close()),
+    promise_rejects_dom(t, 'InvalidStateError', device.open()),
+    promise_rejects_dom(t, 'InvalidStateError', device.close()),
   ]);
 }, 'open and close cannot be called again while open or close are in progress');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   await device.open();
   return Promise.all([
     device.selectConfiguration(1),
-    assertRejectsWithDeviceStateChangeInProgressError(
-        device.claimInterface(0)),
-    assertRejectsWithDeviceStateChangeInProgressError(
-        device.releaseInterface(0)),
-    assertRejectsWithDeviceStateChangeInProgressError(device.open()),
-    assertRejectsWithDeviceStateChangeInProgressError(
-        device.selectConfiguration(1)),
-    assertRejectsWithDeviceStateChangeInProgressError(device.reset()),
-    assertRejectsWithDeviceStateChangeInProgressError(
-        device.selectAlternateInterface(0, 0)),
-    assertRejectsWithDeviceStateChangeInProgressError(
-        device.controlTransferOut({
-          requestType: 'standard',
-          recipient: 'interface',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x0000,
-        })),
-    assertRejectsWithDeviceStateChangeInProgressError(
-        device.controlTransferOut({
-          requestType: 'standard',
-          recipient: 'interface',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x0000,
-        }, new Uint8Array([1, 2, 3]))),
-    assertRejectsWithDeviceStateChangeInProgressError(
-        device.controlTransferIn({
-          requestType: 'standard',
-          recipient: 'interface',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x0000
-        }, 0)),
-    assertRejectsWithDeviceStateChangeInProgressError(device.close()),
+    promise_rejects_dom(t, 'InvalidStateError', device.claimInterface(0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.releaseInterface(0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.open()),
+    promise_rejects_dom(t, 'InvalidStateError', device.selectConfiguration(1)),
+    promise_rejects_dom(t, 'InvalidStateError', device.reset()),
+    promise_rejects_dom(
+        t, 'InvalidStateError', device.selectAlternateInterface(0, 0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.controlTransferOut({
+      requestType: 'standard',
+      recipient: 'interface',
+      request: 0x42,
+      value: 0x1234,
+      index: 0x0000,
+    })),
+    promise_rejects_dom(
+        t, 'InvalidStateError',
+        device.controlTransferOut(
+            {
+              requestType: 'standard',
+              recipient: 'interface',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x0000,
+            },
+            new Uint8Array([1, 2, 3]))),
+    promise_rejects_dom(
+        t, 'InvalidStateError',
+        device.controlTransferIn(
+            {
+              requestType: 'standard',
+              recipient: 'interface',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x0000
+            },
+            0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.close()),
   ]);
 }, 'device operations reject if an device state change is in progress');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.close()));
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(() => promise_rejects_dom(t, 'NotFoundError', device.close()));
   });
 }, 'close rejects when called on a disconnected device');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.selectConfiguration(1)));
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError', device.selectConfiguration(1)));
   });
 }, 'selectConfiguration rejects when called on a disconnected device');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device }) => Promise.all([
-      assertRejectsWithNotOpenError(device.selectConfiguration(1)),
-      assertRejectsWithNotOpenError(device.claimInterface(0)),
-      assertRejectsWithNotOpenError(device.releaseInterface(0)),
-      assertRejectsWithNotOpenError(device.selectAlternateInterface(0, 1)),
-      assertRejectsWithNotOpenError(device.controlTransferIn({
-          requestType: 'vendor',
-          recipient: 'device',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x5678
-      }, 7)),
-      assertRejectsWithNotOpenError(device.controlTransferOut({
-          requestType: 'vendor',
-          recipient: 'device',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x5678
-      }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))),
-      assertRejectsWithNotOpenError(device.clearHalt('in', 1)),
-      assertRejectsWithNotOpenError(device.transferIn(1, 8)),
-      assertRejectsWithNotOpenError(
-          device.transferOut(1, new ArrayBuffer(8))),
-      assertRejectsWithNotOpenError(device.isochronousTransferIn(1, [8])),
-      assertRejectsWithNotOpenError(
-          device.isochronousTransferOut(1, new ArrayBuffer(8), [8])),
-      assertRejectsWithNotOpenError(device.reset())
+usb_test((t) => {
+  return getFakeDevice().then(({device}) => Promise.all([
+    promise_rejects_dom(t, 'InvalidStateError', device.selectConfiguration(1)),
+    promise_rejects_dom(t, 'InvalidStateError', device.claimInterface(0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.releaseInterface(0)),
+    promise_rejects_dom(
+        t, 'InvalidStateError', device.selectAlternateInterface(0, 1)),
+    promise_rejects_dom(
+        t, 'InvalidStateError',
+        device.controlTransferIn(
+            {
+              requestType: 'vendor',
+              recipient: 'device',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x5678
+            },
+            7)),
+    promise_rejects_dom(
+        t, 'InvalidStateError',
+        device.controlTransferOut(
+            {
+              requestType: 'vendor',
+              recipient: 'device',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x5678
+            },
+            new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))),
+    promise_rejects_dom(t, 'InvalidStateError', device.clearHalt('in', 1)),
+    promise_rejects_dom(t, 'InvalidStateError', device.transferIn(1, 8)),
+    promise_rejects_dom(
+        t, 'InvalidStateError', device.transferOut(1, new ArrayBuffer(8))),
+    promise_rejects_dom(
+        t, 'InvalidStateError', device.isochronousTransferIn(1, [8])),
+    promise_rejects_dom(
+        t, 'InvalidStateError',
+        device.isochronousTransferOut(1, new ArrayBuffer(8), [8])),
+    promise_rejects_dom(t, 'InvalidStateError', device.reset())
   ]));
 }, 'methods requiring it reject when the device is not open');
 
@@ -232,33 +203,40 @@ usb_test(async () => {
   await device.close();
 }, 'a device configuration value can be set again');
 
-usb_test(() => {
+usb_test((t) => {
   return getFakeDevice().then(({ device }) => {
     assert_equals(device.configuration, null);
     return device.open()
-      .then(() => assertRejectsWithError(
-            device.selectConfiguration(3), 'NotFoundError',
-            'The configuration value provided is not supported by the device.'))
-      .then(() => device.close());
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError', device.selectConfiguration(10)))
+        .then(() => device.close());
   });
 }, 'selectConfiguration rejects on invalid configurations');
 
-usb_test(() => {
+usb_test((t) => {
   return getFakeDevice().then(({ device }) => {
     assert_equals(device.configuration, null);
-    return device.open().then(() => Promise.all([
-        assertRejectsWithNotConfiguredError(device.claimInterface(0)),
-        assertRejectsWithNotConfiguredError(device.releaseInterface(0)),
-        assertRejectsWithNotConfiguredError(device.selectAlternateInterface(0, 1)),
-        assertRejectsWithNotConfiguredError(device.clearHalt('in', 1)),
-        assertRejectsWithNotConfiguredError(device.transferIn(1, 8)),
-        assertRejectsWithNotConfiguredError(
-            device.transferOut(1, new ArrayBuffer(8))),
-        assertRejectsWithNotConfiguredError(
-            device.isochronousTransferIn(1, [8])),
-        assertRejectsWithNotConfiguredError(
-            device.isochronousTransferOut(1, new ArrayBuffer(8), [8])),
-    ])).then(() => device.close());
+    return device.open()
+        .then(() => Promise.all([
+          promise_rejects_dom(t, 'InvalidStateError', device.claimInterface(0)),
+          promise_rejects_dom(
+              t, 'InvalidStateError', device.releaseInterface(0)),
+          promise_rejects_dom(
+              t, 'InvalidStateError', device.selectAlternateInterface(0, 1)),
+          promise_rejects_dom(
+              t, 'InvalidStateError', device.clearHalt('in', 1)),
+          promise_rejects_dom(t, 'InvalidStateError', device.transferIn(1, 8)),
+          promise_rejects_dom(
+              t, 'InvalidStateError',
+              device.transferOut(1, new ArrayBuffer(8))),
+          promise_rejects_dom(
+              t, 'InvalidStateError', device.isochronousTransferIn(1, [8])),
+          promise_rejects_dom(
+              t, 'InvalidStateError',
+              device.isochronousTransferOut(1, new ArrayBuffer(8), [8])),
+        ]))
+        .then(() => device.close());
   });
 }, 'methods requiring it reject when the device is unconfigured');
 
@@ -332,47 +310,49 @@ usb_test(async () => {
   await device.close();
 }, 'an interface can be released multiple times');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   await device.open();
   await device.selectConfiguration(1);
   return Promise.all([
     device.claimInterface(0),
-    assertRejectsWithInterfaceStateChangeInProgressError(
-        device.claimInterface(0)),
-    assertRejectsWithInterfaceStateChangeInProgressError(
-        device.releaseInterface(0)),
-    assertRejectsWithInterfaceStateChangeInProgressError(device.open()),
-    assertRejectsWithInterfaceStateChangeInProgressError(
-        device.selectConfiguration(1)),
-    assertRejectsWithInterfaceStateChangeInProgressError(device.reset()),
-    assertRejectsWithInterfaceStateChangeInProgressError(
-        device.selectAlternateInterface(0, 0)),
-    assertRejectsWithInterfaceStateChangeInProgressError(
-        device.controlTransferOut({
-          requestType: 'standard',
-          recipient: 'interface',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x0000,
-        })),
-    assertRejectsWithInterfaceStateChangeInProgressError(
-        device.controlTransferOut({
-          requestType: 'standard',
-          recipient: 'interface',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x0000,
-        }, new Uint8Array([1, 2, 3]))),
-    assertRejectsWithInterfaceStateChangeInProgressError(
-        device.controlTransferIn({
-          requestType: 'standard',
-          recipient: 'interface',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x0000
-        }, 0)),
-    assertRejectsWithInterfaceStateChangeInProgressError(device.close()),
+    promise_rejects_dom(t, 'InvalidStateError', device.claimInterface(0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.releaseInterface(0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.open()),
+    promise_rejects_dom(t, 'InvalidStateError', device.selectConfiguration(1)),
+    promise_rejects_dom(t, 'InvalidStateError', device.reset()),
+    promise_rejects_dom(
+        t, 'InvalidStateError', device.selectAlternateInterface(0, 0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.controlTransferOut({
+      requestType: 'standard',
+      recipient: 'interface',
+      request: 0x42,
+      value: 0x1234,
+      index: 0x0000,
+    })),
+    promise_rejects_dom(
+        t, 'InvalidStateError',
+        device.controlTransferOut(
+            {
+              requestType: 'standard',
+              recipient: 'interface',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x0000,
+            },
+            new Uint8Array([1, 2, 3]))),
+    promise_rejects_dom(
+        t, 'InvalidStateError',
+        device.controlTransferIn(
+            {
+              requestType: 'standard',
+              recipient: 'interface',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x0000
+            },
+            0)),
+    promise_rejects_dom(t, 'InvalidStateError', device.close()),
   ]);
 }, 'device operations reject if an interface state change is in progress');
 
@@ -386,38 +366,38 @@ usb_test(async () => {
   assert_false(device.configuration.interfaces[0].claimed);
 }, 'interfaces are released on close');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device }) => {
-    const message = 'The interface number provided is not supported by the ' +
-                    'device in its current configuration.';
+usb_test((t) => {
+  return getFakeDevice().then(({device}) => {
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => Promise.all([
-          assertRejectsWithError(
-              device.claimInterface(2), 'NotFoundError', message),
-          assertRejectsWithError(
-              device.releaseInterface(2), 'NotFoundError', message),
-      ]))
-      .then(() => device.close());
+        .then(() => device.selectConfiguration(1))
+        .then(() => Promise.all([
+          promise_rejects_dom(t, 'NotFoundError', device.claimInterface(2)),
+          promise_rejects_dom(t, 'NotFoundError', device.releaseInterface(2)),
+        ]))
+        .then(() => device.close());
   });
 }, 'a non-existent interface cannot be claimed or released');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.claimInterface(0)));
+        .then(() => device.selectConfiguration(1))
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError', device.claimInterface(0)));
   });
 }, 'claimInterface rejects when called on a disconnected device');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => device.claimInterface(0))
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.releaseInterface(0)));
+        .then(() => device.selectConfiguration(1))
+        .then(() => device.claimInterface(0))
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError', device.releaseInterface(0)));
   });
 }, 'releaseInterface rejects when called on a disconnected device');
 
@@ -431,26 +411,51 @@ usb_test(() => {
   });
 }, 'can select an alternate interface');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device }) => {
+usb_test(
+    async () => {
+      const {device} = await getFakeDevice();
+      await device.open();
+      await device.selectConfiguration(3);
+      await device.claimInterface(2);
+      await device.selectAlternateInterface(2, 0);
+      await device.close();
+    },
+    'can select an alternate interface on a setting with non-sequential ' +
+        'interface number');
+
+usb_test(
+    async () => {
+      const {device} = await getFakeDevice();
+      await device.open();
+      await device.selectConfiguration(3);
+      await device.claimInterface(0);
+      await device.selectAlternateInterface(0, 2);
+      await device.close();
+    },
+    'can select an alternate interface on a setting with non-sequential ' +
+        'alternative setting value');
+
+usb_test((t) => {
+  return getFakeDevice().then(({device}) => {
     return device.open()
-      .then(() => device.selectConfiguration(2))
-      .then(() => device.claimInterface(0))
-      .then(() => assertRejectsWithError(
-          device.selectAlternateInterface(0, 2), 'NotFoundError',
-          'The alternate setting provided is not supported by the device in ' +
-          'its current configuration.'))
-      .then(() => device.close());
+        .then(() => device.selectConfiguration(2))
+        .then(() => device.claimInterface(0))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError', device.selectAlternateInterface(0, 2)))
+        .then(() => device.close());
   });
 }, 'cannot select a non-existent alternate interface');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => device.selectConfiguration(2))
-      .then(() => device.claimInterface(0))
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.selectAlternateInterface(0, 1)));
+        .then(() => device.selectConfiguration(2))
+        .then(() => device.claimInterface(0))
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError', device.selectAlternateInterface(0, 1)));
   });
 }, 'selectAlternateInterface rejects when called on a disconnected device');
 
@@ -510,7 +515,7 @@ usb_test(async () => {
   await device.close();
 }, 'device-scope IN control transfers don\'t require configuration');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   let usbRequestTypes = ['standard', 'class', 'vendor'];
   let usbRecipients = ['interface', 'endpoint'];
@@ -518,19 +523,23 @@ usb_test(async () => {
   await Promise.all(usbRequestTypes.flatMap(requestType => {
     return usbRecipients.map(recipient => {
       let index = recipient === 'interface' ? 0x5600 : 0x5681;
-      return assertRejectsWithNotConfiguredError(device.controlTransferIn({
-        requestType: requestType,
-        recipient: recipient,
-        request: 0x42,
-        value: 0x1234,
-        index: index
-      }, 7));
+      return promise_rejects_dom(
+          t, 'InvalidStateError',
+          device.controlTransferIn(
+              {
+                requestType: requestType,
+                recipient: recipient,
+                request: 0x42,
+                value: 0x1234,
+                index: index
+              },
+              7));
     });
   }));
   await device.close();
 }, 'interface-scope IN control transfers require configuration');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   let usbRequestTypes = ['standard', 'class', 'vendor'];
   let usbRecipients = ['interface', 'endpoint'];
@@ -538,37 +547,50 @@ usb_test(async () => {
   await device.selectConfiguration(1);
   await Promise.all(usbRequestTypes.flatMap(requestType => {
     return [
-      assertRejectsWithNotClaimedError(device.controlTransferIn({
-        requestType: requestType,
-        recipient: 'interface',
-        request: 0x42,
-        value: 0x1234,
-        index: 0x5600
-      }, 7)),
-      assertRejectsWithNotFoundError(device.controlTransferIn({
-        requestType: requestType,
-        recipient: 'endpoint',
-        request: 0x42,
-        value: 0x1234,
-        index: 0x5681
-      }, 7))
+      promise_rejects_dom(
+          t, 'InvalidStateError',
+          device.controlTransferIn(
+              {
+                requestType: requestType,
+                recipient: 'interface',
+                request: 0x42,
+                value: 0x1234,
+                index: 0x5600
+              },
+              7)),
+      promise_rejects_dom(
+          t, 'NotFoundError',
+          device.controlTransferIn(
+              {
+                requestType: requestType,
+                recipient: 'endpoint',
+                request: 0x42,
+                value: 0x1234,
+                index: 0x5681
+              },
+              7))
     ];
   }));
   await device.close();
 }, 'interface-scope IN control transfers require claiming the interface');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.controlTransferIn({
-          requestType: 'vendor',
-          recipient: 'device',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x5678
-        }, 7)));
+        .then(() => device.selectConfiguration(1))
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError',
+                device.controlTransferIn(
+                    {
+                      requestType: 'vendor',
+                      recipient: 'device',
+                      request: 0x42,
+                      value: 0x1234,
+                      index: 0x5678
+                    },
+                    7)));
   });
 }, 'controlTransferIn rejects when called on a disconnected device');
 
@@ -637,7 +659,7 @@ usb_test(async () => {
   await device.close();
 }, 'device-scope OUT control transfers don\'t require configuration');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   let usbRequestTypes = ['standard', 'class', 'vendor'];
   let usbRecipients = ['interface', 'endpoint'];
@@ -654,17 +676,21 @@ usb_test(async () => {
         value: 0x1234,
         index: index
       };
-      return dataTypes.map(data => {
-        return assertRejectsWithNotConfiguredError(
-            device.controlTransferOut(transferParams, data));
-      }).push(assertRejectsWithNotConfiguredError(
-          device.controlTransferOut(transferParams)));
+      return dataTypes
+          .map(data => {
+            return promise_rejects_dom(
+                t, 'InvalidStateError',
+                device.controlTransferOut(transferParams, data));
+          })
+          .push(promise_rejects_dom(
+              t, 'InvalidStateError',
+              device.controlTransferOut(transferParams)));
     });
   }));
   await device.close();
 }, 'interface-scope OUT control transfers require configuration');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   let usbRequestTypes = ['standard', 'class', 'vendor'];
   let usbRecipients = ['interface', 'endpoint'];
@@ -675,9 +701,8 @@ usb_test(async () => {
   await Promise.all(usbRequestTypes.flatMap(requestType => {
     return usbRecipients.flatMap(recipient => {
       let index = recipient === 'interface' ? 0x5600 : 0x5681;
-      let assertion = recipient === 'interface'
-          ? assertRejectsWithNotClaimedError
-          : assertRejectsWithEndpointNotFoundError;
+      let error =
+          recipient === 'interface' ? 'InvalidStateError' : 'NotFoundError';
       let transferParams = {
         requestType: requestType,
         recipient: recipient,
@@ -685,94 +710,133 @@ usb_test(async () => {
         value: 0x1234,
         index: index
       };
-      return dataTypes.map(data => {
-        return assertion(device.controlTransferOut(transferParams, data));
-      }).push(assertion(device.controlTransferOut(transferParams)));
+      return dataTypes
+          .map(data => {
+            return promise_rejects_dom(
+                t, error, device.controlTransferOut(transferParams, data));
+          })
+          .push(promise_rejects_dom(
+              t, error, device.controlTransferOut(transferParams)));
     });
   }));
   await device.close();
 }, 'interface-scope OUT control transfers an interface claim');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.controlTransferOut({
-          requestType: 'vendor',
-          recipient: 'device',
-          request: 0x42,
-          value: 0x1234,
-          index: 0x5678
-        }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))));
+        .then(() => device.selectConfiguration(1))
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError',
+                device.controlTransferOut(
+                    {
+                      requestType: 'vendor',
+                      recipient: 'device',
+                      request: 0x42,
+                      value: 0x1234,
+                      index: 0x5678
+                    },
+                    new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))));
   });
 }, 'controlTransferOut rejects when called on a disconnected device');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   await device.open();
   await device.selectConfiguration(1);
   await device.claimInterface(0);
-  assertRejectsWithTypeError(device.controlTransferOut({
-    requestType: 'invalid',
-    recipient: 'device',
-    request: 0x42,
-    value: 0x1234,
-    index: 0x5678
-  }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])));
-  assertRejectsWithTypeError(device.controlTransferIn({
-    requestType: 'invalid',
-    recipient: 'device',
-    request: 0x42,
-    value: 0x1234,
-    index: 0x5678
-  }, 0));
+  await Promise.all([
+    promise_rejects_js(
+        t, TypeError,
+        device.controlTransferOut(
+            {
+              requestType: 'invalid',
+              recipient: 'device',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x5678
+            },
+            new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))),
+    promise_rejects_js(
+        t, TypeError,
+        device.controlTransferIn(
+            {
+              requestType: 'invalid',
+              recipient: 'device',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x5678
+            },
+            0)),
+  ]);
   await device.close();
 }, 'control transfers with a invalid request type reject');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   await device.open();
   await device.selectConfiguration(1);
   await device.claimInterface(0);
-  assertRejectsWithTypeError(device.controlTransferOut({
-    requestType: 'vendor',
-    recipient: 'invalid',
-    request: 0x42,
-    value: 0x1234,
-    index: 0x5678
-  }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])));
-  assertRejectsWithTypeError(device.controlTransferIn({
-    requestType: 'vendor',
-    recipient: 'invalid',
-    request: 0x42,
-    value: 0x1234,
-    index: 0x5678
-  }, 0));
+  await Promise.all([
+    promise_rejects_js(
+        t, TypeError,
+        device.controlTransferOut(
+            {
+              requestType: 'vendor',
+              recipient: 'invalid',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x5678
+            },
+            new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))),
+    promise_rejects_js(
+        t, TypeError,
+        device.controlTransferIn(
+            {
+              requestType: 'vendor',
+              recipient: 'invalid',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x5678
+            },
+            0)),
+  ]);
 }, 'control transfers with a invalid recipient type reject');
 
-usb_test(async () => {
+usb_test(async (t) => {
   let { device } = await getFakeDevice();
   await device.open();
   await device.selectConfiguration(1);
   await device.claimInterface(0);
-  assertRejectsWithNotFoundError(device.controlTransferOut({
-    requestType: 'vendor',
-    recipient: 'interface',
-    request: 0x42,
-    value: 0x1234,
-    index: 0x0002  // Last byte of index is interface number.
-  }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])));
-  assertRejectsWithNotFoundError(device.controlTransferIn({
-    requestType: 'vendor',
-    recipient: 'interface',
-    request: 0x42,
-    value: 0x1234,
-    index: 0x0002  // Last byte of index is interface number.
-  }, 0));
+  await Promise.all([
+    promise_rejects_dom(
+        t, 'NotFoundError',
+        device.controlTransferOut(
+            {
+              requestType: 'vendor',
+              recipient: 'interface',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x0002  // Last byte of index is interface number.
+            },
+            new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))),
+    promise_rejects_dom(
+        t, 'NotFoundError',
+        device.controlTransferIn(
+            {
+              requestType: 'vendor',
+              recipient: 'interface',
+              request: 0x42,
+              value: 0x1234,
+              index: 0x0002  // Last byte of index is interface number.
+            },
+            0)),
+  ]);
 }, 'control transfers to a non-existant interface reject');
 
-usb_test(() => {
+usb_test((t) => {
   return getFakeDevice().then(({ device }) => {
     let interfaceRequest = {
         requestType: 'vendor',
@@ -790,23 +854,22 @@ usb_test(() => {
     };
     let data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => Promise.all([
-          assertRejectsWithError(
-              device.controlTransferIn(interfaceRequest, 7),
-              'InvalidStateError'),
-          assertRejectsWithError(
-              device.controlTransferIn(endpointRequest, 7),
-              'NotFoundError'),
-          assertRejectsWithError(
-              device.controlTransferOut(interfaceRequest, data),
-              'InvalidStateError'),
-          assertRejectsWithError(
-              device.controlTransferOut(endpointRequest, data),
-              'NotFoundError'),
-      ]))
-      .then(() => device.claimInterface(0))
-      .then(() => Promise.all([
+        .then(() => device.selectConfiguration(1))
+        .then(() => Promise.all([
+          promise_rejects_dom(
+              t, 'InvalidStateError',
+              device.controlTransferIn(interfaceRequest, 7)),
+          promise_rejects_dom(
+              t, 'NotFoundError', device.controlTransferIn(endpointRequest, 7)),
+          promise_rejects_dom(
+              t, 'InvalidStateError',
+              device.controlTransferOut(interfaceRequest, data)),
+          promise_rejects_dom(
+              t, 'NotFoundError',
+              device.controlTransferOut(endpointRequest, data)),
+        ]))
+        .then(() => device.claimInterface(0))
+        .then(() => Promise.all([
           device.controlTransferIn(interfaceRequest, 7).then(result => {
             assert_true(result instanceof USBInTransferResult);
             assert_equals(result.status, 'ok');
@@ -827,8 +890,8 @@ usb_test(() => {
           }),
           device.controlTransferOut(interfaceRequest, data),
           device.controlTransferOut(endpointRequest, data),
-      ]))
-      .then(() => device.close());
+        ]))
+        .then(() => device.close());
   });
 }, 'requests to interfaces and endpoint require an interface claim');
 
@@ -883,35 +946,39 @@ usb_test(() => {
   });
 }, 'can clear a halt condition');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice(t).then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => device.claimInterface(0))
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.clearHalt('in', 1)));
+        .then(() => device.selectConfiguration(1))
+        .then(() => device.claimInterface(0))
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError', device.clearHalt('in', 1)));
   });
 }, 'clearHalt rejects when called on a disconnected device');
 
-usb_test(() => {
+usb_test((t) => {
   return getFakeDevice().then(({ device }) => {
     let data = new DataView(new ArrayBuffer(1024));
     for (let i = 0; i < 1024; ++i)
       data.setUint8(i, i & 0xff);
-    const rangeError = 'The specified endpoint number is out of range.';
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => device.claimInterface(0))
-      .then(() => Promise.all([
-          assertRejectsWithEndpointNotFoundError(device.transferIn(2, 8)), // Unclaimed
-          assertRejectsWithEndpointNotFoundError(device.transferIn(3, 8)), // Non-existent
-          assertRejectsWithError(
-              device.transferIn(16, 8), 'IndexSizeError', rangeError),
-          assertRejectsWithEndpointNotFoundError(device.transferOut(2, data)), // Unclaimed
-          assertRejectsWithEndpointNotFoundError(device.transferOut(3, data)), // Non-existent
-          assertRejectsWithError(
-              device.transferOut(16, data), 'IndexSizeError', rangeError),
-      ]));
+        .then(() => device.selectConfiguration(1))
+        .then(() => device.claimInterface(0))
+        .then(() => Promise.all([
+          promise_rejects_dom(
+              t, 'NotFoundError', device.transferIn(2, 8)),  // Unclaimed
+          promise_rejects_dom(
+              t, 'NotFoundError', device.transferIn(3, 8)),  // Non-existent
+          promise_rejects_dom(t, 'IndexSizeError', device.transferIn(16, 8)),
+          promise_rejects_dom(
+              t, 'NotFoundError', device.transferOut(2, data)),  // Unclaimed
+          promise_rejects_dom(
+              t, 'NotFoundError', device.transferOut(3, data)),  // Non-existent
+          promise_rejects_dom(
+              t, 'IndexSizeError', device.transferOut(16, data)),
+        ]));
   });
 }, 'transfers to unavailable endpoints are rejected');
 
@@ -950,13 +1017,15 @@ usb_test(() => {
   });
 }, 'can issue IN bulk transfer');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => device.claimInterface(1))
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.transferIn(2, 1024)));
+        .then(() => device.selectConfiguration(1))
+        .then(() => device.claimInterface(1))
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError', device.transferIn(2, 1024)));
   });
 }, 'transferIn rejects if called on a disconnected device');
 
@@ -980,7 +1049,7 @@ usb_test(() => {
   });
 }, 'can issue OUT bulk transfer');
 
-usb_test(() => {
+usb_test((t) => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
     return device.open()
       .then(() => device.selectConfiguration(1))
@@ -990,7 +1059,9 @@ usb_test(() => {
         for (let i = 0; i < 1024; ++i)
           data.setUint8(i, i & 0xff);
         return waitForDisconnect(fakeDevice)
-          .then(() => assertRejectsWithNotFoundError(device.transferOut(2, data)));
+            .then(
+                () => promise_rejects_dom(
+                    t, 'NotFoundError', device.transferOut(2, data)));
       });
   });
 }, 'transferOut rejects if called on a disconnected device');
@@ -1057,15 +1128,18 @@ usb_test(() => {
   });
 }, 'can issue IN isochronous transfer');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => device.selectConfiguration(2))
-      .then(() => device.claimInterface(0))
-      .then(() => device.selectAlternateInterface(0, 1))
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.isochronousTransferIn(
-          1, [64, 64, 64, 64, 64, 64, 64, 64])));
+        .then(() => device.selectConfiguration(2))
+        .then(() => device.claimInterface(0))
+        .then(() => device.selectAlternateInterface(0, 1))
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(
+            () => promise_rejects_dom(
+                t, 'NotFoundError',
+                device.isochronousTransferIn(
+                    1, [64, 64, 64, 64, 64, 64, 64, 64])));
   });
 }, 'isochronousTransferIn rejects when called on a disconnected device');
 
@@ -1099,7 +1173,7 @@ usb_test(() => {
   });
 }, 'can issue OUT isochronous transfer');
 
-usb_test(() => {
+usb_test((t) => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
     return device.open()
       .then(() => device.selectConfiguration(2))
@@ -1112,8 +1186,11 @@ usb_test(() => {
             data.setUint8(i * j, j & 0xff);
         }
         return waitForDisconnect(fakeDevice)
-          .then(() => assertRejectsWithNotFoundError(device.isochronousTransferOut(
-              1, data, [64, 64, 64, 64, 64, 64, 64, 64])));
+            .then(
+                () => promise_rejects_dom(
+                    t, 'NotFoundError',
+                    device.isochronousTransferOut(
+                        1, data, [64, 64, 64, 64, 64, 64, 64, 64])));
       });
   });
 }, 'isochronousTransferOut rejects when called on a disconnected device');
@@ -1163,10 +1240,10 @@ usb_test(() => {
   });
 }, 'can reset the device');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device, fakeDevice }) => {
+usb_test((t) => {
+  return getFakeDevice().then(({device, fakeDevice}) => {
     return device.open()
-      .then(() => waitForDisconnect(fakeDevice))
-      .then(() => assertRejectsWithNotFoundError(device.reset()));
+        .then(() => waitForDisconnect(fakeDevice))
+        .then(() => promise_rejects_dom(t, 'NotFoundError', device.reset()));
   });
 }, 'resetDevice rejects when called on a disconnected device');

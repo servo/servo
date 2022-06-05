@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<title>@scope - invalidation</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function test_scope_invalidation(script_element, callback_fn, description) {
+  test((t) => {
+    // The provided <script> element must be an immedate subsequent sibling of
+    // a <template> element.
+    let template_element = script_element.previousElementSibling;
+    assert_equals(template_element.tagName, 'TEMPLATE');
+
+    t.add_cleanup(() => {
+      while (main.firstChild)
+        main.firstChild.remove()
+    });
+
+    main.append(template_element.content.cloneNode(true));
+
+    callback_fn();
+  }, description);
+}
+
+function assert_green(element) {
+  assert_equals(getComputedStyle(element).backgroundColor, 'rgb(0, 128, 0)');
+}
+function assert_not_green(element) {
+  assert_equals(getComputedStyle(element).backgroundColor, 'rgb(0, 0, 0)');
+}
+</script>
+<style>
+  main * {
+    background-color: black;
+  }
+</style>
+<main id=main>
+</main>
+
+<!-- Tests follow -->
+
+<template>
+  <style>
+    @scope (.a) {
+      span { background-color: green; }
+    }
+  </style>
+  <div>
+    <span></span>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let div = main.querySelector('div');
+  let span = main.querySelector('div > span');
+  assert_not_green(span);
+  div.classList.add('a');
+  assert_green(span);
+  div.classList.remove('a');
+  assert_not_green(span);
+}, 'Element becoming scope root');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a) {
+      .b { background-color: green; }
+    }
+  </style>
+  <div class=b></div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let b = main.querySelector('.b');
+  assert_not_green(b);
+  b.classList.add('a');
+  assert_green(b);
+  b.classList.remove('a');
+  assert_not_green(b);
+}, 'Element becoming scope root, with inner selector matching that root');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a) to (.b) {
+      span { background-color: green; }
+    }
+  </style>
+  <div class=a>
+    <div>
+      <span></span>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let inner_div = main.querySelector('.a > div');
+  let span = main.querySelector('.a > div > span');
+  assert_green(span);
+  inner_div.classList.add('b');
+  assert_not_green(span);
+  inner_div.classList.remove('b');
+  assert_green(span);
+}, 'Element becoming scope limit');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a) {
+      @scope (.b) {
+        span { background-color: green; }
+      }
+    }
+  </style>
+  <div>
+    <div>
+      <span></span>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let outer_div = main.querySelector(':scope > div');
+  let inner_div = main.querySelector(':scope > div > div');
+  let span = main.querySelector('div > div > span');
+
+  assert_not_green(span);
+
+  outer_div.classList.add('a');
+  assert_not_green(span);
+
+  inner_div.classList.add('b');
+  assert_green(span);
+
+  // Toggle .b while .a remains.
+  inner_div.classList.remove('b');
+  assert_not_green(span);
+  inner_div.classList.add('b');
+  assert_green(span);
+
+  // Toggle .a while .b remains.
+  outer_div.classList.remove('a');
+  assert_not_green(span);
+  outer_div.classList.add('a');
+  assert_green(span);
+}, 'Toggling inner/outer scope roots');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a) {
+      :scope { background-color:green; }
+    }
+  </style>
+  <div></div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let div = main.querySelector('main > div');
+  assert_not_green(div);
+  div.classList.add('a');
+  assert_green(div);
+  div.classList.remove('a');
+  assert_not_green(div);
+}, 'Element becoming root, with :scope in subject');
+</script>

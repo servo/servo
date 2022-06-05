@@ -237,7 +237,7 @@ promise_test(() => {
 }, "DOMContentLoaded");
 ```
 
-**Note:** Unlike asynchronous tests, teatharness.js queues promise
+**Note:** Unlike asynchronous tests, testharness.js queues promise
 tests so the next test won't start running until after the previous
 promise test finishes. [When mixing promise-based logic and async
 steps](https://github.com/web-platform-tests/wpt/pull/17924), the next

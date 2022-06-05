@@ -3,7 +3,7 @@
 ### Summary
 
 This directory contains tests related to the
-[Cross-Origin Resource Blocking (CORB)](https://chromium.googlesource.com/chromium/src/+/master/services/network/cross_origin_read_blocking_explainer.md)
+[Cross-Origin Resource Blocking (CORB)](https://chromium.googlesource.com/chromium/src/+/main/services/network/cross_origin_read_blocking_explainer.md)
 algorithm.
 
 The tests in this directory interact with various, random features,

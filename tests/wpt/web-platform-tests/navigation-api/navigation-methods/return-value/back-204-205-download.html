@@ -1,0 +1,52 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script>
+const tests = [
+  ["204s", "204"],
+  ["205s", "205"],
+  ["Content-Disposition: attachment responses", "download"]
+];
+
+for (const [description, action] of tests) {
+  promise_test(async t => {
+    const id = token();
+
+    const i = document.createElement("iframe");
+    i.src = `resources/204-205-download-on-second-visit.py?id=${id}`;
+    document.body.append(i);
+    await new Promise(r => i.onload = r);
+
+    // Configure it to return a 204 on the next visit
+    await fetch(i.src + `&action=${action}`, { method: "POST" });
+
+    // Now navigate elsewhere
+    i.contentWindow.location.href = "/common/blank.html";
+    await new Promise(r => i.onload = r);
+
+    // Now try going back. It should do nothing (and not tell us about the result).
+
+    const indexBefore = i.contentWindow.navigation.currentEntry.index;
+
+    // One might be surprised that navigate does not fire. (It does fire for the
+    // corresponding tests of navigation.navigate(), i.e., this is
+    // traversal-specific behavior.) See https://github.com/WICG/navigation-api/issues/207
+    // for some discussion.
+    i.contentWindow.navigation.onnavigate = t.unreached_func("onnavigate should not be called");
+    i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("onnavigatesuccess should not be called");
+    i.contentWindow.navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
+
+    const result = i.contentWindow.navigation.back();
+
+    assertNeverSettles(t, result, i.contentWindow);
+
+    await new Promise(resolve => t.step_timeout(resolve, 50));
+    assert_equals(i.contentWindow.navigation.currentEntry.index, indexBefore);
+    assert_equals(i.contentWindow.navigation.transition, null);
+  }, `back() promises to ${description} never settle`);
+}
+</script>

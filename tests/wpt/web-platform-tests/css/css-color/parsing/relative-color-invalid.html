@@ -27,6 +27,10 @@
     test_invalid_value(`color`, `rgb(from rebeccapurple l g b)`);
     test_invalid_value(`color`, `rgb(from rebeccapurple h g b)`);
 
+    // Testing invalid function name variation (only rgb() is valid, rgba() is invalid)
+    test_invalid_value(`color`, `rgba(from rebeccapurple r g b)`);
+    test_invalid_value(`color`, `rgba(from rgb(10%, 20%, 30%, 40%) r g b / alpha)`);
+
 
     // hsl(from ...)
 
@@ -53,6 +57,9 @@
     test_invalid_value(`color`, `hsl(from rebeccapurple x s l)`);
     test_invalid_value(`color`, `hsl(from rebeccapurple h g b)`);
 
+    // Testing invalid function name variation (only hsl() is valid, hsla() is invalid)
+    test_invalid_value(`color`, `hsla(from rebeccapurple h s l)`);
+    test_invalid_value(`color`, `hsla(from rgb(10%, 20%, 30%, 40%) h s l / alpha)`);
 
     // hwb(from ...)
 
@@ -125,34 +132,34 @@
 
     for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb" ]) {
         // Testing invalid values.
-        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} 10deg g b)`,                          `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r 10deg b)`,                          `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r g 10deg)`,                          `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r g b / 10deg)`,                      `rgba(0, 0, 0, 0)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} 10deg g b)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r 10deg b)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r g 10deg)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} r g b / 10deg)`);
 
         // Testing invalid component names
-        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} red g b)`,                            `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} x g b)`,                              `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} l g b)`,                              `rgba(0, 0, 0, 0)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} red g b)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} x g b)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} l g b)`);
     }
 
     for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
         // Testing invalid permutation (types don't match).
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} z alpha x / y)`,                      `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} alpha alpha alpha / alpha)`,          `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} z alpha x / y)`,                `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} alpha alpha alpha / alpha)`,    `rgba(0, 0, 0, 0)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} z alpha x / y)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} alpha alpha alpha / alpha)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} z alpha x / y)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} alpha alpha alpha / alpha)`);
 
         // Testing invalid values.
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} 10deg y z)`,                          `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x 10deg z)`,                          `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x y 10deg)`,                          `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x y z / 10deg)`,                      `rgba(0, 0, 0, 0)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} 10deg y z)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x 10deg z)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x y 10deg)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} x y z / 10deg)`);
 
         // Testing invalid component names
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} red y)`,                              `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} r y z)`,                              `rgba(0, 0, 0, 0)`);
-        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} l y z)`,                              `rgba(0, 0, 0, 0)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} red y)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} r y z)`);
+        test_invalid_value(`color`, `color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} l y z)`);
     }
 </script>
 </body>

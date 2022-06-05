@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import io
 import os
 import sys

@@ -36,7 +36,7 @@ promise_test(async t => {
   // Wait for the iframe to load.
   const readyPromise = new Promise(resolve => {
       window.addEventListener('message', function handler(evt) {
-        if (evt.source === frame.contentWindow) {
+        if (evt.source === frame.contentWindow && evt.data.type == 'loaded') {
           window.removeEventListener('message', handler);
 
           resolve(evt.data);
@@ -50,7 +50,7 @@ promise_test(async t => {
   // race.
   const resultPromise = new Promise(resolve => {
       window.addEventListener('message', function handler(evt) {
-        if (evt.source === frame.contentWindow) {
+        if (evt.source === frame.contentWindow && evt.data.type == 'spc_result') {
           // We're done with the child iframe now.
           document.body.removeChild(frame);
           window.removeEventListener('message', handler);
@@ -60,7 +60,8 @@ promise_test(async t => {
       });
   });
 
-  frame.contentWindow.postMessage(credential.rawId, '*');
+  const rpId = window.location.hostname;
+  frame.contentWindow.postMessage([credential.rawId, rpId], '*');
 
   const result = await resultPromise;
 

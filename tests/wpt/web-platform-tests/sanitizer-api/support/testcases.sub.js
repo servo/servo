@@ -66,4 +66,6 @@ const testcases = [
   {config_input: {}, value: "<p>comment<!-- hello -->in<!-- </p> -->text</p>", result: "<p>commentintext</p>", message: "HTML with comments deeper in the tree"},
   {config_input: {allowComments: true}, value: "<p>comment<!-- hello -->in<!-- </p> -->text</p>", result: "<p>comment<!-- hello -->in<!-- </p> -->text</p>", message: "HTML with comments deeper in the tree, allowComments"},
   {config_input: {allowComments: false}, value: "<p>comment<!-- hello -->in<!-- </p> -->text</p>", result: "<p>commentintext</p>", message: "HTML with comments deeper in the tree, !allowComments"},
+  {config_input: {allowElements: ["svg"]}, value: "<svg></svg>", result: "", message: "Unknown HTML names (HTMLUnknownElement instances) should not match elements parsed as non-HTML namespaces."},
+  {config_input: {allowElements: ["div", "svg"]}, value: "<div><svg></svg></div>", result: "<div></div>", message: "Unknown HTML names (HTMLUnknownElement instances) should not match elements parsed as non-HTML namespaces when nested."},
 ];

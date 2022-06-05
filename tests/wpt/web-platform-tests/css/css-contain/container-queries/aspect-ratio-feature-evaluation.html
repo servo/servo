@@ -12,10 +12,10 @@
   #inline-size { container-type: inline-size; }
   #size { container-type: size; }
   span { color: red }
-  @container size(min-aspect-ratio: 1 / 1000) {
+  @container (min-aspect-ratio: 1 / 1000) {
     span { color: green; }
   }
-  @container size(min-aspect-ratio: 2 / 1) {
+  @container (min-aspect-ratio: 2 / 1) {
     span { background-color: lime; }
   }
 </style>

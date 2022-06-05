@@ -283,9 +283,16 @@ dictionary RTCTransportStats : RTCStats {
              DOMString             remoteCertificateId;
              DOMString             tlsVersion;
              DOMString             dtlsCipher;
+             RTCDtlsRole           dtlsRole;
              DOMString             srtpCipher;
              DOMString             tlsGroup;
              unsigned long         selectedCandidatePairChanges;
+};
+
+enum RTCDtlsRole {
+        "client",
+        "server",
+        "unknown",
 };
 
 dictionary RTCSctpTransportStats : RTCStats {

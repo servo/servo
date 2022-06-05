@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 #default_value:foo
 #include: other.manifest
 #
@@ -25,7 +27,7 @@ class ParseError(Exception):
         self.line = line
         self.filename = filename
         self.detail = detail
-        self.message = "%s: %s line %s" % (self.detail, self.filename, self.line)
+        self.message = f"{self.detail}: {self.filename} line {self.line}"
         Exception.__init__(self, self.message)
 
 eol = object
@@ -55,7 +57,7 @@ def precedence(operator_node):
     return len(operators) - operators.index(operator_node.data)
 
 
-class TokenTypes(object):
+class TokenTypes:
     def __init__(self) -> None:
         for type in ["group_start", "group_end", "paren", "list_start", "list_end", "separator", "ident", "string", "number", "atom", "eof"]:
             setattr(self, type, type)
@@ -63,7 +65,7 @@ class TokenTypes(object):
 token_types = TokenTypes()
 
 
-class Tokenizer(object):
+class Tokenizer:
     def __init__(self):
         self.reset()
 
@@ -99,8 +101,7 @@ class Tokenizer(object):
                 states.append(self.state)
                 tokens = self.state()
                 if tokens:
-                    for token in tokens:
-                        yield token
+                    yield from tokens
             self.state()
         while True:
             yield (token_types.eof, None)
@@ -515,7 +516,7 @@ class Tokenizer(object):
             raise ParseError(self.filename, self.line_number, "Invalid character escape")
 
 
-class Parser(object):
+class Parser:
     def __init__(self):
         self.reset()
 
@@ -549,11 +550,11 @@ class Parser(object):
     def expect(self, type, value=None):
         if self.token[0] != type:
             raise ParseError(self.tokenizer.filename, self.tokenizer.line_number,
-                             "Token '{}' doesn't equal expected type '{}'".format(self.token[0], type))
+                             f"Token '{self.token[0]}' doesn't equal expected type '{type}'")
         if value is not None:
             if self.token[1] != value:
                 raise ParseError(self.tokenizer.filename, self.tokenizer.line_number,
-                                 "Token '{}' doesn't equal expected value '{}'".format(self.token[1], value))
+                                 f"Token '{self.token[1]}' doesn't equal expected value '{value}'")
 
         self.consume()
 
@@ -573,7 +574,7 @@ class Parser(object):
             self.consume()
             if self.token[0] != token_types.string:
                 raise ParseError(self.tokenizer.filename, self.tokenizer.line_number,
-                                 "Token '{}' is not a string".format(self.token[0]))
+                                 f"Token '{self.token[0]}' is not a string")
             self.tree.append(DataNode(self.token[1]))
             self.consume()
             self.expect(token_types.paren, "]")
@@ -606,7 +607,7 @@ class Parser(object):
             self.atom()
         else:
             raise ParseError(self.tokenizer.filename, self.tokenizer.line_number,
-                             "Token '{}' is not a known type".format(self.token[0]))
+                             f"Token '{self.token[0]}' is not a known type")
 
     def list_value(self):
         self.tree.append(ListNode())
@@ -705,7 +706,7 @@ class Parser(object):
         self.consume()
 
 
-class Treebuilder(object):
+class Treebuilder:
     def __init__(self, root):
         self.root = root
         self.node = root
@@ -724,7 +725,7 @@ class Treebuilder(object):
         return node
 
 
-class ExpressionBuilder(object):
+class ExpressionBuilder:
     def __init__(self, tokenizer):
         self.operands = []
         self.operators = [None]

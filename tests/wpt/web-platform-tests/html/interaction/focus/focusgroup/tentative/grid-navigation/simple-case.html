@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Simple case with grid focusgroup</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<table focusgroup=grid>
+  <tr>
+    <td id=r1c1 tabindex=0>r1c1</td>
+    <td id=r1c2 tabindex=-1>r1c2</td>
+    <td id=r1c3 tabindex=-1>r1c3</td>
+  </tr>
+  <tr>
+    <td id=r2c1 tabindex=-1>r2c1</td>
+    <td id=r2c2 tabindex=-1>r2c2</td>
+    <td id=r2c3 tabindex=-1>r2c3</td>
+  </tr>
+</table>
+
+<script>
+
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r1c2 = document.getElementById("r1c2");
+
+    await focusAndKeyPress(r1c1, kArrowRight);
+    assert_equals(document.activeElement, r1c2);
+  }, "A right arrow press should move the focus to the next column.");
+
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r2c1 = document.getElementById("r2c1");
+
+    await focusAndKeyPress(r1c1, kArrowDown);
+    assert_equals(document.activeElement, r2c1);
+  }, "A down arrow press should move the focus to the next row.");
+
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r1c2 = document.getElementById("r1c2");
+
+    await focusAndKeyPress(r1c2, kArrowLeft);
+    assert_equals(document.activeElement, r1c1);
+  }, "A left arrow press should move to the previous column.");
+
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r2c1 = document.getElementById("r2c1");
+
+    await focusAndKeyPress(r2c1, kArrowUp);
+    assert_equals(document.activeElement, r1c1);
+  }, "An up arrow press should move the focus to the previous row.");
+
+</script>

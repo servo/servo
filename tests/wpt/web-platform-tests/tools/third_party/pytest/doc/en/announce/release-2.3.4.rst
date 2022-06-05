@@ -16,7 +16,7 @@ comes with the following fixes and features:
 - yielded test functions will now have autouse-fixtures active but
   cannot accept fixtures as funcargs - it's anyway recommended to
   rather use the post-2.0 parametrize features instead of yield, see:
-  http://pytest.org/en/stable/example/parametrize.html
+  http://pytest.org/en/stable/example/how-to/parametrize.html
 - fix autouse-issue where autouse-fixtures would not be discovered
   if defined in an a/conftest.py file and tests in a/tests/test_some.py
 - fix issue226 - LIFO ordering for fixture teardowns

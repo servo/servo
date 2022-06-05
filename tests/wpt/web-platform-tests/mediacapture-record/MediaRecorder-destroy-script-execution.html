@@ -7,12 +7,15 @@
 <body>
 <iframe src="support/MediaRecorder-iframe.html" id="subFrame-stop" name="subFrameStop"></iframe>
 <iframe src="support/MediaRecorder-iframe.html" id="subFrame-allTrackEnded" name="subFrameAllTrackEnded"></iframe>
+<iframe src="support/MediaRecorder-iframe.html" id="subFrame-audioBitrateMode" name="subFrameAudioBitrateMode"></iframe>
 <script>
     var iframeForCallingStop = document.getElementById('subFrame-stop');
     var iframeForAllTrackEnded = document.getElementById('subFrame-allTrackEnded');
+    var iframeForAudioBitrateMode = document.getElementById('subFrame-audioBitrateMode');
 
     var testForCallingStop = async_test('MediaRecorder will not fire the stop event when stop() is called and the script execution context is going away');
     var testForAllTrackEnded = async_test('MediaRecorder will not fire the stop event when all tracks are ended and the script execution context is going away');
+    var testForAudioBitrateMode = async_test('MediaRecorder will not crash on accessing audioBitrateMode when the script execution context is going away');
 
     iframeForCallingStop.onload = function(e) {
         subFrameStop.window.prepareForTest(testForCallingStop);
@@ -41,6 +44,14 @@
         subFrameAllTrackEnded.window.control.addVideoFrame();
         subFrameAllTrackEnded.window.video.getVideoTracks()[0].stop();
     };
+
+    iframeForAudioBitrateMode.onload = testForAudioBitrateMode.step_func(function(e) {
+        subFrameAudioBitrateMode.window.prepareForTest(testForAudioBitrateMode);
+        const recorder = subFrameAudioBitrateMode.window.recorder;
+        iframeForAudioBitrateMode.remove();
+        recorder.audioBitrateMode;
+        testForAudioBitrateMode.done();
+    });
 
 </script>
 </body>

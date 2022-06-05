@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Test navigator.mediaDevices.produceCropId()</title>
+  <meta name='assert' content='Test the produceCropId() method.' />
+</head>
+
+<body>
+  <h1 class="instructions">Description</h1>
+  <p class="instructions">This test checks for the behavior of the
+    <code>navigator.mediaDevices.produceCropId()</code> method.
+  </p>
+
+  <div id='test-div'></div>
+  <iframe id='test-iframe' src="about:blank"></iframe>
+  <a id='test-a'></a>
+  <div id='log'></div>
+
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+
+  <script>
+    "use strict";
+
+    // Regex that matches a Universally Unique IDentifer composed of hex
+    // characters separated by dashes in the form 8-4-4-4-12 for a total
+    // of 36 characters.
+    const GUID_REGEX = /^[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$/;
+
+    promise_test(async () => {
+      assert_true(!!navigator.mediaDevices.produceCropId);
+      const iframe_id = await navigator.mediaDevices.produceCropId(
+        document.getElementById('test-iframe'));
+      assert_true(GUID_REGEX.test(iframe_id));
+    }, "produces valid IDs for iframe");
+
+    promise_test(async () => {
+      assert_true(!!navigator.mediaDevices.produceCropId);
+      const div_id = await navigator.mediaDevices.produceCropId(
+        document.getElementById('test-div'));
+      assert_true(GUID_REGEX.test(div_id));
+    }, "produces valid id for div");
+
+    promise_test(async () => {
+      const iframe_id = await navigator.mediaDevices.produceCropId(
+        document.getElementById('test-iframe'));
+      const second_iframe_id = await navigator.mediaDevices.produceCropId(
+        document.getElementById('test-iframe'));
+      assert_equals(iframe_id, second_iframe_id);
+    }, "repeated calls return the same value");
+
+    promise_test(t => {
+      return promise_rejects_js(t, TypeError,
+        navigator.mediaDevices.produceCropId(123));
+    }, "rejects an invalid element with a TypeError");
+
+    promise_test(function (t) {
+      return promise_rejects_js(t, TypeError,
+        navigator.mediaDevices.produceCropId(document.getElementById("test-a")));
+    }, "rejects an incorrectly typed element with a TypeError");
+
+    promise_test(async () => {
+      const div_id = await navigator.mediaDevices.produceCropId(
+        document.getElementById('test-div'));
+      const iframe_id = await navigator.mediaDevices.produceCropId(
+        document.getElementById('test-iframe'));
+      assert_not_equals(div_id, iframe_id);
+    }, "two elements have different IDs");
+
+    promise_test(async () => {
+      const div = document.getElementById('test-div');
+      const div_id = await navigator.mediaDevices.produceCropId(div);
+      const clone = div.cloneNode(true);
+      document.querySelector('body').appendChild(clone);
+      const clone_id = await navigator.mediaDevices.produceCropId(clone);
+      assert_not_equals(div_id, clone_id);
+    }, "cloned elements have different IDs");
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(() => {
+    assert_equals(i.contentWindow.navigation.entries().length, 1);
+    let next_step = "goto";
+    let key = i.contentWindow.navigation.currentEntry.key;
+    i.contentWindow.navigation.navigate("?1");
+    i.onload = t.step_func(() => {
+      if (next_step == "goto") {
+        assert_equals(i.contentWindow.navigation.entries().length, 2);
+        assert_equals(i.contentWindow.navigation.currentEntry, i.contentWindow.navigation.entries()[1]);
+        i.contentWindow.navigation.traverseTo(key);
+        next_step = "forward";
+      } else if (next_step == "forward") {
+        assert_equals(i.contentWindow.navigation.entries().length, 2);
+        assert_equals(key, i.contentWindow.navigation.currentEntry.key);
+        assert_equals(i.contentWindow.navigation.currentEntry, i.contentWindow.navigation.entries()[0]);
+        assert_true(i.contentWindow.navigation.canGoForward);
+        i.contentWindow.navigation.forward();
+        next_step = "back";
+      } else if (next_step == "back") {
+        assert_equals(i.contentWindow.navigation.entries().length, 2);
+        assert_equals(i.contentWindow.navigation.currentEntry, i.contentWindow.navigation.entries()[1]);
+        assert_true(i.contentWindow.navigation.canGoBack);
+        i.contentWindow.navigation.back();
+        next_step = "finish";
+      } else if (next_step == "finish") {
+        assert_equals(i.contentWindow.navigation.entries().length, 2);
+        assert_equals(i.contentWindow.navigation.currentEntry, i.contentWindow.navigation.entries()[0]);
+        t.done();
+      }
+    });
+  }, 0);
+}, "cross-document traverseTo(), back(), and forward()");
+</script>

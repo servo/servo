@@ -61,12 +61,12 @@ test_math_used("round(-18px, -10px)", "-20px");
 // Extreme cases:
 
 // 0 step is NaN
-test_nan("round(5, 0)");
+test_plus_infinity("round(5, 0)");
 // both infinite is NaN
-test_nan("round(infinity, infinity)");
-test_nan("round(infinity, -infinity)");
-test_nan("round(-infinity, infinity)");
-test_nan("round(-infinity, -infinity)");
+test_plus_infinity("round(infinity, infinity)");
+test_plus_infinity("round(infinity, -infinity)");
+test_plus_infinity("round(-infinity, infinity)");
+test_plus_infinity("round(-infinity, -infinity)");
 
 // infinite value with finite step is the same infinity
 test_plus_infinity("round(infinity, 5)");

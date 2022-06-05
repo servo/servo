@@ -22,6 +22,16 @@ test_invalid_value("color", "rgb(1,2,3,4,5)");
 test_invalid_value("color", "hsla(1,2,3,4,5)");
 test_invalid_value("color", "rgb(10%, 20, 30%)");
 test_invalid_value("color", "rgba(-2, 300, 400%, -0.5)");
+test_invalid_value("color", "rgb(none, none, none)");
+test_invalid_value("color", "rgba(none, none, none, none)");
+test_invalid_value("color", "rgb(128, 0, none)");
+test_invalid_value("color", "rgb(255, 255, 255, none)");
+test_invalid_value("color", "hsl(none, none, none)");
+test_invalid_value("color", "hsla(none, none, none, none)");
+test_invalid_value("color", "hsl(none, 100%, 50%)");
+test_invalid_value("color", "hsla(120, 100%, 50%, none)");
+test_invalid_value("color", "hwba(120 30% 50%)");
+test_invalid_value("color", "hwba(120 30% 50% / 0.5)");
 
 for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb" ]) {
     test_invalid_value("color", `color(${colorSpace} 0 0 0 0)`);

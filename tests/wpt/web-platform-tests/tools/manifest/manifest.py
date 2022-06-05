@@ -53,15 +53,15 @@ class InvalidCacheError(Exception):
     pass
 
 
-item_classes = {u"testharness": TestharnessTest,
-                u"reftest": RefTest,
-                u"print-reftest": PrintRefTest,
-                u"crashtest": CrashTest,
-                u"manual": ManualTest,
-                u"wdspec": WebDriverSpecTest,
-                u"conformancechecker": ConformanceCheckerTest,
-                u"visual": VisualTest,
-                u"support": SupportFile}  # type: Dict[Text, Type[ManifestItem]]
+item_classes = {"testharness": TestharnessTest,
+                "reftest": RefTest,
+                "print-reftest": PrintRefTest,
+                "crashtest": CrashTest,
+                "manual": ManualTest,
+                "wdspec": WebDriverSpecTest,
+                "conformancechecker": ConformanceCheckerTest,
+                "visual": VisualTest,
+                "support": SupportFile}  # type: Dict[Text, Type[ManifestItem]]
 
 
 def compute_manifest_items(source_file):
@@ -114,7 +114,7 @@ class ManifestData(ManifestDataType):
         return rv
 
 
-class Manifest(object):
+class Manifest:
     def __init__(self, tests_root, url_base="/"):
         # type: (Text, Text) -> None
         assert url_base is not None
@@ -141,8 +141,7 @@ class Manifest(object):
         for type_tests in self._data.values():
             i = type_tests.get(tpath, set())
             assert i is not None
-            for test in i:
-                yield test
+            yield from i
 
     def iterdir(self, dir_name):
         # type: (Text) -> Iterable[ManifestItem]
@@ -152,8 +151,7 @@ class Manifest(object):
         for type_tests in self._data.values():
             for path, tests in type_tests.items():
                 if path[:tpath_len] == tpath:
-                    for test in tests:
-                        yield test
+                    yield from tests
 
     def update(self, tree, parallel=True):
         # type: (Iterable[Tuple[Text, Optional[Text], bool]], bool) -> bool
@@ -358,12 +356,12 @@ def _load(logger,  # type: Logger
         else:
             logger.debug("Creating new manifest at %s" % manifest)
         try:
-            with open(manifest, "r", encoding="utf-8") as f:
+            with open(manifest, encoding="utf-8") as f:
                 rv = Manifest.from_json(tests_root,
                                         jsonlib.load(f),
                                         types=types,
                                         callee_owns_obj=True)
-        except IOError:
+        except OSError:
             return None
         except ValueError:
             logger.warning("%r may be corrupted", manifest)

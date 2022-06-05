@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Ruby Test: intra-base white space (complex)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-ruby-1/#white-space">
+  <link rel="match" href="reference/intra-base-white-space-001-ref.html">
+
+  <meta content="" name="flags">
+  <meta content="This test checks that a single intra-base white space must be used when doing unit box pairing as long as it does not begin a ruby base container box or it does not end a ruby base container box. In this test, a leading white space inside of a ruby base unit box (the 'c' one) and a trailing white space inside of a ruby base unit box (the 'd' one) are collapsible white spaces across adjacent ruby base boxes according to white space processing rules.">
+
+  <style>
+  ruby
+    {
+      background-color: lightblue;
+      font-size: 60px;
+    }
+  </style>
+
+  <ruby>
+
+    b<rb> </rb><rb> c</rb><rb>d </rb><rb> </rb><rb>e</rb>
+
+    <rt>a</rt><rt></rt><rt>a</rt><rt>a</rt><rt></rt><rt>a</rt>
+
+  </ruby>
+
+  <!--
+
+  |[ a ]|[  ]|[ a ]|  [ a ]  |[]|[ a ]|
+  |[ b ]|[ws]|[ c ]|[ d ][ws]|[]|[ e ]|
+
+  -->

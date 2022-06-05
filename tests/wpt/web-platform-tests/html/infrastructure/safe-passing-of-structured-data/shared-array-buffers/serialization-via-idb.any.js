@@ -1,4 +1,4 @@
-// META: script=/IndexedDB/support.js
+// META: script=/IndexedDB/resources/support.js
 "use strict";
 
 async_test(t => {

@@ -1,0 +1,10 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<script>
+promise_test(async t => {
+  await assertBothRejectDOM(t, navigation.navigate("file://"), "AbortError");
+}, "navigate() to a file: URL");
+</script>

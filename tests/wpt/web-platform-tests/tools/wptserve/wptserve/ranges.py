@@ -1,7 +1,9 @@
+# mypy: allow-untyped-defs
+
 from .utils import HTTPException
 
 
-class RangeParser(object):
+class RangeParser:
     def __call__(self, header, file_size):
         try:
             header = header.decode("ascii")
@@ -9,7 +11,7 @@ class RangeParser(object):
             raise HTTPException(400, "Non-ASCII range header value")
         prefix = "bytes="
         if not header.startswith(prefix):
-            raise HTTPException(416, message="Unrecognised range type %s" % (header,))
+            raise HTTPException(416, message=f"Unrecognised range type {header}")
 
         parts = header[len(prefix):].split(",")
         ranges = []
@@ -49,7 +51,7 @@ class RangeParser(object):
         return rv[::-1]
 
 
-class Range(object):
+class Range:
     def __init__(self, lower, upper, file_size):
         self.file_size = file_size
         self.lower, self.upper = self._abs(lower, upper)
@@ -57,7 +59,7 @@ class Range(object):
             raise ValueError
 
     def __repr__(self):
-        return "<Range %s-%s>" % (self.lower, self.upper)
+        return f"<Range {self.lower}-{self.upper}>"
 
     def __lt__(self, other):
         return self.lower < other.lower

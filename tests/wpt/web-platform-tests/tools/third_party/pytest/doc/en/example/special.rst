@@ -43,7 +43,7 @@ will be called ahead of running any tests:
             print("test_method1 called")
 
         def test_method2(self):
-            print("test_method1 called")
+            print("test_method2 called")
 
 
     class TestOther:
@@ -77,7 +77,7 @@ If you run this without output capturing:
     callme other called
     SomeTest callme called
     test_method1 called
-    .test_method1 called
+    .test_method2 called
     .test other
     .test_unit1 method called
     .

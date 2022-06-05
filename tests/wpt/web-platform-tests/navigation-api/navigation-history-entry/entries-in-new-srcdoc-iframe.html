@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" srcdoc="new"></iframe>
+
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+
+  assert_not_equals(i.contentWindow.navigation.currentEntry, null);
+  assert_array_equals(i.contentWindow.navigation.entries(), [i.contentWindow.navigation.currentEntry]);
+
+  assert_equals(i.contentWindow.navigation.currentEntry.url, "about:srcdoc");
+}, "entries() and currentEntry should be set in a new srcdoc iframe");
+</script>

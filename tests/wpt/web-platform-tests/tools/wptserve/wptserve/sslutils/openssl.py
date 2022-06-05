@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import functools
 import os
 import random
@@ -12,7 +14,7 @@ from datetime import datetime, timedelta
 CERT_EXPIRY_BUFFER = dict(hours=6)
 
 
-class OpenSSL(object):
+class OpenSSL:
     def __init__(self, logger, binary, base_path, conf_path, hosts, duration,
                  base_conf_path=None):
         """Context manager for interacting with OpenSSL.
@@ -214,7 +216,7 @@ keyUsage = keyCertSign
 
     return rv
 
-class OpenSSLEnvironment(object):
+class OpenSSLEnvironment:
     ssl_enabled = True
 
     def __init__(self, logger, openssl_binary="openssl", base_path=None,

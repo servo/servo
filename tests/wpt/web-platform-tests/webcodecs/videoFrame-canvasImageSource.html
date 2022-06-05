@@ -67,12 +67,12 @@ async_test(t => {
 test(t => {
   let button = document.querySelector('button');
   let bgImage = button.computedStyleMap().get('background-image');
-  assert_throws_dom('SecurityError', _ => { new VideoFrame(bgImage); },
+  assert_throws_dom('SecurityError', _ => { new VideoFrame(bgImage, {timestamp: 0}); },
                     'CSSImageValues are currently always tainted');
 }, 'CSSImageValue constructed VideoFrame');
 
 test(t => {
-  let frame = new VideoFrame(document.querySelector('img'));
+  let frame = new VideoFrame(document.querySelector('img'), {timestamp: 0});
   let canvas = new OffscreenCanvas(frame.displayWidth, frame.displayHeight);
   let ctx = canvas.getContext('2d');
   ctx.drawImage(frame, 0, 0);
@@ -81,7 +81,7 @@ test(t => {
 }, 'Image element constructed VideoFrame');
 
 test(t => {
-  let frame = new VideoFrame(document.querySelector('image'));
+  let frame = new VideoFrame(document.querySelector('image'), {timestamp: 0});
   let canvas = new OffscreenCanvas(frame.displayWidth, frame.displayHeight);
   let ctx = canvas.getContext('2d');
   ctx.drawImage(frame, 0, 0);
@@ -112,7 +112,7 @@ test(t => {
   let ctx = canvas.getContext('2d');
   verifyFourColorsImage(canvas.width, canvas.height, ctx);
 
-  let frame = new VideoFrame(canvas);
+  let frame = new VideoFrame(canvas, {timestamp: 0});
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(frame, 0, 0);
   verifyFourColorsImage(canvas.width, canvas.height, ctx);

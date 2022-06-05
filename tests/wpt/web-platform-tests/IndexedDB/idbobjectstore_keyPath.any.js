@@ -1,5 +1,5 @@
 // META: title=IndexedDB: IDBObjectStore keyPath attribute - same object
-// META: script=support.js
+// META: script=resources/support.js
 
 indexeddb_test(
   (t, db) => {

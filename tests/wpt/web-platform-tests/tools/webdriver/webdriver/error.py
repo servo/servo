@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import collections
 import json
 
@@ -14,7 +16,7 @@ class WebDriverException(Exception):
     status_code = None  # type: ClassVar[str]
 
     def __init__(self, http_status=None, status_code=None, message=None, stacktrace=None):
-        super(WebDriverException, self)
+        super()
 
         if http_status is not None:
             self.http_status = http_status
@@ -24,10 +26,10 @@ class WebDriverException(Exception):
         self.stacktrace = stacktrace
 
     def __repr__(self):
-        return "<%s http_status=%s>" % (self.__class__.__name__, self.http_status)
+        return f"<{self.__class__.__name__} http_status={self.http_status}>"
 
     def __str__(self):
-        message = "%s (%s)" % (self.status_code, self.http_status)
+        message = f"{self.status_code} ({self.http_status})"
 
         if self.message is not None:
             message += ": %s" % self.message

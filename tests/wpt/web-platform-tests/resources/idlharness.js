@@ -817,6 +817,13 @@ IdlArray.prototype.merge_partials = function()
                     test(function () {
                         const partialExposure = exposure_set(parsed_idl);
                         const memberExposure = exposure_set(this.members[parsed_idl.name]);
+                        if (memberExposure === "*") {
+                            return;
+                        }
+                        if (partialExposure === "*") {
+                            throw new IdlHarnessError(
+                                `Partial ${parsed_idl.name} ${parsed_idl.type} is exposed everywhere, the original ${parsed_idl.type} is not.`);
+                        }
                         partialExposure.forEach(name => {
                             if (!memberExposure || !memberExposure.has(name)) {
                                 throw new IdlHarnessError(
@@ -955,7 +962,7 @@ IdlArray.prototype.assert_type_is = function(value, type)
         return;
     }
 
-    if (type.generic === "sequence")
+    if (type.generic === "sequence" || type.generic == "ObservableArray")
     {
         assert_true(Array.isArray(value), "should be an Array");
         if (!value.length)
@@ -1522,12 +1529,12 @@ IdlInterface.prototype.test_self = function()
         // https://github.com/heycam/webidl/issues/698
         assert_true(isConstructor(this.get_interface_object()), "interface object must pass IsConstructor check");
 
+        var interface_object = this.get_interface_object();
+        assert_throws_js(globalOf(interface_object).TypeError, function() {
+            interface_object();
+        }, "interface object didn't throw TypeError when called as a function");
+
         if (!this.constructors().length) {
-            // "If I was not declared with a constructor operation, then throw a TypeError."
-            var interface_object = this.get_interface_object();
-            assert_throws_js(globalOf(interface_object).TypeError, function() {
-                interface_object();
-            }, "interface object didn't throw TypeError when called as a function");
             assert_throws_js(globalOf(interface_object).TypeError, function() {
                 new interface_object();
             }, "interface object didn't throw TypeError when called as a constructor");
@@ -1593,7 +1600,7 @@ IdlInterface.prototype.test_self = function()
             if (this.is_callback()) {
                 throw new IdlHarnessError("Invalid IDL: LegacyWindowAlias extended attribute on non-interface " + this.name);
             }
-            if (!this.exposureSet.has("Window")) {
+            if (!(this.exposureSet === "*" || this.exposureSet.has("Window"))) {
                 throw new IdlHarnessError("Invalid IDL: LegacyWindowAlias extended attribute on " + this.name + " which is not exposed in Window");
             }
             // TODO: when testing of [LegacyNoInterfaceObject] interfaces is supported,

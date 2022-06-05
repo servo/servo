@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<head>
+  <script src="/common/utils.js"></script>
+  <script src="/common/dispatcher/dispatcher.js"></script>
+  <script>
+      const params = new URLSearchParams(window.location.search);
+      const uuid = params.get('uuid');
+      const discard_uuid = params.get('discard_uuid') || uuid;
+      new Executor(document.prerendering ? uuid : discard_uuid).execute();
+  </script>
+</head>

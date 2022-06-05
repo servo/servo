@@ -1,0 +1,5 @@
+{
+  "provider_urls": [
+    "https://web-platform.test:8444/credential-management/support/"
+  ]
+}

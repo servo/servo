@@ -1,5 +1,5 @@
 // META: title=Blob Content Type
-// META: script=support.js
+// META: script=resources/support.js
 // META: timeout=long
 
 indexeddb_test(

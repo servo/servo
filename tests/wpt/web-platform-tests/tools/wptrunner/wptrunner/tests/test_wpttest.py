@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+
 from io import BytesIO
 from unittest import mock
 

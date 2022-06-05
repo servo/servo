@@ -4,7 +4,7 @@
 <script>
 window.onload = function() {
   try {
-    top.location = "data:text/html,\u003c!DOCTYPE html\u003e\u003cscript\u003eopener.postMessage('can navigate', '*');\u003c/script\u003e";
+    top.location = "iframe-that-send-message-to-the-opener.html";
   } catch(e) {
     top.postMessage("cannot navigate", "*");
   }

@@ -3,37 +3,50 @@ name: main
 on:
   push:
     branches:
-      - master
+      - main
       - "[0-9]+.[0-9]+.x"
     tags:
-      - "*"
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+rc[0-9]+"
 
   pull_request:
     branches:
-      - master
+      - main
       - "[0-9]+.[0-9]+.x"
+
+env:
+  PYTEST_ADDOPTS: "--color=yes"
+
+# Set permissions at the job level.
+permissions: {}
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: false
       matrix:
         name: [
-          "windows-py35",
           "windows-py36",
           "windows-py37",
           "windows-py37-pluggy",
           "windows-py38",
+          "windows-py39",
+          "windows-py310",
+          "windows-py311",
 
-          "ubuntu-py35",
           "ubuntu-py36",
           "ubuntu-py37",
           "ubuntu-py37-pluggy",
           "ubuntu-py37-freeze",
           "ubuntu-py38",
           "ubuntu-py39",
+          "ubuntu-py310",
+          "ubuntu-py311",
           "ubuntu-pypy3",
 
           "macos-py37",
@@ -45,11 +58,6 @@ jobs:
         ]
 
         include:
-          - name: "windows-py35"
-            python: "3.5"
-            os: windows-latest
-            tox_env: "py35-xdist"
-            use_coverage: true
           - name: "windows-py36"
             python: "3.6"
             os: windows-latest
@@ -61,17 +69,25 @@ jobs:
           - name: "windows-py37-pluggy"
             python: "3.7"
             os: windows-latest
-            tox_env: "py37-pluggymaster-xdist"
+            tox_env: "py37-pluggymain-xdist"
           - name: "windows-py38"
             python: "3.8"
             os: windows-latest
             tox_env: "py38-unittestextras"
             use_coverage: true
+          - name: "windows-py39"
+            python: "3.9"
+            os: windows-latest
+            tox_env: "py39-xdist"
+          - name: "windows-py310"
+            python: "3.10"
+            os: windows-latest
+            tox_env: "py310-xdist"
+          - name: "windows-py311"
+            python: "3.11-dev"
+            os: windows-latest
+            tox_env: "py311"
 
-          - name: "ubuntu-py35"
-            python: "3.5"
-            os: ubuntu-latest
-            tox_env: "py35-xdist"
           - name: "ubuntu-py36"
             python: "3.6"
             os: ubuntu-latest
@@ -79,12 +95,12 @@ jobs:
           - name: "ubuntu-py37"
             python: "3.7"
             os: ubuntu-latest
-            tox_env: "py37-lsof-numpy-oldattrs-pexpect"
+            tox_env: "py37-lsof-numpy-pexpect"
             use_coverage: true
           - name: "ubuntu-py37-pluggy"
             python: "3.7"
             os: ubuntu-latest
-            tox_env: "py37-pluggymaster-xdist"
+            tox_env: "py37-pluggymain-xdist"
           - name: "ubuntu-py37-freeze"
             python: "3.7"
             os: ubuntu-latest
@@ -94,11 +110,19 @@ jobs:
             os: ubuntu-latest
             tox_env: "py38-xdist"
           - name: "ubuntu-py39"
-            python: "3.9-dev"
+            python: "3.9"
             os: ubuntu-latest
             tox_env: "py39-xdist"
+          - name: "ubuntu-py310"
+            python: "3.10"
+            os: ubuntu-latest
+            tox_env: "py310-xdist"
+          - name: "ubuntu-py311"
+            python: "3.11-dev"
+            os: ubuntu-latest
+            tox_env: "py311"
           - name: "ubuntu-pypy3"
-            python: "pypy3"
+            python: "pypy-3.7"
             os: ubuntu-latest
             tox_env: "pypy3-xdist"
 
@@ -131,16 +155,13 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+        persist-credentials: false
+
     - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v2
-      if: matrix.python != '3.9-dev'
       with:
         python-version: ${{ matrix.python }}
-    - name: Set up Python ${{ matrix.python }} (deadsnakes)
-      uses: deadsnakes/action@v2.0.0
-      if: matrix.python == '3.9-dev'
-      with:
-        python-version: ${{ matrix.python }}
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -152,41 +173,27 @@ jobs:
 
     - name: Test with coverage
       if: "matrix.use_coverage"
-      env:
-        _PYTEST_TOX_COVERAGE_RUN: "coverage run -m"
-        COVERAGE_PROCESS_START: ".coveragerc"
-        _PYTEST_TOX_EXTRA_DEP: "coverage-enable-subprocess"
-      run: "tox -e ${{ matrix.tox_env }}"
+      run: "tox -e ${{ matrix.tox_env }}-coverage"
 
-    - name: Prepare coverage token
-      if: (matrix.use_coverage && ( github.repository == 'pytest-dev/pytest' || github.event_name == 'pull_request' ))
-      run: |
-        python scripts/append_codecov_token.py
+    - name: Generate coverage report
+      if: "matrix.use_coverage"
+      run: python -m coverage xml
 
-    - name: Report coverage
-      if: (matrix.use_coverage)
-      env:
-        CODECOV_NAME: ${{ matrix.name }}
-      run: bash scripts/report-coverage.sh -F GHA,${{ runner.os }}
-
-  linting:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-    - name: set PY
-      run: echo "::set-env name=PY::$(python -c 'import hashlib, sys;print(hashlib.sha256(sys.version.encode()+sys.executable.encode()).hexdigest())')"
-    - uses: actions/cache@v1
+    - name: Upload coverage to Codecov
+      if: "matrix.use_coverage"
+      uses: codecov/codecov-action@v2
       with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-    - run: pip install tox
-    - run: tox -e linting
+        fail_ci_if_error: true
+        files: ./coverage.xml
+        verbose: true
 
   deploy:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && github.repository == 'pytest-dev/pytest'
 
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
 
     needs: [build]
 
@@ -194,25 +201,31 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+        persist-credentials: false
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: "3.7"
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install --upgrade wheel setuptools tox
+        pip install --upgrade build tox
+
     - name: Build package
       run: |
-        python setup.py sdist bdist_wheel
+        python -m build
+
     - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
         user: __token__
         password: ${{ secrets.pypi_token }}
+
     - name: Publish GitHub release notes
       env:
-        GH_RELEASE_NOTES_TOKEN: ${{ secrets.release_notes }}
+        GH_RELEASE_NOTES_TOKEN: ${{ github.token }}
       run: |
         sudo apt-get install pandoc
         tox -e publish-gh-release-notes

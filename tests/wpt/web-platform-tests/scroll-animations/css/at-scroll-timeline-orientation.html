@@ -6,7 +6,7 @@
 <script src="/web-animations/testcommon.js"></script>
 <style>
   #scroller_horizontal_tb, #scroller_vertical_lr{
-    overflow: scroll;
+    overflow: hidden;
     width: 100px;
     height: 100px;
   }
@@ -17,8 +17,8 @@
     writing-mode: vertical-lr;
   }
   .contents {
-    height: 300px;
-    width: 300px;
+    height: 200px;
+    width: 200px;
   }
   @keyframes expand {
     from { width: 100px; }
@@ -27,44 +27,30 @@
   @scroll-timeline timeline_auto {
     source: selector(#scroller_horizontal_tb);
     orientation: auto;
-    start: 0px;
-    end: 100px;
   }
   @scroll-timeline timeline_vertical {
     source: selector(#scroller_horizontal_tb);
     orientation: vertical;
-    start: 0px;
-    end: 100px;
   }
   @scroll-timeline timeline_horizontal {
     source: selector(#scroller_horizontal_tb);
     orientation: horizontal;
-    start: 0px;
-    end: 100px;
   }
   @scroll-timeline timeline_block_in_horizontal {
     source: selector(#scroller_horizontal_tb);
     orientation: block;
-    start: 0px;
-    end: 100px;
   }
   @scroll-timeline timeline_inline_in_horizontal {
     source: selector(#scroller_horizontal_tb);
     orientation: inline;
-    start: 0px;
-    end: 100px;
   }
   @scroll-timeline timeline_block_in_vertical {
     source: selector(#scroller_vertical_lr);
     orientation: block;
-    start: 0px;
-    end: 100px;
   }
   @scroll-timeline timeline_inline_in_vertical {
     source: selector(#scroller_vertical_lr);
     orientation: inline;
-    start: 0px;
-    end: 100px;
   }
   #container > div {
     width: 0px;

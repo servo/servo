@@ -16,6 +16,7 @@ test(function() {
 
   const dialog = document.createElement("dialog");
   assert_false(dialog.open, "Dialog should initially be closed");
+  assert_false(dialog.hasAttribute('open'), "Dialog should initially be closed");
 
   const innerInput = document.createElement("input");
   innerInput.autofocus = true;
@@ -23,6 +24,8 @@ test(function() {
 
   dialog.show();
   this.add_cleanup(() => { dialog.close(); });
+  assert_true(dialog.open, "Disconnected dialog can still be open");
+
 
   assert_equals(document.activeElement, outerInput, "Focusing steps should not change focus");
 }, "dialog.show(): focusing steps should not change focus on disconnected <dialog>");

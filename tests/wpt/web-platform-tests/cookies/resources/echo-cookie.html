@@ -6,6 +6,7 @@
   <meta name=help href="http://tools.ietf.org/html/rfc6265#section-5.1.4">
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/cookies/resources/cookie-test.js"></script>
 </head>
 <body>
 <script>
@@ -21,11 +22,7 @@ window.isCookieSet = function (name, path) {
 // Note: this function has a dependency on testdriver.js. Any test files calling
 // it should include testdriver.js and testdriver-vendor.js
 window.expireCookies = async () => {
-  let test_window = window.top;
-  while (test_window.opener && !test_window.opener.closed) {
-    test_window = test_window.opener.top;
-  }
-  test_driver.set_test_context(test_window);
+  setTestContextUsingRootWindow();
   await test_driver.delete_all_cookies();
 };
 window.getCookies = () => document.cookie;

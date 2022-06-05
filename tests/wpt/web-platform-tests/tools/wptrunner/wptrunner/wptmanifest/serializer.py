@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 from six import ensure_text
 
 from .node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode

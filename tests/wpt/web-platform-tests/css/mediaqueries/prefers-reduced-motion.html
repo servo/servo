@@ -5,27 +5,16 @@
 
 <script type="text/javascript" src="resources/matchmedia-utils.js"></script>
 <script>
-query_should_be_css_parseable("(prefers-reduced-motion)");
-query_should_be_css_parseable("(prefers-reduced-motion: no-preference)");
-query_should_be_css_parseable("(prefers-reduced-motion: reduce)");
+query_should_be_known("(prefers-reduced-motion)");
+query_should_be_known("(prefers-reduced-motion: no-preference)");
+query_should_be_known("(prefers-reduced-motion: reduce)");
 
-query_should_not_be_css_parseable("(prefers-reduced-motion: 0)");
-query_should_not_be_css_parseable("(prefers-reduced-motion: none)");
-query_should_not_be_css_parseable("(prefers-reduced-motion: 10px)");
-query_should_not_be_css_parseable("(prefers-reduced-motion: no-preference reduce)");
-query_should_not_be_css_parseable("(prefers-reduced-motion: reduced)");
-query_should_not_be_css_parseable("(prefers-reduced-motion: no-preference/reduce)");
-
-query_should_be_js_parseable("(prefers-reduced-motion)");
-query_should_be_js_parseable("(prefers-reduced-motion: no-preference)");
-query_should_be_js_parseable("(prefers-reduced-motion: reduce)");
-
-query_should_not_be_js_parseable("(prefers-reduced-motion: 0)");
-query_should_not_be_js_parseable("(prefers-reduced-motion: none)");
-query_should_not_be_js_parseable("(prefers-reduced-motion: 10px)");
-query_should_not_be_js_parseable("(prefers-reduced-motion: no-preference reduce)");
-query_should_not_be_js_parseable("(prefers-reduced-motion: reduced)");
-query_should_not_be_js_parseable("(prefers-reduced-motion: no-preference/reduce)");
+query_should_be_unknown("(prefers-reduced-motion: 0)");
+query_should_be_unknown("(prefers-reduced-motion: none)");
+query_should_be_unknown("(prefers-reduced-motion: 10px)");
+query_should_be_unknown("(prefers-reduced-motion: no-preference reduce)");
+query_should_be_unknown("(prefers-reduced-motion: reduced)");
+query_should_be_unknown("(prefers-reduced-motion: no-preference/reduce)");
 
 test(() => {
   // What this is saying is that 'no-preference' is not the default, so

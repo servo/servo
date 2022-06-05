@@ -1,5 +1,5 @@
 // META: title=Blob Delete Object Store
-// META: script=support.js
+// META: script=resources/support.js
 
 let key = "blob key";
 

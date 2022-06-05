@@ -53,13 +53,6 @@ self.addEventListener('canmakepayment', event => {
   }
 
   const [methodName] = method.supportedMethods;
-  if (methodName === 'basic-card') {
-    const msg =
-      '"basic-card" payment method must never be checked in CanMakePaymentEvent';
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
   const [modifierMethodName] = modifier.supportedMethods;
   if (modifierMethodName !== methodName) {
     const msg = `Unexpected modifier method name: "${modifierMethodName}". Expected "${methodName}".`;

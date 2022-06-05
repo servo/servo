@@ -385,3 +385,24 @@ promise_test(t => {
     assert_array_equals(rs.events, ['pull'], 'cancel should not have been called');
   });
 }, 'abort should do nothing after the writable is errored');
+
+promise_test(async t => {
+  const rs = new ReadableStream({
+    pull(c) {
+      c.enqueue(new Uint8Array([]));
+    },
+    type: "bytes",
+  });
+  const ws = new WritableStream();
+  const [first, second] = rs.tee();
+
+  let aborted = false;
+  first.pipeTo(ws, { signal: AbortSignal.abort() }).catch(() => {
+    aborted = true;
+  });
+  await delay(0);
+  assert_true(!aborted, "pipeTo should not resolve yet");
+  await second.cancel();
+  await delay(0);
+  assert_true(aborted, "pipeTo should be aborted now");
+}, "pipeTo on a teed readable byte stream should only be aborted when both branches are aborted");

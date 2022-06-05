@@ -1,5 +1,5 @@
 // META: title=Blob Valid After Deletion
-// META: script=support.js
+// META: script=resources/support.js
 
 let key = "key";
 

@@ -19,7 +19,7 @@ If you want to install or upgrade pytest, just type one of::
     easy_install -U pytest
 
 best,
-holger krekel / http://merlinux.eu
+holger krekel / https://merlinux.eu/
 
 Changes between 2.1.1 and 2.1.2
 ----------------------------------------

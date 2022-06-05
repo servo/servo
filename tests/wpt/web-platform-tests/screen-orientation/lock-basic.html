@@ -11,6 +11,14 @@ async function cleanup() {
   screen.orientation.unlock();
 }
 
+promise_test(async t => {
+  t.add_cleanup(cleanup);
+  await test_driver.bless("request full screen", () => {
+    return document.documentElement.requestFullscreen();
+  });
+  screen.orientation.unlock();
+}, "Test that screen.orientation.unlock() doesn't throw when there is no lock with fullscreen");
+
 test(() => {
   screen.orientation.unlock();
 }, "Test that screen.orientation.unlock() doesn't throw when there is no lock");

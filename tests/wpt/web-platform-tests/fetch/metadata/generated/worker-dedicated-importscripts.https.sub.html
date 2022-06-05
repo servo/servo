@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<!--
+This test was procedurally generated. Please do not modify it directly.
+Sources:
+- fetch/metadata/tools/fetch-metadata.conf.yml
+- fetch/metadata/tools/templates/worker-dedicated-importscripts.sub.html
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for dedicated worker via the "importScripts" API</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <script type="module">
+  'use strict';
+  function induceRequest(url, options) {
+    const src = `
+      importScripts('${url}');
+      postMessage('done');
+    `;
+    const workerUrl = URL.createObjectURL(
+      new Blob([src], { type: 'application/javascript' })
+    );
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(workerUrl, options);
+      worker.onmessage = resolve;
+      worker.onerror = reject;
+    });
+  }
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsOrigin'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same origin');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsCrossSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsSameSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsCrossSite', 'httpsOrigin'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Same Origin');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsCrossSite', 'httpsSameSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Same-Site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsCrossSite', 'httpsCrossSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Cross-Site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsOrigin', 'httpsOrigin'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same Origin');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsOrigin', 'httpsSameSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same-Site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsOrigin', 'httpsCrossSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsSameSite', 'httpsOrigin'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Same Origin');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsSameSite', 'httpsSameSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Same-Site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsSameSite', 'httpsCrossSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Cross-Site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['no-cors']);
+        });
+  }, 'sec-fetch-mode');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['script']);
+        });
+  }, 'sec-fetch-dest');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        });
+  }, 'sec-fetch-user');
+  </script>
+</html>

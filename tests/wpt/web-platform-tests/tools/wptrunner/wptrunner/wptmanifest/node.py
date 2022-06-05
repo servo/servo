@@ -1,4 +1,6 @@
-class NodeVisitor(object):
+# mypy: allow-untyped-defs
+
+class NodeVisitor:
     def visit(self, node):
         # This is ugly as hell, but we don't have multimethods and
         # they aren't trivial to fake without access to the class
@@ -7,7 +9,7 @@ class NodeVisitor(object):
         return func(node)
 
 
-class Node(object):
+class Node:
     def __init__(self, data=None):
         self.data = data
         self.parent = None
@@ -21,7 +23,7 @@ class Node(object):
         self.parent.children.remove(self)
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, self.data)
+        return f"<{self.__class__.__name__} {self.data}>"
 
     def __str__(self):
         rv = [repr(self)]

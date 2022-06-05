@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import subprocess
 from functools import partial
 from typing import Callable

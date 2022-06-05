@@ -6,7 +6,7 @@
 <script src="support/cq-testcommon.js"></script>
 <style>
   #container { container-type: size; }
-  @container size(min-width: 1px) {
+  @container (min-width: 1px) {
     #content { color: green; }
   }
 </style>
@@ -15,6 +15,8 @@
 </div>
 <script>
   setup(() => assert_implements_container_queries());
+
+  let content = document.getElementById("content");
 
   test(() => {
     assert_equals(getComputedStyle(content).color, "rgb(0, 128, 0)");

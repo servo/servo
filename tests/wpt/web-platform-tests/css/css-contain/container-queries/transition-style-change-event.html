@@ -12,10 +12,10 @@
     width: 100px;
     color: green;
   }
-  @container size(min-width: 200px) {
+  @container (min-width: 200px) {
     #inner { color: red }
   }
-  @container size(min-width: 400px) {
+  @container (min-width: 400px) {
     #target {
       color: green;
       transition: color 1s step-start;

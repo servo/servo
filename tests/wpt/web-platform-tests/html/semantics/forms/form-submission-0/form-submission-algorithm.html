@@ -84,6 +84,20 @@ promise_test(async () => {
 }, 'firing an event named submit; clicking a submit button');
 
 promise_test(async () => {
+  let form = populateForm('<input type=image name=n1>');
+  let iframe = form.previousSibling;
+  let submitter = form.querySelector('input[type=image]');
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  submitter.click();
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, submitter);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; clicking an image button');
+
+promise_test(async () => {
   let form = populateForm('');
   let iframe = form.previousSibling;
   let event;

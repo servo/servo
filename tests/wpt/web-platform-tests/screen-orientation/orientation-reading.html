@@ -96,13 +96,14 @@ promise_test(async t => {
   const orientationAngle = screen.orientation.angle;
   const orientationWatcher = new EventWatcher(t, orientation, "change");
 
-  if (orientationType.includes("portrait")) {
-    await orientation.lock("landscape-primary");
-  } else {
-    await orientation.lock("portrait-primary");
-  }
+  const newOrientationType =
+    orientationType.includes("portrait") ? "landscape-primary" :
+                                           "portrait-primary";
+  const promise = orientation.lock(newOrientationType);
 
+  // change event is fired before resolving promise by lock.
   await orientationWatcher.wait_for("change");
+  await promise;
   assert_equals(screen.orientation, orientation);
   assert_equals(screen.orientation.type, orientation.type);
   assert_equals(screen.orientation.angle, orientation.angle);

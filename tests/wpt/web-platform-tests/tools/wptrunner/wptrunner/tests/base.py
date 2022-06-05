@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 import sys
 
@@ -29,7 +31,7 @@ else:
     _active_products = set(_products)
 
 
-class all_products(object):
+class all_products:
     def __init__(self, arg, marks={}):
         self.arg = arg
         self.marks = marks
@@ -44,7 +46,7 @@ class all_products(object):
         return pytest.mark.parametrize(self.arg, params)(f)
 
 
-class active_products(object):
+class active_products:
     def __init__(self, arg, marks={}):
         self.arg = arg
         self.marks = marks

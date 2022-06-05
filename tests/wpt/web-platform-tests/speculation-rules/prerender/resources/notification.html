@@ -13,9 +13,9 @@ if (!isPrerendering) {
   loadInitiatorPage();
 } else {
   // Used to communicate with the initiator page.
-  const prerenderChannel = new BroadcastChannel('prerender-channel');
+  const prerenderChannel = new PrerenderChannel('prerender-channel');
   // Used to communicate with the main test page.
-  const testChannel = new BroadcastChannel('test-channel');
+  const testChannel = new PrerenderChannel('test-channel');
 
   window.addEventListener('load', () => {
     // Inform the initiator page that this page is ready to be activated.

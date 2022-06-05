@@ -1,0 +1,21 @@
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  "use strict";
+
+  Promise.resolve().then(async () => {
+    await test_driver.set_permission(
+      { name: "geolocation" },
+      "granted",
+      false
+    );
+    try {
+      await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+      window.parent.postMessage({ enabled: true }, "*");
+    } catch (e) {
+      window.parent.postMessage({ enabled: false }, "*");
+    }
+  });
+</script>

@@ -19,14 +19,14 @@
   }
 
   /* Matches with or without a scrollbar: */
-  @container size(max-width: 100px) {
+  @container (max-width: 100px) {
     #target {
       background-color: blue;
     }
   }
 
   /* Matches only when there's a scrollbar: */
-  @container size(max-width: 99px) {
+  @container (max-width: 99px) {
     #target {
       background-color: green;
       font-size: 10px;

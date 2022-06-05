@@ -7,7 +7,7 @@ MYPY = False
 if MYPY:
     # MYPY is set to True when run under Mypy.
     from typing import Any, List, Match, Optional, Pattern, Text, Tuple, cast
-    Error = Tuple[Text, Text, Text, Optional[int]]
+    Error = Tuple[str, str, str, Optional[int]]
 
 
 def collapse(text):
@@ -32,8 +32,8 @@ class Rule(metaclass=abc.ABCMeta):
     def error(cls, path, context=(), line_no=None):
         # type: (Text, Tuple[Any, ...], Optional[int]) -> Error
         if MYPY:
-            name = cast(Text, cls.name)
-            description = cast(Text, cls.description)
+            name = cast(str, cls.name)
+            description = cast(str, cls.description)
         else:
             name = cls.name
             description = cls.description

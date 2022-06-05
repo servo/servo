@@ -3,6 +3,8 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script src="resources/utils.js"></script>
 <script src="resources/indexedb-utils.js"></script>
 <body>
@@ -11,33 +13,30 @@
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
-  const bc = new BroadcastChannel('prerender-channel');
-
-  const gotMessage = new Promise(resolve => {
-    bc.addEventListener('message', e => {
-      resolve(e.data);
-    }, {
-      once: true
-    });
-  });
-
-  const db = await openIndexedDatabase();
+  const db = await openIndexedDatabase(t);
   assert_not_equals(db, null, 'Failed to open database.');
   await addData(db, INITIATOR_KEY, INITIATOR_VALUE);
 
-  // Start prerendering a page that attempts to access the IndexedDB API.
-  startPrerendering(`resources/indexeddb-access.html`);
+  const {exec} = await create_prerendered_page(t);
 
-  const prerenderReadResult = await gotMessage;
+  const result = await exec(async () => {
+    await import_script_to_prerendered_page("indexedb-utils.js");
+    const db = await openIndexedDatabase();
+
+    await addData(db, PRERENDER_KEY, PRERENDER_VALUE);
+    const result = await readData(db, INITIATOR_KEY);
+    db.close();
+    return result;
+  });
+
   assert_equals(
-    prerenderReadResult, INITIATOR_VALUE,
+    result, INITIATOR_VALUE,
     'prerendering page should be able to read from Indexed DataBase');
   const initiatorReadResult = await readData(db, PRERENDER_KEY);
   assert_equals(
     initiatorReadResult, PRERENDER_VALUE,
     'prerendering page should be able to write to Indexed DataBase');
   db.close();
-  bc.close();
 }, 'prerendering page should be able to access Indexed DataBase')
 
 </script>

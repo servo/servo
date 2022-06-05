@@ -36,6 +36,8 @@
 #
 # The following parameters only affect non-preflight responses:
 #
+# - redirect: If set, the response code is set to 301 and the `Location`
+#   response header is set to this value.
 # - mime-type: If set, the `Content-Type` response header is set to this value.
 # - file: Specifies a path (relative to this file's directory) to a file. If
 #   set, the response body is copied from this file.
@@ -65,6 +67,9 @@ def _get_response_headers(method, mode):
 
   return []
 
+def _get_expect_single_preflight(request):
+  return request.GET.get(b"expect-single-preflight")
+
 def _get_preflight_uuid(request):
   return request.GET.get(b"preflight-uuid")
 
@@ -88,7 +93,10 @@ def _handle_preflight_request(request, response):
   if uuid is None:
     return (400, [], "missing `preflight-uuid` param from preflight URL")
 
-  request.server.stash.put(uuid, "")
+  value = request.server.stash.take(uuid)
+  request.server.stash.put(uuid, "preflight")
+  if _get_expect_single_preflight(request) and value is not None:
+    return (400, [], "received duplicated preflight")
 
   method = request.headers.get("Access-Control-Request-Method")
   mode = request.GET.get(b"preflight-headers")
@@ -117,11 +125,18 @@ def _handle_final_request(request, response):
     headers = [("Content-Security-Policy", "treat-as-public-address"),]
   else:
     uuid = _get_preflight_uuid(request)
-    if uuid is not None and request.server.stash.take(uuid) is None:
-      return (405, [], "no preflight received for {}".format(uuid))
+    if uuid is not None:
+      if request.server.stash.take(uuid) is None:
+        return (405, [], "no preflight received for {}".format(uuid))
+      request.server.stash.put(uuid, "final")
 
     mode = request.GET.get(b"final-headers")
     headers = _get_response_headers(request.method, mode)
+
+  redirect = request.GET.get(b"redirect")
+  if redirect is not None:
+    headers.append(("Location", redirect))
+    return (301, headers, b"")
 
   mime_type = request.GET.get(b"mime-type")
   if mime_type is not None:

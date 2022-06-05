@@ -1,0 +1,40 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Federated Credential Management API (https://fedidcg.github.io/FedCM/)
+
+[Exposed=Window, SecureContext]
+dictionary FederatedAccountLoginRequest {
+  AbortSignal signal;
+  USVString nonce;
+};
+
+[Exposed=Window, SecureContext]
+partial interface FederatedCredential {
+  Promise<FederatedTokens> login(optional FederatedAccountLoginRequest request = {});
+};
+
+[Exposed=Window, SecureContext]
+dictionary FederatedTokens {
+  USVString idToken;
+};
+
+[Exposed=Window, SecureContext]
+partial interface FederatedCredential {
+  Promise<undefined> revoke(USVString hint);
+};
+
+[Exposed=Window, SecureContext]
+partial interface FederatedCredential {
+  Promise<undefined> logout();
+};
+
+dictionary FederatedCredentialLogoutRpsRequest {
+  required USVString url;
+  required USVString accountId;
+};
+
+[Exposed=Window, SecureContext]
+partial interface FederatedCredential {
+  static Promise<undefined> logoutRPs(sequence<FederatedCredentialLogoutRpsRequest> logoutRequests);
+};

@@ -17,7 +17,7 @@
 })();
 
 function usb_test(func, name, properties) {
-  promise_test(async () => {
+  promise_test(async (t) => {
     assert_implements(navigator.usb, 'missing navigator.usb');
     if (navigator.usb.test === undefined) {
       // Try loading a polyfill for the WebUSB Testing API.
@@ -29,7 +29,7 @@ function usb_test(func, name, properties) {
 
     await navigator.usb.test.initialize();
     try {
-      await func();
+      await func(t);
     } finally {
       await navigator.usb.test.reset();
     }
@@ -68,16 +68,6 @@ function waitForDisconnect(fakeDevice) {
   return promise;
 }
 
-function assertRejectsWithError(promise, name, message) {
-  return promise.then(() => {
-    assert_unreached('expected promise to reject with ' + name);
-  }, error => {
-    assert_equals(error.name, name);
-    if (message !== undefined)
-      assert_equals(error.message, message);
-  });
-}
-
 function assertDeviceInfoEquals(usbDevice, deviceInit) {
   for (var property in deviceInit) {
     if (property == 'activeConfigurationValue') {
@@ -110,5 +100,32 @@ function callWithTrustedClick(callback) {
     };
     document.body.appendChild(button);
     test_driver.click(button);
+  });
+}
+
+/**
+ * Runs the garbage collection.
+ * @returns {Promise<void>} Resolves when garbage collection has finished.
+ */
+function runGarbageCollection() {
+  // Run gc() as a promise.
+  return new Promise(function(resolve, reject) {
+    if (self.gc) {
+      // Use --expose_gc for V8 (and Node.js)
+      // to pass this flag at chrome launch use: --js-flags="--expose-gc"
+      // Exposed in SpiderMonkey shell as well
+      self.gc();
+    } else if (self.GCController) {
+      // Present in some WebKit development environments
+      GCController.collect();
+    } else {
+      /* eslint-disable no-console */
+      console.warn(
+          'Tests are running without the ability to do manual garbage ' +
+          'collection. They will still work, but ' +
+          'coverage will be suboptimal.');
+      /* eslint-enable no-console */
+    }
+    step_timeout(resolve, 0);
   });
 }

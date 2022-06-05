@@ -50,7 +50,7 @@ jobs:
         run: python -m pip install --upgrade build
 
       - name: Build
-        run: python -m build
+        run: pyproject-build
 
       - name: Archive files
         uses: actions/upload-artifact@v1

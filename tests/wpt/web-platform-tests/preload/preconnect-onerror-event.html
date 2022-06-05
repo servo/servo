@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<title>Makes sure that preloaded resources trigger the onerror event</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+    const {HTTP_REMOTE_ORIGIN} = get_host_info();
+
+    function test_preconnect(origin, resource, desc) {
+        promise_test(async t => {
+            const result = await new Promise(async didLoad => {
+                const href = `${origin}${resource}`;
+                for (const rel of ['preconnect', 'preload']) {
+                    const link = document.createElement('link');
+                    link.href = href;
+                    link.as = 'script';
+                    link.rel = rel;
+                    link.addEventListener('load', () => didLoad({rel, type: 'load'}));
+                    link.addEventListener('error', () => didLoad({rel, type: 'error'}));
+                    document.head.appendChild(link);
+                    t.step_timeout(() => resolve('timeout'), 200));
+                }
+            });
+            assert_equals(result.rel, 'preload');
+        }, desc);
+    }
+
+    test_preconnect(HTTP_REMOTE_ORIGIN, '/preload/resources/dummy.js', 'Preconnect should not fire load events');
+    test_preconnect('http://NON-EXISTENT.origin', '/preload/resources/dummy.js', 'Preconnect should not fire error events for non-existent origins');
+    test_preconnect('some-scheme://URL', '/preload/resources/dummy.js', 'Preconnect should not fire error events for non-http(s) scheme');
+</script>
+</body>
+</html>

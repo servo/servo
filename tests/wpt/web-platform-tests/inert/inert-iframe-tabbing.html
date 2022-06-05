@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tabbing with inert iframe</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#sequential-focus-navigation">
+<meta assert="assert" content="Tabbing can't enter an inert iframe from the outside, but can move within it and can leave it if focus is already there.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="before" tabindex="0">before</div>
+<div id="inert" inert>
+  <iframe id="iframe"></iframe>
+</div>
+<div id="after" tabindex="0">after</a>
+
+<script>
+const tabKey = "\uE004";
+const before = document.getElementById("before");
+const inert = document.getElementById("inert");
+const after = document.getElementById("after");
+const iframe = document.getElementById("iframe");
+let iframeDoc;
+let start;
+let end;
+
+promise_setup(async () => {
+  await new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+    iframe.srcdoc = `
+      <div id="start" tabindex="0">target</div>
+      <div id="end" tabindex="0">target</div>
+    `;
+  });
+  iframeDoc = iframe.contentDocument;
+  start = iframeDoc.getElementById("start");
+  end = iframeDoc.getElementById("end");
+});
+
+promise_test(async function() {
+  before.focus();
+  assert_equals(document.activeElement, before, "#before got outer focus");
+  assert_false(iframeDoc.hasFocus(), "iframeDoc doesn't have focus");
+
+  await test_driver.send_keys(document.activeElement, tabKey);
+  assert_equals(document.activeElement, after, "#after got outer focus");
+  assert_false(iframeDoc.hasFocus(), "iframeDoc still doesn't have focus");
+}, "Sequential navigation can't enter an inert iframe");
+
+promise_test(async function() {
+  start.focus();
+  assert_equals(document.activeElement, iframe, "#iframe got outer focus");
+  assert_equals(iframeDoc.activeElement, start, "#start got inner focus");
+  assert_true(iframeDoc.hasFocus(), "iframeDoc has focus");
+
+  await test_driver.send_keys(iframeDoc.activeElement, tabKey);
+  assert_equals(document.activeElement, iframe, "#iframe still has outer focus");
+  assert_equals(iframeDoc.activeElement, end, "#end got inner focus");
+  assert_true(iframeDoc.hasFocus(), "iframeDoc still has focus");
+}, "Sequential navigation can move within an inert iframe");
+
+promise_test(async function() {
+  end.focus();
+  assert_equals(document.activeElement, iframe, "#iframe got outer focus");
+  assert_equals(iframeDoc.activeElement, end, "#end got inner focus");
+  assert_true(iframeDoc.hasFocus(), "iframeDoc has focus");
+
+  await test_driver.send_keys(iframeDoc.activeElement, tabKey);
+  assert_equals(document.activeElement, after, "#after got outer focus");
+  assert_false(iframeDoc.hasFocus(), "iframeDoc doesn't have focus");
+}, "Sequential navigation can leave an inert iframe");
+
+// Test again without inertness.
+
+promise_test(async function() {
+  inert.inert = false;
+
+  before.focus();
+  assert_equals(document.activeElement, before, "#before got outer focus");
+  assert_false(iframeDoc.hasFocus(), "iframeDoc doesn't have focus");
+
+  await test_driver.send_keys(document.activeElement, tabKey);
+  assert_equals(document.activeElement, iframe, "#iframe got outer focus");
+  assert_true(iframeDoc.hasFocus(), "iframeDoc has focus");
+
+  // The document element is also focusable in Firefox.
+  if (iframeDoc.activeElement === iframeDoc.documentElement) {
+    await test_driver.send_keys(document.activeElement, tabKey);
+    assert_equals(document.activeElement, iframe, "#iframe got outer focus");
+    assert_true(iframeDoc.hasFocus(), "iframeDoc has focus");
+  }
+  assert_equals(iframeDoc.activeElement, start, "#start got inner focus");
+}, "Sequential navigation can enter a no longer inert iframe");
+
+promise_test(async function() {
+  inert.inert = false;
+
+  start.focus();
+  assert_equals(document.activeElement, iframe, "#iframe got outer focus");
+  assert_equals(iframeDoc.activeElement, start, "#start got inner focus");
+  assert_true(iframeDoc.hasFocus(), "iframeDoc has focus");
+
+  await test_driver.send_keys(iframeDoc.activeElement, tabKey);
+  assert_equals(document.activeElement, iframe, "#iframe still has outer focus");
+  assert_equals(iframeDoc.activeElement, end, "#end got inner focus");
+  assert_true(iframeDoc.hasFocus(), "iframeDoc still has focus");
+}, "Sequential navigation can move within a no longer inert iframe");
+
+promise_test(async function() {
+  inert.inert = false;
+
+  end.focus();
+  assert_equals(document.activeElement, iframe, "#iframe got outer focus");
+  assert_equals(iframeDoc.activeElement, end, "#end got inner focus");
+  assert_true(iframeDoc.hasFocus(), "iframeDoc has focus");
+
+  await test_driver.send_keys(iframeDoc.activeElement, tabKey);
+  assert_equals(document.activeElement, after, "#after got outer focus");
+  assert_false(iframeDoc.hasFocus(), "iframeDoc doesn't have focus");
+}, "Sequential navigation can leave a no longer inert iframe");
+</script>

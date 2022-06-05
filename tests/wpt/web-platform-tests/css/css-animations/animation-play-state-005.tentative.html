@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS animations shouldn't restart after resetting its play state</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-play-state">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#playing-an-animation-section">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7145">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from { transform: translateX(100px); }
+    to { transform: translateX(200px); }
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// Check that the auto-rewind flag is set to false when playing an animation in
+// response to a change in animation-play-state.
+promise_test(async t => {
+  const div = addDiv(t, { style: 'animation: anim 100ms' });
+
+  await new Promise(function (resolve) {
+    div.addEventListener('animationend', () => {
+      // After the animation ends, change animation-play-state to paused, flush,
+      // then change it back to running to trigger the re-start.
+      div.style.animationPlayState = 'paused';
+      getComputedStyle(div).animationPlayState;
+      div.style.animationPlayState = 'running';
+      getComputedStyle(div).animationPlayState;
+      resolve();
+    });
+  });
+
+  // Check the animation has not restarted.
+  assert_equals(div.getAnimations().length, 0);
+  assert_equals(getComputedStyle(div).transform, 'none');
+}, 'CSS animation should not restart after resetting its animation-play-state');
+
+</script>
+</body>

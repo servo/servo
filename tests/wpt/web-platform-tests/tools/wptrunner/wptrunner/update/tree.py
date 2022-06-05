@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 import re
 import subprocess
@@ -17,12 +19,12 @@ def get_unique_name(existing, initial):
     if initial not in existing:
         return initial
     for i in range(len(existing) + 1):
-        test = "%s_%s" % (initial, i + 1)
+        test = f"{initial}_{i + 1}"
         if test not in existing:
             return test
     assert False
 
-class NoVCSTree(object):
+class NoVCSTree:
     name = "non-vcs"
 
     def __init__(self, root=None):
@@ -54,7 +56,7 @@ class NoVCSTree(object):
         pass
 
 
-class HgTree(object):
+class HgTree:
     name = "mercurial"
 
     def __init__(self, root=None):
@@ -135,7 +137,7 @@ class HgTree(object):
             return False
 
 
-class GitTree(object):
+class GitTree:
     name = "git"
 
     def __init__(self, root=None, log_error=True):
@@ -318,7 +320,7 @@ class GitTree(object):
         if not vcs.is_git_root(self.root):
             self.init()
         self.git("clean", "-xdf")
-        self.git("fetch", remote, "%s:%s" % (remote_branch, local_branch))
+        self.git("fetch", remote, f"{remote_branch}:{local_branch}")
         self.checkout(local_branch)
         self.git("submodule", "update", "--init", "--recursive")
 
@@ -359,7 +361,7 @@ class GitTree(object):
             return False
 
 
-class CommitMessage(object):
+class CommitMessage:
     def __init__(self, text):
         self.text = text
         self._parse_message()
@@ -373,7 +375,7 @@ class CommitMessage(object):
         self.body = "\n".join(lines[1:])
 
 
-class Commit(object):
+class Commit:
     msg_cls = CommitMessage
 
     _sha1_re = re.compile("^[0-9a-f]{40}$")

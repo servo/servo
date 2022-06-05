@@ -18,9 +18,32 @@ def test_coloredlogformatter() -> None:
         exc_info=None,
     )
 
-    class ColorConfig:
-        class option:
-            pass
+    tw = TerminalWriter()
+    tw.hasmarkup = True
+    formatter = ColoredLevelFormatter(tw, logfmt)
+    output = formatter.format(record)
+    assert output == (
+        "dummypath                   10 \x1b[32mINFO    \x1b[0m Test Message"
+    )
+
+    tw.hasmarkup = False
+    formatter = ColoredLevelFormatter(tw, logfmt)
+    output = formatter.format(record)
+    assert output == ("dummypath                   10 INFO     Test Message")
+
+
+def test_coloredlogformatter_with_width_precision() -> None:
+    logfmt = "%(filename)-25s %(lineno)4d %(levelname)-8.8s %(message)s"
+
+    record = logging.LogRecord(
+        name="dummy",
+        level=logging.INFO,
+        pathname="dummypath",
+        lineno=10,
+        msg="Test Message",
+        args=(),
+        exc_info=None,
+    )
 
     tw = TerminalWriter()
     tw.hasmarkup = True
@@ -41,7 +64,7 @@ def test_multiline_message() -> None:
 
     logfmt = "%(filename)-25s %(lineno)4d %(levelname)-8s %(message)s"
 
-    record = logging.LogRecord(
+    record: Any = logging.LogRecord(
         name="dummy",
         level=logging.INFO,
         pathname="dummypath",
@@ -49,7 +72,7 @@ def test_multiline_message() -> None:
         msg="Test Message line1\nline2",
         args=(),
         exc_info=None,
-    )  # type: Any
+    )
     # this is called by logging.Formatter.format
     record.message = record.getMessage()
 

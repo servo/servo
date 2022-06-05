@@ -3,29 +3,39 @@ Glossary
 
 .. glossary::
 
+   dunder methods
+      "Dunder" is a contraction of "double underscore".
+
+      It's methods like ``__init__`` or ``__eq__`` that are sometimes also called *magic methods* or it's said that they implement an *object protocol*.
+
+      In spoken form, you'd call ``__init__`` just "dunder init".
+
+      Its first documented use is a `mailing list posting <https://mail.python.org/pipermail/python-list/2002-September/155836.html>`_ by Mark Jackson from 2002.
+
    dict classes
-      A regular class whose attributes are stored in the ``__dict__`` attribute of every single instance.
+      A regular class whose attributes are stored in the `object.__dict__` attribute of every single instance.
       This is quite wasteful especially for objects with very few data attributes and the space consumption can become significant when creating large numbers of instances.
 
-      This is the type of class you get by default both with and without ``attrs``.
+      This is the type of class you get by default both with and without ``attrs`` (except with the next APIs `attr.define`, `attr.mutable`, and `attr.frozen`).
 
    slotted classes
-      A class that has no ``__dict__`` attribute and `defines <https://docs.python.org/3/reference/datamodel.html#slots>`_ its attributes in a ``__slots__`` attribute instead.
-      In ``attrs``, they are created by passing ``slots=True`` to ``@attr.s``.
+      A class whose instances have no `object.__dict__` attribute and `define <https://docs.python.org/3/reference/datamodel.html#slots>`_ their attributes in a `object.__slots__` attribute instead.
+      In ``attrs``, they are created by passing ``slots=True`` to ``@attr.s`` (and are on by default in `attr.define`/`attr.mutable`/`attr.frozen`).
 
-      Their main advantage is that they use less memory on CPython [#pypy]_.
 
-      However they also come with a bunch of possibly surprising gotchas:
+      Their main advantage is that they use less memory on CPython [#pypy]_ and are slightly faster.
+
+      However they also come with several possibly surprising gotchas:
 
       - Slotted classes don't allow for any other attribute to be set except for those defined in one of the class' hierarchies ``__slots__``:
 
         .. doctest::
 
-          >>> import attr
-          >>> @attr.s(slots=True)
-          ... class Coordinates(object):
-          ...     x = attr.ib()
-          ...     y = attr.ib()
+          >>> from attr import define
+          >>> @define
+          ... class Coordinates:
+          ...     x: int
+          ...     y: int
           ...
           >>> c = Coordinates(x=1, y=2)
           >>> c.z = 3
@@ -34,30 +44,61 @@ Glossary
           AttributeError: 'Coordinates' object has no attribute 'z'
 
       - Slotted classes can inherit from other classes just like non-slotted classes, but some of the benefits of slotted classes are lost if you do that.
-        If you must inherit from other classes, try to inherit only from other slot classes.
+        If you must inherit from other classes, try to inherit only from other slotted classes.
 
-      - Using :mod:`pickle` with slotted classes requires pickle protocol 2 or greater.
-        Python 2 uses protocol 0 by default so the protocol needs to be specified.
-        Python 3 uses protocol 3 by default.
-        You can support protocol 0 and 1 by implementing :meth:`__getstate__ <object.__getstate__>` and :meth:`__setstate__ <object.__setstate__>` methods yourself.
-        Those methods are created for frozen slotted classes because they won't pickle otherwise.
-        `Think twice <https://www.youtube.com/watch?v=7KnfGDajDQw>`_ before using :mod:`pickle` though.
+      - However, `it's not possible <https://docs.python.org/3/reference/datamodel.html#notes-on-using-slots>`_ to inherit from more than one class that has attributes in ``__slots__`` (you will get an ``TypeError: multiple bases have instance lay-out conflict``).
 
-      - As always with slotted classes, you must specify a ``__weakref__`` slot if you wish for the class to be weak-referenceable.
-        Here's how it looks using ``attrs``:
+      - It's not possible to monkeypatch methods on slotted classes.
+        This can feel limiting in test code, however the need to monkeypatch your own classes is usually a design smell.
+
+        If you really need to monkeypatch an instance in your tests, but don't want to give up on the advantages of slotted classes in production code, you can always subclass a slotted class as a dict class with no further changes and all the limitations go away:
 
         .. doctest::
 
-          >>> import weakref
-          >>> @attr.s(slots=True)
-          ... class C(object):
-          ...     __weakref__ = attr.ib(init=False, hash=False, repr=False, cmp=False)
-          ...     x = attr.ib()
-          >>> c = C(1)
-          >>> weakref.ref(c)
-          <weakref at 0x...; to 'C' at 0x...>
-      - Since it's currently impossible to make a class slotted after it's created, ``attrs`` has to replace your class with a new one.
-        While it tries to do that as graciously as possible, certain metaclass features like ``__init_subclass__`` do not work with slotted classes.
+           >>> import attr, unittest.mock
+           >>> @define
+           ... class Slotted:
+           ...     x: int
+           ...
+           ...     def method(self):
+           ...         return self.x
+           >>> s = Slotted(42)
+           >>> s.method()
+           42
+           >>> with unittest.mock.patch.object(s, "method", return_value=23):
+           ...     pass
+           Traceback (most recent call last):
+              ...
+           AttributeError: 'Slotted' object attribute 'method' is read-only
+           >>> @define(slots=False)
+           ... class Dicted(Slotted):
+           ...     pass
+           >>> d = Dicted(42)
+           >>> d.method()
+           42
+           >>> with unittest.mock.patch.object(d, "method", return_value=23):
+           ...     assert 23 == d.method()
+
+      - Slotted classes must implement :meth:`__getstate__ <object.__getstate__>` and :meth:`__setstate__ <object.__setstate__>` to be serializable with `pickle` protocol 0 and 1.
+        Therefore, ``attrs`` creates these methods automatically for ``slots=True`` classes (Python 2 uses protocol 0 by default).
+
+        .. note::
+
+            If the ``@attr.s(slots=True)`` decorated class already implements the :meth:`__getstate__ <object.__getstate__>` and :meth:`__setstate__ <object.__setstate__>` methods, they will be *overwritten* by ``attrs`` autogenerated implementation by default.
+
+            This can be avoided by setting ``@attr.s(getstate_setstate=False)`` or by setting ``@attr.s(auto_detect=True)``.
+
+        Also, `think twice <https://www.youtube.com/watch?v=7KnfGDajDQw>`_ before using `pickle`.
+
+      - Slotted classes are weak-referenceable by default.
+        This can be disabled in CPython by passing ``weakref_slot=False`` to ``@attr.s`` [#pypyweakref]_.
+
+      - Since it's currently impossible to make a class slotted after it's been created, ``attrs`` has to replace your class with a new one.
+        While it tries to do that as graciously as possible, certain metaclass features like `object.__init_subclass__` do not work with slotted classes.
+
+      - The `class.__subclasses__` attribute needs a garbage collection run (which can be manually triggered using `gc.collect`), for the original class to be removed.
+        See issue `#407 <https://github.com/python-attrs/attrs/issues/407>`_ for more details.
 
 
 .. [#pypy] On PyPy, there is no memory advantage in using slotted classes.
+.. [#pypyweakref] On PyPy, slotted classes are naturally weak-referenceable so ``weakref_slot=False`` has no effect.

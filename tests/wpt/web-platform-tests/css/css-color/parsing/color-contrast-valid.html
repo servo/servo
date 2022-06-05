@@ -40,6 +40,9 @@
     test_valid_value(`color`, `color-contrast(color(display-p3 1 1 0) vs color(display-p3 0 1 0), color(display-p3 0 0 1))`, `color(display-p3 0 0 1)`);
     test_valid_value(`color`, `color-contrast(green vs lab(50% -160 160), lch(20% 50 20deg))`, `lch(20% 50 20)`);
     test_valid_value(`color`, `color-contrast(lab(50% -160 160) vs green, lch(20% 50 20deg))`, `lch(20% 50 20)`);
+
+    // Test with extra whitespace
+    test_valid_value(`color`, `color-contrast( white vs red, blue )`, `rgb(0, 0, 255)`);
 </script>
 </body>
 </html>

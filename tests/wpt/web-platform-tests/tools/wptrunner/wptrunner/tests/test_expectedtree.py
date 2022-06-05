@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 from .. import expectedtree, metadata
 from collections import defaultdict
 
@@ -10,10 +12,10 @@ def dump_tree(tree):
         if not node.prop:
             data = "root"
         else:
-            data = "%s:%s" % (node.prop, node.value)
+            data = f"{node.prop}:{node.value}"
         if node.result_values:
             data += " result_values:%s" % (",".join(sorted(node.result_values)))
-        rv.append("%s<%s>" % (prefix, data))
+        rv.append(f"{prefix}<{data}>")
         for child in sorted(node.children, key=lambda x:x.value):
             dump_node(child, indent + 2)
     dump_node(tree)

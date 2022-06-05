@@ -1,0 +1,42 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Multi-Screen Window Placement (https://w3c.github.io/window-placement/)
+
+partial interface Screen /* : EventTarget */ {
+  [SecureContext]
+  readonly attribute boolean isExtended;
+
+  [SecureContext]
+  attribute EventHandler onchange;
+};
+
+partial interface Window {
+  [SecureContext]
+  Promise<ScreenDetails> getScreenDetails();
+};
+
+[Exposed=Window, SecureContext]
+interface ScreenDetails : EventTarget {
+  readonly attribute FrozenArray<ScreenDetailed> screens;
+  readonly attribute ScreenDetailed currentScreen;
+
+  attribute EventHandler onscreenschange;
+  attribute EventHandler oncurrentscreenchange;
+};
+
+[Exposed=Window, SecureContext]
+interface ScreenDetailed : Screen {
+  readonly attribute long availLeft;
+  readonly attribute long availTop;
+  readonly attribute long left;
+  readonly attribute long top;
+  readonly attribute boolean isPrimary;
+  readonly attribute boolean isInternal;
+  readonly attribute float devicePixelRatio;
+  readonly attribute DOMString label;
+};
+
+partial dictionary FullscreenOptions {
+  ScreenDetailed screen;
+};

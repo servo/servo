@@ -1,8 +1,8 @@
 # Overlapping navigation and traversal tests
 
-While developing [app history](https://wicg.github.io/app-history/), @domenic
-noticed that cancelation of navigations and history traversals is not very
-well-defined in the spec.
+While developing the [navigation API](https://wicg.github.io/navigation-api/),
+@domenic noticed that cancelation of navigations and history traversals is not
+very well-defined in the spec.
 
 On the spec side, this will probably be fixed as part of, or after, the
 [session history rewrite](https://github.com/whatwg/html/pull/6315).

@@ -93,4 +93,42 @@ test(t => {
   assert_true(!host.shadowRoot, 'No shadow root');
 },'Declarative Shadow DOM: template .content() should be null');
 </script>
+
+<script>
+let synchronous_events_received = new Set();
+function synchronousHandler(e) {
+  synchronous_events_received.add(e.type);
+}
+const sync_events = ["DOMAttrModified","DOMAttributeNameChanged","DOMCharacterDataModified",
+  "DOMElementNameChanged","DOMNodeInserted","DOMNodeInsertedIntoDocument","DOMNodeRemoved",
+  "DOMNodeRemovedFromDocument","DOMSubtreeModified"];
+function addSyncObserver(evt) {
+  window.addEventListener(evt, synchronousHandler, true);
+}
+function removeSyncObserver(evt) {
+  window.removeEventListener(evt, synchronousHandler, true);
+}
+sync_events.forEach(e => addSyncObserver(e));
+</script>
+
+<div id=synchost1>
+  <template shadowroot=open>
+    <div class=foo>content</div>
+    <slot></slot>
+  </template>
+</div>
+
+<div id=synchost2>
+  <template shadowroot=closed>
+    <div class=foo>content</div>
+    <slot></slot>
+  </template>
+</div>
+
+<script>
+test(t => {
+  t.add_cleanup(function() { sync_events.forEach(e => removeSyncObserver(e)) });
+  assert_true(!synchronous_events_received.size,`Synchronous mutation events fired: ${Array.from(synchronous_events_received)}`);
+},'Synchronous mutation events should not be fired during declarative shadow DOM parsing');
+</script>
 </body>

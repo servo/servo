@@ -1,5 +1,3 @@
-.. _why:
-
 Why not…
 ========
 
@@ -7,59 +5,56 @@ Why not…
 If you'd like third party's account why ``attrs`` is great, have a look at Glyph's `The One Python Library Everyone Needs <https://glyph.twistedmatrix.com/2016/08/attrs.html>`_!
 
 
-…tuples?
---------
+…Data Classes?
+--------------
+
+:pep:`557` added Data Classes to `Python 3.7 <https://docs.python.org/3.7/whatsnew/3.7.html#dataclasses>`_ that resemble ``attrs`` in many ways.
+
+They are the result of the Python community's `wish <https://mail.python.org/pipermail/python-ideas/2017-May/045618.html>`_ to have an easier way to write classes in the standard library that doesn't carry the problems of ``namedtuple``\ s.
+To that end, ``attrs`` and its developers were involved in the PEP process and while we may disagree with some minor decisions that have been made, it's a fine library and if it stops you from abusing ``namedtuple``\ s, they are a huge win.
+
+Nevertheless, there are still reasons to prefer ``attrs`` over Data Classes.
+Whether they're relevant to *you* depends on your circumstances:
+
+- Data Classes are *intentionally* less powerful than ``attrs``.
+  There is a long list of features that were sacrificed for the sake of simplicity and while the most obvious ones are validators, converters, :ref:`equality customization <custom-comparison>`, or :doc:`extensibility <extending>` in general, it permeates throughout all APIs.
+
+  On the other hand, Data Classes currently do not offer any significant feature that ``attrs`` doesn't already have.
+- ``attrs`` supports all mainstream Python versions, including CPython 2.7 and PyPy.
+- ``attrs`` doesn't force type annotations on you if you don't like them.
+- But since it **also** supports typing, it's the best way to embrace type hints *gradually*, too.
+- While Data Classes are implementing features from ``attrs`` every now and then, their presence is dependent on the Python version, not the package version.
+  For example, support for ``__slots__`` has only been added in Python 3.10.
+  That is especially painful for PyPI packages that support multiple Python versions.
+  This includes possible implementation bugs.
+- ``attrs`` can and will move faster.
+  We are not bound to any release schedules and we have a clear deprecation policy.
+
+  One of the `reasons <https://www.python.org/dev/peps/pep-0557/#why-not-just-use-attrs>`_ to not vendor ``attrs`` in the standard library was to not impede ``attrs``'s future development.
+
+One way to think about ``attrs`` vs Data Classes is that ``attrs`` is a fully-fledged toolkit to write powerful classes while Data Classes are an easy way to get a class with some attributes.
+Basically what ``attrs`` was in 2015.
 
 
-Readability
-^^^^^^^^^^^
+…pydantic?
+----------
 
-What makes more sense while debugging::
+*pydantic* is first an foremost a *data validation library*.
+As such, it is a capable complement to class building libraries like ``attrs`` (or Data Classes!) for parsing and validating untrusted data.
 
-   Point(x=1, y=2)
+However, as convenient as it might be, using it for your business or data layer `is problematic in several ways <https://threeofwands.com/why-i-use-attrs-instead-of-pydantic/>`_:
+Is it really necessary to re-validate all your objects while reading them from a trusted database?
+In the parlance of `Form, Command, and Model Validation <https://verraes.net/2015/02/form-command-model-validation/>`_, *pydantic* is the right tool for *Commands*.
 
-or::
-
-   (1, 2)
-
-?
-
-Let's add even more ambiguity::
-
-   Customer(id=42, reseller=23, first_name="Jane", last_name="John")
-
-or::
-
-   (42, 23, "Jane", "John")
-
-?
-
-Why would you want to write ``customer[2]`` instead of ``customer.first_name``?
-
-Don't get me started when you add nesting.
-If you've never run into mysterious tuples you had no idea what the hell they meant while debugging, you're much smarter than yours truly.
-
-Using proper classes with names and types makes program code much more readable and comprehensible_.
-Especially when trying to grok a new piece of software or returning to old code after several months.
-
-.. _comprehensible: https://arxiv.org/pdf/1304.5257.pdf
-
-
-Extendability
-^^^^^^^^^^^^^
-
-Imagine you have a function that takes or returns a tuple.
-Especially if you use tuple unpacking (eg. ``x, y = get_point()``), adding additional data means that you have to change the invocation of that function *everywhere*.
-
-Adding an attribute to a class concerns only those who actually care about that attribute.
+`Separation of concerns <https://en.wikipedia.org/wiki/Separation_of_concerns>`_ feels tedious at times, but it's one of those things that you get to appreciate once you've shot your own foot often enough.
 
 
 …namedtuples?
 -------------
 
-:func:`collections.namedtuple`\ s are tuples with names, not classes. [#history]_
+`collections.namedtuple`\ s are tuples with names, not classes. [#history]_
 Since writing classes is tiresome in Python, every now and then someone discovers all the typing they could save and gets really excited.
-However that convenience comes at a price.
+However, that convenience comes at a price.
 
 The most obvious difference between ``namedtuple``\ s and ``attrs``-based classes is that the latter are type-sensitive:
 
@@ -104,7 +99,7 @@ Other often surprising behaviors include:
   you end up with a class that has *two* ``Point``\ s in its :attr:`__mro__ <class.__mro__>`: ``[<class 'point.Point'>, <class 'point.Point'>, <type 'tuple'>, <type 'object'>]``.
 
   That's not only confusing, it also has very practical consequences:
-  for example if you create documentation that includes class hierarchies like `Sphinx's autodoc <http://www.sphinx-doc.org/en/stable/ext/autodoc.html>`_ with ``show-inheritance``.
+  for example if you create documentation that includes class hierarchies like `Sphinx's autodoc <https://www.sphinx-doc.org/en/stable/usage/extensions/autodoc.html>`_ with ``show-inheritance``.
   Again: common problem, hacky solution with confusing fallout.
 
 All these things make ``namedtuple``\ s a particularly poor choice for public APIs because all your objects are irrevocably tainted.
@@ -127,7 +122,7 @@ With ``attrs`` your users won't notice a difference because it creates regular, 
 .. [#pollution] ``attrs`` only adds a single attribute: ``__attrs_attrs__`` for introspection.
                 All helpers are functions in the ``attr`` package.
                 Since they take the instance as first argument, you can easily attach them to your classes under a name of your own choice.
-.. [#iter] :func:`attr.astuple` can be used to get that behavior in ``attrs`` on *explicit demand*.
+.. [#iter] `attr.astuple` can be used to get that behavior in ``attrs`` on *explicit demand*.
 .. [#immutable] ``attrs`` offers *optional* immutability through the ``frozen`` keyword.
 .. [#perf] Although ``attrs`` would serve you just as well!
            Since both employ the same method of writing and compiling Python code for you, the performance penalty is negligible at worst and in some cases ``attrs`` is even faster if you use ``slots=True`` (which is generally a good idea anyway).
@@ -135,26 +130,50 @@ With ``attrs`` your users won't notice a difference because it creates regular, 
 .. _behaving like a tuple: https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences
 
 
-…Data Classes?
---------------
+…tuples?
+--------
 
-`PEP 557 <https://www.python.org/dev/peps/pep-0557/>`_ added Data Classes to `Python 3.7 <https://docs.python.org/3.7/whatsnew/3.7.html#pep-557-data-classes>`_ that resemble ``attrs`` in many ways.
+Readability
+^^^^^^^^^^^
 
-They are the result of the Python community's `wish <https://mail.python.org/pipermail/python-ideas/2017-May/045618.html>`_ to have an easier way to write classes in the standard library that doesn't carry the problems of ``namedtuple``\ s.
-To that end, ``attrs`` and its developers were involved in the PEP process and while we may disagree with some minor decisions that have been made, it's a fine library and if it stops you from abusing ``namedtuple``\ s, they are a huge win.
+What makes more sense while debugging::
 
-Nevertheless, there are still reasons to prefer ``attrs`` over Data Classes whose relevancy depends on your circumstances:
+   Point(x=1, y=2)
 
-- ``attrs`` supports all maintream Python versions, including CPython 2.7 and PyPy.
-- Data Classes are intentionally less powerful than ``attrs``.
-  There is a long list of features that were sacrificed for the sake of simplicity and while the most obvious ones are validators, converters, and ``__slots__``, it permeates throughout all APIs.
+or::
 
-  On the other hand, Data Classes currently do not offer any significant feature that ``attrs`` doesn't already have.
-- ``attrs`` can and will move faster.
-  We are not bound to any release schedules and we have a clear deprecation policy.
+   (1, 2)
 
-  One of the `reasons <https://www.python.org/dev/peps/pep-0557/#why-not-just-use-attrs>`_ to not vendor ``attrs`` in the standard library was to not impede ``attrs``'s future developement.
+?
 
+Let's add even more ambiguity::
+
+   Customer(id=42, reseller=23, first_name="Jane", last_name="John")
+
+or::
+
+   (42, 23, "Jane", "John")
+
+?
+
+Why would you want to write ``customer[2]`` instead of ``customer.first_name``?
+
+Don't get me started when you add nesting.
+If you've never run into mysterious tuples you had no idea what the hell they meant while debugging, you're much smarter than yours truly.
+
+Using proper classes with names and types makes program code much more readable and comprehensible_.
+Especially when trying to grok a new piece of software or returning to old code after several months.
+
+.. _comprehensible: https://arxiv.org/pdf/1304.5257.pdf
+
+
+Extendability
+^^^^^^^^^^^^^
+
+Imagine you have a function that takes or returns a tuple.
+Especially if you use tuple unpacking (eg. ``x, y = get_point()``), adding additional data means that you have to change the invocation of that function *everywhere*.
+
+Adding an attribute to a class concerns only those who actually care about that attribute.
 
 
 …dicts?

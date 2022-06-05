@@ -7,6 +7,7 @@
 <link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <script src="resources/entry-invariants.js"></script>
 <script src="resources/resource-loaders.js"></script>
 </head>
@@ -34,4 +35,36 @@ attribute_test(
   load_image_object, "resources/status-code.py?status=404&type=img",
   invariants.assert_tao_pass_no_redirect_http,
   "Verify that a 404 img-typed object emits an entry.");
+
+ const {HTTP_REMOTE_ORIGIN, HTTP_ORIGIN} = get_host_info();
+let redirect_url = HTTP_REMOTE_ORIGIN + '/resource-timing/resources/multi_redirect.py?';
+redirect_url += 'page_origin=' + HTTP_ORIGIN;
+redirect_url += '&cross_origin=' + HTTP_REMOTE_ORIGIN;
+redirect_url += '&final_resource=' +
+  encodeURIComponent("/resource-timing/resources/status-code.py?status=404&type=img&tao_value=*");
+redirect_url += '&tao_steps=';
+
+const redirect_url_with_tao = redirect_url + "3";
+const redirect_url_without_tao = redirect_url + "0";
+
+attribute_test(
+  load_image_object, redirect_url_with_tao,
+  invariants.assert_tao_pass_404_with_redirect_http,
+  "Verify that a 404 img-typed cross-origin TAO enabled object emits an entry.");
+
+attribute_test(
+  load_null_object, redirect_url_with_tao,
+  invariants.assert_tao_pass_404_with_redirect_http,
+  "Verify that a 404 null-typed cross-origin TAO enabled object emits an entry.");
+
+attribute_test(
+  load_image_object, redirect_url_without_tao,
+  invariants.assert_cross_origin_redirected_resource,
+  "Verify that a 404 img-typed cross-origin object emits an entry.");
+
+attribute_test(
+  load_null_object, redirect_url_without_tao,
+  invariants.assert_cross_origin_redirected_resource,
+  "Verify that a 404 null-typed cross-origin object emits an entry.");
+
 </script>

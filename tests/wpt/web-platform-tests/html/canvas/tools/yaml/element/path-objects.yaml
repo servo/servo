@@ -2505,6 +2505,34 @@
   code: |
     assert_throws_js(RangeError, () => { ctx.roundRect(0, 0, 100, 50, [])});
 
+- name: 2d.path.roundrect.radius.noargument
+  desc: Check that roundRect draws a rectangle when no radii are provided.
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.roundRect(10, 10, 80, 30);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+    // upper left corner (10, 10)
+    @assert pixel 10,9 == 255,0,0,255;
+    @assert pixel 9,10 == 255,0,0,255;
+    @assert pixel 10,10 == 0,255,0,255;
+
+    // upper right corner (89, 10)
+    @assert pixel 90,10 == 255,0,0,255;
+    @assert pixel 89,9 == 255,0,0,255;
+    @assert pixel 89,10 == 0,255,0,255;
+
+    // lower right corner (89, 39)
+    @assert pixel 89,40 == 255,0,0,255;
+    @assert pixel 90,39 == 255,0,0,255;
+    @assert pixel 89,39 == 0,255,0,255;
+
+    // lower left corner (10, 30)
+    @assert pixel 9,39 == 255,0,0,255;
+    @assert pixel 10,40 == 255,0,0,255;
+    @assert pixel 10,39 == 0,255,0,255;
+
 - name: 2d.path.roundrect.radius.toomany
   desc: Check that roundRect throws an IndeSizeError if radii has more than four items.
   code: |

@@ -30,28 +30,27 @@ setup({ "explicit_done": true });
       return body_cs.getPropertyValue("text-decoration-line") == "underline";
     }
 
-    function should_apply(q) {
-      test(function() {
-        // lazily evaluate template string to avoid including device-specific data in test name
-        var escaped = JSON.stringify(q);
-        var evalq = eval("`" + escaped.substring(1, escaped.length - 1) + "`");
-        // Also avoid an assert message for the same reason. (Relevant for
-        // failing tests).
-        assert_true(query_applies(evalq));
-      }, `${testGroup ? testGroup + ": " : ""}should_apply: ${q}`);
+    function not(predicate) {
+      return (...args) => !predicate(...args);
     }
 
-    function should_not_apply(q, extraName) {
-      if (extraName) extraName += " ";
-      else extraName = "";
-      test(function() {
+    function test_predicate(input, predicate, name) {
+      test(() => {
         // lazily evaluate template string to avoid including device-specific data in test name
-        var escaped = JSON.stringify(q);
-        var evalq = eval("`" + escaped.substring(1, escaped.length - 1) + "`");
+        var escaped = JSON.stringify(input);
+        var evaled = eval("`" + escaped.substring(1, escaped.length - 1) + "`");
         // Also avoid an assert message for the same reason. (Relevant for
         // failing tests).
-        assert_false(query_applies(evalq));
-      }, `${testGroup ? testGroup + ": " : ""}should_not_apply: ${q}`);
+        assert_true(predicate(evaled))
+      }, `${testGroup ? testGroup + ": " : ""}${name}: ${input}`);
+    }
+
+    function should_apply(q) {
+      test_predicate(q, query_applies, "should_apply");
+    }
+
+    function should_not_apply(q) {
+      test_predicate(q, not(query_applies), "should_not_apply");
     }
 
     /*
@@ -78,60 +77,40 @@ setup({ "explicit_done": true });
     }
 
     function query_should_be_parseable(q) {
-      test(function() {
-        // lazily evaluate template string to avoid including device-specific data in test name
-        var escaped = JSON.stringify(q);
-        var evalq = eval("`" + escaped.substring(1, escaped.length - 1) + "`");
-        // Also avoid an assert message for the same reason. (Relevant for
-        // failing tests).
-        assert_true(query_is_parseable(evalq))
-      }, `${testGroup ? testGroup + ": " : ""}query_should_be_parseable: ${q}`);
+      test_predicate(q, query_is_parseable, "query_should_be_parseable");
     }
 
     function query_should_not_be_parseable(q) {
-      test(function() {
-        // lazily evaluate template string to avoid including device-specific data in test name
-        var escaped = JSON.stringify(q);
-        var evalq = eval("`" + escaped.substring(1, escaped.length - 1) + "`");
-        // Also avoid an assert message for the same reason. (Relevant for
-        // failing tests).
-        assert_false(query_is_parseable(evalq));
-      }, `${testGroup ? testGroup + ": " : ""}query_should_not_be_parseable: ${q}`);
+      test_predicate(q, not(query_is_parseable), "query_should_not_be_parseable");
     }
 
     /*
-     * Functions to test whether a single media expression is parseable.
+     * Functions to test whether a single media expression is "unknown" or not.
+     *
+     * https://drafts.csswg.org/mediaqueries-4/#evaluating
      */
-    function expression_is_parseable(e) {
-      style.setAttribute("media", "all and (" + e + ")");
-      return style.sheet.media.mediaText != "not all";
+
+    function expression_is_known(e) {
+      return query_is_parseable(`(${e})`) && query_applies(`(${e}) or (not (${e}))`);
     }
 
-    function expression_should_be_parseable(e) {
-      test(function() {
-        // lazily evaluate template string to avoid including device-specific data in test name
-        var escaped = JSON.stringify(e);
-        var evale = eval("`" + escaped.substring(1, escaped.length - 1) + "`");
-        // Also avoid an assert message for the same reason. (Relevant for
-        // failing tests).
-        assert_true(expression_is_parseable(evale));
-      }, `${testGroup ? testGroup + ": " : ""}expression_should_be_parseable: ${e}`);
+    function expression_is_unknown(e) {
+      return query_is_parseable(`(${e})`) && !query_applies(`(${e}) or (not (${e}))`);
     }
 
-    function expression_should_not_be_parseable(e) {
-      test(function() {
-        // lazily evaluate template string to avoid including device-specific data in test name
-        var escaped = JSON.stringify(e);
-        var evale = eval("`" + escaped.substring(1, escaped.length - 1) + "`");
-        // Also avoid an assert message for the same reason. (Relevant for
-        // failing tests).
-        assert_false(expression_is_parseable(evale));
-      }, `${testGroup ? testGroup + ": " : ""}expression_should_not_be_parseable: ${e}`);
+    function expression_should_be_known(e) {
+      test_predicate(e, expression_is_known, "expression_should_be_known");
+    }
+
+    function expression_should_be_unknown(e) {
+      test_predicate(e, expression_is_unknown, "expression_should_be_unknown");
     }
 
     // The no-type syntax doesn't mix with the not and only keywords.
     query_should_be_parseable("(orientation)");
     query_should_be_parseable("not (orientation)");
+    expression_should_be_known("(orientation)");
+    expression_should_be_known("not (orientation)");
     query_should_not_be_parseable("only (orientation)");
     query_should_be_parseable("all and (orientation)");
     query_should_be_parseable("not all and (orientation)");
@@ -141,6 +120,9 @@ setup({ "explicit_done": true });
     query_should_be_parseable("(orientation) and (orientation)");
     query_should_be_parseable("(orientation) or (orientation)");
     query_should_be_parseable("(orientation) or ((orientation) and ((orientation) or (orientation) or (not (orientation))))");
+    expression_should_be_known("(orientation) and (orientation)");
+    expression_should_be_known("(orientation) or (orientation)");
+    expression_should_be_known("(orientation) or ((orientation) and ((orientation) or (orientation) or (not (orientation))))");
 
     query_should_not_be_parseable("all and (orientation) or (orientation)");
     query_should_be_parseable("all and (orientation) and (orientation)");
@@ -148,42 +130,57 @@ setup({ "explicit_done": true });
     query_should_not_be_parseable("(orientation) and (orientation) or (orientation)");
     query_should_not_be_parseable("(orientation) and not (orientation)");
 
-
     var features = [ "width", "height", "device-width", "device-height" ];
     var separators = [ ":", ">", ">=", "=", "<=", "<" ];
     var feature;
     var i;
     for (i in features) {
       feature = features[i];
-      expression_should_be_parseable(feature);
-      expression_should_not_be_parseable("min-" + feature);
-      expression_should_not_be_parseable("max-" + feature);
+      expression_should_be_known(feature);
+      expression_should_be_unknown("min-" + feature);
+      expression_should_be_unknown("max-" + feature);
       for (let separator of separators) {
-        expression_should_be_parseable(feature + " " + separator + " 0");
-        expression_should_be_parseable(feature + " " + separator + " 0px");
-        expression_should_be_parseable(feature + " " + separator + " 0em");
-        expression_should_be_parseable(feature + " " + separator + " -0");
-        expression_should_be_parseable(feature + " " + separator + " -0cm");
-        expression_should_be_parseable(feature + " " + separator + " 1px");
-        expression_should_be_parseable(feature + " " + separator + " 0.001mm");
-        expression_should_be_parseable(feature + " " + separator + " 100000px");
+        expression_should_be_known(feature + " " + separator + " 0");
+        expression_should_be_known(feature + " " + separator + " 0px");
+        expression_should_be_known(feature + " " + separator + " 0em");
+        expression_should_be_known(feature + " " + separator + " -0");
+        expression_should_be_known(feature + " " + separator + " -0cm");
+        expression_should_be_known(feature + " " + separator + " 1px");
+        expression_should_be_known(feature + " " + separator + " 0.001mm");
+        expression_should_be_known(feature + " " + separator + " 100000px");
         if (separator == ":") {
-          expression_should_be_parseable("min-" + feature + " " + separator + " -0");
-          expression_should_be_parseable("max-" + feature + " " + separator + " -0");
+          expression_should_be_known("min-" + feature + " " + separator + " -0");
+          expression_should_be_known("max-" + feature + " " + separator + " -0");
         } else {
-          expression_should_not_be_parseable("min-" + feature + " " + separator + " -0");
-          expression_should_not_be_parseable("max-" + feature + " " + separator + " -0");
+          expression_should_be_unknown("min-" + feature + " " + separator + " -0");
+          expression_should_be_unknown("max-" + feature + " " + separator + " -0");
+          let multi_range = "0px " + separator + " " + feature + " " + separator + " 100000px"
+          if (separator == "=") {
+            expression_should_be_unknown(multi_range);
+          } else {
+            expression_should_be_known(multi_range);
+          }
         }
         if (separator == ">=") {
-          expression_should_not_be_parseable(feature + " " + "> =" + " 0px");
+          expression_should_be_unknown(feature + " > = 0px");
         } else if (separator == "<=") {
-          expression_should_not_be_parseable(feature + " " + "< =" + " 0px");
+          expression_should_be_unknown(feature + " < = 0px");
         }
-        expression_should_not_be_parseable(feature + " " + separator + " -1px");
-        expression_should_not_be_parseable("min-" + feature + " " + separator + " -1px");
-        expression_should_not_be_parseable("max-" + feature + " " + separator + " -1px");
-        expression_should_not_be_parseable(feature + " " + separator + " -0.00001mm");
-        expression_should_not_be_parseable(feature + " " + separator + " -100000em");
+
+        expression_should_be_unknown(feature + " " + separator + " -1px");
+        expression_should_be_unknown("min-" + feature + " " + separator + " -1px");
+        expression_should_be_unknown("max-" + feature + " " + separator + " -1px");
+        expression_should_be_unknown(feature + " " + separator + " -0.00001mm");
+        expression_should_be_unknown(feature + " " + separator + " -100000em");
+
+        for (let separator2 of separators) {
+          // https://drafts.csswg.org/mediaqueries-4/#typedef-mf-range
+          if (separator[0] == separator2[0] && (separator[0] == '<' || separator[0] == '>')) {
+            expression_should_be_known(`0px ${separator} ${feature} ${separator2} 0px`);
+          } else {
+            expression_should_be_unknown(`0px ${separator} ${feature} ${separator2} 0px`);
+          }
+        }
       }
     }
 
@@ -227,6 +224,13 @@ setup({ "explicit_done": true });
 
       should_apply("(" + feature + " <= ${value}px)");
       should_apply("(" + feature + " >= ${value}px)");
+
+      should_apply("(0px < " + feature + " <= ${value}px)");
+      should_apply("(${value}px >= " + feature + " > 0px)");
+
+      should_not_apply("(0px < " + feature + " < ${value}px)");
+      should_not_apply("(${value}px > " + feature + " > 0px)");
+
       should_not_apply("(" + feature + " < ${value}px)");
       should_not_apply("(" + feature + " > ${value}px)");
 
@@ -239,6 +243,20 @@ setup({ "explicit_done": true });
       should_apply("(" + feature + " >= ${value - 1}px)");
       should_not_apply("(" + feature + " < ${value - 1}px)");
       should_not_apply("(" + feature + " <= ${value - 1}px)");
+
+      should_apply("(${value - 1}px < " + feature + ")");
+      should_apply("(${value - 1}px <= " + feature + ")");
+      should_not_apply("(${value - 1}px > " + feature + ")");
+      should_not_apply("(${value - 1}px >= " + feature + ")");
+
+      should_apply("(${value - 1}px < " + feature + " < ${value + 1}px)");
+      should_apply("(${value - 1}px < " + feature + " <= ${value}px)");
+      should_apply("(${value}px <= " + feature + " < ${value + 1}px)");
+      should_apply("(${value + 1}px > " + feature + " > ${value - 1}px)");
+      should_apply("(${value + 1}px > " + feature + " >= ${value}px)");
+      should_apply("(${value}px >= " + feature + " > ${value - 1}px)");
+      should_not_apply("(${value}px > " + feature + " > ${value - 1}px)");
+      should_not_apply("(${value + 1}px > " + feature + " > ${value}px)");
     }
 
     iframe_style.width = "0";
@@ -264,15 +282,15 @@ setup({ "explicit_done": true });
     testGroup = "ratio that reduces to 59/40";
     iframe_style.width = "236px";
     iframe_style.height = "160px";
-    expression_should_be_parseable("orientation");
-    expression_should_be_parseable("orientation: portrait");
-    expression_should_be_parseable("orientation: landscape");
-    expression_should_not_be_parseable("min-orientation");
-    expression_should_not_be_parseable("min-orientation: portrait");
-    expression_should_not_be_parseable("min-orientation: landscape");
-    expression_should_not_be_parseable("max-orientation");
-    expression_should_not_be_parseable("max-orientation: portrait");
-    expression_should_not_be_parseable("max-orientation: landscape");
+    expression_should_be_known("orientation");
+    expression_should_be_known("orientation: portrait");
+    expression_should_be_known("orientation: landscape");
+    expression_should_be_unknown("min-orientation");
+    expression_should_be_unknown("min-orientation: portrait");
+    expression_should_be_unknown("min-orientation: landscape");
+    expression_should_be_unknown("max-orientation");
+    expression_should_be_unknown("max-orientation: portrait");
+    expression_should_be_unknown("max-orientation: landscape");
     should_apply("(orientation)");
     should_apply("(orientation: landscape)");
     should_not_apply("(orientation: portrait)");
@@ -305,14 +323,14 @@ setup({ "explicit_done": true });
     should_apply("(min-aspect-ratio: 59/81)");
     should_not_apply("(min-aspect-ratio: 60/80)");
     should_not_apply("(min-aspect-ratio: 59/79)");
-    expression_should_not_be_parseable("min-aspect-ratio");
+    expression_should_be_unknown("min-aspect-ratio");
 
     should_apply("(max-aspect-ratio: 59/80)");
     should_not_apply("(max-aspect-ratio: 58/80)");
     should_not_apply("(max-aspect-ratio: 59/81)");
     should_apply("(max-aspect-ratio: 60/80)");
     should_apply("(max-aspect-ratio: 59/79)");
-    expression_should_not_be_parseable("max-aspect-ratio");
+    expression_should_be_unknown("max-aspect-ratio");
 
     var real_dar = device_width + "/" + device_height;
     var high_dar_1 = (device_width + 1) + "/" + device_height;
@@ -331,36 +349,36 @@ setup({ "explicit_done": true });
     should_apply("not all and (min-device-aspect-ratio: ${high_dar_2})");
     should_not_apply("not all and (min-device-aspect-ratio: ${low_dar_1})");
     should_apply("all and (min-device-aspect-ratio: ${low_dar_2})");
-    expression_should_not_be_parseable("min-device-aspect-ratio");
+    expression_should_be_unknown("min-device-aspect-ratio");
 
     should_apply("all and (max-device-aspect-ratio: ${real_dar})");
     should_apply("(max-device-aspect-ratio: ${high_dar_1})");
     should_apply("(max-device-aspect-ratio: ${high_dar_2})");
     should_not_apply("all and (max-device-aspect-ratio: ${low_dar_1})");
     should_apply("not all and (max-device-aspect-ratio: ${low_dar_2})");
-    expression_should_not_be_parseable("max-device-aspect-ratio");
+    expression_should_be_unknown("max-device-aspect-ratio");
 
     features = [ "max-aspect-ratio", "device-aspect-ratio" ];
     for (i in features) {
       feature = features[i];
-      expression_should_be_parseable(feature + ": 1/1");
-      expression_should_be_parseable(feature + ": 1  /1");
-      expression_should_be_parseable(feature + ": 1  / \t\n1");
-      expression_should_be_parseable(feature + ": 1/\r1");
-      expression_should_be_parseable(feature + ": 1");
-      expression_should_be_parseable(feature + ": 0.5");
-      expression_should_be_parseable(feature + ": 1.0/1");
-      expression_should_be_parseable(feature + ": 1/1.0");
-      expression_should_be_parseable(feature + ": 1.0/1.0");
-      expression_should_be_parseable(feature + ": 0/1");
-      expression_should_be_parseable(feature + ": 1/0");
-      expression_should_be_parseable(feature + ": 0/0");
-      expression_should_not_be_parseable(feature + ": -1/1");
-      expression_should_not_be_parseable(feature + ": 1/-1");
-      expression_should_not_be_parseable(feature + ": -1/-1");
-      expression_should_not_be_parseable(feature + ": invalid");
-      expression_should_not_be_parseable(feature + ": 1 / invalid");
-      expression_should_not_be_parseable(feature + ": 1 invalid");
+      expression_should_be_known(feature + ": 1/1");
+      expression_should_be_known(feature + ": 1  /1");
+      expression_should_be_known(feature + ": 1  / \t\n1");
+      expression_should_be_known(feature + ": 1/\r1");
+      expression_should_be_known(feature + ": 1");
+      expression_should_be_known(feature + ": 0.5");
+      expression_should_be_known(feature + ": 1.0/1");
+      expression_should_be_known(feature + ": 1/1.0");
+      expression_should_be_known(feature + ": 1.0/1.0");
+      expression_should_be_known(feature + ": 0/1");
+      expression_should_be_known(feature + ": 1/0");
+      expression_should_be_known(feature + ": 0/0");
+      expression_should_be_unknown(feature + ": -1/1");
+      expression_should_be_unknown(feature + ": 1/-1");
+      expression_should_be_unknown(feature + ": -1/-1");
+      expression_should_be_unknown(feature + ": invalid");
+      expression_should_be_unknown(feature + ": 1 / invalid");
+      expression_should_be_unknown(feature + ": 1 invalid");
     }
 
     var is_monochrome = query_applies("all and (min-monochrome: 1)");
@@ -393,11 +411,11 @@ setup({ "explicit_done": true });
     should_apply(depth_query("max-", depth + 1));
 
     (is_color ? should_apply : should_not_apply)("all and (color)");
-    expression_should_not_be_parseable("max-color");
-    expression_should_not_be_parseable("min-color");
+    expression_should_be_unknown("max-color");
+    expression_should_be_unknown("min-color");
     (is_color ? should_not_apply : should_apply)("all and (monochrome)");
-    expression_should_not_be_parseable("max-monochrome");
-    expression_should_not_be_parseable("min-monochrome");
+    expression_should_be_unknown("max-monochrome");
+    expression_should_be_unknown("min-monochrome");
     (is_color ? should_apply : should_not_apply)("not all and (monochrome)");
     (is_color ? should_not_apply : should_apply)("not all and (color)");
     (is_color ? should_apply : should_not_apply)("only all and (color)");
@@ -406,12 +424,12 @@ setup({ "explicit_done": true });
     features = [ "color", "min-monochrome", "max-color-index" ];
     for (i in features) {
       feature = features[i];
-      expression_should_be_parseable(feature + ": 1");
-      expression_should_be_parseable(feature + ": 327");
-      expression_should_be_parseable(feature + ": 0");
-      expression_should_not_be_parseable(feature + ": 1.0");
-      expression_should_not_be_parseable(feature + ": -1");
-      expression_should_not_be_parseable(feature + ": 1/1");
+      expression_should_be_known(feature + ": 1");
+      expression_should_be_known(feature + ": 327");
+      expression_should_be_known(feature + ": 0");
+      expression_should_be_unknown(feature + ": 1.0");
+      expression_should_be_unknown(feature + ": -1");
+      expression_should_be_unknown(feature + ": 1/1");
     }
 
     // Presume that we never support indexed color (at least not usefully
@@ -427,21 +445,21 @@ setup({ "explicit_done": true });
     features = [ "resolution", "min-resolution", "max-resolution" ];
     for (i in features) {
       feature = features[i];
-      expression_should_be_parseable(feature + ": 3dpi");
-      expression_should_be_parseable(feature + ":3dpi");
-      expression_should_be_parseable(feature + ": 3.0dpi");
-      expression_should_be_parseable(feature + ": 3.4dpi");
-      expression_should_be_parseable(feature + "\t: 120dpcm");
-      expression_should_be_parseable(feature + ": 1dppx");
-      expression_should_be_parseable(feature + ": 1x");
-      expression_should_be_parseable(feature + ": 1.5dppx");
-      expression_should_be_parseable(feature + ": 1.5x");
-      expression_should_be_parseable(feature + ": 2.0dppx");
+      expression_should_be_known(feature + ": 3dpi");
+      expression_should_be_known(feature + ":3dpi");
+      expression_should_be_known(feature + ": 3.0dpi");
+      expression_should_be_known(feature + ": 3.4dpi");
+      expression_should_be_known(feature + "\t: 120dpcm");
+      expression_should_be_known(feature + ": 1dppx");
+      expression_should_be_known(feature + ": 1x");
+      expression_should_be_known(feature + ": 1.5dppx");
+      expression_should_be_known(feature + ": 1.5x");
+      expression_should_be_known(feature + ": 2.0dppx");
       // TODO(emilio): Doesn't seem right to exclude 0 here.
-      expression_should_not_be_parseable(feature + ": 0dpi");
-      expression_should_not_be_parseable(feature + ": -3dpi");
-      expression_should_not_be_parseable(feature + ": 0dppx");
-      expression_should_not_be_parseable(feature + ": 0x");
+      expression_should_be_unknown(feature + ": 0dpi");
+      expression_should_be_unknown(feature + ": -3dpi");
+      expression_should_be_unknown(feature + ": 0dppx");
+      expression_should_be_unknown(feature + ": 0x");
     }
 
     // Find the resolution using max-resolution
@@ -469,8 +487,8 @@ setup({ "explicit_done": true });
       should_not_apply("(resolution: ${resolution - 1}dpi)");
       dpi_high = resolution + 1;
     } else {
-	  // We have no way to test resolution applying since it need not be
-	  // an integer.
+      // We have no way to test resolution applying since it need not be
+      // an integer.
       testGroup = "resolution is inexact";
       should_not_apply("(resolution: ${resolution}dpi)");
       should_not_apply("(resolution: ${resolution - 1}dpi)");
@@ -491,13 +509,13 @@ setup({ "explicit_done": true });
     should_not_apply("(max-resolution: ${dpcm_low}dpcm)");
     should_apply("not all and (min-resolution: ${dpcm_high}dpcm)");
 
-    expression_should_be_parseable("scan");
-    expression_should_be_parseable("scan: progressive");
-    expression_should_be_parseable("scan:interlace");
-    expression_should_not_be_parseable("min-scan:interlace");
-    expression_should_not_be_parseable("scan: 1");
-    expression_should_not_be_parseable("max-scan");
-    expression_should_not_be_parseable("max-scan: progressive");
+    expression_should_be_known("scan");
+    expression_should_be_known("scan: progressive");
+    expression_should_be_known("scan:interlace");
+    expression_should_be_unknown("min-scan:interlace");
+    expression_should_be_unknown("scan: 1");
+    expression_should_be_unknown("max-scan");
+    expression_should_be_unknown("max-scan: progressive");
     // Assume we don't support tv devices.
     should_not_apply("(scan)");
     should_not_apply("(scan: progressive)");
@@ -506,14 +524,14 @@ setup({ "explicit_done": true });
     should_apply("not all and (scan: progressive)");
     should_apply("not all and (scan: interlace)");
 
-    expression_should_be_parseable("grid");
-    expression_should_be_parseable("grid: 0");
-    expression_should_be_parseable("grid: 1");
-    expression_should_not_be_parseable("min-grid");
-    expression_should_not_be_parseable("min-grid:0");
-    expression_should_not_be_parseable("max-grid: 1");
-    expression_should_not_be_parseable("grid: 2");
-    expression_should_not_be_parseable("grid: -1");
+    expression_should_be_known("grid");
+    expression_should_be_known("grid: 0");
+    expression_should_be_known("grid: 1");
+    expression_should_be_unknown("min-grid");
+    expression_should_be_unknown("min-grid:0");
+    expression_should_be_unknown("max-grid: 1");
+    expression_should_be_unknown("grid: 2");
+    expression_should_be_unknown("grid: -1");
 
     // Assume we don't support grid devices
     should_not_apply("(grid)");
@@ -561,12 +579,12 @@ setup({ "explicit_done": true });
     should_not_apply("only all and (bogus)")
 
     // Parsing tests for overflow-block from mediaqueries-4
-    expression_should_be_parseable("overflow-block")
-    expression_should_be_parseable("overflow-block: none")
-    expression_should_be_parseable("overflow-block: paged")
-    expression_should_be_parseable("overflow-block: scroll")
-    expression_should_be_parseable("overflow-block: optional-paged")
-    expression_should_not_be_parseable("overflow-block: some-random-invalid-thing")
+    expression_should_be_known("overflow-block")
+    expression_should_be_known("overflow-block: none")
+    expression_should_be_known("overflow-block: paged")
+    expression_should_be_known("overflow-block: scroll")
+    expression_should_be_known("overflow-block: optional-paged")
+    expression_should_be_unknown("overflow-block: some-random-invalid-thing")
 
     // Sanity check for overflow-block
     test(function() {
@@ -576,10 +594,10 @@ setup({ "explicit_done": true });
     }, "Sanity check for overflow-block");
 
     // Parsing tests for overflow-inline from mediaqueries-4
-    expression_should_be_parseable("overflow-inline")
-    expression_should_be_parseable("overflow-inline: none")
-    expression_should_be_parseable("overflow-inline: scroll")
-    expression_should_not_be_parseable("overflow-inline: some-random-invalid-thing")
+    expression_should_be_known("overflow-inline")
+    expression_should_be_known("overflow-inline: none")
+    expression_should_be_known("overflow-inline: scroll")
+    expression_should_be_unknown("overflow-inline: some-random-invalid-thing")
 
     // Sanity check for overflow-inline
     test(function() {
@@ -588,13 +606,27 @@ setup({ "explicit_done": true });
       assert_not_equals(any_overflow_inline, overflow_inline_none, "overflow-inline should be equivalent to not (overflow-inline: none)");
     }, "Sanity check for overflow-inline");
 
+    // Parsing tests for update from mediaqueries-4
+    expression_should_be_known("update")
+    expression_should_be_known("update: none")
+    expression_should_be_known("update: slow")
+    expression_should_be_known("update: fast")
+    expression_should_be_unknown("update: some-random-invalid-thing")
+
+    // Sanity check for update
+    test(function() {
+      var any_update = query_applies("(update)");
+      var update_none = query_applies("(update: none)");
+      assert_not_equals(any_update, update_none, "update should be equivalent to not (update: none)");
+    }, "Sanity check for update");
+
     // Parsing tests for interaction media features.
-    expression_should_be_parseable("hover")
-    expression_should_be_parseable("hover: hover")
-    expression_should_be_parseable("hover: none")
-    expression_should_be_parseable("any-hover")
-    expression_should_be_parseable("any-hover: hover")
-    expression_should_be_parseable("any-hover: none")
+    expression_should_be_known("hover")
+    expression_should_be_known("hover: hover")
+    expression_should_be_known("hover: none")
+    expression_should_be_known("any-hover")
+    expression_should_be_known("any-hover: hover")
+    expression_should_be_known("any-hover: none")
 
     test(function() {
       assert_equals(query_applies("(hover)"), query_applies("(hover: hover)"));
@@ -612,14 +644,14 @@ setup({ "explicit_done": true });
       assert_not_equals(query_applies("(any-hover)"), query_applies("(any-hover: none)"));
     }, "(any-hover) == not (any-hover: none)");
 
-    expression_should_be_parseable("pointer")
-    expression_should_be_parseable("pointer: coarse")
-    expression_should_be_parseable("pointer: fine")
-    expression_should_be_parseable("pointer: none")
-    expression_should_be_parseable("any-pointer")
-    expression_should_be_parseable("any-pointer: coarse")
-    expression_should_be_parseable("any-pointer: fine")
-    expression_should_be_parseable("any-pointer: none")
+    expression_should_be_known("pointer")
+    expression_should_be_known("pointer: coarse")
+    expression_should_be_known("pointer: fine")
+    expression_should_be_known("pointer: none")
+    expression_should_be_known("any-pointer")
+    expression_should_be_known("any-pointer: coarse")
+    expression_should_be_known("any-pointer: fine")
+    expression_should_be_known("any-pointer: none")
 
     test(function() {
       assert_equals(query_applies("(pointer)"),
@@ -641,6 +673,33 @@ setup({ "explicit_done": true });
                         query_applies("(any-pointer: none)"));
     }, "(any-pointer) == not (any-pointer: none)");
 
+    iframe_style.width = '100px';
+    iframe_style.height = '0px';
+
+    testGroup = "'or' keyword"
+    should_not_apply("(height) or (height)");
+    should_apply("(width) or (height)");
+    should_apply("(height) or (width)");
+    should_apply("(height) or (width) or (height)");
+    query_should_not_be_parseable("screen or (width)");
+    query_should_not_be_parseable("screen and (width) or (height)");
+
+    testGroup = "nesting"
+    should_not_apply("((height))");
+    should_apply("((width))");
+    should_apply("(((((width)))))");
+    should_apply("(((((width");
+
+    testGroup = "'not' keyword"
+    should_not_apply("not (width)");
+    should_apply("not (height)");
+    should_apply("not ((width) and (height))");
+    should_not_apply("not ((width) or (height))");
+    should_not_apply("not ((width) and (not (height)))");
+    query_should_not_be_parseable("not (width) and not (height)");
+    query_should_not_be_parseable("not not (width)");
+
+    testGroup = ""
     done();
 }
 

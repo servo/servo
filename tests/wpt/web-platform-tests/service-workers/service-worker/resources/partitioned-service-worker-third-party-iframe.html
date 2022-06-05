@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>Service Worker: 3P iframe for partitioned service workers</title>
-<script src="/test-helpers.sub.js"></script>
+<script src="./test-helpers.sub.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="./partitioned-utils.js"></script>
 
@@ -12,7 +12,7 @@ and use to resolve the service worker's internal Promise.
 <script>
 
 async function onLoad() {
-  await setup3pIframe();
+  await setupServiceWorker();
 
   // When the SW's iframe finishes it'll post a message. This forwards it up to
   // the window.

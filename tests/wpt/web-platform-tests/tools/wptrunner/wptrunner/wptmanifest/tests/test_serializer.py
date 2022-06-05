@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import unittest
 
 from .. import parser, serializer
@@ -156,27 +158,27 @@ class TokenizerTest(unittest.TestCase):
 
     def test_escape_2(self):
         self.compare(br"""k\u0045y: \u1234A\uABc6""",
-                     u"""kEy: \u1234A\uabc6
+                     """kEy: \u1234A\uabc6
 """)
 
     def test_escape_3(self):
         self.compare(br"""k\u0045y: \u1234A\uABc6""",
-                     u"""kEy: \u1234A\uabc6
+                     """kEy: \u1234A\uabc6
 """)
 
     def test_escape_4(self):
         self.compare(br"""key: '\u1234A\uABc6'""",
-                     u"""key: \u1234A\uabc6
+                     """key: \u1234A\uabc6
 """)
 
     def test_escape_5(self):
         self.compare(br"""key: [\u1234A\uABc6]""",
-                     u"""key: [\u1234A\uabc6]
+                     """key: [\u1234A\uabc6]
 """)
 
     def test_escape_6(self):
         self.compare(br"""key: [\u1234A\uABc6\,]""",
-                     u"""key: ["\u1234A\uabc6,"]
+                     """key: ["\u1234A\uabc6,"]
 """)
 
     def test_escape_7(self):
@@ -191,12 +193,12 @@ class TokenizerTest(unittest.TestCase):
 
     def test_escape_9(self):
         self.compare(br"""key: \U10FFFFabc""",
-                     u"""key: \U0010FFFFabc
+                     """key: \U0010FFFFabc
 """)
 
     def test_escape_10(self):
         self.compare(br"""key: \u10FFab""",
-                     u"""key: \u10FFab
+                     """key: \u10FFab
 """)
 
     def test_escape_11(self):

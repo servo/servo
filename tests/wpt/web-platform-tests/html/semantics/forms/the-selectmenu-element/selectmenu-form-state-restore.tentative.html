@@ -16,7 +16,7 @@
 
 <script>
 async_test(t => {
-  window.onload = t.step_timeout(() => {
+  window.onload = () => t.step_timeout(() => {
     let state = document.getElementById('emptyOnFirstVisit');
     let selectMenu = document.getElementById("selectmenu0");
 

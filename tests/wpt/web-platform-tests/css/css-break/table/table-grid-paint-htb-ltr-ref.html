@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<style>
+.multicol {
+  inline-size: 400px;
+  block-size: 100px;
+  columns: 4;
+  column-fill: auto;
+  gap: 0;
+}
+.pattern {
+  background: repeating-linear-gradient(orange, orange 25px, dodgerblue 25px, dodgerblue 50px);
+}
+</style>
+<div class="multicol">
+  <div style="block-size: 140px; background: lime"></div>
+  <div class="pattern" style="border: solid 10px; block-size: 225px;"></div>
+  <div style="block-size: 15px; background: lime"></div>
+</div>

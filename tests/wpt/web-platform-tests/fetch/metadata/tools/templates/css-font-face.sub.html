@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for CSS font-face</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  let count = 0;
+
+  function induceRequest(t, url) {
+    const id = `el-${count += 1}`;
+    const style = document.createElement('style');
+    style.appendChild(document.createTextNode(`
+      @font-face {
+        font-family: wpt-font-family${id};
+        src: url(${url});
+      }
+      #el-${id} {
+        font-family: wpt-font-family${id};
+      }
+    `));
+    const div = document.createElement('div');
+    div.setAttribute('id', 'el-' + id);
+    div.appendChild(style);
+    div.appendChild(document.createTextNode('x'));
+    document.body.appendChild(div);
+
+    t.add_cleanup(() => div.remove());
+
+    return document.fonts.ready;
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(t, makeRequestURL(key, [% subtest.origins %]))
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+      });
+  }, '[%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

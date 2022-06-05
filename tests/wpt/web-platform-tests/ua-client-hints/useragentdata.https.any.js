@@ -5,3 +5,10 @@ test(t => {
   assert_true(brands.every(brand => brand.brand.length < 32),
     "No brand should be longer than 32 characters.");
 });
+
+test(t => {
+  const uaData = navigator.userAgentData.toJSON();
+  assert_own_property(uaData, "brands", "toJSON() output has brands member");
+  assert_own_property(uaData, "mobile", "toJSON() output has mobile member");
+  assert_own_property(uaData, "platform", "toJSON() output has platform member");
+}, "test NavigatorUAData.toJSON() output");

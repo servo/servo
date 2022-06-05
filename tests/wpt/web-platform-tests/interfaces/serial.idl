@@ -43,6 +43,7 @@ interface SerialPort : EventTarget {
   Promise<undefined> setSignals(optional SerialOutputSignals signals = {});
   Promise<SerialInputSignals> getSignals();
   Promise<undefined> close();
+  Promise<undefined> forget();
 };
 
 dictionary SerialPortInfo {

@@ -47,3 +47,27 @@ function query_should_not_be_js_parseable(query) {
     assert_false(query_is_js_parseable(query));
   }, "Should not be parseable in JS: '" + query + "'");
 }
+
+function query_is_known(query) {
+  return window.matchMedia(`(${query}) or (not (${query}))`).matches;
+}
+
+function query_is_unknown(query) {
+  return !window.matchMedia(`(${query}) or (not (${query}))`).matches;
+}
+
+function query_should_be_known(query) {
+  test(() => {
+    assert_true(query_is_js_parseable(query), "Can parse with JS");
+    assert_true(query_is_css_parseable(query), "Can parse with CSS");
+    assert_true(query_is_known(query));
+  }, "Should be known: '" + query + "'");
+}
+
+function query_should_be_unknown(query) {
+  test(() => {
+    assert_true(query_is_js_parseable(query), "Can parse with JS");
+    assert_true(query_is_css_parseable(query), "Can parse with CSS");
+    assert_true(query_is_unknown(query));
+  }, "Should be unknown: '" + query + "'");
+}

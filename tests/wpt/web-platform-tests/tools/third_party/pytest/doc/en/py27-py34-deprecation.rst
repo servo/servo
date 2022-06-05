@@ -8,10 +8,10 @@ features only made possible on newer Python versions.
 In case of Python 2 and 3, the difference between the languages makes it even more prominent,
 because many new Python 3 features cannot be used in a Python 2/3 compatible code base.
 
-Python 2.7 EOL has been reached `in 2020 <https://legacy.python.org/dev/peps/pep-0373/#id4>`__, with
+Python 2.7 EOL has been reached :pep:`in 2020 <0373#maintenance-releases>`, with
 the last release made in April, 2020.
 
-Python 3.4 EOL has been reached `in 2019 <https://www.python.org/dev/peps/pep-0429/#release-schedule>`__, with the last release made in March, 2019.
+Python 3.4 EOL has been reached :pep:`in 2019 <0429#release-schedule>`, with the last release made in March, 2019.
 
 For those reasons, in Jun 2019 it was decided that **pytest 4.6** series will be the last to support Python 2.7 and 3.4.
 
@@ -43,9 +43,11 @@ for critical bugs).
 Technical aspects
 ~~~~~~~~~~~~~~~~~
 
-(This section is a transcript from `#5275 <https://github.com/pytest-dev/pytest/issues/5275>`__).
+(This section is a transcript from :issue:`5275`).
 
 In this section we describe the technical aspects of the Python 2.7 and 3.4 support plan.
+
+.. _what goes into 4.6.x releases:
 
 What goes into 4.6.X releases
 +++++++++++++++++++++++++++++

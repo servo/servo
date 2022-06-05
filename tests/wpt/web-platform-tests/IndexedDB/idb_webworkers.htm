@@ -3,7 +3,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     var db, count = 0,
@@ -11,7 +11,7 @@
       t.add_cleanup(function() { indexedDB.deleteDatabase('webworker101'); });
 
     t.step(function() {
-        var worker = new Worker("idbworker.js");
+        var worker = new Worker("resources/idbworker.js");
         worker.onmessage = t.step_func(function (e) {
             switch(count) {
                 case 0:

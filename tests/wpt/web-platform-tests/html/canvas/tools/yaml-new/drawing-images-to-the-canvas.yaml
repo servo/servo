@@ -1,0 +1,1462 @@
+- name: 2d.drawImage.3arg
+  testing:
+  - 2d.drawImage.defaultsource
+  - 2d.drawImage.defaultdest
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  - green.png
+  code: |
+    ctx.drawImage(document.getElementById('green.png'), 0, 0);
+    ctx.drawImage(document.getElementById('red.png'), -100, 0);
+    ctx.drawImage(document.getElementById('red.png'), 100, 0);
+    ctx.drawImage(document.getElementById('red.png'), 0, -50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 50);
+
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.5arg
+  testing:
+  - 2d.drawImage.defaultsource
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  - green.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('green.png'), 50, 0, 50, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 50, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 50);
+
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.9arg.basic
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['HTMLCanvas']
+  images:
+  - green.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('green.png'), 0, 0, 100, 50, 0, 0, 100, 50);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.9arg.sourcepos
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['HTMLCanvas']
+  images:
+  - rgrg-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('rgrg-256x256.png'), 140, 20, 100, 50, 0, 0, 100, 50);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.9arg.sourcesize
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['HTMLCanvas']
+  images:
+  - rgrg-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('rgrg-256x256.png'), 0, 0, 256, 256, 0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 51, 26);
+    ctx.fillRect(49, 24, 51, 26);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+    @assert pixel 20,20 ==~ 0,255,0,255;
+    @assert pixel 80,20 ==~ 0,255,0,255;
+    @assert pixel 20,30 ==~ 0,255,0,255;
+    @assert pixel 80,30 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.9arg.destpos
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  - green.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('green.png'), 0, 0, 100, 50, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, -100, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 100, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 0, -50, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 0, 50, 100, 50);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.9arg.destsize
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  - green.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('green.png'), 1, 1, 1, 1, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, -50, 0, 50, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 100, 0, 50, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 0, -25, 100, 25);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50, 0, 50, 100, 25);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.canvas
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['HTMLCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#f00';
+    ctx.drawImage(canvas2, 0, 0);
+
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+
+    ctx.drawImage(document.createElement('canvas'), 0, 0);
+
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.self.1
+  testing:
+  - 2d.drawImage.self
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.drawImage(canvas, 50, 0);
+
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.self.2
+  testing:
+  - 2d.drawImage.self
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 1, 100, 49);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 1);
+    ctx.drawImage(canvas, 0, 1);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 2);
+
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.null
+  testing:
+  - 2d.drawImage.IDL
+  code: |
+    @assert throws TypeError ctx.drawImage(null, 0, 0);
+
+- name: 2d.drawImage.wrongtype
+  desc: Incorrect image types in drawImage do not match any defined overloads, so
+    WebIDL throws a TypeError
+  testing:
+  - 2d.drawImage.IDL
+  code: |
+    @assert throws TypeError ctx.drawImage(undefined, 0, 0);
+    @assert throws TypeError ctx.drawImage(0, 0, 0);
+    @assert throws TypeError ctx.drawImage("", 0, 0);
+
+- name: 2d.drawImage.wrongtype.paragraph
+  desc: Incorrect image types in drawImage do not match any defined overloads, so
+    WebIDL throws a TypeError
+  notes: &bindings Defined in "Web IDL" (draft)
+  testing:
+  - 2d.drawImage.IDL
+  canvasType: ['HTMLCanvas']
+  code: |
+    @assert throws TypeError ctx.drawImage(document.createElement('p'), 0, 0);
+
+- name: 2d.drawImage.floatsource
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['HTMLCanvas']
+  images:
+  - green.png
+  code: |
+    ctx.drawImage(document.getElementById('green.png'), 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.zerosource
+  desc: drawImage with zero-sized source rectangle draws nothing without exception
+  testing:
+  - 2d.drawImage.zerosource
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 1, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 10, 10, 1, 0, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 0, 0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.zerosource.image
+  desc: drawImage with zero-sized source rectangle from image draws nothing without exception
+  testing:
+  - 2d.drawImage.zerosource
+  canvasType: ['HTMLCanvas']
+  images:
+  - red-zerowidth.svg
+  - red-zeroheight.svg
+  - red-zerosize.svg
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red-zerowidth.svg'), 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red-zeroheight.svg'), 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red-zerosize.svg'), 0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.negativesource
+  desc: Negative source width/height represents the correct rectangle
+  testing:
+  - 2d.drawImage.direction
+  canvasType: ['HTMLCanvas']
+  mozilla: {throws: !!null ''}
+  images:
+  - ggrr-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 100, 78, -100, 50, 0, 0, 50, 50);
+    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 100, 128, -100, -50, 50, 0, 50, 50);
+    @assert pixel 1,1 ==~ 0,255,0,255;
+    @assert pixel 1,48 ==~ 0,255,0,255;
+    @assert pixel 98,1 ==~ 0,255,0,255;
+    @assert pixel 98,48 ==~ 0,255,0,255;
+    @assert pixel 48,1 ==~ 0,255,0,255;
+    @assert pixel 48,48 ==~ 0,255,0,255;
+    @assert pixel 51,1 ==~ 0,255,0,255;
+    @assert pixel 51,48 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.negativedest
+  desc: Negative destination width/height represents the correct rectangle
+  testing:
+  - 2d.drawImage.direction
+  canvasType: ['HTMLCanvas']
+  mozilla: {throws: !!null ''}
+  images:
+  - ggrr-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 100, 78, 50, 50, 0, 50, 50, -50);
+    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 100, 128, 50, -50, 100, 50, -50, -50);
+    @assert pixel 1,1 ==~ 0,255,0,255;
+    @assert pixel 1,48 ==~ 0,255,0,255;
+    @assert pixel 98,1 ==~ 0,255,0,255;
+    @assert pixel 98,48 ==~ 0,255,0,255;
+    @assert pixel 48,1 ==~ 0,255,0,255;
+    @assert pixel 48,48 ==~ 0,255,0,255;
+    @assert pixel 51,1 ==~ 0,255,0,255;
+    @assert pixel 51,48 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.negativedir
+  desc: Negative dimensions do not affect the direction of the image
+  testing:
+  - 2d.drawImage.direction
+  canvasType: ['HTMLCanvas']
+  mozilla: {throws: !!null ''}
+  images:
+  - ggrr-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 0, 178, 50, -100, 0, 0, 50, 100);
+    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 0, 78, 50, 100, 50, 100, 50, -100);
+    @assert pixel 1,1 ==~ 0,255,0,255;
+    @assert pixel 1,48 ==~ 0,255,0,255;
+    @assert pixel 98,1 ==~ 0,255,0,255;
+    @assert pixel 98,48 ==~ 0,255,0,255;
+    @assert pixel 48,1 ==~ 0,255,0,255;
+    @assert pixel 48,48 ==~ 0,255,0,255;
+    @assert pixel 51,1 ==~ 0,255,0,255;
+    @assert pixel 51,48 ==~ 0,255,0,255;
+    @assert pixel 25,25 ==~ 0,255,0,255;
+    @assert pixel 75,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.outsidesource
+  DISABLED: fix this to match the current spec (transparent black outside source)
+  testing:
+  - 2d.drawImage.outsidesource
+  canvasType: ['HTMLCanvas']
+  mozilla: {throws: !!null ''}
+  images:
+  - green.png
+  - red.png
+  code: |
+    ctx.drawImage(document.getElementById('green.png'), 10.5, 10.5, 89.5, 39.5, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('green.png'), 5.5, 5.5, -5.5, -5.5, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('green.png'), 100, 50, -5, -5, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), -0.001, 0, 100, 50, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, -0.001, 100, 50, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, 0, 100.001, 50, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, 0, 100, 50.001, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 50, 0, 50.001, 50, 0, 0, 100, 50); @moz-todo
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, 0, -5, 5, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 0, 0, 5, -5, 0, 0, 100, 50);
+    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 110, 60, -20, -20, 0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.drawImage.incomplete.nosrc
+  testing:
+  - 2d.drawImage.incomplete.image
+  canvasType: ['HTMLCanvas']
+  mozilla: {throws: !!null ''}
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var img = new Image();
+    ctx.drawImage(img, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.incomplete.immediate
+  testing:
+  - 2d.drawImage.incomplete.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var img = new Image();
+    img.src = '../images/red.png';
+    // This triggers the "update the image data" algorithm.
+    // The image will not go to the "completely available" state
+    // until a fetch task in the networking task source is processed,
+    // so the image must not be fully decodable yet:
+    ctx.drawImage(img, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.drawImage.incomplete.reload
+  testing:
+  - 2d.drawImage.incomplete.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - yellow.png
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var img = document.getElementById('yellow.png');
+    img.src = '../images/red.png';
+    // This triggers the "update the image data" algorithm,
+    // and resets the image to the "unavailable" state.
+    // The image will not go to the "completely available" state
+    // until a fetch task in the networking task source is processed,
+    // so the image must not be fully decodable yet:
+    ctx.drawImage(img, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.drawImage.incomplete.emptysrc
+  testing:
+  - 2d.drawImage.incomplete.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  mozilla: {throws: !!null ''}
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var img = document.getElementById('red.png');
+    img.src = "";
+    ctx.drawImage(img, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.incomplete.removedsrc
+  testing:
+  - 2d.drawImage.incomplete.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  mozilla: {throws: !!null ''}
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var img = document.getElementById('red.png');
+    img.removeAttribute('src');
+    ctx.drawImage(img, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.broken
+  testing:
+  - 2d.drawImage.incomplete.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - broken.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var img = document.getElementById('broken.png');
+    ctx.drawImage(img, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.drawImage.nonexistent
+  testing:
+  - 2d.drawImage.incomplete.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - not-found-at-all.png
+  code: |
+    var img = document.getElementById('not-found-at-all.png');
+    @assert throws INVALID_STATE_ERR ctx.drawImage(img, 0, 0);
+
+- name: 2d.drawImage.zerocanvas
+  desc: drawImage with zero-sized canvas as the source shoud throw exception
+  testing:
+  - 2d.drawImage.zerocanvas
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 0;
+    canvas2.height = 50;
+    @assert throws INVALID_STATE_ERR ctx.drawImage(canvas2, 0, 0);
+
+    canvas2.width = 50;
+    canvas2.height = 0;
+    @assert throws INVALID_STATE_ERR ctx.drawImage(canvas2, 0, 0);
+
+    canvas2.width = 0;
+    canvas2.height = 0;
+    @assert throws INVALID_STATE_ERR ctx.drawImage(canvas2, 0, 0);
+
+- name: 2d.drawImage.svg
+  desc: drawImage() of an SVG image
+  testing:
+  - 2d.drawImage.svg
+  canvasType: ['HTMLCanvas']
+  images:
+  - green.svg
+  code: |
+    ctx.drawImage(document.getElementById('green.svg'), 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.animated.gif
+  desc: drawImage() of an animated GIF draws the first frame
+  testing:
+  - 2d.drawImage.animated.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - anim-gr.gif
+  code: |
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.drawImage(document.getElementById('anim-gr.gif'), 0, 0);
+        @assert pixel 50,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.drawImage.animated.apng
+  desc: drawImage() of an APNG with no poster frame draws the first frame
+  testing:
+  - 2d.drawImage.animated.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - anim-gr.png
+  code: |
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.drawImage(document.getElementById('anim-gr.png'), 0, 0);
+        @assert pixel 50,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.drawImage.animated.poster
+  desc: drawImage() of an APNG draws the poster frame
+  testing:
+  - 2d.drawImage.animated.image
+  canvasType: ['HTMLCanvas']
+  images:
+  - anim-poster-gr.png
+  code: |
+    ctx.drawImage(document.getElementById('anim-poster-gr.png'), 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.drawImage.path
+  testing:
+  - 2d.drawImage.unaffect
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.rect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0);
+    ctx.fill();
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.transform
+  testing:
+  - 2d.drawImage.subject
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.translate(100, 0);
+    ctx.drawImage(document.getElementById('red.png'), 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+# TODO: drawImage shadows
+
+- name: 2d.drawImage.alpha
+  testing:
+  - 2d.drawImage.subject
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalAlpha = 0;
+    ctx.drawImage(document.getElementById('red.png'), 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.clip
+  testing:
+  - 2d.drawImage.subject
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.rect(-10, -10, 1, 1);
+    ctx.clip();
+    ctx.drawImage(document.getElementById('red.png'), 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.composite
+  testing:
+  - 2d.drawImage.subject
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.drawImage(document.getElementById('red.png'), 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.nowrap
+  desc: Stretched images do not get pixels wrapping around the edges
+  canvasType: ['HTMLCanvas']
+  images:
+  - redtransparent.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('redtransparent.png'), -1950, 0, 2000, 50);
+    @assert pixel 45,25 ==~ 0,255,0,255;
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    @assert pixel 55,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.nonfinite
+  desc: drawImage() with Infinity/NaN is ignored
+  testing:
+  - 2d.nonfinite
+  canvasType: ['HTMLCanvas']
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var red = document.getElementById('red.png');
+    @nonfinite ctx.drawImage(<red>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
+    @nonfinite ctx.drawImage(<red>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+    @nonfinite ctx.drawImage(<red>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.drawImage.3arg
+  testing:
+  - 2d.drawImage.defaultsource
+  - 2d.drawImage.defaultdest
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  images:
+  - red.png
+  - green.png
+  code: |
+    var promise1 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    var promise2 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    Promise.all([promise1, promise2]).then(function(response1, response2) {
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 0, 0);
+            ctx.drawImage(bitmap1, -100, 0);
+            ctx.drawImage(bitmap1, 100, 0);
+            ctx.drawImage(bitmap1, 0, -50);
+            ctx.drawImage(bitmap1, 0, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.5arg
+  testing:
+  - 2d.drawImage.defaultsource
+  images:
+  - red.png
+  - green.png
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise1 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    var promise2 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    Promise.all([promise1, promise2]).then(function(response1, response2) {
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 50, 0, 50, 50);
+            ctx.drawImage(bitmap1, 0, 0, 50, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 50, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.9arg.basic
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['OffscreenCanvas']
+  images:
+  - green.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0, 100, 50, 0, 0, 100, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.9arg.sourcepos
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['OffscreenCanvas']
+  images:
+  - rgrg-256x256.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/rgrg-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 140, 20, 100, 50, 0, 0, 100, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.9arg.sourcesize
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['OffscreenCanvas']
+  images:
+  - rgrg-256x256.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/rgrg-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0, 256, 256, 0, 0, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 51, 26);
+            ctx.fillRect(49, 24, 51, 26);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+            @assert pixel 20,20 ==~ 0,255,0,255;
+            @assert pixel 80,20 ==~ 0,255,0,255;
+            @assert pixel 20,30 ==~ 0,255,0,255;
+            @assert pixel 80,30 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.9arg.destpos
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['OffscreenCanvas']
+  images:
+  - red.png
+  - green.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise1 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    var promise2 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    Promise.all([promise1, promise2]).then(function(response1, response2) {
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 0, 0, 100, 50, 0, 0, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, -100, 0, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 100, 0, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, -50, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, 50, 100, 50);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.9arg.destsize
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['OffscreenCanvas']
+  images:
+  - red.png
+  - green.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise1 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    var promise2 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    Promise.all([promise1, promise2]).then(function(response1, response2) {
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 1, 1, 1, 1, 0, 0, 100, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, -50, 0, 50, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 100, 0, 50, 50);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, -25, 100, 25);
+            ctx.drawImage(bitmap1, 0, 0, 100, 50, 0, 50, 100, 25);
+            @assert pixel 0,0 ==~ 0,255,0,255;
+            @assert pixel 99,0 ==~ 0,255,0,255;
+            @assert pixel 0,49 ==~ 0,255,0,255;
+            @assert pixel 99,49 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.canvas
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.drawImage(offscreenCanvas2, 0, 0);
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
+
+- name: 2d.drawImage.zerocanvas
+  testing:
+  - 2d.drawImage.zerocanvas
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(0, 10);
+    @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
+
+    offscreenCanvas2.width = 10;
+    offscreenCanvas2.height = 0;
+    @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
+
+    offscreenCanvas2.width = 0;
+    offscreenCanvas2.height = 0;
+    @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
+
+- name: 2d.drawImage.floatsource
+  testing:
+  - 2d.drawImage.paint
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.zerosource
+  desc: drawImage with zero-sized source rectangle draws nothing without exception
+  testing:
+  - 2d.drawImage.zerosource
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.zerosource.image
+  desc: drawImage with zero-sized source rectangle from image draws nothing without exception
+  testing:
+  - 2d.drawImage.zerosource
+  canvasType: ['OffscreenCanvas']
+  images:
+  - red-zerowidth.svg
+  - red-zeroheight.svg
+  - red-zerosize.svg
+  timeout: long
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red-zerowidth.svg');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 0, 0, 100, 50);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.negativesource
+  desc: Negative source width/height represents the correct rectangle
+  testing:
+  - 2d.drawImage.direction
+  canvasType: ['OffscreenCanvas']
+  mozilla: {throws: !!null ''}
+  images:
+  - ggrr-256x256.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/ggrr-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 100, 78, -100, 50, 0, 0, 50, 50);
+            ctx.drawImage(bitmap, 100, 128, -100, -50, 50, 0, 50, 50);
+            @assert pixel 1,1 ==~ 0,255,0,255;
+            @assert pixel 1,48 ==~ 0,255,0,255;
+            @assert pixel 98,1 ==~ 0,255,0,255;
+            @assert pixel 98,48 ==~ 0,255,0,255;
+            @assert pixel 48,1 ==~ 0,255,0,255;
+            @assert pixel 48,48 ==~ 0,255,0,255;
+            @assert pixel 51,1 ==~ 0,255,0,255;
+            @assert pixel 51,48 ==~ 0,255,0,255;
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.negativedest
+  desc: Negative destination width/height represents the correct rectangle
+  testing:
+  - 2d.drawImage.direction
+  canvasType: ['OffscreenCanvas']
+  mozilla: {throws: !!null ''}
+  timeout: long
+  images:
+  - ggrr-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/ggrr-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 100, 78, 50, 50, 0, 50, 50, -50);
+            ctx.drawImage(bitmap, 100, 128, 50, -50, 100, 50, -50, -50);
+            @assert pixel 1,1 ==~ 0,255,0,255;
+            @assert pixel 1,48 ==~ 0,255,0,255;
+            @assert pixel 98,1 ==~ 0,255,0,255;
+            @assert pixel 98,48 ==~ 0,255,0,255;
+            @assert pixel 48,1 ==~ 0,255,0,255;
+            @assert pixel 48,48 ==~ 0,255,0,255;
+            @assert pixel 51,1 ==~ 0,255,0,255;
+            @assert pixel 51,48 ==~ 0,255,0,255;
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.negativedir
+  desc: Negative dimensions do not affect the direction of the image
+  testing:
+  - 2d.drawImage.direction
+  canvasType: ['OffscreenCanvas']
+  mozilla: {throws: !!null ''}
+  timeout: long
+  images:
+  - ggrr-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/ggrr-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 178, 50, -100, 0, 0, 50, 100);
+            ctx.drawImage(bitmap, 0, 78, 50, 100, 50, 100, 50, -100);
+            @assert pixel 1,1 ==~ 0,255,0,255;
+            @assert pixel 1,48 ==~ 0,255,0,255;
+            @assert pixel 98,1 ==~ 0,255,0,255;
+            @assert pixel 98,48 ==~ 0,255,0,255;
+            @assert pixel 48,1 ==~ 0,255,0,255;
+            @assert pixel 48,48 ==~ 0,255,0,255;
+            @assert pixel 51,1 ==~ 0,255,0,255;
+            @assert pixel 51,48 ==~ 0,255,0,255;
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.outsidesource
+  DISABLED: fix this to match the current spec (transparent black outside source)
+  testing:
+  - 2d.drawImage.outsidesource
+  canvasType: ['OffscreenCanvas']
+  code: |
+    var promise1 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    var promise2 = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    Promise.all([promise1, promise2]).then(function(response1, response2) {
+        var promise3 = createImageBitmap(response1);
+        var promise4 = createImageBitmap(response2);
+        Promise.all([promise3, promise4]).then(function(bitmap1, bitmap2) {
+            ctx.drawImage(bitmap2, 10.5, 10.5, 89.5, 39.5, 0, 0, 100, 50);
+            ctx.drawImage(bitmap2, 5.5, 5.5, -5.5, -5.5, 0, 0, 100, 50);
+            ctx.drawImage(bitmap2, 100, 50, -5, -5, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, -0.001, 0, 100, 50, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, -0.001, 100, 50, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 100.001, 50, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 100, 50.001, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 50, 0, 50.001, 50, 0, 0, 100, 50); @moz-todo
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, -5, 5, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 5, -5, 0, 0, 100, 50);
+            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 110, 60, -20, -20, 0, 0, 100, 50);
+            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.broken
+  testing:
+  - 2d.drawImage.incomplete.image
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/broken.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.svg
+  desc: drawImage() of an SVG image
+  testing:
+  - 2d.drawImage.svg
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.svg');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.animated.poster
+  desc: drawImage() of an APNG draws the poster frame
+  testing:
+  - 2d.drawImage.animated.image
+  canvasType: ['OffscreenCanvas']
+  images:
+  - anim-poster-gr.png
+  timeout: long
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/anim-poster-gr.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.path
+  testing:
+  - 2d.drawImage.unaffect
+  canvasType: ['OffscreenCanvas']
+  timeout: long
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.rect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            ctx.fill();
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.transform
+  testing:
+  - 2d.drawImage.subject
+  canvasType: ['OffscreenCanvas']
+  images:
+  - red.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.translate(100, 0);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.alpha
+  testing:
+  - 2d.drawImage.subject
+  canvasType: ['OffscreenCanvas']
+  images:
+  - red.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalAlpha = 0;
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.clip
+  testing:
+  - 2d.drawImage.subject
+  canvasType: ['OffscreenCanvas']
+  images:
+  - red.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.rect(-10, -10, 1, 1);
+    ctx.clip();
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.composite
+  testing:
+  - 2d.drawImage.subject
+  canvasType: ['OffscreenCanvas']
+  images:
+  - red.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = 'destination-over';
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0);
+            @assert pixel 50,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.nowrap
+  desc: Stretched images do not get pixels wrapping around the edges
+  canvasType: ['OffscreenCanvas']
+  images:
+  - redtransparent.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/redtransparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, -1950, 0, 2000, 50);
+            @assert pixel 45,25 ==~ 0,255,0,255;
+            @assert pixel 50,25 ==~ 0,255,0,255;
+            @assert pixel 55,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.drawImage.nonfinite
+  desc: drawImage() with Infinity/NaN is ignored
+  testing:
+  - 2d.nonfinite
+  canvasType: ['OffscreenCanvas']
+  images:
+  - red.png
+  timeout: long
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/redtransparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
+            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+            @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+

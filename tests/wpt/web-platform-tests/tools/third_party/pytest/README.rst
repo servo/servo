@@ -1,6 +1,7 @@
-.. image:: https://docs.pytest.org/en/stable/_static/pytest1.png
+.. image:: https://github.com/pytest-dev/pytest/raw/main/doc/en/img/pytest_logo_curves.svg
    :target: https://docs.pytest.org/en/stable/
    :align: center
+   :height: 200
    :alt: pytest
 
 
@@ -15,15 +16,16 @@
 .. image:: https://img.shields.io/pypi/pyversions/pytest.svg
     :target: https://pypi.org/project/pytest/
 
-.. image:: https://codecov.io/gh/pytest-dev/pytest/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/pytest-dev/pytest/branch/main/graph/badge.svg
     :target: https://codecov.io/gh/pytest-dev/pytest
     :alt: Code coverage Status
 
-.. image:: https://travis-ci.org/pytest-dev/pytest.svg?branch=master
-    :target: https://travis-ci.org/pytest-dev/pytest
-
 .. image:: https://github.com/pytest-dev/pytest/workflows/main/badge.svg
     :target: https://github.com/pytest-dev/pytest/actions?query=workflow%3Amain
+
+.. image:: https://results.pre-commit.ci/badge/github/pytest-dev/pytest/main.svg
+   :target: https://results.pre-commit.ci/latest/github/pytest-dev/pytest/main
+   :alt: pre-commit.ci status
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
@@ -34,6 +36,15 @@
 .. image:: https://readthedocs.org/projects/pytest/badge/?version=latest
     :target: https://pytest.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
+
+.. image:: https://img.shields.io/badge/Discord-pytest--dev-blue
+    :target: https://discord.com/invite/pytest-dev
+    :alt: Discord
+
+.. image:: https://img.shields.io/badge/Libera%20chat-%23pytest-orange
+    :target: https://web.libera.chat/#pytest
+    :alt: Libera chat
+
 
 The ``pytest`` framework makes it easy to write small tests, yet
 scales to support complex functional testing for applications and libraries.
@@ -77,21 +88,21 @@ Due to ``pytest``'s detailed assertion introspection, only plain ``assert`` stat
 Features
 --------
 
-- Detailed info on failing `assert statements <https://docs.pytest.org/en/stable/assert.html>`_ (no need to remember ``self.assert*`` names)
+- Detailed info on failing `assert statements <https://docs.pytest.org/en/stable/how-to/assert.html>`_ (no need to remember ``self.assert*`` names)
 
 - `Auto-discovery
-  <https://docs.pytest.org/en/stable/goodpractices.html#python-test-discovery>`_
+  <https://docs.pytest.org/en/stable/explanation/goodpractices.html#python-test-discovery>`_
   of test modules and functions
 
-- `Modular fixtures <https://docs.pytest.org/en/stable/fixture.html>`_ for
+- `Modular fixtures <https://docs.pytest.org/en/stable/explanation/fixtures.html>`_ for
   managing small or parametrized long-lived test resources
 
-- Can run `unittest <https://docs.pytest.org/en/stable/unittest.html>`_ (or trial),
-  `nose <https://docs.pytest.org/en/stable/nose.html>`_ test suites out of the box
+- Can run `unittest <https://docs.pytest.org/en/stable/how-to/unittest.html>`_ (or trial),
+  `nose <https://docs.pytest.org/en/stable/how-to/nose.html>`_ test suites out of the box
 
-- Python 3.5+ and PyPy3
+- Python 3.6+ and PyPy3
 
-- Rich plugin architecture, with over 850+ `external plugins <http://plugincompat.herokuapp.com>`_ and thriving community
+- Rich plugin architecture, with over 850+ `external plugins <https://docs.pytest.org/en/latest/reference/plugin_list.html>`_ and thriving community
 
 
 Documentation
@@ -149,8 +160,8 @@ Tidelift will coordinate the fix and disclosure.
 License
 -------
 
-Copyright Holger Krekel and others, 2004-2020.
+Copyright Holger Krekel and others, 2004.
 
 Distributed under the terms of the `MIT`_ license, pytest is free and open source software.
 
-.. _`MIT`: https://github.com/pytest-dev/pytest/blob/master/LICENSE
+.. _`MIT`: https://github.com/pytest-dev/pytest/blob/main/LICENSE

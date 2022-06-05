@@ -57,7 +57,7 @@ for (const color of inputColors) {
     ctx.fillRect(0, 0, 10, 10);
     _assertPixelApprox(canvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, "5,5", `${outputColor[0]},${outputColor[1]},${outputColor[2]}`, 2);
 }
-t.done()
+t.done();
 
 });
 done();

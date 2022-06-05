@@ -100,9 +100,19 @@ dictionary ScrollIntoViewOptions : ScrollOptions {
   ScrollLogicalPosition inline = "nearest";
 };
 
+dictionary IsVisibleOptions {
+    boolean checkAriaHidden = false;
+    boolean checkInert = false;
+    boolean checkOpacity = false;
+    boolean checkVisibilityCSS = false;
+};
+
 partial interface Element {
   DOMRectList getClientRects();
   [NewObject] DOMRect getBoundingClientRect();
+
+  boolean isVisible(optional IsVisibleOptions options = {});
+
   undefined scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg = {});
   undefined scroll(optional ScrollToOptions options = {});
   undefined scroll(unrestricted double x, unrestricted double y);

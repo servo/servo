@@ -1,0 +1,26 @@
+<html>
+<meta http-equiv="Accept-CH" content="Sec-CH-Device-Memory, Device-Memory, Sec-CH-DPR, DPR, Sec-CH-Viewport-Width, Viewport-Width">
+<title>Accept-CH http-equiv iframe test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/client-hints/resources/export.js"></script>
+<script src="resources/feature-policy-navigation.js"></script>
+<script>
+(async () => {
+  await test_frame(
+    "HTTPS_ORIGIN",
+    expect_iframe_no_hints,
+    "",
+    "Client hints loaded on same-origin iframe should include hints with a default permissions policy of" +
+    "self and *, but the http-equiv meta tag has a bug and it doesn't impact iframes.");
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    expect_iframe_no_hints,
+    "",
+    "Client hints loaded on cross-origin iframe only include hints with a default permissions policy of *.");
+})();
+</script>
+</body>
+</html>

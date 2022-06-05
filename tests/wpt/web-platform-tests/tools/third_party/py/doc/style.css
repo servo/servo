@@ -546,7 +546,7 @@ div.message {
 }
 strong.highlight {
     background-color: #FFBBBB;
-/* as usual, NetScape fucks up with innocent CSS
+/* as usual, NetScape breaks with innocent CSS
     border-color: #FFAAAA;
     border-style: solid;
     border-width: 1pt;

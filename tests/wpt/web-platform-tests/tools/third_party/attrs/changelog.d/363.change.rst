@@ -1,1 +1,0 @@
-Generated ``__init__`` methods now have an ``__annotations__`` attribute derived from the types of the fields.

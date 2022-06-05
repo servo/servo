@@ -1,7 +1,5 @@
 <!DOCTYPE html>
-<title>
-  Subresource loading using relative URLs in the 'scopes'
-</title>
+<title>Subresource loading using relative URLs in the 'scopes'</title>
 <link
   rel="help"
   href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
@@ -11,7 +9,6 @@
 <script src="../resources/test-helpers.js"></script>
 
 <script>
-  window.TEST_WEB_BUNDLE_ELEMENT_TYPE = "script";
   setup(() => {
     assert_true(HTMLScriptElement.supports("webbundle"));
   });
@@ -35,13 +32,17 @@
     }
 
     async function assertResourceCanBeFetched() {
-      const response = await fetch("../resources/wbn/relative-url/subdirectory-path.js");
+      const response = await fetch(
+        "../resources/wbn/relative-url/subdirectory-path.js"
+      );
       const text = await response.text();
       assert_equals(text, "scriptLoaded('subdirectory-path.js');");
     }
 
     async function assertResourceNotFound() {
-      const response = await fetch("../resources/wbn/relative-url/subdirectory-path.js");
+      const response = await fetch(
+        "../resources/wbn/relative-url/subdirectory-path.js"
+      );
       const status = await response.status;
       assert_equals(status, 404);
     }

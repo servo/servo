@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import argparse
 import os
 import platform
@@ -5,6 +7,7 @@ import shutil
 import subprocess
 
 import requests
+from .wpt import venv_dir
 
 android_device = None
 
@@ -36,7 +39,7 @@ def get_parser_start():
 def get_sdk_path(dest):
     if dest is None:
         # os.getcwd() doesn't include the venv path
-        dest = os.path.join(wpt_root, "_venv")
+        dest = os.path.join(wpt_root, venv_dir())
     dest = os.path.join(dest, 'android-sdk')
     return os.path.abspath(os.environ.get('ANDROID_SDK_PATH', dest))
 
@@ -65,7 +68,7 @@ def install_sdk(logger, dest=None):
     # TODO: either always use the latest version or have some way to
     # configure a per-product version if there are strong requirements
     # to use a specific version.
-    url = 'https://dl.google.com/android/repository/sdk-tools-%s-4333796.zip' % (os_name,)
+    url = f'https://dl.google.com/android/repository/sdk-tools-{os_name}-4333796.zip'
 
     logger.info("Getting SDK from %s" % url)
     temp_path = os.path.join(sdk_path, url.rsplit("/", 1)[1])

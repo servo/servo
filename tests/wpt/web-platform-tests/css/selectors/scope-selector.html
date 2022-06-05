@@ -6,71 +6,20 @@
 <div id='shadowHost'></div>
 <script>
 'use strict'
+const shadowHost = document.getElementById("shadowHost");
 const shadowRoot = shadowHost.attachShadow({mode:'open'})
-const externalDiv = document.createElement('div');
-externalDiv.setAttribute('id', 'external');
-const nestedDiv = document.createElement('div');
-nestedDiv.setAttribute('id', 'nested');
-shadowRoot.appendChild(externalDiv);
-externalDiv.appendChild(nestedDiv);
-
-const nestedShadowRoot = nestedDiv.attachShadow({mode:'open'})
-const shadowExternalDiv = document.createElement('div');
-shadowExternalDiv.setAttribute('id', 'shadow_external');
-const shadowNestedDiv = document.createElement('div');
-shadowNestedDiv.setAttribute('id', 'shadow_nested');
-nestedShadowRoot.appendChild(shadowExternalDiv);
-shadowExternalDiv.appendChild(shadowNestedDiv);
+shadowRoot.appendChild(document.createElement("div"));
 
 test (() => {
-  assert_equals(shadowRoot.firstChild.querySelectorAll(':scope > div').length, 1, 'should get the number of direct children of externalDiv');
-  assert_equals(shadowRoot.firstChild.querySelector(':scope > div'), shadowRoot.getElementById('nested'), 'should get the first direct child of externalDiv');
-  assert_equals(shadowRoot.firstChild.querySelector(':scope > div'), shadowRoot.getElementById('nested'), 'should get nestedDiv');
-}, 'scope selector works in shadowRoot.firstChild')
-
-test (() => {
-  assert_equals(shadowRoot.querySelector(':scope > div'), shadowRoot.getElementById('external'), 'should get the direct child of shadowRoot');
-  assert_equals(shadowRoot.querySelectorAll(':scope > div').length, 1, 'should get the number of direct div children of shadowRoot');
-}, 'Selecting direct child of shadow root with :scope should work')
-
-test (() => {
-  assert_equals(shadowRoot.querySelector(':scope div'), shadowRoot.getElementById('external'), 'should get the first div descendant of shadowRoot');
-  assert_equals(shadowRoot.querySelectorAll(':scope div').length, 2, 'should get the number of the div descendants of shadowRoot, :scope div should not match for nestedShadow');
-}, 'Selecting descendants of shadow root with :scope should work')
-
-test (() => {
-  assert_equals(nestedShadowRoot.querySelector(':scope > div'), nestedShadowRoot.getElementById('shadow_external'), 'should get the direct child of nestedShadowRoot');
-  assert_equals(nestedShadowRoot.querySelectorAll(':scope > div').length, 1, 'should get the number of direct div children of nestedShadowRoot');
-}, 'Selecting direct child of nested shadow root with :scope should work')
-
-test (() => {
-  assert_equals(nestedShadowRoot.querySelector(':scope div'), nestedShadowRoot.getElementById('shadow_external'), 'should get the first div descendant of nestedShadowRoot');
-  assert_equals(nestedShadowRoot.querySelectorAll(':scope div').length, 2, 'should get the number of the div descendants of nestedShadowRoot');
-}, 'Selecting descendants of nested shadow root with :scope should work')
+  assert_equals(shadowRoot.querySelectorAll(':scope > div').length, 0, 'should not match in shadow root');
+});
 
 const documentFragment = document.createDocumentFragment();
-const external_div = document.createElement('div');
-external_div.setAttribute('id', 'external_div');
-const nested_div = document.createElement('div');
-nested_div.setAttribute('id', 'nested_div');
-documentFragment.appendChild(external_div);
-external_div.appendChild(nested_div);
+documentFragment.appendChild(document.createElement("div"));
 
 test(() => {
-  assert_equals(documentFragment.firstChild.querySelectorAll(':scope > div').length, 1, 'should get the number of direct children of external_div');
-  assert_equals(documentFragment.firstChild.querySelector(':scope > div'), documentFragment.getElementById('nested_div'), 'should get the first direct child of external_div');
-  assert_equals(documentFragment.firstChild.querySelector(':scope > div'), documentFragment.getElementById('nested_div'), 'should get the text in nesteddiv');
-}, 'scope selector works in documentFragment.firstChild')
-
-test(() => {
-  assert_equals(documentFragment.querySelector(':scope > div'), documentFragment.getElementById('external_div'), 'should get the direct child of DocumentFragment');
-  assert_equals(documentFragment.querySelectorAll(':scope > div').length, 1, 'should get the number of direct div children of DocumentFragment');
-}, 'Selecting direct child of document fragment with :scope should work')
-
-test(() => {
-  assert_equals(documentFragment.querySelector(':scope div'), documentFragment.getElementById('external_div'), 'should get the first div descendant of DocumentFragment');
-  assert_equals(documentFragment.querySelectorAll(':scope div').length, 2, 'should get the number of the div descendants of DocumentFragment');
-}, 'Selecting descendants of document fragment with :scope should work')
+  assert_equals(documentFragment.querySelectorAll(':scope > div').length, 0, 'should not match in document fragment');
+});
 
 test(() => {
   assert_equals(shadowRoot.firstChild.querySelector(':scope'), null, 'should return null');
@@ -82,5 +31,7 @@ test(() => {
   assert_equals(documentFragment.querySelector(':scope'), null, 'should return null');
   assert_equals(documentFragment.querySelectorAll(':scope').length, 0, 'should return 0');
 
-}, 'querySelector() with ":scope" should return null, whether the context object is an element, a shadow root or a document fragment')
+  assert_equals(document.querySelector(':scope'), document.documentElement, 'should return the document element');
+  assert_equals(document.querySelectorAll(':scope').length, 1, 'should return 1');
+}, 'querySelector() with ":scope" should return the document element, if present in the subtree');
 </script>

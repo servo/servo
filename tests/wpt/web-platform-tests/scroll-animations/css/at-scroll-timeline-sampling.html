@@ -6,7 +6,7 @@
 <script src="/web-animations/testcommon.js"></script>
 <style>
   #scroller {
-    overflow: scroll;
+    overflow: hidden;
     width: 100px;
     height: 100px;
   }
@@ -19,8 +19,6 @@
   }
   @scroll-timeline timeline {
     source: selector(#scroller);
-    start: 0px;
-    end: 100px;
   }
   #element {
     width: 0px;

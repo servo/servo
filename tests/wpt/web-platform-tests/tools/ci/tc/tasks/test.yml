@@ -104,21 +104,27 @@ components:
 
   browser-chrome: {}
 
+  browser-chromium: {}
+
   browser-servo: {}
 
   tox-python3_6:
     env:
       TOXENV: py36
       PY_COLORS: 0
+    install:
+      - python3.6
+      - python3.6-distutils
+      - python3.6-dev
 
-  tox-python3_9:
+  tox-python3_10:
     env:
-      TOXENV: py39
+      TOXENV: py310
       PY_COLORS: 0
     install:
-      - python3.9
-      - python3.9-distutils
-      - python3.9-dev
+      - python3.10
+      - python3.10-distutils
+      - python3.10-dev
 
   tests-affected:
     options:
@@ -167,7 +173,7 @@ tasks:
                 - trigger-push
             - vars:
                 # Chromium ToT
-                browser: chrome
+                browser: chromium
                 channel: nightly
               use:
                 - trigger-daily
@@ -255,7 +261,7 @@ tasks:
                 - trigger-push
             - vars:
                 # Chromium ToT
-                browser: chrome
+                browser: chromium
                 channel: nightly
               use:
                 - trigger-daily
@@ -411,22 +417,19 @@ tasks:
         - trigger-pr
         - tox-python3_6
       command: ./tools/ci/ci_tools_unittest.sh
-      install:
-        - python3.6
-        - python3.6-dev
       env:
         HYPOTHESIS_PROFILE: ci
       schedule-if:
         run-job:
           - tools_unittest
 
-  - tools/ unittests (Python 3.9):
+  - tools/ unittests (Python 3.10):
       description: >-
-        Unit tests for tools running under Python 3.9, excluding wptrunner
+        Unit tests for tools running under Python 3.10, excluding wptrunner
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_9
+        - tox-python3_10
       command: ./tools/ci/ci_tools_unittest.sh
       env:
         HYPOTHESIS_PROFILE: ci
@@ -444,8 +447,6 @@ tasks:
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
-        - python3.6
-        - python3.6-dev
       options:
         oom-killer: true
         browser:
@@ -458,13 +459,13 @@ tasks:
         run-job:
           - wpt_integration
 
-  - tools/ integration tests (Python 3.9):
+  - tools/ integration tests (Python 3.10):
       description: >-
-        Integration tests for tools running under Python 3.9
+        Integration tests for tools running under Python 3.10
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_9
+        - tox-python3_10
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
@@ -490,8 +491,6 @@ tasks:
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools
-        - python3.6
-        - python3.6-dev
       options:
         browser:
           - firefox
@@ -501,13 +500,13 @@ tasks:
         run-job:
           - resources_unittest
 
-  - resources/ tests (Python 3.9):
+  - resources/ tests (Python 3.10):
       description: >-
-        Tests for testharness.js and other files in resources/ under Python 3.9
+        Tests for testharness.js and other files in resources/ under Python 3.10
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_9
+        - tox-python3_10
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools

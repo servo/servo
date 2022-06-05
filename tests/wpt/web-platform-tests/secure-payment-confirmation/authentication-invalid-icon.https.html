@@ -34,6 +34,7 @@ promise_test(async t => {
       credentialIds: [credential.rawId],
       challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
       payeeOrigin,
+      rpId: window.location.hostname,
       timeout: 60000,
       instrument: {
         displayName,
@@ -41,6 +42,7 @@ promise_test(async t => {
       },
     }
   }], PAYMENT_DETAILS);
+  await test_driver.bless('user activation');
   await promise_rejects_dom(t, "NotSupportedError", request.show());
 
   // Now try an icon that cannot be decoded.
@@ -50,6 +52,7 @@ promise_test(async t => {
       credentialIds: [credential.rawId],
       challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
       payeeOrigin,
+      rpId: window.location.hostname,
       timeout: 60000,
       instrument: {
         displayName,
@@ -57,6 +60,50 @@ promise_test(async t => {
       },
     }
   }], PAYMENT_DETAILS);
+  await test_driver.bless('user activation');
   await promise_rejects_dom(t, "NotSupportedError", request.show());
 }, 'SPC authentication with an invalid icon');
+
+promise_test(async t => {
+  const authenticator = await window.test_driver.add_virtual_authenticator(
+    AUTHENTICATOR_OPTS);
+  t.add_cleanup(() => {
+    return window.test_driver.remove_virtual_authenticator(authenticator);
+  });
+
+  await window.test_driver.set_spc_transaction_mode("autoaccept");
+  t.add_cleanup(() => {
+    return window.test_driver.set_spc_transaction_mode("none");
+  });
+
+  const credential = await createCredential();
+
+  const challenge = 'server challenge';
+  const payeeOrigin = 'https://merchant.com';
+  const displayName = 'Troycard ***1234';
+
+  let request = new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      credentialIds: [credential.rawId],
+      challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+      payeeOrigin,
+      rpId: window.location.hostname,
+      timeout: 60000,
+      instrument: {
+        displayName,
+        icon: INVALID_ICON_URL,
+        iconMustBeShown: false,
+      },
+    }
+  }], PAYMENT_DETAILS);
+
+  await test_driver.bless('user activation');
+  const responsePromise = request.show();
+  const response = await responsePromise;
+  await response.complete('success');
+  const cred = response.details;
+  const clientDataJSON = JSON.parse(arrayBufferToString(cred.response.clientDataJSON));
+  assert_equals(clientDataJSON.payment.instrument.icon, '');
+}, 'SPC authentication allowing an invalid icon with iconMustBeShown option.');
 </script>

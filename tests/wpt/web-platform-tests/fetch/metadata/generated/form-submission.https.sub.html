@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<!--
+This test was procedurally generated. Please do not modify it directly.
+Sources:
+- fetch/metadata/tools/fetch-metadata.conf.yml
+- fetch/metadata/tools/templates/form-submission.sub.html
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <title>HTTP headers on request for HTML form navigation</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(method, url, userActivated) {
+    const windowName = String(Math.random());
+    const form = document.createElement('form');
+    const submit = document.createElement('input');
+    submit.setAttribute('type', 'submit');
+    form.appendChild(submit);
+    const win = open('about:blank', windowName);
+    form.setAttribute('method', method);
+    form.setAttribute('action', url);
+    form.setAttribute('target', windowName);
+    document.body.appendChild(form);
+
+    // Query parameters must be expressed as form values so that they are sent
+    // with the submission of forms whose method is POST.
+    Array.from(new URL(url, location.origin).searchParams)
+      .forEach(([name, value]) => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'hidden');
+        input.setAttribute('name', name);
+        input.setAttribute('value', value);
+        form.appendChild(input);
+      });
+
+    return new Promise((resolve) => {
+        addEventListener('message', function(event) {
+          if (event.source === win) {
+            resolve();
+          }
+        });
+
+        if (userActivated) {
+          test_driver.click(submit);
+        } else {
+          submit.click();
+        }
+      })
+      .then(() => {
+        form.remove();
+        win.close();
+      });
+  }
+  const responseParams = {
+    mime: 'text/html',
+    body: `<script>opener.postMessage('done', '*')</${''}script>`
+  };
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same origin - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same origin - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Same Origin - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Same Origin - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Same-Site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Same-Site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Cross-Site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-Site -> Cross-Site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same Origin - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same Origin - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same-Site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Same-Site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Same Origin - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Same Origin - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Same-Site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Same-Site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Cross-Site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Same-Site -> Cross-Site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - HTTPS downgrade-upgrade - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - HTTPS downgrade-upgrade - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['navigate']);
+        });
+  }, 'sec-fetch-mode - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['navigate']);
+        });
+  }, 'sec-fetch-mode - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['document']);
+        });
+  }, 'sec-fetch-dest - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['document']);
+        });
+  }, 'sec-fetch-dest - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        });
+  }, 'sec-fetch-user - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+    const userActivated = true;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-user');
+          assert_array_equals(headers['sec-fetch-user'], ['?1']);
+        });
+  }, 'sec-fetch-user - GET with user activation');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        });
+  }, 'sec-fetch-user - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+    const userActivated = true;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-user');
+          assert_array_equals(headers['sec-fetch-user'], ['?1']);
+        });
+  }, 'sec-fetch-user - POST with user activation');
+  </script>
+  </body>
+</html>

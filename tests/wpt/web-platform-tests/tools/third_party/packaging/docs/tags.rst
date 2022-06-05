@@ -150,6 +150,11 @@ to the implementation to provide.
           compatibility
 
 
+.. function:: platform_tags(version=None, arch=None)
+
+    Yields the :attr:`~Tag.platform` tags for the running interpreter.
+
+
 .. function:: compatible_tags(python_version=None, interpreter=None, platforms=None)
 
     Yields the tags for an interpreter compatible with the Python version
@@ -185,7 +190,7 @@ to the implementation to provide.
     user-provided ABIs via ``abis`` and the ``none`` ABI will be used.
 
     :param Sequence python_version: A one- or two-item sequence representing the
-                                 targetted Python version. Defaults to
+                                 targeted Python version. Defaults to
                                  ``sys.version_info[:2]``.
     :param Iterable abis: Iterable of compatible ABIs. Defaults to the ABIs
                           compatible with the current system.

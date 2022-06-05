@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Hit-testing with inert SVG</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<meta assert="assert" content="SVG inside element with inert attribute should be unreachable with hit-testing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id="wrapper">
+    <div inert id="svg-container">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+            <rect width="500" height="500" id="target" fill="red">
+        </svg>
+    </div>
+</div>
+
+<script>
+const wrapper = document.getElementById("wrapper");
+const target = document.getElementById("target");
+
+promise_test(async function() {
+    let reachedTarget = false;
+    target.addEventListener("mousedown", () => {
+        reachedTarget = true;
+    }, { once: true });
+
+    let reachedWrapper = false;
+    wrapper.addEventListener("mousedown", () => {
+        reachedWrapper = true;
+    }, { once: true });
+
+    await new test_driver.Actions()
+        .pointerMove(0, 0, { origin: wrapper })
+        .pointerDown()
+        .send();
+    this.add_cleanup(() => test_driver.click(document.body));
+
+    assert_false(target.matches(":active"), "target is not active");
+    assert_false(target.matches(":hover"), "target is not hovered");
+    assert_false(reachedTarget, "target didn't get event");
+
+    assert_true(wrapper.matches(":hover"), "wrapper is hovered");
+    assert_true(reachedWrapper, "wrapper got event");
+}, "Hit-testing doesn't reach contents of an inert SVG");
+
+promise_test(async function() {
+    document.querySelector("#svg-container").inert = false;
+
+    let reachedTarget = false;
+    target.addEventListener("mousedown", () => {
+        reachedTarget = true;
+    }, { once: true });
+
+    await new test_driver.Actions()
+        .pointerMove(0, 0, { origin: wrapper })
+        .pointerDown()
+        .send();
+    this.add_cleanup(() => test_driver.click(document.body));
+
+    assert_true(target.matches(":active"), "target is active");
+    assert_true(target.matches(":hover"), "target is hovered");
+    assert_true(reachedTarget, "target got event");
+
+    assert_true(wrapper.matches(":hover"), "wrapper is hovered");
+}, "Hit-testing can reach contents of a no longer inert SVG");
+</script>

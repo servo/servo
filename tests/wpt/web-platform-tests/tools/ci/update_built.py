@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import logging
 import os
 import subprocess
@@ -20,6 +22,7 @@ scripts = {
     #                    "css/css-text-decor/tools/generate-text-emphasis-position-property-tests.py",
     #                    "css/css-text-decor/tools/generate-text-emphasis-ruby-tests.py",
     #                    "css/css-text-decor/tools/generate-text-emphasis-style-property-tests.py"],
+    "fetch": ["fetch/metadata/tools/generate.py"],
     "html5lib": ["html/tools/update_html5lib_tests.py"],
     "infrastructure": ["infrastructure/assumptions/tools/ahem-generate-table.py"],
     "mimesniff": ["mimesniff/mime-types/resources/generated-mime-types.py"],

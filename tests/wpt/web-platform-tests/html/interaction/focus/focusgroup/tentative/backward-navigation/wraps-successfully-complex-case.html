@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus wraps from first to last focusgroup item, even though there are non items in the way.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup=wrap>
+  <div>
+    <span id=nonitem1>nonitem1</span>
+    <span id=nonitem2>nonitem2</span>
+  </div>
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=-1>item2</span>
+  <span id=item3 tabindex=-1>item3</span>
+  <div>
+    <span id=nonitem3>nonitem3</span>
+    <span id=nonitem4>nonitem4</span>
+  </div>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item3 = document.getElementById("item3");
+
+    await focusAndKeyPress(item1, kArrowUp);
+    assert_equals(document.activeElement, item3);
+
+    await focusAndKeyPress(item1, kArrowUp);
+    assert_equals(document.activeElement, item3);
+  }, "When the focus is set on the first item of an extending focusgroup while there are other non-item elements before, we should still be able to wrap to the last item. Also, if the last item has other non-item elements after itself, skipping these non-item elements shouldn't be an issue.");
+
+</script>

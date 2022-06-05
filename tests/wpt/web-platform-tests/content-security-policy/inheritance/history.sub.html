@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 
 <meta http-equiv="Content-Security-Policy" content="img-src 'none'">
 
 <script>
-  let message_from = (w, starts_with) => {
+  let message_from = (source_token, starts_with) => {
     return new Promise(resolve => {
       window.addEventListener('message', msg => {
-        if (msg.source == w) {
-          if (!starts_with || msg.data.startsWith(starts_with))
-            resolve(msg.data);
+        if (msg.data.token === source_token) {
+          if (!starts_with || msg.data.msg.startsWith(starts_with))
+            resolve(msg.data.msg);
         }
       });
     });
@@ -18,26 +19,30 @@
 
   const img_url = window.origin + "/content-security-policy/support/fail.png";
 
-  const function_addImage_string = `
+  const function_addImage_string = img_token => `
     function addImage() {
       let img = document.createElement('img');
       img.src = '${img_url}';
-      img.onload = () => opener.postMessage('img loaded', '*');
-      img.onerror = () => opener.postMessage('img blocked', '*');
+      img.onload = () => opener.postMessage(
+          {msg: 'img loaded', token: '${img_token}'}, '*');
+      img.onerror = () => opener.postMessage(
+          {msg: 'img blocked', token: '${img_token}'}, '*');
       document.body.appendChild(img);
     }
   `;
 
-  const img_tag_string = `
+  const img_tag_string = img_token => `
     <img src="${img_url}"
-         onload="opener.postMessage('img loaded', '*');"
-         onerror="opener.postMessage('img blocked', '*');"
+         onload="opener.postMessage(
+             {msg: 'img loaded', token: '${img_token}'}, '*');"
+         onerror="opener.postMessage(
+             {msg: 'img blocked', token: '${img_token}'}, '*');"
     >
   `;
 
-  let write_img_to_popup = (popup) => {
+  let write_img_to_popup = (popup, img_token) => {
     let div = popup.document.createElement('div');
-    div.innerHTML = img_tag_string;
+    div.innerHTML = img_tag_string(img_token);
     popup.document.body.appendChild(div);
   };
 
@@ -53,61 +58,65 @@
     });
   `;
 
-  const blob_payload = `
+  const blob_payload = blob_token => `
     <!doctype html>
-    <script>${function_addImage_string}</scr`+`ipt>
+    <script>window.window_token = "${blob_token}";</scr`+`ipt>
+    <script>${function_addImage_string(`${blob_token}`)}</scr`+`ipt>
     <body onpageshow="addImage();"></body>
   `;
-  let blob_url = URL.createObjectURL(
-    new Blob([blob_payload], { type: 'text/html' }));
+  let blob_url = blob_token => URL.createObjectURL(
+    new Blob([blob_payload(blob_token)], { type: 'text/html' }));
 
-  const blob_payload_no_bfcache = `
+  const blob_payload_no_bfcache = blob_token => `
     <!doctype html>
+    <script>window.window_token = "${blob_token}";</scr`+`ipt>
     <script>${disable_bfcache}</scr`+`ipt>
-    <script>${function_addImage_string}</scr`+`ipt>
+    <script>${function_addImage_string(`${blob_token}`)}</scr`+`ipt>
     <body onpageshow="addImage();"></body>
   `;
-  let blob_url_no_bfcache = URL.createObjectURL(
-    new Blob([blob_payload_no_bfcache], { type: 'text/html' }));
+  let blob_url_no_bfcache = blob_token => URL.createObjectURL(
+    new Blob([blob_payload_no_bfcache(blob_token)], { type: 'text/html' }));
 
   let testCases = [
-    {
+    test_token => ({
+      token: test_token,
       url: "about:blank",
-      add_img_function: write_img_to_popup,
+      add_img_function: popup => write_img_to_popup(popup, test_token),
       other_origin: window.origin,
       name: '"about:blank" document is navigated back from history same-origin.',
-    },
-    {
+    }),
+    test_token => ({
+      token: test_token,
       url: "about:blank",
-      add_img_function: write_img_to_popup,
+      add_img_function: popup => write_img_to_popup(popup, test_token),
       other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
       name: '"about:blank" document is navigated back from history cross-origin.',
-    },
-    {
-      url: blob_url,
-      add_img_function: () => {},
+    }),
+    test_token => ({
+      token: test_token,
+      url: blob_url(test_token),
       other_origin: window.origin,
       name: 'blob URL document is navigated back from history same-origin.',
-    },
-    {
-      url: blob_url,
-      add_img_function: () => {},
+    }),
+    test_token => ({
+      token: test_token,
+      url: blob_url(test_token),
       other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
       name: 'blob URL document is navigated back from history cross-origin.',
-    },
-    {
-      url: blob_url_no_bfcache,
-      add_img_function: () => {},
+    }),
+    test_token => ({
+      token: test_token,
+      url: blob_url_no_bfcache(test_token),
       other_origin: window.origin,
       name: 'blob URL document is navigated back from history (without bfcache on Firefox) same-origin.',
-    },
-    {
-      url: blob_url_no_bfcache,
-      add_img_function: () => {},
+    }),
+    test_token => ({
+      token: test_token,
+      url: blob_url_no_bfcache(test_token),
       other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
       name: 'blob URL document is navigated back from history (without bfcache on Firefox) cross-origin.',
-    },
-  ];
+    }),
+  ].map(f => f(token()));
 
   let async_promise_test = (promise, description) => {
     async_test(test => {
@@ -129,8 +138,11 @@
       // Perform a real navigation in the popup. This is needed because the
       // initial empty document is not stored in history (so there is no way of
       // navigating back to it and test history inheritance).
-      let loaded_1 = message_from(popup);
-      popup.location = testCase.other_origin + "/content-security-policy/inheritance/support/postmessage-opener.html";
+      const token_1 = token();
+      let loaded_1 = message_from(token_1);
+      popup.location = testCase.other_origin +
+        `/content-security-policy/inheritance/support` +
+        `/postmessage-opener.html?token=${token_1}`;
       assert_equals(await loaded_1, "ready",
                     "Could not open and navigate popup.");
 
@@ -147,19 +159,24 @@
         timeout=3000,
         interval=50);
 
-      let message = message_from(popup);
+      let message = message_from(testCase.token);
       popup.location = testCase.url;
       await wait();
+      if (testCase.add_img_function) {
+        testCase.add_img_function(popup);
+      }
 
-      testCase.add_img_function(popup);
       // Check that the local scheme document inherits CSP from the initiator.
       assert_equals(await message, "img blocked",
                     "Image should be blocked by CSP inherited from navigation initiator.");
 
-      let loaded_2 = message_from(popup, "ready");
-      let message_2 = message_from(popup, "img");
+      const token_2 = token();
+      let loaded_2 = message_from(token_2, "ready");
+      let message_2 = message_from(testCase.token, "img");
       // Navigate to another page, which will navigate back.
-      popup.location = testCase.other_origin + "/content-security-policy/inheritance/support/message-opener-and-navigate-back.html";
+      popup.location = testCase.other_origin +
+        `/content-security-policy/inheritance/support` +
+        `/message-opener-and-navigate-back.html?token=${token_2}`;
       assert_equals(await loaded_2, "ready",
                     "Could not navigate popup.");
 
@@ -168,7 +185,9 @@
 
       // Check that the "about:blank" document reloaded from history has the
       // original CSPs.
-      testCase.add_img_function(popup);
+      if (testCase.add_img_function) {
+        testCase.add_img_function(popup);
+      }
       assert_equals(await message_2, "img blocked",
                     "Image should be blocked by CSP reloaded from history.");
     }, "History navigation: " + testCase.name);

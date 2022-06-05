@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=popup popup>Popup</div>
+<div id=hint popup=hint>Hint</div>
+<div id=async popup=async>Async</div>
+<div id=async2 popup=async>Async</div>
+
+<script>
+function assert_state_1(popupOpen,hintOpen,asyncOpen,async2Open) {
+  assert_equals(popup.matches(':top-layer'),popupOpen,'popup open state is incorrect');
+  assert_equals(hint.matches(':top-layer'),hintOpen,'hint open state is incorrect');
+  assert_equals(async.matches(':top-layer'),asyncOpen,'async open state is incorrect');
+  assert_equals(async2.matches(':top-layer'),async2Open,'async2 open state is incorrect');
+}
+test(() => {
+  assert_state_1(false,false,false,false);
+  popup.showPopup();
+  assert_state_1(true,false,false,false);
+  hint.showPopup();
+  assert_state_1(true,true,false,false);
+  async.showPopup();
+  assert_state_1(true,true,true,false);
+  async2.showPopup();
+  assert_state_1(true,true,true,true);
+  hint.hidePopup();
+  assert_state_1(true,false,true,true);
+  popup.hidePopup();
+  assert_state_1(false,false,true,true);
+  popup.showPopup();
+  hint.showPopup();
+  assert_state_1(true,true,true,true);
+  popup.hidePopup();
+  assert_state_1(false,false,true,true);
+  async.hidePopup();
+  assert_state_1(false,false,false,true);
+  async2.hidePopup();
+  assert_state_1(false,false,false,false);
+},'hints and asyncs do not close popups');
+
+test(() => {
+  assert_state_1(false,false,false,false);
+  hint.showPopup();
+  async.showPopup();
+  async2.showPopup();
+  assert_state_1(false,true,true,true);
+  popup.showPopup();
+  assert_state_1(true,false,true,true);
+  popup.hidePopup();
+  assert_state_1(false,false,true,true);
+  async.hidePopup();
+  async2.hidePopup();
+  assert_state_1(false,false,false,false);
+},'popups close hints but not asyncs');
+</script>
+
+<div id=popup1 popup>Popup 1
+  <div id=popup2 popup>Popup 2
+    <p id=anchorid>Anchor</p>
+    <div id=popup3 popup>Popup 3</div>
+  </div>
+</div>
+<div id=hint2 popup=hint anchor=anchorid>Hint anchored to popup</div>
+<script>
+function assert_state_2(popup1Open,popup2Open,popup3Open,hintOpen) {
+  assert_equals(popup1.matches(':top-layer'),popup1Open,'popup1 open state is incorrect');
+  assert_equals(popup2.matches(':top-layer'),popup2Open,'popup2 open state is incorrect');
+  assert_equals(popup3.matches(':top-layer'),popup3Open,'popup3 open state is incorrect');
+  assert_equals(hint2.matches(':top-layer'),hintOpen,'hint2 open state is incorrect');
+}
+test(() => {
+  assert_state_2(false,false,false,false);
+  popup1.showPopup();
+  popup2.showPopup();
+  popup3.showPopup();
+  assert_state_2(true,true,true,false);
+  hint2.showPopup();
+  assert_state_2(true,true,true,true);
+  popup3.hidePopup(); // Should close the hint
+  assert_state_2(true,true,false,false);
+  popup1.hidePopup();
+  assert_state_2(false,false,false,false);
+},'hint, even with popup ancestor, closes with first popup');
+</script>

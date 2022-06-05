@@ -8,6 +8,11 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/css/support/interpolation-testcommon.js"></script>
+    <style>
+      .parent {
+        grid-template-rows: 10px 20px 30px;
+      }
+    </style>
   </head>
   <body>
     <script>
@@ -115,6 +120,58 @@
         {at: 0.6, expect: "minmax(16px, 1.6fr) minmax(26px, auto)"},
         {at: 1, expect: "minmax(20px, 2fr) minmax(30px, auto)"},
         {at: 2, expect: "minmax(30px, 3fr) minmax(40px, auto)"}
+      ]);
+
+      test_interpolation({
+        property: 'grid-template-rows',
+        from: "10px 10px 10px",
+        to: "1fr fit-content(20px) minmax(20px, 2fr)"
+      }, [
+        {at: -1, expect: "10px 10px 10px"},
+        {at: 0, expect: "10px 10px 10px"},
+        {at: 0.4, expect: "10px 10px 10px"},
+        {at: 0.6, expect: "1fr fit-content(20px) minmax(20px, 2fr)"},
+        {at: 1, expect: "1fr fit-content(20px) minmax(20px, 2fr)"},
+        {at: 2, expect: "1fr fit-content(20px) minmax(20px, 2fr)"}
+      ]);
+
+      test_interpolation({
+        property: 'grid-template-rows',
+        from: "1fr 1fr 1fr",
+        to: "20px fit-content(20px) minmax(20px, 2fr)"
+      }, [
+        {at: -1, expect: "1fr 1fr 1fr"},
+        {at: 0, expect: "1fr 1fr 1fr"},
+        {at: 0.4, expect: "1fr 1fr 1fr"},
+        {at: 0.6, expect: "20px fit-content(20px) minmax(20px, 2fr)"},
+        {at: 1, expect: "20px fit-content(20px) minmax(20px, 2fr)"},
+        {at: 2, expect: "20px fit-content(20px) minmax(20px, 2fr)"}
+      ]);
+
+      test_interpolation({
+        property: 'grid-template-rows',
+        from: "fit-content(10px)",
+        to: "minmax(20px, 2fr)"
+      }, [
+        {at: -1, expect: "fit-content(10px)"},
+        {at: 0, expect: "fit-content(10px)"},
+        {at: 0.4, expect: "fit-content(10px)"},
+        {at: 0.6, expect: "minmax(20px, 2fr)"},
+        {at: 1, expect: "minmax(20px, 2fr)"},
+        {at: 2, expect: "minmax(20px, 2fr)"}
+      ]);
+
+      test_interpolation({
+        property: 'grid-template-rows',
+        from: "inherit",
+        to: "20px 30px 40px"
+      }, [
+        {at: -1, expect: "0px 10px 20px"},
+        {at: 0, expect: "10px 20px 30px"},
+        {at: 0.4, expect: "14px 24px 34px"},
+        {at: 0.6, expect: "16px 26px 36px"},
+        {at: 1, expect: "20px 30px 40px"},
+        {at: 2, expect: "30px 40px 50px"}
       ]);
 
       // Exercise <track-list> (with <track-repeat>)

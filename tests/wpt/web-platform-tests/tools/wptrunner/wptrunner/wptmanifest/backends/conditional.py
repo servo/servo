@@ -1,11 +1,12 @@
+# mypy: allow-untyped-defs
+
 import operator
-from six import ensure_text
 
 from ..node import NodeVisitor, DataNode, ConditionalNode, KeyValueNode, ListNode, ValueNode, BinaryExpressionNode, VariableNode
 from ..parser import parse
 
 
-class ConditionalValue(object):
+class ConditionalValue:
     def __init__(self, node, condition_func):
         self.node = node
         assert callable(condition_func)
@@ -41,9 +42,6 @@ class ConditionalValue(object):
 
     def __call__(self, run_info):
         return self.condition_func(run_info)
-
-    def set_value(self, value):
-        self.value = ensure_text(value)
 
     def value_as(self, type_func):
         """Get value and convert to a given type.
@@ -213,7 +211,7 @@ class Compiler(NodeVisitor):
                 "!=": operator.ne}[node.data]
 
 
-class ManifestItem(object):
+class ManifestItem:
     def __init__(self, node=None, **kwargs):
         self.node = node
         self.parent = None
@@ -235,8 +233,7 @@ class ManifestItem(object):
     def __iter__(self):
         yield self
         for child in self.children:
-            for node in child:
-                yield node
+            yield from child
 
     @property
     def is_empty(self):
@@ -374,12 +371,10 @@ class ManifestItem(object):
         return rv
 
     def iteritems(self):
-        for item in self._flatten().items():
-            yield item
+        yield from self._flatten().items()
 
     def iterkeys(self):
-        for item in self._flatten().keys():
-            yield item
+        yield from self._flatten().keys()
 
     def iter_properties(self):
         for item in self._data:

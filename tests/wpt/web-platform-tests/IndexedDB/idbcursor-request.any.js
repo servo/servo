@@ -1,4 +1,4 @@
-// META: script=support.js
+// META: script=resources/support.js
 
 function cursorRequestTest({ useIndex, useKeyCursor }) {
   indexeddb_test(

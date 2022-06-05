@@ -47,6 +47,7 @@ window.onload = async function() {
         },
       }
     };
+    await window.test_driver.bless('user activation');
     await navigator.credentials.create({
       publicKey
     });

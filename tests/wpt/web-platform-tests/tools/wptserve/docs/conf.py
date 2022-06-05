@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # wptserve documentation build configuration file, created by
 # sphinx-quickstart on Wed Aug 14 17:23:24 2013.
@@ -41,8 +40,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'wptserve'
-copyright = u'2013, Mozilla Foundation and other wptserve contributers'
+project = 'wptserve'
+copyright = '2013, Mozilla Foundation and other wptserve contributers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -184,8 +183,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'wptserve.tex', u'wptserve Documentation',
-   u'James Graham', 'manual'),
+  ('index', 'wptserve.tex', 'wptserve Documentation',
+   'James Graham', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -214,8 +213,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'wptserve', u'wptserve Documentation',
-     [u'James Graham'], 1)
+    ('index', 'wptserve', 'wptserve Documentation',
+     ['James Graham'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -228,8 +227,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'wptserve', u'wptserve Documentation',
-   u'James Graham', 'wptserve', 'One line description of project.',
+  ('index', 'wptserve', 'wptserve Documentation',
+   'James Graham', 'wptserve', 'One line description of project.',
    'Miscellaneous'),
 ]
 

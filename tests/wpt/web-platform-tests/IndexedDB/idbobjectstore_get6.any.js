@@ -1,5 +1,5 @@
 // META: title=IDBObjectStore.get() - throw TransactionInactiveError on aborted transaction
-// META: script=support.js
+// META: script=resources/support.js
 // @author YuichiNukiyama <https://github.com/YuichiNukiyama>
 
 "use strict";

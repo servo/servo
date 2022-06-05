@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+
+<div class=topmost></div>
+<div class=fakepopup>This is a popup</div>
+
+<style>
+  .fakepopup {
+    /* Per spec: */
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* Per settings in test file: */
+    width: fit-content;
+    height: fit-content;
+    border: 1px solid;
+    padding: 1em;
+    margin: 1em;
+    background: white;
+    color: black;
+  }
+  .topmost {
+    position:fixed;
+    top:0;
+    left:0;
+    width:1000px;
+    height:1000px;
+    background:green;
+    margin:0;
+    padding:0;
+  }
+</style>
