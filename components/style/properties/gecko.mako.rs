@@ -1046,7 +1046,7 @@ fn static_assert() {
 
         for (ours, others) in iter {
             % if member:
-            ours.m${gecko_ffi_name}.${member} = others.m${gecko_ffi_name}.${member};
+            ours.m${gecko_ffi_name}.${member} = others.m${gecko_ffi_name}.${member}.clone();
             % else:
             ours.m${gecko_ffi_name} = others.m${gecko_ffi_name}.clone();
             % endif
@@ -1111,7 +1111,7 @@ fn static_assert() {
     ${impl_copy_animation_or_transition_value(type, 'timing_function', "TimingFunction", "mTiming")}
     pub fn ${type}_timing_function_at(&self, index: usize)
         -> longhands::${type}_timing_function::computed_value::SingleComputedValue {
-        self.gecko.m${type.capitalize()}s[index].mTimingFunction.mTiming
+        self.gecko.m${type.capitalize()}s[index].mTimingFunction.mTiming.clone()
     }
 </%def>
 
