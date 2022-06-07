@@ -6,7 +6,6 @@
 //! change in order to properly calculate restyle hints.
 
 use crate::dom::TElement;
-use crate::element_state::ElementState;
 use crate::gecko::snapshot_helpers;
 use crate::gecko::wrapper::{GeckoElement, NamespaceConstraintHelpers};
 use crate::gecko_bindings::bindings;
@@ -19,6 +18,7 @@ use crate::string_cache::{Atom, Namespace};
 use crate::values::{AtomIdent, AtomString};
 use crate::LocalName;
 use crate::WeakAtom;
+use dom::ElementState;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 
