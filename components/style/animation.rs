@@ -10,6 +10,7 @@
 use crate::bezier::Bezier;
 use crate::context::{CascadeInputs, SharedStyleContext};
 use crate::dom::{OpaqueNode, TDocument, TElement, TNode};
+use crate::piecewise_linear::PiecewiseLinearFunction;
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use crate::properties::longhands::animation_fill_mode::computed_value::single_value::T as AnimationFillMode;
@@ -26,6 +27,7 @@ use crate::style_resolver::StyleResolverForElement;
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use crate::stylesheets::layer_rule::LayerOrder;
 use crate::values::animated::{Animate, Procedure};
+use crate::values::computed::easing::ComputedLinearStop;
 use crate::values::computed::{Time, TimingFunction};
 use crate::values::generics::box_::AnimationIterationCount;
 use crate::values::generics::easing::{
@@ -127,9 +129,16 @@ impl PropertyAnimation {
 
                 (current_step as f64) / (jumps as f64)
             },
-            GenericTimingFunction::LinearFunction(_elements) => {
-                // TODO(dshin): To be implemented (bug 1764126)
-                progress
+            GenericTimingFunction::LinearFunction(elements) => {
+                // TODO(dshin): For servo, which uses this code path, constructing the function
+                // every time the animation advances seem... expensive.
+                PiecewiseLinearFunction::from_iter(
+                    elements
+                        .iter()
+                        .map(ComputedLinearStop::to_piecewise_linear_build_parameters),
+                )
+                .at(progress as f32)
+                .into()
             },
             GenericTimingFunction::Keyword(keyword) => {
                 let bezier = match keyword {
@@ -367,7 +376,8 @@ impl ComputedKeyframe {
             let properties_changed_in_step = step.declarations.longhands().clone();
             let step_timing_function = step.timing_function.clone();
             let step_style = step.resolve_style(element, context, base_style, resolver);
-            let timing_function = step_timing_function.unwrap_or_else(|| default_timing_function.clone());
+            let timing_function =
+                step_timing_function.unwrap_or_else(|| default_timing_function.clone());
 
             let values = {
                 // If a value is not set in a property declaration we use the value from
