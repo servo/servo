@@ -4,11 +4,14 @@
 
 //! Computed types for CSS Easing functions.
 
-use crate::values::computed::{Integer, Number};
+use crate::values::computed::{Integer, Number, Percentage};
 use crate::values::generics::easing;
 
 /// A computed timing function.
-pub type ComputedTimingFunction = easing::TimingFunction<Integer, Number>;
+pub type ComputedTimingFunction = easing::TimingFunction<Integer, Number, Percentage>;
 
 /// An alias of the computed timing function.
 pub type TimingFunction = ComputedTimingFunction;
+
+/// A computed linear easing entry.
+pub type ComputedLinearStop = easing::LinearStop<Number, Percentage>;

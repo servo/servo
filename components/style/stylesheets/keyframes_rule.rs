@@ -331,7 +331,7 @@ impl KeyframesStep {
                 match *declaration {
                     PropertyDeclaration::AnimationTimingFunction(ref value) => {
                         // Use the first value.
-                        Some(value.0[0])
+                        Some(value.0[0].clone())
                     },
                     PropertyDeclaration::CSSWideKeyword(..) => None,
                     PropertyDeclaration::WithVariables(..) => None,

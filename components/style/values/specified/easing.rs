@@ -3,18 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Specified types for CSS Easing functions.
-
 use crate::parser::{Parse, ParserContext};
+use crate::values::computed::easing::ComputedLinearStop;
 use crate::values::computed::easing::TimingFunction as ComputedTimingFunction;
+use crate::values::computed::Percentage as ComputedPercentage;
 use crate::values::generics::easing::TimingFunction as GenericTimingFunction;
 use crate::values::generics::easing::{StepPosition, TimingKeyword};
-use crate::values::specified::{Integer, Number};
+use crate::values::specified::{Integer, Number, Percentage};
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
+use std::iter::FromIterator;
 use style_traits::{ParseError, StyleParseErrorKind};
 
 /// A specified timing function.
-pub type TimingFunction = GenericTimingFunction<Integer, Number>;
+pub type TimingFunction = GenericTimingFunction<Integer, Number, Percentage>;
 
 impl Parse for TimingFunction {
     fn parse<'i, 't>(
@@ -88,9 +90,9 @@ impl Parse for TimingFunction {
 impl TimingFunction {
     /// Generate the ComputedTimingFunction without Context.
     pub fn to_computed_value_without_context(&self) -> ComputedTimingFunction {
-        match *self {
+        match &self {
             GenericTimingFunction::Steps(steps, pos) => {
-                GenericTimingFunction::Steps(steps.value(), pos)
+                GenericTimingFunction::Steps(steps.value(), *pos)
             },
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 GenericTimingFunction::CubicBezier {
@@ -100,7 +102,23 @@ impl TimingFunction {
                     y2: y2.get(),
                 }
             },
-            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(keyword),
+            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(*keyword),
+            GenericTimingFunction::LinearFunction(steps) => {
+                let iter = steps.iter().map(|e| ComputedLinearStop {
+                    output: e.output.get(),
+                    input_start: e
+                        .input_start
+                        .into_rust()
+                        .map(|x| ComputedPercentage(x.get()))
+                        .into(),
+                    input_end: e
+                        .input_end
+                        .into_rust()
+                        .map(|x| ComputedPercentage(x.get()))
+                        .into(),
+                });
+                GenericTimingFunction::LinearFunction(crate::OwnedSlice::from_iter(iter))
+            },
         }
     }
 }

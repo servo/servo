@@ -88,16 +88,16 @@ impl PropertyAnimation {
     /// The output of the timing function given the progress ration of this animation.
     fn timing_function_output(&self, progress: f64) -> f64 {
         let epsilon = 1. / (200. * self.duration);
-        match self.timing_function {
+        match &self.timing_function {
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
-                Bezier::new(x1, y1, x2, y2).solve(progress, epsilon)
+                Bezier::new(*x1, *y1, *x2, *y2).solve(progress, epsilon)
             },
             GenericTimingFunction::Steps(steps, pos) => {
-                let mut current_step = (progress * (steps as f64)).floor() as i32;
+                let mut current_step = (progress * (*steps as f64)).floor() as i32;
 
-                if pos == StepPosition::Start ||
-                    pos == StepPosition::JumpStart ||
-                    pos == StepPosition::JumpBoth
+                if *pos == StepPosition::Start ||
+                    *pos == StepPosition::JumpStart ||
+                    *pos == StepPosition::JumpBoth
                 {
                     current_step = current_step + 1;
                 }
@@ -113,12 +113,12 @@ impl PropertyAnimation {
                 }
 
                 let jumps = match pos {
-                    StepPosition::JumpBoth => steps + 1,
-                    StepPosition::JumpNone => steps - 1,
+                    StepPosition::JumpBoth => *steps + 1,
+                    StepPosition::JumpNone => *steps - 1,
                     StepPosition::JumpStart |
                     StepPosition::JumpEnd |
                     StepPosition::Start |
-                    StepPosition::End => steps,
+                    StepPosition::End => *steps,
                 };
 
                 if progress <= 1.0 && current_step > jumps {
@@ -126,6 +126,10 @@ impl PropertyAnimation {
                 }
 
                 (current_step as f64) / (jumps as f64)
+            },
+            GenericTimingFunction::LinearFunction(_elements) => {
+                // TODO(dshin): To be implemented (bug 1764126)
+                progress
             },
             GenericTimingFunction::Keyword(keyword) => {
                 let bezier = match keyword {
@@ -360,9 +364,10 @@ impl ComputedKeyframe {
         let mut computed_steps: Vec<Self> = Vec::with_capacity(intermediate_steps.len());
         for (step_index, step) in intermediate_steps.into_iter().enumerate() {
             let start_percentage = step.start_percentage;
-            let timing_function = step.timing_function.unwrap_or(default_timing_function);
             let properties_changed_in_step = step.declarations.longhands().clone();
+            let step_timing_function = step.timing_function.clone();
             let step_style = step.resolve_style(element, context, base_style, resolver);
+            let timing_function = step_timing_function.unwrap_or_else(|| default_timing_function.clone());
 
             let values = {
                 // If a value is not set in a property declaration we use the value from
@@ -741,7 +746,7 @@ impl Animation {
             let animation = PropertyAnimation {
                 from: from.clone(),
                 to: to.clone(),
-                timing_function: prev_keyframe.timing_function,
+                timing_function: prev_keyframe.timing_function.clone(),
                 duration: duration_between_keyframes as f64,
             };
 
