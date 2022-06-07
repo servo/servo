@@ -67,10 +67,10 @@ bitflags! {
         const VALID = 1 << 10;
         /// <https://html.spec.whatwg.org/multipage/#selector-invalid>
         const INVALID = 1 << 11;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-ui-valid
-        const MOZ_UI_VALID = 1 << 12;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-ui-invalid
-        const MOZ_UI_INVALID = 1 << 13;
+        /// <https://drafts.csswg.org/selectors-4/#user-valid-pseudo>
+        const USER_VALID = 1 << 12;
+        /// <https://drafts.csswg.org/selectors-4/#user-invalid-pseudo>
+        const USER_INVALID = 1 << 13;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-broken
         const BROKEN = 1 << 14;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-loading
