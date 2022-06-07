@@ -8,7 +8,6 @@
 use crate::context::SharedStyleContext;
 use crate::data::ElementData;
 use crate::dom::TElement;
-use crate::element_state::ElementState;
 use crate::invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use crate::invalidation::element::invalidation_map::*;
 use crate::invalidation::element::invalidator::{DescendantInvalidationLists, InvalidationVector};
@@ -18,6 +17,7 @@ use crate::selector_map::SelectorMap;
 use crate::selector_parser::Snapshot;
 use crate::stylesheets::origin::OriginSet;
 use crate::{Atom, WeakAtom};
+use dom::ElementState;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{matches_selector, MatchingContext, MatchingMode, VisitedHandlingMode, NeedsSelectorFlags};
 use selectors::NthIndexCache;
@@ -201,7 +201,7 @@ where
         // TODO(emilio): This piece of code should be removed when
         // layout.css.always-repaint-on-unvisited is true, since we cannot get
         // into this situation in that case.
-        if state_changes.contains(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
+        if state_changes.contains(ElementState::VISITED_OR_UNVISITED) {
             trace!(" > visitedness change, force subtree restyle");
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints for siblings.

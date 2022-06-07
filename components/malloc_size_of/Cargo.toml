@@ -33,6 +33,7 @@ app_units = { workspace = true }
 content-security-policy = { workspace = true, optional = true }
 crossbeam-channel = { workspace = true, optional = true }
 cssparser = { workspace = true }
+dom = { path = "../../../dom/base/rust" }
 euclid = { workspace = true }
 http = { workspace = true, optional = true }
 hyper_serde = { workspace = true, optional = true }

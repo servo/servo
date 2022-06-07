@@ -89,7 +89,6 @@ pub mod data;
 pub mod dom;
 pub mod dom_apis;
 pub mod driver;
-pub mod element_state;
 #[cfg(feature = "servo")]
 mod encoding_support;
 pub mod error_reporting;

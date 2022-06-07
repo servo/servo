@@ -6,11 +6,11 @@
 
 #![deny(missing_docs)]
 
-use crate::element_state::ElementState;
 use crate::stylesheets::{Namespaces, Origin, UrlExtraData};
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
 use cssparser::{Parser as CssParser, ParserInput};
+use dom::ElementState;
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -220,8 +220,8 @@ impl Direction {
     /// Gets the element state relevant to this :dir() selector.
     pub fn element_state(&self) -> ElementState {
         match self.as_horizontal_direction() {
-            Some(HorizontalDirection::Ltr) => ElementState::IN_LTR_STATE,
-            Some(HorizontalDirection::Rtl) => ElementState::IN_RTL_STATE,
+            Some(HorizontalDirection::Ltr) => ElementState::LTR,
+            Some(HorizontalDirection::Rtl) => ElementState::RTL,
             None => ElementState::empty(),
         }
     }

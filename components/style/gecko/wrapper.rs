@@ -19,7 +19,7 @@ use crate::author_styles::AuthorStyles;
 use crate::context::{PostAnimationTasks, QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use crate::data::ElementData;
 use crate::dom::{LayoutIterator, NodeInfo, OpaqueNode, TDocument, TElement, TNode, TShadowRoot};
-use crate::element_state::{DocumentState, ElementState};
+use dom::{DocumentState, ElementState};
 use crate::gecko::data::GeckoStyleSheet;
 use crate::gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::gecko::snapshot_helpers;
@@ -732,14 +732,14 @@ impl<'le> GeckoElement<'le> {
             .as_node()
             .get_bool_flag(nsINode_BooleanFlag::ElementHasLockedStyleStates)
         {
-            return self.0.mState.mStates;
+            return self.0.mState.bits;
         }
         unsafe { Gecko_ElementState(self.0) }
     }
 
     #[inline]
     fn document_state(&self) -> DocumentState {
-        DocumentState::from_bits_truncate(self.as_node().owner_doc().0.mDocumentState.mStates)
+        DocumentState::from_bits_truncate(self.as_node().owner_doc().0.mDocumentState.bits)
     }
 
     #[inline]
@@ -1336,7 +1336,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn is_visited_link(&self) -> bool {
-        self.state().intersects(ElementState::IN_VISITED_STATE)
+        self.state().intersects(ElementState::VISITED)
     }
 
     /// This logic is duplicated in Gecko's nsINode::IsInNativeAnonymousSubtree.
@@ -2107,8 +2107,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_link(&self) -> bool {
-        self.state()
-            .intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE)
+        self.state().intersects(ElementState::VISITED_OR_UNVISITED)
     }
 
     #[inline]
