@@ -4,6 +4,7 @@
 
 //! Computed types for CSS Easing functions.
 
+use crate::piecewise_linear::PiecewiseLinearFunctionBuildParameters;
 use crate::values::computed::{Integer, Number, Percentage};
 use crate::values::generics::easing;
 
@@ -15,3 +16,16 @@ pub type TimingFunction = ComputedTimingFunction;
 
 /// A computed linear easing entry.
 pub type ComputedLinearStop = easing::LinearStop<Number, Percentage>;
+
+impl ComputedLinearStop {
+    /// Convert this type to entries that can be used to build PiecewiseLinearFunction.
+    pub fn to_piecewise_linear_build_parameters(
+        x: &ComputedLinearStop,
+    ) -> PiecewiseLinearFunctionBuildParameters {
+        (
+            x.output,
+            x.input_start.into_rust().map(|x| x.0),
+            x.input_end.into_rust().map(|x| x.0),
+        )
+    }
+}

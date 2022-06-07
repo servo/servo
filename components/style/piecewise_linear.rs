@@ -13,7 +13,7 @@ type ValueType = CSSFloat;
 /// a single entry in a piecewise linear function.
 #[derive(Clone, Copy)]
 #[repr(C)]
-struct Entry {
+struct PiecewiseLinearFunctionEntry {
     x: ValueType,
     y: ValueType,
 }
@@ -22,12 +22,20 @@ struct Entry {
 #[derive(Default)]
 #[repr(C)]
 pub struct PiecewiseLinearFunction {
-    entries: crate::OwnedSlice<Entry>,
+    entries: crate::OwnedSlice<PiecewiseLinearFunctionEntry>,
 }
+
+/// Parameters to define one linear stop.
+pub type PiecewiseLinearFunctionBuildParameters = (CSSFloat, Option<CSSFloat>, Option<CSSFloat>);
 
 impl PiecewiseLinearFunction {
     /// Interpolate y value given x and two points. The linear function will be rooted at the asymptote.
-    fn interpolate(x: ValueType, prev: Entry, next: Entry, asymptote: &Entry) -> ValueType {
+    fn interpolate(
+        x: ValueType,
+        prev: PiecewiseLinearFunctionEntry,
+        next: PiecewiseLinearFunctionEntry,
+        asymptote: &PiecewiseLinearFunctionEntry,
+    ) -> ValueType {
         // Line is vertical, or the two points are identical. Avoid infinite slope by pretending
         // the line is flat.
         if prev.x.approx_eq(&next.x) {
@@ -82,6 +90,18 @@ impl PiecewiseLinearFunction {
         }
         unreachable!("Input is supposed to be within the entries' min & max!");
     }
+
+    /// Create the piecewise linear function from an iterator that generates the parameter tuple.
+    pub fn from_iter<Iter>(iter: Iter) -> Self
+    where
+        Iter: Iterator<Item = PiecewiseLinearFunctionBuildParameters> + ExactSizeIterator,
+    {
+        let mut builder = PiecewiseLinearFunctionBuilder::with_capacity(iter.len());
+        for (y, x_start, x_end) in iter {
+            builder = builder.push(y, x_start, x_end);
+        }
+        builder.build()
+    }
 }
 
 /// Entry of a piecewise linear function while building, where the calculation of x value can be deferred.
@@ -103,6 +123,15 @@ impl PiecewiseLinearFunctionBuilder {
     #[allow(missing_docs)]
     pub fn new() -> Self {
         PiecewiseLinearFunctionBuilder::default()
+    }
+
+    /// Create a builder for a known amount of linear stop entries.
+    pub fn with_capacity(len: usize) -> Self {
+        PiecewiseLinearFunctionBuilder {
+            largest_x: None,
+            smallest_x: None,
+            entries: Vec::with_capacity(len),
+        }
     }
 
     fn create_entry(&mut self, y: ValueType, x: Option<ValueType>) {
@@ -148,7 +177,7 @@ impl PiecewiseLinearFunctionBuilder {
         if self.entries.len() == 1 {
             // Don't bother resolving anything.
             return PiecewiseLinearFunction {
-                entries: crate::OwnedSlice::from_slice(&[Entry {
+                entries: crate::OwnedSlice::from_slice(&[PiecewiseLinearFunctionEntry {
                     x: 0.,
                     y: self.entries[0].y,
                 }]),
@@ -173,7 +202,7 @@ impl PiecewiseLinearFunctionBuilder {
             .get_or_insert(self.largest_x.filter(|x| x > &1.0).unwrap_or(1.0));
 
         let mut result = Vec::with_capacity(self.entries.len());
-        result.push(Entry {
+        result.push(PiecewiseLinearFunctionEntry {
             x: self.entries[0].x.unwrap(),
             y: self.entries[0].y,
         });
@@ -199,14 +228,14 @@ impl PiecewiseLinearFunctionBuilder {
                         .enumerate()
                         .map(|(j, e)| {
                             debug_assert!(e.x.is_none(), "Expected an entry with x undefined!");
-                            Entry {
+                            PiecewiseLinearFunctionEntry {
                                 x: increment * (j + 1) as ValueType + start_x,
                                 y: e.y,
                             }
                         }),
                 );
             }
-            result.push(Entry {
+            result.push(PiecewiseLinearFunctionEntry {
                 x: e.x.unwrap(),
                 y: e.y,
             });
