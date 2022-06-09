@@ -407,24 +407,24 @@ where
             }
         });
 
-        let state_changes = self.state_changes;
-        if !state_changes.is_empty() {
-            self.collect_state_dependencies(&map.state_affecting_selectors, state_changes)
-        }
+        self.collect_state_dependencies(&map.state_affecting_selectors)
     }
 
     fn collect_state_dependencies(
         &mut self,
         map: &'selectors SelectorMap<StateDependency>,
-        state_changes: ElementState,
     ) {
+        if self.state_changes.is_empty() {
+            return;
+        }
         map.lookup_with_additional(
             self.lookup_element,
             self.matching_context.quirks_mode(),
             self.removed_id,
             self.classes_removed,
+            self.state_changes,
             |dependency| {
-                if !dependency.state.intersects(state_changes) {
+                if !dependency.state.intersects(self.state_changes) {
                     return true;
                 }
                 self.scan_dependency(&dependency.dep);
