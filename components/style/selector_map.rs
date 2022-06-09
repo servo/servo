@@ -10,9 +10,10 @@ use crate::context::QuirksMode;
 use crate::dom::TElement;
 use crate::rule_tree::CascadeLevel;
 use crate::selector_parser::SelectorImpl;
-use crate::stylist::{Stylist, CascadeData, Rule, ContainerConditionId};
+use crate::stylist::{CascadeData, ContainerConditionId, Rule, Stylist};
 use crate::AllocErr;
 use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
+use dom::ElementState;
 use precomputed_hash::PrecomputedHash;
 use selectors::matching::{matches_selector, MatchingContext};
 use selectors::parser::{Combinator, Component, SelectorIter};
@@ -32,6 +33,22 @@ impl Default for PrecomputedHasher {
         Self { hash: None }
     }
 }
+
+/// This is a set of pseudo-classes that are both relatively-rare (they don't
+/// affect most elements by default) and likely or known to have global rules
+/// (in e.g., the UA sheets).
+///
+/// We can avoid selector-matching those global rules for all elements without
+/// these pseudo-class states.
+const RARE_PSEUDO_CLASS_STATES: ElementState = ElementState::from_bits_truncate(
+    ElementState::FULLSCREEN.bits() |
+    ElementState::VISITED_OR_UNVISITED.bits() |
+    ElementState::URLTARGET.bits() |
+    ElementState::INERT.bits() |
+    ElementState::FOCUS.bits() |
+    ElementState::FOCUSRING.bits() |
+    ElementState::TOPMOST_MODAL.bits()
+);
 
 /// A simple alias for a hashmap using PrecomputedHasher.
 pub type PrecomputedHashMap<K, V> = HashMap<K, V, BuildHasherDefault<PrecomputedHasher>>;
@@ -107,6 +124,8 @@ pub struct SelectorMap<T: 'static> {
     pub attribute_hash: PrecomputedHashMap<LocalName, SmallVec<[T; 1]>>,
     /// A hash from namespace to rules which contain that namespace selector.
     pub namespace_hash: PrecomputedHashMap<Namespace, SmallVec<[T; 1]>>,
+    /// Rules for pseudo-states that are rare but have global selectors.
+    pub rare_pseudo_classes: SmallVec<[T; 1]>,
     /// All other rules.
     pub other: SmallVec<[T; 1]>,
     /// Whether we should bucket by attribute names.
@@ -132,6 +151,7 @@ impl<T> SelectorMap<T> {
             attribute_hash: HashMap::default(),
             local_name_hash: HashMap::default(),
             namespace_hash: HashMap::default(),
+            rare_pseudo_classes: SmallVec::new(),
             other: SmallVec::new(),
             #[cfg(feature = "gecko")]
             bucket_attributes: static_prefs::pref!("layout.css.bucket-attribute-names.enabled"),
@@ -166,6 +186,7 @@ impl<T> SelectorMap<T> {
         self.attribute_hash.clear();
         self.local_name_hash.clear();
         self.namespace_hash.clear();
+        self.rare_pseudo_classes.clear();
         self.other.clear();
         self.count = 0;
     }
@@ -270,6 +291,18 @@ impl SelectorMap<Rule> {
                 cascade_data,
                 stylist,
             )
+        }
+
+        if rule_hash_target.state().intersects(RARE_PSEUDO_CLASS_STATES) {
+            SelectorMap::get_matching_rules(
+                element,
+                &self.rare_pseudo_classes,
+                matching_rules_list,
+                matching_context,
+                cascade_level,
+                cascade_data,
+                stylist,
+            );
         }
 
         if let Some(rules) = self.namespace_hash.get(rule_hash_target.namespace()) {
@@ -385,6 +418,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
                         self.namespace_hash.try_reserve(1)?;
                         self.namespace_hash.entry(url.clone()).or_default()
                     },
+                    Bucket::RarePseudoClasses => &mut self.rare_pseudo_classes,
                     Bucket::Universal => &mut self.other,
                 };
                 vec.try_reserve(1)?;
@@ -443,8 +477,22 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     ///
     /// FIXME(bholley) This overlaps with SelectorMap<Rule>::get_all_matching_rules,
     /// but that function is extremely hot and I'd rather not rearrange it.
+    pub fn lookup<'a, E, F>(&'a self, element: E, quirks_mode: QuirksMode, f: F) -> bool
+    where
+        E: TElement,
+        F: FnMut(&'a T) -> bool,
+    {
+        self.lookup_with_state(element, element.state(), quirks_mode, f)
+    }
+
     #[inline]
-    pub fn lookup<'a, E, F>(&'a self, element: E, quirks_mode: QuirksMode, mut f: F) -> bool
+    fn lookup_with_state<'a, E, F>(
+        &'a self,
+        element: E,
+        element_state: ElementState,
+        quirks_mode: QuirksMode,
+        mut f: F,
+    ) -> bool
     where
         E: TElement,
         F: FnMut(&'a T) -> bool,
@@ -522,6 +570,14 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
             }
         }
 
+        if element_state.intersects(RARE_PSEUDO_CLASS_STATES) {
+            for entry in self.rare_pseudo_classes.iter() {
+                if !f(&entry) {
+                    return false;
+                }
+            }
+        }
+
         for entry in self.other.iter() {
             if !f(&entry) {
                 return false;
@@ -545,6 +601,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
         quirks_mode: QuirksMode,
         additional_id: Option<&WeakAtom>,
         additional_classes: &[Atom],
+        additional_states: ElementState,
         mut f: F,
     ) -> bool
     where
@@ -552,7 +609,12 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
         F: FnMut(&'a T) -> bool,
     {
         // Do the normal lookup.
-        if !self.lookup(element, quirks_mode, |entry| f(entry)) {
+        if !self.lookup_with_state(
+            element,
+            element.state() | additional_states,
+            quirks_mode,
+            |entry| f(entry),
+        ) {
             return false;
         }
 
@@ -585,6 +647,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 enum Bucket<'a> {
     Universal,
     Namespace(&'a Namespace),
+    RarePseudoClasses,
     LocalName {
         name: &'a LocalName,
         lower_name: &'a LocalName,
@@ -599,17 +662,18 @@ enum Bucket<'a> {
 }
 
 impl<'a> Bucket<'a> {
-    /// root > id > class > local name > namespace > universal.
+    /// root > id > class > local name > namespace > pseudo-classes > universal.
     #[inline]
     fn specificity(&self) -> usize {
         match *self {
             Bucket::Universal => 0,
             Bucket::Namespace(..) => 1,
-            Bucket::LocalName { .. } => 2,
-            Bucket::Attribute { .. } => 3,
-            Bucket::Class(..) => 4,
-            Bucket::ID(..) => 5,
-            Bucket::Root => 6,
+            Bucket::RarePseudoClasses => 2,
+            Bucket::LocalName { .. } => 3,
+            Bucket::Attribute { .. } => 4,
+            Bucket::Class(..) => 5,
+            Bucket::ID(..) => 6,
+            Bucket::Root => 7,
         }
     }
 
@@ -688,6 +752,13 @@ fn specific_bucket_for<'a>(
                 }
                 Bucket::Universal
             }
+        },
+        Component::NonTSPseudoClass(ref pseudo_class)
+            if pseudo_class
+                .state_flag()
+                .intersects(RARE_PSEUDO_CLASS_STATES) =>
+        {
+            Bucket::RarePseudoClasses
         },
         _ => Bucket::Universal,
     }
