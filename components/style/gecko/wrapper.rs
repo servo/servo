@@ -2005,7 +2005,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozDirAttrLTR |
             NonTSPseudoClass::MozDirAttrRTL |
             NonTSPseudoClass::MozDirAttrLikeAuto |
-            NonTSPseudoClass::MozModalDialog |
+            NonTSPseudoClass::Modal |
             NonTSPseudoClass::MozTopmostModal |
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Hover |
