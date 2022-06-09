@@ -53,7 +53,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-devtools-highlighted", MozDevtoolsHighlighted, DEVTOOLS_HIGHLIGHTED, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-styleeditor-transitioning", MozStyleeditorTransitioning, STYLEEDITOR_TRANSITIONING, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("fullscreen", Fullscreen, FULLSCREEN, _),
-                ("-moz-modal-dialog", MozModalDialog, MODAL_DIALOG, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("modal", Modal, MODAL_DIALOG, _),
                 ("-moz-topmost-modal", MozTopmostModal, TOPMOST_MODAL, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-broken", MozBroken, BROKEN, _),
                 ("-moz-loading", MozLoading, LOADING, _),
