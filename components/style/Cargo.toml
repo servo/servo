@@ -42,7 +42,7 @@ atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
 cssparser = "0.29"
-derive_more = "0.99"
+derive_more = { version = "0.99", default-features = false, features = ["add", "add_assign", "deref", "from"] }
 encoding_rs = { version = "0.8", optional = true }
 euclid = "0.22"
 fxhash = "0.2"
