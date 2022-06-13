@@ -774,13 +774,13 @@ impl Default for Scroller {
 #[repr(u8)]
 pub enum ScrollAxis {
     /// The block axis of the scroll container. (Default.)
-    Block,
+    Block = 0,
     /// The inline axis of the scroll container.
-    Inline,
+    Inline = 1,
     /// The vertical block axis of the scroll container.
-    Vertical,
+    Vertical = 2,
     /// The horizontal axis of the scroll container.
-    Horizontal,
+    Horizontal = 3,
 }
 
 impl Default for ScrollAxis {

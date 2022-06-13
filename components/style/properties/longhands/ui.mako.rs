@@ -315,3 +315,14 @@ ${helpers.predefined_type(
     spec="https://github.com/w3c/csswg-drafts/issues/6674",
     rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
+
+${helpers.predefined_type(
+    "scroll-timeline-axis",
+    "ScrollAxis",
+    "computed::ScrollAxis::default()",
+    engines="gecko",
+    animation_value_type="none",
+    gecko_pref="layout.css.scroll-linked-animations.enabled",
+    spec="https://github.com/w3c/csswg-drafts/issues/6674",
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
+)}
