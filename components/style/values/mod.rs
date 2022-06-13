@@ -586,6 +586,12 @@ pub trait IsAuto {
 pub struct TimelineName(TimelineOrKeyframesName);
 
 impl TimelineName {
+    /// Create a new TimelineName from Atom.
+    #[cfg(feature = "gecko")]
+    pub fn from_atom(atom: Atom) -> Self {
+        Self(TimelineOrKeyframesName::from_atom(atom))
+    }
+
     /// Returns the `none` value.
     pub fn none() -> Self {
         Self(TimelineOrKeyframesName::none())

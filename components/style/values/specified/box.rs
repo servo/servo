@@ -874,6 +874,49 @@ impl Parse for AnimationTimeline {
     }
 }
 
+/// A value for the scroll-timeline-name.
+///
+/// Note: The spec doesn't mention `auto` for scroll-timeline-name. However, `auto` is a keyword in
+/// animation-timeline, so we reject `auto` for scroll-timeline-name now.
+///
+/// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-name
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct ScrollTimelineName(pub TimelineName);
+
+impl ScrollTimelineName {
+    /// Returns the `none` value.
+    pub fn none() -> Self {
+        Self(TimelineName::none())
+    }
+}
+
+impl Parse for ScrollTimelineName {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(name) = input.try_parse(|input| TimelineName::parse(context, input)) {
+            return Ok(Self(name));
+        }
+
+        input.expect_ident_matching("none")?;
+        Ok(Self(TimelineName::none()))
+    }
+}
+
 /// https://drafts.csswg.org/css-scroll-snap-1/#snap-axis
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
