@@ -40,7 +40,7 @@ pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, 
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, ContainerName, ContainerType};
 pub use self::box_::{Clear, ContentVisibility, Float, Overflow, OverflowAnchor};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
-pub use self::box_::{ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
+pub use self::box_::{ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
 pub use self::box_::{ScrollSnapStrictness, ScrollSnapType, ScrollTimelineName};
 pub use self::box_::{TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorOrAuto, ColorPropertyValue, ColorScheme, PrintColorAdjust};
