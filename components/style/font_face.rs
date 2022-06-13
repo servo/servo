@@ -12,14 +12,14 @@ use crate::parser::{Parse, ParserContext};
 use crate::properties::longhands::font_language_override;
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
-use crate::values::computed::font::FamilyName;
+use crate::values::computed::font::{FamilyName, FontStretch};
 use crate::values::generics::font::FontStyle as GenericFontStyle;
 #[cfg(feature = "gecko")]
 use crate::values::specified::font::SpecifiedFontFeatureSettings;
 use crate::values::specified::font::SpecifiedFontStyle;
 #[cfg(feature = "gecko")]
 use crate::values::specified::font::SpecifiedFontVariationSettings;
-use crate::values::specified::font::{AbsoluteFontWeight, FontStretch};
+use crate::values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
 #[cfg(feature = "gecko")]
 use crate::values::specified::font::MetricsOverride;
 use crate::values::specified::url::SpecifiedUrl;
@@ -174,7 +174,7 @@ fn sort_range<T: PartialOrd>(a: T, b: T) -> (T, T) {
 impl FontWeightRange {
     /// Returns a computed font-stretch range.
     pub fn compute(&self) -> ComputedFontWeightRange {
-        let (min, max) = sort_range(self.0.compute().0, self.1.compute().0);
+        let (min, max) = sort_range(self.0.compute().value(), self.1.compute().value());
         ComputedFontWeightRange(min, max)
     }
 }
@@ -183,23 +183,23 @@ impl FontWeightRange {
 ///
 /// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-stretch
 #[derive(Clone, Debug, PartialEq, ToShmem)]
-pub struct FontStretchRange(pub FontStretch, pub FontStretch);
-impl_range!(FontStretchRange, FontStretch);
+pub struct FontStretchRange(pub SpecifiedFontStretch, pub SpecifiedFontStretch);
+impl_range!(FontStretchRange, SpecifiedFontStretch);
 
-/// The computed representation of the above, so that
-/// Gecko can read them easily.
+/// The computed representation of the above, so that Gecko can read them
+/// easily.
 #[repr(C)]
 #[allow(missing_docs)]
-pub struct ComputedFontStretchRange(f32, f32);
+pub struct ComputedFontStretchRange(FontStretch, FontStretch);
 
 impl FontStretchRange {
     /// Returns a computed font-stretch range.
     pub fn compute(&self) -> ComputedFontStretchRange {
-        fn compute_stretch(s: &FontStretch) -> f32 {
+        fn compute_stretch(s: &SpecifiedFontStretch) -> FontStretch {
             match *s {
-                FontStretch::Keyword(ref kw) => kw.compute().0,
-                FontStretch::Stretch(ref p) => p.0.get(),
-                FontStretch::System(..) => unreachable!(),
+                SpecifiedFontStretch::Keyword(ref kw) => kw.compute(),
+                SpecifiedFontStretch::Stretch(ref p) => FontStretch::from_percentage(p.0.get()),
+                SpecifiedFontStretch::System(..) => unreachable!(),
             }
         }
 

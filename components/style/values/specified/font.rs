@@ -7,10 +7,10 @@
 #[cfg(feature = "gecko")]
 use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::font::{FamilyName, FontFamilyList, FontStyleAngle, SingleFontFamily};
+use crate::values::computed::font::{FamilyName, FontFamilyList, SingleFontFamily};
 use crate::values::computed::FontSizeAdjust as ComputedFontSizeAdjust;
 use crate::values::computed::{font as computed, Length, NonNegativeLength};
-use crate::values::computed::{Angle as ComputedAngle, Percentage as ComputedPercentage};
+use crate::values::computed::{Percentage as ComputedPercentage};
 use crate::values::computed::{CSSPixelLength, Context, ToComputedValue};
 use crate::values::generics::font::VariationValue;
 use crate::values::generics::font::{
@@ -185,7 +185,7 @@ impl ToComputedValue for FontWeight {
     #[inline]
     fn from_computed_value(computed: &computed::FontWeight) -> Self {
         FontWeight::Absolute(AbsoluteFontWeight::Weight(Number::from_computed_value(
-            &computed.0,
+            &computed.value(),
         )))
     }
 }
@@ -210,10 +210,10 @@ impl AbsoluteFontWeight {
     pub fn compute(&self) -> computed::FontWeight {
         match *self {
             AbsoluteFontWeight::Weight(weight) => {
-                computed::FontWeight(weight.get().max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT))
+                computed::FontWeight::from_float(weight.get())
             },
-            AbsoluteFontWeight::Normal => computed::FontWeight::normal(),
-            AbsoluteFontWeight::Bold => computed::FontWeight::bold(),
+            AbsoluteFontWeight::Normal => computed::FontWeight::NORMAL,
+            AbsoluteFontWeight::Bold => computed::FontWeight::BOLD,
         }
     }
 }
@@ -289,32 +289,23 @@ impl ToComputedValue for SpecifiedFontStyle {
 
     fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
         match *self {
-            generics::FontStyle::Normal => generics::FontStyle::Normal,
-            generics::FontStyle::Italic => generics::FontStyle::Italic,
-            generics::FontStyle::Oblique(ref angle) => {
-                generics::FontStyle::Oblique(FontStyleAngle(Self::compute_angle(angle)))
-            },
+            Self::Normal => computed::FontStyle::NORMAL,
+            Self::Italic => computed::FontStyle::ITALIC,
+            Self::Oblique(ref angle) => computed::FontStyle::oblique(angle.degrees()),
         }
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            generics::FontStyle::Normal => generics::FontStyle::Normal,
-            generics::FontStyle::Italic => generics::FontStyle::Italic,
-            generics::FontStyle::Oblique(ref angle) => {
-                generics::FontStyle::Oblique(Angle::from_computed_value(&angle.0))
-            },
+        if *computed == computed::FontStyle::NORMAL {
+            return Self::Normal;
         }
+        if *computed == computed::FontStyle::ITALIC {
+            return Self::Italic;
+        }
+        let degrees = computed.oblique_degrees();
+        generics::FontStyle::Oblique(Angle::from_degrees(degrees, /* was_calc = */ false))
     }
 }
-
-/// The default angle for `font-style: oblique`.
-///
-/// NOTE(emilio): As of right now this diverges from the spec, which specifies
-/// 20, because it's not updated yet to account for the resolution in:
-///
-///   https://github.com/w3c/csswg-drafts/issues/2295
-pub const DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES: f32 = 14.;
 
 /// From https://drafts.csswg.org/css-fonts-4/#valdef-font-style-oblique-angle:
 ///
@@ -334,10 +325,6 @@ impl SpecifiedFontStyle {
             .degrees()
             .max(FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
             .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
-    }
-
-    fn compute_angle(angle: &Angle) -> ComputedAngle {
-        ComputedAngle::from_degrees(Self::compute_angle_degrees(angle))
     }
 
     /// Parse a suitable angle for font-style: oblique.
@@ -362,7 +349,7 @@ impl SpecifiedFontStyle {
     /// The default angle for `font-style: oblique`.
     pub fn default_angle() -> Angle {
         Angle::from_degrees(
-            DEFAULT_FONT_STYLE_OBLIQUE_ANGLE_DEGREES,
+            computed::FontStyle::DEFAULT_OBLIQUE_DEGREES as f32,
             /* was_calc = */ false,
         )
     }
@@ -411,7 +398,6 @@ impl ToComputedValue for FontStyle {
 #[derive(
     Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
 )]
-#[repr(u8)]
 pub enum FontStretch {
     Stretch(NonNegativePercentage),
     Keyword(FontStretchKeyword),
@@ -437,57 +423,15 @@ pub enum FontStretchKeyword {
 }
 
 impl FontStretchKeyword {
-    /// Resolves the value of the keyword as specified in:
-    ///
-    /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
-    pub fn compute(&self) -> ComputedPercentage {
-        use self::FontStretchKeyword::*;
-        ComputedPercentage(match *self {
-            UltraCondensed => 0.5,
-            ExtraCondensed => 0.625,
-            Condensed => 0.75,
-            SemiCondensed => 0.875,
-            Normal => 1.,
-            SemiExpanded => 1.125,
-            Expanded => 1.25,
-            ExtraExpanded => 1.5,
-            UltraExpanded => 2.,
-        })
+    /// Turns the keyword into a computed value.
+    pub fn compute(&self) -> computed::FontStretch {
+        computed::FontStretch::from_keyword(*self)
     }
 
     /// Does the opposite operation to `compute`, in order to serialize keywords
     /// if possible.
-    pub fn from_percentage(percentage: f32) -> Option<Self> {
-        use self::FontStretchKeyword::*;
-        // NOTE(emilio): Can't use `match` because of rust-lang/rust#41620.
-        if percentage == 0.5 {
-            return Some(UltraCondensed);
-        }
-        if percentage == 0.625 {
-            return Some(ExtraCondensed);
-        }
-        if percentage == 0.75 {
-            return Some(Condensed);
-        }
-        if percentage == 0.875 {
-            return Some(SemiCondensed);
-        }
-        if percentage == 1. {
-            return Some(Normal);
-        }
-        if percentage == 1.125 {
-            return Some(SemiExpanded);
-        }
-        if percentage == 1.25 {
-            return Some(Expanded);
-        }
-        if percentage == 1.5 {
-            return Some(ExtraExpanded);
-        }
-        if percentage == 2. {
-            return Some(UltraExpanded);
-        }
-        None
+    pub fn from_percentage(p: f32) -> Option<Self> {
+        computed::FontStretch::from_percentage(p).as_keyword()
     }
 }
 
@@ -506,16 +450,17 @@ impl ToComputedValue for FontStretch {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             FontStretch::Stretch(ref percentage) => {
-                computed::FontStretch(percentage.to_computed_value(context))
+                let percentage = percentage.to_computed_value(context).0;
+                computed::FontStretch::from_percentage(percentage.0)
             },
-            FontStretch::Keyword(ref kw) => computed::FontStretch(NonNegative(kw.compute())),
+            FontStretch::Keyword(ref kw) => kw.compute(),
             FontStretch::System(_) => self.compute_system(context),
         }
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         FontStretch::Stretch(NonNegativePercentage::from_computed_value(&NonNegative(
-            (computed.0).0,
+            computed.to_percentage()
         )))
     }
 }
