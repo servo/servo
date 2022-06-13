@@ -315,3 +315,76 @@ macro_rules! try_parse_one {
         }
     }
 </%helpers:shorthand>
+
+<%helpers:shorthand
+    engines="gecko"
+    name="scroll-timeline"
+    sub_properties="scroll-timeline-name scroll-timeline-axis"
+    gecko_pref="layout.css.scroll-linked-animations.enabled",
+    // Also in https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-shorthand
+    spec="https://github.com/w3c/csswg-drafts/issues/6674"
+>
+    pub fn parse_value<'i>(
+        context: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        use crate::parser::Parse;
+        use crate::values::specified::box_::{ScrollAxis, ScrollTimelineName};
+
+        let mut name = None;
+        let mut axis = None;
+        loop {
+            // Note: When parsing positionally-ambiguous keywords in a property value, a
+            // <custom-ident> production can only claim the keyword if no other unfulfilled
+            // production can claim it. So we try to parse `scroll-timeline-axis` first.
+            //
+            // https://drafts.csswg.org/css-values-4/#custom-idents
+
+            if axis.is_none() {
+                axis = input.try_parse(ScrollAxis::parse).ok();
+            }
+
+            if name.is_none() {
+                if let Ok(value) = input.try_parse(|i| ScrollTimelineName::parse(context, i)) {
+                    name = Some(value);
+                    continue;
+                }
+            }
+            break;
+        }
+
+        // Must occur one or more.
+        if name.is_none() && axis.is_none() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(expanded! {
+            scroll_timeline_name: name.unwrap_or(ScrollTimelineName::none()),
+            scroll_timeline_axis: axis.unwrap_or_default(),
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            use crate::values::specified::box_::ScrollAxis;
+
+            let is_default_axis = self.scroll_timeline_axis == &ScrollAxis::default();
+            let is_default_name = self.scroll_timeline_name.0.is_none();
+
+            // Note: if both are default values, we serialize the default axis (because it is the
+            // first value per spec).
+            if !is_default_axis || (is_default_axis && is_default_name) {
+                self.scroll_timeline_axis.to_css(dest)?;
+            }
+
+            if !is_default_name {
+                if !is_default_axis {
+                    dest.write_char(' ')?;
+                }
+                self.scroll_timeline_name.to_css(dest)?;
+            }
+
+            Ok(())
+        }
+    }
+</%helpers:shorthand>
