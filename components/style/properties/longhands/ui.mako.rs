@@ -304,3 +304,14 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-animations-2/#propdef-animation-timeline",
     rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
+
+${helpers.predefined_type(
+    "scroll-timeline-name",
+    "ScrollTimelineName",
+    "computed::ScrollTimelineName::none()",
+    engines="gecko",
+    animation_value_type="none",
+    gecko_pref="layout.css.scroll-linked-animations.enabled",
+    spec="https://github.com/w3c/csswg-drafts/issues/6674",
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
+)}
