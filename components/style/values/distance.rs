@@ -50,6 +50,13 @@ impl ComputeSquaredDistance for u16 {
     }
 }
 
+impl ComputeSquaredDistance for i16 {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        Ok(SquaredDistance::from_sqrt((*self - *other).abs() as f64))
+    }
+}
+
 impl ComputeSquaredDistance for i32 {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {

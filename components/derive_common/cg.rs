@@ -143,7 +143,10 @@ pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: &
                         let ident = &data.ident;
                         GenericArgument::Type(parse_quote!(<#ident as #trait_path>::#trait_output))
                     },
-                    ref arg => panic!("arguments {:?} cannot be mapped yet", arg),
+                    &GenericParam::Const(ref inner) => {
+                        let ident = &inner.ident;
+                        GenericArgument::Const(parse_quote!(#ident))
+                    },
                 })
                 .collect(),
             colon2_token: Default::default(),

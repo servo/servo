@@ -895,57 +895,9 @@ fn static_assert() {
         }
     }
 
-    pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
-        unsafe { bindings::Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0) };
-    }
-    ${impl_simple_copy('font_weight', 'mFont.weight')}
-
-    pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
-        let weight: f32 = unsafe {
-            bindings::Gecko_FontWeight_ToFloat(self.gecko.mFont.weight)
-        };
-        longhands::font_weight::computed_value::T(weight)
-    }
-
-    pub fn set_font_stretch(&mut self, v: longhands::font_stretch::computed_value::T) {
-        unsafe {
-            bindings::Gecko_FontStretch_SetFloat(
-                &mut self.gecko.mFont.stretch,
-                v.value(),
-            )
-        };
-    }
-    ${impl_simple_copy('font_stretch', 'mFont.stretch')}
-    pub fn clone_font_stretch(&self) -> longhands::font_stretch::computed_value::T {
-        use crate::values::computed::font::FontStretch;
-        use crate::values::computed::Percentage;
-        use crate::values::generics::NonNegative;
-
-        let stretch =
-            unsafe { bindings::Gecko_FontStretch_ToFloat(self.gecko.mFont.stretch) };
-        debug_assert!(stretch >= 0.);
-
-        FontStretch(NonNegative(Percentage(stretch)))
-    }
-
-    pub fn set_font_style(&mut self, v: longhands::font_style::computed_value::T) {
-        use crate::values::generics::font::FontStyle;
-        let s = &mut self.gecko.mFont.style;
-        unsafe {
-            match v {
-                FontStyle::Normal => bindings::Gecko_FontSlantStyle_SetNormal(s),
-                FontStyle::Italic => bindings::Gecko_FontSlantStyle_SetItalic(s),
-                FontStyle::Oblique(ref angle) => {
-                    bindings::Gecko_FontSlantStyle_SetOblique(s, angle.0.degrees())
-                }
-            }
-        }
-    }
-    ${impl_simple_copy('font_style', 'mFont.style')}
-    pub fn clone_font_style(&self) -> longhands::font_style::computed_value::T {
-        use crate::values::computed::font::FontStyle;
-        FontStyle::from_gecko(self.gecko.mFont.style)
-    }
+    ${impl_simple('font_weight', 'mFont.weight')}
+    ${impl_simple('font_stretch', 'mFont.stretch')}
+    ${impl_simple('font_style', 'mFont.style')}
 
     ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}
 
