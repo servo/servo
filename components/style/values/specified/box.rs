@@ -815,9 +815,13 @@ fn is_default<T: Default + PartialEq>(value: &T) -> bool {
 pub enum AnimationTimeline {
     /// Use default timeline. The animation’s timeline is a DocumentTimeline.
     Auto,
-    /// The scroll-timeline name
+    /// The scroll-timeline name.
+    ///
+    /// Note: This could be the timeline name from @scroll-timeline rule, or scroll-timeline-name
+    /// from itself, its ancestors, or its previous siblings.
+    /// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timelines-named
     Timeline(TimelineName),
-    /// The scroll() notation
+    /// The scroll() notation.
     /// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
     #[css(function)]
     Scroll(
