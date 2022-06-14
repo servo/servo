@@ -790,6 +790,19 @@ impl NoCalcLength {
         }
     }
 
+    /// Whether text-only zoom should be applied to this length.
+    ///
+    /// Generally, font-dependent/relative units don't get text-only-zoomed,
+    /// because the font they're relative to should be zoomed already.
+    pub fn should_zoom_text(&self) -> bool {
+        match *self {
+            Self::Absolute(..) |
+            Self::ViewportPercentage(..) => true,
+            Self::ServoCharacterWidth(..) |
+            Self::FontRelative(..) => false,
+        }
+    }
+
     /// Parse a given absolute or relative dimension.
     pub fn parse_dimension(
         context: &ParserContext,
