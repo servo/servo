@@ -376,12 +376,13 @@ impl Device {
                 );
                 Size2D::new(
                     Au(size.width),
-                    Au(size.height
-                        + pc.mDynamicToolbarMaxHeight as i32 * pc.mCurAppUnitsPerDevPixel),
+                    Au(size.height +
+                        pc.mDynamicToolbarMaxHeight as i32 * pc.mCurAppUnitsPerDevPixel),
                 )
             },
             ViewportVariant::Dynamic => {
-                self.used_dynamic_viewport_size.store(true, Ordering::Relaxed);
+                self.used_dynamic_viewport_size
+                    .store(true, Ordering::Relaxed);
                 let size = &pc.mVisibleArea;
                 // Looks like IntCoordTyped is treated as if it's u32 in Rust.
                 debug_assert!(
@@ -390,7 +391,9 @@ impl Device {
                 );
                 Size2D::new(
                     Au(size.width),
-                    Au(size.height + pc.mDynamicToolbarHeight as i32 * pc.mCurAppUnitsPerDevPixel),
+                    Au(size.height +
+                        (pc.mDynamicToolbarMaxHeight - pc.mDynamicToolbarHeight) as i32 *
+                            pc.mCurAppUnitsPerDevPixel),
                 )
             },
         }
