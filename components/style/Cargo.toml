@@ -48,8 +48,8 @@ euclid = "0.22"
 fxhash = "0.2"
 html5ever = { version = "0.26", optional = true }
 indexmap = "1.0"
-itertools = "0.8"
-itoa = "0.4"
+itertools = "0.10"
+itoa = "1.0"
 lazy_static = "1"
 log = { version = "0.4", features = ["std"] }
 malloc_size_of = { path = "../malloc_size_of" }
