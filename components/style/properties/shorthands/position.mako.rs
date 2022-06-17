@@ -600,7 +600,7 @@
             temp_rows = rows;
             input.expect_delim('/')?;
             flow = parse_auto_flow(input, false)?;
-            auto_cols = grid_auto_columns::parse(context, input).unwrap_or_default();
+            auto_cols = input.try_parse(|i| grid_auto_columns::parse(context, i)).unwrap_or_default();
         } else {
             flow = parse_auto_flow(input, true)?;
             auto_rows = input.try_parse(|i| grid_auto_rows::parse(context, i)).unwrap_or_default();
