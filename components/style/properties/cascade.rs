@@ -425,13 +425,7 @@ fn tweak_when_ignoring_colors(
     // A few special-cases ahead.
     match **declaration {
         PropertyDeclaration::BackgroundColor(ref color) => {
-            // We honor system colors.
-            if color.is_system() {
-                return;
-            }
-            // For background-color, we revert or initial-with-preserved-alpha
-            // otherwise, this is needed to preserve semi-transparent
-            // backgrounds.
+            // We honor system colors and transparent colors unconditionally.
             //
             // NOTE(emilio): We honor transparent unconditionally, like we do
             // for color, even though it causes issues like bug 1625036. The
@@ -440,6 +434,12 @@ fn tweak_when_ignoring_colors(
             // broken in other applications as well, and not honoring
             // transparent makes stuff uglier or break unconditionally
             // (bug 1666059, bug 1755713).
+            if color.honored_in_forced_colors_mode(/* allow_transparent = */ true) {
+                return;
+            }
+            // For background-color, we revert or initial-with-preserved-alpha
+            // otherwise, this is needed to preserve semi-transparent
+            // backgrounds.
             let alpha = alpha_channel(color, context);
             if alpha == 0 {
                 return;
@@ -451,10 +451,7 @@ fn tweak_when_ignoring_colors(
         },
         PropertyDeclaration::Color(ref color) => {
             // We honor color: transparent and system colors.
-            if color.0.is_system() {
-                return;
-            }
-            if alpha_channel(&color.0, context) == 0 {
+            if color.0.honored_in_forced_colors_mode(/* allow_transparent = */ true) {
                 return;
             }
             // If the inherited color would be transparent, but we would
@@ -491,7 +488,7 @@ fn tweak_when_ignoring_colors(
             // caret-color doesn't make sense (using currentColor is fine), and
             // we ignore accent-color in high-contrast-mode anyways.
             if let Some(color) = declaration.color_value() {
-                if color.is_system() {
+                if color.honored_in_forced_colors_mode(/* allow_transparent = */ false) {
                     return;
                 }
             }
