@@ -515,16 +515,17 @@ fn parse_hash_color(value: &[u8]) -> Result<RGBA, ()> {
 }
 
 impl Color {
-    /// Returns whether this color is a system color.
-    #[cfg(feature = "gecko")]
-    pub fn is_system(&self) -> bool {
-        matches!(self, Color::System(..))
-    }
-
-    /// Returns whether this color is a system color.
-    #[cfg(feature = "servo")]
-    pub fn is_system(&self) -> bool {
-        false
+    /// Returns whether this color is allowed in forced-colors mode.
+    pub fn honored_in_forced_colors_mode(&self, allow_transparent: bool) -> bool {
+        match *self {
+            Color::InheritFromBodyQuirk | Color::CurrentColor => false,
+            Color::System(..) => true,
+            Color::Numeric { ref parsed, .. } => allow_transparent && parsed.alpha == 0,
+            Color::ColorMix(ref mix) => {
+                mix.left.honored_in_forced_colors_mode(allow_transparent) &&
+                    mix.right.honored_in_forced_colors_mode(allow_transparent)
+            },
+        }
     }
 
     /// Returns currentcolor value.
