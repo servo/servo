@@ -285,6 +285,11 @@ where
         Some(Self::new(sibling, self.snapshot_map))
     }
 
+    fn first_element_child(&self) -> Option<Self> {
+        let child = self.element.first_element_child()?;
+        Some(Self::new(child, self.snapshot_map))
+    }
+
     #[inline]
     fn is_html_element_in_html_document(&self) -> bool {
         self.element.is_html_element_in_html_document()

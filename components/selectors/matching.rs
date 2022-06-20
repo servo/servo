@@ -326,6 +326,32 @@ where
     matches!(result, SelectorMatchingResult::Matched)
 }
 
+/// Traverse all descendents of the given element and return true as soon as any of them match
+/// the given list of selectors.
+fn has_children_matching<E: Element>(
+    selectors: &[Selector<E::Impl>],
+    element: &E,
+    context: &mut MatchingContext<E::Impl>,
+) -> bool {
+    let mut current = element.first_element_child();
+
+    while let Some(el) = current {
+        for selector in selectors {
+            if matches_complex_selector(selector.iter(), &el, context) {
+                return true;
+            }
+        }
+
+        if has_children_matching(selectors, &el, context) {
+            return true;
+        }
+
+        current = el.next_sibling_element();
+    }
+
+    false
+}
+
 /// Whether the :hover and :active quirk applies.
 ///
 /// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
@@ -832,6 +858,9 @@ where
                 }
             }
             true
+        }),
+        Component::Has(ref list) => context.shared.nest(|context| {
+            has_children_matching(list, element, context)
         }),
         Component::Combinator(_) => unsafe {
             debug_unreachable!("Shouldn't try to selector-match combinators")

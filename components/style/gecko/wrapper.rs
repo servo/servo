@@ -1844,6 +1844,18 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         None
     }
 
+    #[inline]
+    fn first_element_child(&self) -> Option<Self> {
+        let mut child = self.as_node().first_child();
+        while let Some(child_node) = child {
+            if let Some(el) = child_node.as_element() {
+                return Some(el);
+            }
+            child = child_node.next_sibling();
+        }
+        None
+    }
+
     fn set_selector_flags(&self, flags: ElementSelectorFlags) {
         debug_assert!(!flags.is_empty());
         self.set_flags(selector_flags_to_node_flags(flags));
