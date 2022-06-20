@@ -60,6 +60,9 @@ pub trait Element: Sized + Clone + Debug {
     /// Skips non-element nodes
     fn next_sibling_element(&self) -> Option<Self>;
 
+    /// Skips non-element nodes
+    fn first_element_child(&self) -> Option<Self>;
+
     fn is_html_element_in_html_document(&self) -> bool;
 
     fn has_local_name(&self, local_name: &<Self::Impl as SelectorImpl>::BorrowedLocalName) -> bool;

@@ -332,12 +332,14 @@ where
             Component::NonTSPseudoClass(..) => {
                 specificity.class_like_selectors += 1;
             },
-            Component::Negation(ref list) | Component::Is(ref list) => {
+            Component::Negation(ref list) |
+            Component::Is(ref list) |
+            Component::Has(ref list) => {
                 // https://drafts.csswg.org/selectors/#specificity-rules:
                 //
-                //     The specificity of an :is() pseudo-class is replaced by the
-                //     specificity of the most specific complex selector in its
-                //     selector list argument.
+                //     The specificity of an :is(), :not(), or :has() pseudo-class
+                //     is replaced by the specificity of the most specific complex
+                //     selector in its selector list argument.
                 let mut max = 0;
                 for selector in &**list {
                     max = std::cmp::max(selector.specificity(), max);
