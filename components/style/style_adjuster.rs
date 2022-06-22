@@ -7,10 +7,12 @@
 
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
+use crate::properties::longhands::contain::SpecifiedValue;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
+
 
 /// A struct that implements all the adjustment methods.
 ///
@@ -243,6 +245,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if self.style.is_root_element {
             self.style
                 .add_flags(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
+        }
+
+        if self.style
+            .get_box()
+            .clone_contain()
+            .contains(SpecifiedValue::STYLE)
+        {
+            self.style
+                .add_flags(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE);
         }
 
         if self.style.get_parent_column().is_multicol() {
