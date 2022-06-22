@@ -42,6 +42,9 @@ bitflags! {
         /// A flag used to mark styles which are a pseudo-element or under one.
         const IS_IN_PSEUDO_ELEMENT_SUBTREE = 1 << 4;
 
+        /// A flag used to mark styles which have contain:style or under one.
+        const SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE = 1 << 5;
+
         /// Whether this style's `display` property depends on our parent style.
         ///
         /// This is important because it may affect our optimizations to avoid
@@ -109,7 +112,9 @@ impl ComputedValueFlags {
             Self::CAN_BE_FRAGMENTED |
             Self::IS_IN_PSEUDO_ELEMENT_SUBTREE |
             Self::HAS_TEXT_DECORATION_LINES |
-            Self::IS_IN_OPACITY_ZERO_SUBTREE
+            Self::IS_IN_OPACITY_ZERO_SUBTREE |
+            Self::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE
+
     }
 
     /// Flags that may be propagated to descendants.
