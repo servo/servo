@@ -296,12 +296,12 @@ pub enum SystemColor {
     MozMacTooltip,
 
     /// Theme accent color.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozAccentColor,
+    /// https://drafts.csswg.org/css-color-4/#valdef-system-color-accentcolor
+    Accentcolor,
 
     /// Foreground for the accent color.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozAccentColorForeground,
+    /// https://drafts.csswg.org/css-color-4/#valdef-system-color-accentcolortext
+    Accentcolortext,
 
     /// The background-color for :autofill-ed inputs.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
