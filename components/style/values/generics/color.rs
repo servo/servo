@@ -9,7 +9,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
 use crate::values::{Parse, ParserContext, Parser};
 use crate::values::specified::percentage::ToPercentage;
 use crate::values::animated::ToAnimatedValue;
-use crate::values::animated::color::RGBA as AnimatedRGBA;
+use crate::values::animated::color::AnimatedRGBA;
 
 /// This struct represents a combined color from a numeric color and
 /// the current foreground color (currentcolor keyword).
