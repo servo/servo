@@ -20,6 +20,8 @@ use crate::values::generics::Optional;
     ToCss,
     ToResolvedValue,
     ToShmem,
+    Serialize,
+    Deserialize,
 )]
 #[repr(C)]
 pub struct LinearStop<Number, Percentage> {
@@ -44,9 +46,12 @@ pub struct LinearStop<Number, Percentage> {
     ToCss,
     ToResolvedValue,
     ToShmem,
+    Serialize,
+    Deserialize,
 )]
 #[value_info(ty = "TIMING_FUNCTION")]
 #[repr(u8, C)]
+/// cbindgen:private-default-tagged-enum-constructor=false
 pub enum TimingFunction<Integer, Number, Percentage> {
     /// `linear | ease | ease-in | ease-out | ease-in-out`
     Keyword(TimingKeyword),
@@ -86,6 +91,8 @@ pub enum TimingFunction<Integer, Number, Percentage> {
     ToCss,
     ToResolvedValue,
     ToShmem,
+    Serialize,
+    Deserialize,
 )]
 #[repr(u8)]
 pub enum TimingKeyword {
@@ -120,6 +127,8 @@ fn step_position_jump_enabled(_context: &ParserContext) -> bool {
     ToCss,
     ToResolvedValue,
     ToShmem,
+    Serialize,
+    Deserialize,
 )]
 #[repr(u8)]
 pub enum StepPosition {

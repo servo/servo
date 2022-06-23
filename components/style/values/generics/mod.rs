@@ -336,6 +336,8 @@ pub use page::PageSize;
     ToCss,
     ToResolvedValue,
     ToShmem,
+    Serialize,
+    Deserialize,
 )]
 #[repr(C, u8)]
 pub enum Optional<T> {
