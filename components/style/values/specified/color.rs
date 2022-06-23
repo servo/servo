@@ -129,54 +129,6 @@ pub enum Color {
 #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
 #[repr(u8)]
 pub enum SystemColor {
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    TextSelectDisabledBackground,
-    #[css(skip)]
-    TextSelectAttentionBackground,
-    #[css(skip)]
-    TextSelectAttentionForeground,
-    #[css(skip)]
-    TextHighlightBackground,
-    #[css(skip)]
-    TextHighlightForeground,
-    #[css(skip)]
-    IMERawInputBackground,
-    #[css(skip)]
-    IMERawInputForeground,
-    #[css(skip)]
-    IMERawInputUnderline,
-    #[css(skip)]
-    IMESelectedRawTextBackground,
-    #[css(skip)]
-    IMESelectedRawTextForeground,
-    #[css(skip)]
-    IMESelectedRawTextUnderline,
-    #[css(skip)]
-    IMEConvertedTextBackground,
-    #[css(skip)]
-    IMEConvertedTextForeground,
-    #[css(skip)]
-    IMEConvertedTextUnderline,
-    #[css(skip)]
-    IMESelectedConvertedTextBackground,
-    #[css(skip)]
-    IMESelectedConvertedTextForeground,
-    #[css(skip)]
-    IMESelectedConvertedTextUnderline,
-    #[css(skip)]
-    SpellCheckerUnderline,
-    #[css(skip)]
-    ThemedScrollbar,
-    #[css(skip)]
-    ThemedScrollbarInactive,
-    #[css(skip)]
-    ThemedScrollbarThumb,
-    #[css(skip)]
-    ThemedScrollbarThumbHover,
-    #[css(skip)]
-    ThemedScrollbarThumbActive,
-    #[css(skip)]
-    ThemedScrollbarThumbInactive,
     Activeborder,
     /// Background in the (active) titlebar.
     Activecaption,
@@ -195,6 +147,10 @@ pub enum SystemColor {
     MozDisabledfield,
     #[parse(aliases = "-moz-fieldtext")]
     Fieldtext,
+
+    /// Combobox widgets
+    MozComboboxtext,
+    MozCombobox,
 
     Graytext,
     Highlight,
@@ -331,15 +287,60 @@ pub enum SystemColor {
     #[parse(aliases = "-moz-visitedhyperlinktext")]
     Visitedtext,
 
-    /// Combobox widgets
-    MozComboboxtext,
-    MozCombobox,
-
     /// Color of tree column headers
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheadertext,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheaderhovertext,
+
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    TextSelectDisabledBackground,
+    #[css(skip)]
+    TextSelectAttentionBackground,
+    #[css(skip)]
+    TextSelectAttentionForeground,
+    #[css(skip)]
+    TextHighlightBackground,
+    #[css(skip)]
+    TextHighlightForeground,
+    #[css(skip)]
+    IMERawInputBackground,
+    #[css(skip)]
+    IMERawInputForeground,
+    #[css(skip)]
+    IMERawInputUnderline,
+    #[css(skip)]
+    IMESelectedRawTextBackground,
+    #[css(skip)]
+    IMESelectedRawTextForeground,
+    #[css(skip)]
+    IMESelectedRawTextUnderline,
+    #[css(skip)]
+    IMEConvertedTextBackground,
+    #[css(skip)]
+    IMEConvertedTextForeground,
+    #[css(skip)]
+    IMEConvertedTextUnderline,
+    #[css(skip)]
+    IMESelectedConvertedTextBackground,
+    #[css(skip)]
+    IMESelectedConvertedTextForeground,
+    #[css(skip)]
+    IMESelectedConvertedTextUnderline,
+    #[css(skip)]
+    SpellCheckerUnderline,
+    #[css(skip)]
+    ThemedScrollbar,
+    #[css(skip)]
+    ThemedScrollbarInactive,
+    #[css(skip)]
+    ThemedScrollbarThumb,
+    #[css(skip)]
+    ThemedScrollbarThumbHover,
+    #[css(skip)]
+    ThemedScrollbarThumbActive,
+    #[css(skip)]
+    ThemedScrollbarThumbInactive,
 
     #[css(skip)]
     End, // Just for array-indexing purposes.
