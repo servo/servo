@@ -137,6 +137,7 @@ impl PiecewiseLinearFunctionBuilder {
     fn create_entry(&mut self, y: ValueType, x: Option<ValueType>) {
         let x = match x {
             Some(x) if x.is_finite() => x,
+            _ if self.entries.is_empty() => 0.0, // First x is 0 if not specified (Or not finite)
             _ => {
                 self.entries.push(BuildEntry { x: None, y });
                 return;
@@ -184,22 +185,15 @@ impl PiecewiseLinearFunctionBuilder {
             };
         }
         // Guaranteed at least two elements.
-        // Start and end elements guaranteed to have defined x value.
-        // Note(dshin): Spec asserts that start/end elements are supposed to have 0/1 assigned
-        // respectively if their x values are undefined at this time; however, the spec does
-        // not disallow negative/100%+ inputs, and inputs like `linear(0, 0.1 -10%, 0.9 110%, 1.0)`
-        // would break the assumption that the x values in the list increase monotonically.
-        // Otherwise, we still want 0/1 assigned to the start/end values regardless of
-        // adjacent x values (i.e. `linear(0, 0.1 10%, 0.9 90%, 1.0)` ==
-        // `linear(0 0%, 0.1 10%, 0.9 90%, 1.0)` != `linear(0 10%, 0.1 10%, 0.9 90%, 1.0 90%)`)
-        self.entries[0]
-            .x
-            .get_or_insert(self.smallest_x.filter(|x| x < &0.0).unwrap_or(0.0));
+        // Start element's x value should've been assigned when the first value was pushed.
+        debug_assert!(self.entries[0].x.is_some(), "Expected an entry with x defined!");
+        // Spec asserts that if the last entry does not have an x value, it is assigned the largest seen x value.
         self.entries
             .last_mut()
             .unwrap()
             .x
             .get_or_insert(self.largest_x.filter(|x| x > &1.0).unwrap_or(1.0));
+        // Now we have at least two elements with x values, with start & end x values guaranteed.
 
         let mut result = Vec::with_capacity(self.entries.len());
         result.push(PiecewiseLinearFunctionEntry {
