@@ -25,7 +25,6 @@ impl ComputedLinearStop {
         (
             x.output,
             x.input.into_rust().map(|x| x.0),
-            None,
         )
     }
 }
