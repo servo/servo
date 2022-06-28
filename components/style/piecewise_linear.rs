@@ -26,7 +26,7 @@ pub struct PiecewiseLinearFunction {
 }
 
 /// Parameters to define one linear stop.
-pub type PiecewiseLinearFunctionBuildParameters = (CSSFloat, Option<CSSFloat>, Option<CSSFloat>);
+pub type PiecewiseLinearFunctionBuildParameters = (CSSFloat, Option<CSSFloat>);
 
 impl PiecewiseLinearFunction {
     /// Interpolate y value given x and two points. The linear function will be rooted at the asymptote.
@@ -97,8 +97,8 @@ impl PiecewiseLinearFunction {
         Iter: Iterator<Item = PiecewiseLinearFunctionBuildParameters> + ExactSizeIterator,
     {
         let mut builder = PiecewiseLinearFunctionBuilder::with_capacity(iter.len());
-        for (y, x_start, x_end) in iter {
-            builder = builder.push(y, x_start, x_end);
+        for (y, x_start) in iter {
+            builder = builder.push(y, x_start);
         }
         builder.build()
     }
@@ -161,11 +161,8 @@ impl PiecewiseLinearFunctionBuilder {
     /// the x value is calculated later. If the end x value is specified, a flat segment
     /// is generated. If start x value is not specified but end x is, it is treated as
     /// start x.
-    pub fn push(mut self, y: CSSFloat, x_start: Option<CSSFloat>, x_end: Option<CSSFloat>) -> Self {
+    pub fn push(mut self, y: CSSFloat, x_start: Option<CSSFloat>) -> Self {
         self.create_entry(y, x_start);
-        if x_end.is_some() {
-            self.create_entry(y, x_end.map(|x| x));
-        }
         self
     }
 
