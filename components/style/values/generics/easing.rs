@@ -27,12 +27,9 @@ use crate::values::generics::Optional;
 pub struct LinearStop<Number, Percentage> {
     /// Output of the function at the given point.
     pub output: Number,
-    /// Playback progress at which this output starts.
+    /// Playback progress at which this output is given.
     #[css(skip_if = "Optional::is_none")]
-    pub input_start: Optional<Percentage>,
-    /// Playback progress at which this output ends.
-    #[css(skip_if = "Optional::is_none")]
-    pub input_end: Optional<Percentage>,
+    pub input: Optional<Percentage>,
 }
 
 /// A generic easing function.
