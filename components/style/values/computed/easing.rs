@@ -24,8 +24,8 @@ impl ComputedLinearStop {
     ) -> PiecewiseLinearFunctionBuildParameters {
         (
             x.output,
-            x.input_start.into_rust().map(|x| x.0),
-            x.input_end.into_rust().map(|x| x.0),
+            x.input.into_rust().map(|x| x.0),
+            None,
         )
     }
 }
