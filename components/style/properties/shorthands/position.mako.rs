@@ -861,3 +861,12 @@ ${helpers.two_properties_shorthand(
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-logical/#propdef-inset-inline"
 )}
+
+${helpers.two_properties_shorthand(
+    "contain-intrinsic-size",
+    "contain-intrinsic-width",
+    "contain-intrinsic-height",
+    engines="gecko",
+    gecko_pref="layout.css.contain-intrinsic-size.enabled",
+    spec="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override",
+)}
