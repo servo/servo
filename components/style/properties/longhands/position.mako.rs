@@ -476,5 +476,5 @@ ${helpers.predefined_type(
         gecko_pref="layout.css.contain-intrinsic-size.enabled",
         spec="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override",
         animation_value_type="none",
-)}
+    )}
 % endfor
