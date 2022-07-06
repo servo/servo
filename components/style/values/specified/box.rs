@@ -10,7 +10,7 @@ use crate::properties::{LonghandId, PropertyDeclarationId};
 use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
-use crate::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
+use crate::values::generics::box_::{GenericContainIntrinsicSize, GenericVerticalAlign, VerticalAlignKeyword};
 use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
 use crate::values::specified::{AllowQuirks, Number};
 use crate::values::{CustomIdent, KeyframesName, TimelineName};
@@ -620,6 +620,9 @@ impl Debug for Display {
             .finish()
     }
 }
+
+/// A specified value for the `contain-intrinsic-size` property.
+pub type ContainIntrinsicSize = GenericContainIntrinsicSize<NonNegativeLength>;
 
 /// A specified value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
@@ -1424,6 +1427,28 @@ bitflags! {
         const CONTENT = 1 << 6 | Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits;
         /// `strict` variant, turns on all types of containment
         const STRICT = 1 << 7 | Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits | Contain::SIZE.bits;
+    }
+}
+
+impl Parse for ContainIntrinsicSize {
+    /// none | <length> | auto <length>
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+
+        if let Ok(l) = input.try_parse(|i| NonNegativeLength::parse(context, i))
+        {
+            return Ok(Self::Length(l));
+        }
+
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
+            let l = NonNegativeLength::parse(context, input)?;
+            return Ok(Self::AutoLength(l));
+        }
+
+        input.expect_ident_matching("none")?;
+        Ok(Self::None)
     }
 }
 

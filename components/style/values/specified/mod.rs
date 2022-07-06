@@ -38,7 +38,7 @@ pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain, Display};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, ContainerName, ContainerType};
-pub use self::box_::{Clear, ContentVisibility, Float, Overflow, OverflowAnchor};
+pub use self::box_::{Clear, ContentVisibility, ContainIntrinsicSize, Float, Overflow, OverflowAnchor};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
 pub use self::box_::{ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
 pub use self::box_::{ScrollSnapStrictness, ScrollSnapType, ScrollTimelineName};

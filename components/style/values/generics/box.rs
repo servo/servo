@@ -5,6 +5,8 @@
 //! Generic types for box properties.
 
 use crate::values::animated::ToAnimatedZero;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
 #[derive(
     Animate,
@@ -73,6 +75,49 @@ impl<L> VerticalAlign<L> {
 impl<L> ToAnimatedZero for VerticalAlign<L> {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
+    }
+}
+
+/// https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[value_info(other_values = "auto")]
+#[repr(C, u8)]
+pub enum GenericContainIntrinsicSize<L> {
+    /// The keyword `none`.
+    None,
+    /// A non-negative length.
+    Length(L),
+    /// "auto <Length>"
+    AutoLength(L),
+}
+
+pub use self::GenericContainIntrinsicSize as ContainIntrinsicSize;
+
+impl<L: ToCss> ToCss for ContainIntrinsicSize<L> {
+
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match *self {
+            Self::None => dest.write_str("none"),
+            Self::Length(ref l) => l.to_css(dest),
+            Self::AutoLength(ref l) => {
+                dest.write_str("auto ")?;
+                l.to_css(dest)
+            }
+        }
     }
 }
 
