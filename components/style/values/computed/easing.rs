@@ -86,7 +86,7 @@ impl ComputedTimingFunction {
     pub fn calculate_output(&self, progress: f64, before_flag: BeforeFlag, epsilon: f64) -> f64 {
         match self {
             TimingFunction::CubicBezier { x1, y1, x2, y2 } => {
-                Bezier::new(*x1, *y1, *x2, *y2).solve(progress, epsilon)
+                Bezier::calculate_bezier_output(progress, epsilon, *x1, *y1, *x2, *y2)
             },
             TimingFunction::Steps(steps, pos) => {
                 Self::calculate_step_output(*steps, *pos, progress, before_flag)
@@ -102,15 +102,20 @@ impl ComputedTimingFunction {
                 .at(progress as f32)
                 .into()
             },
-            TimingFunction::Keyword(keyword) => {
-                let bezier = match keyword {
-                    TimingKeyword::Linear => return progress,
-                    TimingKeyword::Ease => Bezier::new(0.25, 0.1, 0.25, 1.),
-                    TimingKeyword::EaseIn => Bezier::new(0.42, 0., 1., 1.),
-                    TimingKeyword::EaseOut => Bezier::new(0., 0., 0.58, 1.),
-                    TimingKeyword::EaseInOut => Bezier::new(0.42, 0., 0.58, 1.),
-                };
-                bezier.solve(progress, epsilon)
+            TimingFunction::Keyword(keyword) => match keyword {
+                TimingKeyword::Linear => return progress,
+                TimingKeyword::Ease => {
+                    Bezier::calculate_bezier_output(progress, epsilon, 0.25, 0.1, 0.25, 1.)
+                },
+                TimingKeyword::EaseIn => {
+                    Bezier::calculate_bezier_output(progress, epsilon, 0.42, 0., 1., 1.)
+                },
+                TimingKeyword::EaseOut => {
+                    Bezier::calculate_bezier_output(progress, epsilon, 0., 0., 0.58, 1.)
+                },
+                TimingKeyword::EaseInOut => {
+                    Bezier::calculate_bezier_output(progress, epsilon, 0.42, 0., 0.58, 1.)
+                },
             },
         }
     }
