@@ -27,6 +27,7 @@ use crate::stylesheets::layer_rule::LayerOrder;
 use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::{Time, TimingFunction};
 use crate::values::generics::box_::AnimationIterationCount;
+use crate::values::generics::easing::BeforeFlag;
 use crate::Atom;
 use fxhash::FxHashMap;
 use parking_lot::RwLock;
@@ -84,7 +85,12 @@ impl PropertyAnimation {
     /// The output of the timing function given the progress ration of this animation.
     fn timing_function_output(&self, progress: f64) -> f64 {
         let epsilon = 1. / (200. * self.duration);
-        self.timing_function.calculate_output(progress, epsilon)
+        // FIXME: Need to set the before flag correctly.
+        // In order to get the before flag, we have to know the current animation phase
+        // and whether the iteration is reversed. For now, we skip this calculation
+        // by treating as if the flag is unset at all times.
+        // https://drafts.csswg.org/css-easing/#step-timing-function-algo
+        self.timing_function.calculate_output(progress, BeforeFlag::Unset, epsilon)
     }
 
     /// Update the given animation at a given point of progress.

@@ -99,6 +99,16 @@ pub enum TimingKeyword {
     EaseInOut,
 }
 
+/// Before flag, defined as per https://drafts.csswg.org/css-easing/#before-flag
+/// This flag is never user-specified.
+#[allow(missing_docs)]
+#[derive(PartialEq)]
+#[repr(u8)]
+pub enum BeforeFlag {
+    Unset,
+    Set
+}
+
 #[cfg(feature = "gecko")]
 fn step_position_jump_enabled(_context: &ParserContext) -> bool {
     static_prefs::pref!("layout.css.step-position-jump.enabled")
