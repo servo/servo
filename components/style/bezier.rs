@@ -23,15 +23,65 @@ pub struct Bezier {
 }
 
 impl Bezier {
-    /// Create a unit cubic Bézier curve from the two middle control points.
+    /// Calculate the output of a unit cubic Bézier curve from the two middle control points.
     ///
     /// X coordinate is time, Y coordinate is function advancement.
     /// The nominal range for both is 0 to 1.
     ///
     /// The start and end points are always (0, 0) and (1, 1) so that a transition or animation
     /// starts at 0% and ends at 100%.
+    pub fn calculate_bezier_output(
+        progress: f64,
+        epsilon: f64,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+    ) -> f64 {
+        // Check for a linear curve.
+        if x1 == y1 && x2 == y2 {
+            return progress;
+        }
+
+        // Ensure that we return 0 or 1 on both edges.
+        if progress == 0.0 {
+            return 0.0;
+        }
+        if progress == 1.0 {
+            return 1.0;
+        }
+
+        // For negative values, try to extrapolate with tangent (p1 - p0) or,
+        // if p1 is coincident with p0, with (p2 - p0).
+        if progress < 0.0 {
+            if x1 > 0.0 {
+                return progress * y1 as f64 / x1 as f64;
+            }
+            if y1 == 0.0 && x2 > 0.0 {
+                return progress * y2 as f64 / x2 as f64;
+            }
+            // If we can't calculate a sensible tangent, don't extrapolate at all.
+            return 0.0;
+        }
+
+        // For values greater than 1, try to extrapolate with tangent (p2 - p3) or,
+        // if p2 is coincident with p3, with (p1 - p3).
+        if progress > 1.0 {
+            if x2 < 1.0 {
+                return 1.0 + (progress - 1.0) * (y2 as f64 - 1.0) / (x2 as f64 - 1.0);
+            }
+            if y2 == 1.0 && x1 < 1.0 {
+                return 1.0 + (progress - 1.0) * (y1 as f64 - 1.0) / (x1 as f64 - 1.0);
+            }
+            // If we can't calculate a sensible tangent, don't extrapolate at all.
+            return 1.0;
+        }
+
+        Bezier::new(x1, y1, x2, y2).solve(progress, epsilon)
+    }
+
     #[inline]
-    pub fn new(x1: CSSFloat, y1: CSSFloat, x2: CSSFloat, y2: CSSFloat) -> Bezier {
+    fn new(x1: CSSFloat, y1: CSSFloat, x2: CSSFloat, y2: CSSFloat) -> Bezier {
         let cx = 3. * x1 as f64;
         let bx = 3. * (x2 as f64 - x1 as f64) - cx;
 
@@ -109,7 +159,7 @@ impl Bezier {
     /// Solve the bezier curve for a given `x` and an `epsilon`, that should be
     /// between zero and one.
     #[inline]
-    pub fn solve(&self, x: f64, epsilon: f64) -> f64 {
+    fn solve(&self, x: f64, epsilon: f64) -> f64 {
         self.sample_curve_y(self.solve_curve_x(x, epsilon))
     }
 }
