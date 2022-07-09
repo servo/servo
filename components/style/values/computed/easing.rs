@@ -4,10 +4,12 @@
 
 //! Computed types for CSS Easing functions.
 
+use euclid::approxeq::ApproxEq;
+
 use crate::bezier::Bezier;
-use crate::piecewise_linear::{PiecewiseLinearFunctionBuildParameters, PiecewiseLinearFunction};
+use crate::piecewise_linear::{PiecewiseLinearFunction, PiecewiseLinearFunctionBuildParameters};
 use crate::values::computed::{Integer, Number, Percentage};
-use crate::values::generics::easing::{self, StepPosition, TimingKeyword};
+use crate::values::generics::easing::{self, BeforeFlag, StepPosition, TimingKeyword};
 
 /// A computed timing function.
 pub type ComputedTimingFunction = easing::TimingFunction<Integer, Number, Percentage>;
@@ -31,33 +33,46 @@ impl ComputedLinearStop {
 }
 
 impl ComputedTimingFunction {
-    fn calculate_step_output(steps: i32, pos: StepPosition, progress: f64) -> f64 {
+    fn calculate_step_output(
+        steps: i32,
+        pos: StepPosition,
+        progress: f64,
+        before_flag: BeforeFlag,
+    ) -> f64 {
+        // User specified values can cause overflow (bug 1706157). Increments/decrements
+        // should be gravefully handled.
         let mut current_step = (progress * (steps as f64)).floor() as i32;
 
+        // Increment current step if it is jump-start or start.
         if pos == StepPosition::Start ||
             pos == StepPosition::JumpStart ||
             pos == StepPosition::JumpBoth
         {
-            current_step = current_step + 1;
+            current_step = current_step.checked_add(1).unwrap_or(current_step);
         }
 
-        // FIXME: We should update current_step according to the "before flag".
-        // In order to get the before flag, we have to know the current animation phase
-        // and whether the iteration is reversed. For now, we skip this calculation.
-        // (i.e. Treat before_flag is unset,)
-        // https://drafts.csswg.org/css-easing/#step-timing-function-algo
+        // If the "before flag" is set and we are at a transition point,
+        // drop back a step
+        if before_flag == BeforeFlag::Set &&
+            (progress * steps as f64).rem_euclid(1.0).approx_eq(&0.0)
+        {
+            current_step = current_step.checked_sub(1).unwrap_or(current_step);
+        }
 
+        // We should not produce a result outside [0, 1] unless we have an
+        // input outside that range. This takes care of steps that would otherwise
+        // occur at boundaries.
         if progress >= 0.0 && current_step < 0 {
             current_step = 0;
         }
 
-        let jumps = match pos {
-            StepPosition::JumpBoth => steps + 1,
-            StepPosition::JumpNone => steps - 1,
-            StepPosition::JumpStart |
-            StepPosition::JumpEnd |
-            StepPosition::Start |
-            StepPosition::End => steps,
+        // |jumps| should always be in [1, i32::MAX].
+        let jumps = if pos == StepPosition::JumpBoth {
+            steps.checked_add(1).unwrap_or(steps)
+        } else if pos == StepPosition::JumpNone {
+            steps.checked_sub(1).unwrap_or(steps)
+        } else {
+            steps
         };
 
         if progress <= 1.0 && current_step > jumps {
@@ -68,13 +83,13 @@ impl ComputedTimingFunction {
     }
 
     /// The output of the timing function given the progress ratio of this animation.
-    pub fn calculate_output(&self, progress: f64, epsilon: f64) -> f64 {
+    pub fn calculate_output(&self, progress: f64, before_flag: BeforeFlag, epsilon: f64) -> f64 {
         match self {
             TimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 Bezier::new(*x1, *y1, *x2, *y2).solve(progress, epsilon)
             },
             TimingFunction::Steps(steps, pos) => {
-                Self::calculate_step_output(*steps, *pos, progress)
+                Self::calculate_step_output(*steps, *pos, progress, before_flag)
             },
             TimingFunction::LinearFunction(elements) => {
                 // TODO(dshin): For servo, which uses this code path, constructing the function
