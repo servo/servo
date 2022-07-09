@@ -4,12 +4,10 @@
 
 //! Specified types for CSS Easing functions.
 use crate::parser::{Parse, ParserContext};
-use crate::values::computed::easing::ComputedLinearStop;
+use crate::piecewise_linear::{PiecewiseLinearFunction, PiecewiseLinearFunctionBuildParameters};
 use crate::values::computed::easing::TimingFunction as ComputedTimingFunction;
-use crate::values::computed::Percentage as ComputedPercentage;
-use crate::values::generics::easing::{
-    LinearStop as GenericLinearStop, TimingFunction as GenericTimingFunction,
-};
+use crate::values::computed::{Context, ToComputedValue};
+use crate::values::generics::easing::TimingFunction as GenericTimingFunction;
 use crate::values::generics::easing::{StepPosition, TimingKeyword};
 use crate::values::specified::{Integer, Number, Percentage};
 use cssparser::{Delimiter, Parser, Token};
@@ -17,10 +15,32 @@ use selectors::parser::SelectorParseErrorKind;
 use std::iter::FromIterator;
 use style_traits::{ParseError, StyleParseErrorKind};
 
-/// A specified timing function.
-pub type TimingFunction = GenericTimingFunction<Integer, Number, Percentage>;
+/// An entry for linear easing function.
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+pub struct LinearStop {
+    /// Output of the function at the given point.
+    pub output: Number,
+    /// Playback progress at which this output is given.
+    #[css(skip_if = "Option::is_none")]
+    pub input: Option<Percentage>,
+}
 
-type LinearStop = GenericLinearStop<Number, Percentage>;
+/// A list of specified linear stops.
+#[derive(Clone, Default, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[css(comma)]
+pub struct LinearStops {
+    #[css(iterable)]
+    entries: crate::OwnedSlice<LinearStop>,
+}
+
+impl LinearStops {
+    fn new(list: crate::OwnedSlice<LinearStop>) -> Self {
+        LinearStops { entries: list }
+    }
+}
+
+/// A specified timing function.
+pub type TimingFunction = GenericTimingFunction<Integer, Number, LinearStops>;
 
 #[cfg(feature = "gecko")]
 fn linear_timing_function_enabled() -> bool {
@@ -115,7 +135,7 @@ impl TimingFunction {
             return Err(input.new_custom_error(StyleParseErrorKind::ExperimentalProperty));
         }
         if input.is_exhausted() {
-            return Ok(GenericTimingFunction::LinearFunction(crate::OwnedSlice::default()))
+            return Ok(GenericTimingFunction::LinearFunction(LinearStops::default()));
         }
         let mut result = vec![];
         loop {
@@ -145,7 +165,18 @@ impl TimingFunction {
             }
         }
 
-        Ok(GenericTimingFunction::LinearFunction(crate::OwnedSlice::from(result)))
+        Ok(GenericTimingFunction::LinearFunction(LinearStops::new(
+            crate::OwnedSlice::from(result),
+        )))
+    }
+}
+
+impl LinearStop {
+    /// Convert this type to entries that can be used to build PiecewiseLinearFunction.
+    pub fn to_piecewise_linear_build_parameters(
+        x: &LinearStop,
+    ) -> PiecewiseLinearFunctionBuildParameters {
+        (x.output.get(), x.input.map(|x| x.get()))
     }
 }
 
@@ -169,15 +200,40 @@ impl TimingFunction {
             },
             GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(*keyword),
             GenericTimingFunction::LinearFunction(steps) => {
-                let iter = steps.iter().map(|e| ComputedLinearStop {
-                    output: e.output.get(),
-                    input: e
-                        .input
-                        .into_rust()
-                        .map(|x| ComputedPercentage(x.get()))
-                        .into(),
-                });
-                GenericTimingFunction::LinearFunction(crate::OwnedSlice::from_iter(iter))
+                GenericTimingFunction::LinearFunction(PiecewiseLinearFunction::from_iter(
+                    steps
+                        .entries
+                        .iter()
+                        .map(|e| LinearStop::to_piecewise_linear_build_parameters(e)),
+                ))
+            },
+        }
+    }
+}
+
+impl ToComputedValue for TimingFunction {
+    type ComputedValue = ComputedTimingFunction;
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        self.to_computed_value_without_context()
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match &computed {
+            ComputedTimingFunction::Steps(steps, pos) => Self::Steps(Integer::new(*steps), *pos),
+            ComputedTimingFunction::CubicBezier { x1, y1, x2, y2 } => Self::CubicBezier {
+                x1: Number::new(*x1),
+                y1: Number::new(*y1),
+                x2: Number::new(*x2),
+                y2: Number::new(*y2),
+            },
+            ComputedTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(*keyword),
+            ComputedTimingFunction::LinearFunction(function) => {
+                GenericTimingFunction::LinearFunction(LinearStops {
+                    entries: crate::OwnedSlice::from_iter(function.iter().map(|e| LinearStop {
+                        output: Number::new(e.y),
+                        input: Some(Percentage::new(e.x)).into(),
+                    })),
+                })
             },
         }
     }
