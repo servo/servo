@@ -86,6 +86,7 @@ trivial_to_resolved_value!(crate::Namespace);
 trivial_to_resolved_value!(crate::Prefix);
 trivial_to_resolved_value!(computed::LengthPercentage);
 trivial_to_resolved_value!(style_traits::values::specified::AllowedNumericType);
+trivial_to_resolved_value!(computed::TimingFunction);
 
 impl<A, B> ToResolvedValue for (A, B)
 where
