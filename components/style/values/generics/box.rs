@@ -88,6 +88,8 @@ impl<L> ToAnimatedZero for VerticalAlign<L> {
     PartialEq,
     SpecifiedValueInfo,
     ToComputedValue,
+    ToAnimatedValue,
+    ToAnimatedZero,
     ToResolvedValue,
     ToShmem,
 )]
