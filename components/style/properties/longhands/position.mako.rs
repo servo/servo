@@ -465,7 +465,6 @@ ${helpers.predefined_type(
 )}
 
 % for (size, logical) in ALL_SIZES:
-    // FIXME: Bug 1778296, "contain-intrinsic-*" properties should be animatable.
     ${helpers.predefined_type(
         "contain-intrinsic-" + size,
         "ContainIntrinsicSize",
@@ -475,6 +474,6 @@ ${helpers.predefined_type(
         logical=logical,
         gecko_pref="layout.css.contain-intrinsic-size.enabled",
         spec="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override",
-        animation_value_type="none",
+        animation_value_type="NonNegativeLength",
     )}
 % endfor
