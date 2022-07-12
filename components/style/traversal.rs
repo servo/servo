@@ -268,26 +268,6 @@ pub trait DomTraversal<E: TElement>: Sync {
         false
     }
 
-    /// Returns true if we want to cull this subtree from the travesal.
-    fn should_cull_subtree(
-        &self,
-        context: &mut StyleContext<E>,
-        parent: E,
-        parent_data: &ElementData,
-    ) -> bool {
-        debug_assert!(
-            parent.has_current_styles_for_traversal(parent_data, context.shared.traversal_flags)
-        );
-
-        // If the parent computed display:none, we don't style the subtree.
-        if parent_data.styles.is_display_none() {
-            debug!("Parent {:?} is display:none, culling traversal", parent);
-            return true;
-        }
-
-        return false;
-    }
-
     /// Return the shared style context common to all worker threads.
     fn shared_context(&self) -> &SharedStyleContext;
 }
@@ -408,7 +388,7 @@ where
 #[inline]
 #[allow(unsafe_code)]
 pub fn recalc_style_at<E, D, F>(
-    traversal: &D,
+    _traversal: &D,
     traversal_data: &PerLevelTraversalData,
     context: &mut StyleContext<E>,
     element: E,
@@ -520,16 +500,14 @@ pub fn recalc_style_at<E, D, F>(
     //  * We can't skip the cascade.
     //  * This is a servo non-incremental traversal.
     //
-    // Additionally, there are a few scenarios where we avoid traversing the
-    // subtree even if descendant styles are out of date. These cases are
-    // enumerated in should_cull_subtree().
+    // We only do this if we're not a display: none root, since in that case
+    // it's useless to style children.
     let mut traverse_children = has_dirty_descendants_for_this_restyle ||
         !propagated_hint.is_empty() ||
         !child_cascade_requirement.can_skip_cascade() ||
         is_servo_nonincremental_layout();
 
-    traverse_children =
-        traverse_children && !traversal.should_cull_subtree(context, element, &data);
+    traverse_children = traverse_children && !data.styles.is_display_none();
 
     // Examine our children, and enqueue the appropriate ones for traversal.
     if traverse_children {
