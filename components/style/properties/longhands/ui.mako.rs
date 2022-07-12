@@ -287,7 +287,6 @@ ${helpers.single_keyword(
     gecko_inexhaustive=True,
     gecko_pref="layout.css.animation-composition.enabled",
     spec="https://drafts.csswg.org/css-animations-2/#animation-composition",
-    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
 
 ${helpers.predefined_type(
