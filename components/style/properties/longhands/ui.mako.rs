@@ -276,6 +276,20 @@ ${helpers.single_keyword(
     rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
 
+${helpers.single_keyword(
+    "animation-composition",
+    "replace add accumulate",
+    engines="gecko",
+    need_index=True,
+    animation_value_type="none",
+    vector=True,
+    gecko_enum_prefix="CompositeOperation",
+    gecko_inexhaustive=True,
+    gecko_pref="layout.css.animation-composition.enabled",
+    spec="https://drafts.csswg.org/css-animations-2/#animation-composition",
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
+)}
+
 ${helpers.predefined_type(
     "animation-delay",
     "Time",
