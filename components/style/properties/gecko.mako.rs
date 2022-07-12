@@ -1731,7 +1731,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
 <% skip_ui_longhands = """animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode
                           animation-play-state animation-iteration-count
-                          animation-timeline animation-timing-function
+                          animation-timing-function animation-composition animation-timeline
                           transition-duration transition-delay
                           transition-timing-function transition-property""" %>
 
@@ -1863,6 +1863,8 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
             && self.gecko.mAnimationIterationCountCount == other.gecko.mAnimationIterationCountCount
             && self.gecko.mAnimationPlayStateCount == other.gecko.mAnimationPlayStateCount
             && self.gecko.mAnimationTimingFunctionCount == other.gecko.mAnimationTimingFunctionCount
+            && self.gecko.mAnimationCompositionCount == other.gecko.mAnimationCompositionCount
+            && self.gecko.mAnimationTimelineCount == other.gecko.mAnimationTimelineCount
             && unsafe { bindings::Gecko_StyleAnimationsEquals(&self.gecko.mAnimations, &other.gecko.mAnimations) }
     }
 
@@ -1907,6 +1909,8 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
                              data.longhands_by_name["animation-fill-mode"].keyword)}
     ${impl_animation_keyword('play_state', 'PlayState',
                              data.longhands_by_name["animation-play-state"].keyword)}
+    ${impl_animation_keyword('composition', 'Composition',
+                             data.longhands_by_name["animation-composition"].keyword)}
 
     pub fn set_animation_iteration_count<I>(&mut self, v: I)
     where
