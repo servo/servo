@@ -347,7 +347,7 @@ trait PrivateMatchMethods: TElement {
             return false;
         }
 
-        if new_style.clone_display().is_none() || old_style.clone_display().is_none() {
+        if old_style.clone_display().is_none() {
             return false;
         }
 

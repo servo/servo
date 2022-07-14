@@ -1515,6 +1515,12 @@ impl<'le> TElement for GeckoElement<'le> {
 
         let after_change_ui_style = after_change_style.get_ui();
         let existing_transitions = self.css_transitions_info();
+
+        if after_change_style.get_box().clone_display().is_none() {
+            // We need to cancel existing transitions.
+            return !existing_transitions.is_empty();
+        }
+
         let mut transitions_to_keep = LonghandIdSet::new();
         for transition_property in after_change_style.transition_properties() {
             let physical_longhand = transition_property
