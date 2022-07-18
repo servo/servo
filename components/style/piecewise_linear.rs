@@ -75,16 +75,24 @@ impl PiecewiseLinearFunction {
         next: PiecewiseLinearFunctionEntry,
         asymptote: &PiecewiseLinearFunctionEntry,
     ) -> ValueType {
-        // Line is vertical, or the two points are identical. Avoid infinite slope by pretending
-        // the line is flat.
+        // Short circuit if the x is on prev or next.
+        // `next` point is preferred as per spec.
+        if x.approx_eq(&next.x) {
+            return next.y;
+        }
+        if x.approx_eq(&prev.x) {
+            return prev.y;
+        }
+        // Avoid division by zero.
         if prev.x.approx_eq(&next.x) {
-            return asymptote.y;
+            return next.y;
         }
         let slope = (next.y - prev.y) / (next.x - prev.x);
         return slope * (x - asymptote.x) + asymptote.y;
     }
 
-    /// Get the y value of the piecewise linear function given the x value.
+    /// Get the y value of the piecewise linear function given the x value, as per
+    /// https://drafts.csswg.org/css-easing-2/#linear-easing-function-output
     pub fn at(&self, x: ValueType) -> ValueType {
         if !x.is_finite() {
             return if x > 0.0 { 1.0 } else { 0.0 };
@@ -108,24 +116,19 @@ impl PiecewiseLinearFunction {
         }
         let mut rev_iter = self.entries.iter().rev();
         let last = rev_iter.next().unwrap();
-        if x > last.x {
+        if x >= last.x {
             let second_last = rev_iter.next().unwrap();
             return Self::interpolate(x, *second_last, *last, last);
         }
 
         // Now we know the input sits within the domain explicitly defined by our function.
-        for (prev, next) in self.entries.iter().tuple_windows() {
-            if x > next.x {
+        for (point_b, point_a) in self.entries.iter().rev().tuple_windows() {
+            // Need to let point A be the _last_ point where its x is less than the input x,
+            // hence the reverse traversal.
+            if x < point_a.x {
                 continue;
             }
-            // Prefer left hand side value
-            if x.approx_eq(&prev.x) {
-                return prev.y;
-            }
-            if x.approx_eq(&next.x) {
-                return next.y;
-            }
-            return Self::interpolate(x, *prev, *next, prev);
+            return Self::interpolate(x, *point_a, *point_b, point_a);
         }
         unreachable!("Input is supposed to be within the entries' min & max!");
     }
