@@ -198,6 +198,9 @@ pub enum SystemColor {
     MozButtonhovertext,
     /// Used for menu item backgrounds when hovered.
     MozMenuhover,
+    /// Used for menu item backgrounds when hovered and disabled.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozMenuhoverdisabled,
     /// Used for menu item text when hovered.
     MozMenuhovertext,
     /// Used for menubar item text.

@@ -496,18 +496,8 @@ fn eval_moz_platform(_: &Context, query_value: Option<Platform>) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_MatchesPlatform(query_value) }
 }
 
-fn eval_moz_windows_non_native_menus(context: &Context) -> bool {
-    let use_non_native_menus = match static_prefs::pref!("browser.display.windows.non_native_menus")
-    {
-        0 => false,
-        1 => true,
-        _ => {
-            eval_moz_platform(context, Some(Platform::WindowsWin10)) &&
-                get_lnf_int_as_bool(bindings::LookAndFeel_IntID::WindowsDefaultTheme as i32)
-        },
-    };
-
-    use_non_native_menus
+fn eval_moz_windows_non_native_menus(_: &Context) -> bool {
+    unsafe { bindings::Gecko_MediaFeatures_WindowsNonNativeMenus() }
 }
 
 fn eval_moz_overlay_scrollbars(context: &Context) -> bool {
