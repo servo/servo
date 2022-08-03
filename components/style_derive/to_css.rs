@@ -123,7 +123,7 @@ fn derive_variant_fields_expr(
     let mut iter = bindings
         .iter()
         .filter_map(|binding| {
-            let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
+            let attrs = cg::parse_field_attrs::<CssFieldAttrs>(binding.ast());
             if attrs.skip {
                 return None;
             }

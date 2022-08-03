@@ -8,10 +8,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::string::String;
 
-const EXCLUDE_READS: &'static str = "exclude-reads";
-const EXCLUDE_WRITES: &'static str = "exclude-writes";
-const VALID_UUID_REGEX: &'static str =
-    "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const EXCLUDE_READS: &str = "exclude-reads";
+const EXCLUDE_WRITES: &str = "exclude-writes";
+const VALID_UUID_REGEX: &str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
 thread_local!(pub static BLUETOOTH_BLOCKLIST: RefCell<BluetoothBlocklist> =
               RefCell::new(BluetoothBlocklist(parse_blocklist())));
@@ -108,5 +107,5 @@ fn parse_blocklist() -> Option<HashMap<String, Blocklist>> {
         result.insert(uuid.to_string(), exclude_type);
     }
     // Step 5
-    return Some(result);
+    Some(result)
 }

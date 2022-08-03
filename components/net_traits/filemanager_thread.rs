@@ -57,7 +57,7 @@ impl RelativePos {
     pub fn from_opts(start: Option<i64>, end: Option<i64>) -> RelativePos {
         RelativePos {
             start: start.unwrap_or(0),
-            end: end,
+            end,
         }
     }
 

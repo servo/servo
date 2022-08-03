@@ -831,6 +831,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
     }
 
     #[inline]
+    #[allow(clippy::uninit_vec)]
     unsafe fn allocate_buffer<W>(size: usize) -> *mut u8 {
         // We use Vec because the underlying allocation machinery isn't
         // available in stable Rust. To avoid alignment issues, we allocate
@@ -1101,9 +1102,7 @@ impl<T> Clone for RawOffsetArc<T> {
 
 impl<T> Drop for RawOffsetArc<T> {
     fn drop(&mut self) {
-        let _ = Arc::from_raw_offset(RawOffsetArc {
-            ptr: self.ptr.clone(),
-        });
+        let _ = Arc::from_raw_offset(RawOffsetArc { ptr: self.ptr });
     }
 }
 
@@ -1116,10 +1115,6 @@ impl<T: fmt::Debug> fmt::Debug for RawOffsetArc<T> {
 impl<T: PartialEq> PartialEq for RawOffsetArc<T> {
     fn eq(&self, other: &RawOffsetArc<T>) -> bool {
         *(*self) == *(*other)
-    }
-
-    fn ne(&self, other: &RawOffsetArc<T>) -> bool {
-        *(*self) != *(*other)
     }
 }
 
@@ -1252,7 +1247,7 @@ impl<'a, T> ArcBorrow<'a, T> {
     /// Compare two `ArcBorrow`s via pointer equality. Will only return
     /// true if they come from the same allocation
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
-        this.0 as *const T == other.0 as *const T
+        std::ptr::eq(this.0, other.0)
     }
 
     /// Temporarily converts |self| into a bonafide Arc and exposes it to the

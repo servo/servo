@@ -334,7 +334,7 @@ pub enum NetworkEvent {
 impl TimelineMarker {
     pub fn start(name: String) -> StartedTimelineMarker {
         StartedTimelineMarker {
-            name: name,
+            name,
             start_time: PreciseTime::now(),
             start_stack: None,
         }

@@ -49,6 +49,7 @@ impl<T: 'static> Shared<T> {
         }
     }
 
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn as_mut(&self) -> &mut T {
         &mut *self.ptr.as_ptr()
     }

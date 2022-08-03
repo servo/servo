@@ -432,7 +432,7 @@ fn print_debug_usage(app: &str) -> ! {
         "Emit native OS signposts for profile events (currently macOS only)",
     );
 
-    println!("");
+    println!();
 
     process::exit(0)
 }
