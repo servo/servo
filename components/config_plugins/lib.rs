@@ -68,7 +68,7 @@ impl Build {
             self.path_stack.push(field.name.clone());
 
             if let FieldType::NewTypeDef(new_def) = &field.field_type {
-                self.walk(&new_def)?;
+                self.walk(new_def)?;
             } else {
                 let pref_name =
                     self.pref_name(field, &self.path_stack[..self.path_stack.len() - 1]);
@@ -154,7 +154,7 @@ impl Build {
                 }
             },
             FieldType::Existing(type_name) => {
-                let pref_name = self.pref_name(field, &path_stack);
+                let pref_name = self.pref_name(field, path_stack);
                 let attributes = field.get_attributes(&pref_name);
                 quote! {
                     #attributes

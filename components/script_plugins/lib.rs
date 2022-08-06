@@ -286,21 +286,21 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                 }
             }
 
-            if !in_new_function {
-                if is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false) {
-                    cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.build("Type must be rooted")
-                            .set_span(decl.output.span())
-                            .emit()
-                    })
-                }
+            if !in_new_function &&
+                is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false)
+            {
+                cx.lint(UNROOTED_MUST_ROOT, |lint| {
+                    lint.build("Type must be rooted")
+                        .set_span(decl.output.span())
+                        .emit()
+                })
             }
         }
 
         let mut visitor = FnDefVisitor {
             symbols: &self.symbols,
-            cx: cx,
-            in_new_function: in_new_function,
+            cx,
+            in_new_function,
         };
         visit::walk_expr(&mut visitor, &body.value);
     }
@@ -331,7 +331,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
 
         match expr.kind {
             // Trait casts from #[unrooted_must_root_lint::must_root] types are not allowed
-            ExprKind::Cast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            ExprKind::Cast(subexpr, _) => require_rooted(cx, self.in_new_function, &subexpr),
             // This catches assignments... the main point of this would be to catch mutable
             // references to `JS<T>`.
             // FIXME: Enable this? Triggers on certain kinds of uses of DomRefCell.
@@ -362,7 +362,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
             hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, ..) |
             hir::PatKind::Binding(hir::BindingAnnotation::Mutable, ..) => {
                 let ty = cx.typeck_results().pat_ty(pat);
-                if is_unrooted_ty(&self.symbols, cx, ty, self.in_new_function) {
+                if is_unrooted_ty(self.symbols, cx, ty, self.in_new_function) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
                         lint.build(&format!("Expression of type {:?} must be rooted", ty))
                             .set_span(pat.span)

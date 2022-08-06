@@ -202,7 +202,7 @@ impl SafeHash {
         // effectively reducing the hashes by one bit.
         //
         // Truncate hash to fit in `HashUint`.
-        let hash_bits = size_of::<HashUint>() * 8;
+        let hash_bits = HashUint::BITS;
         SafeHash {
             hash: (1 << (hash_bits - 1)) | (hash as HashUint),
         }
@@ -243,7 +243,7 @@ impl<K, V> RawBucket<K, V> {
         self.hash_start.offset(self.idx as isize)
     }
     unsafe fn pair(&self) -> *mut (K, V) {
-        self.pair_start.offset(self.idx as isize) as *mut (K, V)
+        self.pair_start.add(self.idx) as *mut (K, V)
     }
     unsafe fn hash_pair(&self) -> (*mut HashUint, *mut (K, V)) {
         (self.hash(), self.pair())
@@ -824,7 +824,7 @@ impl<K, V> RawTable<K, V> {
         unsafe {
             RawBucket {
                 hash_start: buffer as *mut HashUint,
-                pair_start: buffer.offset(pairs_offset as isize) as *const (K, V),
+                pair_start: buffer.add(pairs_offset) as *const (K, V),
                 idx: index,
                 _marker: marker::PhantomData,
             }

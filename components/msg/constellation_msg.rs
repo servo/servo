@@ -637,7 +637,7 @@ impl fmt::Debug for HangProfile {
 
         write!(fmt, "HangProfile backtrace:")?;
 
-        if self.backtrace.len() == 0 {
+        if self.backtrace.is_empty() {
             write!(fmt, "backtrace failed to resolve")?;
             return Ok(());
         }

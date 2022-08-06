@@ -44,16 +44,16 @@ impl BluetoothScanfilter {
         service_data: Option<ServiceData>,
     ) -> BluetoothScanfilter {
         BluetoothScanfilter {
-            name: name,
-            name_prefix: name_prefix,
+            name,
+            name_prefix,
             services: ServiceUUIDSequence::new(services),
             manufacturer_data: manufacturer_data,
-            service_data: service_data,
+            service_data,
         }
     }
 
     pub fn get_name(&self) -> Option<&str> {
-        self.name.as_ref().map(|s| s.as_str())
+        self.name.as_deref()
     }
 
     pub fn get_name_prefix(&self) -> &str {

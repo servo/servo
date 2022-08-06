@@ -36,12 +36,11 @@ mod platform {
 
     #[inline]
     pub unsafe fn alloc(size: usize, align: usize) -> *mut u8 {
-        let ptr = if align <= MIN_ALIGN {
+        if align <= MIN_ALIGN {
             libc::malloc(size) as *mut u8
         } else {
             aligned_malloc(size, align)
-        };
-        ptr
+        }
     }
 
     #[inline]
