@@ -390,6 +390,7 @@ def get_linux_distribution():
         'centos linux',
         'debian gnu/linux',
         'fedora',
+        'fedora linux',
         'void',
         'nixos',
     ]:

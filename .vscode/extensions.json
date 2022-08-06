@@ -11,7 +11,7 @@
         // C/C++ language support.
         "ms-vscode.cpptools",
         // Rust language support.
-        "rust-lang.rust",
+        "rust-lang.rust-analyzer",
         // CSS support for HTML documents.
         "ecmel.vscode-html-css",
         // IDL language support
