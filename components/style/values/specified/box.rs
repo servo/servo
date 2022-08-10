@@ -23,17 +23,8 @@ use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 #[cfg(feature = "gecko")]
 fn moz_display_values_enabled(context: &ParserContext) -> bool {
-    context.in_ua_or_chrome_sheet() ||
-        static_prefs::pref!("layout.css.xul-display-values.content.enabled")
+    context.in_ua_or_chrome_sheet()
 }
-
-#[cfg(feature = "gecko")]
-fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
-    context.in_ua_or_chrome_sheet() ||
-        static_prefs::pref!("layout.css.xul-box-display-values.content.enabled")
-}
-
-
 
 #[cfg(not(feature = "servo"))]
 fn flexbox_enabled() -> bool {
@@ -561,9 +552,9 @@ impl Parse for Display {
             #[cfg(feature = "gecko")]
             "-webkit-inline-box" => Display::WebkitInlineBox,
             #[cfg(feature = "gecko")]
-            "-moz-box" if moz_box_display_values_enabled(context) => Display::MozBox,
+            "-moz-box" if moz_display_values_enabled(context) => Display::MozBox,
             #[cfg(feature = "gecko")]
-            "-moz-inline-box" if moz_box_display_values_enabled(context) => Display::MozInlineBox,
+            "-moz-inline-box" if moz_display_values_enabled(context) => Display::MozInlineBox,
             #[cfg(feature = "gecko")]
             "-moz-deck" if moz_display_values_enabled(context) => Display::MozDeck,
             #[cfg(feature = "gecko")]
