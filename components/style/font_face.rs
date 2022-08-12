@@ -51,11 +51,14 @@ impl OneOrMoreSeparated for Source {
 }
 
 /// Keywords for the font-face src descriptor's format() function.
+/// ('None' and 'Unknown' are for internal use in gfx, not exposed to CSS.)
 #[derive(Clone, Copy, Debug, Eq, Parse, PartialEq, ToCss, ToShmem)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum FontFaceSourceFormatKeyword {
+    #[css(skip)]
+    None,
     Collection,
     EmbeddedOpentype,
     Opentype,
@@ -63,6 +66,8 @@ pub enum FontFaceSourceFormatKeyword {
     Truetype,
     Woff,
     Woff2,
+    #[css(skip)]
+    Unknown,
 }
 
 /// A POD representation for Gecko. All pointers here are non-owned and as such
