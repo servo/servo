@@ -32,7 +32,6 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, SourceLocation};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::values::SequenceWriter;
 use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 
@@ -76,8 +75,8 @@ pub enum FontFaceSourceListComponent {
 pub struct UrlSource {
     /// The specified url.
     pub url: SpecifiedUrl,
-    /// The format hints specified with the `format()` function.
-    pub format_hints: Vec<String>,
+    /// The format hint specified with the `format()` function, if present.
+    pub format_hint: Option<String>,
 }
 
 impl ToCss for UrlSource {
@@ -86,14 +85,9 @@ impl ToCss for UrlSource {
         W: fmt::Write,
     {
         self.url.to_css(dest)?;
-        if !self.format_hints.is_empty() {
+        if let Some(hint) = &self.format_hint {
             dest.write_str(" format(")?;
-            {
-                let mut writer = SequenceWriter::new(dest, ", ");
-                for hint in self.format_hints.iter() {
-                    writer.item(hint)?;
-                }
-            }
+            dest.write_str(&hint)?;
             dest.write_char(')')?;
         }
         Ok(())
@@ -338,14 +332,11 @@ impl<'a> FontFace<'a> {
                 .rev()
                 .filter(|source| {
                     if let Source::Url(ref url_source) = **source {
-                        let hints = &url_source.format_hints;
                         // We support only opentype fonts and truetype is an alias for
                         // that format. Sources without format hints need to be
                         // downloaded in case we support them.
-                        hints.is_empty() ||
-                            hints.iter().any(|hint| {
-                                hint == "truetype" || hint == "opentype" || hint == "woff"
-                            })
+                        url_source.format_hint.as_ref().map_or(true,
+                            |hint| hint == "truetype" || hint == "opentype" || hint == "woff")
                     } else {
                         true
                     }
@@ -397,20 +388,20 @@ impl Parse for Source {
         let url = SpecifiedUrl::parse(context, input)?;
 
         // Parsing optional format()
-        let format_hints = if input
+        let format_hint = if input
             .try_parse(|input| input.expect_function_matching("format"))
             .is_ok()
         {
             input.parse_nested_block(|input| {
-                input.parse_comma_separated(|input| Ok(input.expect_string()?.as_ref().to_owned()))
+                Ok(Some(input.expect_string()?.as_ref().to_owned()))
             })?
         } else {
-            vec![]
+            None
         };
 
         Ok(Source::Url(UrlSource {
             url: url,
-            format_hints: format_hints,
+            format_hint: format_hint,
         }))
     }
 }
