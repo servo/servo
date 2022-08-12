@@ -70,6 +70,111 @@ pub enum FontFaceSourceFormatKeyword {
     Unknown,
 }
 
+bitflags! {
+    /// Flags for the @font-face tech() function, indicating font technologies
+    /// required by the resource.
+    #[derive(ToShmem)]
+    #[repr(C)]
+    pub struct FontFaceSourceTechFlags: u16 {
+        /// Font requires OpenType feature support.
+        const FEATURE_OPENTYPE = 1 << 0;
+        /// Font requires Apple Advanced Typography support.
+        const FEATURE_AAT = 1 << 1;
+        /// Font requires Graphite shaping support.
+        const FEATURE_GRAPHITE = 1 << 2;
+        /// Font requires COLRv0 rendering support (simple list of colored layers).
+        const COLOR_COLRV0 = 1 << 3;
+        /// Font requires COLRv1 rendering support (graph of paint operations).
+        const COLOR_COLRV1 = 1 << 4;
+        /// Font requires SVG glyph rendering support.
+        const COLOR_SVG = 1 << 5;
+        /// Font has bitmap glyphs in 'sbix' format.
+        const COLOR_SBIX = 1 << 6;
+        /// Font has bitmap glyphs in 'CBDT' format.
+        const COLOR_CBDT = 1 << 7;
+        /// Font requires OpenType Variations support.
+        const VARIATIONS = 1 << 8;
+        /// Font requires CPAL palette selection support.
+        const PALETTES = 1 << 9;
+        /// Font requires support for incremental downloading.
+        const INCREMENTAL = 1 << 10;
+    }
+}
+
+impl Parse for FontFaceSourceTechFlags {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        // We don't actually care about the return value of parse_comma_separated,
+        // because we insert the flags into result as we go.
+        let mut result = Self::empty();
+        input.parse_comma_separated(|input| {
+            let location = input.current_source_location();
+            let ident = input.expect_ident()?;
+            let flag = match_ignore_ascii_case! { ident,
+                "feature-opentype" => Self::FEATURE_OPENTYPE,
+                "feature-aat" => Self::FEATURE_AAT,
+                "feature-graphite" => Self::FEATURE_GRAPHITE,
+                "color-colrv0" => Self::COLOR_COLRV0,
+                "color-colrv1" => Self::COLOR_COLRV1,
+                "color-svg" => Self::COLOR_SVG,
+                "color-sbix" => Self::COLOR_SBIX,
+                "color-cbdt" => Self::COLOR_CBDT,
+                "variations" => Self::VARIATIONS,
+                "palettes" => Self::PALETTES,
+                "incremental" => Self::INCREMENTAL,
+                _ => return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+            };
+            result.insert(flag);
+            Ok(())
+        })?;
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
+#[allow(unused_assignments)]
+impl ToCss for FontFaceSourceTechFlags {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        let mut first = true;
+
+        macro_rules! write_if_flag {
+            ($s:expr => $f:ident) => {
+                if self.contains(Self::$f) {
+                    if first {
+                        first = false;
+                    } else {
+                        dest.write_str(", ")?;
+                    }
+                    dest.write_str($s)?;
+                }
+            };
+        }
+
+        write_if_flag!("feature-opentype" => FEATURE_OPENTYPE);
+        write_if_flag!("feature-aat" => FEATURE_AAT);
+        write_if_flag!("feature-graphite" => FEATURE_GRAPHITE);
+        write_if_flag!("color-colrv0" => COLOR_COLRV0);
+        write_if_flag!("color-colrv1" => COLOR_COLRV1);
+        write_if_flag!("color-svg" => COLOR_SVG);
+        write_if_flag!("color-sbix" => COLOR_SBIX);
+        write_if_flag!("color-cbdt" => COLOR_CBDT);
+        write_if_flag!("variations" => VARIATIONS);
+        write_if_flag!("palettes" => PALETTES);
+        write_if_flag!("incremental" => INCREMENTAL);
+
+        Ok(())
+    }
+}
+
 /// A POD representation for Gecko. All pointers here are non-owned and as such
 /// can't outlive the rule they came from, but we can't enforce that via C++.
 ///
@@ -86,6 +191,7 @@ pub enum FontFaceSourceListComponent {
         length: usize,
         utf8_bytes: *const u8,
     },
+    TechFlags(FontFaceSourceTechFlags),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, ToCss, ToShmem)]
@@ -108,6 +214,8 @@ pub struct UrlSource {
     pub url: SpecifiedUrl,
     /// The format hint specified with the `format()` function, if present.
     pub format_hint: Option<FontFaceSourceFormat>,
+    /// The font technology flags specified with the `tech()` function, if any.
+    pub tech_flags: FontFaceSourceTechFlags,
 }
 
 impl ToCss for UrlSource {
@@ -119,6 +227,11 @@ impl ToCss for UrlSource {
         if let Some(hint) = &self.format_hint {
             dest.write_str(" format(")?;
             hint.to_css(dest)?;
+            dest.write_char(')')?;
+        }
+        if !self.tech_flags.is_empty() {
+            dest.write_str(" tech(")?;
+            self.tech_flags.to_css(dest)?;
             dest.write_char(')')?;
         }
         Ok(())
@@ -447,10 +560,17 @@ impl Parse for Source {
             None
         };
 
-        Ok(Source::Url(UrlSource {
-            url: url,
-            format_hint: format_hint,
-        }))
+        // Parse optional tech()
+        let tech_flags = if input
+            .try_parse(|input| input.expect_function_matching("tech"))
+            .is_ok()
+        {
+            input.parse_nested_block(|input| FontFaceSourceTechFlags::parse(context, input))?
+        } else {
+            FontFaceSourceTechFlags::empty()
+        };
+
+        Ok(Source::Url(UrlSource { url, format_hint, tech_flags }))
     }
 }
 
