@@ -535,7 +535,13 @@ class MachCommands(CommandBase):
                      help='The API endpoint for tracking known intermittent failures.')
     @CommandArgument('--reporter-api', default=None, action='store',
                      help='The API endpoint for reporting tracked intermittent failures.')
-    def filter_intermittents(self, summary, log_filteredsummary, log_intermittents, auth, tracker_api, reporter_api):
+    def filter_intermittents(self,
+                             summary,
+                             log_filteredsummary,
+                             log_intermittents,
+                             auth,
+                             tracker_api,
+                             reporter_api):
         encoded_auth = None
         if auth:
             with open(auth, "r") as file:
