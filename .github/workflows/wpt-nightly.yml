@@ -1,7 +1,6 @@
 name: Synchronize WPT Nightly
 
 on:
-  pull_request:
   schedule:
     # Run this job at 00:00 everyday
     - cron: "0 0 * * *"
