@@ -9,7 +9,7 @@ clangStdenv.mkDerivation rec {
   buildInputs = [
     # Native dependencies
     fontconfig freetype openssl libunwind
-    xlibs.libxcb x11
+    xorg.libxcb xlibsWrapper
 
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-base
