@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::image_cache::CorsStatus;
+use image::ImageFormat;
 use ipc_channel::ipc::IpcSharedMemory;
-use piston_image::ImageFormat;
 use pixels::PixelFormat;
 use std::fmt;
 
@@ -50,7 +50,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
             debug!("{}", msg);
             None
         },
-        Ok(_) => match piston_image::load_from_memory(buffer) {
+        Ok(_) => match image::load_from_memory(buffer) {
             Ok(image) => {
                 let mut rgba = image.into_rgba8();
                 pixels::rgba8_byte_swap_colors_inplace(&mut *rgba);
@@ -79,6 +79,8 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
         Ok(ImageFormat::Jpeg)
     } else if is_png(buffer) {
         Ok(ImageFormat::Png)
+    } else if is_webp(buffer) {
+        Ok(ImageFormat::WebP)
     } else if is_bmp(buffer) {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
@@ -106,4 +108,8 @@ fn is_bmp(buffer: &[u8]) -> bool {
 
 fn is_ico(buffer: &[u8]) -> bool {
     buffer.starts_with(&[0x00, 0x00, 0x01, 0x00])
+}
+
+fn is_webp(buffer: &[u8]) -> bool {
+    buffer.starts_with(b"RIFF") && buffer.len() >= 14 && &buffer[8..14] == b"WEBPVP"
 }

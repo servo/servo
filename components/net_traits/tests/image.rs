@@ -10,6 +10,9 @@ fn test_supported_images() {
     let gif2 = [b'G', b'I', b'F', b'8', b'9', b'a'];
     let jpeg = [0xff, 0xd8, 0xff];
     let png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    let webp = [
+        b'R', b'I', b'F', b'F', 0x01, 0x02, 0x03, 0x04, b'W', b'E', b'B', b'P', b'V', b'P',
+    ];
     let bmp = [0x42, 0x4D];
     let ico = [0x00, 0x00, 0x01, 0x00];
     let junk_format = [0x01, 0x02, 0x03, 0x04, 0x05];
@@ -18,6 +21,7 @@ fn test_supported_images() {
     assert!(detect_image_format(&gif2).is_ok());
     assert!(detect_image_format(&jpeg).is_ok());
     assert!(detect_image_format(&png).is_ok());
+    assert!(detect_image_format(&webp).is_ok());
     assert!(detect_image_format(&bmp).is_ok());
     assert!(detect_image_format(&ico).is_ok());
     assert!(detect_image_format(&junk_format).is_err());
