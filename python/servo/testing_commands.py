@@ -535,16 +535,13 @@ class MachCommands(CommandBase):
                      help='The API endpoint for tracking known intermittent failures.')
     @CommandArgument('--reporter-api', default=None, action='store',
                      help='The API endpoint for reporting tracked intermittent failures.')
-    @CommandArgument('--always-succeed', default=False, action='store_true',
-                     help='Always yield exit code of zero')
     def filter_intermittents(self,
                              summary,
                              log_filteredsummary,
                              log_intermittents,
                              auth,
                              tracker_api,
-                             reporter_api,
-                             always_succeed):
+                             reporter_api):
         encoded_auth = None
         if auth:
             with open(auth, "r") as file:
@@ -611,10 +608,7 @@ class MachCommands(CommandBase):
         if actual_failures:
             format(actual_failures, description)
 
-        if always_succeed:
-            return 0
-        else:
-            return bool(actual_failures)
+        return bool(actual_failures)
 
     @Command('test-android-startup',
              description='Extremely minimal testing of Servo for Android',
