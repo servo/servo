@@ -20,6 +20,14 @@ use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
+fn trig_enabled() -> bool {
+    static_prefs::pref!("layout.css.trig.enabled")
+}
+
+fn nan_inf_enabled() -> bool {
+    static_prefs::pref!("layout.css.nan-inf.enabled")
+}
+
 /// The name of the mathematical function that we're parsing.
 #[derive(Clone, Copy, Debug, Parse)]
 pub enum MathFunction {
@@ -349,12 +357,12 @@ impl CalcNode {
                 CalcNode::parse(context, input, function, allowed_units)
             },
             &Token::Ident(ref ident) => {
-                if !trig_enabled() {
-                    return Err(location.new_unexpected_token_error(Token::Ident(ident.clone())));
-                }
                 let number = match_ignore_ascii_case! { &**ident,
-                    "e" => std::f32::consts::E,
-                    "pi" => std::f32::consts::PI,
+                    "e" if trig_enabled() => std::f32::consts::E,
+                    "pi" if trig_enabled() => std::f32::consts::PI,
+                    "infinity" if nan_inf_enabled() => f32::INFINITY,
+                    "-infinity" if nan_inf_enabled() => f32::NEG_INFINITY,
+                    "nan" if nan_inf_enabled() => f32::NAN,
                     _ => return Err(location.new_unexpected_token_error(Token::Ident(ident.clone()))),
                 };
                 Ok(CalcNode::Leaf(Leaf::Number(number)))
@@ -579,12 +587,10 @@ impl CalcNode {
                     //
                     // TODO(emilio): Eventually it should be.
                     let number = match rhs.to_number() {
-                        Ok(n) if n != 0. => n,
-                        _ => {
-                            return Err(
-                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                            );
-                        },
+                        Ok(n) if n != 0. || nan_inf_enabled() => n,
+                        _ => return Err(
+                            input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                        ),
                     };
                     node.mul_by(1. / number);
                 },
