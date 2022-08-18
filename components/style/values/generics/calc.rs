@@ -158,6 +158,14 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         }
     }
 
+    /// Returns the leaf if we can (if simplification has allowed it).
+    pub fn as_leaf(&self) -> Option<&L> {
+        match *self {
+            Self::Leaf(ref l) => Some(l),
+            _ => None,
+        }
+    }
+
     /// Tries to merge one sum to another, that is, perform `x` + `y`.
     fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()> {
         match (self, other) {
