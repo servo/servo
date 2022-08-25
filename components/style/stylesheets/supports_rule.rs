@@ -11,6 +11,7 @@ use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::{CssRuleType, CssRules, Namespaces};
+use crate::font_face::{FontFaceSourceFormatKeyword, FontFaceSourceTechFlags};
 use cssparser::parse_important;
 use cssparser::{Delimiter, Parser, SourceLocation, Token};
 use cssparser::{ParseError as CssParseError, ParserInput};
@@ -94,6 +95,10 @@ pub enum SupportsCondition {
     /// Since we need to pass it through FFI to get the pref value,
     /// we store it as CString directly.
     MozBoolPref(CString),
+    /// `font-format(<font-format>)`
+    FontFormat(FontFaceSourceFormatKeyword),
+    /// `font-tech(<font-tech>)`
+    FontTech(FontFaceSourceTechFlags),
     /// `(any tokens)` or `func(any tokens)`
     FutureSyntax(String),
 }
@@ -165,6 +170,14 @@ impl SupportsCondition {
                     input.slice_from(pos).to_owned()
                 )))
             },
+            "font-format" if static_prefs::pref!("layout.css.font-tech.enabled") => {
+                let kw = FontFaceSourceFormatKeyword::parse(input)?;
+                Ok(SupportsCondition::FontFormat(kw))
+            },
+            "font-tech" if static_prefs::pref!("layout.css.font-tech.enabled") => {
+                let flag = FontFaceSourceTechFlags::parse_one(input)?;
+                Ok(SupportsCondition::FontTech(flag))
+            },
             _ => {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             },
@@ -215,6 +228,8 @@ impl SupportsCondition {
             SupportsCondition::Declaration(ref decl) => decl.eval(cx),
             SupportsCondition::MozBoolPref(ref name) => eval_moz_bool_pref(name, cx),
             SupportsCondition::Selector(ref selector) => selector.eval(cx, namespaces),
+            SupportsCondition::FontFormat(ref format) => eval_font_format(format),
+            SupportsCondition::FontTech(ref tech) => eval_font_tech(tech),
             SupportsCondition::FutureSyntax(_) => false,
         }
     }
@@ -227,6 +242,16 @@ fn eval_moz_bool_pref(name: &CStr, cx: &ParserContext) -> bool {
         return false;
     }
     unsafe { bindings::Gecko_GetBoolPrefValue(name.as_ptr()) }
+}
+
+fn eval_font_format(kw: &FontFaceSourceFormatKeyword) -> bool {
+    use crate::gecko_bindings::bindings;
+    unsafe { bindings::Gecko_IsFontFormatSupported(*kw) }
+}
+
+fn eval_font_tech(flag: &FontFaceSourceTechFlags) -> bool {
+    use crate::gecko_bindings::bindings;
+    unsafe { bindings::Gecko_IsFontTechSupported(*flag) }
 }
 
 #[cfg(feature = "servo")]
@@ -298,6 +323,16 @@ impl ToCss for SupportsCondition {
                 let name =
                     str::from_utf8(name.as_bytes()).expect("Should be parsed from valid UTF-8");
                 name.to_css(dest)?;
+                dest.write_str(")")
+            },
+            SupportsCondition::FontFormat(ref kw) => {
+                dest.write_str("font-format(")?;
+                kw.to_css(dest)?;
+                dest.write_str(")")
+            },
+            SupportsCondition::FontTech(ref flag) => {
+                dest.write_str("font-tech(")?;
+                flag.to_css(dest)?;
                 dest.write_str(")")
             },
             SupportsCondition::FutureSyntax(ref s) => dest.write_str(&s),
