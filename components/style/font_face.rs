@@ -102,6 +102,25 @@ bitflags! {
     }
 }
 
+impl FontFaceSourceTechFlags {
+    /// Parse a single font-technology keyword and return its flag.
+    pub fn parse_one<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "feature-opentype" => Self::FEATURE_OPENTYPE,
+            "feature-aat" => Self::FEATURE_AAT,
+            "feature-graphite" => Self::FEATURE_GRAPHITE,
+            "color-colrv0" => Self::COLOR_COLRV0,
+            "color-colrv1" => Self::COLOR_COLRV1,
+            "color-svg" => Self::COLOR_SVG,
+            "color-sbix" => Self::COLOR_SBIX,
+            "color-cbdt" => Self::COLOR_CBDT,
+            "variations" => Self::VARIATIONS,
+            "palettes" => Self::PALETTES,
+            "incremental" => Self::INCREMENTAL,
+        })
+    }
+}
+
 impl Parse for FontFaceSourceTechFlags {
     fn parse<'i, 't>(
         _context: &ParserContext,
@@ -112,22 +131,7 @@ impl Parse for FontFaceSourceTechFlags {
         // because we insert the flags into result as we go.
         let mut result = Self::empty();
         input.parse_comma_separated(|input| {
-            let location = input.current_source_location();
-            let ident = input.expect_ident()?;
-            let flag = match_ignore_ascii_case! { ident,
-                "feature-opentype" => Self::FEATURE_OPENTYPE,
-                "feature-aat" => Self::FEATURE_AAT,
-                "feature-graphite" => Self::FEATURE_GRAPHITE,
-                "color-colrv0" => Self::COLOR_COLRV0,
-                "color-colrv1" => Self::COLOR_COLRV1,
-                "color-svg" => Self::COLOR_SVG,
-                "color-sbix" => Self::COLOR_SBIX,
-                "color-cbdt" => Self::COLOR_CBDT,
-                "variations" => Self::VARIATIONS,
-                "palettes" => Self::PALETTES,
-                "incremental" => Self::INCREMENTAL,
-                _ => return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            };
+            let flag = Self::parse_one(input)?;
             result.insert(flag);
             Ok(())
         })?;
