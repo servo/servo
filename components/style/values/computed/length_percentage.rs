@@ -30,7 +30,7 @@ use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::{calc, NonNegative};
 use crate::values::specified::length::FontBaseSize;
 use crate::values::{specified, CSSFloat};
-use crate::Zero;
+use crate::{Zero, ZeroNoPercent};
 use app_units::Au;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
@@ -553,6 +553,13 @@ impl Zero for LengthPercentage {
     #[inline]
     fn is_zero(&self) -> bool {
         self.is_definitely_zero()
+    }
+}
+
+impl ZeroNoPercent for LengthPercentage {
+    #[inline]
+    fn is_zero_no_percent(&self) -> bool {
+        self.is_definitely_zero() && !self.has_percentage()
     }
 }
 

@@ -10,7 +10,7 @@ use crate::values::specified::angle::Angle as SpecifiedAngle;
 use crate::values::specified::length::Length as SpecifiedLength;
 use crate::values::specified::length::LengthPercentage as SpecifiedLengthPercentage;
 use crate::values::{computed, CSSFloat};
-use crate::Zero;
+use crate::{Zero, ZeroNoPercent};
 use euclid;
 use euclid::default::{Rect, Transform3D};
 use std::fmt::{self, Write};
@@ -194,7 +194,7 @@ pub use self::GenericPerspectiveFunction as PerspectiveFunction;
 pub enum GenericTransformOperation<Angle, Number, Length, Integer, LengthPercentage>
 where
     Angle: Zero,
-    LengthPercentage: Zero,
+    LengthPercentage: Zero + ZeroNoPercent,
     Number: PartialEq,
 {
     /// Represents a 2D 2x3 matrix.
@@ -218,7 +218,7 @@ where
     #[css(comma, function)]
     Translate(
         LengthPercentage,
-        #[css(skip_if = "Zero::is_zero")] LengthPercentage,
+        #[css(skip_if = "ZeroNoPercent::is_zero_no_percent")] LengthPercentage,
     ),
     /// translateX(x)
     #[css(function = "translateX")]
@@ -327,7 +327,7 @@ impl<Angle, Number, Length, Integer, LengthPercentage>
     TransformOperation<Angle, Number, Length, Integer, LengthPercentage>
 where
     Angle: Zero,
-    LengthPercentage: Zero,
+    LengthPercentage: Zero + ZeroNoPercent,
     Number: PartialEq,
 {
     /// Check if it is any rotate function.
@@ -446,7 +446,7 @@ where
     Angle: Zero + ToRadians + Copy,
     Number: PartialEq + Copy + Into<f32> + Into<f64>,
     Length: ToAbsoluteLength,
-    LoP: Zero + ToAbsoluteLength,
+    LoP: Zero + ToAbsoluteLength + ZeroNoPercent,
 {
     #[inline]
     fn is_3d(&self) -> bool {
@@ -810,12 +810,12 @@ where
 }
 
 #[inline]
-fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero, Length: Zero>(
+fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero + ZeroNoPercent, Length: Zero>(
     _: &LengthPercentage,
     y: &LengthPercentage,
     z: &Length,
 ) -> bool {
-    y.is_zero() && z.is_zero()
+    y.is_zero_no_percent() && z.is_zero()
 }
 
 #[derive(
@@ -839,7 +839,7 @@ fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero, Length: Zero>(
 ///
 /// If a 2d translation is specified, the property must serialize with only one
 /// or two values (per usual, if the second value is 0px, the default, it must
-/// be omitted when serializing).
+/// be omitted when serializing; however if 0% is the second value, it is included).
 ///
 /// If a 3d translation is specified and the value can be expressed as 2d, we treat as 2d and
 /// serialize accoringly. Otherwise, we serialize all three values.
@@ -849,7 +849,7 @@ fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero, Length: Zero>(
 /// cbindgen:private-default-tagged-enum-constructor=false
 pub enum GenericTranslate<LengthPercentage, Length>
 where
-    LengthPercentage: Zero,
+    LengthPercentage: Zero + ZeroNoPercent,
     Length: Zero,
 {
     /// 'none'

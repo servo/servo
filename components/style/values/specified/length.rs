@@ -18,7 +18,7 @@ use crate::values::generics::NonNegative;
 use crate::values::specified::calc::{self, CalcNode};
 use crate::values::specified::NonNegativeNumber;
 use crate::values::CSSFloat;
-use crate::Zero;
+use crate::{Zero, ZeroNoPercent};
 use app_units::Au;
 use cssparser::{Parser, Token};
 use std::cmp;
@@ -1482,6 +1482,15 @@ impl Zero for LengthPercentage {
             LengthPercentage::Length(l) => l.is_zero(),
             LengthPercentage::Percentage(p) => p.0 == 0.0,
             LengthPercentage::Calc(_) => false,
+        }
+    }
+}
+
+impl ZeroNoPercent for LengthPercentage {
+    fn is_zero_no_percent(&self) -> bool {
+        match *self {
+            LengthPercentage::Percentage(_) => false,
+            _ => self.is_zero(),
         }
     }
 }
