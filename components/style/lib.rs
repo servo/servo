@@ -244,6 +244,12 @@ where
     }
 }
 
+/// A trait implementing a function to tell if the number is zero without a percent
+pub trait ZeroNoPercent {
+    /// So, `0px` should return `true`, but `0%` or `1px` should return `false`
+    fn is_zero_no_percent(&self) -> bool;
+}
+
 /// A trait pretty much similar to num_traits::One, but without the need of
 /// implementing `Mul`.
 pub trait One {
