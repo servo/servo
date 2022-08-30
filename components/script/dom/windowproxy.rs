@@ -918,7 +918,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(
         return false;
     }
 
-    fill_property_descriptor(MutableHandle::from_raw(desc), slot, JSPROP_ENUMERATE as u32);
+    fill_property_descriptor(MutableHandle::from_raw(desc), slot, 0);
 
     true
 }

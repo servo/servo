@@ -5573,6 +5573,9 @@ if !expando.is_null() {
         return false;
     }
     if desc.hasValue_() {
+        let mut slot = UndefinedValue();
+        GetProxyPrivate(proxy.get(), &mut slot);
+        desc.value_ = slot;
         return true;
     }
 }
