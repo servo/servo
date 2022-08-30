@@ -78,11 +78,11 @@ bitflags! {
     #[repr(C)]
     pub struct FontFaceSourceTechFlags: u16 {
         /// Font requires OpenType feature support.
-        const FEATURE_OPENTYPE = 1 << 0;
+        const FEATURES_OPENTYPE = 1 << 0;
         /// Font requires Apple Advanced Typography support.
-        const FEATURE_AAT = 1 << 1;
+        const FEATURES_AAT = 1 << 1;
         /// Font requires Graphite shaping support.
-        const FEATURE_GRAPHITE = 1 << 2;
+        const FEATURES_GRAPHITE = 1 << 2;
         /// Font requires COLRv0 rendering support (simple list of colored layers).
         const COLOR_COLRV0 = 1 << 3;
         /// Font requires COLRv1 rendering support (graph of paint operations).
@@ -106,9 +106,9 @@ impl FontFaceSourceTechFlags {
     /// Parse a single font-technology keyword and return its flag.
     pub fn parse_one<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Ok(try_match_ident_ignore_ascii_case! { input,
-            "feature-opentype" => Self::FEATURE_OPENTYPE,
-            "feature-aat" => Self::FEATURE_AAT,
-            "feature-graphite" => Self::FEATURE_GRAPHITE,
+            "features-opentype" => Self::FEATURES_OPENTYPE,
+            "features-aat" => Self::FEATURES_AAT,
+            "features-graphite" => Self::FEATURES_GRAPHITE,
             "color-colrv0" => Self::COLOR_COLRV0,
             "color-colrv1" => Self::COLOR_COLRV1,
             "color-svg" => Self::COLOR_SVG,
@@ -164,9 +164,9 @@ impl ToCss for FontFaceSourceTechFlags {
             };
         }
 
-        write_if_flag!("feature-opentype" => FEATURE_OPENTYPE);
-        write_if_flag!("feature-aat" => FEATURE_AAT);
-        write_if_flag!("feature-graphite" => FEATURE_GRAPHITE);
+        write_if_flag!("features-opentype" => FEATURES_OPENTYPE);
+        write_if_flag!("features-aat" => FEATURES_AAT);
+        write_if_flag!("features-graphite" => FEATURES_GRAPHITE);
         write_if_flag!("color-colrv0" => COLOR_COLRV0);
         write_if_flag!("color-colrv1" => COLOR_COLRV1);
         write_if_flag!("color-svg" => COLOR_SVG);
