@@ -142,7 +142,7 @@ impl<L: ToCss> ToCss for ContainIntrinsicSize<L> {
     ToShmem,
 )]
 #[repr(transparent)]
-#[value_info(other_values = "auto")]
+#[value_info(other_values = "none")]
 pub struct GenericLineClamp<I>(pub I);
 
 pub use self::GenericLineClamp as LineClamp;
