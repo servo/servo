@@ -378,6 +378,7 @@ trivial_to_animated_value!(ComputedAngle);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
+trivial_to_animated_value!(i32);
 // Note: This implementation is for ToAnimatedValue of ShapeSource.
 //
 // SVGPathData uses Box<[T]>. If we want to derive ToAnimatedValue for all the

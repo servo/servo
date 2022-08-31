@@ -47,7 +47,7 @@ pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderImageSlice, BorderImageWidth};
 pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain, ContainerName, ContainerType};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, ContentVisibility, ContainIntrinsicSize, Float};
-pub use self::box_::{Display, Overflow, OverflowAnchor, TransitionProperty};
+pub use self::box_::{Display, LineClamp, Overflow, OverflowAnchor, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
 pub use self::box_::{ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
 pub use self::box_::{ScrollSnapStrictness, ScrollSnapType, ScrollTimelineName};
@@ -101,7 +101,6 @@ pub use self::ui::{Cursor, MozForceBrokenImageIcon, UserSelect};
 pub use super::specified::TextTransform;
 pub use super::specified::ViewportVariant;
 pub use super::specified::{BorderStyle, TextDecorationLine};
-pub use super::{Auto, Either, None_};
 pub use app_units::Au;
 
 #[cfg(feature = "gecko")]
@@ -875,9 +874,6 @@ impl From<CSSInteger> for PositiveInteger {
         GreaterThanOrEqualToOne::<CSSInteger>(int)
     }
 }
-
-/// A computed positive `<integer>` value or `none`.
-pub type PositiveIntegerOrNone = Either<PositiveInteger, None_>;
 
 /// rect(...) | auto
 pub type ClipRect = generics::GenericClipRect<LengthOrAuto>;

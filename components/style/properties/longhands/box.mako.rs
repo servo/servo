@@ -547,16 +547,13 @@ ${helpers.predefined_type(
     spec="https://compat.spec.whatwg.org/#touch-action",
 )}
 
-// Note that we only implement -webkit-line-clamp as a single, longhand
-// property for now, but the spec defines line-clamp as a shorthand for separate
-// max-lines, block-ellipsis, and continue properties.
 ${helpers.predefined_type(
     "-webkit-line-clamp",
-    "PositiveIntegerOrNone",
-    "Either::Second(None_)",
+    "LineClamp",
+    "computed::LineClamp::none()",
     engines="gecko",
     gecko_pref="layout.css.webkit-line-clamp.enabled",
-    animation_value_type="Integer",
+    animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-overflow-3/#line-clamp",
 )}
 
