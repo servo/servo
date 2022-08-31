@@ -4,12 +4,11 @@
 
 //! Computed types for box properties.
 
+use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::length::{LengthPercentage, NonNegativeLength};
-use crate::values::computed::{Context, Number, ToComputedValue};
+use crate::values::computed::{Context, Integer, Number, ToComputedValue};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
-use crate::values::generics::box_::Perspective as GenericPerspective;
-use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use crate::values::generics::box_::ContainIntrinsicSize as GenericContainIntrinsicSize;
+use crate::values::generics::box_::{GenericLineClamp, GenericPerspective, GenericVerticalAlign, GenericContainIntrinsicSize};
 use crate::values::specified::box_ as specified;
 
 pub use crate::values::specified::box_::{
@@ -29,6 +28,22 @@ pub type AnimationIterationCount = GenericAnimationIterationCount<Number>;
 
 /// A computed value for the `contain-intrinsic-size` property.
 pub type ContainIntrinsicSize = GenericContainIntrinsicSize<NonNegativeLength>;
+
+/// A computed value for the `line-clamp` property.
+pub type LineClamp = GenericLineClamp<Integer>;
+
+impl Animate for LineClamp {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        if self.is_none() != other.is_none() {
+            return Err(());
+        }
+        if self.is_none() {
+            return Ok(Self::none())
+        }
+        Ok(Self(self.0.animate(&other.0, procedure)?.max(1)))
+    }
+}
 
 impl AnimationIterationCount {
     /// Returns the value `1.0`.

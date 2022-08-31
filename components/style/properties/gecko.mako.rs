@@ -38,7 +38,7 @@ use crate::selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc, UniqueArc};
 use std::mem::{forget, MaybeUninit};
 use std::{cmp, ops, ptr};
-use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
+use crate::values::{self, CustomIdent, KeyframesName};
 use crate::values::computed::{Percentage, TransitionProperty};
 use crate::values::computed::BorderStyle;
 use crate::values::computed::font::FontSize;
@@ -1127,9 +1127,7 @@ fn static_assert() {
     ${impl_copy_animation_value(ident, gecko_ffi_name)}
 </%def>
 
-<% skip_box_longhands= """display
-                          clear
-                          -webkit-line-clamp""" %>
+<% skip_box_longhands= """display clear""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
@@ -1169,28 +1167,6 @@ fn static_assert() {
         gecko_inexhaustive=True,
     ) %>
     ${impl_keyword('clear', 'mBreakType', clear_keyword)}
-
-    #[allow(non_snake_case)]
-    pub fn set__webkit_line_clamp(&mut self, v: longhands::_webkit_line_clamp::computed_value::T) {
-        self.gecko.mLineClamp = match v {
-            Either::First(n) => n.0 as u32,
-            Either::Second(None_) => 0,
-        };
-    }
-
-    ${impl_simple_copy('_webkit_line_clamp', 'mLineClamp')}
-
-    #[allow(non_snake_case)]
-    pub fn clone__webkit_line_clamp(&self) -> longhands::_webkit_line_clamp::computed_value::T {
-        match self.gecko.mLineClamp {
-            0 => Either::Second(None_),
-            n => {
-                debug_assert!(n <= std::i32::MAX as u32);
-                Either::First((n as i32).into())
-            }
-        }
-    }
-
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">

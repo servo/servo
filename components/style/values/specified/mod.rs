@@ -13,7 +13,7 @@ use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as Generic
 use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericTrackSize};
 use super::generics::transform::IsParallelTo;
 use super::generics::{self, GreaterThanOrEqualToOne, NonNegative};
-use super::{CSSFloat, CSSInteger, Either, None_};
+use super::{CSSFloat, CSSInteger};
 use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::serialize_atom_identifier;
@@ -38,7 +38,7 @@ pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain, Display};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, ContainerName, ContainerType};
-pub use self::box_::{Clear, ContentVisibility, ContainIntrinsicSize, Float, Overflow, OverflowAnchor};
+pub use self::box_::{Clear, ContentVisibility, ContainIntrinsicSize, LineClamp, Float, Overflow, OverflowAnchor};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
 pub use self::box_::{ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
 pub use self::box_::{ScrollSnapStrictness, ScrollSnapType, ScrollTimelineName};
@@ -707,9 +707,6 @@ impl Parse for PositiveInteger {
         Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne)
     }
 }
-
-/// A specified positive `<integer>` value or `none`.
-pub type PositiveIntegerOrNone = Either<PositiveInteger, None_>;
 
 /// The specified value of a grid `<track-breadth>`
 pub type TrackBreadth = GenericTrackBreadth<LengthPercentage>;

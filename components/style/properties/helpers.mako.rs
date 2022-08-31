@@ -119,8 +119,6 @@
             use crate::values::computed::{Context, ToComputedValue};
             #[allow(unused_imports)]
             use crate::values::{computed, specified};
-            #[allow(unused_imports)]
-            use crate::values::{Auto, Either, None_};
             ${caller.body()}
         }
 
@@ -413,8 +411,6 @@
         use crate::parser::{Parse, ParserContext};
         #[allow(unused_imports)]
         use crate::properties::{UnparsedValue, ShorthandId};
-        #[allow(unused_imports)]
-        use crate::values::{Auto, Either, None_};
         #[allow(unused_imports)]
         use crate::error_reporting::ParseErrorReporter;
         #[allow(unused_imports)]
