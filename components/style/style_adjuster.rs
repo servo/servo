@@ -361,19 +361,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
-    /// When mathvariant is not "none", font-weight and font-style are
-    /// both forced to "normal".
-    #[cfg(feature = "gecko")]
-    fn adjust_for_mathvariant(&mut self) {
-        use crate::properties::longhands::_moz_math_variant::computed_value::T as MozMathVariant;
-        use crate::values::computed::font::{FontWeight, FontStyle};
-        if self.style.get_font().clone__moz_math_variant() != MozMathVariant::None {
-            let font_style = self.style.mutate_font();
-            font_style.set_font_weight(FontWeight::NORMAL);
-            font_style.set_font_style(FontStyle::NORMAL);
-        }
-    }
-
     /// This implements an out-of-date spec. The new spec moves the handling of
     /// this to layout, which Gecko implements but Servo doesn't.
     ///
@@ -874,7 +861,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_table_text_align();
-            self.adjust_for_mathvariant();
             self.adjust_for_justify_items();
         }
         #[cfg(feature = "servo")]
