@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 2
       - name: Bootstrap
         run: |
-          python3 -m pip install --upgrade pip virtualenv setuptools
+          python3 -m pip install --upgrade pip virtualenv
           sudo apt update
           python3 ./mach bootstrap
       - name: Release build
