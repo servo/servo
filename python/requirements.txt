@@ -6,7 +6,7 @@ distro == 1.4
 mozdebug == 0.3
 mozinfo == 1.2.1
 mozlog == 7.1.0
-setuptools == 60.8.1
+setuptools == 65.3.0
 toml == 0.9.2
 
 # For Python linting
