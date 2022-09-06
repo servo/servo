@@ -47,6 +47,8 @@ pub struct SelectorParser<'a> {
     /// The extra URL data of the stylesheet, which is used to look up
     /// whether we are parsing a chrome:// URL style sheet.
     pub url_data: &'a UrlExtraData,
+    /// Whether we're parsing selectors for `@supports`
+    pub for_supports_rule: bool,
 }
 
 impl<'a> SelectorParser<'a> {
@@ -63,6 +65,7 @@ impl<'a> SelectorParser<'a> {
             stylesheet_origin: Origin::Author,
             namespaces: &namespaces,
             url_data,
+            for_supports_rule: false,
         };
         let mut input = ParserInput::new(input);
         SelectorList::parse(&parser, &mut CssParser::new(&mut input))

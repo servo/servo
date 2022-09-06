@@ -320,6 +320,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         function.eq_ignore_ascii_case("-moz-any")
     }
 
+    #[inline]
+    fn allow_forgiving_selectors(&self) -> bool {
+        !self.for_supports_rule
+    }
+
     fn parse_non_ts_pseudo_class(
         &self,
         location: SourceLocation,
@@ -373,7 +378,8 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         location: SourceLocation,
         name: CowRcStr<'i>,
     ) -> Result<PseudoElement, ParseError<'i>> {
-        if let Some(pseudo) = PseudoElement::from_slice(&name) {
+        let allow_unkown_webkit = !self.for_supports_rule;
+        if let Some(pseudo) = PseudoElement::from_slice(&name, allow_unkown_webkit) {
             if self.is_pseudo_element_enabled(&pseudo) {
                 return Ok(pseudo);
             }

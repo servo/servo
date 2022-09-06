@@ -276,6 +276,11 @@ pub trait Parser<'i> {
         false
     }
 
+    /// Whether to allow forgiving selector-list parsing.
+    fn allow_forgiving_selectors(&self) -> bool {
+        true
+    }
+
     /// Parses non-tree-structural pseudo-classes. Tree structural pseudo-classes,
     /// like `:first-child`, are built into this library.
     ///
@@ -400,7 +405,11 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
                 Ok(selector) => values.push(selector),
                 Err(err) => match recovery {
                     ParseErrorRecovery::DiscardList => return Err(err),
-                    ParseErrorRecovery::IgnoreInvalidSelector => {},
+                    ParseErrorRecovery::IgnoreInvalidSelector => {
+                        if !parser.allow_forgiving_selectors() {
+                            return Err(err);
+                        }
+                    },
                 },
             }
 
