@@ -785,6 +785,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
             stylesheet_origin: self.context.stylesheet_origin,
             namespaces: self.namespaces,
             url_data: self.context.url_data,
+            for_supports_rule: false,
         };
         let selectors = SelectorList::parse(&selector_parser, input)?;
         if self.context.error_reporting_enabled() {

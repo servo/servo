@@ -385,28 +385,11 @@ impl RawSelector {
                     namespaces,
                     stylesheet_origin: context.stylesheet_origin,
                     url_data: context.url_data,
+                    for_supports_rule: true,
                 };
 
-                #[allow(unused_variables)]
-                let selector = Selector::<SelectorImpl>::parse(&parser, input)
+                Selector::<SelectorImpl>::parse(&parser, input)
                     .map_err(|_| input.new_custom_error(()))?;
-
-                #[cfg(feature = "gecko")]
-                {
-                    use crate::selector_parser::PseudoElement;
-                    use selectors::parser::Component;
-
-                    let has_any_unknown_webkit_pseudo = selector.has_pseudo_element() &&
-                        selector.iter_raw_match_order().any(|component| {
-                            matches!(
-                                *component,
-                                Component::PseudoElement(PseudoElement::UnknownWebkit(..))
-                            )
-                        });
-                    if has_any_unknown_webkit_pseudo {
-                        return Err(input.new_custom_error(()));
-                    }
-                }
 
                 Ok(())
             })
