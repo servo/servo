@@ -370,13 +370,6 @@ impl ToCss for RawSelector {
 impl RawSelector {
     /// Tries to evaluate a `selector()` function.
     pub fn eval(&self, context: &ParserContext, namespaces: &Namespaces) -> bool {
-        #[cfg(feature = "gecko")]
-        {
-            if !static_prefs::pref!("layout.css.supports-selector.enabled") {
-                return false;
-            }
-        }
-
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
         input
