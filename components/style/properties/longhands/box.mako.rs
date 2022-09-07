@@ -552,7 +552,6 @@ ${helpers.predefined_type(
     "LineClamp",
     "computed::LineClamp::none()",
     engines="gecko",
-    gecko_pref="layout.css.webkit-line-clamp.enabled",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-overflow-3/#line-clamp",
 )}
