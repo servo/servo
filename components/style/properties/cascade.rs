@@ -471,7 +471,7 @@ fn tweak_when_ignoring_colors(
         PropertyDeclaration::BackgroundImage(ref bkg) => {
             use crate::values::generics::image::Image;
             if static_prefs::pref!("browser.display.permit_backplate") {
-                if bkg.0.iter().all(|image| matches!(*image, Image::Url(..))) {
+                if bkg.0.iter().all(|image| matches!(*image, Image::Url(..) | Image::None)) {
                     return;
                 }
             }
