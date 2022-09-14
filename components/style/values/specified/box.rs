@@ -1539,9 +1539,10 @@ impl Parse for ContainerName {
         if first.eq_ignore_ascii_case("none") {
             return Ok(Self::none())
         }
-        idents.push(CustomIdent::from_ident(location, first, &["none"])?);
+        const DISALLOWED_CONTAINER_NAMES: &'static [&'static str] = &["none", "not", "or", "and"];
+        idents.push(CustomIdent::from_ident(location, first, DISALLOWED_CONTAINER_NAMES)?);
         while let Ok(ident) = input.try_parse(|input| input.expect_ident_cloned()) {
-            idents.push(CustomIdent::from_ident(location, &ident, &["none"])?);
+            idents.push(CustomIdent::from_ident(location, &ident, DISALLOWED_CONTAINER_NAMES)?);
         }
         Ok(ContainerName(idents.into()))
     }
