@@ -20,7 +20,9 @@ clangStdenv.mkDerivation rec {
     # Build utilities
     cmake dbus gcc git pkgconfig which llvm autoconf213 perl yasm m4
     (python3.withPackages (ps: with ps; [virtualenv pip dbus]))
-  ];
+  ] ++ (lib.optionals stdenv.isDarwin [
+    darwin.apple_sdk.frameworks.AppKit
+  ]);
 
   LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
