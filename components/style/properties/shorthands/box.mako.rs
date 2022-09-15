@@ -52,7 +52,7 @@ ${helpers.two_properties_shorthand(
         let container_type = if input.try_parse(|input| input.expect_delim('/')).is_ok() {
             ContainerType::parse(context, input)?
         } else {
-            ContainerType::NONE
+            ContainerType::NORMAL
         };
         Ok(expanded! {
             container_name: container_name,

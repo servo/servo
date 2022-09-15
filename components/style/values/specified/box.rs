@@ -1496,21 +1496,19 @@ bitflags! {
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToCss, Parse, ToResolvedValue, ToShmem)]
     #[repr(C)]
     #[allow(missing_docs)]
-    #[css(bitflags(single="none", mixed="style,size,inline-size", overlapping_bits))]
+    #[css(bitflags(single="normal", mixed="size,inline-size", overlapping_bits))]
     /// https://drafts.csswg.org/css-contain-3/#container-type
     ///
     /// TODO: block-size is on the spec but it seems it was removed? WPTs don't
     /// support it, see https://github.com/w3c/csswg-drafts/issues/7179.
     pub struct ContainerType: u8 {
         /// The `none` variant.
-        const NONE = 0;
-        /// The `style` variant.
-        const STYLE = 1 << 0;
+        const NORMAL = 0;
         /// The `inline-size` variant.
-        const INLINE_SIZE = 1 << 1;
+        const INLINE_SIZE = 1 << 0;
         /// The `size` variant, exclusive with `inline-size` (they sharing bits
         /// guarantees this).
-        const SIZE = 1 << 2 | Self::INLINE_SIZE.bits;
+        const SIZE = 1 << 1 | Self::INLINE_SIZE.bits;
     }
 }
 
@@ -1539,7 +1537,7 @@ impl Parse for ContainerName {
         if first.eq_ignore_ascii_case("none") {
             return Ok(Self::none())
         }
-        const DISALLOWED_CONTAINER_NAMES: &'static [&'static str] = &["none", "not", "or", "and"];
+        const DISALLOWED_CONTAINER_NAMES: &'static [&'static str] = &["none", "not", "or", "and", "auto", "normal"];
         idents.push(CustomIdent::from_ident(location, first, DISALLOWED_CONTAINER_NAMES)?);
         while let Ok(ident) = input.try_parse(|input| input.expect_ident_cloned()) {
             idents.push(CustomIdent::from_ident(location, &ident, DISALLOWED_CONTAINER_NAMES)?);
