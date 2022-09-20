@@ -524,7 +524,7 @@ impl Color {
         match *self {
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => false,
-            Color::CurrentColor => false,
+            Color::CurrentColor => true,
             #[cfg(feature = "gecko")]
             Color::System(..) => true,
             Color::Numeric { ref parsed, .. } => allow_transparent && parsed.alpha == 0,
