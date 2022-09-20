@@ -195,7 +195,6 @@ impl<'a> Context<'a> {
         F: FnOnce(&Context) -> R,
     {
         let mut conditions = RuleCacheConditions::default();
-
         let context = Context {
             builder: StyleBuilder::for_inheritance(device, None, None),
             cached_system_font: None,
@@ -206,7 +205,6 @@ impl<'a> Context<'a> {
             for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(&mut conditions),
         };
-
         f(&context)
     }
 

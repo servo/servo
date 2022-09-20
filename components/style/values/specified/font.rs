@@ -10,7 +10,7 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::computed::font::{FamilyName, FontFamilyList, SingleFontFamily};
 use crate::values::computed::FontSizeAdjust as ComputedFontSizeAdjust;
 use crate::values::computed::{font as computed, Length, NonNegativeLength};
-use crate::values::computed::{Percentage as ComputedPercentage};
+use crate::values::computed::Percentage as ComputedPercentage;
 use crate::values::computed::{CSSPixelLength, Context, ToComputedValue};
 use crate::values::generics::font::VariationValue;
 use crate::values::generics::font::{

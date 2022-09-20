@@ -1128,13 +1128,12 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 SCALE_FACTOR_WHEN_INCREMENTING_MATH_DEPTH_BY_ONE {
                 (parent_font.mScriptSizeMultiplier as f32).powi(delta as i32)
             } else {
-                builder.add_flags(ComputedValueFlags::DEPENDS_ON_SELF_FONT_METRICS);
                 // Script scale factors are independent of orientation.
-                let font_metrics = self.context
-                    .font_metrics_provider
-                    .query(self.context, FontBaseSize::InheritedStyle,
-                           FontMetricsOrientation::Horizontal,
-                           true /* retrieve_math_scales */);
+                let font_metrics = self.context.query_font_metrics(
+                    FontBaseSize::InheritedStyle,
+                    FontMetricsOrientation::Horizontal,
+                    /* retrieve_math_scales = */ true,
+                );
                 scale_factor_for_math_depth_change(
                     parent_font.mMathDepth as i32,
                     font.mMathDepth as i32,
