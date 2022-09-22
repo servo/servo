@@ -21,7 +21,6 @@ mod page_rule;
 mod rule_list;
 mod rule_parser;
 mod rules_iterator;
-pub mod scroll_timeline_rule;
 mod style_rule;
 mod stylesheet;
 pub mod supports_rule;
@@ -65,7 +64,6 @@ pub use self::rules_iterator::{AllRules, EffectiveRules};
 pub use self::rules_iterator::{
     EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator,
 };
-pub use self::scroll_timeline_rule::ScrollTimelineRule;
 pub use self::style_rule::StyleRule;
 pub use self::stylesheet::{AllowImportRules, SanitizationData, SanitizationKind};
 pub use self::stylesheet::{DocumentStyleSheet, Namespaces, Stylesheet};
@@ -266,7 +264,6 @@ pub enum CssRule {
     Document(Arc<Locked<DocumentRule>>),
     LayerBlock(Arc<Locked<LayerBlockRule>>),
     LayerStatement(Arc<Locked<LayerStatementRule>>),
-    ScrollTimeline(Arc<Locked<ScrollTimelineRule>>),
 }
 
 impl CssRule {
@@ -313,7 +310,7 @@ impl CssRule {
             },
 
             // TODO(emilio): Add memory reporting for these rules.
-            CssRule::LayerBlock(_) | CssRule::LayerStatement(_) | CssRule::ScrollTimeline(_) => 0,
+            CssRule::LayerBlock(_) | CssRule::LayerStatement(_) => 0,
         }
     }
 }
@@ -350,8 +347,7 @@ pub enum CssRuleType {
     // a constant somewhere.
     LayerBlock = 16,
     LayerStatement = 17,
-    ScrollTimeline = 18,
-    Container = 19,
+    Container = 18,
 }
 
 #[allow(missing_docs)]
@@ -380,7 +376,6 @@ impl CssRule {
             CssRule::Document(_) => CssRuleType::Document,
             CssRule::LayerBlock(_) => CssRuleType::LayerBlock,
             CssRule::LayerStatement(_) => CssRuleType::LayerStatement,
-            CssRule::ScrollTimeline(_) => CssRuleType::ScrollTimeline,
             CssRule::Container(_) => CssRuleType::Container,
         }
     }
@@ -523,10 +518,6 @@ impl DeepCloneWithLock for CssRule {
                     lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
                 ))
             },
-            CssRule::ScrollTimeline(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::ScrollTimeline(Arc::new(lock.wrap(rule.clone())))
-            },
         }
     }
 }
@@ -549,7 +540,6 @@ impl ToCssWithGuard for CssRule {
             CssRule::Document(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::LayerBlock(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::LayerStatement(ref lock) => lock.read_with(guard).to_css(guard, dest),
-            CssRule::ScrollTimeline(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Container(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }

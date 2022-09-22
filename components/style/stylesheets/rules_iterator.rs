@@ -68,7 +68,6 @@ where
             CssRule::CounterStyle(_) |
             CssRule::Viewport(_) |
             CssRule::Keyframes(_) |
-            CssRule::ScrollTimeline(_) |
             CssRule::Page(_) |
             CssRule::LayerStatement(_) |
             CssRule::FontFeatureValues(_) => None,

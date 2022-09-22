@@ -555,7 +555,6 @@ impl StylesheetInvalidationSet {
             LayerStatement(..) |
             FontFace(..) |
             Keyframes(..) |
-            ScrollTimeline(..) |
             Container(..) |
             Style(..) => {
                 if is_generic_change {
@@ -633,8 +632,6 @@ impl StylesheetInvalidationSet {
                     // existing elements.
                 }
             },
-            // TODO: Check if timeline name is referenced, though this might go away in bug 1737918.
-            ScrollTimeline(..) |
             CounterStyle(..) |
             Page(..) |
             Viewport(..) |

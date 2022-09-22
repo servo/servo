@@ -32,9 +32,7 @@ use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::layer_rule::{LayerName, LayerOrder};
 use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 #[cfg(feature = "gecko")]
-use crate::stylesheets::{
-    CounterStyleRule, FontFaceRule, FontFeatureValuesRule, ScrollTimelineRule,
-};
+use crate::stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use crate::stylesheets::{
     CssRule, EffectiveRulesIterator, Origin, OriginSet, PageRule, PerOrigin, PerOriginIter,
 };
@@ -1689,10 +1687,6 @@ pub struct ExtraStyleData {
     /// A map of effective page rules.
     #[cfg(feature = "gecko")]
     pub pages: PageRuleMap,
-
-    /// A map of effective scroll-timeline rules.
-    #[cfg(feature = "gecko")]
-    pub scroll_timelines: LayerOrderedMap<Arc<Locked<ScrollTimelineRule>>>,
 }
 
 #[cfg(feature = "gecko")]
@@ -1744,23 +1738,11 @@ impl ExtraStyleData {
         Ok(())
     }
 
-    /// Add the given @scroll-timeline rule.
-    fn add_scroll_timeline(
-        &mut self,
-        guard: &SharedRwLockReadGuard,
-        rule: &Arc<Locked<ScrollTimelineRule>>,
-        layer: LayerId,
-    ) -> Result<(), AllocErr> {
-        let name = rule.read_with(guard).name.as_atom().clone();
-        self.scroll_timelines.try_insert(name, rule.clone(), layer)
-    }
-
     fn sort_by_layer(&mut self, layers: &[CascadeLayer]) {
         self.font_faces.sort(layers);
         self.font_feature_values.sort(layers);
         self.counter_styles.sort(layers);
         self.pages.global.sort(layers);
-        self.scroll_timelines.sort(layers);
     }
 
     fn clear(&mut self) {
@@ -1770,7 +1752,6 @@ impl ExtraStyleData {
             self.font_feature_values.clear();
             self.counter_styles.clear();
             self.pages.clear();
-            self.scroll_timelines.clear();
         }
     }
 }
@@ -1807,7 +1788,6 @@ impl MallocSizeOf for ExtraStyleData {
         n += self.font_feature_values.shallow_size_of(ops);
         n += self.counter_styles.shallow_size_of(ops);
         n += self.pages.shallow_size_of(ops);
-        n += self.scroll_timelines.shallow_size_of(ops);
         n
     }
 }
@@ -2631,13 +2611,6 @@ impl CascadeData {
                     )?;
                 },
                 #[cfg(feature = "gecko")]
-                CssRule::ScrollTimeline(ref rule) => {
-                    // Note: Bug 1733260: we may drop @scroll-timeline rule once this spec issue
-                    // https://github.com/w3c/csswg-drafts/issues/6674 gets landed.
-                    self.extra_data
-                        .add_scroll_timeline(guard, rule, containing_rule_state.layer_id)?;
-                },
-                #[cfg(feature = "gecko")]
                 CssRule::FontFace(ref rule) => {
                     // NOTE(emilio): We don't care about container_condition_id
                     // because:
@@ -2905,7 +2878,6 @@ impl CascadeData {
                 CssRule::CounterStyle(..) |
                 CssRule::Supports(..) |
                 CssRule::Keyframes(..) |
-                CssRule::ScrollTimeline(..) |
                 CssRule::Page(..) |
                 CssRule::Viewport(..) |
                 CssRule::Document(..) |
