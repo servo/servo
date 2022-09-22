@@ -816,13 +816,10 @@ pub enum AnimationTimeline {
     /// Use default timeline. The animation’s timeline is a DocumentTimeline.
     Auto,
     /// The scroll-timeline name.
-    ///
-    /// Note: This could be the timeline name from @scroll-timeline rule, or scroll-timeline-name
-    /// from itself, its ancestors, or its previous siblings.
-    /// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timelines-named
+    /// https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-named
     Timeline(TimelineName),
     /// The scroll() notation.
-    /// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
+    /// https://drafts.csswg.org/scroll-animations-1/#scroll-notation
     #[css(function)]
     Scroll(
         #[css(skip_if = "is_default")] ScrollAxis,

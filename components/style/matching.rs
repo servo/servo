@@ -289,7 +289,7 @@ trait PrivateMatchMethods: TElement {
 
         let old_ui_style = old_style.get_ui();
 
-        let keyframes_or_timeline_could_have_changed = context
+        let keyframes_could_have_changed = context
             .shared
             .traversal_flags
             .contains(TraversalFlags::ForCSSRuleChanges);
@@ -299,9 +299,9 @@ trait PrivateMatchMethods: TElement {
         // element has or will have CSS animation style regardless of whether
         // the animation is running or not.
         //
-        // TODO: We should check which @keyframes/@scroll-timeline were added/changed/deleted and
-        // update only animations corresponding to those @keyframes/@scroll-timeline.
-        if keyframes_or_timeline_could_have_changed {
+        // TODO: We should check which @keyframes were added/changed/deleted and
+        // update only animations corresponding to those @keyframes.
+        if keyframes_could_have_changed {
             return true;
         }
 
