@@ -177,7 +177,7 @@ With the following environment variable set:
 export LIBCLANG_PATH=$(llvm-config --prefix)/lib64
 ```
 
-#### On nixOS Linux
+#### On NixOS Linux
 
 ```sh
 nix-shell etc/shell.nix
