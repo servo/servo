@@ -88,52 +88,37 @@ impl SpecifiedValueInfo for CursorImage {
     ToResolvedValue,
     ToShmem,
 )]
-pub struct MozForceBrokenImageIcon(pub bool);
+#[repr(transparent)]
+pub struct BoolInteger(pub bool);
 
-impl MozForceBrokenImageIcon {
-    /// Return initial value of -moz-force-broken-image-icon which is false.
+impl BoolInteger {
+    /// Returns 0
     #[inline]
-    pub fn false_value() -> MozForceBrokenImageIcon {
-        MozForceBrokenImageIcon(false)
+    pub fn zero() -> Self {
+        Self(false)
     }
 }
 
-impl Parse for MozForceBrokenImageIcon {
+impl Parse for BoolInteger {
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<MozForceBrokenImageIcon, ParseError<'i>> {
+    ) -> Result<Self, ParseError<'i>> {
         // We intentionally don't support calc values here.
         match input.expect_integer()? {
-            0 => Ok(MozForceBrokenImageIcon(false)),
-            1 => Ok(MozForceBrokenImageIcon(true)),
+            0 => Ok(Self(false)),
+            1 => Ok(Self(true)),
             _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         }
     }
 }
 
-impl ToCss for MozForceBrokenImageIcon {
+impl ToCss for BoolInteger {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
     {
         dest.write_str(if self.0 { "1" } else { "0" })
-    }
-}
-
-impl From<u8> for MozForceBrokenImageIcon {
-    fn from(bits: u8) -> MozForceBrokenImageIcon {
-        MozForceBrokenImageIcon(bits == 1)
-    }
-}
-
-impl From<MozForceBrokenImageIcon> for u8 {
-    fn from(v: MozForceBrokenImageIcon) -> u8 {
-        if v.0 {
-            1
-        } else {
-            0
-        }
     }
 }
 
