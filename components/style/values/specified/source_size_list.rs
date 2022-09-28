@@ -8,7 +8,7 @@
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
-use crate::queries::{QueryCondition, FeatureType};
+use crate::queries::{FeatureType, QueryCondition};
 use crate::values::computed::{self, ToComputedValue};
 use crate::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 use app_units::Au;

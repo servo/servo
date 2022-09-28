@@ -5,7 +5,7 @@
 //! Query features.
 
 use crate::parser::ParserContext;
-use crate::values::computed::{self, CSSPixelLength, Resolution, Ratio};
+use crate::values::computed::{self, CSSPixelLength, Ratio, Resolution};
 use crate::Atom;
 use cssparser::Parser;
 use std::fmt;
@@ -66,10 +66,8 @@ macro_rules! keyword_evaluator {
         fn __parse<'i, 't>(
             context: &$crate::parser::ParserContext,
             input: &mut $crate::cssparser::Parser<'i, 't>,
-        ) -> Result<
-            $crate::queries::feature::KeywordDiscriminant,
-            ::style_traits::ParseError<'i>,
-        > {
+        ) -> Result<$crate::queries::feature::KeywordDiscriminant, ::style_traits::ParseError<'i>>
+        {
             let kw = <$keyword_type as $crate::parser::Parse>::parse(context, input)?;
             Ok(kw as $crate::queries::feature::KeywordDiscriminant)
         }

@@ -404,7 +404,10 @@ impl ToAbsoluteLength for ComputedLength {
 impl ToAbsoluteLength for ComputedLengthPercentage {
     #[inline]
     fn to_pixel_length(&self, containing_len: Option<ComputedLength>) -> Result<CSSFloat, ()> {
-        Ok(self.maybe_percentage_relative_to(containing_len).ok_or(())?.px())
+        Ok(self
+            .maybe_percentage_relative_to(containing_len)
+            .ok_or(())?
+            .px())
     }
 }
 
@@ -576,13 +579,14 @@ impl<T: ToMatrix> Transform<T> {
     }
 
     /// Converts a series of components to a 3d matrix.
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     pub fn components_to_transform_3d_matrix(
         ops: &[T],
-        reference_box: Option<&Rect<ComputedLength>>
+        reference_box: Option<&Rect<ComputedLength>>,
     ) -> Result<(Transform3D<CSSFloat>, bool), ()> {
         let cast_3d_transform = |m: Transform3D<f64>| -> Transform3D<CSSFloat> {
             use std::{f32, f64};
-            let cast = |v: f64| { v.min(f32::MAX as f64).max(f32::MIN as f64) as f32 };
+            let cast = |v: f64| v.min(f32::MAX as f64).max(f32::MIN as f64) as f32;
             Transform3D::new(
                 cast(m.m11), cast(m.m12), cast(m.m13), cast(m.m14),
                 cast(m.m21), cast(m.m22), cast(m.m23), cast(m.m24),

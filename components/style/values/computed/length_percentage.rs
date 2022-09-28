@@ -762,11 +762,7 @@ impl specified::CalcLengthPercentage {
         context: &Context,
         base_size: FontBaseSize,
     ) -> LengthPercentage {
-        self.to_computed_value_with_zoom(
-            context,
-            |abs| context.maybe_zoom_text(abs),
-            base_size,
-        )
+        self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs), base_size)
     }
 
     /// Compute the value into pixel length as CSSFloat without context,

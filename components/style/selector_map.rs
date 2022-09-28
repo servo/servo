@@ -42,12 +42,12 @@ impl Default for PrecomputedHasher {
 /// these pseudo-class states.
 const RARE_PSEUDO_CLASS_STATES: ElementState = ElementState::from_bits_truncate(
     ElementState::FULLSCREEN.bits() |
-    ElementState::VISITED_OR_UNVISITED.bits() |
-    ElementState::URLTARGET.bits() |
-    ElementState::INERT.bits() |
-    ElementState::FOCUS.bits() |
-    ElementState::FOCUSRING.bits() |
-    ElementState::TOPMOST_MODAL.bits()
+        ElementState::VISITED_OR_UNVISITED.bits() |
+        ElementState::URLTARGET.bits() |
+        ElementState::INERT.bits() |
+        ElementState::FOCUS.bits() |
+        ElementState::FOCUSRING.bits() |
+        ElementState::TOPMOST_MODAL.bits(),
 );
 
 /// A simple alias for a hashmap using PrecomputedHasher.
@@ -293,7 +293,10 @@ impl SelectorMap<Rule> {
             )
         }
 
-        if rule_hash_target.state().intersects(RARE_PSEUDO_CLASS_STATES) {
+        if rule_hash_target
+            .state()
+            .intersects(RARE_PSEUDO_CLASS_STATES)
+        {
             SelectorMap::get_matching_rules(
                 element,
                 &self.rare_pseudo_classes,
@@ -352,13 +355,16 @@ impl SelectorMap<Rule> {
             }
 
             if rule.container_condition_id != ContainerConditionId::none() {
-                if !cascade_data.container_condition_matches(rule.container_condition_id, stylist, element) {
+                if !cascade_data.container_condition_matches(
+                    rule.container_condition_id,
+                    stylist,
+                    element,
+                ) {
                     continue;
                 }
             }
 
-            matching_rules
-                .push(rule.to_applicable_declaration_block(cascade_level, cascade_data));
+            matching_rules.push(rule.to_applicable_declaration_block(cascade_level, cascade_data));
         }
     }
 }
@@ -797,9 +803,7 @@ fn find_bucket<'a>(
 
 /// Wrapper for PrecomputedHashMap that does ASCII-case-insensitive lookup in quirks mode.
 #[derive(Clone, Debug, MallocSizeOf)]
-pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V>(
-    PrecomputedHashMap<K, V>,
-);
+pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V>(PrecomputedHashMap<K, V>);
 
 impl<V> Default for MaybeCaseInsensitiveHashMap<Atom, V> {
     #[inline]

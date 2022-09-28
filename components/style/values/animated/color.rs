@@ -8,7 +8,7 @@ use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
 use crate::values::computed::Percentage;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::color::{
-    GenericColor, GenericColorMix, ColorInterpolationMethod, ColorSpace, HueInterpolationMethod,
+    ColorInterpolationMethod, ColorSpace, GenericColor, GenericColorMix, HueInterpolationMethod,
 };
 use euclid::default::{Transform3D, Vector3D};
 use std::f32::consts::PI;
@@ -162,13 +162,7 @@ impl Color {
         let left = S::from(*left_color);
         let right = S::from(*right_color);
 
-        let color = S::lerp(
-            &left,
-            left_weight,
-            &right,
-            right_weight,
-            hue_interpolation,
-        );
+        let color = S::lerp(&left, left_weight, &right, right_weight, hue_interpolation);
         let mut rgba = RGBA::from(color.into());
         if alpha_multiplier != 1.0 {
             rgba.alpha *= alpha_multiplier;

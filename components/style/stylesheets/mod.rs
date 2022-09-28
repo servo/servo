@@ -5,6 +5,7 @@
 //! Style sheets and their CSS rules.
 
 mod cascading_at_rule;
+pub mod container_rule;
 mod counter_style_rule;
 mod document_rule;
 mod font_face_rule;
@@ -12,7 +13,6 @@ pub mod font_feature_values_rule;
 pub mod import_rule;
 pub mod keyframes_rule;
 pub mod layer_rule;
-pub mod container_rule;
 mod loader;
 mod media_rule;
 mod namespace_rule;
@@ -45,6 +45,7 @@ use style_traits::ParsingMode;
 #[cfg(feature = "gecko")]
 use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
+pub use self::container_rule::ContainerRule;
 pub use self::counter_style_rule::CounterStyleRule;
 pub use self::document_rule::DocumentRule;
 pub use self::font_face_rule::FontFaceRule;
@@ -53,7 +54,6 @@ pub use self::import_rule::ImportRule;
 pub use self::keyframes_rule::KeyframesRule;
 pub use self::layer_rule::{LayerBlockRule, LayerStatementRule};
 pub use self::loader::StylesheetLoader;
-pub use self::container_rule::ContainerRule;
 pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
 pub use self::origin::{Origin, OriginSet, OriginSetIterator, PerOrigin, PerOriginIter};

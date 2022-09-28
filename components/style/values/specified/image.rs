@@ -316,12 +316,16 @@ impl CrossFade {
 }
 
 impl CrossFadeElement {
-    fn parse_percentage<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Option<Percentage> {
+    fn parse_percentage<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Option<Percentage> {
         // We clamp our values here as this is the way that Safari and Chrome's
         // implementation handle out-of-bounds percentages but whether or not
         // this behavior follows the specification is still being discussed.
         // See: <https://github.com/w3c/csswg-drafts/issues/5333>
-        input.try_parse(|input| Percentage::parse_non_negative(context, input))
+        input
+            .try_parse(|input| Percentage::parse_non_negative(context, input))
             .ok()
             .map(|p| p.clamp_to_hundred())
     }

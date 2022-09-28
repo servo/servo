@@ -102,7 +102,10 @@ pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
     }
 
     if let Some(ref bitflags) = input_attrs.bitflags {
-        assert!(!input_attrs.derive_debug, "Bitflags can derive debug on their own");
+        assert!(
+            !input_attrs.derive_debug,
+            "Bitflags can derive debug on their own"
+        );
         assert!(where_clause.is_none(), "Generic bitflags?");
         return derive_bitflags(&input, bitflags);
     }

@@ -186,7 +186,9 @@ impl SpecifiedValueInfo for Percentage {}
 /// Turns the percentage into a plain float.
 pub trait ToPercentage {
     /// Returns whether this percentage used to be a calc().
-    fn is_calc(&self) -> bool { false }
+    fn is_calc(&self) -> bool {
+        false
+    }
     /// Turns the percentage into a plain float.
     fn to_percentage(&self) -> CSSFloat;
 }

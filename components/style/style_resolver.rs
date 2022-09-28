@@ -15,7 +15,7 @@ use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{PseudoElement, SelectorImpl};
 use crate::stylist::RuleInclusion;
 use log::Level::Trace;
-use selectors::matching::{NeedsSelectorFlags, MatchingContext};
+use selectors::matching::{MatchingContext, NeedsSelectorFlags};
 use selectors::matching::{MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
 

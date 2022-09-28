@@ -90,7 +90,8 @@ impl PropertyAnimation {
         // and whether the iteration is reversed. For now, we skip this calculation
         // by treating as if the flag is unset at all times.
         // https://drafts.csswg.org/css-easing/#step-timing-function-algo
-        self.timing_function.calculate_output(progress, BeforeFlag::Unset, epsilon)
+        self.timing_function
+            .calculate_output(progress, BeforeFlag::Unset, epsilon)
     }
 
     /// Update the given animation at a given point of progress.

@@ -38,7 +38,9 @@ pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderSideWidth, BorderSpacing, BorderStyle};
 pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain, Display};
 pub use self::box_::{Appearance, BreakBetween, BreakWithin, ContainerName, ContainerType};
-pub use self::box_::{Clear, ContentVisibility, ContainIntrinsicSize, LineClamp, Float, Overflow, OverflowAnchor};
+pub use self::box_::{
+    Clear, ContainIntrinsicSize, ContentVisibility, Float, LineClamp, Overflow, OverflowAnchor,
+};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
 pub use self::box_::{ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
 pub use self::box_::{ScrollSnapStrictness, ScrollSnapType, ScrollTimelineName};
@@ -70,7 +72,7 @@ pub use self::list::ListStyleType;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
-pub use self::page::{PageOrientation, PageName, PageSize, PaperSize};
+pub use self::page::{PageName, PageOrientation, PageSize, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{
@@ -97,7 +99,7 @@ pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{Cursor, BoolInteger, UserSelect};
+pub use self::ui::{BoolInteger, Cursor, UserSelect};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]

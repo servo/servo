@@ -160,7 +160,7 @@ pub use style_traits::arc_slice::ArcSlice;
 pub use style_traits::owned_slice::OwnedSlice;
 pub use style_traits::owned_str::OwnedStr;
 
-use std::hash::{Hash, BuildHasher};
+use std::hash::{BuildHasher, Hash};
 
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs
@@ -298,7 +298,7 @@ impl From<std::collections::TryReserveError> for AllocErr {
 }
 
 /// Shrink the capacity of the collection if needed.
-pub (crate) trait ShrinkIfNeeded {
+pub(crate) trait ShrinkIfNeeded {
     fn shrink_if_needed(&mut self);
 }
 

@@ -19,10 +19,8 @@ use smallvec::SmallVec;
 use std::collections::HashMap;
 
 /// A cache from element reference to known-valid computed style.
-pub type UndisplayedStyleCache = HashMap<
-    selectors::OpaqueElement,
-    servo_arc::Arc<crate::properties::ComputedValues>,
->;
+pub type UndisplayedStyleCache =
+    HashMap<selectors::OpaqueElement, servo_arc::Arc<crate::properties::ComputedValues>>;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -336,9 +334,8 @@ where
         }
 
         ancestor = ancestor.unwrap().traversal_parent();
-        layout_parent_style = ancestor.and_then(|a| {
-            a.borrow_data().map(|data| data.styles.primary().clone())
-        });
+        layout_parent_style =
+            ancestor.and_then(|a| a.borrow_data().map(|data| data.styles.primary().clone()));
     }
 
     for ancestor in ancestors_requiring_style_resolution.iter().rev() {
@@ -792,7 +789,7 @@ fn note_children<E, D, F>(
                 },
                 ChildRestyleRequirement::MustMatchDescendants => {
                     child_hint |= RestyleHint::restyle_subtree();
-                }
+                },
             }
 
             child_data.hint.insert(child_hint);

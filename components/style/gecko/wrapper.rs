@@ -19,7 +19,6 @@ use crate::author_styles::AuthorStyles;
 use crate::context::{PostAnimationTasks, QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use crate::data::ElementData;
 use crate::dom::{LayoutIterator, NodeInfo, OpaqueNode, TDocument, TElement, TNode, TShadowRoot};
-use dom::{DocumentState, ElementState};
 use crate::gecko::data::GeckoStyleSheet;
 use crate::gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::gecko::snapshot_helpers;
@@ -67,8 +66,9 @@ use crate::values::{AtomIdent, AtomString};
 use crate::CaseSensitivityExt;
 use crate::LocalName;
 use app_units::Au;
-use euclid::default::Size2D;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use dom::{DocumentState, ElementState};
+use euclid::default::Size2D;
 use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
@@ -77,11 +77,11 @@ use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use selectors::{Element, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ptr;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 #[inline]
 fn elements_with_id<'a, 'le>(
@@ -275,16 +275,15 @@ impl<'ln> GeckoNode<'ln> {
         #[allow(dead_code)]
         fn static_assert() {
             let _: [u8; std::mem::size_of::<Cell<u32>>()] = [0u8; std::mem::size_of::<AtomicU32>()];
-            let _: [u8; std::mem::align_of::<Cell<u32>>()] = [0u8; std::mem::align_of::<AtomicU32>()];
+            let _: [u8; std::mem::align_of::<Cell<u32>>()] =
+                [0u8; std::mem::align_of::<AtomicU32>()];
         }
 
         // Rust doesn't provide standalone atomic functions like GCC/clang do
         // (via the atomic intrinsics) or via std::atomic_ref, but it guarantees
         // that the memory representation of u32 and AtomicU32 matches:
         // https://doc.rust-lang.org/std/sync/atomic/struct.AtomicU32.html
-        unsafe {
-            std::mem::transmute::<&Cell<u32>, &AtomicU32>(flags)
-        }
+        unsafe { std::mem::transmute::<&Cell<u32>, &AtomicU32>(flags) }
     }
 
     #[inline]
@@ -677,12 +676,16 @@ impl<'le> GeckoElement<'le> {
 
     #[inline]
     fn set_flags(&self, flags: u32) {
-        self.as_node().flags_atomic().fetch_or(flags, Ordering::Relaxed);
+        self.as_node()
+            .flags_atomic()
+            .fetch_or(flags, Ordering::Relaxed);
     }
 
     #[inline]
     unsafe fn unset_flags(&self, flags: u32) {
-        self.as_node().flags_atomic().fetch_and(!flags, Ordering::Relaxed);
+        self.as_node()
+            .flags_atomic()
+            .fetch_and(!flags, Ordering::Relaxed);
     }
 
     /// Returns true if this element has descendants for lazy frame construction.
@@ -1044,7 +1047,14 @@ impl<'le> TElement for GeckoElement<'le> {
         }
 
         unsafe {
-            let frame = self.0._base._base._base.__bindgen_anon_1.mPrimaryFrame.as_ref();
+            let frame = self
+                .0
+                ._base
+                ._base
+                ._base
+                .__bindgen_anon_1
+                .mPrimaryFrame
+                .as_ref();
             if frame.is_null() {
                 return Size2D::zero();
             }

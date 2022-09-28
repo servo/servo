@@ -1639,8 +1639,7 @@ pub struct PageRuleData {
 /// named page rules that match a certain page.
 #[derive(Clone, Debug, Deref, MallocSizeOf)]
 pub struct PageRuleDataNoLayer(
-    #[ignore_malloc_size_of = "Arc, stylesheet measures as primary ref"]
-    pub Arc<Locked<PageRule>>,
+    #[ignore_malloc_size_of = "Arc, stylesheet measures as primary ref"] pub Arc<Locked<PageRule>>,
 );
 
 /// Stores page rules indexed by page names.
@@ -1725,14 +1724,19 @@ impl ExtraStyleData {
     ) -> Result<(), AllocErr> {
         let page_rule = rule.read_with(guard);
         if page_rule.selectors.0.is_empty() {
-            self.pages.global.push(PageRuleDataNoLayer(rule.clone()), layer);
+            self.pages
+                .global
+                .push(PageRuleDataNoLayer(rule.clone()), layer);
         } else {
             // TODO: Handle pseudo-classes
             self.pages.named.try_reserve(page_rule.selectors.0.len())?;
             for name in page_rule.selectors.as_slice() {
-                let vec = self.pages.named.entry(name.0.0.clone()).or_default();
+                let vec = self.pages.named.entry(name.0 .0.clone()).or_default();
                 vec.try_reserve(1)?;
-                vec.push(PageRuleData{layer, rule: rule.clone()});
+                vec.push(PageRuleData {
+                    layer,
+                    rule: rule.clone(),
+                });
             }
         }
         Ok(())
@@ -2091,7 +2095,6 @@ impl ContainerConditionId {
     }
 }
 
-
 #[derive(Clone, Debug, MallocSizeOf)]
 struct ContainerConditionReference {
     parent: ContainerConditionId,
@@ -2339,7 +2342,12 @@ impl CascadeData {
         self.layers[id.0 as usize].order
     }
 
-    pub(crate) fn container_condition_matches<E>(&self, mut id: ContainerConditionId, stylist: &Stylist, element: E) -> bool
+    pub(crate) fn container_condition_matches<E>(
+        &self,
+        mut id: ContainerConditionId,
+        stylist: &Stylist,
+        element: E,
+    ) -> bool
     where
         E: TElement,
     {
@@ -2374,7 +2382,6 @@ impl CascadeData {
         self.mapped_ids.shrink_if_needed();
         self.layer_id.shrink_if_needed();
         self.selectors_for_cache_revalidation.shrink_if_needed();
-
     }
 
     fn compute_layer_order(&mut self) {
@@ -2622,7 +2629,8 @@ impl CascadeData {
                     //
                     // https://drafts.csswg.org/css-contain-3/#container-rule
                     // (Same elsewhere)
-                    self.extra_data.add_font_face(rule, containing_rule_state.layer_id);
+                    self.extra_data
+                        .add_font_face(rule, containing_rule_state.layer_id);
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::FontFeatureValues(ref rule) => {
@@ -2631,12 +2639,16 @@ impl CascadeData {
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::CounterStyle(ref rule) => {
-                    self.extra_data
-                        .add_counter_style(guard, rule, containing_rule_state.layer_id)?;
+                    self.extra_data.add_counter_style(
+                        guard,
+                        rule,
+                        containing_rule_state.layer_id,
+                    )?;
                 },
                 #[cfg(feature = "gecko")]
                 CssRule::Page(ref rule) => {
-                    self.extra_data.add_page(guard, rule, containing_rule_state.layer_id)?;
+                    self.extra_data
+                        .add_page(guard, rule, containing_rule_state.layer_id)?;
                 },
                 CssRule::Viewport(..) => {},
                 _ => {
@@ -2720,7 +2732,8 @@ impl CascadeData {
                 };
                 for name in name.layer_names() {
                     containing_rule_state.layer_name.0.push(name.clone());
-                    containing_rule_state.layer_id = maybe_register_layer(data, &containing_rule_state.layer_name);
+                    containing_rule_state.layer_id =
+                        maybe_register_layer(data, &containing_rule_state.layer_name);
                 }
                 debug_assert_ne!(containing_rule_state.layer_id, LayerId::root());
             }
@@ -2734,11 +2747,7 @@ impl CascadeData {
                             .saw_effective(import_rule);
                     }
                     if let Some(ref layer) = import_rule.layer {
-                        maybe_register_layers(
-                            self,
-                            layer.name.as_ref(),
-                            containing_rule_state
-                        );
+                        maybe_register_layers(self, layer.name.as_ref(), containing_rule_state);
                     }
                 },
                 CssRule::Media(ref lock) => {
@@ -2749,11 +2758,7 @@ impl CascadeData {
                 },
                 CssRule::LayerBlock(ref lock) => {
                     let layer_rule = lock.read_with(guard);
-                    maybe_register_layers(
-                        self,
-                        layer_rule.name.as_ref(),
-                        containing_rule_state,
-                    );
+                    maybe_register_layers(self, layer_rule.name.as_ref(), containing_rule_state);
                 },
                 CssRule::LayerStatement(ref lock) => {
                     let layer_rule = lock.read_with(guard);
@@ -2952,7 +2957,8 @@ impl CascadeData {
         self.layers.clear();
         self.layers.push(CascadeLayer::root());
         self.container_conditions.clear();
-        self.container_conditions.push(ContainerConditionReference::none());
+        self.container_conditions
+            .push(ContainerConditionReference::none());
         #[cfg(feature = "gecko")]
         {
             self.extra_data.clear();

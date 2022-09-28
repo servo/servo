@@ -4,12 +4,12 @@
 
 //! Generic types for color properties.
 
+use crate::values::animated::color::AnimatedRGBA;
+use crate::values::animated::ToAnimatedValue;
+use crate::values::specified::percentage::ToPercentage;
+use crate::values::{Parse, Parser, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
-use crate::values::{Parse, ParserContext, Parser};
-use crate::values::specified::percentage::ToPercentage;
-use crate::values::animated::ToAnimatedValue;
-use crate::values::animated::color::AnimatedRGBA;
 
 /// This struct represents a combined color from a numeric color and
 /// the current foreground color (currentcolor keyword).
@@ -27,7 +27,20 @@ pub enum GenericColor<RGBA, Percentage> {
 /// A color space as defined in [1].
 ///
 /// [1]: https://drafts.csswg.org/css-color-4/#typedef-color-space
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToAnimatedValue, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(u8)]
 pub enum ColorSpace {
     /// The sRGB color space.
@@ -63,7 +76,20 @@ impl ColorSpace {
 /// A hue-interpolation-method as defined in [1].
 ///
 /// [1]: https://drafts.csswg.org/css-color-4/#typedef-hue-interpolation-method
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToAnimatedValue, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(u8)]
 pub enum HueInterpolationMethod {
     /// https://drafts.csswg.org/css-color-4/#shorter
@@ -79,7 +105,18 @@ pub enum HueInterpolationMethod {
 }
 
 /// https://drafts.csswg.org/css-color-4/#color-interpolation-method
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem, ToAnimatedValue, ToComputedValue, ToResolvedValue)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    ToShmem,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToResolvedValue,
+)]
 #[repr(C)]
 pub struct ColorInterpolationMethod {
     /// The color-space the interpolation should be done in.
@@ -109,11 +146,13 @@ impl Parse for ColorInterpolationMethod {
         //     Unless otherwise specified, if no specific hue interpolation
         //     algorithm is selected by the host syntax, the default is shorter.
         let hue = if space.is_polar() {
-            input.try_parse(|input| -> Result<_, ParseError<'i>> {
-                let hue = HueInterpolationMethod::parse(input)?;
-                input.expect_ident_matching("hue")?;
-                Ok(hue)
-            }).unwrap_or(HueInterpolationMethod::Shorter)
+            input
+                .try_parse(|input| -> Result<_, ParseError<'i>> {
+                    let hue = HueInterpolationMethod::parse(input)?;
+                    input.expect_ident_matching("hue")?;
+                    Ok(hue)
+                })
+                .unwrap_or(HueInterpolationMethod::Shorter)
         } else {
             HueInterpolationMethod::Shorter
         };
@@ -141,7 +180,16 @@ impl ToCss for ColorInterpolationMethod {
 /// percentages.
 ///
 /// https://drafts.csswg.org/css-color-5/#color-mix
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[allow(missing_docs)]
 #[repr(C)]
 pub struct GenericColorMix<Color, Percentage> {
@@ -160,7 +208,11 @@ impl<Color: ToCss, Percentage: ToCss + ToPercentage> ToCss for ColorMix<Color, P
     where
         W: Write,
     {
-        fn can_omit<Percentage: ToPercentage>(percent: &Percentage, other: &Percentage, is_left: bool) -> bool {
+        fn can_omit<Percentage: ToPercentage>(
+            percent: &Percentage,
+            other: &Percentage,
+            is_left: bool,
+        ) -> bool {
             if percent.is_calc() {
                 return false;
             }

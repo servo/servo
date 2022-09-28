@@ -4,6 +4,7 @@
 
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
+use crate::font_face::{FontFaceSourceFormatKeyword, FontFaceSourceTechFlags};
 use crate::parser::ParserContext;
 use crate::properties::{PropertyDeclaration, PropertyId, SourcePropertyDeclaration};
 use crate::selector_parser::{SelectorImpl, SelectorParser};
@@ -11,7 +12,6 @@ use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::{CssRuleType, CssRules, Namespaces};
-use crate::font_face::{FontFaceSourceFormatKeyword, FontFaceSourceTechFlags};
 use cssparser::parse_important;
 use cssparser::{Delimiter, Parser, SourceLocation, Token};
 use cssparser::{ParseError as CssParseError, ParserInput};

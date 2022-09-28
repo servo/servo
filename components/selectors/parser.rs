@@ -1937,7 +1937,7 @@ where
                 _ if !in_attr_selector => {
                     input.reset(&after_star);
                     default_namespace(None)
-                }
+                },
                 result => {
                     let t = result?;
                     Err(after_star

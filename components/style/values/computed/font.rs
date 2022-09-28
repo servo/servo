@@ -7,8 +7,8 @@
 use crate::parser::{Parse, ParserContext};
 use crate::values::animated::ToAnimatedValue;
 use crate::values::computed::{
-    Angle, Context, Integer, Length, NonNegativeLength, NonNegativeNumber,
-    Number, Percentage, ToComputedValue
+    Angle, Context, Integer, Length, NonNegativeLength, NonNegativeNumber, Number, Percentage,
+    ToComputedValue,
 };
 use crate::values::generics::font::{FeatureTagValue, FontSettings, VariationValue};
 use crate::values::generics::{font as generics, NonNegative};
@@ -48,7 +48,16 @@ pub use crate::values::specified::Integer as SpecifiedInteger;
 /// cbindgen:derive-gte
 #[repr(C)]
 #[derive(
-    Clone, ComputeSquaredDistance, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    PartialOrd,
+    ToResolvedValue,
 )]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FixedPoint<T, const FRACTION_BITS: u16> {
@@ -96,7 +105,15 @@ pub type FontWeightFixedPoint = FixedPoint<u16, FONT_WEIGHT_FRACTION_BITS>;
 /// cbindgen:derive-gt
 /// cbindgen:derive-gte
 #[derive(
-    Clone, ComputeSquaredDistance, Copy, Debug, Hash, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    PartialOrd,
+    ToResolvedValue,
 )]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
@@ -126,13 +143,19 @@ impl ToCss for FontWeight {
 
 impl FontWeight {
     /// The `normal` keyword.
-    pub const NORMAL: FontWeight = FontWeight(FontWeightFixedPoint { value: 400 << FONT_WEIGHT_FRACTION_BITS });
+    pub const NORMAL: FontWeight = FontWeight(FontWeightFixedPoint {
+        value: 400 << FONT_WEIGHT_FRACTION_BITS,
+    });
 
     /// The `bold` value.
-    pub const BOLD: FontWeight = FontWeight(FontWeightFixedPoint { value: 700 << FONT_WEIGHT_FRACTION_BITS });
+    pub const BOLD: FontWeight = FontWeight(FontWeightFixedPoint {
+        value: 700 << FONT_WEIGHT_FRACTION_BITS,
+    });
 
     /// The threshold from which we consider a font bold.
-    pub const BOLD_THRESHOLD: FontWeight = FontWeight(FontWeightFixedPoint { value: 600 << FONT_WEIGHT_FRACTION_BITS });
+    pub const BOLD_THRESHOLD: FontWeight = FontWeight(FontWeightFixedPoint {
+        value: 600 << FONT_WEIGHT_FRACTION_BITS,
+    });
 
     /// Returns the `normal` keyword value.
     pub fn normal() -> Self {
@@ -151,7 +174,9 @@ impl FontWeight {
 
     /// Construct a valid weight from a float value.
     pub fn from_float(v: f32) -> Self {
-        Self(FixedPoint::from_float(v.max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT)))
+        Self(FixedPoint::from_float(
+            v.max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT),
+        ))
     }
 
     /// Return the bolder weight.
@@ -176,7 +201,7 @@ impl FontWeight {
     pub fn lighter(self) -> Self {
         let value = self.value();
         if value < 550. {
-            return Self::from_float(value.min(100.))
+            return Self::from_float(value.min(100.));
         }
         if value < 750. {
             return Self::NORMAL;
@@ -902,7 +927,16 @@ pub type FontStyleFixedPoint = FixedPoint<i16, FONT_STYLE_FRACTION_BITS>;
 /// cbindgen:derive-gt
 /// cbindgen:derive-gte
 #[derive(
-    Clone, ComputeSquaredDistance, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    PartialOrd,
+    ToResolvedValue,
 )]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
@@ -910,16 +944,22 @@ pub struct FontStyle(FontStyleFixedPoint);
 
 impl FontStyle {
     /// The normal keyword.
-    pub const NORMAL: FontStyle = FontStyle(FontStyleFixedPoint { value: 100 << FONT_STYLE_FRACTION_BITS });
+    pub const NORMAL: FontStyle = FontStyle(FontStyleFixedPoint {
+        value: 100 << FONT_STYLE_FRACTION_BITS,
+    });
     /// The italic keyword.
-    pub const ITALIC: FontStyle = FontStyle(FontStyleFixedPoint { value: 101 << FONT_STYLE_FRACTION_BITS });
+    pub const ITALIC: FontStyle = FontStyle(FontStyleFixedPoint {
+        value: 101 << FONT_STYLE_FRACTION_BITS,
+    });
 
     /// The default angle for `font-style: oblique`.
     /// See also https://github.com/w3c/csswg-drafts/issues/2295
     pub const DEFAULT_OBLIQUE_DEGREES: i16 = 14;
 
     /// The `oblique` keyword with the default degrees.
-    pub const OBLIQUE: FontStyle = FontStyle(FontStyleFixedPoint { value: Self::DEFAULT_OBLIQUE_DEGREES << FONT_STYLE_FRACTION_BITS });
+    pub const OBLIQUE: FontStyle = FontStyle(FontStyleFixedPoint {
+        value: Self::DEFAULT_OBLIQUE_DEGREES << FONT_STYLE_FRACTION_BITS,
+    });
 
     /// The `normal` value.
     #[inline]
@@ -932,7 +972,7 @@ impl FontStyle {
         Self(FixedPoint::from_float(
             degrees
                 .max(specified::FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
-                .min(specified::FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
+                .min(specified::FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES),
         ))
     }
 
@@ -950,10 +990,10 @@ impl ToCss for FontStyle {
         W: fmt::Write,
     {
         if *self == Self::NORMAL {
-            return dest.write_str("normal")
+            return dest.write_str("normal");
         }
         if *self == Self::ITALIC {
-            return dest.write_str("italic")
+            return dest.write_str("italic");
         }
         if *self == Self::OBLIQUE {
             return dest.write_str("oblique");
@@ -971,10 +1011,10 @@ impl ToAnimatedValue for FontStyle {
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
         if self == Self::NORMAL {
-            return generics::FontStyle::Normal
+            return generics::FontStyle::Normal;
         }
         if self == Self::ITALIC {
-            return generics::FontStyle::Italic
+            return generics::FontStyle::Italic;
         }
         generics::FontStyle::Oblique(Angle::from_degrees(self.oblique_degrees()))
     }
@@ -989,7 +1029,6 @@ impl ToAnimatedValue for FontStyle {
     }
 }
 
-
 /// font-stretch is a percentage relative to normal.
 ///
 /// We use an unsigned 10.6 fixed-point value (range 0.0 - 1023.984375)
@@ -1001,7 +1040,6 @@ pub const FONT_STRETCH_FRACTION_BITS: u16 = 6;
 /// This is an alias which is useful mostly as a cbindgen / C++ inference
 /// workaround.
 pub type FontStretchFixedPoint = FixedPoint<u16, FONT_STRETCH_FRACTION_BITS>;
-
 
 /// A value for the font-stretch property per:
 ///
@@ -1025,23 +1063,41 @@ impl FontStretch {
     pub const HALF: u16 = 1 << (Self::FRACTION_BITS - 1);
 
     /// The `ultra-condensed` keyword.
-    pub const ULTRA_CONDENSED: FontStretch = FontStretch(FontStretchFixedPoint { value: 50 << Self::FRACTION_BITS });
+    pub const ULTRA_CONDENSED: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: 50 << Self::FRACTION_BITS,
+    });
     /// The `extra-condensed` keyword.
-    pub const EXTRA_CONDENSED: FontStretch = FontStretch(FontStretchFixedPoint { value: (62 << Self::FRACTION_BITS) + Self::HALF });
+    pub const EXTRA_CONDENSED: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: (62 << Self::FRACTION_BITS) + Self::HALF,
+    });
     /// The `condensed` keyword.
-    pub const CONDENSED: FontStretch = FontStretch(FontStretchFixedPoint { value: 75 << Self::FRACTION_BITS });
+    pub const CONDENSED: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: 75 << Self::FRACTION_BITS,
+    });
     /// The `semi-condensed` keyword.
-    pub const SEMI_CONDENSED: FontStretch = FontStretch(FontStretchFixedPoint { value: (87 << Self::FRACTION_BITS) + Self::HALF });
+    pub const SEMI_CONDENSED: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: (87 << Self::FRACTION_BITS) + Self::HALF,
+    });
     /// The `normal` keyword.
-    pub const NORMAL: FontStretch = FontStretch(FontStretchFixedPoint { value: 100 << Self::FRACTION_BITS });
+    pub const NORMAL: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: 100 << Self::FRACTION_BITS,
+    });
     /// The `semi-expanded` keyword.
-    pub const SEMI_EXPANDED: FontStretch = FontStretch(FontStretchFixedPoint { value: (112 << Self::FRACTION_BITS) + Self::HALF });
+    pub const SEMI_EXPANDED: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: (112 << Self::FRACTION_BITS) + Self::HALF,
+    });
     /// The `expanded` keyword.
-    pub const EXPANDED: FontStretch = FontStretch(FontStretchFixedPoint { value: 125 << Self::FRACTION_BITS });
+    pub const EXPANDED: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: 125 << Self::FRACTION_BITS,
+    });
     /// The `extra-expanded` keyword.
-    pub const EXTRA_EXPANDED: FontStretch = FontStretch(FontStretchFixedPoint { value: 150 << Self::FRACTION_BITS });
+    pub const EXTRA_EXPANDED: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: 150 << Self::FRACTION_BITS,
+    });
     /// The `ultra-expanded` keyword.
-    pub const ULTRA_EXPANDED: FontStretch = FontStretch(FontStretchFixedPoint { value: 200 << Self::FRACTION_BITS });
+    pub const ULTRA_EXPANDED: FontStretch = FontStretch(FontStretchFixedPoint {
+        value: 200 << Self::FRACTION_BITS,
+    });
 
     /// 100%
     pub fn hundred() -> Self {

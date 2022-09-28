@@ -6,29 +6,29 @@
 //!
 //! [container]: https://drafts.csswg.org/css-contain-3/#container-rule
 
-use crate::logical_geometry::{WritingMode, LogicalSize};
 use crate::dom::TElement;
+use crate::logical_geometry::{LogicalSize, WritingMode};
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
-use crate::queries::{QueryCondition, FeatureType};
+use crate::properties::ComputedValues;
 use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
-use crate::str::CssStringWriter;
+use crate::queries::{FeatureType, QueryCondition};
 use crate::shared_lock::{
     DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
-use crate::values::specified::ContainerName;
-use crate::values::computed::{Context, CSSPixelLength, Ratio};
-use crate::properties::ComputedValues;
+use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
+use crate::values::computed::{CSSPixelLength, Context, Ratio};
+use crate::values::specified::ContainerName;
 use app_units::Au;
-use cssparser::{SourceLocation, Parser};
+use cssparser::{Parser, SourceLocation};
 use euclid::default::Size2D;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use servo_arc::Arc;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss, ParseError};
+use style_traits::{CssWriter, ParseError, ToCss};
 
 /// A container rule.
 #[derive(Debug, ToShmem)]
@@ -56,8 +56,8 @@ impl ContainerRule {
     #[cfg(feature = "gecko")]
     pub fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         // Measurement of other fields may be added later.
-        self.rules.unconditional_shallow_size_of(ops)
-            + self.rules.read_with(guard).size_of(guard, ops)
+        self.rules.unconditional_shallow_size_of(ops) +
+            self.rules.read_with(guard).size_of(guard, ops)
     }
 }
 
@@ -122,12 +122,17 @@ impl ContainerCondition {
 
         // FIXME: This is a bit ambiguous:
         // https://github.com/w3c/csswg-drafts/issues/7203
-        let name = input.try_parse(|input| {
-            ContainerName::parse(context, input)
-        }).ok().unwrap_or_else(ContainerName::none);
+        let name = input
+            .try_parse(|input| ContainerName::parse(context, input))
+            .ok()
+            .unwrap_or_else(ContainerName::none);
         let condition = QueryCondition::parse(context, input, FeatureType::Container)?;
         let flags = condition.cumulative_flags();
-        Ok(Self { name, condition, flags })
+        Ok(Self {
+            name,
+            condition,
+            flags,
+        })
     }
 
     fn valid_container_info<E>(&self, potential_container: E) -> Option<ContainerLookupResult<E>>
@@ -138,7 +143,7 @@ impl ContainerCondition {
 
         fn container_type_axes(ty_: ContainerType, wm: WritingMode) -> FeatureFlags {
             if ty_.contains(ContainerType::SIZE) {
-                return FeatureFlags::all_container_axes()
+                return FeatureFlags::all_container_axes();
             }
             if ty_.contains(ContainerType::INLINE_SIZE) {
                 let physical_axis = if wm.is_vertical() {
@@ -146,7 +151,7 @@ impl ContainerCondition {
                 } else {
                     FeatureFlags::CONTAINER_REQUIRES_WIDTH_AXIS
                 };
-                return FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS | physical_axis
+                return FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS | physical_axis;
             }
             FeatureFlags::empty()
         }
@@ -211,7 +216,6 @@ impl ContainerCondition {
     }
 }
 
-
 /// Information needed to evaluate an individual container query.
 #[derive(Copy, Clone)]
 pub struct ContainerInfo {
@@ -221,7 +225,7 @@ pub struct ContainerInfo {
 
 fn get_container(context: &Context) -> ContainerInfo {
     if let Some(ref info) = context.container_info {
-        return info.clone()
+        return info.clone();
     }
     ContainerInfo {
         size: context.device().au_viewport_size(),
@@ -241,12 +245,20 @@ fn eval_height(context: &Context) -> CSSPixelLength {
 
 fn eval_inline_size(context: &Context) -> CSSPixelLength {
     let info = get_container(context);
-    CSSPixelLength::new(LogicalSize::from_physical(info.wm, info.size).inline.to_f32_px())
+    CSSPixelLength::new(
+        LogicalSize::from_physical(info.wm, info.size)
+            .inline
+            .to_f32_px(),
+    )
 }
 
 fn eval_block_size(context: &Context) -> CSSPixelLength {
     let info = get_container(context);
-    CSSPixelLength::new(LogicalSize::from_physical(info.wm, info.size).block.to_f32_px())
+    CSSPixelLength::new(
+        LogicalSize::from_physical(info.wm, info.size)
+            .block
+            .to_f32_px(),
+    )
 }
 
 fn eval_aspect_ratio(context: &Context) -> Ratio {
@@ -293,12 +305,18 @@ pub static CONTAINER_FEATURES: [QueryFeatureDescription; 6] = [
         Evaluator::NumberRatio(eval_aspect_ratio),
         // XXX from_bits_truncate is const, but the pipe operator isn't, so this
         // works around it.
-        FeatureFlags::from_bits_truncate(FeatureFlags::CONTAINER_REQUIRES_BLOCK_AXIS.bits() | FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS.bits()),
+        FeatureFlags::from_bits_truncate(
+            FeatureFlags::CONTAINER_REQUIRES_BLOCK_AXIS.bits() |
+                FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS.bits()
+        ),
     ),
     feature!(
         atom!("orientation"),
         AllowsRanges::No,
         keyword_evaluator!(eval_orientation, Orientation),
-        FeatureFlags::from_bits_truncate(FeatureFlags::CONTAINER_REQUIRES_BLOCK_AXIS.bits() | FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS.bits()),
+        FeatureFlags::from_bits_truncate(
+            FeatureFlags::CONTAINER_REQUIRES_BLOCK_AXIS.bits() |
+                FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS.bits()
+        ),
     ),
 ];
