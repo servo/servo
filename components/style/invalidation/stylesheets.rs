@@ -18,8 +18,8 @@ use crate::shared_lock::SharedRwLockReadGuard;
 use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::stylesheets::{EffectiveRules, EffectiveRulesIterator};
 use crate::values::AtomIdent;
-use crate::{Atom, ShrinkIfNeeded};
 use crate::LocalName as SelectorLocalName;
+use crate::{Atom, ShrinkIfNeeded};
 use selectors::parser::{Component, LocalName, Selector};
 
 /// The kind of change that happened for a given rule.
@@ -632,10 +632,7 @@ impl StylesheetInvalidationSet {
                     // existing elements.
                 }
             },
-            CounterStyle(..) |
-            Page(..) |
-            Viewport(..) |
-            FontFeatureValues(..) => {
+            CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) => {
                 debug!(
                     " > Found unsupported rule, marking the whole subtree \
                      invalid."

@@ -6,7 +6,7 @@
 //! `(width >= 400px)`.
 
 use super::feature::{Evaluator, QueryFeatureDescription};
-use super::feature::{KeywordDiscriminant, FeatureFlags};
+use super::feature::{FeatureFlags, KeywordDiscriminant};
 use crate::parser::{Parse, ParserContext};
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::values::computed::{self, Ratio, ToComputedValue};
@@ -43,7 +43,10 @@ impl FeatureType {
     }
 
     fn find_feature(&self, name: &Atom) -> Option<(usize, &'static QueryFeatureDescription)> {
-        self.features().iter().enumerate().find(|(_, f)| f.name == *name)
+        self.features()
+            .iter()
+            .enumerate()
+            .find(|(_, f)| f.name == *name)
     }
 }
 
@@ -92,8 +95,12 @@ impl Operator {
         // context.
         match self {
             Self::Equal => false,
-            Self::GreaterThan | Self::GreaterThanEqual => matches!(right_op, Self::GreaterThan | Self::GreaterThanEqual),
-            Self::LessThan | Self::LessThanEqual => matches!(right_op, Self::LessThan | Self::LessThanEqual),
+            Self::GreaterThan | Self::GreaterThanEqual => {
+                matches!(right_op, Self::GreaterThan | Self::GreaterThanEqual)
+            },
+            Self::LessThan | Self::LessThanEqual => {
+                matches!(right_op, Self::LessThan | Self::LessThanEqual)
+            },
         }
     }
 
@@ -478,9 +485,7 @@ impl QueryFeatureExpression {
         let right = match right_op {
             Some(op) => {
                 if !left_op.is_compatible_with(op) {
-                    return Err(
-                        input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    );
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 Some((op, QueryExpressionValue::parse(feature, context, input)?))
             },
@@ -583,9 +588,8 @@ impl QueryFeatureExpression {
         match self.feature().evaluator {
             Evaluator::Length(eval) => {
                 let v = eval(context);
-                self.kind.evaluate(v, |v| {
-                    expect!(Length, v).to_computed_value(context)
-                })
+                self.kind
+                    .evaluate(v, |v| expect!(Length, v).to_computed_value(context))
             },
             Evaluator::Integer(eval) => {
                 let v = eval(context);
@@ -594,14 +598,15 @@ impl QueryFeatureExpression {
             Evaluator::Float(eval) => {
                 let v = eval(context);
                 self.kind.evaluate(v, |v| *expect!(Float, v))
-            }
+            },
             Evaluator::NumberRatio(eval) => {
                 let ratio = eval(context);
                 // A ratio of 0/0 behaves as the ratio 1/0, so we need to call used_value()
                 // to convert it if necessary.
                 // FIXME: we may need to update here once
                 // https://github.com/w3c/csswg-drafts/issues/4954 got resolved.
-                self.kind.evaluate(ratio, |v| expect!(NumberRatio, v).used_value())
+                self.kind
+                    .evaluate(ratio, |v| expect!(NumberRatio, v).used_value())
             },
             Evaluator::Resolution(eval) => {
                 let v = eval(context).dppx();
@@ -610,11 +615,17 @@ impl QueryFeatureExpression {
                 })
             },
             Evaluator::Enumerated { evaluator, .. } => {
-                let computed = self.kind.non_ranged_value().map(|v| *expect!(Enumerated, v));
+                let computed = self
+                    .kind
+                    .non_ranged_value()
+                    .map(|v| *expect!(Enumerated, v));
                 evaluator(context, computed)
             },
             Evaluator::BoolInteger(eval) => {
-                let computed = self.kind.non_ranged_value().map(|v| *expect!(BoolInteger, v));
+                let computed = self
+                    .kind
+                    .non_ranged_value()
+                    .map(|v| *expect!(BoolInteger, v));
                 let boolean = eval(context);
                 computed.map_or(boolean, |v| v == boolean)
             },

@@ -6,10 +6,10 @@
 
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
+use crate::media_queries::{Device, MediaType};
 use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
-use crate::media_queries::{Device, MediaType};
-use crate::values::computed::{Context, CSSPixelLength, Ratio, Resolution};
+use crate::values::computed::{CSSPixelLength, Context, Ratio, Resolution};
 use app_units::Au;
 use euclid::default::Size2D;
 
@@ -89,7 +89,11 @@ pub enum DisplayMode {
 /// https://w3c.github.io/manifest/#the-display-mode-media-feature
 fn eval_display_mode(context: &Context, query_value: Option<DisplayMode>) -> bool {
     match query_value {
-        Some(v) => v == unsafe { bindings::Gecko_MediaFeatures_GetDisplayMode(context.device().document()) },
+        Some(v) => {
+            v == unsafe {
+                bindings::Gecko_MediaFeatures_GetDisplayMode(context.device().document())
+            }
+        },
         None => true,
     }
 }
@@ -139,7 +143,8 @@ fn eval_monochrome(context: &Context) -> u32 {
 
 /// https://drafts.csswg.org/mediaqueries-4/#resolution
 fn eval_resolution(context: &Context) -> Resolution {
-    let resolution_dppx = unsafe { bindings::Gecko_MediaFeatures_GetResolution(context.device().document()) };
+    let resolution_dppx =
+        unsafe { bindings::Gecko_MediaFeatures_GetResolution(context.device().document()) };
     Resolution::from_dppx(resolution_dppx)
 }
 
@@ -172,7 +177,10 @@ pub enum DynamicRange {
 }
 
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-motion
-fn eval_prefers_reduced_motion(context: &Context, query_value: Option<PrefersReducedMotion>) -> bool {
+fn eval_prefers_reduced_motion(
+    context: &Context,
+    query_value: Option<PrefersReducedMotion>,
+) -> bool {
     let prefers_reduced =
         unsafe { bindings::Gecko_MediaFeatures_PrefersReducedMotion(context.device().document()) };
     let query_value = match query_value {
@@ -317,8 +325,9 @@ fn do_eval_prefers_color_scheme(
     use_content: bool,
     query_value: Option<PrefersColorScheme>,
 ) -> bool {
-    let prefers_color_scheme =
-        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(context.device().document(), use_content) };
+    let prefers_color_scheme = unsafe {
+        bindings::Gecko_MediaFeatures_PrefersColorScheme(context.device().document(), use_content)
+    };
     match query_value {
         Some(v) => prefers_color_scheme == v,
         None => true,
@@ -867,7 +876,13 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 61] = [
         GTKCSDReversedPlacement
     ),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
-    bool_pref_feature!(atom!("-moz-box-flexbox-emulation"), "layout.css.moz-box-flexbox-emulation.enabled"),
+    bool_pref_feature!(
+        atom!("-moz-box-flexbox-emulation"),
+        "layout.css.moz-box-flexbox-emulation.enabled"
+    ),
     // media query for MathML Core's implementation of maction/semantics
-    bool_pref_feature!(atom!("-moz-mathml-core-maction-and-semantics"), "mathml.legacy_maction_and_semantics_implementations.disabled"),
+    bool_pref_feature!(
+        atom!("-moz-mathml-core-maction-and-semantics"),
+        "mathml.legacy_maction_and_semantics_implementations.disabled"
+    ),
 ];

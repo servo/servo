@@ -7,7 +7,7 @@
 //! https://drafts.csswg.org/mediaqueries-4/#typedef-media-condition
 //! https://drafts.csswg.org/css-contain-3/#typedef-container-condition
 
-use super::{QueryFeatureExpression, FeatureType, FeatureFlags};
+use super::{FeatureFlags, FeatureType, QueryFeatureExpression};
 use crate::parser::ParserContext;
 use crate::values::computed;
 use cssparser::{Parser, Token};
@@ -197,7 +197,8 @@ impl QueryCondition {
             if let Ok(inner) = input.try_parse(|i| Self::parse(context, i, feature_type)) {
                 return Ok(QueryCondition::InParens(Box::new(inner)));
             }
-            let expr = QueryFeatureExpression::parse_in_parenthesis_block(context, input, feature_type)?;
+            let expr =
+                QueryFeatureExpression::parse_in_parenthesis_block(context, input, feature_type)?;
             Ok(QueryCondition::Feature(expr))
         })
     }

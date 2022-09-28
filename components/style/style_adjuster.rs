@@ -14,7 +14,6 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
 
-
 /// A struct that implements all the adjustment methods.
 ///
 /// NOTE(emilio): If new adjustments are introduced that depend on reset
@@ -159,8 +158,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn adjust_for_webkit_line_clamp(&mut self) {
         use crate::properties::longhands::_moz_box_orient::computed_value::T as BoxOrient;
-        use crate::values::specified::box_::{DisplayOutside, DisplayInside};
-        let box_style= self.style.get_box();
+        use crate::values::specified::box_::{DisplayInside, DisplayOutside};
+        let box_style = self.style.get_box();
         if box_style.clone__webkit_line_clamp().is_none() {
             return;
         }
@@ -177,7 +176,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             debug_assert_eq!(disp.outside(), DisplayOutside::Inline);
             Display::InlineBlock
         };
-        self.style.mutate_box().set_adjusted_display(new_display, false);
+        self.style
+            .mutate_box()
+            .set_adjusted_display(new_display, false);
     }
 
     /// CSS 2.1 section 9.7:
@@ -279,7 +280,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         #[cfg(feature = "gecko")]
-        if self.style
+        if self
+            .style
             .get_box()
             .clone_contain()
             .contains(SpecifiedValue::STYLE)

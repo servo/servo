@@ -18,7 +18,9 @@ use crate::selector_parser::Snapshot;
 use crate::stylesheets::origin::OriginSet;
 use crate::{Atom, WeakAtom};
 use selectors::attr::CaseSensitivity;
-use selectors::matching::{matches_selector, MatchingContext, MatchingMode, VisitedHandlingMode, NeedsSelectorFlags};
+use selectors::matching::{
+    matches_selector, MatchingContext, MatchingMode, NeedsSelectorFlags, VisitedHandlingMode,
+};
 use selectors::NthIndexCache;
 use smallvec::SmallVec;
 use style_traits::dom::ElementState;
@@ -410,10 +412,7 @@ where
         self.collect_state_dependencies(&map.state_affecting_selectors)
     }
 
-    fn collect_state_dependencies(
-        &mut self,
-        map: &'selectors SelectorMap<StateDependency>,
-    ) {
+    fn collect_state_dependencies(&mut self, map: &'selectors SelectorMap<StateDependency>) {
         if self.state_changes.is_empty() {
             return;
         }

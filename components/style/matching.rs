@@ -902,8 +902,13 @@ pub trait MatchMethods: TElement {
         let new_primary_style = data.styles.primary.as_ref().unwrap();
 
         let mut restyle_requirement = ChildRestyleRequirement::CanSkipCascade;
-        let is_root = new_primary_style.flags.contains(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
-        let is_container = !new_primary_style.get_box().clone_container_type().is_empty();
+        let is_root = new_primary_style
+            .flags
+            .contains(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
+        let is_container = !new_primary_style
+            .get_box()
+            .clone_container_type()
+            .is_empty();
         if is_root || is_container {
             let new_font_size = new_primary_style.get_font().clone_font_size();
             let old_font_size = old_styles

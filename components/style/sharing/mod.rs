@@ -75,7 +75,7 @@ use crate::stylist::Stylist;
 use crate::values::AtomIdent;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use owning_ref::OwningHandle;
-use selectors::matching::{VisitedHandlingMode, NeedsSelectorFlags};
+use selectors::matching::{NeedsSelectorFlags, VisitedHandlingMode};
 use selectors::NthIndexCache;
 use servo_arc::Arc;
 use smallbitvec::SmallBitVec;
@@ -434,12 +434,7 @@ impl<E: TElement> StyleSharingTarget<E> {
             self.element.traversal_parent()
         );
 
-        cache.share_style_if_possible(
-            shared_context,
-            bloom_filter,
-            nth_index_cache,
-            self,
-        )
+        cache.share_style_if_possible(shared_context, bloom_filter, nth_index_cache, self)
     }
 
     /// Gets the validation data used to match against this target, if any.
@@ -800,13 +795,7 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if !checks::revalidate(
-            target,
-            candidate,
-            shared,
-            bloom,
-            nth_index_cache,
-        ) {
+        if !checks::revalidate(target, candidate, shared, bloom, nth_index_cache) {
             trace!("Miss: Revalidation");
             return None;
         }

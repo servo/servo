@@ -15,13 +15,13 @@ use crate::str::CssStringWriter;
 use crate::values::computed::font::{FamilyName, FontStretch};
 use crate::values::generics::font::FontStyle as GenericFontStyle;
 #[cfg(feature = "gecko")]
+use crate::values::specified::font::MetricsOverride;
+#[cfg(feature = "gecko")]
 use crate::values::specified::font::SpecifiedFontFeatureSettings;
 use crate::values::specified::font::SpecifiedFontStyle;
 #[cfg(feature = "gecko")]
 use crate::values::specified::font::SpecifiedFontVariationSettings;
 use crate::values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
-#[cfg(feature = "gecko")]
-use crate::values::specified::font::MetricsOverride;
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::Angle;
 #[cfg(feature = "gecko")]
@@ -582,7 +582,11 @@ impl Parse for Source {
             FontFaceSourceTechFlags::empty()
         };
 
-        Ok(Source::Url(UrlSource { url, format_hint, tech_flags }))
+        Ok(Source::Url(UrlSource {
+            url,
+            format_hint,
+            tech_flags,
+        }))
     }
 }
 

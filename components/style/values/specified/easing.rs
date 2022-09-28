@@ -110,10 +110,12 @@ impl TimingFunction {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let steps = Integer::parse_positive(context, input)?;
-        let position = input.try_parse(|i| {
-            i.expect_comma()?;
-            StepPosition::parse(context, i)
-        }).unwrap_or(StepPosition::End);
+        let position = input
+            .try_parse(|i| {
+                i.expect_comma()?;
+                StepPosition::parse(context, i)
+            })
+            .unwrap_or(StepPosition::End);
 
         // jump-none accepts a positive integer greater than 1.
         // FIXME(emilio): The spec asks us to avoid rejecting it at parse
@@ -149,10 +151,19 @@ impl TimingFunction {
                     input_start = i.try_parse(|i| Percentage::parse(context, i)).ok();
                     input_end = i.try_parse(|i| Percentage::parse(context, i)).ok();
                 }
-                result.push(LinearStop { output, input: input_start.into() });
+                result.push(LinearStop {
+                    output,
+                    input: input_start.into(),
+                });
                 if input_end.is_some() {
-                    debug_assert!(input_start.is_some(), "Input end valid but not input start?");
-                    result.push(LinearStop { output, input: input_end.into() });
+                    debug_assert!(
+                        input_start.is_some(),
+                        "Input end valid but not input start?"
+                    );
+                    result.push(LinearStop {
+                        output,
+                        input: input_end.into(),
+                    });
                 }
 
                 Ok(())

@@ -114,7 +114,6 @@ impl ComputedValueFlags {
             Self::HAS_TEXT_DECORATION_LINES |
             Self::IS_IN_OPACITY_ZERO_SUBTREE |
             Self::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE
-
     }
 
     /// Flags that may be propagated to descendants.

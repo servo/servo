@@ -7,7 +7,9 @@
 use super::AllowQuirks;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
-use crate::values::generics::color::{ColorInterpolationMethod, GenericColorMix, GenericCaretColor, GenericColorOrAuto};
+use crate::values::generics::color::{
+    ColorInterpolationMethod, GenericCaretColor, GenericColorMix, GenericColorOrAuto,
+};
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Percentage;
 use crate::values::CustomIdent;
@@ -629,7 +631,9 @@ impl Color {
         let mut written = space_padding;
         let mut buf = itoa::Buffer::new();
         let s = buf.format(value);
-        (&mut serialization[written..]).write_all(s.as_bytes()).unwrap();
+        (&mut serialization[written..])
+            .write_all(s.as_bytes())
+            .unwrap();
         written += s.len();
         if let Some(unit) = unit {
             written += (&mut serialization[written..])

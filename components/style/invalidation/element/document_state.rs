@@ -10,7 +10,9 @@ use crate::invalidation::element::invalidator::{DescendantInvalidationLists, Inv
 use crate::invalidation::element::invalidator::{Invalidation, InvalidationProcessor};
 use crate::invalidation::element::state_and_attributes;
 use crate::stylist::CascadeData;
-use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, VisitedHandlingMode, NeedsSelectorFlags};
+use selectors::matching::{
+    MatchingContext, MatchingMode, NeedsSelectorFlags, QuirksMode, VisitedHandlingMode,
+};
 use style_traits::dom::DocumentState;
 
 /// A struct holding the members necessary to invalidate document state

@@ -42,7 +42,11 @@ impl ToComputedValue for specified::NoCalcLength {
 
 impl specified::NoCalcLength {
     /// Computes a length with a given font-relative base size.
-    pub fn to_computed_value_with_base_size(&self, context: &Context, base_size: FontBaseSize) -> Length {
+    pub fn to_computed_value_with_base_size(
+        &self,
+        context: &Context,
+        base_size: FontBaseSize,
+    ) -> Length {
         match *self {
             specified::NoCalcLength::Absolute(length) => length.to_computed_value(context),
             specified::NoCalcLength::FontRelative(length) => {

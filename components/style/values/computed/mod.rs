@@ -16,13 +16,13 @@ use super::specified;
 use super::{CSSFloat, CSSInteger};
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::QuirksMode;
-use crate::stylesheets::container_rule::ContainerInfo;
 use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 use crate::media_queries::Device;
 #[cfg(feature = "gecko")]
 use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
+use crate::stylesheets::container_rule::ContainerInfo;
 use crate::values::specified::length::FontBaseSize;
 use crate::{ArcSlice, Atom, One};
 use euclid::{default, Point2D, Rect, Size2D};
@@ -45,8 +45,13 @@ pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderRadius, BorderSpacing};
 pub use self::border::{BorderImageRepeat, BorderImageSideWidth};
 pub use self::border::{BorderImageSlice, BorderImageWidth};
-pub use self::box_::{AnimationIterationCount, AnimationName, AnimationTimeline, Contain, ContainerName, ContainerType};
-pub use self::box_::{Appearance, BreakBetween, BreakWithin, Clear, ContentVisibility, ContainIntrinsicSize, Float};
+pub use self::box_::{
+    AnimationIterationCount, AnimationName, AnimationTimeline, Contain, ContainerName,
+    ContainerType,
+};
+pub use self::box_::{
+    Appearance, BreakBetween, BreakWithin, Clear, ContainIntrinsicSize, ContentVisibility, Float,
+};
 pub use self::box_::{Display, LineClamp, Overflow, OverflowAnchor, TransitionProperty};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize, ScrollbarGutter};
 pub use self::box_::{ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop};
@@ -74,7 +79,7 @@ pub use self::list::ListStyleType;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
-pub use self::page::{PageOrientation, PageName, PageSize, PaperSize};
+pub use self::page::{PageName, PageOrientation, PageSize, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{
@@ -97,7 +102,7 @@ pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{Cursor, BoolInteger, UserSelect};
+pub use self::ui::{BoolInteger, Cursor, UserSelect};
 pub use super::specified::TextTransform;
 pub use super::specified::ViewportVariant;
 pub use super::specified::{BorderStyle, TextDecorationLine};
@@ -339,10 +344,7 @@ pub struct ComputedVecIter<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> {
 impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> ComputedVecIter<'a, 'cx, 'cx_a, S> {
     /// Construct an iterator from a slice of specified values and a context
     pub fn new(cx: &'cx Context<'cx_a>, values: &'a [S]) -> Self {
-        ComputedVecIter {
-            cx,
-            values,
-        }
+        ComputedVecIter { cx, values }
     }
 }
 

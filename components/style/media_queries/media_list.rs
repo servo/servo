@@ -84,8 +84,8 @@ impl MediaList {
                 let media_match = mq.media_type.matches(device.media_type());
 
                 // Check if the media condition match.
-                let query_match = media_match &&
-                    mq.condition.as_ref().map_or(true, |c| c.matches(context));
+                let query_match =
+                    media_match && mq.condition.as_ref().map_or(true, |c| c.matches(context));
 
                 // Apply the logical NOT qualifier to the result
                 match mq.qualifier {

@@ -6,8 +6,8 @@
 //!
 //! https://drafts.csswg.org/mediaqueries/#typedef-media-query
 
-use crate::queries::{QueryCondition, FeatureType};
 use crate::parser::ParserContext;
+use crate::queries::{FeatureType, QueryCondition};
 use crate::str::string_as_ascii_lowercase;
 use crate::values::CustomIdent;
 use crate::Atom;
@@ -136,7 +136,11 @@ impl MediaQuery {
         let condition = if explicit_media_type.is_none() {
             Some(QueryCondition::parse(context, input, FeatureType::Media)?)
         } else if input.try_parse(|i| i.expect_ident_matching("and")).is_ok() {
-            Some(QueryCondition::parse_disallow_or(context, input, FeatureType::Media)?)
+            Some(QueryCondition::parse_disallow_or(
+                context,
+                input,
+                FeatureType::Media,
+            )?)
         } else {
             None
         };

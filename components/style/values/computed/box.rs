@@ -8,7 +8,9 @@ use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::length::{LengthPercentage, NonNegativeLength};
 use crate::values::computed::{Context, Integer, Number, ToComputedValue};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
-use crate::values::generics::box_::{GenericLineClamp, GenericPerspective, GenericVerticalAlign, GenericContainIntrinsicSize};
+use crate::values::generics::box_::{
+    GenericContainIntrinsicSize, GenericLineClamp, GenericPerspective, GenericVerticalAlign,
+};
 use crate::values::specified::box_ as specified;
 
 pub use crate::values::specified::box_::{
@@ -39,7 +41,7 @@ impl Animate for LineClamp {
             return Err(());
         }
         if self.is_none() {
-            return Ok(Self::none())
+            return Ok(Self::none());
         }
         Ok(Self(self.0.animate(&other.0, procedure)?.max(1)))
     }

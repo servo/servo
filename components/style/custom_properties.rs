@@ -142,7 +142,10 @@ static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 6] = [
         GTKCSDMaximizeButtonPosition,
         integer
     ),
-    make_variable!(atom!("-moz-content-preferred-color-scheme"), get_content_preferred_color_scheme),
+    make_variable!(
+        atom!("-moz-content-preferred-color-scheme"),
+        get_content_preferred_color_scheme
+    ),
 ];
 
 impl CssEnvironment {
@@ -799,7 +802,11 @@ impl<'a> CustomPropertiesBuilder<'a> {
 /// (meaning we should use the inherited value).
 ///
 /// It does cycle dependencies removal at the same time as substitution.
-fn substitute_all(custom_properties_map: &mut CustomPropertiesMap, seen: &PrecomputedHashSet<&Name>, device: &Device) {
+fn substitute_all(
+    custom_properties_map: &mut CustomPropertiesMap,
+    seen: &PrecomputedHashSet<&Name>,
+    device: &Device,
+) {
     // The cycle dependencies removal in this function is a variant
     // of Tarjan's algorithm. It is mostly based on the pseudo-code
     // listed in

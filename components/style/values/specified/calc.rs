@@ -148,10 +148,9 @@ impl CalcLengthPercentage {
 
         let a = a.as_length()?.unitless_value();
         let b = b.as_length()?.unitless_value();
-        return Some((a, b))
+        return Some((a, b));
     }
 }
-
 
 impl SpecifiedValueInfo for CalcLengthPercentage {}
 
@@ -327,7 +326,9 @@ impl CalcNode {
         let location = input.current_source_location();
         match input.next()? {
             &Token::Number { value, .. } => Ok(CalcNode::Leaf(Leaf::Number(value))),
-            &Token::Dimension { value, ref unit, .. } => {
+            &Token::Dimension {
+                value, ref unit, ..
+            } => {
                 if allowed_units.intersects(CalcUnits::LENGTH) {
                     if let Ok(l) = NoCalcLength::parse_dimension(context, value, unit) {
                         return Ok(CalcNode::Leaf(Leaf::Length(l)));
@@ -343,11 +344,13 @@ impl CalcNode {
                         return Ok(CalcNode::Leaf(Leaf::Time(t)));
                     }
                 }
-                return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             },
-            &Token::Percentage { unit_value, .. } if allowed_units.intersects(CalcUnits::PERCENTAGE) => {
+            &Token::Percentage { unit_value, .. }
+                if allowed_units.intersects(CalcUnits::PERCENTAGE) =>
+            {
                 Ok(CalcNode::Leaf(Leaf::Percentage(unit_value)))
-            }
+            },
             &Token::ParenthesisBlock => input.parse_nested_block(|input| {
                 CalcNode::parse_argument(context, input, allowed_units)
             }),
@@ -493,9 +496,11 @@ impl CalcNode {
 
                     let radians = match resolve_atan2(a, b) {
                         Ok(v) => v,
-                        Err(()) => return Err(
-                            input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                        ),
+                        Err(()) => {
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            )
+                        },
                     };
 
                     Ok(Self::Leaf(Leaf::Angle(Angle::from_radians(radians))))
@@ -587,9 +592,11 @@ impl CalcNode {
                     // TODO(emilio): Eventually it should be.
                     let number = match rhs.to_number() {
                         Ok(n) if n != 0. || nan_inf_enabled() => n,
-                        _ => return Err(
-                            input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                        ),
+                        _ => {
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            )
+                        },
                     };
                     node.mul_by(1. / number);
                 },

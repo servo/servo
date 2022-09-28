@@ -6,8 +6,8 @@
 
 use crate::values::animated::color::AnimatedRGBA;
 use crate::values::animated::ToAnimatedValue;
-use crate::values::generics::color::{GenericCaretColor, GenericColor, GenericColorOrAuto};
 use crate::values::computed::percentage::Percentage;
+use crate::values::generics::color::{GenericCaretColor, GenericColor, GenericColorOrAuto};
 use cssparser::{Color as CSSParserColor, RGBA};
 use std::fmt;
 use style_traits::{CssWriter, ToCss};

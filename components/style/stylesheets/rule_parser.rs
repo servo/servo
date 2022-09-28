@@ -13,7 +13,7 @@ use crate::properties::parse_property_declaration_list;
 use crate::selector_parser::{SelectorImpl, SelectorParser};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::str::starts_with_ignore_ascii_case;
-use crate::stylesheets::container_rule::{ContainerRule, ContainerCondition};
+use crate::stylesheets::container_rule::{ContainerCondition, ContainerRule};
 use crate::stylesheets::document_rule::DocumentCondition;
 use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
 use crate::stylesheets::import_rule::ImportLayer;
@@ -69,7 +69,7 @@ impl<'a> InsertRuleContext<'a> {
                     }
                 }
                 State::Body
-            }
+            },
             _ => State::Body,
         }
     }
@@ -664,15 +664,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     },
                 ))))
             },
-            AtRulePrelude::Container(condition) => {
-                Ok(CssRule::Container(Arc::new(self.shared_lock.wrap(
-                    ContainerRule {
-                        condition,
-                        rules: self.parse_nested_rules(input, CssRuleType::Container),
-                        source_location: start.source_location(),
-                    },
-                ))))
-            },
+            AtRulePrelude::Container(condition) => Ok(CssRule::Container(Arc::new(
+                self.shared_lock.wrap(ContainerRule {
+                    condition,
+                    rules: self.parse_nested_rules(input, CssRuleType::Container),
+                    source_location: start.source_location(),
+                }),
+            ))),
             AtRulePrelude::Layer(names) => {
                 let name = match names.len() {
                     0 | 1 => names.into_iter().next(),
