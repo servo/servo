@@ -152,6 +152,7 @@ impl ToComputedValue for SpecifiedFloat {
     ToResolvedValue,
 )]
 /// A computed value for the `clear` property.
+#[repr(u8)]
 pub enum Clear {
     None,
     Left,

@@ -1684,7 +1684,7 @@ pub enum Float {
 #[derive(
     Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
 )]
-/// https://drafts.csswg.org/css-box/#propdef-clear
+/// https://drafts.csswg.org/css2/#propdef-clear
 pub enum Clear {
     None,
     Left,
