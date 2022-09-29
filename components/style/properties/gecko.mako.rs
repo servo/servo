@@ -1127,7 +1127,7 @@ fn static_assert() {
     ${impl_copy_animation_value(ident, gecko_ffi_name)}
 </%def>
 
-<% skip_box_longhands= """display clear""" %>
+<% skip_box_longhands= """display""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
@@ -1159,13 +1159,6 @@ fn static_assert() {
     pub fn clone_display(&self) -> longhands::display::computed_value::T {
         self.gecko.mDisplay
     }
-
-    <% clear_keyword = Keyword(
-        "clear",
-        "Left Right None Both",
-        gecko_enum_prefix="StyleClear",
-    ) %>
-    ${impl_keyword('clear', 'mBreakType', clear_keyword)}
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
