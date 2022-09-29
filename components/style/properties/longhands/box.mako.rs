@@ -79,7 +79,6 @@ ${helpers.predefined_type(
     "computed::Clear::None",
     engines="gecko servo",
     animation_value_type="discrete",
-    gecko_ffi_name="mBreakType",
     spec="https://drafts.csswg.org/css2/#propdef-clear",
     servo_restyle_damage="rebuild_and_reflow",
 )}
