@@ -1164,7 +1164,6 @@ fn static_assert() {
         "clear",
         "Left Right None Both",
         gecko_enum_prefix="StyleClear",
-        gecko_inexhaustive=True,
     ) %>
     ${impl_keyword('clear', 'mBreakType', clear_keyword)}
 </%self:impl_trait>
