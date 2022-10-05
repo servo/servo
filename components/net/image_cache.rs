@@ -546,13 +546,13 @@ impl ImageCache for ImageCacheImpl {
 
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_)) => {
-                let store = self.store.lock().unwrap();
-                let id = store
+                let mut store = self.store.lock().unwrap();
+                let id = *store
                     .pending_loads
                     .url_to_load_key
                     .get(&(url, origin, cors_setting))
                     .unwrap();
-                self.add_listener(*id, ImageResponder::new(sender, *id));
+                self.add_listener_with_store(&mut store, id, ImageResponder::new(sender, id));
             },
             ImageCacheResult::Pending(id) | ImageCacheResult::ReadyForRequest(id) => {
                 self.add_listener(id, ImageResponder::new(sender, id));
@@ -567,18 +567,7 @@ impl ImageCache for ImageCacheImpl {
     /// the responder will still receive the expected response.
     fn add_listener(&self, id: PendingImageId, listener: ImageResponder) {
         let mut store = self.store.lock().unwrap();
-        if let Some(load) = store.pending_loads.get_by_key_mut(&id) {
-            if let Some(ref metadata) = load.metadata {
-                listener.respond(ImageResponse::MetadataLoaded(metadata.clone()));
-            }
-            load.add_listener(listener);
-            return;
-        }
-        if let Some(load) = store.completed_loads.values().find(|l| l.id == id) {
-            listener.respond(load.image_response.clone());
-            return;
-        }
-        warn!("Couldn't find cached entry for listener {:?}", id);
+        self.add_listener_with_store(&mut store, id, listener);
     }
 
     /// Inform the image cache about a response for a pending request.
@@ -659,5 +648,28 @@ impl ImageCache for ImageCacheImpl {
                 }
             },
         }
+    }
+}
+
+impl ImageCacheImpl {
+    /// Require self.store.lock() before calling.
+    fn add_listener_with_store(
+        &self,
+        store: &mut ImageCacheStore,
+        id: PendingImageId,
+        listener: ImageResponder,
+    ) {
+        if let Some(load) = store.pending_loads.get_by_key_mut(&id) {
+            if let Some(ref metadata) = load.metadata {
+                listener.respond(ImageResponse::MetadataLoaded(metadata.clone()));
+            }
+            load.add_listener(listener);
+            return;
+        }
+        if let Some(load) = store.completed_loads.values().find(|l| l.id == id) {
+            listener.respond(load.image_response.clone());
+            return;
+        }
+        warn!("Couldn't find cached entry for listener {:?}", id);
     }
 }
