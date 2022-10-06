@@ -18,7 +18,7 @@ clangStdenv.mkDerivation rec {
     rustup
 
     # Build utilities
-    cmake dbus gcc git pkgconfig which llvm autoconf213 perl yasm m4
+    cmake dbus gcc git pkg-config which llvm autoconf213 perl yasm m4
     (python3.withPackages (ps: with ps; [virtualenv pip dbus]))
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
