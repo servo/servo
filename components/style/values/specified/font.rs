@@ -20,7 +20,7 @@ use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, PX_PER_PT};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
 use crate::values::specified::{NoCalcLength, NonNegativeNumber, NonNegativePercentage, Number};
-use crate::values::CustomIdent;
+use crate::values::{CustomIdent, SelectorParseErrorKind, serialize_atom_identifier};
 use crate::Atom;
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
@@ -743,7 +743,7 @@ impl Parse for FontSizeAdjust {
                 "ic-height" if basis_enabled => GenericFontSizeAdjust::IcHeight,
                 // Unknown (or disabled) keyword.
                 _ => return Err(location.new_custom_error(
-                    ::selectors::parser::SelectorParseErrorKind::UnexpectedIdent(ident)
+                    SelectorParseErrorKind::UnexpectedIdent(ident)
                 )),
             };
             let value = NonNegativeNumber::parse(context, input)?;
@@ -1991,7 +1991,6 @@ impl Parse for FontSynthesis {
         _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<FontSynthesis, ParseError<'i>> {
-        use crate::values::SelectorParseErrorKind;
         let mut result = Self::none();
         while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
             match_ignore_ascii_case! { &ident,
@@ -2159,6 +2158,59 @@ impl Parse for FontLanguageOverride {
         Ok(FontLanguageOverride::Override(
             string.as_ref().to_owned().into_boxed_str(),
         ))
+    }
+}
+
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+/// Allows authors to choose a palette from those supported by a color font
+/// (and potentially @font-palette-values overrides).
+pub struct FontPalette(Atom);
+
+#[allow(missing_docs)]
+impl FontPalette {
+    pub fn normal() -> Self { Self(atom!("normal")) }
+    pub fn light() -> Self { Self(atom!("light")) }
+    pub fn dark() -> Self { Self(atom!("dark")) }
+}
+
+impl Parse for FontPalette {
+    /// normal | light | dark | dashed-ident
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<FontPalette, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+        match_ignore_ascii_case! { &ident,
+            "normal" => Ok(Self::normal()),
+            "light" => Ok(Self::light()),
+            "dark" => Ok(Self::dark()),
+            _ => if ident.starts_with("--") {
+                Ok(Self(Atom::from(ident.as_ref())))
+            } else {
+                Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+            },
+        }
+    }
+}
+
+impl ToCss for FontPalette {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        serialize_atom_identifier(&self.0, dest)
     }
 }
 
