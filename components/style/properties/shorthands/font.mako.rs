@@ -27,6 +27,7 @@
         ${'font-language-override' if engine == 'gecko' else ''}
         ${'font-feature-settings' if engine == 'gecko' else ''}
         ${'font-variation-settings' if engine == 'gecko' else ''}
+        ${'font-palette' if engine == 'gecko' else ''}
     "
     derive_value_info="False"
     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font"
@@ -37,7 +38,7 @@
     use crate::properties::longhands::font_variant_caps;
     use crate::values::specified::text::LineHeight;
     use crate::values::specified::FontSize;
-    use crate::values::specified::font::{FontStretch, FontStretchKeyword};
+    use crate::values::specified::font::{FontPalette, FontStretch, FontStretchKeyword};
     #[cfg(feature = "gecko")]
     use crate::values::specified::font::SystemFont;
 
@@ -46,7 +47,8 @@
                                 variant_alternates variant_east_asian \
                                 variant_ligatures variant_numeric \
                                 variant_position feature_settings \
-                                variation_settings optical_sizing".split()
+                                variation_settings optical_sizing \
+                                palette".split()
     %>
     % if engine == "gecko":
         % for prop in gecko_sub_properties:
@@ -75,8 +77,9 @@
                              ${name}: ${name}::SpecifiedValue::system_font(sys),
                          % endif
                      % endfor
-                     // line-height is just reset to initial
+                     // line-height and palette are just reset to initial
                      line_height: LineHeight::normal(),
+                     font_palette: FontPalette::normal(),
                  })
             }
         % endif
@@ -186,9 +189,14 @@
                     return Ok(());
                 }
             }
+            if let Some(v) = self.font_palette {
+                if v != &font_palette::get_initial_specified_value() {
+                    return Ok(());
+                }
+            }
 
             % for name in gecko_sub_properties:
-            % if name != "optical_sizing" and name != "variation_settings":
+            % if name != "optical_sizing" and name != "variation_settings" and name != "palette":
             if self.font_${name} != &font_${name}::get_initial_specified_value() {
                 return Ok(());
             }
@@ -251,7 +259,7 @@
             let mut all = true;
 
             % for prop in SYSTEM_FONT_LONGHANDS:
-            % if prop == "font_optical_sizing" or prop == "font_variation_settings":
+            % if prop == "font_optical_sizing" or prop == "font_variation_settings" or prop == "font_palette":
             if let Some(value) = self.${prop} {
             % else:
             {

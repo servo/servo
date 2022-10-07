@@ -207,6 +207,18 @@ ${helpers.single_keyword_system(
 )}
 
 ${helpers.predefined_type(
+    "font-palette",
+    "FontPalette",
+    engines="gecko",
+    initial_value="computed::FontPalette::normal()",
+    initial_specified_value="specified::FontPalette::normal()",
+    animation_value_type="discrete",
+    gecko_pref="layout.css.font-palette.enabled",
+    has_effect_on_gecko_scrollbars=False,
+    spec="https://drafts.csswg.org/css-fonts/#font-palette-prop",
+)}
+
+${helpers.predefined_type(
     "-x-lang",
     "XLang",
     engines="gecko",
