@@ -12,10 +12,10 @@ use crate::gecko::url::CssUrlData;
 use crate::gecko_bindings::structs::{
     RawServoAnimationValue, RawServoContainerRule, RawServoCounterStyleRule, RawServoCssUrlData,
     RawServoDeclarationBlock, RawServoFontFaceRule, RawServoFontFeatureValuesRule,
-    RawServoImportRule, RawServoKeyframe, RawServoKeyframesRule, RawServoLayerBlockRule,
-    RawServoLayerStatementRule, RawServoMediaList, RawServoMediaRule, RawServoMozDocumentRule,
-    RawServoNamespaceRule, RawServoPageRule, RawServoStyleRule, RawServoStyleSheetContents,
-    RawServoSupportsRule, ServoCssRules,
+    RawServoFontPaletteValuesRule, RawServoImportRule, RawServoKeyframe, RawServoKeyframesRule,
+    RawServoLayerBlockRule, RawServoLayerStatementRule, RawServoMediaList, RawServoMediaRule,
+    RawServoMozDocumentRule, RawServoNamespaceRule, RawServoPageRule, RawServoStyleRule,
+    RawServoStyleSheetContents, RawServoSupportsRule, ServoCssRules,
 };
 use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use crate::media_queries::MediaList;
@@ -25,8 +25,8 @@ use crate::shared_lock::Locked;
 use crate::stylesheets::keyframes_rule::Keyframe;
 use crate::stylesheets::{
     ContainerRule, CounterStyleRule, CssRules, DocumentRule, FontFaceRule, FontFeatureValuesRule,
-    ImportRule, KeyframesRule, LayerBlockRule, LayerStatementRule, MediaRule, NamespaceRule,
-    PageRule, StyleRule, StylesheetContents, SupportsRule,
+    FontPaletteValuesRule, ImportRule, KeyframesRule, LayerBlockRule, LayerStatementRule,
+    MediaRule, NamespaceRule, PageRule, StyleRule, StylesheetContents, SupportsRule,
 };
 use servo_arc::{Arc, ArcBorrow};
 use std::{mem, ptr};
@@ -103,6 +103,9 @@ impl_arc_ffi!(Locked<DocumentRule> => RawServoMozDocumentRule
 
 impl_arc_ffi!(Locked<FontFeatureValuesRule> => RawServoFontFeatureValuesRule
               [Servo_FontFeatureValuesRule_AddRef, Servo_FontFeatureValuesRule_Release]);
+
+impl_arc_ffi!(Locked<FontPaletteValuesRule> => RawServoFontPaletteValuesRule
+              [Servo_FontPaletteValuesRule_AddRef, Servo_FontPaletteValuesRule_Release]);
 
 impl_arc_ffi!(Locked<FontFaceRule> => RawServoFontFaceRule
               [Servo_FontFaceRule_AddRef, Servo_FontFaceRule_Release]);

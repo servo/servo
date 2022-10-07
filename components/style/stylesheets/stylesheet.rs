@@ -381,6 +381,7 @@ impl SanitizationKind {
             CssRule::Keyframes(..) |
             CssRule::Page(..) |
             CssRule::FontFeatureValues(..) |
+            CssRule::FontPaletteValues(..) |
             CssRule::Viewport(..) |
             CssRule::CounterStyle(..) => !is_standard,
         }

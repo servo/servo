@@ -492,6 +492,44 @@ impl ToCss for CustomIdent {
     }
 }
 
+/// <https://www.w3.org/TR/css-values-4/#dashed-idents>
+/// This is simply an Atom, but will only parse if the identifier starts with "--".
+#[repr(transparent)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub struct DashedIdent(pub Atom);
+
+impl Parse for DashedIdent {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+        if ident.starts_with("--") {
+            Ok(Self(Atom::from(ident.as_ref())))
+        } else {
+            Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+        }
+    }
+}
+
+impl ToCss for DashedIdent {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        serialize_atom_identifier(&self.0, dest)
+    }
+}
+
 /// The <timeline-name> or <keyframes-name>.
 /// The definition of these two names are the same, so we use the same type for them.
 ///
