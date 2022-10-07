@@ -23,11 +23,12 @@ use crate::stylesheets::stylesheet::Namespaces;
 use crate::stylesheets::supports_rule::SupportsCondition;
 use crate::stylesheets::{
     viewport_rule, AllowImportRules, CorsMode, CssRule, CssRuleType, CssRules, DocumentRule,
-    FontFeatureValuesRule, KeyframesRule, MediaRule, NamespaceRule, PageRule, PageSelectors,
-    RulesMutateError, StyleRule, StylesheetLoader, SupportsRule, ViewportRule,
+    FontFeatureValuesRule, FontPaletteValuesRule, KeyframesRule, MediaRule, NamespaceRule,
+    PageRule, PageSelectors, RulesMutateError, StyleRule, StylesheetLoader, SupportsRule,
+    ViewportRule,
 };
 use crate::values::computed::font::FamilyName;
-use crate::values::{CssUrl, CustomIdent, KeyframesName};
+use crate::values::{CssUrl, CustomIdent, DashedIdent, KeyframesName};
 use crate::{Namespace, Prefix};
 use cssparser::{
     AtRuleParser, BasicParseError, BasicParseErrorKind, CowRcStr, Parser, ParserState,
@@ -184,6 +185,8 @@ pub enum AtRulePrelude {
     FontFace,
     /// A @font-feature-values rule prelude, with its FamilyName list.
     FontFeatureValues(Vec<FamilyName>),
+    /// A @font-palette-values rule prelude, with its identifier.
+    FontPaletteValues(DashedIdent),
     /// A @counter-style rule prelude, with its counter style name.
     CounterStyle(CustomIdent),
     /// A @media rule prelude, with its media queries.
@@ -500,6 +503,10 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let family_names = parse_family_name_list(self.context, input)?;
                 AtRulePrelude::FontFeatureValues(family_names)
             },
+            "font-palette-values" if static_prefs::pref!("layout.css.font-palette.enabled") => {
+                let name = DashedIdent::parse(self.context, input)?;
+                AtRulePrelude::FontPaletteValues(name)
+            },
             "counter-style" if cfg!(feature = "gecko") => {
                 let name = parse_counter_style_name_definition(input)?;
                 AtRulePrelude::CounterStyle(name)
@@ -569,6 +576,22 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                         &context,
                         input,
                         family_names,
+                        start.source_location(),
+                    ),
+                ))))
+            },
+            AtRulePrelude::FontPaletteValues(name) => {
+                let context = ParserContext::new_with_rule_type(
+                    self.context,
+                    CssRuleType::FontPaletteValues,
+                    self.namespaces,
+                );
+
+                Ok(CssRule::FontPaletteValues(Arc::new(self.shared_lock.wrap(
+                    FontPaletteValuesRule::parse(
+                        &context,
+                        input,
+                        name,
                         start.source_location(),
                     ),
                 ))))
