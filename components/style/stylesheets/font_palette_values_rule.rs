@@ -8,6 +8,11 @@
 
 use crate::error_reporting::ContextualParseError;
 use crate::parser::{Parse, ParserContext};
+use crate::gecko_bindings::bindings::Gecko_AppendPaletteValueHashEntry;
+use crate::gecko_bindings::bindings::{Gecko_SetFontPaletteBase, Gecko_SetFontPaletteOverride};
+use crate::gecko_bindings::structs::gfx::FontPaletteValueSet;
+use crate::gecko_bindings::structs::gfx::FontPaletteValueSet_PaletteValues_kLight;
+use crate::gecko_bindings::structs::gfx::FontPaletteValueSet_PaletteValues_kDark;
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::values::computed::font::FamilyName;
@@ -151,6 +156,38 @@ impl FontPaletteValuesRule {
             dest.write_str("; ")?;
         }
         Ok(())
+    }
+
+    /// Convert to Gecko FontPaletteValueSet.
+    pub fn to_gecko_palette_value_set(&self, dest: *mut FontPaletteValueSet) {
+        for ref family in self.family_names.iter() {
+            let family = family.name.to_ascii_lowercase();
+            let palette_values = unsafe {
+                Gecko_AppendPaletteValueHashEntry(
+                    dest,
+                    family.as_ptr(),
+                    self.name.0.as_ptr()
+                )
+            };
+            if let Some(base_palette) = &self.base_palette {
+                unsafe {
+                    Gecko_SetFontPaletteBase(palette_values, match &base_palette {
+                        FontPaletteBase::Light => FontPaletteValueSet_PaletteValues_kLight,
+                        FontPaletteBase::Dark => FontPaletteValueSet_PaletteValues_kDark,
+                        FontPaletteBase::Index(i) => i.0.value() as i32,
+                    });
+                }
+            }
+            for c in &self.override_colors {
+                if let SpecifiedColor::Numeric { parsed, authored: _ } = &c.color {
+                    unsafe {
+                        Gecko_SetFontPaletteOverride(palette_values,
+                                                     c.index.0.value(),
+                                                     *parsed);
+                    }
+                }
+            }
+        }
     }
 }
 
