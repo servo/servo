@@ -2080,7 +2080,7 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_url",
- "smallvec 0.6.13",
+ "smallvec 1.9.0",
  "style",
  "time",
  "truetype",
@@ -3225,7 +3225,7 @@ dependencies = [
  "servo_geometry",
  "servo_url",
  "size_of_test",
- "smallvec 0.6.13",
+ "smallvec 1.9.0",
  "style",
  "style_traits",
  "unicode-bidi",
@@ -5433,7 +5433,7 @@ dependencies = [
  "servo_geometry",
  "servo_rand",
  "servo_url",
- "smallvec 0.6.13",
+ "smallvec 1.9.0",
  "sparkle",
  "style",
  "style_traits",
@@ -5536,7 +5536,7 @@ dependencies = [
  "serde",
  "servo_atoms",
  "servo_url",
- "smallvec 0.6.13",
+ "smallvec 1.9.0",
  "style_traits",
  "time",
  "uuid",
@@ -6143,7 +6143,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7b0758c52e15a8b5e3691eae6cc559f08eee9406e548a4477ba4e67770a82b6"
 dependencies = [
  "maybe-uninit",
- "serde",
 ]
 
 [[package]]
@@ -7331,7 +7330,7 @@ dependencies = [
  "msg",
  "serde",
  "servo_config",
- "smallvec 0.6.13",
+ "smallvec 1.9.0",
  "webrender_api",
  "webrender_traits",
  "wgpu-core",
