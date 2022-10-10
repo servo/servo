@@ -268,7 +268,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         id: HirId,
     ) {
         let in_new_function = match kind {
-            visit::FnKind::ItemFn(n, _, _, _) | visit::FnKind::Method(n, _, _) => {
+            visit::FnKind::ItemFn(n, _, _) | visit::FnKind::Method(n, _) => {
                 &*n.as_str() == "new" || n.as_str().starts_with("new_")
             },
             visit::FnKind::Closure => return,
