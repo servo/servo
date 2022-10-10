@@ -110,7 +110,8 @@ fn is_unrooted_ty<'tcx>(
         };
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
-                let has_attr = |did, name| has_lint_attr(sym, &cx.tcx.get_attrs(did), name);
+                let has_attr =
+                    |did, name| has_lint_attr(sym, &cx.tcx.get_attrs_unchecked(did), name);
                 if has_attr(did.did(), sym.must_root) {
                     ret = true;
                     false
