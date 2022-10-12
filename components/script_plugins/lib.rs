@@ -360,8 +360,8 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
         // are implemented, the `Unannotated` case could cause false-positives.
         // These should be fixable by adding an explicit `ref`.
         match pat.kind {
-            hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, ..) |
-            hir::PatKind::Binding(hir::BindingAnnotation::Mutable, ..) => {
+            hir::PatKind::Binding(hir::BindingAnnotation::NONE, ..) |
+            hir::PatKind::Binding(hir::BindingAnnotation::MUT, ..) => {
                 let ty = cx.typeck_results().pat_ty(pat);
                 if is_unrooted_ty(self.symbols, cx, ty, self.in_new_function) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
