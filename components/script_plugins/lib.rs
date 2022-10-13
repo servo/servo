@@ -217,14 +217,12 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             for ref field in def.fields() {
                 let def_id = cx.tcx.hir().local_def_id(field.hir_id);
                 if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
-                    cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.build(
-                            "Type must be rooted, use #[unrooted_must_root_lint::must_root] \
-                             on the struct definition to propagate",
-                        )
-                        .set_span(field.span)
-                        .emit()
-                    })
+                    cx.lint(
+                        UNROOTED_MUST_ROOT,
+                        "Type must be rooted, use #[unrooted_must_root_lint::must_root] \
+                         on the struct definition to propagate",
+                        |lint| lint.set_span(field.span),
+                    )
                 }
             }
         }
@@ -242,15 +240,13 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                     for field in fields {
                         let def_id = cx.tcx.hir().local_def_id(field.hir_id);
                         if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
-                            cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                                lint.build(
-                                    "Type must be rooted, \
-                                    use #[unrooted_must_root_lint::must_root] \
-                                    on the enum definition to propagate",
-                                )
-                                .set_span(field.ty.span)
-                                .emit()
-                            })
+                            cx.lint(
+                                UNROOTED_MUST_ROOT,
+                                "Type must be rooted, \
+                                use #[unrooted_must_root_lint::must_root] \
+                                on the enum definition to propagate",
+                                |lint| lint.set_span(field.ty.span),
+                            )
                         }
                     }
                 },
@@ -281,8 +277,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
                 if is_unrooted_ty(&self.symbols, cx, *ty, false) {
-                    cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.build("Type must be rooted").set_span(arg.span).emit()
+                    cx.lint(UNROOTED_MUST_ROOT, "Type must be rooted", |lint| {
+                        lint.set_span(arg.span)
                     })
                 }
             }
@@ -290,10 +286,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             if !in_new_function &&
                 is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false)
             {
-                cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                    lint.build("Type must be rooted")
-                        .set_span(decl.output.span())
-                        .emit()
+                cx.lint(UNROOTED_MUST_ROOT, "Type must be rooted", |lint| {
+                    lint.set_span(decl.output.span())
                 })
             }
         }
@@ -322,11 +316,11 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
         let require_rooted = |cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr| {
             let ty = cx.typeck_results().expr_ty(&subexpr);
             if is_unrooted_ty(&self.symbols, cx, ty, in_new_function) {
-                cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                    lint.build(&format!("Expression of type {:?} must be rooted", ty))
-                        .set_span(subexpr.span)
-                        .emit()
-                })
+                cx.lint(
+                    UNROOTED_MUST_ROOT,
+                    format!("Expression of type {:?} must be rooted", ty),
+                    |lint| lint.set_span(subexpr.span),
+                )
             }
         };
 
@@ -364,11 +358,11 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
             hir::PatKind::Binding(hir::BindingAnnotation::MUT, ..) => {
                 let ty = cx.typeck_results().pat_ty(pat);
                 if is_unrooted_ty(self.symbols, cx, ty, self.in_new_function) {
-                    cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.build(&format!("Expression of type {:?} must be rooted", ty))
-                            .set_span(pat.span)
-                            .emit()
-                    })
+                    cx.lint(
+                        UNROOTED_MUST_ROOT,
+                        format!("Expression of type {:?} must be rooted", ty),
+                        |lint| lint.set_span(pat.span),
+                    )
                 }
             },
             _ => {},
