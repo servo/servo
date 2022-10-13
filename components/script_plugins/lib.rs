@@ -43,7 +43,7 @@ fn registrar(reg: &mut Registry) {
     let symbols = Symbols::new();
     reg.lint_store.register_lints(&[&UNROOTED_MUST_ROOT]);
     reg.lint_store
-        .register_late_pass(move || Box::new(UnrootedPass::new(symbols.clone())));
+        .register_late_pass(move |_| Box::new(UnrootedPass::new(symbols.clone())));
 }
 
 declare_lint!(
