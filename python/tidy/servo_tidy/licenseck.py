@@ -36,6 +36,7 @@ COPYRIGHT = [
 licenses_toml = [
     'license = "MPL-2.0"',
     'license = "MIT/Apache-2.0"',
+    'license = "MIT OR Apache-2.0"',
 ]
 
 # The valid dependency licenses, in the form we'd expect to see them in a Cargo.toml file.
