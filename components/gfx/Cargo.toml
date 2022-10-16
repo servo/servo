@@ -32,7 +32,7 @@ serde = "1.0"
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms" }
 servo_url = { path = "../url" }
-smallvec = { version = "0.6", features = ["std", "union"] }
+smallvec = { version = "1.9", features = ["union"] }
 style = { path = "../style", features = ["servo"] }
 time = "0.1.41"
 ucd = "0.1.1"
