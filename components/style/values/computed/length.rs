@@ -58,6 +58,13 @@ impl specified::NoCalcLength {
                     .add_flags(ComputedValueFlags::USES_VIEWPORT_UNITS);
                 length.to_computed_value(context)
             },
+            specified::NoCalcLength::ContainerRelative(length) => {
+                // Fallback uses small viewport size.
+                context
+                    .builder
+                    .add_flags(ComputedValueFlags::USES_VIEWPORT_UNITS);
+                length.to_computed_value(context)
+            },
             specified::NoCalcLength::ServoCharacterWidth(length) => {
                 length.to_computed_value(context.style().get_font().clone_font_size().size())
             },
