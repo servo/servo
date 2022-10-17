@@ -246,6 +246,43 @@ impl<'a> Context<'a> {
         f(&context)
     }
 
+    /// Creates a context suitable for more general cases.
+    pub fn new(
+        builder: StyleBuilder<'a>,
+        quirks_mode: QuirksMode,
+        rule_cache_conditions: &'a mut RuleCacheConditions,
+    ) -> Self {
+        Self {
+            builder,
+            cached_system_font: None,
+            in_media_query: false,
+            quirks_mode,
+            container_info: None,
+            for_smil_animation: false,
+            for_non_inherited_property: None,
+            rule_cache_conditions: RefCell::new(rule_cache_conditions),
+        }
+    }
+
+    /// Creates a context suitable for computing animations.
+    pub fn new_for_animation(
+        builder: StyleBuilder<'a>,
+        for_smil_animation: bool,
+        quirks_mode: QuirksMode,
+        rule_cache_conditions: &'a mut RuleCacheConditions,
+    ) -> Self {
+        Self {
+            builder,
+            cached_system_font: None,
+            in_media_query: false,
+            quirks_mode,
+            container_info: None,
+            for_smil_animation,
+            for_non_inherited_property: None,
+            rule_cache_conditions: RefCell::new(rule_cache_conditions),
+        }
+    }
+
     /// The current device.
     pub fn device(&self) -> &Device {
         self.builder.device

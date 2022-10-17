@@ -28,7 +28,6 @@ use cssparser::{parse_important, AtRuleParser, DeclarationListParser, Declaratio
 use euclid::Size2D;
 use selectors::parser::SelectorParseErrorKind;
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::fmt::{self, Write};
 use std::iter::Enumerate;
 use std::str::Chars;
@@ -665,18 +664,13 @@ impl MaybeNew for ViewportConstraints {
         let initial_viewport = device.au_viewport_size();
 
         let mut conditions = RuleCacheConditions::default();
-        let context = Context {
+        let context = Context::new(
             // Note: DEVICE-ADAPT § 5. states that relative length values are
             // resolved against initial values
-            builder: StyleBuilder::for_inheritance(device, None, None),
-            cached_system_font: None,
-            in_media_query: false,
+            StyleBuilder::for_inheritance(device, None, None),
             quirks_mode,
-            container_info: None,
-            for_smil_animation: false,
-            for_non_inherited_property: None,
-            rule_cache_conditions: RefCell::new(&mut conditions),
-        };
+            &mut conditions,
+        );
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'
         let extend_width;
