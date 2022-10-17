@@ -22,7 +22,9 @@ use crate::media_queries::Device;
 use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
-use crate::stylesheets::container_rule::ContainerInfo;
+use crate::stylesheets::container_rule::{
+    ContainerInfo, ContainerSizeQuery, ContainerSizeQueryResult,
+};
 use crate::values::specified::length::FontBaseSize;
 use crate::{ArcSlice, Atom, One};
 use euclid::{default, Point2D, Rect, Size2D};
@@ -189,9 +191,18 @@ pub struct Context<'a> {
     ///
     /// FIXME(emilio): Drop the refcell.
     pub rule_cache_conditions: RefCell<&'a mut RuleCacheConditions>,
+
+    /// Container size query for this context.
+    container_size_query: RefCell<ContainerSizeQuery<'a>>,
 }
 
 impl<'a> Context<'a> {
+    /// Lazily evaluate the container size query, returning the result.
+    pub fn get_container_size_query(&self) -> ContainerSizeQueryResult {
+        let mut resolved = self.container_size_query.borrow_mut();
+        resolved.get().clone()
+    }
+
     /// Creates a suitable context for media query evaluation, in which
     /// font-relative units compute against the system_font, and executes `f`
     /// with it.
@@ -209,6 +220,7 @@ impl<'a> Context<'a> {
             container_info: None,
             for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(&mut conditions),
+            container_size_query: RefCell::new(ContainerSizeQuery::none()),
         };
         f(&context)
     }
@@ -218,6 +230,7 @@ impl<'a> Context<'a> {
     pub fn for_container_query_evaluation<F, R>(
         device: &Device,
         container_info_and_style: Option<(ContainerInfo, Arc<ComputedValues>)>,
+        container_size_query: ContainerSizeQuery,
         f: F,
     ) -> R
     where
@@ -241,6 +254,7 @@ impl<'a> Context<'a> {
             container_info,
             for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(&mut conditions),
+            container_size_query: RefCell::new(container_size_query),
         };
 
         f(&context)
@@ -251,6 +265,7 @@ impl<'a> Context<'a> {
         builder: StyleBuilder<'a>,
         quirks_mode: QuirksMode,
         rule_cache_conditions: &'a mut RuleCacheConditions,
+        container_size_query: ContainerSizeQuery<'a>,
     ) -> Self {
         Self {
             builder,
@@ -261,6 +276,7 @@ impl<'a> Context<'a> {
             for_smil_animation: false,
             for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(rule_cache_conditions),
+            container_size_query: RefCell::new(container_size_query),
         }
     }
 
@@ -270,6 +286,7 @@ impl<'a> Context<'a> {
         for_smil_animation: bool,
         quirks_mode: QuirksMode,
         rule_cache_conditions: &'a mut RuleCacheConditions,
+        container_size_query: ContainerSizeQuery<'a>,
     ) -> Self {
         Self {
             builder,
@@ -280,6 +297,7 @@ impl<'a> Context<'a> {
             for_smil_animation,
             for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(rule_cache_conditions),
+            container_size_query: RefCell::new(container_size_query),
         }
     }
 

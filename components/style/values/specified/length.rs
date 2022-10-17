@@ -716,16 +716,28 @@ impl ContainerRelativeLength {
 
     /// Computes the given container-relative length.
     pub fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
-        // TODO(dshin): For now, use the small viewport size.
-        let small_viewport_size = match *self {
-            ContainerRelativeLength::Cqw(v) => ViewportPercentageLength::Svw(v),
-            ContainerRelativeLength::Cqh(v) => ViewportPercentageLength::Svh(v),
-            ContainerRelativeLength::Cqi(v) => ViewportPercentageLength::Svi(v),
-            ContainerRelativeLength::Cqb(v) => ViewportPercentageLength::Svb(v),
-            ContainerRelativeLength::Cqmin(v) => ViewportPercentageLength::Svmin(v),
-            ContainerRelativeLength::Cqmax(v) => ViewportPercentageLength::Svmax(v),
+        let size = context.get_container_size_query();
+        let (factor, container_length) = match *self {
+            ContainerRelativeLength::Cqw(v) => (v, size.get_container_width(context)),
+            ContainerRelativeLength::Cqh(v) => (v, size.get_container_height(context)),
+            ContainerRelativeLength::Cqi(v) => (v, size.get_container_inline_size(context)),
+            ContainerRelativeLength::Cqb(v) => (v, size.get_container_block_size(context)),
+            ContainerRelativeLength::Cqmin(v) => (
+                v,
+                cmp::min(
+                    size.get_container_inline_size(context),
+                    size.get_container_block_size(context),
+                ),
+            ),
+            ContainerRelativeLength::Cqmax(v) => (
+                v,
+                cmp::max(
+                    size.get_container_inline_size(context),
+                    size.get_container_block_size(context),
+                ),
+            ),
         };
-        small_viewport_size.to_computed_value(context)
+        CSSPixelLength::new(((container_length.to_f64_px()) * factor as f64 / 100.0) as f32)
     }
 }
 
