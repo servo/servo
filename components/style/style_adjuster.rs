@@ -250,7 +250,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Compute a few common flags for both text and element's style.
     fn set_bits(&mut self) {
-        let display = self.style.get_box().clone_display();
+        let box_style = self.style.get_box();
+        let display = box_style.clone_display();
 
         if !display.is_contents() {
             if !self
@@ -280,14 +281,20 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         #[cfg(feature = "gecko")]
-        if self
-            .style
-            .get_box()
+        if box_style
             .clone_contain()
             .contains(SpecifiedValue::STYLE)
         {
             self.style
                 .add_flags(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE);
+        }
+
+        if box_style
+            .clone_container_type()
+            .is_size_container_type()
+        {
+            self.style
+                .add_flags(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE);
         }
 
         if self.style.get_parent_column().is_multicol() {
