@@ -26,7 +26,6 @@ use fxhash::FxHashMap;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::cell::RefCell;
 #[cfg(feature = "gecko")]
 use std::mem;
 
@@ -277,11 +276,11 @@ where
 
     let is_root_element = pseudo.is_none() && element.map_or(false, |e| e.is_root());
 
-    let mut context = computed::Context {
+    let mut context = computed::Context::new(
         // We'd really like to own the rules here to avoid refcount traffic, but
         // animation's usage of `apply_declarations` make this tricky. See bug
         // 1375525.
-        builder: StyleBuilder::new(
+        StyleBuilder::new(
             device,
             parent_style,
             parent_style_ignoring_first_line,
@@ -290,14 +289,9 @@ where
             custom_properties,
             is_root_element,
         ),
-        cached_system_font: None,
-        in_media_query: false,
-        for_smil_animation: false,
-        for_non_inherited_property: None,
-        container_info: None,
         quirks_mode,
-        rule_cache_conditions: RefCell::new(rule_cache_conditions),
-    };
+        rule_cache_conditions,
+    );
 
     let using_cached_reset_properties;
     let mut cascade = Cascade::new(&mut context, cascade_mode, &referenced_properties);
