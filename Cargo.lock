@@ -1221,7 +1221,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
- "smallvec 1.9.0",
+ "smallvec",
  "syn",
 ]
 
@@ -1698,7 +1698,7 @@ dependencies = [
  "half",
  "lebe",
  "miniz_oxide 0.5.4",
- "smallvec 1.9.0",
+ "smallvec",
  "threadpool",
 ]
 
@@ -1713,7 +1713,7 @@ name = "fallible"
 version = "0.0.1"
 dependencies = [
  "hashglobe",
- "smallvec 1.9.0",
+ "smallvec",
 ]
 
 [[package]]
@@ -2080,7 +2080,7 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_url",
- "smallvec 1.9.0",
+ "smallvec",
  "style",
  "time",
  "truetype",
@@ -2119,7 +2119,7 @@ dependencies = [
  "parking_lot 0.11.0",
  "range-alloc",
  "raw-window-handle",
- "smallvec 1.9.0",
+ "smallvec",
  "spirv_cross",
  "thunderdome",
  "winapi",
@@ -2141,7 +2141,7 @@ dependencies = [
  "log",
  "range-alloc",
  "raw-window-handle",
- "smallvec 1.9.0",
+ "smallvec",
  "spirv_cross",
  "winapi",
 ]
@@ -2178,7 +2178,7 @@ dependencies = [
  "parking_lot 0.11.0",
  "range-alloc",
  "raw-window-handle",
- "smallvec 1.9.0",
+ "smallvec",
  "spirv_cross",
  "storage-map",
 ]
@@ -2199,7 +2199,7 @@ dependencies = [
  "log",
  "objc",
  "raw-window-handle",
- "smallvec 1.9.0",
+ "smallvec",
  "winapi",
 ]
 
@@ -3225,7 +3225,7 @@ dependencies = [
  "servo_geometry",
  "servo_url",
  "size_of_test",
- "smallvec 1.9.0",
+ "smallvec",
  "style",
  "style_traits",
  "unicode-bidi",
@@ -3473,7 +3473,7 @@ dependencies = [
  "log",
  "servo-egl",
  "simpleservo",
- "smallvec 1.9.0",
+ "smallvec",
  "webxr",
  "webxr-api",
 ]
@@ -3655,7 +3655,7 @@ dependencies = [
  "serde_bytes",
  "servo_arc",
  "smallbitvec",
- "smallvec 1.9.0",
+ "smallvec",
  "string_cache",
  "thin-slice",
  "time",
@@ -4584,7 +4584,7 @@ dependencies = [
  "cloudabi 0.0.3",
  "libc",
  "redox_syscall 0.1.56",
- "smallvec 1.9.0",
+ "smallvec",
  "winapi",
 ]
 
@@ -4599,7 +4599,7 @@ dependencies = [
  "instant",
  "libc",
  "redox_syscall 0.1.56",
- "smallvec 1.9.0",
+ "smallvec",
  "winapi",
 ]
 
@@ -4612,7 +4612,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "redox_syscall 0.2.13",
- "smallvec 1.9.0",
+ "smallvec",
  "windows-sys",
 ]
 
@@ -5433,7 +5433,7 @@ dependencies = [
  "servo_geometry",
  "servo_rand",
  "servo_url",
- "smallvec 1.9.0",
+ "smallvec",
  "sparkle",
  "style",
  "style_traits",
@@ -5536,7 +5536,7 @@ dependencies = [
  "serde",
  "servo_atoms",
  "servo_url",
- "smallvec 1.9.0",
+ "smallvec",
  "style_traits",
  "time",
  "uuid",
@@ -5582,7 +5582,7 @@ dependencies = [
  "phf_codegen 0.8.0",
  "precomputed-hash",
  "servo_arc",
- "smallvec 1.9.0",
+ "smallvec",
  "to_shmem",
  "to_shmem_derive",
 ]
@@ -5720,7 +5720,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
@@ -5732,7 +5732,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5747,14 +5747,14 @@ dependencies = [
  "servo-media-streams",
  "servo-media-traits",
  "servo_media_derive",
- "smallvec 0.6.13",
+ "smallvec",
  "speexdsp-resampler",
 ]
 
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "boxfnonce",
  "ipc-channel",
@@ -5769,7 +5769,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5805,7 +5805,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -5815,7 +5815,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5828,7 +5828,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5841,7 +5841,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -5853,7 +5853,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -5862,12 +5862,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "boxfnonce",
  "lazy_static",
@@ -5945,7 +5945,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6135,15 +6135,6 @@ name = "smallbitvec"
 version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75ce4f9dc4a41b4c3476cc925f1efb11b66df373a8fde5d4b8915fa91b5d995e"
-
-[[package]]
-name = "smallvec"
-version = "0.6.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7b0758c52e15a8b5e3691eae6cc559f08eee9406e548a4477ba4e67770a82b6"
-dependencies = [
- "maybe-uninit",
-]
 
 [[package]]
 name = "smallvec"
@@ -6341,7 +6332,7 @@ dependencies = [
  "servo_config",
  "servo_url",
  "smallbitvec",
- "smallvec 1.9.0",
+ "smallvec",
  "string_cache",
  "style_derive",
  "style_traits",
@@ -6673,7 +6664,7 @@ dependencies = [
  "cssparser",
  "servo_arc",
  "smallbitvec",
- "smallvec 1.9.0",
+ "smallvec",
  "string_cache",
  "thin-slice",
 ]
@@ -7208,7 +7199,7 @@ checksum = "a21817947c7011bbd0a27e11b17b337bfd022e8544b071a2641232047966fbda"
 dependencies = [
  "nix 0.20.0",
  "once_cell",
- "smallvec 1.9.0",
+ "smallvec",
  "wayland-sys 0.28.6",
 ]
 
@@ -7330,7 +7321,7 @@ dependencies = [
  "msg",
  "serde",
  "servo_config",
- "smallvec 1.9.0",
+ "smallvec",
  "webrender_api",
  "webrender_traits",
  "wgpu-core",
@@ -7371,7 +7362,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sig",
- "smallvec 1.9.0",
+ "smallvec",
  "svg_fmt",
  "time",
  "tracy-rs",
@@ -7491,7 +7482,7 @@ dependencies = [
  "parking_lot 0.11.0",
  "ron 0.6.0",
  "serde",
- "smallvec 1.9.0",
+ "smallvec",
  "thiserror",
  "tracing",
  "wgpu-types",
