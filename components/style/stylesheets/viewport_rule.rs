@@ -16,6 +16,7 @@ use crate::rule_cache::RuleCacheConditions;
 use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::cascading_at_rule::DescriptorDeclaration;
+use crate::stylesheets::container_rule::ContainerSizeQuery;
 use crate::stylesheets::{Origin, StylesheetInDocument};
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::length::LengthPercentageOrAuto;
@@ -670,6 +671,7 @@ impl MaybeNew for ViewportConstraints {
             StyleBuilder::for_inheritance(device, None, None),
             quirks_mode,
             &mut conditions,
+            ContainerSizeQuery::none(),
         );
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

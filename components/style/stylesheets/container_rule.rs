@@ -6,6 +6,7 @@
 //!
 //! [container]: https://drafts.csswg.org/css-contain-3/#container-rule
 
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
 use crate::logical_geometry::{LogicalSize, WritingMode};
 use crate::media_queries::Device;
@@ -19,7 +20,7 @@ use crate::shared_lock::{
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
-use crate::values::computed::{CSSPixelLength, Context, Ratio};
+use crate::values::computed::{ContainerType, CSSPixelLength, Context, Ratio};
 use crate::values::specified::ContainerName;
 use app_units::Au;
 use cssparser::{Parser, SourceLocation};
@@ -112,6 +113,44 @@ pub struct ContainerLookupResult<E> {
     pub style: Arc<ComputedValues>,
 }
 
+fn container_type_axes(ty_: ContainerType, wm: WritingMode) -> FeatureFlags {
+    if ty_.contains(ContainerType::SIZE) {
+        return FeatureFlags::all_container_axes();
+    }
+    if ty_.contains(ContainerType::INLINE_SIZE) {
+        let physical_axis = if wm.is_vertical() {
+            FeatureFlags::CONTAINER_REQUIRES_HEIGHT_AXIS
+        } else {
+            FeatureFlags::CONTAINER_REQUIRES_WIDTH_AXIS
+        };
+        return FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS | physical_axis;
+    }
+    FeatureFlags::empty()
+}
+
+enum TraversalResult<T> {
+    InProgress,
+    StopTraversal,
+    Done(T),
+}
+
+fn traverse_container<E, F, R>(mut e: E, evaluator: F) -> Option<(E, R)>
+where
+    E: TElement,
+    F: Fn(E) -> TraversalResult<R>
+{
+    while let Some(element) = e.traversal_parent() {
+        match evaluator(element) {
+            TraversalResult::InProgress => {},
+            TraversalResult::StopTraversal => break,
+            TraversalResult::Done(result) => return Some((element, result)),
+        }
+        e = element;
+    }
+
+    None
+}
+
 impl ContainerCondition {
     /// Parse a container condition.
     pub fn parse<'a>(
@@ -135,30 +174,16 @@ impl ContainerCondition {
         })
     }
 
-    fn valid_container_info<E>(&self, potential_container: E) -> Option<ContainerLookupResult<E>>
+    fn valid_container_info<E>(
+        &self,
+        potential_container: E
+    ) -> TraversalResult<ContainerLookupResult<E>>
     where
         E: TElement,
     {
-        use crate::values::computed::ContainerType;
-
-        fn container_type_axes(ty_: ContainerType, wm: WritingMode) -> FeatureFlags {
-            if ty_.contains(ContainerType::SIZE) {
-                return FeatureFlags::all_container_axes();
-            }
-            if ty_.contains(ContainerType::INLINE_SIZE) {
-                let physical_axis = if wm.is_vertical() {
-                    FeatureFlags::CONTAINER_REQUIRES_HEIGHT_AXIS
-                } else {
-                    FeatureFlags::CONTAINER_REQUIRES_WIDTH_AXIS
-                };
-                return FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS | physical_axis;
-            }
-            FeatureFlags::empty()
-        }
-
         let data = match potential_container.borrow_data() {
             Some(data) => data,
-            None => return None,
+            None => return TraversalResult::InProgress,
         };
         let style = data.styles.primary();
         let wm = style.writing_mode;
@@ -168,20 +193,20 @@ impl ContainerCondition {
         let container_type = box_style.clone_container_type();
         let available_axes = container_type_axes(container_type, wm);
         if !available_axes.contains(self.flags.container_axes()) {
-            return None;
+            return TraversalResult::InProgress;
         }
 
         // Filter by container-name.
         let container_name = box_style.clone_container_name();
         for filter_name in self.name.0.iter() {
             if !container_name.0.contains(filter_name) {
-                return None;
+                return TraversalResult::InProgress;
             }
         }
 
         let size = potential_container.primary_box_size();
         let style = style.clone();
-        Some(ContainerLookupResult {
+        TraversalResult::Done(ContainerLookupResult {
             element: potential_container,
             info: ContainerInfo { size, wm },
             style,
@@ -189,18 +214,14 @@ impl ContainerCondition {
     }
 
     /// Performs container lookup for a given element.
-    pub fn find_container<E>(&self, mut e: E) -> Option<ContainerLookupResult<E>>
+    pub fn find_container<E>(&self, e: E) -> Option<ContainerLookupResult<E>>
     where
         E: TElement,
     {
-        while let Some(element) = e.traversal_parent() {
-            if let Some(result) = self.valid_container_info(element) {
-                return Some(result);
-            }
-            e = element;
+        match traverse_container(e, |element| self.valid_container_info(element)) {
+            Some((_, result)) => Some(result),
+            None => None,
         }
-
-        None
     }
 
     /// Tries to match a container query condition for a given element.
@@ -209,10 +230,18 @@ impl ContainerCondition {
         E: TElement,
     {
         let result = self.find_container(element);
-        let info = result.map(|r| (r.info, r.style));
-        Context::for_container_query_evaluation(device, info, |context| {
-            self.condition.matches(context)
-        })
+        let (container, info) = match result {
+            Some(r) => (Some(r.element), Some((r.info, r.style))),
+            None => (None, None),
+        };
+        // Set up the lookup for the container in question, as the condition may be using container query lengths.
+        let size_query_container_lookup = ContainerSizeQuery::for_option_element(container);
+        Context::for_container_query_evaluation(
+            device,
+            info,
+            size_query_container_lookup,
+            |context| self.condition.matches(context),
+        )
     }
 }
 
@@ -320,3 +349,220 @@ pub static CONTAINER_FEATURES: [QueryFeatureDescription; 6] = [
         ),
     ),
 ];
+
+/// Result of a container size query, signifying the hypothetical containment boundary in terms of physical axes.
+/// Defined by up to two size containers. Queries on logical axes are resolved with respect to the querying
+/// element's writing mode.
+#[derive(Copy, Clone, Default)]
+pub struct ContainerSizeQueryResult {
+    width: Option<Au>,
+    height: Option<Au>,
+}
+
+impl ContainerSizeQueryResult {
+    fn get_viewport_size(context: &Context) -> Size2D<Au> {
+        use crate::values::specified::ViewportVariant;
+        context
+            .device()
+            .au_viewport_size_for_viewport_unit_resolution(ViewportVariant::Small)
+    }
+
+    fn get_logical_viewport_size(context: &Context) -> LogicalSize<Au> {
+        LogicalSize::from_physical(
+            context.builder.writing_mode,
+            Self::get_viewport_size(context),
+        )
+    }
+
+    /// Get the inline-size of the query container.
+    pub fn get_container_inline_size(&self, context: &Context) -> Au {
+        if context.builder.writing_mode.is_horizontal() {
+            if let Some(w) = self.width {
+                return w;
+            }
+        } else {
+            if let Some(h) = self.height {
+                return h;
+            }
+        }
+        Self::get_logical_viewport_size(context).inline
+    }
+
+    /// Get the block-size of the query container.
+    pub fn get_container_block_size(&self, context: &Context) -> Au {
+        if context.builder.writing_mode.is_horizontal() {
+            self.get_container_height(context)
+        } else {
+            self.get_container_width(context)
+        }
+    }
+
+    /// Get the width of the query container.
+    pub fn get_container_width(&self, context: &Context) -> Au {
+        if let Some(w) = self.width {
+            return w;
+        }
+        Self::get_viewport_size(context).width
+    }
+
+    /// Get the height of the query container.
+    pub fn get_container_height(&self, context: &Context) -> Au {
+        if let Some(h) = self.height {
+            return h;
+        }
+        Self::get_viewport_size(context).height
+    }
+
+    // Merge the result of a subsequent lookup, preferring the initial result.
+    fn merge(self, new_result: Self) -> Self {
+        let mut result = self;
+        if let Some(width) = new_result.width {
+            result.width.get_or_insert(width);
+        }
+        if let Some(height) = new_result.height {
+            result.height.get_or_insert(height);
+        }
+        result
+    }
+
+    fn is_complete(&self) -> bool {
+        self.width.is_some() && self.height.is_some()
+    }
+}
+
+/// Unevaluated lazy container size query.
+pub enum ContainerSizeQuery<'a> {
+    /// Query prior to evaluation.
+    NotEvaluated(Box<dyn Fn() -> ContainerSizeQueryResult + 'a>),
+    /// Cached evaluated result.
+    Evaluated(ContainerSizeQueryResult),
+}
+
+impl<'a> ContainerSizeQuery<'a> {
+    fn evaluate_potential_size_container<E>(
+        e: E
+    ) -> TraversalResult<ContainerSizeQueryResult>
+    where
+        E: TElement
+    {
+        let data = match e.borrow_data() {
+            Some(data) => data,
+            None => return TraversalResult::InProgress,
+        };
+
+        let style = data.styles.primary();
+        if !style
+            .flags
+            .contains(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE)
+        {
+            // We know we won't find a size container.
+            return TraversalResult::StopTraversal;
+        }
+
+        let wm = style.writing_mode;
+        let box_style = style.get_box();
+
+        let container_type = box_style.clone_container_type();
+        let size = e.primary_box_size();
+        match container_type {
+            ContainerType::SIZE => {
+                TraversalResult::Done(
+                    ContainerSizeQueryResult {
+                        width: Some(size.width),
+                        height: Some(size.height)
+                    }
+                )
+            },
+            ContainerType::INLINE_SIZE => {
+                if wm.is_horizontal() {
+                    TraversalResult::Done(
+                        ContainerSizeQueryResult {
+                            width: Some(size.width),
+                            height: None,
+                        }
+                    )
+                } else {
+                    TraversalResult::Done(
+                        ContainerSizeQueryResult {
+                            width: None,
+                            height: Some(size.height),
+                        }
+                    )
+                }
+            },
+            _ => TraversalResult::InProgress,
+        }
+    }
+
+    /// Find the query container size for a given element. Meant to be used as a callback for new().
+    fn lookup<E>(element: E) -> ContainerSizeQueryResult
+    where
+        E: TElement + 'a,
+    {
+        match traverse_container(element, |e| { Self::evaluate_potential_size_container(e) }) {
+            Some((container, result)) => if result.is_complete() {
+                    result
+                } else {
+                    // Traverse up from the found size container to see if we can get a complete containment.
+                    result.merge(Self::lookup(container))
+            },
+            None => ContainerSizeQueryResult::default(),
+        }
+    }
+
+    /// Create a new instance of the container size query for given element, with a deferred lookup callback.
+    pub fn for_element<E>(element: E) -> Self
+    where
+        E: TElement + 'a,
+    {
+        // No need to bother if we're the top element.
+        if let Some(parent) = element.traversal_parent() {
+            let should_traverse = match parent.borrow_data() {
+                Some(data) => {
+                    let style = data.styles.primary();
+                    style
+                        .flags
+                        .contains(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE)
+                }
+                None => true, // `display: none`, still want to show a correct computed value, so give it a try.
+            };
+            if should_traverse {
+                return Self::NotEvaluated(Box::new(move || {
+                    Self::lookup(element)
+                }));
+            }
+        }
+        Self::none()
+    }
+
+    /// Create a new instance, but with optional element.
+    pub fn for_option_element<E>(element: Option<E>) -> Self
+    where
+        E: TElement + 'a,
+    {
+        if let Some(e) = element {
+            Self::for_element(e)
+        } else {
+            Self::none()
+        }
+    }
+
+    /// Create a query that evaluates to empty, for cases where container size query is not required.
+    pub fn none() -> Self {
+        ContainerSizeQuery::Evaluated(ContainerSizeQueryResult::default())
+    }
+
+    /// Get the result of the container size query, doing the lookup if called for the first time.
+    pub fn get(&mut self) -> ContainerSizeQueryResult {
+        match self {
+            Self::NotEvaluated(lookup) => {
+                *self = Self::Evaluated((lookup)());
+                match self {
+                    Self::Evaluated(info) => *info,
+                    _ => unreachable!("Just evaluated but not set?"),
+                }
+            },
+            Self::Evaluated(info) => *info,
+        }
+    }
+}
