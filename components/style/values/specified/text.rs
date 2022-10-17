@@ -774,7 +774,7 @@ impl Parse for TextEmphasisStyle {
 bitflags! {
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem, Parse, ToCss)]
     #[repr(C)]
-    #[css(bitflags(mixed="over,under,left,right", validate_mixed="Self::is_valid"))]
+    #[css(bitflags(mixed="over,under,left,right", validate_mixed="Self::validate_and_simplify"))]
     /// Values for text-emphasis-position:
     /// <https://drafts.csswg.org/css-text-decor/#text-emphasis-position-property>
     pub struct TextEmphasisPosition: u8 {
@@ -786,17 +786,21 @@ bitflags! {
         const LEFT = 1 << 2;
         /// Draws marks to the right of the text in vertical writing mode.
         const RIGHT = 1 << 3;
-        /// Returns the initial value of `text-emphasis-position`
-        const DEFAULT = Self::OVER.bits | Self::RIGHT.bits;
-        /// Non-standard behavior: Intelligent default for zh locale
-        const DEFAULT_ZH = Self::UNDER.bits | Self::RIGHT.bits;
     }
 }
 
 impl TextEmphasisPosition {
-    fn is_valid(self) -> bool {
-        return self.intersects(Self::LEFT) != self.intersects(Self::RIGHT) &&
-            self.intersects(Self::OVER) != self.intersects(Self::UNDER);
+    fn validate_and_simplify(&mut self) -> bool {
+        if self.intersects(Self::OVER) == self.intersects(Self::UNDER) {
+            return false;
+        }
+
+        if self.intersects(Self::LEFT) {
+            return !self.intersects(Self::RIGHT);
+        }
+
+        self.remove(Self::RIGHT); // Right is the default
+        true
     }
 }
 
