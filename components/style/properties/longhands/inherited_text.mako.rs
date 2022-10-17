@@ -221,9 +221,9 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "text-emphasis-position",
     "TextEmphasisPosition",
-    "computed::TextEmphasisPosition::DEFAULT",
+    "computed::TextEmphasisPosition::OVER",
     engines="gecko",
-    initial_specified_value="specified::TextEmphasisPosition::DEFAULT",
+    initial_specified_value="specified::TextEmphasisPosition::OVER",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position",
 )}

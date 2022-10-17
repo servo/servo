@@ -47,7 +47,7 @@ fn parse_bitflags(bitflags: &CssBitflagAttrs) -> TokenStream {
     let mut validate_condition = quote! { !result.is_empty() };
     if let Some(ref function) = bitflags.validate_mixed {
         validate_condition.append_all(quote! {
-            && #function(result)
+            && #function(&mut result)
         });
     }
 

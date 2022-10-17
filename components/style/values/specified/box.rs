@@ -2242,7 +2242,7 @@ bitflags! {
 
 impl ScrollbarGutter {
     #[inline]
-    fn has_stable(self) -> bool {
+    fn has_stable(&self) -> bool {
         self.intersects(Self::STABLE)
     }
 }
