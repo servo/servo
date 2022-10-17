@@ -1509,6 +1509,13 @@ bitflags! {
     }
 }
 
+impl ContainerType {
+    /// Is this type containing size in any way?
+    pub fn is_size_container_type(&self) -> bool {
+        self.intersects(ContainerType::SIZE | ContainerType::INLINE_SIZE)
+    }
+}
+
 /// https://drafts.csswg.org/css-contain-3/#container-name
 #[repr(transparent)]
 #[derive(

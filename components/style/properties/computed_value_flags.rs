@@ -101,6 +101,10 @@ bitflags! {
 
         /// Whether the style depends on viewport units.
         const USES_VIEWPORT_UNITS = 1 << 20;
+
+        /// A flag used to mark styles which have `container-type` of `size` or
+        /// `inline-size`, or under one.
+        const SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE = 1 << 21;
     }
 }
 
@@ -113,7 +117,8 @@ impl ComputedValueFlags {
             Self::IS_IN_PSEUDO_ELEMENT_SUBTREE |
             Self::HAS_TEXT_DECORATION_LINES |
             Self::IS_IN_OPACITY_ZERO_SUBTREE |
-            Self::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE
+            Self::SELF_OR_ANCESTOR_HAS_CONTAIN_STYLE |
+            Self::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE
     }
 
     /// Flags that may be propagated to descendants.
