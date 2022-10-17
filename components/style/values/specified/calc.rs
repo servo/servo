@@ -9,8 +9,8 @@
 use crate::parser::ParserContext;
 use crate::values::generics::calc as generic;
 use crate::values::generics::calc::{MinMaxOp, SortKey};
-use crate::values::specified::length::ViewportPercentageLength;
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
+use crate::values::specified::length::{ContainerRelativeLength, ViewportPercentageLength};
 use crate::values::specified::{self, Angle, Time};
 use crate::values::{CSSFloat, CSSInteger};
 use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
@@ -257,6 +257,14 @@ impl generic::CalcNodeLeaf for Leaf {
                     ViewportPercentageLength::Svi(..) => SortKey::Svi,
                     ViewportPercentageLength::Lvi(..) => SortKey::Lvi,
                     ViewportPercentageLength::Dvi(..) => SortKey::Dvi,
+                },
+                NoCalcLength::ContainerRelative(ref cq) => match *cq {
+                    ContainerRelativeLength::Cqw(..) => SortKey::Cqw,
+                    ContainerRelativeLength::Cqh(..) => SortKey::Cqh,
+                    ContainerRelativeLength::Cqi(..) => SortKey::Cqi,
+                    ContainerRelativeLength::Cqb(..) => SortKey::Cqb,
+                    ContainerRelativeLength::Cqmin(..) => SortKey::Cqmin,
+                    ContainerRelativeLength::Cqmax(..) => SortKey::Cqmax,
                 },
                 NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
             },
