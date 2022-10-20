@@ -166,8 +166,11 @@ pub struct Context<'a> {
     #[cfg(feature = "servo")]
     pub cached_system_font: Option<()>,
 
-    /// Whether or not we are computing the media list in a media query
+    /// Whether or not we are computing the media list in a media query.
     pub in_media_query: bool,
+
+    /// Whether or not we are computing the container query condition.
+    pub in_container_query: bool,
 
     /// The quirks mode of this context.
     pub quirks_mode: QuirksMode,
@@ -215,6 +218,7 @@ impl<'a> Context<'a> {
             builder: StyleBuilder::for_inheritance(device, None, None),
             cached_system_font: None,
             in_media_query: true,
+            in_container_query: true,
             quirks_mode,
             for_smil_animation: false,
             container_info: None,
@@ -248,7 +252,8 @@ impl<'a> Context<'a> {
         let context = Context {
             builder: StyleBuilder::for_inheritance(device, style, None),
             cached_system_font: None,
-            in_media_query: true,
+            in_media_query: false,
+            in_container_query: true,
             quirks_mode,
             for_smil_animation: false,
             container_info,
@@ -271,6 +276,7 @@ impl<'a> Context<'a> {
             builder,
             cached_system_font: None,
             in_media_query: false,
+            in_container_query: false,
             quirks_mode,
             container_info: None,
             for_smil_animation: false,
@@ -292,6 +298,7 @@ impl<'a> Context<'a> {
             builder,
             cached_system_font: None,
             in_media_query: false,
+            in_container_query: false,
             quirks_mode,
             container_info: None,
             for_smil_animation,
@@ -344,7 +351,7 @@ impl<'a> Context<'a> {
             vertical,
             font,
             size,
-            self.in_media_query,
+            self.in_media_or_container_query(),
             retrieve_math_scales,
         )
     }
@@ -357,6 +364,11 @@ impl<'a> Context<'a> {
         self.builder
             .device
             .au_viewport_size_for_viewport_unit_resolution(variant)
+    }
+
+    /// Whether we're in a media or container query.
+    pub fn in_media_or_container_query(&self) -> bool {
+        self.in_media_query || self.in_container_query
     }
 
     /// The default computed style we're getting our reset style from.
