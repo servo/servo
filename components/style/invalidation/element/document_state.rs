@@ -17,6 +17,7 @@ use style_traits::dom::DocumentState;
 
 /// A struct holding the members necessary to invalidate document state
 /// selectors.
+#[derive(Debug)]
 pub struct InvalidationMatchingData {
     /// The document state that has changed, which makes it always match.
     pub document_state: DocumentState,
@@ -43,7 +44,7 @@ impl<'a, E: TElement, I> DocumentStateInvalidationProcessor<'a, E, I> {
     /// Creates a new DocumentStateInvalidationProcessor.
     #[inline]
     pub fn new(rules: I, document_states_changed: DocumentState, quirks_mode: QuirksMode) -> Self {
-        let mut matching_context = MatchingContext::new_for_visited(
+        let mut matching_context = MatchingContext::<'a, E::Impl>::new_for_visited(
             MatchingMode::Normal,
             None,
             None,
@@ -52,9 +53,7 @@ impl<'a, E: TElement, I> DocumentStateInvalidationProcessor<'a, E, I> {
             NeedsSelectorFlags::No,
         );
 
-        matching_context.extra_data = InvalidationMatchingData {
-            document_state: document_states_changed,
-        };
+        matching_context.extra_data.invalidation_data.document_state = document_states_changed;
 
         Self {
             rules,

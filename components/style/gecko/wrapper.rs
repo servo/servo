@@ -2109,7 +2109,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                     );
                     return false;
                 }
-                if context.extra_data.document_state.intersects(state_bit) {
+                if context.extra_data.invalidation_data.document_state.intersects(state_bit) {
                     return !context.in_negation();
                 }
                 self.document_state().contains(state_bit)
