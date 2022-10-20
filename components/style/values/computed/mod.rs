@@ -362,6 +362,8 @@ impl<'a> Context<'a> {
         variant: ViewportVariant,
     ) -> default::Size2D<Au> {
         self.builder
+            .add_flags(ComputedValueFlags::USES_VIEWPORT_UNITS);
+        self.builder
             .device
             .au_viewport_size_for_viewport_unit_resolution(variant)
     }

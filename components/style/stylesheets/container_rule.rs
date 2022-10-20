@@ -375,9 +375,7 @@ pub struct ContainerSizeQueryResult {
 impl ContainerSizeQueryResult {
     fn get_viewport_size(context: &Context) -> Size2D<Au> {
         use crate::values::specified::ViewportVariant;
-        context
-            .device()
-            .au_viewport_size_for_viewport_unit_resolution(ViewportVariant::Small)
+        context.viewport_size_for_viewport_unit_resolution(ViewportVariant::Small)
     }
 
     fn get_logical_viewport_size(context: &Context) -> LogicalSize<Au> {
