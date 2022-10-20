@@ -5,7 +5,6 @@
 //! `<length>` computed values, and related ones.
 
 use super::{Context, Number, ToComputedValue};
-use crate::computed_value_flags::ComputedValueFlags;
 use crate::values::animated::ToAnimatedValue;
 use crate::values::computed::NonNegativeNumber;
 use crate::values::generics::length as generics;
@@ -53,16 +52,9 @@ impl specified::NoCalcLength {
                 length.to_computed_value(context, base_size)
             },
             specified::NoCalcLength::ViewportPercentage(length) => {
-                context
-                    .builder
-                    .add_flags(ComputedValueFlags::USES_VIEWPORT_UNITS);
                 length.to_computed_value(context)
             },
             specified::NoCalcLength::ContainerRelative(length) => {
-                // Fallback uses small viewport size.
-                context
-                    .builder
-                    .add_flags(ComputedValueFlags::USES_VIEWPORT_UNITS);
                 length.to_computed_value(context)
             },
             specified::NoCalcLength::ServoCharacterWidth(length) => {
