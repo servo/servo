@@ -212,6 +212,10 @@ where
         Q::append_element(self.results, e);
     }
 
+    fn invalidated_sibling(&mut self, e: E, _of: E) {
+        Q::append_element(self.results, e);
+    }
+
     fn recursion_limit_exceeded(&mut self, _e: E) {}
     fn invalidated_descendants(&mut self, _e: E, _child: E) {}
 }

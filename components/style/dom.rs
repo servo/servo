@@ -211,6 +211,18 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
         self.parent_node().and_then(|n| n.as_element())
     }
 
+    /// Get this node's parent element, or shadow host if it's a shadow root.
+    fn parent_element_or_host(&self) -> Option<Self::ConcreteElement> {
+        let parent = self.parent_node()?;
+        if let Some(e) = parent.as_element() {
+            return Some(e);
+        }
+        if let Some(root) = parent.as_shadow_root() {
+            return Some(root.host());
+        }
+        None
+    }
+
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
 

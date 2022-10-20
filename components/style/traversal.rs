@@ -157,6 +157,8 @@ pub trait DomTraversal<E: TElement>: Sync {
     /// such, we have a pre-traversal step to handle that part and determine whether
     /// a full traversal is needed.
     fn pre_traverse(root: E, shared_context: &SharedStyleContext) -> PreTraverseToken<E> {
+        use crate::invalidation::element::state_and_attributes::propagate_dirty_bit_up_to;
+
         let traversal_flags = shared_context.traversal_flags;
 
         let mut data = root.mutate_data();
@@ -174,11 +176,11 @@ pub trait DomTraversal<E: TElement>: Sync {
                 );
 
                 if invalidation_result.has_invalidated_siblings() {
-                    let actual_root = root.traversal_parent().expect(
+                    let actual_root = root.as_node().parent_element_or_host().expect(
                         "How in the world can you invalidate \
                          siblings without a parent?",
                     );
-                    unsafe { actual_root.set_dirty_descendants() }
+                    propagate_dirty_bit_up_to(actual_root, root);
                     return PreTraverseToken(Some(actual_root));
                 }
             }

@@ -80,6 +80,10 @@ where
     /// Executes an action when `Self` is invalidated.
     fn invalidated_self(&mut self, element: E);
 
+    /// Executes an action when `sibling` is invalidated as a sibling of
+    /// `of`.
+    fn invalidated_sibling(&mut self, sibling: E, of: E);
+
     /// Executes an action when any descendant of `Self` is invalidated.
     fn invalidated_descendants(&mut self, element: E, child: E);
 }
@@ -397,7 +401,7 @@ where
             );
 
             if invalidated_sibling {
-                sibling_invalidator.processor.invalidated_self(sibling);
+                sibling_invalidator.processor.invalidated_sibling(sibling, self.element);
             }
 
             any_invalidated |= invalidated_sibling;
