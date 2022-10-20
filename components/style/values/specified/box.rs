@@ -1499,7 +1499,7 @@ bitflags! {
     /// TODO: block-size is on the spec but it seems it was removed? WPTs don't
     /// support it, see https://github.com/w3c/csswg-drafts/issues/7179.
     pub struct ContainerType: u8 {
-        /// The `none` variant.
+        /// The `normal` variant.
         const NORMAL = 0;
         /// The `inline-size` variant.
         const INLINE_SIZE = 1 << 0;
@@ -1561,12 +1561,11 @@ impl Parse for ContainerName {
             first,
             DISALLOWED_CONTAINER_NAMES,
         )?);
-        while let Ok(ident) = input.try_parse(|input| input.expect_ident_cloned()) {
-            idents.push(CustomIdent::from_ident(
-                location,
-                &ident,
-                DISALLOWED_CONTAINER_NAMES,
-            )?);
+        while let Ok(name) = input.try_parse(|input| {
+            let ident = input.expect_ident()?;
+            CustomIdent::from_ident(location, &ident, DISALLOWED_CONTAINER_NAMES)
+        }) {
+            idents.push(name);
         }
         Ok(ContainerName(idents.into()))
     }
