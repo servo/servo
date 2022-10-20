@@ -5,6 +5,7 @@
 //! Style resolution for a given element or pseudo-element.
 
 use crate::applicable_declarations::ApplicableDeclarationList;
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::{CascadeInputs, ElementCascadeInputs, StyleContext};
 use crate::data::{EagerPseudoStyles, ElementStyles};
 use crate::dom::TElement;
@@ -44,6 +45,7 @@ where
 
 struct MatchingResults {
     rule_node: StrongRuleNode,
+    flags: ComputedValueFlags,
 }
 
 /// A style returned from the resolver machinery.
@@ -133,8 +135,6 @@ fn eager_pseudo_is_definitely_not_generated(
     pseudo: &PseudoElement,
     style: &ComputedValues,
 ) -> bool {
-    use crate::computed_value_flags::ComputedValueFlags;
-
     if !pseudo.is_before_or_after() {
         return false;
     }
@@ -204,6 +204,7 @@ where
             CascadeInputs {
                 rules: Some(primary_results.rule_node),
                 visited_rules,
+                flags: primary_results.flags,
             },
             parent_style,
             layout_parent_style,
@@ -418,7 +419,7 @@ where
         originating_element_style: &PrimaryStyle,
         layout_parent_style: Option<&ComputedValues>,
     ) -> Option<ResolvedStyle> {
-        let rules = self.match_pseudo(
+        let MatchingResults { rule_node, mut flags } = self.match_pseudo(
             originating_element_style.style(),
             pseudo,
             VisitedHandlingMode::AllLinksUnvisited,
@@ -430,13 +431,17 @@ where
                 originating_element_style.style(),
                 pseudo,
                 VisitedHandlingMode::RelevantLinkVisited,
-            );
+            ).map(|results| {
+                flags |= results.flags;
+                results.rule_node
+            });
         }
 
         Some(self.cascade_style_and_visited(
             CascadeInputs {
-                rules: Some(rules),
+                rules: Some(rule_node),
                 visited_rules,
+                flags,
             },
             Some(originating_element_style.style()),
             layout_parent_style,
@@ -493,7 +498,10 @@ where
             }
         }
 
-        MatchingResults { rule_node }
+        MatchingResults {
+            rule_node,
+            flags: matching_context.extra_data.cascade_input_flags,
+        }
     }
 
     fn match_pseudo(
@@ -501,7 +509,7 @@ where
         originating_element_style: &ComputedValues,
         pseudo_element: &PseudoElement,
         visited_handling: VisitedHandlingMode,
-    ) -> Option<StrongRuleNode> {
+    ) -> Option<MatchingResults> {
         debug!(
             "Match pseudo {:?} for {:?}, visited: {:?}",
             self.element, pseudo_element, visited_handling
@@ -556,6 +564,9 @@ where
             .rule_tree()
             .compute_rule_node(&mut applicable_declarations, &self.context.shared.guards);
 
-        Some(rule_node)
+        Some(MatchingResults {
+            rule_node,
+            flags: matching_context.extra_data.cascade_input_flags,
+        })
     }
 }

@@ -259,6 +259,7 @@ impl IntermediateComputedKeyframe {
         let inputs = CascadeInputs {
             rules: new_node,
             visited_rules: base_style.visited_rules().cloned(),
+            flags: base_style.flags.for_cascade_inputs(),
         };
         resolver
             .cascade_style_and_visited_with_default_parents(inputs)

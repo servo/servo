@@ -7,6 +7,7 @@
 #[cfg(feature = "servo")]
 use crate::animation::DocumentAnimationSet;
 use crate::bloom::StyleBloom;
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::data::{EagerPseudoStyles, ElementData};
 use crate::dom::{SendElement, TElement};
 #[cfg(feature = "gecko")]
@@ -189,14 +190,18 @@ pub struct CascadeInputs {
     /// element. A element's "relevant link" is the element being matched if it
     /// is a link or the nearest ancestor link.
     pub visited_rules: Option<StrongRuleNode>,
+
+    /// The set of flags from container queries that we need for invalidation.
+    pub flags: ComputedValueFlags,
 }
 
 impl CascadeInputs {
     /// Construct inputs from previous cascade results, if any.
     pub fn new_from_style(style: &ComputedValues) -> Self {
-        CascadeInputs {
+        Self {
             rules: style.rules.clone(),
             visited_rules: style.visited_style().and_then(|v| v.rules.clone()),
+            flags: style.flags.for_cascade_inputs(),
         }
     }
 }
