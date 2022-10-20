@@ -891,6 +891,7 @@ impl Stylist {
             CascadeInputs {
                 rules: Some(rules),
                 visited_rules: None,
+                flags: Default::default(),
             },
             pseudo,
             guards,
@@ -1088,6 +1089,7 @@ impl Stylist {
             parent_style_ignoring_first_line,
             layout_parent_style,
             visited_rules,
+            inputs.flags,
             self.quirks_mode,
             rule_cache,
             rule_cache_conditions,
@@ -1187,6 +1189,7 @@ impl Stylist {
         Some(CascadeInputs {
             rules: Some(rules),
             visited_rules,
+            flags: matching_context.extra_data.cascade_input_flags,
         })
     }
 
@@ -1501,6 +1504,7 @@ impl Stylist {
             CascadeMode::Unvisited {
                 visited_rules: None,
             },
+            Default::default(),
             self.quirks_mode,
             /* rule_cache = */ None,
             &mut Default::default(),
@@ -2365,6 +2369,7 @@ impl CascadeData {
         mut id: ContainerConditionId,
         stylist: &Stylist,
         element: E,
+        context: &mut MatchingContext<E::Impl>,
     ) -> bool
     where
         E: TElement,
@@ -2375,7 +2380,7 @@ impl CascadeData {
                 None => return true,
                 Some(ref c) => c,
             };
-            if !condition.matches(stylist.device(), element) {
+            if !condition.matches(stylist.device(), element, &mut context.extra_data.cascade_input_flags) {
                 return false;
             }
             id = condition_ref.parent;

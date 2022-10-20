@@ -359,6 +359,7 @@ impl SelectorMap<Rule> {
                     rule.container_condition_id,
                     stylist,
                     element,
+                    matching_context,
                 ) {
                     continue;
                 }

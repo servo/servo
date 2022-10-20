@@ -59,6 +59,7 @@ pub fn cascade<E>(
     parent_style_ignoring_first_line: Option<&ComputedValues>,
     layout_parent_style: Option<&ComputedValues>,
     visited_rules: Option<&StrongRuleNode>,
+    cascade_input_flags: ComputedValueFlags,
     quirks_mode: QuirksMode,
     rule_cache: Option<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
@@ -76,6 +77,7 @@ where
         parent_style_ignoring_first_line,
         layout_parent_style,
         CascadeMode::Unvisited { visited_rules },
+        cascade_input_flags,
         quirks_mode,
         rule_cache,
         rule_cache_conditions,
@@ -175,6 +177,7 @@ fn cascade_rules<E>(
     parent_style_ignoring_first_line: Option<&ComputedValues>,
     layout_parent_style: Option<&ComputedValues>,
     cascade_mode: CascadeMode,
+    cascade_input_flags: ComputedValueFlags,
     quirks_mode: QuirksMode,
     rule_cache: Option<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
@@ -197,6 +200,7 @@ where
         parent_style_ignoring_first_line,
         layout_parent_style,
         cascade_mode,
+        cascade_input_flags,
         quirks_mode,
         rule_cache,
         rule_cache_conditions,
@@ -232,6 +236,7 @@ pub fn apply_declarations<'a, E, I>(
     parent_style_ignoring_first_line: Option<&ComputedValues>,
     layout_parent_style: Option<&ComputedValues>,
     cascade_mode: CascadeMode,
+    cascade_input_flags: ComputedValueFlags,
     quirks_mode: QuirksMode,
     rule_cache: Option<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
@@ -295,6 +300,8 @@ where
         rule_cache_conditions,
         container_size_query,
     );
+
+    context.style().add_flags(cascade_input_flags);
 
     let using_cached_reset_properties;
     let mut cascade = Cascade::new(&mut context, cascade_mode, &referenced_properties);
@@ -751,6 +758,9 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             visited_parent!(parent_style_ignoring_first_line),
             visited_parent!(layout_parent_style),
             CascadeMode::Visited { writing_mode },
+            // Cascade input flags don't matter for the visited style, they are
+            // in the main (unvisited) style.
+            Default::default(),
             self.context.quirks_mode,
             // The rule cache doesn't care about caching :visited
             // styles, we cache the unvisited style instead. We still do
