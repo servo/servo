@@ -162,6 +162,19 @@ pub struct ElementStyles {
 // There's one of these per rendered elements so it better be small.
 size_of_test!(ElementStyles, 16);
 
+/// Information on how this element uses viewport units.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ViewportUnitUsage {
+    /// No viewport units are used.
+    None = 0,
+    /// There are viewport units used from regular style rules (which means we
+    /// should re-cascade).
+    FromDeclaration,
+    /// There are viewport units used from container queries (which means we
+    /// need to re-selector-match).
+    FromQuery,
+}
+
 impl ElementStyles {
     /// Returns the primary style.
     pub fn get_primary(&self) -> Option<&Arc<ComputedValues>> {
@@ -179,29 +192,27 @@ impl ElementStyles {
     }
 
     /// Whether this element uses viewport units.
-    pub fn uses_viewport_units(&self) -> bool {
+    pub fn viewport_unit_usage(&self) -> ViewportUnitUsage {
         use crate::computed_value_flags::ComputedValueFlags;
 
-        if self
-            .primary()
-            .flags
-            .intersects(ComputedValueFlags::USES_VIEWPORT_UNITS)
-        {
-            return true;
+        fn usage_from_flags(flags: ComputedValueFlags) -> ViewportUnitUsage {
+            if flags.intersects(ComputedValueFlags::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES) {
+                return ViewportUnitUsage::FromQuery;
+            }
+            if flags.intersects(ComputedValueFlags::USES_VIEWPORT_UNITS) {
+                return ViewportUnitUsage::FromDeclaration;
+            }
+            ViewportUnitUsage::None
         }
 
+        let mut usage = usage_from_flags(self.primary().flags);
         for pseudo_style in self.pseudos.as_array() {
             if let Some(ref pseudo_style) = pseudo_style {
-                if pseudo_style
-                    .flags
-                    .intersects(ComputedValueFlags::USES_VIEWPORT_UNITS)
-                {
-                    return true;
-                }
+                usage = std::cmp::max(usage, usage_from_flags(pseudo_style.flags));
             }
         }
 
-        false
+        usage
     }
 
     #[cfg(feature = "gecko")]
