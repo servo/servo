@@ -4,6 +4,7 @@
 
 //! Invalidates style of all elements that depend on viewport units.
 
+use crate::data::ViewportUnitUsage;
 use crate::dom::{TElement, TNode};
 use crate::invalidation::element::restyle_hints::RestyleHint;
 
@@ -32,10 +33,20 @@ where
         return false;
     }
 
-    let uses_viewport_units = data.styles.uses_viewport_units();
+    let usage = data.styles.viewport_unit_usage();
+    let uses_viewport_units = usage != ViewportUnitUsage::None;
     if uses_viewport_units {
-        debug!("invalidate_recursively: {:?} uses viewport units", element);
-        data.hint.insert(RestyleHint::RECASCADE_SELF);
+        debug!("invalidate_recursively: {:?} uses viewport units {:?}", element, usage);
+    }
+
+    match usage {
+        ViewportUnitUsage::None => {},
+        ViewportUnitUsage::FromQuery => {
+            data.hint.insert(RestyleHint::RESTYLE_SELF);
+        },
+        ViewportUnitUsage::FromDeclaration => {
+            data.hint.insert(RestyleHint::RECASCADE_SELF);
+        }
     }
 
     let mut any_children_invalid = false;
