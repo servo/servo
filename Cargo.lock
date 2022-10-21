@@ -6544,9 +6544,9 @@ dependencies = [
 
 [[package]]
 name = "termion"
-version = "1.5.6"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "077185e2eac69c3f8379a4298e1e07cd36beb962290d4a51199acf0fdc10607e"
+checksum = "62d7c1152569a7aede026071f711697c9bb15a2abf8cf654eb30dcad1aa3a64e"
 dependencies = [
  "libc",
  "numtoa",
