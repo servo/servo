@@ -130,6 +130,18 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-east-asian",
 )}
 
+${helpers.single_keyword(
+    "font-variant-emoji",
+    "normal text emoji unicode",
+    engines="gecko",
+    gecko_pref="layout.css.font-variant-emoji.enabled",
+    has_effect_on_gecko_scrollbars=False,
+    gecko_enum_prefix="StyleFontVariantEmoji",
+    gecko_ffi_name="mFont.variantEmoji",
+    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-emoji",
+    animation_value_type="discrete",
+)}
+
 ${helpers.predefined_type(
     "font-variant-ligatures",
     "FontVariantLigatures",
