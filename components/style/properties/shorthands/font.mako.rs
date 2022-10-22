@@ -21,6 +21,7 @@
         ${'font-optical-sizing' if engine == 'gecko' else ''}
         ${'font-variant-alternates' if engine == 'gecko' else ''}
         ${'font-variant-east-asian' if engine == 'gecko' else ''}
+        ${'font-variant-emoji' if engine == 'gecko' else ''}
         ${'font-variant-ligatures' if engine == 'gecko' else ''}
         ${'font-variant-numeric' if engine == 'gecko' else ''}
         ${'font-variant-position' if engine == 'gecko' else ''}
@@ -45,10 +46,10 @@
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
                                 variant_alternates variant_east_asian \
-                                variant_ligatures variant_numeric \
-                                variant_position feature_settings \
-                                variation_settings optical_sizing \
-                                palette".split()
+                                variant_emoji variant_ligatures \
+                                variant_numeric variant_position \
+                                feature_settings variation_settings \
+                                optical_sizing palette".split()
     %>
     % if engine == "gecko":
         % for prop in gecko_sub_properties:
@@ -80,6 +81,7 @@
                      // line-height and palette are just reset to initial
                      line_height: LineHeight::normal(),
                      font_palette: FontPalette::normal(),
+                     font_variant_emoji: font_variant_emoji::get_initial_specified_value(),
                  })
             }
         % endif
@@ -194,9 +196,14 @@
                     return Ok(());
                 }
             }
+            if let Some(v) = self.font_variant_emoji {
+                if v != &font_variant_emoji::get_initial_specified_value() {
+                    return Ok(());
+                }
+            }
 
             % for name in gecko_sub_properties:
-            % if name != "optical_sizing" and name != "variation_settings" and name != "palette":
+            % if name != "optical_sizing" and name != "variation_settings" and name != "palette" and name != "variant_emoji":
             if self.font_${name} != &font_${name}::get_initial_specified_value() {
                 return Ok(());
             }
@@ -323,11 +330,12 @@
                     sub_properties="font-variant-caps
                                     ${'font-variant-alternates' if engine == 'gecko' else ''}
                                     ${'font-variant-east-asian' if engine == 'gecko' else ''}
+                                    ${'font-variant-emoji' if engine == 'gecko' else ''}
                                     ${'font-variant-ligatures' if engine == 'gecko' else ''}
                                     ${'font-variant-numeric' if engine == 'gecko' else ''}
                                     ${'font-variant-position' if engine == 'gecko' else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-variant">
-    <% gecko_sub_properties = "alternates east_asian ligatures numeric position".split() %>
+    <% gecko_sub_properties = "alternates east_asian emoji ligatures numeric position".split() %>
     <%
         sub_properties = ["caps"]
         if engine == "gecko":
@@ -402,8 +410,15 @@
             const TOTAL_SUBPROPS: usize = ${len(sub_properties)};
             let mut nb_normals = 0;
         % for prop in sub_properties:
-            if self.font_variant_${prop} == &font_variant_${prop}::get_initial_specified_value() {
-                nb_normals += 1;
+        % if prop == "emoji":
+            if let Some(value) = self.font_variant_${prop} {
+        % else:
+            {
+                let value = self.font_variant_${prop};
+        % endif
+                if value == &font_variant_${prop}::get_initial_specified_value() {
+                   nb_normals += 1;
+                }
             }
         % endfor
 
@@ -421,12 +436,19 @@
             } else {
                 let mut has_any = false;
             % for prop in sub_properties:
-                if self.font_variant_${prop} != &font_variant_${prop}::get_initial_specified_value() {
-                    if has_any {
-                        dest.write_str(" ")?;
+            % if prop == "emoji":
+                if let Some(value) = self.font_variant_${prop} {
+            % else:
+                {
+                    let value = self.font_variant_${prop};
+            % endif
+                    if value != &font_variant_${prop}::get_initial_specified_value() {
+                        if has_any {
+                            dest.write_str(" ")?;
+                        }
+                        has_any = true;
+                        value.to_css(dest)?;
                     }
-                    has_any = true;
-                    self.font_variant_${prop}.to_css(dest)?;
                 }
             % endfor
             }
