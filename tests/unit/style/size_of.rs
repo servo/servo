@@ -38,14 +38,14 @@ size_of_test!(
     40
 );
 
-size_of_test!(test_size_of_selector_parse_error, SelectorParseError, 56);
+size_of_test!(test_size_of_selector_parse_error, SelectorParseError, 48);
 size_of_test!(
     test_size_of_style_traits_parse_error,
     ::style_traits::ParseError,
-    72
+    64
 );
 size_of_test!(
     test_size_of_value_parse_error,
     ::style_traits::ValueParseError,
-    56
+    48
 );
