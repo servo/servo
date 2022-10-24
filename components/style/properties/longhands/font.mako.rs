@@ -269,6 +269,7 @@ ${helpers.single_keyword(
     "math-style",
     "normal compact",
     engines="gecko",
+    gecko_enum_prefix="StyleMathStyle",
     gecko_pref="layout.css.math-style.enabled",
     spec="https://mathml-refresh.github.io/mathml-core/#the-math-style-property",
     has_effect_on_gecko_scrollbars=False,
