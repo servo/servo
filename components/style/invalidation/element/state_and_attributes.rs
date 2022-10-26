@@ -152,13 +152,16 @@ where
 
 /// Sets the appropriate restyle hint after invalidating the style of a given
 /// element.
-pub fn invalidated_self<E>(element: E)
+pub fn invalidated_self<E>(element: E) -> bool
 where
     E: TElement,
 {
-    if let Some(mut data) = element.mutate_data() {
-        data.hint.insert(RestyleHint::RESTYLE_SELF);
-    }
+    let mut data = match element.mutate_data() {
+        Some(data) => data,
+        None => return false,
+    };
+    data.hint.insert(RestyleHint::RESTYLE_SELF);
+    true
 }
 
 /// Sets the appropriate hint after invalidating the style of a sibling.
@@ -167,7 +170,9 @@ where
     E: TElement,
 {
     debug_assert_eq!(element.as_node().parent_node(), of.as_node().parent_node(), "Should be siblings");
-    invalidated_self(element);
+    if !invalidated_self(element) {
+        return;
+    }
     if element.traversal_parent() != of.traversal_parent() {
         let parent = element.as_node().parent_element_or_host();
         debug_assert!(parent.is_some(), "How can we have siblings without parent nodes?");
