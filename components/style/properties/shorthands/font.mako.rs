@@ -35,13 +35,13 @@
 >
     use crate::computed_values::font_variant_caps::T::SmallCaps;
     use crate::parser::Parse;
-    use crate::properties::longhands::{font_family, font_style, font_weight, font_stretch};
+    use crate::properties::longhands::{font_family, font_style, font_size, font_weight, font_stretch};
     use crate::properties::longhands::font_variant_caps;
     use crate::values::specified::text::LineHeight;
     use crate::values::specified::FontSize;
     use crate::values::specified::font::{FontStretch, FontStretchKeyword};
     #[cfg(feature = "gecko")]
-    use crate::values::specified::font::{FontPalette, SystemFont};
+    use crate::values::specified::font::SystemFont;
 
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
@@ -72,16 +72,12 @@
             if let Ok(sys) = input.try_parse(SystemFont::parse) {
                 return Ok(expanded! {
                      % for name in SYSTEM_FONT_LONGHANDS:
-                         % if name == "font_size":
-                             ${name}: FontSize::system_font(sys),
-                         % else:
-                             ${name}: ${name}::SpecifiedValue::system_font(sys),
-                         % endif
+                        ${name}: ${name}::SpecifiedValue::system_font(sys),
                      % endfor
-                     // line-height and palette are just reset to initial
                      line_height: LineHeight::normal(),
-                     font_palette: FontPalette::normal(),
-                     font_variant_emoji: font_variant_emoji::get_initial_specified_value(),
+                     % for name in gecko_sub_properties + ["variant_caps"]:
+                         font_${name}: font_${name}::get_initial_specified_value(),
+                     % endfor
                  })
             }
         % endif
@@ -110,7 +106,7 @@
                 // defined by CSS Fonts 3 and later are not accepted.
                 // https://www.w3.org/TR/css-fonts-4/#font-prop
                 if input.try_parse(|input| input.expect_ident_matching("small-caps")).is_ok() {
-                    variant_caps = Some(font_variant_caps::SpecifiedValue::Keyword(SmallCaps));
+                    variant_caps = Some(SmallCaps);
                     continue
                 }
             }
@@ -228,7 +224,7 @@
             // the added values defined by CSS Fonts 3 and later are not supported.
             // https://www.w3.org/TR/css-fonts-4/#font-prop
             if self.font_variant_caps != &font_variant_caps::get_initial_specified_value() &&
-                *self.font_variant_caps != font_variant_caps::SpecifiedValue::Keyword(SmallCaps) {
+                *self.font_variant_caps != SmallCaps {
                 return Ok(());
             }
 
@@ -362,7 +358,7 @@
             // The 'none' value sets 'font-variant-ligatures' to 'none' and resets all other sub properties
             // to their initial value.
         % if engine == "gecko":
-            ligatures = Some(FontVariantLigatures::none());
+            ligatures = Some(FontVariantLigatures::NONE);
         % endif
         } else {
             let mut has_custom_value: bool = false;
@@ -402,7 +398,7 @@
 
             let has_none_ligatures =
             % if engine == "gecko":
-                self.font_variant_ligatures == &FontVariantLigatures::none();
+                self.font_variant_ligatures == &FontVariantLigatures::NONE;
             % else:
                 false;
             % endif

@@ -26,7 +26,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
 pub use crate::values::computed::Length as MozScriptMinSize;
 pub use crate::values::specified::font::FontPalette;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
-pub use crate::values::specified::font::{XLang, XTextZoom};
+pub use crate::values::specified::font::{FontVariantAlternates, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, XLang, XTextZoom};
 pub use crate::values::specified::Integer as SpecifiedInteger;
 
 /// Generic template for font property type classes that use a fixed-point
@@ -741,26 +741,6 @@ impl FontSizeAdjust {
         FontSizeAdjust::None
     }
 }
-
-/// Use VariantAlternatesList as computed type of FontVariantAlternates
-pub type FontVariantAlternates = specified::VariantAlternatesList;
-
-impl FontVariantAlternates {
-    /// Get initial value with VariantAlternatesList
-    #[inline]
-    pub fn get_initial_value() -> Self {
-        Self::default()
-    }
-}
-
-/// Use VariantEastAsian as computed type of FontVariantEastAsian
-pub type FontVariantEastAsian = specified::VariantEastAsian;
-
-/// Use VariantLigatures as computed type of FontVariantLigatures
-pub type FontVariantLigatures = specified::VariantLigatures;
-
-/// Use VariantNumeric as computed type of FontVariantNumeric
-pub type FontVariantNumeric = specified::VariantNumeric;
 
 /// Use FontSettings as computed type of FontFeatureSettings.
 pub type FontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;

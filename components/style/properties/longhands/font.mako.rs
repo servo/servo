@@ -34,7 +34,7 @@ ${helpers.predefined_type(
                                       "all-petite-caps": "ALLPETITE",
                                       "titling-caps": "TITLING" } %>
 
-${helpers.single_keyword_system(
+${helpers.single_keyword(
     "font-variant-caps",
     "normal small-caps",
     engines="gecko servo",
@@ -74,8 +74,8 @@ ${helpers.predefined_type(
     "font-size-adjust",
     "FontSizeAdjust",
     engines="gecko",
-    initial_value="computed::FontSizeAdjust::none()",
-    initial_specified_value="specified::FontSizeAdjust::none()",
+    initial_value="computed::FontSizeAdjust::None",
+    initial_specified_value="specified::FontSizeAdjust::None",
     animation_value_type="FontSizeAdjust",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust",
 )}
@@ -100,7 +100,7 @@ ${helpers.predefined_type(
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
-${helpers.single_keyword_system(
+${helpers.single_keyword(
     "font-kerning",
     "auto none normal",
     engines="gecko",
@@ -114,8 +114,8 @@ ${helpers.predefined_type(
     "font-variant-alternates",
     "FontVariantAlternates",
     engines="gecko",
-    initial_value="computed::FontVariantAlternates::get_initial_value()",
-    initial_specified_value="specified::FontVariantAlternates::get_initial_specified_value()",
+    initial_value="computed::FontVariantAlternates::default()",
+    initial_specified_value="specified::FontVariantAlternates::default()",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates",
 )}
@@ -162,7 +162,7 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-numeric",
 )}
 
-${helpers.single_keyword_system(
+${helpers.single_keyword(
     "font-variant-position",
     "normal sub super",
     engines="gecko",
@@ -206,7 +206,7 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override",
 )}
 
-${helpers.single_keyword_system(
+${helpers.single_keyword(
     "font-optical-sizing",
     "auto none",
     engines="gecko",
@@ -343,16 +343,6 @@ pub mod system_font {
     use std::hash::{Hash, Hasher};
     use crate::values::computed::{ToComputedValue, Context};
     use crate::values::specified::font::SystemFont;
-
-    <%
-        kw_font_props = """font_variant_caps
-                           font_kerning font_variant_position font_variant_ligatures
-                           font_variant_east_asian font_variant_numeric
-                           font_optical_sizing""".split()
-        kw_cast = """font_variant_caps font_kerning font_variant_position
-                     font_optical_sizing""".split()
-    %>
-
     // ComputedValues are compared at times
     // so we need these impls. We don't want to
     // add Eq to Number (which contains a float)
@@ -401,20 +391,6 @@ pub mod system_font {
                 font_weight: system.weight,
                 font_stretch: system.stretch,
                 font_style: system.style,
-                font_size_adjust: system.sizeAdjust,
-                % for kwprop in kw_font_props:
-                    ${kwprop}: longhands::${kwprop}::computed_value::T::from_gecko_keyword(
-                        system.${to_camel_case_lower(kwprop.replace('font_', ''))}
-                        % if kwprop in kw_cast:
-                            as u32
-                        % endif
-                    ),
-                % endfor
-                font_language_override: longhands::font_language_override::computed_value
-                                                 ::T(system.languageOverride),
-                font_feature_settings: longhands::font_feature_settings::get_initial_value(),
-                font_variation_settings: longhands::font_variation_settings::get_initial_value(),
-                font_variant_alternates: longhands::font_variant_alternates::get_initial_value(),
                 system_font: *self,
             };
             unsafe { bindings::Gecko_nsFont_Destroy(system); }
