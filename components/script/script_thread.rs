@@ -1709,7 +1709,7 @@ impl ScriptThread {
         }
 
         for (_, document) in self.documents.borrow().iter() {
-            document.animations().send_pending_events();
+            document.animations().send_pending_events(document.window());
         }
     }
 
