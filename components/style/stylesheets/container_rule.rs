@@ -114,18 +114,18 @@ pub struct ContainerLookupResult<E> {
 }
 
 fn container_type_axes(ty_: ContainerType, wm: WritingMode) -> FeatureFlags {
-    if ty_.contains(ContainerType::SIZE) {
-        return FeatureFlags::all_container_axes();
+    match ty_ {
+        ContainerType::Size => FeatureFlags::all_container_axes(),
+        ContainerType::InlineSize => {
+            let physical_axis = if wm.is_vertical() {
+                FeatureFlags::CONTAINER_REQUIRES_HEIGHT_AXIS
+            } else {
+                FeatureFlags::CONTAINER_REQUIRES_WIDTH_AXIS
+            };
+            FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS | physical_axis
+        },
+        ContainerType::Normal => FeatureFlags::empty(),
     }
-    if ty_.contains(ContainerType::INLINE_SIZE) {
-        let physical_axis = if wm.is_vertical() {
-            FeatureFlags::CONTAINER_REQUIRES_HEIGHT_AXIS
-        } else {
-            FeatureFlags::CONTAINER_REQUIRES_WIDTH_AXIS
-        };
-        return FeatureFlags::CONTAINER_REQUIRES_INLINE_AXIS | physical_axis;
-    }
-    FeatureFlags::empty()
 }
 
 enum TraversalResult<T> {
@@ -476,7 +476,7 @@ impl<'a> ContainerSizeQuery<'a> {
         let container_type = box_style.clone_container_type();
         let size = e.primary_box_size();
         match container_type {
-            ContainerType::SIZE => {
+            ContainerType::Size=> {
                 TraversalResult::Done(
                     ContainerSizeQueryResult {
                         width: Some(size.width),
@@ -484,7 +484,7 @@ impl<'a> ContainerSizeQuery<'a> {
                     }
                 )
             },
-            ContainerType::INLINE_SIZE => {
+            ContainerType::InlineSize => {
                 if wm.is_horizontal() {
                     TraversalResult::Done(
                         ContainerSizeQueryResult {
@@ -501,7 +501,7 @@ impl<'a> ContainerSizeQuery<'a> {
                     )
                 }
             },
-            _ => TraversalResult::InProgress,
+            ContainerType::Normal => TraversalResult::InProgress,
         }
     }
 

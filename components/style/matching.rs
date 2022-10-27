@@ -912,7 +912,7 @@ pub trait MatchMethods: TElement {
         let is_container = !new_primary_style
             .get_box()
             .clone_container_type()
-            .is_empty();
+            .is_normal();
         if is_root || is_container {
             let new_font_size = new_primary_style.get_font().clone_font_size();
             let old_font_size = old_styles
