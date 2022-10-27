@@ -1489,30 +1489,28 @@ pub enum ContentVisibility {
     Visible,
 }
 
-bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToCss, Parse, ToResolvedValue, ToShmem)]
-    #[repr(C)]
-    #[allow(missing_docs)]
-    #[css(bitflags(single="normal", mixed="size,inline-size", overlapping_bits))]
-    /// https://drafts.csswg.org/css-contain-3/#container-type
-    ///
-    /// TODO: block-size is on the spec but it seems it was removed? WPTs don't
-    /// support it, see https://github.com/w3c/csswg-drafts/issues/7179.
-    pub struct ContainerType: u8 {
-        /// The `normal` variant.
-        const NORMAL = 0;
-        /// The `inline-size` variant.
-        const INLINE_SIZE = 1 << 0;
-        /// The `size` variant, exclusive with `inline-size` (they sharing bits
-        /// guarantees this).
-        const SIZE = 1 << 1 | Self::INLINE_SIZE.bits;
-    }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToCss, Parse, ToResolvedValue, ToShmem)]
+#[repr(u8)]
+#[allow(missing_docs)]
+/// https://drafts.csswg.org/css-contain-3/#container-type
+pub enum ContainerType {
+    /// The `normal` variant.
+    Normal,
+    /// The `inline-size` variant.
+    InlineSize,
+    /// The `size` variant.
+    Size,
 }
 
 impl ContainerType {
+    /// Is this container-type: normal?
+    pub fn is_normal(self) -> bool {
+        self == Self::Normal
+    }
+
     /// Is this type containing size in any way?
-    pub fn is_size_container_type(&self) -> bool {
-        self.intersects(ContainerType::SIZE | ContainerType::INLINE_SIZE)
+    pub fn is_size_container_type(self) -> bool {
+        !self.is_normal()
     }
 }
 
