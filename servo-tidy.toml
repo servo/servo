@@ -27,7 +27,6 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-  "adler",
   "arrayvec",
   "base64",
   "cfg-if",
