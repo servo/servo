@@ -41,7 +41,6 @@ packages = [
   "h2",
   "image",
   "itoa",
-  "jpeg-decoder",
   "libloading",
   "lock_api",
   "metal",
