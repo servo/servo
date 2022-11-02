@@ -1539,17 +1539,15 @@ impl ContainerName {
     pub fn is_none(&self) -> bool {
         self.0.is_empty()
     }
-}
 
-impl Parse for ContainerName {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
+    fn parse_internal<'i>(
+        input: &mut Parser<'i, '_>,
+        for_query: bool,
     ) -> Result<Self, ParseError<'i>> {
         let mut idents = vec![];
         let location = input.current_source_location();
         let first = input.expect_ident()?;
-        if first.eq_ignore_ascii_case("none") {
+        if !for_query && first.eq_ignore_ascii_case("none") {
             return Ok(Self::none());
         }
         const DISALLOWED_CONTAINER_NAMES: &'static [&'static str] =
@@ -1559,13 +1557,34 @@ impl Parse for ContainerName {
             first,
             DISALLOWED_CONTAINER_NAMES,
         )?);
-        while let Ok(name) = input.try_parse(|input| {
-            let ident = input.expect_ident()?;
-            CustomIdent::from_ident(location, &ident, DISALLOWED_CONTAINER_NAMES)
-        }) {
-            idents.push(name);
+        if !for_query {
+            while let Ok(name) = input.try_parse(|input| {
+                let ident = input.expect_ident()?;
+                CustomIdent::from_ident(location, &ident, DISALLOWED_CONTAINER_NAMES)
+            }) {
+                idents.push(name);
+            }
         }
         Ok(ContainerName(idents.into()))
+    }
+
+    /// https://github.com/w3c/csswg-drafts/issues/7203
+    /// Only a single name allowed in @container rule.
+    /// Disallow none for container-name in @container rule.
+    pub fn parse_for_query<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_internal(input, /* for_query = */ true)
+    }
+}
+
+impl Parse for ContainerName {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_internal(input, /* for_query = */ false)
     }
 }
 
