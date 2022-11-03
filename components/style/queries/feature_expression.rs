@@ -591,6 +591,14 @@ impl QueryFeatureExpression {
                 self.kind
                     .evaluate(v, |v| expect!(Length, v).to_computed_value(context))
             },
+            Evaluator::OptionalLength(eval) => {
+                let v = match eval(context) {
+                    Some(v) => v,
+                    None => return false,
+                };
+                self.kind
+                    .evaluate(v, |v| expect!(Length, v).to_computed_value(context))
+            },
             Evaluator::Integer(eval) => {
                 let v = eval(context);
                 self.kind.evaluate(v, |v| *expect!(Integer, v))
@@ -605,6 +613,15 @@ impl QueryFeatureExpression {
                 // to convert it if necessary.
                 // FIXME: we may need to update here once
                 // https://github.com/w3c/csswg-drafts/issues/4954 got resolved.
+                self.kind
+                    .evaluate(ratio, |v| expect!(NumberRatio, v).used_value())
+            },
+            Evaluator::OptionalNumberRatio(eval) => {
+                let ratio = match eval(context) {
+                    Some(v) => v,
+                    None => return false,
+                };
+                // See above for subtleties here.
                 self.kind
                     .evaluate(ratio, |v| expect!(NumberRatio, v).used_value())
             },
@@ -686,7 +703,7 @@ impl QueryExpressionValue {
         input: &mut Parser<'i, 't>,
     ) -> Result<QueryExpressionValue, ParseError<'i>> {
         Ok(match for_feature.evaluator {
-            Evaluator::Length(..) => {
+            Evaluator::OptionalLength(..) | Evaluator::Length(..) => {
                 let length = Length::parse_non_negative(context, input)?;
                 QueryExpressionValue::Length(length)
             },
@@ -706,7 +723,7 @@ impl QueryExpressionValue {
                 let number = Number::parse(context, input)?;
                 QueryExpressionValue::Float(number.get())
             },
-            Evaluator::NumberRatio(..) => {
+            Evaluator::OptionalNumberRatio(..) | Evaluator::NumberRatio(..) => {
                 use crate::values::specified::Ratio as SpecifiedRatio;
                 let ratio = SpecifiedRatio::parse(context, input)?;
                 QueryExpressionValue::NumberRatio(Ratio::new(ratio.0.get(), ratio.1.get()))
