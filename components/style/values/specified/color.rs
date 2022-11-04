@@ -5,6 +5,7 @@
 //! Specified color values.
 
 use super::AllowQuirks;
+use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
 use crate::values::generics::color::{
@@ -32,10 +33,11 @@ fn allow_color_mix() -> bool {
     return false;
 }
 
-impl Parse for ColorMix {
+impl ColorMix {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        preserve_authored: PreserveAuthored,
     ) -> Result<Self, ParseError<'i>> {
         let enabled =
             context.chrome_rules_enabled() || allow_color_mix();
@@ -58,7 +60,7 @@ impl Parse for ColorMix {
 
             let mut left_percentage = try_parse_percentage(input);
 
-            let left = Color::parse(context, input)?;
+            let left = Color::parse_internal(context, input, preserve_authored)?;
             if left_percentage.is_none() {
                 left_percentage = try_parse_percentage(input);
             }
@@ -439,17 +441,40 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
     }
 }
 
+/// Whether to preserve authored colors during parsing. That's useful only if we
+/// plan to serialize the color back.
+enum PreserveAuthored {
+    No,
+    Yes,
+}
+
 impl Parse for Color {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        // Currently we only store authored value for color keywords,
-        // because all browsers serialize those values as keywords for
-        // specified value.
-        let start = input.state();
-        let authored = input.expect_ident_cloned().ok();
-        input.reset(&start);
+        Self::parse_internal(context, input, PreserveAuthored::Yes)
+    }
+}
+
+impl Color {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        preserve_authored: PreserveAuthored,
+    ) -> Result<Self, ParseError<'i>> {
+        let authored = match preserve_authored {
+            PreserveAuthored::No => None,
+            PreserveAuthored::Yes => {
+                // Currently we only store authored value for color keywords,
+                // because all browsers serialize those values as keywords for
+                // specified value.
+                let start = input.state();
+                let authored = input.expect_ident_cloned().ok();
+                input.reset(&start);
+                authored
+            }
+        };
 
         let compontent_parser = ColorComponentParser(&*context);
         match input.try_parse(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
@@ -468,7 +493,7 @@ impl Parse for Color {
                     }
                 }
 
-                if let Ok(mix) = input.try_parse(|i| ColorMix::parse(context, i)) {
+                if let Ok(mix) = input.try_parse(|i| ColorMix::parse(context, i, preserve_authored)) {
                     return Ok(Color::ColorMix(Box::new(mix)));
                 }
 
@@ -481,6 +506,58 @@ impl Parse for Color {
                     _ => Err(e),
                 }
             },
+        }
+    }
+
+    /// Returns whether a given color is valid for authors.
+    pub fn is_valid(context: &ParserContext, input: &mut Parser) -> bool {
+        input.parse_entirely(|input| Self::parse_internal(context, input, PreserveAuthored::No)).is_ok()
+    }
+
+    /// Tries to parse a color and compute it with a given device.
+    pub fn parse_and_compute(
+        context: &ParserContext,
+        input: &mut Parser,
+        device: Option<&Device>,
+    ) -> Option<ComputedColor> {
+        use crate::error_reporting::ContextualParseError;
+        let start = input.position();
+        let result = input.parse_entirely(|input| {
+            Self::parse_internal(context, input, PreserveAuthored::No)
+        });
+
+        let specified = match result {
+            Ok(s) => s,
+            Err(e) => {
+                if !context.error_reporting_enabled() {
+                    return None;
+                }
+                // Ignore other kinds of errors that might be reported, such as
+                // ParseErrorKind::Basic(BasicParseErrorKind::UnexpectedToken),
+                // since Gecko didn't use to report those to the error console.
+                //
+                // TODO(emilio): Revise whether we want to keep this at all, we
+                // use this only for canvas, this warnings are disabled by
+                // default and not available on OffscreenCanvas anyways...
+                if let ParseErrorKind::Custom(StyleParseErrorKind::ValueError(..)) = e.kind {
+                    let location = e.location.clone();
+                    let error = ContextualParseError::UnsupportedValue(
+                        input.slice_from(start),
+                        e,
+                    );
+                    context.log_css_error(location, error);
+                }
+                return None;
+            }
+        };
+
+        match device {
+            Some(device) => {
+                Context::for_media_query_evaluation(device, device.quirks_mode(), |context| {
+                    specified.to_computed_color(Some(&context))
+                })
+            },
+            None => specified.to_computed_color(None),
         }
     }
 }
