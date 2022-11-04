@@ -418,6 +418,13 @@
                    nb_normals += 1;
                 }
             }
+        % if prop == "emoji":
+            else {
+                // The property was disabled, so we count it as 'normal' for the purpose
+                // of deciding how the shorthand can be serialized.
+                nb_normals += 1;
+            }
+        % endif
         % endfor
 
 
