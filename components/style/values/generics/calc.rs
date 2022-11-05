@@ -6,10 +6,10 @@
 //!
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
-use crate::Zero;
+use num_traits::{Float, Zero};
 use smallvec::SmallVec;
 use std::fmt::{self, Write};
-use std::ops::Add;
+use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::{cmp, mem};
 use style_traits::{CssWriter, ToCss};
 
@@ -32,6 +32,35 @@ pub enum MinMaxOp {
     Min,
     /// `max()`
     Max,
+}
+
+/// The strategy used in `round()`
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToAnimatedZero,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum RoundingStrategy {
+    /// `round(nearest, a, b)`
+    /// round a to the nearest multiple of b
+    Nearest,
+    /// `round(up, a, b)`
+    /// round a up to the nearest multiple of b
+    Up,
+    /// `round(down, a, b)`
+    /// round a down to the nearest multiple of b
+    Down,
+    /// `round(to-zero, a, b)`
+    /// round a to the nearest multiple of b that is towards zero
+    ToZero,
 }
 
 /// This determines the order in which we serialize members of a calc() sum.
@@ -124,17 +153,51 @@ pub enum GenericCalcNode<L> {
         /// The maximum value.
         max: Box<GenericCalcNode<L>>,
     },
+    /// A `round()` function.
+    Round {
+        /// The rounding strategy.
+        strategy: RoundingStrategy,
+        /// The value to round.
+        value: Box<GenericCalcNode<L>>,
+        /// The step value.
+        step: Box<GenericCalcNode<L>>,
+    },
 }
 
 pub use self::GenericCalcNode as CalcNode;
 
 /// A trait that represents all the stuff a valid leaf of a calc expression.
 pub trait CalcNodeLeaf: Clone + Sized + PartialOrd + PartialEq + ToCss {
+    /// Returns the unitless value of this leaf.
+    fn unitless_value(&self) -> f32;
+
     /// Whether this value is known-negative.
-    fn is_negative(&self) -> bool;
+    fn is_negative(&self) -> bool {
+        self.unitless_value().is_sign_negative()
+    }
+
+    /// Whether this value is infinite.
+    fn is_infinite(&self) -> bool {
+        self.unitless_value().is_infinite()
+    }
+
+    /// Whether this value is zero.
+    fn is_zero(&self) -> bool {
+        self.unitless_value().is_zero()
+    }
+
+    /// Whether this value is NaN.
+    fn is_nan(&self) -> bool {
+        self.unitless_value().is_nan()
+    }
 
     /// Tries to merge one sum to another, that is, perform `x` + `y`.
     fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()>;
+
+    /// Tries a generic arithmetic operation.
+    fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32;
 
     /// Multiplies the leaf by a given scalar number.
     fn mul_by(&mut self, scalar: f32);
@@ -177,6 +240,19 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         match (self, other) {
             (&mut CalcNode::Leaf(ref mut one), &CalcNode::Leaf(ref other)) => {
                 one.try_sum_in_place(other)
+            },
+            _ => Err(()),
+        }
+    }
+
+    /// Tries to apply a generic arithmentic operator
+    fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32,
+    {
+        match (self, other) {
+            (&CalcNode::Leaf(ref one), &CalcNode::Leaf(ref other)) => {
+                Ok(CalcNode::Leaf(one.try_op(other, op)?))
             },
             _ => Err(()),
         }
@@ -225,6 +301,19 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 let max = Box::new(max.map_leaves_internal(map));
                 CalcNode::Clamp { min, center, max }
             },
+            Self::Round {
+                strategy,
+                ref value,
+                ref step,
+            } => {
+                let value = Box::new(value.map_leaves_internal(map));
+                let step = Box::new(step.map_leaves_internal(map));
+                CalcNode::Round {
+                    strategy,
+                    value,
+                    step,
+                }
+            },
         }
     }
 
@@ -235,14 +324,30 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         mut leaf_to_output_fn: impl FnMut(&L) -> Result<O, ()>,
     ) -> Result<O, ()>
     where
-        O: PartialOrd + PartialEq + Add<Output = O> + Zero,
+        O: PartialOrd
+            + PartialEq
+            + Add<Output = O>
+            + Mul<Output = O>
+            + Div<Output = O>
+            + Sub<Output = O>
+            + Zero
+            + Float
+            + Copy,
     {
         self.resolve_internal(&mut leaf_to_output_fn)
     }
 
     fn resolve_internal<O, F>(&self, leaf_to_output_fn: &mut F) -> Result<O, ()>
     where
-        O: PartialOrd + PartialEq + Add<Output = O> + Zero,
+        O: PartialOrd
+            + PartialEq
+            + Add<Output = O>
+            + Mul<Output = O>
+            + Div<Output = O>
+            + Sub<Output = O>
+            + Zero
+            + Float
+            + Copy,
         F: FnMut(&L) -> Result<O, ()>,
     {
         Ok(match *self {
@@ -286,12 +391,104 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 }
                 result
             },
+            Self::Round {
+                strategy,
+                ref value,
+                ref step,
+            } => {
+                let value = value.resolve_internal(leaf_to_output_fn)?;
+                let step = step.resolve_internal(leaf_to_output_fn)?;
+
+                // TODO(emilio): Seems like at least a few of these
+                // special-cases could be removed if we do the math in a
+                // particular order.
+                if step.is_zero() {
+                    return Ok(<O as Float>::nan());
+                }
+
+                if value.is_infinite() && step.is_infinite() {
+                    return Ok(<O as Float>::nan());
+                }
+
+                if value.is_infinite() {
+                    return Ok(value);
+                }
+
+                if step.is_infinite() {
+                    match strategy {
+                        RoundingStrategy::Nearest | RoundingStrategy::ToZero => {
+                            return if value.is_sign_negative() {
+                                Ok(<O as Float>::neg_zero())
+                            } else {
+                                Ok(<O as Zero>::zero())
+                            }
+                        },
+                        RoundingStrategy::Up => {
+                            return if !value.is_sign_negative() && !value.is_zero() {
+                                Ok(<O as Float>::infinity())
+                            } else if !value.is_sign_negative() && value.is_zero() {
+                                Ok(value)
+                            } else {
+                                Ok(<O as Float>::neg_zero())
+                            }
+                        },
+                        RoundingStrategy::Down => {
+                            return if value.is_sign_negative() && !value.is_zero() {
+                                Ok(<O as Float>::neg_infinity())
+                            } else if value.is_sign_negative() && value.is_zero() {
+                                Ok(value)
+                            } else {
+                                Ok(<O as Zero>::zero())
+                            }
+                        },
+                    }
+                }
+
+                let div = value / step;
+                let lower_bound = div.floor() * step;
+                let upper_bound = div.ceil() * step;
+
+                match strategy {
+                    RoundingStrategy::Nearest => {
+                        // In case of a tie, use the upper bound
+                        if value - lower_bound < upper_bound - value {
+                            lower_bound
+                        } else {
+                            upper_bound
+                        }
+                    },
+                    RoundingStrategy::Up => upper_bound,
+                    RoundingStrategy::Down => lower_bound,
+                    RoundingStrategy::ToZero => {
+                        // In case of a tie, use the upper bound
+                        if lower_bound.abs() < upper_bound.abs() {
+                            lower_bound
+                        } else {
+                            upper_bound
+                        }
+                    },
+                }
+            },
         })
     }
 
     fn is_negative_leaf(&self) -> bool {
         match *self {
             Self::Leaf(ref l) => l.is_negative(),
+            _ => false,
+        }
+    }
+
+    fn is_zero_leaf(&self) -> bool {
+        match *self {
+            Self::Leaf(ref l) => l.is_zero(),
+            _ => false,
+        }
+    }
+
+    fn is_infinite_leaf(&self) -> bool {
+        match *self {
+            Self::Leaf(ref l) => l.is_infinite(),
             _ => false,
         }
     }
@@ -334,6 +531,14 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     mem::swap(min, max);
                 }
             },
+            Self::Round {
+                ref mut value,
+                ref mut step,
+                ..
+            } => {
+                value.mul_by(scalar);
+                step.mul_by(scalar);
+            },
         }
     }
 
@@ -356,6 +561,14 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 min.visit_depth_first_internal(f);
                 center.visit_depth_first_internal(f);
                 max.visit_depth_first_internal(f);
+            },
+            Self::Round {
+                ref mut value,
+                ref mut step,
+                ..
+            } => {
+                value.visit_depth_first_internal(f);
+                step.visit_depth_first_internal(f);
             },
             Self::Sum(ref mut children) | Self::MinMax(ref mut children, _) => {
                 for child in &mut **children {
@@ -431,6 +644,133 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
 
                 // Otherwise we're the center node.
                 return replace_self_with!(&mut **center);
+            },
+            Self::Round {
+                strategy,
+                ref mut value,
+                ref mut step,
+            } => {
+                if step.is_zero_leaf() {
+                    value.mul_by(f32::NAN);
+                    return replace_self_with!(&mut **value);
+                }
+
+                if value.is_infinite_leaf() && step.is_infinite_leaf() {
+                    value.mul_by(f32::NAN);
+                    return replace_self_with!(&mut **value);
+                }
+
+                if value.is_infinite_leaf() {
+                    return replace_self_with!(&mut **value);
+                }
+
+                if step.is_infinite_leaf() {
+                    match strategy {
+                        RoundingStrategy::Nearest | RoundingStrategy::ToZero => {
+                            value.mul_by(0.);
+                            return replace_self_with!(&mut **value);
+                        },
+                        RoundingStrategy::Up => {
+                            if !value.is_negative_leaf() && !value.is_zero_leaf() {
+                                value.mul_by(f32::INFINITY);
+                                return replace_self_with!(&mut **value);
+                            } else if !value.is_negative_leaf() && value.is_zero_leaf() {
+                                return replace_self_with!(&mut **value);
+                            } else {
+                                value.mul_by(0.);
+                                return replace_self_with!(&mut **value);
+                            }
+                        },
+                        RoundingStrategy::Down => {
+                            if value.is_negative_leaf() && !value.is_zero_leaf() {
+                                value.mul_by(f32::INFINITY);
+                                return replace_self_with!(&mut **value);
+                            } else if value.is_negative_leaf() && value.is_zero_leaf() {
+                                return replace_self_with!(&mut **value);
+                            } else {
+                                value.mul_by(0.);
+                                return replace_self_with!(&mut **value);
+                            }
+                        },
+                    }
+                }
+
+                if step.is_negative_leaf() {
+                    step.negate();
+                }
+
+                let remainder = match value.try_op(step, Rem::rem) {
+                    Ok(res) => res,
+                    Err(..) => return,
+                };
+
+                let (mut lower_bound, mut upper_bound) = if value.is_negative_leaf() {
+                    let upper_bound = match value.try_op(&remainder, Sub::sub) {
+                        Ok(res) => res,
+                        Err(..) => return,
+                    };
+
+                    let lower_bound = match upper_bound.try_op(&step, Sub::sub) {
+                        Ok(res) => res,
+                        Err(..) => return,
+                    };
+
+                    (lower_bound, upper_bound)
+                } else {
+                    let lower_bound = match value.try_op(&remainder, Sub::sub) {
+                        Ok(res) => res,
+                        Err(..) => return,
+                    };
+
+                    let upper_bound = match lower_bound.try_op(&step, Add::add) {
+                        Ok(res) => res,
+                        Err(..) => return,
+                    };
+
+                    (lower_bound, upper_bound)
+                };
+
+                match strategy {
+                    RoundingStrategy::Nearest => {
+                        let lower_diff = match value.try_op(&lower_bound, Sub::sub) {
+                            Ok(res) => res,
+                            Err(..) => return,
+                        };
+
+                        let upper_diff = match upper_bound.try_op(value, Sub::sub) {
+                            Ok(res) => res,
+                            Err(..) => return,
+                        };
+
+                        // In case of a tie, use the upper bound
+                        if lower_diff < upper_diff {
+                            return replace_self_with!(&mut lower_bound);
+                        } else {
+                            return replace_self_with!(&mut upper_bound);
+                        }
+                    },
+                    RoundingStrategy::Up => return replace_self_with!(&mut upper_bound),
+                    RoundingStrategy::Down => return replace_self_with!(&mut lower_bound),
+                    RoundingStrategy::ToZero => {
+                        let mut lower_diff = lower_bound.clone();
+                        let mut upper_diff = upper_bound.clone();
+
+                        if lower_diff.is_negative_leaf() {
+                            lower_diff.negate();
+                        }
+
+                        if upper_diff.is_negative_leaf() {
+                            upper_diff.negate();
+                        }
+
+                        // In case of a tie, use the upper bound
+                        if lower_diff < upper_diff {
+                            return replace_self_with!(&mut lower_bound);
+                        } else {
+                            return replace_self_with!(&mut upper_bound);
+                        }
+                    },
+                };
             },
             Self::MinMax(ref mut children, op) => {
                 let winning_order = match op {
@@ -537,6 +877,16 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 dest.write_str("clamp(")?;
                 true
             },
+            Self::Round { strategy, .. } => {
+                match strategy {
+                    RoundingStrategy::Nearest => dest.write_str("round("),
+                    RoundingStrategy::Up => dest.write_str("round(up, "),
+                    RoundingStrategy::Down => dest.write_str("round(down, "),
+                    RoundingStrategy::ToZero => dest.write_str("round(to-zero, "),
+                }?;
+
+                true
+            },
             _ => {
                 if is_outermost {
                     dest.write_str("calc(")?;
@@ -585,6 +935,15 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 center.to_css_impl(dest, false)?;
                 dest.write_str(", ")?;
                 max.to_css_impl(dest, false)?;
+            },
+            Self::Round {
+                ref value,
+                ref step,
+                ..
+            } => {
+                value.to_css_impl(dest, false)?;
+                dest.write_str(", ")?;
+                step.to_css_impl(dest, false)?;
             },
             Self::Leaf(ref l) => l.to_css(dest)?,
         }
