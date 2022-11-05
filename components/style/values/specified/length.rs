@@ -22,7 +22,7 @@ use crate::{Zero, ZeroNoPercent};
 use app_units::Au;
 use cssparser::{Parser, Token};
 use std::cmp;
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Rem, Sub};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
@@ -88,11 +88,6 @@ impl FontBaseSize {
 }
 
 impl FontRelativeLength {
-    /// Return true if this is a zero value.
-    fn is_zero(&self) -> bool {
-        self.unitless_value() == 0.
-    }
-
     /// Return the unitless, raw value.
     fn unitless_value(&self) -> CSSFloat {
         match *self {
@@ -105,11 +100,10 @@ impl FontRelativeLength {
         }
     }
 
-    fn is_negative(&self) -> bool {
-        self.unitless_value() < 0.
-    }
-
-    fn try_sum(&self, other: &Self) -> Result<Self, ()> {
+    fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32,
+    {
         use self::FontRelativeLength::*;
 
         if std::mem::discriminant(self) != std::mem::discriminant(other) {
@@ -117,19 +111,19 @@ impl FontRelativeLength {
         }
 
         Ok(match (self, other) {
-            (&Em(one), &Em(other)) => Em(one + other),
-            (&Ex(one), &Ex(other)) => Ex(one + other),
-            (&Ch(one), &Ch(other)) => Ch(one + other),
-            (&Cap(one), &Cap(other)) => Cap(one + other),
-            (&Ic(one), &Ic(other)) => Ic(one + other),
-            (&Rem(one), &Rem(other)) => Rem(one + other),
+            (&Em(one), &Em(other)) => Em(op(one, other)),
+            (&Ex(one), &Ex(other)) => Ex(op(one, other)),
+            (&Ch(one), &Ch(other)) => Ch(op(one, other)),
+            (&Cap(one), &Cap(other)) => Cap(op(one, other)),
+            (&Ic(one), &Ic(other)) => Ic(op(one, other)),
+            (&Rem(one), &Rem(other)) => Rem(op(one, other)),
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
                 match *self {
                     Em(..) | Ex(..) | Ch(..) | Cap(..) | Ic(..) | Rem(..) => {},
                 }
-                debug_unreachable!("Forgot to handle unit in try_sum()")
+                debug_unreachable!("Forgot to handle unit in try_op()")
             },
         })
     }
@@ -384,15 +378,6 @@ pub enum ViewportPercentageLength {
 }
 
 impl ViewportPercentageLength {
-    /// Return true if this is a zero value.
-    fn is_zero(&self) -> bool {
-        self.unitless_value() == 0.
-    }
-
-    fn is_negative(&self) -> bool {
-        self.unitless_value() < 0.
-    }
-
     /// Return the unitless, raw value.
     fn unitless_value(&self) -> CSSFloat {
         self.unpack().2
@@ -430,7 +415,11 @@ impl ViewportPercentageLength {
             ViewportPercentageLength::Dvi(v) => (ViewportVariant::Dynamic, ViewportUnit::Vi, v),
         }
     }
-    fn try_sum(&self, other: &Self) -> Result<Self, ()> {
+
+    fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32,
+    {
         use self::ViewportPercentageLength::*;
 
         if std::mem::discriminant(self) != std::mem::discriminant(other) {
@@ -438,30 +427,30 @@ impl ViewportPercentageLength {
         }
 
         Ok(match (self, other) {
-            (&Vw(one), &Vw(other)) => Vw(one + other),
-            (&Svw(one), &Svw(other)) => Svw(one + other),
-            (&Lvw(one), &Lvw(other)) => Lvw(one + other),
-            (&Dvw(one), &Dvw(other)) => Dvw(one + other),
-            (&Vh(one), &Vh(other)) => Vh(one + other),
-            (&Svh(one), &Svh(other)) => Svh(one + other),
-            (&Lvh(one), &Lvh(other)) => Lvh(one + other),
-            (&Dvh(one), &Dvh(other)) => Dvh(one + other),
-            (&Vmin(one), &Vmin(other)) => Vmin(one + other),
-            (&Svmin(one), &Svmin(other)) => Svmin(one + other),
-            (&Lvmin(one), &Lvmin(other)) => Lvmin(one + other),
-            (&Dvmin(one), &Dvmin(other)) => Dvmin(one + other),
-            (&Vmax(one), &Vmax(other)) => Vmax(one + other),
-            (&Svmax(one), &Svmax(other)) => Svmax(one + other),
-            (&Lvmax(one), &Lvmax(other)) => Lvmax(one + other),
-            (&Dvmax(one), &Dvmax(other)) => Dvmax(one + other),
-            (&Vb(one), &Vb(other)) => Vb(one + other),
-            (&Svb(one), &Svb(other)) => Svb(one + other),
-            (&Lvb(one), &Lvb(other)) => Lvb(one + other),
-            (&Dvb(one), &Dvb(other)) => Dvb(one + other),
-            (&Vi(one), &Vi(other)) => Vi(one + other),
-            (&Svi(one), &Svi(other)) => Svi(one + other),
-            (&Lvi(one), &Lvi(other)) => Lvi(one + other),
-            (&Dvi(one), &Dvi(other)) => Dvi(one + other),
+            (&Vw(one), &Vw(other)) => Vw(op(one, other)),
+            (&Svw(one), &Svw(other)) => Svw(op(one, other)),
+            (&Lvw(one), &Lvw(other)) => Lvw(op(one, other)),
+            (&Dvw(one), &Dvw(other)) => Dvw(op(one, other)),
+            (&Vh(one), &Vh(other)) => Vh(op(one, other)),
+            (&Svh(one), &Svh(other)) => Svh(op(one, other)),
+            (&Lvh(one), &Lvh(other)) => Lvh(op(one, other)),
+            (&Dvh(one), &Dvh(other)) => Dvh(op(one, other)),
+            (&Vmin(one), &Vmin(other)) => Vmin(op(one, other)),
+            (&Svmin(one), &Svmin(other)) => Svmin(op(one, other)),
+            (&Lvmin(one), &Lvmin(other)) => Lvmin(op(one, other)),
+            (&Dvmin(one), &Dvmin(other)) => Dvmin(op(one, other)),
+            (&Vmax(one), &Vmax(other)) => Vmax(op(one, other)),
+            (&Svmax(one), &Svmax(other)) => Svmax(op(one, other)),
+            (&Lvmax(one), &Lvmax(other)) => Lvmax(op(one, other)),
+            (&Dvmax(one), &Dvmax(other)) => Dvmax(op(one, other)),
+            (&Vb(one), &Vb(other)) => Vb(op(one, other)),
+            (&Svb(one), &Svb(other)) => Svb(op(one, other)),
+            (&Lvb(one), &Lvb(other)) => Lvb(op(one, other)),
+            (&Dvb(one), &Dvb(other)) => Dvb(op(one, other)),
+            (&Vi(one), &Vi(other)) => Vi(op(one, other)),
+            (&Svi(one), &Svi(other)) => Svi(op(one, other)),
+            (&Lvi(one), &Lvi(other)) => Lvi(op(one, other)),
+            (&Dvi(one), &Dvi(other)) => Dvi(op(one, other)),
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
             _ => unsafe {
@@ -471,7 +460,7 @@ impl ViewportPercentageLength {
                     Svmax(..) | Lvmax(..) | Dvmax(..) | Vb(..) | Svb(..) | Lvb(..) | Dvb(..) |
                     Vi(..) | Svi(..) | Lvi(..) | Dvi(..) => {},
                 }
-                debug_unreachable!("Forgot to handle unit in try_sum()")
+                debug_unreachable!("Forgot to handle unit in try_op()")
             },
         })
     }
@@ -563,14 +552,6 @@ impl AbsoluteLength {
         }
     }
 
-    fn is_zero(&self) -> bool {
-        self.unitless_value() == 0.
-    }
-
-    fn is_negative(&self) -> bool {
-        self.unitless_value() < 0.
-    }
-
     /// Convert this into a pixel value.
     #[inline]
     pub fn to_px(&self) -> CSSFloat {
@@ -586,6 +567,22 @@ impl AbsoluteLength {
             AbsoluteLength::Pc(value) => value * PX_PER_PC,
         };
         pixel.min(f32::MAX).max(f32::MIN)
+    }
+
+    fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32,
+    {
+        Ok(match (self, other) {
+            (AbsoluteLength::Px(x), AbsoluteLength::Px(y)) => AbsoluteLength::Px(op(*x, *y)),
+            (AbsoluteLength::In(x), AbsoluteLength::In(y)) => AbsoluteLength::In(op(*x, *y)),
+            (AbsoluteLength::Cm(x), AbsoluteLength::Cm(y)) => AbsoluteLength::Cm(op(*x, *y)),
+            (AbsoluteLength::Mm(x), AbsoluteLength::Mm(y)) => AbsoluteLength::Mm(op(*x, *y)),
+            (AbsoluteLength::Q(x), AbsoluteLength::Q(y)) => AbsoluteLength::Q(op(*x, *y)),
+            (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(op(*x, *y)),
+            (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(op(*x, *y)),
+            _ => AbsoluteLength::Px(op(self.to_px(), other.to_px())),
+        })
     }
 }
 
@@ -679,15 +676,10 @@ impl ContainerRelativeLength {
         }
     }
 
-    fn is_zero(&self) -> bool {
-        self.unitless_value() == 0.
-    }
-
-    fn is_negative(&self) -> bool {
-        self.unitless_value() < 0.
-    }
-
-    fn try_sum(&self, other: &Self) -> Result<Self, ()> {
+    pub(crate) fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32,
+    {
         use self::ContainerRelativeLength::*;
 
         if std::mem::discriminant(self) != std::mem::discriminant(other) {
@@ -695,12 +687,12 @@ impl ContainerRelativeLength {
         }
 
         Ok(match (self, other) {
-            (&Cqw(one), &Cqw(other)) => Cqw(one + other),
-            (&Cqh(one), &Cqh(other)) => Cqh(one + other),
-            (&Cqi(one), &Cqi(other)) => Cqi(one + other),
-            (&Cqb(one), &Cqb(other)) => Cqb(one + other),
-            (&Cqmin(one), &Cqmin(other)) => Cqmin(one + other),
-            (&Cqmax(one), &Cqmax(other)) => Cqmax(one + other),
+            (&Cqw(one), &Cqw(other)) => Cqw(op(one, other)),
+            (&Cqh(one), &Cqh(other)) => Cqh(op(one, other)),
+            (&Cqi(one), &Cqi(other)) => Cqi(op(one, other)),
+            (&Cqb(one), &Cqb(other)) => Cqb(op(one, other)),
+            (&Cqmin(one), &Cqmin(other)) => Cqmin(op(one, other)),
+            (&Cqmax(one), &Cqmax(other)) => Cqmax(op(one, other)),
 
             // See https://github.com/rust-lang/rust/issues/68867, then
             // https://github.com/rust-lang/rust/pull/95161. rustc isn't
@@ -709,7 +701,7 @@ impl ContainerRelativeLength {
                 match *self {
                     Cqw(..) | Cqh(..) | Cqi(..) | Cqb(..) | Cqmin(..) | Cqmax(..) => {},
                 }
-                debug_unreachable!("Forgot to handle unit in try_sum()")
+                debug_unreachable!("Forgot to handle unit in try_op()")
             },
         })
     }
@@ -748,6 +740,42 @@ fn are_container_queries_enabled() -> bool {
 #[cfg(feature = "servo")]
 fn are_container_queries_enabled() -> bool {
     false
+}
+
+impl Sub<AbsoluteLength> for AbsoluteLength {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (AbsoluteLength::Px(x), AbsoluteLength::Px(y)) => AbsoluteLength::Px(x - y),
+            (AbsoluteLength::In(x), AbsoluteLength::In(y)) => AbsoluteLength::In(x - y),
+            (AbsoluteLength::Cm(x), AbsoluteLength::Cm(y)) => AbsoluteLength::Cm(x - y),
+            (AbsoluteLength::Mm(x), AbsoluteLength::Mm(y)) => AbsoluteLength::Mm(x - y),
+            (AbsoluteLength::Q(x), AbsoluteLength::Q(y)) => AbsoluteLength::Q(x - y),
+            (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(x - y),
+            (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(x - y),
+            _ => AbsoluteLength::Px(self.to_px() - rhs.to_px()),
+        }
+    }
+}
+
+impl Rem<AbsoluteLength> for AbsoluteLength {
+    type Output = Self;
+
+    #[inline]
+    fn rem(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (AbsoluteLength::Px(x), AbsoluteLength::Px(y)) => AbsoluteLength::Px(x % y),
+            (AbsoluteLength::In(x), AbsoluteLength::In(y)) => AbsoluteLength::In(x % y),
+            (AbsoluteLength::Cm(x), AbsoluteLength::Cm(y)) => AbsoluteLength::Cm(x % y),
+            (AbsoluteLength::Mm(x), AbsoluteLength::Mm(y)) => AbsoluteLength::Mm(x % y),
+            (AbsoluteLength::Q(x), AbsoluteLength::Q(y)) => AbsoluteLength::Q(x % y),
+            (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(x % y),
+            (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(x % y),
+            _ => AbsoluteLength::Px(self.to_px() % rhs.to_px()),
+        }
+    }
 }
 
 /// A `<length>` without taking `calc` expressions into account
@@ -811,13 +839,22 @@ impl NoCalcLength {
 
     /// Returns whether the value of this length without unit is less than zero.
     pub fn is_negative(&self) -> bool {
-        match *self {
-            NoCalcLength::Absolute(v) => v.is_negative(),
-            NoCalcLength::FontRelative(v) => v.is_negative(),
-            NoCalcLength::ViewportPercentage(v) => v.is_negative(),
-            NoCalcLength::ContainerRelative(v) => v.is_negative(),
-            NoCalcLength::ServoCharacterWidth(c) => c.0 < 0,
-        }
+        self.unitless_value().is_sign_negative()
+    }
+
+    /// Returns whether the value of this length without unit is equal to zero.
+    pub fn is_zero(&self) -> bool {
+        self.unitless_value() == 0.0
+    }
+
+    /// Returns whether the value of this length without unit is infinite.
+    pub fn is_infinite(&self) -> bool {
+        self.unitless_value().is_infinite()
+    }
+
+    /// Returns whether the value of this length without unit is NaN.
+    pub fn is_nan(&self) -> bool {
+        self.unitless_value().is_nan()
     }
 
     /// Whether text-only zoom should be applied to this length.
@@ -952,8 +989,10 @@ impl NoCalcLength {
         })
     }
 
-    /// Try to sume two lengths if compatible into the left hand side.
-    pub(crate) fn try_sum(&self, other: &Self) -> Result<Self, ()> {
+    pub(crate) fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32,
+    {
         use self::NoCalcLength::*;
 
         if std::mem::discriminant(self) != std::mem::discriminant(other) {
@@ -961,16 +1000,18 @@ impl NoCalcLength {
         }
 
         Ok(match (self, other) {
-            (&Absolute(ref one), &Absolute(ref other)) => Absolute(*one + *other),
-            (&FontRelative(ref one), &FontRelative(ref other)) => FontRelative(one.try_sum(other)?),
+            (&Absolute(ref one), &Absolute(ref other)) => Absolute(one.try_op(other, op)?),
+            (&FontRelative(ref one), &FontRelative(ref other)) => {
+                FontRelative(one.try_op(other, op)?)
+            },
             (&ViewportPercentage(ref one), &ViewportPercentage(ref other)) => {
-                ViewportPercentage(one.try_sum(other)?)
+                ViewportPercentage(one.try_op(other, op)?)
             },
             (&ContainerRelative(ref one), &ContainerRelative(ref other)) => {
-                ContainerRelative(one.try_sum(other)?)
+                ContainerRelative(one.try_op(other, op)?)
             },
             (&ServoCharacterWidth(ref one), &ServoCharacterWidth(ref other)) => {
-                ServoCharacterWidth(CharacterWidth(one.0 + other.0))
+                ServoCharacterWidth(CharacterWidth(op(one.0 as f32, other.0 as f32) as i32))
             },
             // See https://github.com/rust-lang/rust/issues/68867. rustc isn't
             // able to figure it own on its own so we help.
@@ -982,7 +1023,7 @@ impl NoCalcLength {
                     ContainerRelative(..) |
                     ServoCharacterWidth(..) => {},
                 }
-                debug_unreachable!("Forgot to handle unit in try_sum()")
+                debug_unreachable!("Forgot to handle unit in try_op()")
             },
         })
     }
@@ -1045,13 +1086,7 @@ impl Zero for NoCalcLength {
     }
 
     fn is_zero(&self) -> bool {
-        match *self {
-            NoCalcLength::Absolute(v) => v.is_zero(),
-            NoCalcLength::FontRelative(v) => v.is_zero(),
-            NoCalcLength::ViewportPercentage(v) => v.is_zero(),
-            NoCalcLength::ContainerRelative(v) => v.is_zero(),
-            NoCalcLength::ServoCharacterWidth(v) => v.0 == 0,
-        }
+        NoCalcLength::is_zero(self)
     }
 }
 
@@ -1170,7 +1205,7 @@ impl PartialOrd for ContainerRelativeLength {
                 match *self {
                     Cqw(..) | Cqh(..) | Cqi(..) | Cqb(..) | Cqmin(..) | Cqmax(..) => {},
                 }
-                debug_unreachable!("Forgot to handle unit in try_sum()")
+                debug_unreachable!("Forgot to handle unit in partial_cmp()")
             },
         }
     }

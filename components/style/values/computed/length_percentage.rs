@@ -624,10 +624,10 @@ impl PartialOrd for CalcLengthPercentageLeaf {
 }
 
 impl calc::CalcNodeLeaf for CalcLengthPercentageLeaf {
-    fn is_negative(&self) -> bool {
+    fn unitless_value(&self) -> f32 {
         match *self {
-            Self::Length(ref l) => l.px() < 0.,
-            Self::Percentage(ref p) => p.0 < 0.,
+            Self::Length(ref l) => l.px(),
+            Self::Percentage(ref p) => p.0,
         }
     }
 
@@ -655,6 +655,28 @@ impl calc::CalcNodeLeaf for CalcLengthPercentageLeaf {
         }
 
         Ok(())
+    }
+
+    fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32,
+    {
+        match (self, other) {
+            (
+                &CalcLengthPercentageLeaf::Length(ref one),
+                &CalcLengthPercentageLeaf::Length(ref other),
+            ) => Ok(CalcLengthPercentageLeaf::Length(Length::new(op(
+                one.px(),
+                other.px(),
+            )))),
+            (
+                &CalcLengthPercentageLeaf::Percentage(one),
+                &CalcLengthPercentageLeaf::Percentage(other),
+            ) => Ok(CalcLengthPercentageLeaf::Percentage(Percentage(op(
+                one.0, other.0,
+            )))),
+            _ => Err(()),
+        }
     }
 
     fn mul_by(&mut self, scalar: f32) {

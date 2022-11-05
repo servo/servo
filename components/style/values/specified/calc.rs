@@ -8,7 +8,7 @@
 
 use crate::parser::ParserContext;
 use crate::values::generics::calc as generic;
-use crate::values::generics::calc::{MinMaxOp, SortKey};
+use crate::values::generics::calc::{MinMaxOp, RoundingStrategy, SortKey};
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::length::{ContainerRelativeLength, ViewportPercentageLength};
 use crate::values::specified::{self, Angle, Time};
@@ -45,6 +45,8 @@ pub enum MathFunction {
     Max,
     /// `clamp()`: https://drafts.csswg.org/css-values-4/#funcdef-clamp
     Clamp,
+    /// `round()`: https://drafts.csswg.org/css-values-4/#funcdef-round
+    Round,
     /// `sin()`: https://drafts.csswg.org/css-values-4/#funcdef-sin
     Sin,
     /// `cos()`: https://drafts.csswg.org/css-values-4/#funcdef-cos
@@ -185,12 +187,12 @@ impl PartialOrd for Leaf {
 }
 
 impl generic::CalcNodeLeaf for Leaf {
-    fn is_negative(&self) -> bool {
+    fn unitless_value(&self) -> f32 {
         match *self {
-            Self::Length(ref l) => l.is_negative(),
-            Self::Percentage(n) | Self::Number(n) => n < 0.,
-            Self::Angle(ref a) => a.degrees() < 0.,
-            Self::Time(ref t) => t.seconds() < 0.,
+            Self::Length(ref l) => l.unitless_value(),
+            Self::Percentage(n) | Self::Number(n) => n,
+            Self::Angle(ref a) => a.degrees(),
+            Self::Time(ref t) => t.seconds(),
         }
     }
 
@@ -300,7 +302,7 @@ impl generic::CalcNodeLeaf for Leaf {
                 *one = specified::Time::from_calc(one.seconds() + other.seconds());
             },
             (&mut Length(ref mut one), &Length(ref other)) => {
-                *one = one.try_sum(other)?;
+                *one = one.try_op(other, std::ops::Add::add)?;
             },
             _ => {
                 match *other {
@@ -313,6 +315,49 @@ impl generic::CalcNodeLeaf for Leaf {
         }
 
         Ok(())
+    }
+
+    fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
+    where
+        O: Fn(f32, f32) -> f32,
+    {
+        use self::Leaf::*;
+
+        if std::mem::discriminant(self) != std::mem::discriminant(other) {
+            return Err(());
+        }
+
+        match (self, other) {
+            (&Number(one), &Number(other)) => {
+                return Ok(Leaf::Number(op(one, other)));
+            },
+            (&Percentage(one), &Percentage(other)) => {
+                return Ok(Leaf::Percentage(op(one, other)));
+            },
+            (&Angle(ref one), &Angle(ref other)) => {
+                return Ok(Leaf::Angle(specified::Angle::from_calc(op(
+                    one.degrees(),
+                    other.degrees(),
+                ))));
+            },
+            (&Time(ref one), &Time(ref other)) => {
+                return Ok(Leaf::Time(specified::Time::from_calc(op(
+                    one.seconds(),
+                    other.seconds(),
+                ))));
+            },
+            (&Length(ref one), &Length(ref other)) => {
+                return Ok(Leaf::Length(one.try_op(other, op)?));
+            },
+            _ => {
+                match *other {
+                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) => {},
+                }
+                unsafe {
+                    debug_unreachable!();
+                }
+            },
+        }
     }
 }
 
@@ -406,6 +451,36 @@ impl CalcNode {
                         min: Box::new(min),
                         center: Box::new(center),
                         max: Box::new(max),
+                    })
+                },
+                MathFunction::Round => {
+                    let strategy = input.try_parse(parse_rounding_strategy);
+
+                    // <rounding-strategy> = nearest | up | down | to-zero
+                    // https://drafts.csswg.org/css-values-4/#calc-syntax
+                    fn parse_rounding_strategy<'i, 't>(
+                        input: &mut Parser<'i, 't>,
+                    ) -> Result<RoundingStrategy, ParseError<'i>> {
+                        Ok(try_match_ident_ignore_ascii_case! { input,
+                            "nearest" => RoundingStrategy::Nearest,
+                            "up" => RoundingStrategy::Up,
+                            "down" => RoundingStrategy::Down,
+                            "to-zero" => RoundingStrategy::ToZero,
+                        })
+                    }
+
+                    if strategy.is_ok() {
+                        input.expect_comma()?;
+                    }
+
+                    let value = Self::parse_argument(context, input, allowed_units)?;
+                    input.expect_comma()?;
+                    let step = Self::parse_argument(context, input, allowed_units)?;
+
+                    Ok(Self::Round {
+                        strategy: strategy.unwrap_or(RoundingStrategy::Nearest),
+                        value: Box::new(value),
+                        step: Box::new(step),
                     })
                 },
                 MathFunction::Min | MathFunction::Max => {
@@ -694,7 +769,15 @@ impl CalcNode {
             },
         };
 
-        if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan | Atan2) && !trig_enabled() {
+        let enabled = if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan | Atan2) {
+            trig_enabled()
+        } else if matches!(function, Round) {
+            static_prefs::pref!("layout.css.round.enabled")
+        } else {
+            true
+        };
+
+        if !enabled {
             return Err(location.new_unexpected_token_error(Token::Function(name.clone())));
         }
 
