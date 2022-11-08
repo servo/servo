@@ -6853,9 +6853,9 @@ checksum = "ce607aae8ab0ab3abf3a2723a9ab6f09bb8639ed83fdd888d857b8e556c868d8"
 
 [[package]]
 name = "truetype"
-version = "0.30.1"
+version = "0.30.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "063aa7cf1a7e56677e639c8f180a84d30b8fd788a684cfee2460418629925730"
+checksum = "1c088e2796574e6418c05c556b1a9ec81c61998a97e85ff27bd875254c029a5b"
 
 [[package]]
 name = "try-lock"
