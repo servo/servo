@@ -55,4 +55,4 @@ jobs:
           git fetch sync-fork ${{ env.UPDATE_BRANCH }}
           git checkout ${{ env.UPDATE_BRANCH }}
           # TODO: comment `@bors-servo r+` from `@servo-wpt-sync`
-          gh pr create --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" --body "$BODY" --head
+          gh pr create --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" --body "$BODY" --head ${{ env.UPDATE_BRANCH }}
