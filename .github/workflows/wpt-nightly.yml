@@ -122,9 +122,7 @@ jobs:
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: wpt_update_${{ env.CURRENT_DATE }}
-          repository: servo-wpt-sync/servo
       - name: Open PR
         env:
           GH_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
@@ -136,8 +134,5 @@ jobs:
           r? @servo-wpt-sync
           EOF
           )
-          git remote add sync-fork https://github.com/servo-wpt-sync/servo.git
-          git fetch sync-fork ${{ env.UPDATE_BRANCH }}
-          git checkout ${{ env.UPDATE_BRANCH }}
           # TODO: comment `@bors-servo r+` from `@servo-wpt-sync`
-          gh pr create --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" --body "$BODY"
+          gh pr create --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" --body "$BODY" --head ${{ env.UPDATE_BRANCH }}
