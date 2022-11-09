@@ -24,6 +24,8 @@ jobs:
         run: |
           git config --local user.email "josh+wptsync@joshmatthews.net"
           git config --local user.name "WPT Sync Bot"
+          git remote add upstream https://github.com/servo/servo.git
+          git fetch --unshallow upstream
       - name: Run WPT Update
         env:
           MAX_CHUNK_ID: 20
