@@ -18,20 +18,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
+          persist-credentials: false
           fetch-depth: 2
       - name: Add upstream remote
         run: |
           git config --local user.email "josh+wptsync@joshmatthews.net"
           git config --local user.name "WPT Sync Bot"
-          git remote add upstream https://github.com/servo/servo.git
-          git fetch --unshallow upstream
       - name: Run WPT Update
         env:
           MAX_CHUNK_ID: 20
           WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
         run: |
-          echo "hello" >> tests/wpt/metadata/new
           git checkout -b wpt_update_${{ env.CURRENT_DATE }}
+          echo "hello" >> tests/wpt/metadata/new
           git add tests/wpt/metadata
           git commit -a -m "wpt update"
       - name: Push changes
