@@ -669,6 +669,11 @@ impl Parse for LineNameList {
         input.expect_ident_matching("subgrid")?;
         let mut line_names = vec![];
         let mut fill_data = None;
+        // Rather than truncating the result after inserting values, just
+        // have a maximum number of values. This gives us an early out on very
+        // large name lists, but more importantly prevents OOM on huge repeat
+        // expansions. (bug 1583429)
+        let mut max_remaining = MAX_GRID_LINE as usize;
 
         loop {
             let repeat_parse_result = input.try_parse(|input| {
@@ -685,34 +690,40 @@ impl Parse for LineNameList {
                 })
             });
             if let Ok((names_list, count)) = repeat_parse_result {
+                let mut handle_size = |n| {
+                    let n = cmp::min(n, max_remaining);
+                    max_remaining -= n;
+                    n
+                };
                 match count {
                     // FIXME(emilio): we shouldn't expand repeat() at
                     // parse time for subgrid. (bug 1583429)
-                    RepeatCount::Number(num) => line_names.extend(
-                        names_list
-                            .iter()
-                            .cloned()
-                            .cycle()
-                            .take(num.value() as usize * names_list.len()),
-                    ),
+                    RepeatCount::Number(num) => {
+                        let n = handle_size(
+                            num.value() as usize * names_list.len());
+                        line_names.extend(
+                            names_list.iter().cloned().cycle().take(n));
+                    },
                     RepeatCount::AutoFill if fill_data.is_none() => {
                         let fill_idx = line_names.len();
                         let fill_len = names_list.len();
                         fill_data = Some((fill_idx, fill_len));
-                        line_names.extend(names_list.into_iter());
+                        let n = handle_size(fill_len);
+                        line_names.extend(names_list.into_iter().take(n));
                     },
                     _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                 }
             } else if let Ok(names) = input.try_parse(parse_line_names) {
-                line_names.push(names);
+                if max_remaining > 0 {
+                    line_names.push(names);
+                    max_remaining -= 1;
+                }
             } else {
                 break;
             }
         }
 
-        if line_names.len() > MAX_GRID_LINE as usize {
-            line_names.truncate(MAX_GRID_LINE as usize);
-        }
+        debug_assert!(line_names.len() <= MAX_GRID_LINE as usize);
 
         let (fill_start, fill_len) = fill_data.unwrap_or((0, 0));
 
