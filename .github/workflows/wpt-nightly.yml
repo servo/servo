@@ -39,7 +39,6 @@ jobs:
         with:
           github_token: ${{ secrets.WPT_SYNC_TOKEN }}
           branch: wpt_update_${{ env.CURRENT_DATE }}
-          repository: servo-wpt-sync/servo
       - name: Open PR
         env:
           GH_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
@@ -56,3 +55,4 @@ jobs:
           git checkout ${{ env.UPDATE_BRANCH }}
           # TODO: comment `@bors-servo r+` from `@servo-wpt-sync`
           gh pr create --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" --body "$BODY" --head ${{ env.UPDATE_BRANCH }}
+
