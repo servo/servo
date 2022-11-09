@@ -17,7 +17,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          persist-credentials: false
           fetch-depth: 2
       - name: Add upstream remote
         run: |
@@ -37,7 +36,6 @@ jobs:
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.WPT_SYNC_TOKEN }}
           branch: wpt_update_${{ env.CURRENT_DATE }}
       - name: Open PR
         env:
