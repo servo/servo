@@ -30,6 +30,7 @@ jobs:
           WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
         run: |
           echo "hello" >> tests/wpt/metadata/new
+          git checkout -b wpt_update_${{ env.CURRENT_DATE }}
           git add tests/wpt/metadata
           git commit -a -m "wpt update"
       - name: Push changes
