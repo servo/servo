@@ -1,5 +1,6 @@
 import fontforge
 
+PUA_startCodePoint = 0xE000
 em = 1000
 
 def create(aName, aCopyRight):
@@ -170,12 +171,20 @@ def createGlyphFromValue(aFont, aCodePoint):
     g.width = 5 * em / 2
     g.stroke("circular", em / 10, "square", "miter", "cleanup")
 
-def createSizeVariants(aFont):
+def createSizeVariants(aFont, aUsePUA = False):
+    if aUsePUA:
+        codePoint = PUA_startCodePoint
+    else:
+        codePoint = -1
     for size in (0, 1, 2, 3):
-        g = aFont.createChar(-1, "v%d" % size)
+        g = aFont.createChar(codePoint, "v%d" % size)
         drawRectangleGlyph(g, em, (size + 1) * em, 0)
-        g = aFont.createChar(-1, "h%d" % size)
+        if aUsePUA:
+            codePoint += 1
+        g = aFont.createChar(codePoint, "h%d" % size)
         drawRectangleGlyph(g, (size + 1) * em, em, 0)
+        if aUsePUA:
+            codePoint += 1
 
 def createStretchy(aFont, codePoint, isHorizontal):
     if isHorizontal:

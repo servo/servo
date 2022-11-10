@@ -68,4 +68,16 @@ test(() => {
   assert_throws_js(TypeError, () => i1.files = [], "files cannot be set to an array");
   assert_throws_js(TypeError, () => i1.files = [new File([], "x")], "files cannot be set to an array (even when it contains File objects)");
 }, "setting <input type=file>.files");
+
+test(() => {
+  const i = document.createElement("input");
+  i.type = "file";
+
+  let dt = new DataTransfer();
+
+  const files = dt.files;
+  i.files = files;
+  assert_equals(i.files, files, "FileList should not be copied");
+  assert_equals(dt.files, files, "FileList can be shared across input / DataTransfer");
+}, "setting <input type=file>.files from DataTransfer");
 </script>

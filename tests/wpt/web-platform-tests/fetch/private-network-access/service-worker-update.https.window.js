@@ -28,8 +28,7 @@ async function makeTest(t, { target, expected }) {
       "resources/service-worker-bridge.html",
       sourceResolveOptions({ server: target.server }));
 
-  const scriptUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const scriptUrl = preflightUrl(target);
   scriptUrl.searchParams.append("treat-as-public-once", token());
   scriptUrl.searchParams.append("mime-type", "application/javascript");
   scriptUrl.searchParams.append("file", "service-worker.js");
@@ -98,7 +97,7 @@ promise_test(t => makeTest(t, {
 promise_test(t => makeTest(t, {
   target: {
     server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    behavior: { preflight: PreflightBehavior.serviceWorkerSuccess(token()) },
   },
   expected: TestResult.SUCCESS,
 }), "update public to local: success.");
@@ -111,7 +110,7 @@ promise_test(t => makeTest(t, {
 promise_test(t => makeTest(t, {
   target: {
     server: Server.HTTPS_PRIVATE,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    behavior: { preflight: PreflightBehavior.serviceWorkerSuccess(token()) },
   },
   expected: TestResult.SUCCESS,
 }), "update public to private: success.");

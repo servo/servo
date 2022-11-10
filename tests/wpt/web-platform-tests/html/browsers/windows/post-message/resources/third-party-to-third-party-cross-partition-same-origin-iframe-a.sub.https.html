@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<body>
+<script>
+// Step 5 (html/browsers/windows/post-message/third-party-to-third-party-cross-partition-same-origin.sub.html)
+let site3Window;
+const listener = e => {
+  if (e.data === "Site 2 Frame B") {
+    site3Window.close();
+    window.top.postMessage("Site 2 Frame A", "*");
+  }
+};
+// Step 2 (html/browsers/windows/post-message/third-party-to-third-party-cross-partition-same-origin.sub.html)
+window.addEventListener("message", listener);
+site3Window = window.open("https://{{host}}:{{ports[https][0]}}/html/browsers/windows/post-message/resources/third-party-to-third-party-cross-partition-same-origin-window.sub.https.html", "", "noopener=false");
+</script>
+</body>

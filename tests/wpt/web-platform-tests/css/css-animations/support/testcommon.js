@@ -87,6 +87,32 @@ function assert_frame_lists_equal(actual, expected) {
 }
 
 /**
+ * Appends an element to the document body.
+ *
+ * @param t  The testharness.js Test object. If provided, this will be used
+ *           to register a cleanup callback to remove the div when the test
+ *           finishes.
+ *
+ * @param name  A string specifying the element name.
+ *
+ * @param attrs  A dictionary object with attribute names and values to set on
+ *               the div.
+ */
+function addElement(t, name, attrs) {
+  var element = document.createElement(name);
+  if (attrs) {
+    for (var attrName in attrs) {
+      element.setAttribute(attrName, attrs[attrName]);
+    }
+  }
+  document.body.appendChild(element);
+  if (t && typeof t.add_cleanup === 'function') {
+      t.add_cleanup(() => element.remove());
+  }
+  return element;
+}
+
+/**
  * Appends a div to the document body.
  *
  * @param t  The testharness.js Test object. If provided, this will be used
@@ -97,21 +123,7 @@ function assert_frame_lists_equal(actual, expected) {
  *               the div.
  */
 function addDiv(t, attrs) {
-  var div = document.createElement('div');
-  if (attrs) {
-    for (var attrName in attrs) {
-      div.setAttribute(attrName, attrs[attrName]);
-    }
-  }
-  document.body.appendChild(div);
-  if (t && typeof t.add_cleanup === 'function') {
-    t.add_cleanup(function() {
-      if (div.parentNode) {
-        div.remove();
-      }
-    });
-  }
-  return div;
+  return addElement(t, "div", attrs);
 }
 
 /**

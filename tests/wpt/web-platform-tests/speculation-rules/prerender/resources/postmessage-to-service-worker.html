@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-service-worker-postmessage.https.html) loads
+// the initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  assert_not_equals(navigator.serviceWorker.controller, null,
+                    'prerendered page should be controlled');
+
+  const prerenderEventCollector = new PrerenderEventCollector();
+
+  // Promise to wait for a reply from the service worker.
+  const messagePromise = new Promise(resolve => {
+    navigator.serviceWorker.onmessage = e => {
+      prerenderEventCollector.addEvent(e.data);
+      resolve();
+    };
+  });
+  navigator.serviceWorker.controller.postMessage('postmessage to worker');
+
+  prerenderEventCollector.start(messagePromise, 'ServiceWorker.postMessage');
+}
+
+</script>

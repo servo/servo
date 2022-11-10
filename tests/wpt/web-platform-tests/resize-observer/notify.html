@@ -194,19 +194,29 @@ function test5() {
 
 function test6() {
   let helper = new ResizeTestHelper(
-    "test6: inline element does not notify",
+    "test6: inline element notifies once with 0x0.",
   [
     {
       setup: observer => {
         observer.observe(inline);
-        observer.observe(t1);
-        t1.style.width = "66px";
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1, "observing inline element triggers notification");
+        assert_equals(entries[0].target, inline, "observing inline element triggers notification");
+        assert_equals(entries[0].contentRect.width, 0);
+        assert_equals(entries[0].contentRect.height, 0);
+        return true; // Delay next step
+      }
+    },
+    {
+      setup: observer => {
         inline.style.width = "66px";
       },
       notify: (entries, observer) => {
-        assert_equals(entries.length, 1, "inline elements must not trigger notifications");
-        assert_equals(entries[0].target, t1, "inline elements must not trigger notifications");
-        return true; // Delay next step
+        assert_unreached("resizing inline element should not cause resize notifications");
+      },
+      timeout: () => {
+        // expected
       }
     },
     { // "inline element that becomes block should notify",
@@ -214,7 +224,8 @@ function test6() {
         inline.style.display = "block";
       },
       notify: (entries, observer) => {
-        assert_equals(entries[0].target, inline);
+        assert_equals(entries.length, 1, "inline element becoming a non-zero sized block triggers a notification");
+        assert_equals(entries[0].target, inline, "inline element becoming a non-zero sized block triggers a notification");
       }
     }
   ]);

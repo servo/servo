@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<audio id="audio" loop></audio>
+<video id="video" type="video/mp4"></video>
+<script>
+const params = new URLSearchParams(location.search);
+// The main test page (restriction-media-play.html) loads the initiator page,
+// then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const mediaType = params.get('type');
+  const media = document.getElementById(mediaType);
+  media.src = "./bear-av1-opus.mp4";
+
+  const prerenderEventCollector = new PrerenderEventCollector();
+  const promise = new Promise((resolve, reject) => {
+    media.play();
+
+    media.onloadedmetadata = () => {
+      prerenderEventCollector.addEvent(
+          'fired loadedmetadata event after prerendering is activated');
+      resolve();
+    };
+    media.onloadstart = () => {
+      // Wait some time to give the test a chance to load the data and fail the
+      // test.
+      setTimeout(() => {
+        prerenderEventCollector.start(promise, 'Media.Play');
+      }, 100);
+    };
+    media.onerror = reject;
+  });
+}
+</script>

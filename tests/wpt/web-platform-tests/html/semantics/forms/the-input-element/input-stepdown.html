@@ -8,9 +8,7 @@
 <input type="number" id="number_input" min="300" step="1" value="200">
 <input type="date" id="date_input"  min="2011-02-10" step="1" value="2010-02-10">
 <input type="datetime-local" id="dtl_input" min="2011-02-10T20:13" step="1" value="2010-02-10T20:13">
-<input type="month" id="month_input" min="2011-02" step="1" value="2010-02">
 <input type="time" id="time_input" min="21:13" step="60" value="20:13">
-<input type="week" id="week_input" min="2011-W02" step="1" value="2010-W02">
 
 <script>
     var input_number = document.getElementById("input_number");
@@ -40,8 +38,6 @@
     testStepDownOverflow("number_input", "200", "number");
     testStepDownOverflow("date_input", "2010-02-10", "date");
     testStepDownOverflow("dtl_input", "2010-02-10T20:13", "datetime-local");
-    testStepDownOverflow("month_input", "2010-02", "month");
     testStepDownOverflow("time_input", "20:13", "time");
-    testStepDownOverflow("week_input", "2010-W02", "week");
 </script>
 </html>

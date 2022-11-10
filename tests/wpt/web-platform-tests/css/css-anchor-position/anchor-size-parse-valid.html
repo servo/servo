@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Tests parsing of the anchor-size() function</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+const sizeProperties = [
+  'width',
+  'min-width',
+  'max-width',
+  'height',
+  'min-height',
+  'max-height',
+  'block-size',
+  'min-block-size',
+  'max-block-size',
+  'inline-size',
+  'min-inline-size',
+  'max-inline-size',
+];
+
+const anchorSizes = [
+  'width',
+  'height',
+  'block',
+  'inline',
+  'self-block',
+  'self-inline',
+];
+
+const fallbacks = [
+  null,
+  '1px',
+  '50%',
+  'calc(1px + 50%)',
+  'anchor-size(--bar block)',
+  'anchor-size(--bar block, anchor-size(--baz inline))',
+];
+
+// Tests basic combinations
+for (let property of sizeProperties) {
+  for (let size of anchorSizes) {
+    for (let fallback of fallbacks) {
+      let value = `anchor-size(--foo ${size}${fallback ? ', ' + fallback : ''})`;
+      test_valid_value(property, value);
+    }
+  }
+}
+
+// Tests that anchor-size() can be used in a calc tree
+test_valid_value('width', 'calc((anchor-size(--foo width) + anchor-size(--bar height)) / 2)');
+test_valid_value('width', 'anchor-size(--foo width, calc(anchor-size(--bar height) * 0.5))');
+test_valid_value('width', 'min(100px, 10%, anchor-size(--foo width), anchor-size(--bar height))');
+</script>

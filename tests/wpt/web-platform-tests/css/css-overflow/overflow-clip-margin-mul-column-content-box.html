@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Overflow: verifies multi-col layout uses overflow-clip-margin correctly</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#overflow-clip-margin">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="overflow-clip-margin-mul-column-content-box-ref.html">
+<style>
+  body {
+    width: 200px;
+    height: 50px;
+    column-count: 2;
+  }
+
+  .container {
+    height: 50px;
+    border: 5px solid grey;
+    padding: 5px;
+    overflow: clip;
+    overflow-clip-margin: content-box;
+  }
+
+  .content {
+    position: relative;
+    top: -20px;
+    left: -20px;
+    width: 100px;
+    height: 50px;
+  }
+</style>
+<div class="container">
+  <div class="content" style="background:blue"></div>
+  <div class="content" style="background:green"></div>
+</div>

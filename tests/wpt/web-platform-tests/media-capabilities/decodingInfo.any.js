@@ -126,6 +126,29 @@ promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
     type: 'file',
     video: {
+      contentType: 'application/ogg; codec=vorbis',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration contentType is of type audio");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: {
+      contentType: 'application/ogg; codec=theora',
+      channels: 2,
+    },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contentType is of type video");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"; foo="bar"',
       width: 800,
       height: 600,

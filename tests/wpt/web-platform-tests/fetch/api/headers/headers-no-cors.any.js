@@ -38,7 +38,9 @@ const longValue = "s".repeat(127);
 function runTests(testArray) {
   testArray = testArray.concat([
     ["dpr", "2"],
-    ["downlink", "1"],
+    ["rtt", "1.0"],
+    ["downlink", "-1.0"],
+    ["ect", "6g"],
     ["save-data", "on"],
     ["viewport-width", "100"],
     ["width", "100"],

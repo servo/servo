@@ -32,6 +32,19 @@ test_shorthand_value('grid', '10px / 20%', {
   'grid-auto-flow': 'row'
 });
 
+// This could theoretically be serialized as "auto-flow / 10px",
+// but spec mandates the 'grid-template-*' form when the
+// 'grid-auto-*' properties are all initial.
+test_shorthand_value('grid', 'none / 10px', {
+  'grid-template-rows': 'none',
+  'grid-template-columns': '10px',
+  'grid-template-areas': 'none',
+
+  'grid-auto-rows': 'auto',
+  'grid-auto-columns': 'auto',
+  'grid-auto-flow': 'row'
+});
+
 test_shorthand_value('grid', 'fit-content(calc(-0.5em + 10px)) / fit-content(calc(0.5em + 10px))', {
   'grid-template-rows': 'fit-content(calc(-0.5em + 10px))',
   'grid-template-columns': 'fit-content(calc(0.5em + 10px))',

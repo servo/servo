@@ -11,7 +11,7 @@
 const TEST_CASES = [
   {value: "", expected: "", test: "Empty value"},
   {value: "a=b", expected: "a=b", test: "A simple cookie"},
-  {value: "b=A\0Z", expected: "b=A", test: "A null char"},
+  {value: "b=A\0Z", expected: "", test: "A null char"},
 ];
 
 test(function(){

@@ -1,7 +1,7 @@
 import sys
 import types
 import py
-from py.builtin import set, frozenset, reversed, sorted
+from py.builtin import set, frozenset
 
 def test_enumerate():
     l = [0,1,2]
@@ -53,29 +53,6 @@ def test_frozenset():
     s = set([frozenset([0, 1]), frozenset([1, 0])])
     assert len(s) == 1
 
-def test_sorted():
-    if sorted == py.builtin.sorted:
-        return # don't test a real builtin
-    for s in [py.builtin.sorted]:
-        def test():
-            assert s([3, 2, 1]) == [1, 2, 3]
-            assert s([1, 2, 3], reverse=True) == [3, 2, 1]
-            l = s([1, 2, 3, 4, 5, 6], key=lambda x: x % 2)
-            assert l == [2, 4, 6, 1, 3, 5]
-            l = s([1, 2, 3, 4], cmp=lambda x, y: -cmp(x, y))
-            assert l == [4, 3, 2, 1]
-            l = s([1, 2, 3, 4], cmp=lambda x, y: -cmp(x, y),
-                        key=lambda x: x % 2)
-            assert l == [1, 3, 2, 4]
-
-            def compare(x, y):
-                assert type(x) == str
-                assert type(y) == str
-                return cmp(x, y)
-            data = 'The quick Brown fox Jumped over The lazy Dog'.split()
-            s(data, cmp=compare, key=str.lower)
-        yield test
-
 
 def test_print_simple():
     from py.builtin import print_
@@ -116,7 +93,7 @@ def test_execfile(tmpdir):
 
 def test_getfuncdict():
     def f():
-        pass
+        raise NotImplementedError
     f.x = 4
     assert py.builtin._getfuncdict(f)["x"] == 4
     assert py.builtin._getfuncdict(2) is None

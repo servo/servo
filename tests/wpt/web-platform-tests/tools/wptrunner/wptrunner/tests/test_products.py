@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs, allow-untyped-calls
+
 from os.path import join, dirname
 from unittest import mock
 

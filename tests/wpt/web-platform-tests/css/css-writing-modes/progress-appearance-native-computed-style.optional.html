@@ -1,0 +1,32 @@
+<!doctype html>
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-progress-element-2">
+<title>Progress appearance native writing mode computed style</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<progress value="30" min="0" max="100" style="writing-mode: horizontal-tb"></progress>
+<progress value="30" min="0" max="100" style="writing-mode: vertical-lr"></progress>
+<progress value="30" min="0" max="100" style="writing-mode: vertical-rl"></progress>
+
+<script>
+test(() => {
+  const progress = document.querySelector(`progress[style="writing-mode: horizontal-tb"]`);
+  const style = getComputedStyle(progress);
+  assert_equals(style.blockSize, "16px");
+  assert_equals(style.inlineSize, "160px");
+  assert_equals(style.blockSize, style.height);
+  assert_equals(style.inlineSize, style.width);
+}, `progress[style="writing-mode: horizontal-tb"] block size should match height and inline should match width`);
+
+for (const writingMode of ["vertical-lr", "vertical-rl"]) {
+  test(() => {
+    const progress = document.querySelector(`progress[style="writing-mode: ${writingMode}"]`);
+    const style = getComputedStyle(progress);
+    assert_equals(style.blockSize, "16px");
+    assert_equals(style.inlineSize, "160px");
+    assert_equals(style.blockSize, style.width);
+    assert_equals(style.inlineSize, style.height);
+  }, `progress[style="writing-mode: ${writingMode}"] block size should match width and inline should match width`);
+};
+</script>

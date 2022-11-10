@@ -74,7 +74,7 @@ const x_target = document.getElementById("x-axis-target");
 const y_target = document.getElementById("y-axis-target");
 const scroller = document.getElementById("scroller");
 
-test(() => {
+test(t => {
   // The scroller should be snapped to the two closest points on first layout.
   assert_equals(scroller.scrollTop, 200);
   assert_equals(scroller.scrollLeft, 200);

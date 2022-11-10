@@ -24,7 +24,7 @@ network_error_entry_test(`/common/redirect.py?location=${validDataURL}`, null, "
 network_error_entry_test('//{{hosts[][nonexistent]}}/common/dummy.xml', null, "DNS failure");
 network_error_entry_test(`http://${ORIGINAL_HOST}:${HTTP_PORT}/commo/dummy.xml`, null, "Mixed content");
 
-network_error_entry_test('/common/dummy.xml', {cache: 'only-if-cached'},
+network_error_entry_test('/common/dummy.xml', {cache: 'only-if-cached', mode: 'same-origin'},
     "only-if-cached resource that was not cached");
 
 network_error_entry_test(

@@ -27,8 +27,8 @@ g.addColorStop(0.50, "#0f0");
 g.addColorStop(0.75, "#f00");
 ctx.fillStyle = g;
 ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 25,15, 255,0,0,255, "25,15", "255,0,0,255");
-_assertPixel(canvas, 75,40, 0,255,0,255, "75,40", "0,255,0,255");
+_assertPixelApprox(canvas, 25,15, 255,0,0,255, 3);
+_assertPixelApprox(canvas, 75,40, 0,255,0,255, 3);
 
 
 });

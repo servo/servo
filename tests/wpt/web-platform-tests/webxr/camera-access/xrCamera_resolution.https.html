@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+};
+
+const test_camera_present = (session, fakeDeviceController, t) => {
+  return session.requestReferenceSpace('viewer').then(viewerRefSpace => {
+    return new Promise((resolve, reject) => {
+      const requestAnimationFrameCallbackWithCamera = (time, frame) => {
+        const viewerPose = frame.getViewerPose(viewerRefSpace);
+
+        t.step(() => {
+          let foundCamera = false;
+
+          assert_not_equals(viewerPose, null, "Viewer pose should not be null!");
+          assert_equals(viewerPose.views.length, VALID_VIEWS.length, "View lengths should match!");
+
+          for (const view of viewerPose.views) {
+            if (view.camera) {
+              assert_equals(view.camera.width, 333, "Width doesn't match expectations!");
+              assert_equals(view.camera.height, 444, "Height doesn't match expectations!");
+
+              foundCamera = true;
+            }
+          }
+
+          assert_true(foundCamera, "There should be at least one camera! Didn't find any.")
+        });
+
+        resolve();
+      };
+
+      const requestAnimationFrameCallbackNoCamera = (time, frame) => {
+
+        const viewerPose = frame.getViewerPose(viewerRefSpace);
+        t.step(() => {
+          assert_not_equals(viewerPose, null, "Viewer pose should not be null!");
+          assert_equals(viewerPose.views.length, VALID_VIEWS.length, "View lengths should match!");
+
+          for (const view of viewerPose.views) {
+            assert_equals(view.camera, null, "Camera should be null!");
+          }
+        });
+
+        const views_with_camera = VALID_VIEWS.map((element, index) => {
+          return {
+            ...element,
+            resolution: { width: 111 * (index+1),  height: 222 * (index+1)},
+            cameraImageInit: { width: 333, height: 444 },
+          };
+        });
+        fakeDeviceController.setViews(views_with_camera);
+
+        // After this rAFcb, the test is supposed to continue w/ a callback that
+        // expects XRCamera to be present:
+        session.requestAnimationFrame(requestAnimationFrameCallbackWithCamera);
+      };
+
+      // Kick off the test - start with rAFcb w/o an XRCamera:
+      session.requestAnimationFrame(requestAnimationFrameCallbackNoCamera);
+    });
+  });
+};
+
+xr_session_promise_test("XRCamera object is present and carries expected dimensions",
+  test_camera_present,
+  fakeDeviceInitParams, 'immersive-ar', {'requiredFeatures': ['camera-access']});
+
+</script>

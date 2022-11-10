@@ -7,7 +7,7 @@
   prevent cross-site script inclusion (XSSI) and similar attacks.  For example,
   it may be included in JSON files to prevent them from leaking data via a
   <script> tag, making the response only useful to a fetch or XmlHttpRequest.
-  See also https://chromium.googlesource.com/chromium/src/+/master/services/network/cross_origin_read_blocking_explainer.md#Protecting-JSON
+  See also https://chromium.googlesource.com/chromium/src/+/main/services/network/cross_origin_read_blocking_explainer.md#Protecting-JSON
 
   The assumption is that all images, other media, scripts, fonts and other
   resources that may be embedded cross-origin will never begin with a JSON
@@ -62,8 +62,10 @@ function test(mime_type, body) {
 
     // Without CORB, the JSON parser breaker would cause a syntax error when
     // parsed as JavaScript, but with CORB there should be no errors (because
-    // CORB will replace the response body with an empty body).
+    // CORB will replace the response body with an empty body). With ORB,
+    // the script loading itself should error out.
     script.onload = resolve;
+    script.onerror = resolve;
     addEventListener("error", t.unreached_func(
         "Empty body of a CORS-blocked response shouldn't trigger syntax errors."))
 

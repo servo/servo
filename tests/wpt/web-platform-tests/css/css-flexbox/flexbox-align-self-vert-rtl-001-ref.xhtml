@@ -25,7 +25,7 @@
         width: 50px;
       }
 
-      .flexbox > * {
+      div {
         clear: both;
       }
 
@@ -44,7 +44,7 @@
       }
       .baseline {
         background: teal;
-        float: right;
+        float: left;
       }
       .stretch {
         background: pink;
@@ -77,6 +77,10 @@
         display: inline-block;
         text-align: left; /* Keep parent's centering from tweaking my text */
       }
+
+      .baselineParent {
+        float: right;
+      }
    </style>
   </head>
   <body>
@@ -89,8 +93,10 @@
         <div class="center">center</div>
       </div>
       <div class="center big">a b c d e f</div>
-      <div class="baseline">base</div>
-      <div class="baseline big">abc</div>
+      <div class="baselineParent">
+        <div class="baseline">base</div>
+        <div class="baseline big">abc</div>
+      </div>
       <div class="stretch">stretch</div>
       <div class="stretch big">a b c d e f</div>
       <div class="centerParent">

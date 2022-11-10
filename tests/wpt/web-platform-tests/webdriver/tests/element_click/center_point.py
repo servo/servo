@@ -41,14 +41,14 @@ def assert_one_click(session):
 
 
 def test_entirely_in_view(session, inline):
-    session.url = square(inline, 444)
+    session.url = square(inline, 300)
     element = session.find.css("#target", all=False)
 
     response = element_click(session, element)
     assert_success(response)
 
     click_point = assert_one_click(session)
-    assert click_point == (222, 222)
+    assert click_point == (150, 150)
 
 
 @pytest.mark.parametrize("size", range(1, 11))

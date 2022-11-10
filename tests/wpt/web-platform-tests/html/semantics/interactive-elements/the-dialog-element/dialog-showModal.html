@@ -62,10 +62,12 @@
   test(function(){
     assert_false(d1.open);
     assert_false(d1.hasAttribute("open"));
+    assert_equals(getComputedStyle(d1).display, "none");
     d1.showModal();
     this.add_cleanup(function() { d1.close(); });
     assert_true(d1.open);
     assert_equals(d1.getAttribute("open"), "");
+    assert_equals(getComputedStyle(d1).display, "block");
     assert_equals(document.activeElement, b1);
   });
 
@@ -169,4 +171,18 @@
     d11.close();
     assert_equals(topElement(), d10);
   }, "when opening multiple dialogs, the most recently opened is rendered on top");
+
+  test(function() {
+    assert_false(d11.open);
+    d11.parentNode.removeChild(d11);
+    assert_throws_dom("INVALID_STATE_ERR", () => d11.showModal());
+
+    const doc = document.implementation.createHTMLDocument();
+    doc.body.appendChild(d11);
+    this.add_cleanup(() => document.body.append(d11));
+    assert_false(d11.open);
+    d11.showModal();
+    assert_true(d11.open);
+    this.add_cleanup(() => d11.close());
+  }, "Although the document is not attached to any pages, showModal() should execute as normal.");
 </script>

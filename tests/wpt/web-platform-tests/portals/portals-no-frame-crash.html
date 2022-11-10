@@ -17,5 +17,14 @@
     let portal = document.createElement("portal");
     doc.body.appendChild(portal);
   }, "inserting a portal element into a detached iframe's document shouldn't crash or throw");
+
+  test(() => {
+    let iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    let doc = iframe.contentDocument;
+    iframe.remove();
+    let portal = doc.createElement("portal");
+    doc.body.appendChild(portal);
+  }, "creating a portal element with a detached iframe's document shouldn't crash or throw");
 </script>
 </body>

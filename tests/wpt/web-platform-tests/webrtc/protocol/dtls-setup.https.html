@@ -82,4 +82,54 @@ for (let setup of ['actpass', 'active', 'passive']) {
     await pc1.setLocalDescription(answer);
   }, 'PC should accept initial offer with setup=' + setup);
 }
+
+for (let setup of ['actpass', 'active', 'passive']) {
+  const roleMap = {
+    actpass: 'client',
+    active: 'server',
+    passive: 'client',
+  };
+  promise_test(async t => {
+    const sdp = kSdp.replace(/a=setup:actpass/g,
+                             'a=setup:' + setup);
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    await pc1.setRemoteDescription({type: 'offer', sdp: sdp});
+    const answer = await pc1.createAnswer();
+    const resultingSetup = answer.sdp.match(/a=setup:\S+/);
+    if (setup === 'active') {
+      assert_equals(resultingSetup[0], 'a=setup:passive');
+    } else if (setup === 'passive') {
+      assert_equals(resultingSetup[0], 'a=setup:active');
+    } else if (setup === 'actpass') {
+      // For actpass, either active or passive are legal, although
+      // active is RECOMMENDED by RFC 5763 / 8842.
+      assert_in_array(resultingSetup[0], ['a=setup:active', 'a=setup:passive']);
+    }
+    await pc1.setLocalDescription(answer);
+    const stats = await pc1.getStats();
+    let transportStats;
+    stats.forEach(report => {
+      if (report.type === 'transport' && report.dtlsRole) {
+        transportStats = report;
+      }
+    });
+    assert_equals(transportStats.dtlsRole, roleMap[setup]);
+  }, 'PC with setup=' + setup + ' should have a dtlsRole of ' + roleMap[setup]);
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  pc1.createDataChannel("wpt");
+  await pc1.setLocalDescription();
+  const stats = await pc1.getStats();
+  let transportStats;
+  stats.forEach(report => {
+    if (report.type === 'transport' && report.dtlsRole) {
+      transportStats = report;
+    }
+  });
+  assert_equals(transportStats.dtlsRole, 'unknown');
+}, 'dtlsRole is `unknown` before negotiation of the DTLS handshake');
 </script>

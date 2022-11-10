@@ -4,7 +4,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 function value(value, _instanceof) {
@@ -20,7 +20,7 @@ function value(value, _instanceof) {
 
         e.target.onsuccess = t.step_func(function(e) {
             e.target.result
-                    .transaction("store")
+                    .transaction("store", "readonly", {durability: 'relaxed'})
                     .objectStore("store")
                     .get(1)
                     .onsuccess = t.step_func(function(e)

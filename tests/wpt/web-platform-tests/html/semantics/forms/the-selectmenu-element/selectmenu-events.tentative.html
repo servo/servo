@@ -144,7 +144,7 @@
     await test_driver.send_keys(selectMenu, KEY_CODE_MAP.ArrowDown);
     assert_equals(selectMenu.value, "two", "value should change when user switches options with arrow key");
     assert_equals(input_event_count, 1, "input event should fire when user switches options with arrow key");
-    assert_equals(change_event_count, 0, "change event shouldn't fire until popup is closed");
+    assert_equals(change_event_count, 0, "change event shouldn't fire until popover is closed");
 
     await test_driver.send_keys(selectMenu, KEY_CODE_MAP.Enter);
     assert_equals(selectMenu.value, "two");

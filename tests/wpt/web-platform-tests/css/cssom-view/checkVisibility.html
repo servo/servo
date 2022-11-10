@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/6850">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=visibilityhidden style="visibility:hidden">hello</div>
+
+<div style="content-visibility:hidden">
+  <div id=cvhidden>hello</div>
+</div>
+
+<div style="content-visibility:auto">
+  <div id=cvauto>hello</div>
+</div>
+
+<div id=displaynone style="display:none">hello</div>
+
+<div id=opacityzero style="opacity:0">hello</div>
+
+<div style="content-visibility:hidden">
+  <div id=cvhiddenchildwithupdate></div>
+</div>
+
+<div style="content-visibility:hidden" id=cvhiddenwithupdate></div>
+
+<div style="height:10000px">spacer</div>
+
+<div style="content-visibility:auto">
+  <div id=cvautooffscreen>hello</div>
+</div>
+
+<div id=cvautocontainer>
+  <div id=cvautochild></div>
+</div>
+
+<div style="content-visibility:auto">
+  <div style="content-visibility:auto">
+    <div id=nestedcvautochild></div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  assert_false(visibilityhidden.checkVisibility({
+    checkVisibilityCSS: true
+  }), 'checkVisibilityCSS:true');
+  assert_true(visibilityhidden.checkVisibility({
+    checkVisibilityCSS: false
+  }), 'checkVisibilityCSS:false');
+}, 'checkVisibility on visibility:hidden element.');
+
+test(() => {
+  assert_false(cvhidden.checkVisibility());
+}, 'checkVisibility on content-visibility:hidden element.');
+
+test(() => {
+  assert_true(cvauto.checkVisibility());
+}, 'checkVisibility on content-visibility:auto element.');
+
+test(() => {
+  assert_true(cvautooffscreen.checkVisibility());
+}, 'checkVisibility on content-visibility:auto element which is outside the viewport.');
+
+test(() => {
+  assert_false(displaynone.checkVisibility());
+}, 'checkVisibility on display:none element.');
+
+test(() => {
+  assert_false(opacityzero.checkVisibility({
+    checkOpacity: true
+  }), 'checkOpacity:true');
+  assert_true(opacityzero.checkVisibility({
+    checkOpacity: false
+  }), 'checkOpacity:false');
+}, 'checkVisibility on opacity:0 element.');
+
+test(() => {
+  cvautocontainer.style.contentVisibility = 'auto';
+  cvautochild.style.visibility = 'hidden';
+  assert_false(cvautochild.checkVisibility({checkVisibilityCSS: true}));
+  cvautochild.style.visibility = 'visible';
+  assert_true(cvautochild.checkVisibility({checkVisibilityCSS: true}));
+}, 'checkVisibility on content-visibility:auto with visibility:hidden inside.');
+
+test(() => {
+  assert_true(nestedcvautochild.checkVisibility());
+}, 'checkVisibility on nested content-visibility:auto containers reports that the content is visible.');
+
+test(() => {
+  cvhiddenchildwithupdate.getBoundingClientRect();
+  assert_false(cvhiddenchildwithupdate.checkVisibility());
+}, 'checkVisibility on content-visibility:hidden child after forced layout update.');
+
+test(() => {
+  cvhiddenwithupdate.getBoundingClientRect();
+  assert_true(cvhiddenwithupdate.checkVisibility());
+}, 'checkVisibility on content-visibility:hidden element after forced layout update.');
+</script>

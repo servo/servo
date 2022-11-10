@@ -22,6 +22,7 @@
 }
 #item2 {
   width: 50px;
+  margin: 0 10px;
   background: green;
   justify-self: center;
 }
@@ -37,15 +38,15 @@
 <script>
 function runTest() {
     let before = {
-        item1: {"data-offset-x": 10 },
+        item1: {"data-offset-x": 70 },
         item2: {"data-offset-x": 25 },
-        item3: {"data-offset-x": 0  }
+        item3: {"data-offset-x": 70 }
     };
 
     let after = {
-        item1: {"data-offset-x": 30 },
-        item2: {"data-offset-x": 0  },
-        item3: {"data-offset-x": 20 }
+        item1: {"data-offset-x": 40 },
+        item2: {"data-offset-x": 40 },
+        item3: {"data-offset-x": 40 }
     };
 
     evaluateStyleChangeMultiple("before", before);

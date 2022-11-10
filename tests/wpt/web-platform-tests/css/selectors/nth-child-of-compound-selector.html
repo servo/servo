@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<title>:nth-child with compound selector argument</title>
+<link rel="help" href="https://w3c.github.io/csswg-drafts/selectors-4/#child-index">
+<link rel="match" href="nth-child-of-compound-selector-ref.html">
+<style>
+/* 3n of paragraph with the class foobar but for which foobar is not the only class. */
+p:nth-child(3n+1 of p.foobar:not([class=foobar])) {
+    background-color: lime;
+}
+</style>
+</head>
+<body>
+    <p class="foobar foo"></p>
+    <p>This test the styling of paragraphs with :nth-child(An+B of selector). If the test succeed, paragraphs that say "green" should have a green background.</p>
+    <p class="foobar">White!</p>
+    <p class="foobar foo">White!</p>
+    <p>White!</p>
+    <p class="foo foobar">White!</p>
+    <p>White!</p>
+    <p class="foobar foo">Green</p>
+    <p class="foobar">White!</p>
+    <p class="foo foobar">White!</p>
+    <p class="foobar">White!</p>
+    <p class="foo foobar baz">White!</p>
+    <p>White!</p>
+</body>
+</html>

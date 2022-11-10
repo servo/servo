@@ -24,7 +24,7 @@ ctx.beginPath();
 ctx.arcTo(0, 25, 50, 250, 0.1); // adds (x1,y1), draws nothing
 ctx.lineTo(100, 25);
 ctx.stroke();
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

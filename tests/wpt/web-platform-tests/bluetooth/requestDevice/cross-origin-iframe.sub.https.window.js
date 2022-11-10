@@ -1,5 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 // META: script=/bluetooth/resources/bluetooth-test.js
@@ -26,5 +24,5 @@ bluetooth_test(async (t) => {
   const messageEvent = await windowWatcher.wait_for('message');
   assert_equals(
       messageEvent.data,
-      'SecurityError: requestDevice() called from cross-origin iframe.');
+      'SecurityError: Failed to execute \'requestDevice\' on \'Bluetooth\': Access to the feature "bluetooth" is disallowed by permissions policy.');
 }, test_desc);

@@ -7,25 +7,10 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/window_state_context.js"></script>
 <script>
 
 const iframePath = 'resources/blank_page_green.html'
-
-function window_state_context(t) {
-    let rect = null
-    const restore = () => test_driver.set_window_rect(rect);
-
-    return {
-        minimize: async () => {
-            if (rect === null)
-                t.add_cleanup(restore)
-
-            rect = await test_driver.minimize_window()
-        },
-
-        restore
-    }
-}
 
 promise_test(async t => {
     const {minimize, restore} = window_state_context(t);

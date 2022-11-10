@@ -4,7 +4,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -49,7 +49,7 @@
 
     open_rq.onsuccess = function(e) {
         var actual_keys = [],
-          rq = db.transaction("store")
+          rq = db.transaction("store", "readonly", {durability: 'relaxed'})
                  .objectStore("store")
                  .openCursor();
 

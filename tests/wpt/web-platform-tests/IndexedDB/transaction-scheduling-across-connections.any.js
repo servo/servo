@@ -1,4 +1,4 @@
-// META: script=support.js
+// META: script=resources/support.js
 
 indexeddb_test(
   (t, db) => {
@@ -15,10 +15,10 @@ indexeddb_test(
       const db2 = open_request.result;
       t.add_cleanup(() => { db2.close(); });
 
-      const transaction1 = db1.transaction('store', 'readwrite');
+      const transaction1 = db1.transaction('store', 'readwrite', {durability: 'relaxed'});
       transaction1.onabort = t.unreached_func('transaction1 should complete');
 
-      const transaction2 = db2.transaction('store', 'readwrite');
+      const transaction2 = db2.transaction('store', 'readwrite', {durability: 'relaxed'});
       transaction2.onabort = t.unreached_func('transaction2 should complete');
 
       let transaction1PutSuccess = false;

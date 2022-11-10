@@ -4,7 +4,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     var db,
@@ -29,7 +29,7 @@
         }
         new_version.onsuccess = function(e) {
             var index,
-              objStore = db.transaction("test")
+              objStore = db.transaction("test", "readonly", {durability: 'relaxed'})
                            .objectStore("test");
 
             assert_throws_dom('NotFoundError',

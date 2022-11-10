@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: two touch points with both moving</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="touchEvents.js"></script>
+
+<style>
+div#test1{
+  position: fixed;
+  touch-action: none;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+
+</style>
+
+<div id="test1">
+</div>
+
+<script>
+promise_test(async t => {
+  let test1 = document.getElementById("test1");
+
+  const events = [];
+  addPointerEventListeners(t, test1, events);
+
+  await new test_driver.Actions()
+      .addPointer("touchPointer1", "touch")
+      .addPointer("touchPointer2", "touch")
+      .pointerMove(0, 0, {origin: test1, sourceName: "touchPointer1"})
+      .pointerMove(10, 0, {origin: test1, sourceName: "touchPointer2"})
+      .pointerDown({sourceName: "touchPointer1"})
+      .pointerDown({sourceName: "touchPointer2"})
+      .pointerMove(0, 10, {origin: test1, sourceName: "touchPointer1"})
+      .pointerMove(10, 10, {origin: test1, sourceName: "touchPointer2"})
+      .pointerUp({sourceName: "touchPointer1"})
+      .pointerUp({sourceName: "touchPointer2"})
+      .send();
+
+  const expected = [{type: "pointerdown", pointerId: 2, clientX: 50, clientY: 50},
+                    {type: "pointerdown", pointerId: 3, clientX: 60, clientY: 50},
+                    {type: "pointermove", pointerId: 2, clientX: 50, clientY: 60},
+                    {type: "pointermove", pointerId: 3, clientX: 60, clientY: 60},
+                    {type: "pointerup", pointerId: 2, clientX: 50, clientY: 60},
+                    {type: "pointerup", pointerId: 3, clientX: 60, clientY: 60}];
+  assert_equals(events.length, expected.length);
+  for (let i=0; i<expected.length; i++) {
+    eventEquals(events[i], expected[i]);
+  }
+});
+</script>

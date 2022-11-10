@@ -1,0 +1,42 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Drag and drop between iframes: dropping block element onto canvas</title>
+<style type="text/css">
+iframe
+  {width:300px;
+  height:200px;
+  border-style:none;}
+</style>
+</head>
+<body>
+<p><iframe src="helper-drag-me-green-box.xhtml">Green box</iframe></p>
+<p>Drag green box above to the gray canvas below. Canvas should turn green when you drop green box on it.</p>
+<p><iframe src="helper-drop-here-canvas.xhtml" id="iframe-2">Canvas</iframe></p>
+<script>
+async function test(){
+  await new Promise(loaded => window.addEventListener("load", loaded));
+  const iframe = document.querySelector('iframe');
+  const iframeTwo = document.getElementById('iframe-2');
+  const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+  const div = innerDoc.querySelector('div');
+  const innerDocTwo = iframeTwo.contentDocument || iframe.contentWindow.document;
+  const canvas = innerDocTwo.querySelector('canvas');
+  function onDropCallBack(event) {
+    let style = window.getComputedStyle(canvas);
+    let currentColor = "rgba(0, 0, 0, 0)";
+    assert_equals(style.getPropertyValue("background-color"), currentColor);
+    return true;
+  }
+
+  dragDropTest(iframe, canvas, onDropCallBack, 'Dragging the iframe to the bottom iframe should turn it green', iframeTwo);
+}
+test();
+</script>
+</body>
+</html>

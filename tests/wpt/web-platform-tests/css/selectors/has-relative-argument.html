@@ -176,12 +176,6 @@
   test_selector_all('.y:has(.g .h)', [d63, d68, d71])
   test_selector_all('.y:has(> .g .h) .i', [d67, d75])
   test_selector_all('.y:has(.g .h) .i', [d67, d75])
-  test_selector_all('.x:has(+ .y:has(> .g .h) .i)', [d62, d70])
-  test_selector_all('.x:has(+ .y:has(.g .h) .i)', [d62, d63, d70])
-  test_selector_all('.x:has(+ .y:has(> .g .h) .i) ~ .j', [d77, d80])
-  test_selector_all('.x:has(+ .y:has(.g .h) .i) ~ .j', [d77, d80])
-  test_selector_all('.x:has(~ .y:has(> .g .h) .i)', [d61, d62, d69, d70])
-  test_selector_all('.x:has(~ .y:has(.g .h) .i)', [d61, d62, d63, d69, d70])
 
   test_selector_all('.d .x:has(.e)', [d51, d52])
 

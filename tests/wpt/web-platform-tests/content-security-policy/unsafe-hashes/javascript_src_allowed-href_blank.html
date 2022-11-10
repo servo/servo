@@ -1,26 +1,15 @@
 <!DOCTYPE HTML>
 <html>
-
 <head>
     <meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-hashes' 'nonce-abc'
-    'sha256-WZYVPzLjoxd1Cbc8gcx07ChlPmT3WP+KxkOiY0s4h8g=';">
-    <!--
-    'sha256-WZYVPzLjoxd1Cbc8gcx07ChlPmT3WP+KxkOiY0s4h8g=' ==> 'javascript:opener.t1.done();'
-    -->
-    <script src='/resources/testharness.js' nonce='abc'></script>
-    <script src='/resources/testharnessreport.js' nonce='abc'></script>
+    'sha256-N5bidCKdNO1nSPa1G7MdL6S7Y7MKZ7UMIS/40JBMSe4=';">
+    <script src="/resources/testharness.js" nonce="abc"></script>
+    <script src="/resources/testharnessreport.js" nonce="abc"></script>
+    <script src="support/helper.js" nonce="abc"></script>
 </head>
-
 <body>
-    <div id='log'></div>
-    <a target="_blank" rel="opener" href='javascript:opener.t1.done();' id='test'>
-    <script nonce='abc'>
-        var t1 = async_test("Test that the javascript: src is allowed to run");
-
-        window.addEventListener('securitypolicyviolation', t1.unreached_func("Should have not raised any event"));
-
-        document.getElementById('test').click();
+    <script nonce="abc">
+    runTest(true, '<a href target=_blank>', '');
     </script>
 </body>
-
 </html>

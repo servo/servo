@@ -60,7 +60,7 @@ test(() => {
 }, "Constructing sheet with relative URL adds to the constructor document's base URL");
 
 test(() => {
-  assert_throws_dom("NotAllowedError", () => { new CSSStyleSheet({ baseURL: "chrome://"}) });
+  assert_throws_dom("NotAllowedError", () => { new CSSStyleSheet({ baseURL: "https://test:test/"}) });
 }, "Constructing sheet with invalid base URL throws a NotAllowedError");
 
 </script>

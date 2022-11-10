@@ -141,6 +141,7 @@ const ALL_FEATURES = [
   'anchors',
   'depth-sensing',
   'secondary-views',
+  'camera-access',
 ];
 
 const TRACKED_IMMERSIVE_DEVICE = {

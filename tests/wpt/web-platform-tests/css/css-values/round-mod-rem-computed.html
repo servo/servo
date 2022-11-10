@@ -6,7 +6,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../support/numeric-testcommon.js"></script>
-<div id="target"></div>
+<div style="width: 75px;">
+    <div id="target"></div>
+</div>
 <script>
 // Simple tests
 test_math_used('round(10,10)', '10', {type:'number'});
@@ -18,7 +20,7 @@ test_math_used('calc(round(100,10))', '100', {type:'number'});
 test_math_used('calc(round(up, 101,10))', '110', {type:'number'});
 test_math_used('calc(round(down, 106,10))', '100', {type:'number'});
 test_math_used('calc(round(to-zero,105, 10))', '100', {type:'number'});
-test_math_used('calc(round(to-zero,-105, 10))', '100', {type:'number'});
+test_math_used('calc(round(to-zero,-105, 10))', '-100', {type:'number'});
 test_math_used('calc(round(-100,10))', '-100', {type:'number'});
 test_math_used('calc(round(up, -103,10))', '-100', {type:'number'});
 
@@ -60,8 +62,8 @@ test_math_used('round(10vh,6vh)', '12vh');
 test_math_used('round(10vw,6vw)', '12vw');
 test_math_used('round(10vmin,6vmin)', '12vmin');
 test_math_used('round(10vmax,6vmax)', '12vmax');
-test_math_used('round(10s,6s)', '12s');
-test_math_used('round(10ms,6ms)', '12ms');
+test_math_used('round(10s,6s)', '12s', {type:'time'});
+test_math_used('round(10ms,6ms)', '12ms', {type:'time'});
 test_math_used('round(10deg,6deg)', '12deg', {type:'angle', approx:0.1});
 test_math_used('round(10grad,6grad)', '12grad', {type:'angle', approx:0.1});
 test_math_used('round(10rad,6rad)', '12rad',{type:'angle', approx:0.1});
@@ -81,8 +83,8 @@ test_math_used('mod(10vh,6vh)', '4vh');
 test_math_used('mod(10vw,6vw)', '4vw');
 test_math_used('mod(10vmin,6vmin)', '4vmin');
 test_math_used('mod(10vmax,6vmax)', '4vmax');
-test_math_used('mod(10s,6s)', '4s');
-test_math_used('mod(10ms,6ms)', '4ms');
+test_math_used('mod(10s,6s)', '4s', {type:'time'});
+test_math_used('mod(10ms,6ms)', '4ms', {type:'time'});
 test_math_used('mod(10deg,6deg)', '4deg', {type:'angle', approx:0.1});
 test_math_used('mod(10grad,6grad)', '4grad', {type:'angle', approx:0.1});
 test_math_used('mod(10rad,6rad)', '4rad',{type:'angle', approx:0.1});
@@ -102,10 +104,18 @@ test_math_used('rem(10vh,6vh)', '4vh');
 test_math_used('rem(10vw,6vw)', '4vw');
 test_math_used('rem(10vmin,6vmin)', '4vmin');
 test_math_used('rem(10vmax,6vmax)', '4vmax');
-test_math_used('rem(10s,6s)', '4s');
-test_math_used('rem(10ms,6ms)', '4ms');
+test_math_used('rem(10s,6s)', '4s', {type:'time'});
+test_math_used('rem(10ms,6ms)', '4ms', {type:'time'});
 test_math_used('rem(10deg,6deg)', '4deg', {type:'angle', approx:0.1});
 test_math_used('rem(10grad,6grad)', '4grad', {type:'angle', approx:0.1});
 test_math_used('rem(10rad,6rad)', '4rad',{type:'angle', approx:0.1});
 test_math_used('rem(10turn,6turn)', '4turn',{type:'angle', approx:0.1});
+
+//Test percentage and mixed units
+test_math_used('round(10%,1px)', '8px');
+test_math_used('round(10%,5px)', '10px');
+test_math_used('round(2rem,5px)', '30px');
+test_math_used('round(100px,1rem)', '96px');
+test_math_used('round(10s,6000ms)', '12s', {type:'time'});
+test_math_used('round(10000ms,6s)', '12s', {type:'time'});
 </script>

@@ -61,7 +61,7 @@
 
         let result = getString(fragment);
         assert_equals(result, c.result);
-    }, "SanitizerAPI with config: " + c.message + ", sanitize from document function for " + c.message));
+    }, "SanitizerAPI with config: " + c.message + ", sanitize from document function for <body>"));
 
     testcases.forEach(c => test(t => {
         let s = new Sanitizer(c.config_input);
@@ -70,7 +70,7 @@
         fragment = s.sanitize(tpl.content);
         assert_true(fragment instanceof DocumentFragment);
         assert_equals(getString(fragment), c.result);
-    }, "SanitizerAPI with config: " + c.message + ", sanitize from document fragment function for " + c.message));
+    }, "SanitizerAPI with config: " + c.message + ", sanitize from document fragment function for <template>"));
 </script>
 </body>
 </html>

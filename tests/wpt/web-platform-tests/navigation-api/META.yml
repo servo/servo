@@ -1,0 +1,4 @@
+spec: https://wicg.github.io/navigation-api/
+suggested_reviewers:
+  - domenic
+  - natechapin

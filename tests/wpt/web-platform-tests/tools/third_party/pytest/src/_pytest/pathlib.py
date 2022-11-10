@@ -9,14 +9,21 @@ import sys
 import uuid
 import warnings
 from enum import Enum
+from errno import EBADF
+from errno import ELOOP
+from errno import ENOENT
+from errno import ENOTDIR
 from functools import partial
 from os.path import expanduser
 from os.path import expandvars
 from os.path import isabs
 from os.path import sep
+from pathlib import Path
+from pathlib import PurePath
 from posixpath import sep as posix_sep
 from types import ModuleType
 from typing import Callable
+from typing import Dict
 from typing import Iterable
 from typing import Iterator
 from typing import Optional
@@ -24,35 +31,36 @@ from typing import Set
 from typing import TypeVar
 from typing import Union
 
-import py
-
 from _pytest.compat import assert_never
 from _pytest.outcomes import skip
 from _pytest.warning_types import PytestWarning
 
-if sys.version_info[:2] >= (3, 6):
-    from pathlib import Path, PurePath
-else:
-    from pathlib2 import Path, PurePath
-
-__all__ = ["Path", "PurePath"]
-
-
-LOCK_TIMEOUT = 60 * 60 * 3
+LOCK_TIMEOUT = 60 * 60 * 24 * 3
 
 
 _AnyPurePath = TypeVar("_AnyPurePath", bound=PurePath)
 
+# The following function, variables and comments were
+# copied from cpython 3.9 Lib/pathlib.py file.
+
+# EBADF - guard against macOS `stat` throwing EBADF
+_IGNORED_ERRORS = (ENOENT, ENOTDIR, EBADF, ELOOP)
+
+_IGNORED_WINERRORS = (
+    21,  # ERROR_NOT_READY - drive exists but is not accessible
+    1921,  # ERROR_CANT_RESOLVE_FILENAME - fix for broken symlink pointing to itself
+)
+
+
+def _ignore_error(exception):
+    return (
+        getattr(exception, "errno", None) in _IGNORED_ERRORS
+        or getattr(exception, "winerror", None) in _IGNORED_WINERRORS
+    )
+
 
 def get_lock_path(path: _AnyPurePath) -> _AnyPurePath:
     return path.joinpath(".lock")
-
-
-def ensure_reset_dir(path: Path) -> None:
-    """Ensure the given path is an empty directory."""
-    if path.exists():
-        rm_rf(path)
-    path.mkdir()
 
 
 def on_rm_rf_error(func, path: str, exc, *, start_path: Path) -> bool:
@@ -69,9 +77,7 @@ def on_rm_rf_error(func, path: str, exc, *, start_path: Path) -> bool:
 
     if not isinstance(excvalue, PermissionError):
         warnings.warn(
-            PytestWarning(
-                "(rm_rf) error removing {}\n{}: {}".format(path, exctype, excvalue)
-            )
+            PytestWarning(f"(rm_rf) error removing {path}\n{exctype}: {excvalue}")
         )
         return False
 
@@ -200,15 +206,15 @@ def _force_symlink(
         pass
 
 
-def make_numbered_dir(root: Path, prefix: str) -> Path:
+def make_numbered_dir(root: Path, prefix: str, mode: int = 0o700) -> Path:
     """Create a directory with an increased number as suffix for the given prefix."""
     for i in range(10):
         # try up to 10 times to create the folder
         max_existing = max(map(parse_num, find_suffixes(root, prefix)), default=-1)
         new_number = max_existing + 1
-        new_path = root.joinpath("{}{}".format(prefix, new_number))
+        new_path = root.joinpath(f"{prefix}{new_number}")
         try:
-            new_path.mkdir()
+            new_path.mkdir(mode=mode)
         except Exception:
             pass
         else:
@@ -227,7 +233,7 @@ def create_cleanup_lock(p: Path) -> Path:
     try:
         fd = os.open(str(lock_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
     except FileExistsError as e:
-        raise OSError("cannot create lockfile in {path}".format(path=p)) from e
+        raise OSError(f"cannot create lockfile in {p}") from e
     else:
         pid = os.getpid()
         spid = str(pid).encode()
@@ -264,7 +270,7 @@ def maybe_delete_a_numbered_dir(path: Path) -> None:
         lock_path = create_cleanup_lock(path)
         parent = path.parent
 
-        garbage = parent.joinpath("garbage-{}".format(uuid.uuid4()))
+        garbage = parent.joinpath(f"garbage-{uuid.uuid4()}")
         path.rename(garbage)
         rm_rf(garbage)
     except OSError:
@@ -340,13 +346,17 @@ def cleanup_numbered_dir(
 
 
 def make_numbered_dir_with_cleanup(
-    root: Path, prefix: str, keep: int, lock_timeout: float
+    root: Path,
+    prefix: str,
+    keep: int,
+    lock_timeout: float,
+    mode: int,
 ) -> Path:
     """Create a numbered dir with a cleanup lock and remove old ones."""
     e = None
     for i in range(10):
         try:
-            p = make_numbered_dir(root, prefix)
+            p = make_numbered_dir(root, prefix, mode)
             lock_path = create_cleanup_lock(p)
             register_cleanup_lock_removal(lock_path)
         except Exception as exc:
@@ -375,7 +385,7 @@ def resolve_from_str(input: str, rootpath: Path) -> Path:
         return rootpath.joinpath(input)
 
 
-def fnmatch_ex(pattern: str, path) -> bool:
+def fnmatch_ex(pattern: str, path: Union[str, "os.PathLike[str]"]) -> bool:
     """A port of FNMatcher from py.path.common which works with PurePath() instances.
 
     The difference between this algorithm and PurePath.match() is that the
@@ -407,7 +417,7 @@ def fnmatch_ex(pattern: str, path) -> bool:
     else:
         name = str(path)
         if path.is_absolute() and not os.path.isabs(pattern):
-            pattern = "*{}{}".format(os.sep, pattern)
+            pattern = f"*{os.sep}{pattern}"
     return fnmatch.fnmatch(name, pattern)
 
 
@@ -421,7 +431,7 @@ def symlink_or_skip(src, dst, **kwargs):
     try:
         os.symlink(str(src), str(dst), **kwargs)
     except OSError as e:
-        skip("symlinks not supported: {}".format(e))
+        skip(f"symlinks not supported: {e}")
 
 
 class ImportMode(Enum):
@@ -442,9 +452,10 @@ class ImportPathMismatchError(ImportError):
 
 
 def import_path(
-    p: Union[str, py.path.local, Path],
+    p: Union[str, "os.PathLike[str]"],
     *,
-    mode: Union[str, ImportMode] = ImportMode.prepend
+    mode: Union[str, ImportMode] = ImportMode.prepend,
+    root: Path,
 ) -> ModuleType:
     """Import and return a module from the given path, which can be a file (a module) or
     a directory (a package).
@@ -462,19 +473,24 @@ def import_path(
       to import the module, which avoids having to use `__import__` and muck with `sys.path`
       at all. It effectively allows having same-named test modules in different places.
 
+    :param root:
+        Used as an anchor when mode == ImportMode.importlib to obtain
+        a unique name for the module being imported so it can safely be stored
+        into ``sys.modules``.
+
     :raises ImportPathMismatchError:
         If after importing the given `path` and the module `__file__`
         are different. Only raised in `prepend` and `append` modes.
     """
     mode = ImportMode(mode)
 
-    path = Path(str(p))
+    path = Path(p)
 
     if not path.exists():
         raise ImportError(path)
 
     if mode is ImportMode.importlib:
-        module_name = path.stem
+        module_name = module_name_from_path(path, root)
 
         for meta_importer in sys.meta_path:
             spec = meta_importer.find_spec(module_name, [str(path.parent)])
@@ -484,11 +500,11 @@ def import_path(
             spec = importlib.util.spec_from_file_location(module_name, str(path))
 
         if spec is None:
-            raise ImportError(
-                "Can't find module {} at location {}".format(module_name, str(path))
-            )
+            raise ImportError(f"Can't find module {module_name} at location {path}")
         mod = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = mod
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        insert_missing_modules(sys.modules, module_name)
         return mod
 
     pkg_path = resolve_package_path(path)
@@ -529,7 +545,7 @@ def import_path(
             module_file = module_file[: -(len(os.path.sep + "__init__.py"))]
 
         try:
-            is_same = os.path.samefile(str(path), module_file)
+            is_same = _is_same(str(path), module_file)
         except FileNotFoundError:
             is_same = False
 
@@ -537,6 +553,61 @@ def import_path(
             raise ImportPathMismatchError(module_name, module_file, path)
 
     return mod
+
+
+# Implement a special _is_same function on Windows which returns True if the two filenames
+# compare equal, to circumvent os.path.samefile returning False for mounts in UNC (#7678).
+if sys.platform.startswith("win"):
+
+    def _is_same(f1: str, f2: str) -> bool:
+        return Path(f1) == Path(f2) or os.path.samefile(f1, f2)
+
+
+else:
+
+    def _is_same(f1: str, f2: str) -> bool:
+        return os.path.samefile(f1, f2)
+
+
+def module_name_from_path(path: Path, root: Path) -> str:
+    """
+    Return a dotted module name based on the given path, anchored on root.
+
+    For example: path="projects/src/tests/test_foo.py" and root="/projects", the
+    resulting module name will be "src.tests.test_foo".
+    """
+    path = path.with_suffix("")
+    try:
+        relative_path = path.relative_to(root)
+    except ValueError:
+        # If we can't get a relative path to root, use the full path, except
+        # for the first part ("d:\\" or "/" depending on the platform, for example).
+        path_parts = path.parts[1:]
+    else:
+        # Use the parts for the relative path to the root path.
+        path_parts = relative_path.parts
+
+    return ".".join(path_parts)
+
+
+def insert_missing_modules(modules: Dict[str, ModuleType], module_name: str) -> None:
+    """
+    Used by ``import_path`` to create intermediate modules when using mode=importlib.
+
+    When we want to import a module as "src.tests.test_foo" for example, we need
+    to create empty modules "src" and "src.tests" after inserting "src.tests.test_foo",
+    otherwise "src.tests.test_foo" is not importable by ``__import__``.
+    """
+    module_parts = module_name.split(".")
+    while module_name:
+        if module_name not in modules:
+            module = ModuleType(
+                module_name,
+                doc="Empty module created by pytest's importmode=importlib.",
+            )
+            modules[module_name] = module
+        module_parts.pop(-1)
+        module_name = ".".join(module_parts)
 
 
 def resolve_package_path(path: Path) -> Optional[Path]:
@@ -557,16 +628,31 @@ def resolve_package_path(path: Path) -> Optional[Path]:
 
 
 def visit(
-    path: str, recurse: Callable[["os.DirEntry[str]"], bool]
+    path: Union[str, "os.PathLike[str]"], recurse: Callable[["os.DirEntry[str]"], bool]
 ) -> Iterator["os.DirEntry[str]"]:
     """Walk a directory recursively, in breadth-first order.
 
     Entries at each directory level are sorted.
     """
-    entries = sorted(os.scandir(path), key=lambda entry: entry.name)
+
+    # Skip entries with symlink loops and other brokenness, so the caller doesn't
+    # have to deal with it.
+    entries = []
+    for entry in os.scandir(path):
+        try:
+            entry.is_file()
+        except OSError as err:
+            if _ignore_error(err):
+                continue
+            raise
+        entries.append(entry)
+
+    entries.sort(key=lambda entry: entry.name)
+
     yield from entries
+
     for entry in entries:
-        if entry.is_dir(follow_symlinks=False) and recurse(entry):
+        if entry.is_dir() and recurse(entry):
             yield from visit(entry.path, recurse)
 
 
@@ -581,7 +667,10 @@ def absolutepath(path: Union[Path, str]) -> Path:
 
 def commonpath(path1: Path, path2: Path) -> Optional[Path]:
     """Return the common part shared with the other path, or None if there is
-    no common part."""
+    no common part.
+
+    If one path is relative and one is absolute, returns None.
+    """
     try:
         return Path(os.path.commonpath((str(path1), str(path2))))
     except ValueError:
@@ -592,13 +681,19 @@ def bestrelpath(directory: Path, dest: Path) -> str:
     """Return a string which is a relative path from directory to dest such
     that directory/bestrelpath == dest.
 
+    The paths must be either both absolute or both relative.
+
     If no such path can be determined, returns dest.
     """
+    assert isinstance(directory, Path)
+    assert isinstance(dest, Path)
     if dest == directory:
         return os.curdir
     # Find the longest common directory.
     base = commonpath(directory, dest)
-    # Can be the case on Windows.
+    # Can be the case on Windows for two absolute paths on different drives.
+    # Can be the case for two relative paths without common prefix.
+    # Can be the case for a relative path and an absolute path.
     if not base:
         return str(dest)
     reldirectory = directory.relative_to(base)
@@ -609,3 +704,21 @@ def bestrelpath(directory: Path, dest: Path) -> str:
         # Forward from base to dest.
         *reldest.parts,
     )
+
+
+# Originates from py. path.local.copy(), with siginficant trims and adjustments.
+# TODO(py38): Replace with shutil.copytree(..., symlinks=True, dirs_exist_ok=True)
+def copytree(source: Path, target: Path) -> None:
+    """Recursively copy a source directory to target."""
+    assert source.is_dir()
+    for entry in visit(source, recurse=lambda entry: not entry.is_symlink()):
+        x = Path(entry)
+        relpath = x.relative_to(source)
+        newx = target / relpath
+        newx.parent.mkdir(exist_ok=True)
+        if x.is_symlink():
+            newx.symlink_to(os.readlink(x))
+        elif x.is_file():
+            shutil.copyfile(x, newx)
+        elif x.is_dir():
+            newx.mkdir(exist_ok=True)

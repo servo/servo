@@ -17,7 +17,7 @@ let escapeComma = url => url.replace(/,/g, '\\,');
 
 promise_test(async t => {
   // The test window.
- const this_window_token = token();
+  const this_window_token = token();
 
   // The "opener" window.
   const opener_token = token();
@@ -28,9 +28,9 @@ promise_test(async t => {
   const openee_url = same_origin + executor_path + `&uuid=${openee_token}`;
 
   // The "final" url the opener will navigate to. It has COOP and a reporter.
-  const final_report_token= token();
+  const final_report_token = reportToken();
   const final_token = token();
-  const final_reportTo = reportToHeaders(final_report_token);
+  const final_reportTo = reportingEndpointsHeaders(final_report_token);
   const final_url =  same_origin + executor_path + final_reportTo.header +
     final_reportTo.coopSameOriginHeader +`&uuid=${final_token}`;
 
@@ -41,14 +41,13 @@ promise_test(async t => {
   // 2. The opener opens a window.
   send(opener_token, `
     openee = window.open('${escapeComma(openee_url)}');
-    send("${this_window_token}", "ACK 1");
   `);
 
   // 3. Ensure the openee loads.
   send(openee_token, `
-    send("${this_window_token}", "ACK 1");
+    send("${this_window_token}", "ACK");
   `);
-  assert_equals("ACK 1", await receive(this_window_token));
+  assert_equals("ACK", await receive(this_window_token));
 
   // 4. The opener navigates.
   send(opener_token, `

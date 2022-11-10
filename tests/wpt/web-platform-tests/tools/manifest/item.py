@@ -8,19 +8,10 @@ from .utils import to_os_path
 MYPY = False
 if MYPY:
     # MYPY is set to True when run under Mypy.
-    from typing import Optional
-    from typing import Text
-    from typing import Dict
-    from typing import Tuple
-    from typing import List
-    from typing import Union
-    from typing import Type
-    from typing import Any
-    from typing import Sequence
-    from typing import Hashable
+    from typing import Any, Dict, Hashable, List, Optional, Sequence, Text, Tuple, Type, Union, cast
     from .manifest import Manifest
-    Fuzzy = Dict[Optional[Tuple[Text, Text, Text]], List[int]]
-    PageRanges = Dict[Text, List[int]]
+    Fuzzy = Dict[Optional[Tuple[str, str, str]], List[int]]
+    PageRanges = Dict[str, List[int]]
 
 item_types = {}  # type: Dict[str, Type[ManifestItem]]
 
@@ -31,14 +22,23 @@ class ManifestItemMeta(ABCMeta):
     attribute, and otherwise behaves like an ABCMeta."""
 
     def __new__(cls, name, bases, attrs):
-        # type: (Type[ManifestItemMeta], str, Tuple[ManifestItemMeta, ...], Dict[str, Any]) -> ManifestItemMeta
-        rv = super(ManifestItemMeta, cls).__new__(cls, name, bases, attrs)
-        if not isabstract(rv):
-            assert issubclass(rv, ManifestItem)
-            assert isinstance(rv.item_type, str)
-            item_types[rv.item_type] = rv
+        # type: (Type[ManifestItemMeta], str, Tuple[type], Dict[str, Any]) -> ManifestItemMeta
+        inst = super().__new__(cls, name, bases, attrs)
+        if isabstract(inst):
+            return inst
 
-        return rv  # type: ignore
+        assert issubclass(inst, ManifestItem)
+        if MYPY:
+            inst_ = cast(Type[ManifestItem], inst)
+            item_type = cast(str, inst_.item_type)
+        else:
+            inst_ = inst
+            assert isinstance(inst_.item_type, str)
+            item_type = inst_.item_type
+
+        item_types[item_type] = inst_
+
+        return inst_
 
 
 class ManifestItem(metaclass=ManifestItemMeta):
@@ -83,7 +83,7 @@ class ManifestItem(metaclass=ManifestItemMeta):
 
     def __repr__(self):
         # type: () -> str
-        return "<%s.%s id=%r, path=%r>" % (self.__module__, self.__class__.__name__, self.id, self.path)
+        return f"<{self.__module__}.{self.__class__.__name__} id={self.id!r}, path={self.path!r}>"
 
     def to_json(self):
         # type: () -> Tuple[Any, ...]
@@ -113,7 +113,7 @@ class URLManifestItem(ManifestItem):
                  **extras  # type: Any
                  ):
         # type: (...) -> None
-        super(URLManifestItem, self).__init__(tests_root, path)
+        super().__init__(tests_root, path)
         assert url_base[0] == "/"
         self.url_base = url_base
         assert url is None or url[0] != "/"
@@ -131,7 +131,7 @@ class URLManifestItem(ManifestItem):
     @property
     def url(self):
         # type: () -> Text
-        rel_url = self._url or self.path.replace(os.path.sep, u"/")
+        rel_url = self._url or self.path.replace(os.path.sep, "/")
         # we can outperform urljoin, because we know we just have path relative URLs
         if self.url_base == "/":
             return "/" + rel_url
@@ -156,7 +156,7 @@ class URLManifestItem(ManifestItem):
 
     def to_json(self):
         # type: () -> Tuple[Optional[Text], Dict[Any, Any]]
-        rel_url = None if self._url == self.path.replace(os.path.sep, u"/") else self._url
+        rel_url = None if self._url == self.path.replace(os.path.sep, "/") else self._url
         rv = (rel_url, {})  # type: Tuple[Optional[Text], Dict[Any, Any]]
         return rv
 
@@ -189,6 +189,11 @@ class TestharnessTest(URLManifestItem):
         return self._extras.get("timeout")
 
     @property
+    def pac(self):
+        # type: () -> Optional[Text]
+        return self._extras.get("pac")
+
+    @property
     def testdriver(self):
         # type: () -> Optional[Text]
         return self._extras.get("testdriver")
@@ -205,9 +210,11 @@ class TestharnessTest(URLManifestItem):
 
     def to_json(self):
         # type: () -> Tuple[Optional[Text], Dict[Text, Any]]
-        rv = super(TestharnessTest, self).to_json()
+        rv = super().to_json()
         if self.timeout is not None:
             rv[-1]["timeout"] = self.timeout
+        if self.pac is not None:
+            rv[-1]["pac"] = self.pac
         if self.testdriver:
             rv[-1]["testdriver"] = self.testdriver
         if self.jsshell:
@@ -230,7 +237,7 @@ class RefTest(URLManifestItem):
                  references=None,  # type: Optional[List[Tuple[Text, Text]]]
                  **extras  # type: Any
                  ):
-        super(RefTest, self).__init__(tests_root, path, url_base, url, **extras)
+        super().__init__(tests_root, path, url_base, url, **extras)
         if references is None:
             self.references = []  # type: List[Tuple[Text, Text]]
         else:
@@ -314,7 +321,7 @@ class PrintRefTest(RefTest):
         return self._extras.get("page_ranges", {})
 
     def to_json(self):  # type: ignore
-        rv = super(PrintRefTest, self).to_json()
+        rv = super().to_json()
         if self.page_ranges:
             rv[-1]["page_ranges"] = self.page_ranges
         return rv
@@ -361,7 +368,7 @@ class WebDriverSpecTest(URLManifestItem):
 
     def to_json(self):
         # type: () -> Tuple[Optional[Text], Dict[Text, Any]]
-        rv = super(WebDriverSpecTest, self).to_json()
+        rv = super().to_json()
         if self.timeout is not None:
             rv[-1]["timeout"] = self.timeout
         return rv

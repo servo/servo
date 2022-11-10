@@ -1,6 +1,11 @@
-def test_show_fixtures_and_test(testdir, dummy_yaml_custom_test):
+from _pytest.pytester import Pytester
+
+
+def test_show_fixtures_and_test(
+    pytester: Pytester, dummy_yaml_custom_test: None
+) -> None:
     """Verify that fixtures are not executed."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         @pytest.fixture
@@ -11,7 +16,7 @@ def test_show_fixtures_and_test(testdir, dummy_yaml_custom_test):
     """
     )
 
-    result = testdir.runpytest("--setup-plan")
+    result = pytester.runpytest("--setup-plan")
     assert result.ret == 0
 
     result.stdout.fnmatch_lines(
@@ -19,7 +24,9 @@ def test_show_fixtures_and_test(testdir, dummy_yaml_custom_test):
     )
 
 
-def test_show_multi_test_fixture_setup_and_teardown_correctly_simple(testdir):
+def test_show_multi_test_fixture_setup_and_teardown_correctly_simple(
+    pytester: Pytester,
+) -> None:
     """Verify that when a fixture lives for longer than a single test, --setup-plan
     correctly displays the SETUP/TEARDOWN indicators the right number of times.
 
@@ -31,7 +38,7 @@ def test_show_multi_test_fixture_setup_and_teardown_correctly_simple(testdir):
     correct fixture lifetimes. It was purely a display bug for --setup-plan, and
     did not affect the related --setup-show or --setup-only.)
     """
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         @pytest.fixture(scope = 'class')
@@ -45,7 +52,7 @@ def test_show_multi_test_fixture_setup_and_teardown_correctly_simple(testdir):
     """
     )
 
-    result = testdir.runpytest("--setup-plan")
+    result = pytester.runpytest("--setup-plan")
     assert result.ret == 0
 
     setup_fragment = "SETUP    C fix"
@@ -66,9 +73,11 @@ def test_show_multi_test_fixture_setup_and_teardown_correctly_simple(testdir):
     assert teardown_count == 1
 
 
-def test_show_multi_test_fixture_setup_and_teardown_same_as_setup_show(testdir):
+def test_show_multi_test_fixture_setup_and_teardown_same_as_setup_show(
+    pytester: Pytester,
+) -> None:
     """Verify that SETUP/TEARDOWN messages match what comes out of --setup-show."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         @pytest.fixture(scope = 'session')
@@ -93,8 +102,8 @@ def test_show_multi_test_fixture_setup_and_teardown_same_as_setup_show(testdir):
     """
     )
 
-    plan_result = testdir.runpytest("--setup-plan")
-    show_result = testdir.runpytest("--setup-show")
+    plan_result = pytester.runpytest("--setup-plan")
+    show_result = pytester.runpytest("--setup-show")
 
     # the number and text of these lines should be identical
     plan_lines = [

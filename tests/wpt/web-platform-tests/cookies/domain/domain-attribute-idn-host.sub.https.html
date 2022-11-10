@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+      let url = new URL(document.location);
+      url.host = "{{hosts[][élève]}}";
+      let url2 = new URL("support/idn-child.sub.https.html", url);
+      let child_window = window.open(url2.href);
+      fetch_tests_from_window(child_window);
+    </script>
+  </body>
+</html>

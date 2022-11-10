@@ -9,5 +9,6 @@ document.domain = "{{host}}";
 parent.postMessage({name: "domain", value: document.domain}, "*");
 parent.postMessage(
   {name: "crossOriginIsolated", value: self.crossOriginIsolated}, "*");
-parent.postMessage(new SharedArrayBuffer(10), "*");
+parent.postMessage(
+  {name: "hasSharedArrayBuffer", value: Boolean(self.SharedArrayBuffer)}, "*");
 </script>

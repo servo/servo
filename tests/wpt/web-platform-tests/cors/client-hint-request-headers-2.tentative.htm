@@ -23,6 +23,9 @@ test(function() {
     client.setRequestHeader('dpr', '2.0')
     client.setRequestHeader('width', '35')
     client.setRequestHeader('viewport-width', '42')
+    client.setRequestHeader('rtt', '1')
+    client.setRequestHeader('downlink', '1.0')
+    client.setRequestHeader('ect', '2g')
     client.send(null)
 
     const res = JSON.parse(client.response)
@@ -36,6 +39,9 @@ test(function() {
     assert_equals(res['dpr'], '2.0')
     assert_equals(res['width'], '35')
     assert_equals(res['viewport-width'], '42')
+    assert_equals(res['rtt'], '1')
+    assert_equals(res['downlink'], '1.0')
+    assert_equals(res['ect'], '2g')
 }, 'Client hint headers are simple headers')
 
 </script>

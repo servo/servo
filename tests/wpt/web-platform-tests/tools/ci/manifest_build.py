@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import json
 import logging
 import os
@@ -19,7 +21,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class Status(object):
+class Status:
     SUCCESS = 0
     FAIL = 1
 
@@ -70,7 +72,7 @@ def request(url, desc, method=None, data=None, json_data=None, params=None, head
         resp = method(url, **kwargs)
 
     except Exception as e:
-        logger.error("%s failed:\n%s" % (desc, e))
+        logger.error(f"{desc} failed:\n{e}")
         return None
 
     try:
@@ -107,8 +109,8 @@ def get_pr(owner, repo, sha):
 
 
 def create_release(manifest_path, owner, repo, sha, tag, body):
-    logger.info("Creating a release for tag='%s', target_commitish='%s'" % (tag, sha))
-    create_url = "https://api.github.com/repos/%s/%s/releases" % (owner, repo)
+    logger.info(f"Creating a release for tag='{tag}', target_commitish='{sha}'")
+    create_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
     create_data = {"tag_name": tag,
                    "target_commitish": sha,
                    "name": tag,
@@ -123,11 +125,11 @@ def create_release(manifest_path, owner, repo, sha, tag, body):
 
     upload_exts = [".gz", ".bz2", ".zst"]
     for upload_ext in upload_exts:
-        upload_filename = "MANIFEST-%s.json%s" % (sha, upload_ext)
+        upload_filename = f"MANIFEST-{sha}.json{upload_ext}"
         params = {"name": upload_filename,
                   "label": "MANIFEST.json%s" % upload_ext}
 
-        with open("%s%s" % (manifest_path, upload_ext), "rb") as f:
+        with open(f"{manifest_path}{upload_ext}", "rb") as f:
             upload_data = f.read()
 
         logger.info("Uploading %s bytes" % len(upload_data))
@@ -138,7 +140,7 @@ def create_release(manifest_path, owner, repo, sha, tag, body):
             return False
 
     release_id = create_resp["id"]
-    edit_url = "https://api.github.com/repos/%s/%s/releases/%s" % (owner, repo, release_id)
+    edit_url = f"https://api.github.com/repos/{owner}/{repo}/releases/{release_id}"
     edit_data = create_data.copy()
     edit_data["draft"] = False
     edit_resp = request(edit_url, "Release publishing", method=requests.patch, json_data=edit_data)

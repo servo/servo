@@ -14,7 +14,36 @@ async function setup_service_worker(t, service_worker_url, scope) {
       t, service_worker_url, scope);
   t.add_cleanup(() => service_worker_unregister(t, scope));
   await wait_for_state(t, r.installing, 'activated');
+  return r.active;
 }
+
+promise_test(async t => {
+  const worker_url = 'resources/sample-synthesized-worker.js?dedicated';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
+  const scope = worker_url;
+
+  const serviceWorker = await setup_service_worker(t, service_worker_url, scope);
+
+  const channels = new MessageChannel();
+  serviceWorker.postMessage({port: channels.port1}, [channels.port1]);
+
+  const clientId = await new Promise(resolve => channels.port2.onmessage = (e) => resolve(e.data.id));
+
+  const resultPromise =  new Promise(resolve => channels.port2.onmessage = (e) => resolve(e.data));
+
+  const w = new Worker(worker_url);
+  const data = await new Promise((resolve, reject) => {
+    w.onmessage = e => resolve(e.data);
+    w.onerror = e => reject(e.message);
+  });
+  assert_equals(data, 'worker loading intercepted by service worker');
+
+  const results = await resultPromise;
+  assert_equals(results.clientId, clientId);
+  assert_true(!!results.resultingClientId.length);
+
+  channels.port2.postMessage("done");
+}, `Verify a dedicated worker script request gets correct client Ids`);
 
 promise_test(async t => {
   const worker_url = 'resources/sample-synthesized-worker.js?dedicated';

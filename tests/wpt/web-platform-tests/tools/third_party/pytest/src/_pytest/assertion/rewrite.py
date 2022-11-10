@@ -13,43 +13,43 @@ import struct
 import sys
 import tokenize
 import types
+from pathlib import Path
+from pathlib import PurePath
 from typing import Callable
 from typing import Dict
 from typing import IO
 from typing import Iterable
+from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import TYPE_CHECKING
 from typing import Union
 
-import py
-
+from _pytest._io.saferepr import DEFAULT_REPR_MAX_SIZE
 from _pytest._io.saferepr import saferepr
 from _pytest._version import version
 from _pytest.assertion import util
 from _pytest.assertion.util import (  # noqa: F401
     format_explanation as _format_explanation,
 )
-from _pytest.compat import fspath
-from _pytest.compat import TYPE_CHECKING
 from _pytest.config import Config
 from _pytest.main import Session
+from _pytest.pathlib import absolutepath
 from _pytest.pathlib import fnmatch_ex
-from _pytest.pathlib import Path
-from _pytest.pathlib import PurePath
-from _pytest.store import StoreKey
+from _pytest.stash import StashKey
 
 if TYPE_CHECKING:
-    from _pytest.assertion import AssertionState  # noqa: F401
+    from _pytest.assertion import AssertionState
 
 
-assertstate_key = StoreKey["AssertionState"]()
+assertstate_key = StashKey["AssertionState"]()
 
 
 # pytest caches rewritten pycs in pycache dirs
-PYTEST_TAG = "{}-pytest-{}".format(sys.implementation.cache_tag, version)
+PYTEST_TAG = f"{sys.implementation.cache_tag}-pytest-{version}"
 PYC_EXT = ".py" + (__debug__ and "c" or "o")
 PYC_TAIL = "." + PYTEST_TAG + PYC_EXT
 
@@ -63,14 +63,14 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
             self.fnpats = config.getini("python_files")
         except ValueError:
             self.fnpats = ["test_*.py", "*_test.py"]
-        self.session = None  # type: Optional[Session]
-        self._rewritten_names = set()  # type: Set[str]
-        self._must_rewrite = set()  # type: Set[str]
+        self.session: Optional[Session] = None
+        self._rewritten_names: Dict[str, Path] = {}
+        self._must_rewrite: Set[str] = set()
         # flag to guard against trying to rewrite a pyc file while we are already writing another pyc file,
         # which might result in infinite recursion (#3506)
         self._writing_pyc = False
         self._basenames_to_check_rewrite = {"conftest"}
-        self._marked_for_rewrite_cache = {}  # type: Dict[str, bool]
+        self._marked_for_rewrite_cache: Dict[str, bool] = {}
         self._session_paths_checked = False
 
     def set_session(self, session: Optional[Session]) -> None:
@@ -88,7 +88,7 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
     ) -> Optional[importlib.machinery.ModuleSpec]:
         if self._writing_pyc:
             return None
-        state = self.config._store[assertstate_key]
+        state = self.config.stash[assertstate_key]
         if self._early_rewrite_bailout(name, state):
             return None
         state.trace("find_module called for: %s" % name)
@@ -100,7 +100,7 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
             spec is None
             # this is a namespace package (without `__init__.py`)
             # there's nothing to rewrite there
-            # python3.5 - python3.6: `namespace`
+            # python3.6: `namespace`
             # python3.7+: `None`
             or spec.origin == "namespace"
             or spec.origin is None
@@ -132,9 +132,9 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
         assert module.__spec__ is not None
         assert module.__spec__.origin is not None
         fn = Path(module.__spec__.origin)
-        state = self.config._store[assertstate_key]
+        state = self.config.stash[assertstate_key]
 
-        self._rewritten_names.add(module.__name__)
+        self._rewritten_names[module.__name__] = fn
 
         # The requested module looks like a test file, so rewrite it. This is
         # the most magical part of the process: load the source, rewrite the
@@ -150,7 +150,7 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
             ok = try_makedirs(cache_dir)
             if not ok:
                 write = False
-                state.trace("read only directory: {}".format(cache_dir))
+                state.trace(f"read only directory: {cache_dir}")
 
         cache_name = fn.name[:-3] + PYC_TAIL
         pyc = cache_dir / cache_name
@@ -158,7 +158,7 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
         # to check for a cached pyc. This may not be optimal...
         co = _read_pyc(fn, pyc, state.trace)
         if co is None:
-            state.trace("rewriting {!r}".format(fn))
+            state.trace(f"rewriting {fn!r}")
             source_stat, co = _rewrite_test(fn, self.config)
             if write:
                 self._writing_pyc = True
@@ -167,7 +167,7 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
                 finally:
                     self._writing_pyc = False
         else:
-            state.trace("found cached rewritten pyc for {}".format(fn))
+            state.trace(f"found cached rewritten pyc for {fn}")
         exec(co, module.__dict__)
 
     def _early_rewrite_bailout(self, name: str, state: "AssertionState") -> bool:
@@ -206,20 +206,18 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
         if self._is_marked_for_rewrite(name, state):
             return False
 
-        state.trace("early skip of rewriting module: {}".format(name))
+        state.trace(f"early skip of rewriting module: {name}")
         return True
 
     def _should_rewrite(self, name: str, fn: str, state: "AssertionState") -> bool:
         # always rewrite conftest files
         if os.path.basename(fn) == "conftest.py":
-            state.trace("rewriting conftest file: {!r}".format(fn))
+            state.trace(f"rewriting conftest file: {fn!r}")
             return True
 
         if self.session is not None:
-            if self.session.isinitpath(py.path.local(fn)):
-                state.trace(
-                    "matched test file (was specified on cmdline): {!r}".format(fn)
-                )
+            if self.session.isinitpath(absolutepath(fn)):
+                state.trace(f"matched test file (was specified on cmdline): {fn!r}")
                 return True
 
         # modules not passed explicitly on the command line are only
@@ -227,7 +225,7 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
         fn_path = PurePath(fn)
         for pat in self.fnpats:
             if fnmatch_ex(pat, fn_path):
-                state.trace("matched test file {!r}".format(fn))
+                state.trace(f"matched test file {fn!r}")
                 return True
 
         return self._is_marked_for_rewrite(name, state)
@@ -238,9 +236,7 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
         except KeyError:
             for marked in self._must_rewrite:
                 if name == marked or name.startswith(marked + "."):
-                    state.trace(
-                        "matched marked file {!r} (from {!r})".format(name, marked)
-                    )
+                    state.trace(f"matched marked file {name!r} (from {marked!r})")
                     self._marked_for_rewrite_cache[name] = True
                     return True
 
@@ -280,18 +276,32 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
         with open(pathname, "rb") as f:
             return f.read()
 
+    if sys.version_info >= (3, 10):
+
+        def get_resource_reader(self, name: str) -> importlib.abc.TraversableResources:  # type: ignore
+            if sys.version_info < (3, 11):
+                from importlib.readers import FileReader
+            else:
+                from importlib.resources.readers import FileReader
+
+            return FileReader(types.SimpleNamespace(path=self._rewritten_names[name]))
+
 
 def _write_pyc_fp(
     fp: IO[bytes], source_stat: os.stat_result, co: types.CodeType
 ) -> None:
     # Technically, we don't have to have the same pyc format as
     # (C)Python, since these "pycs" should never be seen by builtin
-    # import. However, there's little reason deviate.
+    # import. However, there's little reason to deviate.
     fp.write(importlib.util.MAGIC_NUMBER)
+    # https://www.python.org/dev/peps/pep-0552/
+    if sys.version_info >= (3, 7):
+        flags = b"\x00\x00\x00\x00"
+        fp.write(flags)
     # as of now, bytecode header expects 32-bit numbers for size and mtime (#4903)
     mtime = int(source_stat.st_mtime) & 0xFFFFFFFF
     size = source_stat.st_size & 0xFFFFFFFF
-    # "<LL" stands for 2 unsigned longs, little-ending
+    # "<LL" stands for 2 unsigned longs, little-endian.
     fp.write(struct.pack("<LL", mtime, size))
     fp.write(marshal.dumps(co))
 
@@ -306,10 +316,10 @@ if sys.platform == "win32":
         pyc: Path,
     ) -> bool:
         try:
-            with atomic_write(fspath(pyc), mode="wb", overwrite=True) as fp:
+            with atomic_write(os.fspath(pyc), mode="wb", overwrite=True) as fp:
                 _write_pyc_fp(fp, source_stat, co)
         except OSError as e:
-            state.trace("error writing pyc file at {}: {}".format(pyc, e))
+            state.trace(f"error writing pyc file at {pyc}: {e}")
             # we ignore any failure to write the cache file
             # there are many reasons, permission-denied, pycache dir being a
             # file etc.
@@ -325,20 +335,18 @@ else:
         source_stat: os.stat_result,
         pyc: Path,
     ) -> bool:
-        proc_pyc = "{}.{}".format(pyc, os.getpid())
+        proc_pyc = f"{pyc}.{os.getpid()}"
         try:
             fp = open(proc_pyc, "wb")
         except OSError as e:
-            state.trace(
-                "error writing pyc file at {}: errno={}".format(proc_pyc, e.errno)
-            )
+            state.trace(f"error writing pyc file at {proc_pyc}: errno={e.errno}")
             return False
 
         try:
             _write_pyc_fp(fp, source_stat, co)
-            os.rename(proc_pyc, fspath(pyc))
+            os.rename(proc_pyc, pyc)
         except OSError as e:
-            state.trace("error writing pyc file at {}: {}".format(pyc, e))
+            state.trace(f"error writing pyc file at {pyc}: {e}")
             # we ignore any failure to write the cache file
             # there are many reasons, permission-denied, pycache dir being a
             # file etc.
@@ -350,13 +358,12 @@ else:
 
 def _rewrite_test(fn: Path, config: Config) -> Tuple[os.stat_result, types.CodeType]:
     """Read and rewrite *fn* and return the code object."""
-    fn_ = fspath(fn)
-    stat = os.stat(fn_)
-    with open(fn_, "rb") as f:
-        source = f.read()
-    tree = ast.parse(source, filename=fn_)
-    rewrite_asserts(tree, source, fn_, config)
-    co = compile(tree, fn_, "exec", dont_inherit=True)
+    stat = os.stat(fn)
+    source = fn.read_bytes()
+    strfn = str(fn)
+    tree = ast.parse(source, filename=strfn)
+    rewrite_asserts(tree, source, strfn, config)
+    co = compile(tree, strfn, "exec", dont_inherit=True)
     return stat, co
 
 
@@ -368,30 +375,42 @@ def _read_pyc(
     Return rewritten code if successful or None if not.
     """
     try:
-        fp = open(fspath(pyc), "rb")
+        fp = open(pyc, "rb")
     except OSError:
         return None
     with fp:
+        # https://www.python.org/dev/peps/pep-0552/
+        has_flags = sys.version_info >= (3, 7)
         try:
-            stat_result = os.stat(fspath(source))
+            stat_result = os.stat(source)
             mtime = int(stat_result.st_mtime)
             size = stat_result.st_size
-            data = fp.read(12)
+            data = fp.read(16 if has_flags else 12)
         except OSError as e:
-            trace("_read_pyc({}): OSError {}".format(source, e))
+            trace(f"_read_pyc({source}): OSError {e}")
             return None
         # Check for invalid or out of date pyc file.
-        if (
-            len(data) != 12
-            or data[:4] != importlib.util.MAGIC_NUMBER
-            or struct.unpack("<LL", data[4:]) != (mtime & 0xFFFFFFFF, size & 0xFFFFFFFF)
-        ):
-            trace("_read_pyc(%s): invalid or out of date pyc" % source)
+        if len(data) != (16 if has_flags else 12):
+            trace("_read_pyc(%s): invalid pyc (too short)" % source)
+            return None
+        if data[:4] != importlib.util.MAGIC_NUMBER:
+            trace("_read_pyc(%s): invalid pyc (bad magic number)" % source)
+            return None
+        if has_flags and data[4:8] != b"\x00\x00\x00\x00":
+            trace("_read_pyc(%s): invalid pyc (unsupported flags)" % source)
+            return None
+        mtime_data = data[8 if has_flags else 4 : 12 if has_flags else 8]
+        if int.from_bytes(mtime_data, "little") != mtime & 0xFFFFFFFF:
+            trace("_read_pyc(%s): out of date" % source)
+            return None
+        size_data = data[12 if has_flags else 8 : 16 if has_flags else 12]
+        if int.from_bytes(size_data, "little") != size & 0xFFFFFFFF:
+            trace("_read_pyc(%s): invalid pyc (incorrect size)" % source)
             return None
         try:
             co = marshal.load(fp)
         except Exception as e:
-            trace("_read_pyc({}): marshal.load error {}".format(source, e))
+            trace(f"_read_pyc({source}): marshal.load error {e}")
             return None
         if not isinstance(co, types.CodeType):
             trace("_read_pyc(%s): not a code object" % source)
@@ -419,7 +438,18 @@ def _saferepr(obj: object) -> str:
     sequences, especially '\n{' and '\n}' are likely to be present in
     JSON reprs.
     """
-    return saferepr(obj).replace("\n", "\\n")
+    maxsize = _get_maxsize_for_saferepr(util._config)
+    return saferepr(obj, maxsize=maxsize).replace("\n", "\\n")
+
+
+def _get_maxsize_for_saferepr(config: Optional[Config]) -> Optional[int]:
+    """Get `maxsize` configuration for saferepr based on the given config object."""
+    verbosity = config.getoption("verbose") if config is not None else 0
+    if verbosity >= 2:
+        return None
+    if verbosity >= 1:
+        return DEFAULT_REPR_MAX_SIZE * 10
+    return DEFAULT_REPR_MAX_SIZE
 
 
 def _format_assertmsg(obj: object) -> str:
@@ -486,7 +516,7 @@ def _call_assertion_pass(lineno: int, orig: str, expl: str) -> None:
 
 def _check_if_assertion_pass_impl() -> bool:
     """Check if any plugins implement the pytest_assertion_pass hook
-    in order not to generate explanation unecessarily (might be expensive)."""
+    in order not to generate explanation unnecessarily (might be expensive)."""
     return True if util._assertion_pass else False
 
 
@@ -519,29 +549,22 @@ BINOP_MAP = {
 }
 
 
-def set_location(node, lineno, col_offset):
-    """Set node location information recursively."""
-
-    def _fix(node, lineno, col_offset):
-        if "lineno" in node._attributes:
-            node.lineno = lineno
-        if "col_offset" in node._attributes:
-            node.col_offset = col_offset
-        for child in ast.iter_child_nodes(node):
-            _fix(child, lineno, col_offset)
-
-    _fix(node, lineno, col_offset)
-    return node
+def traverse_node(node: ast.AST) -> Iterator[ast.AST]:
+    """Recursively yield node and all its children in depth-first order."""
+    yield node
+    for child in ast.iter_child_nodes(node):
+        yield from traverse_node(child)
 
 
+@functools.lru_cache(maxsize=1)
 def _get_assertion_exprs(src: bytes) -> Dict[int, str]:
     """Return a mapping from {lineno: "assertion test expression"}."""
-    ret = {}  # type: Dict[int, str]
+    ret: Dict[int, str] = {}
 
     depth = 0
-    lines = []  # type: List[str]
-    assert_lineno = None  # type: Optional[int]
-    seen_lines = set()  # type: Set[int]
+    lines: List[str] = []
+    assert_lineno: Optional[int] = None
+    seen_lines: Set[int] = set()
 
     def _write_and_reset() -> None:
         nonlocal depth, lines, assert_lineno, seen_lines
@@ -655,21 +678,14 @@ class AssertionRewriter(ast.NodeVisitor):
             self.enable_assertion_pass_hook = False
         self.source = source
 
-    @functools.lru_cache(maxsize=1)
-    def _assert_expr_to_lineno(self) -> Dict[int, str]:
-        return _get_assertion_exprs(self.source)
-
     def run(self, mod: ast.Module) -> None:
         """Find all assert statements in *mod* and rewrite them."""
         if not mod.body:
             # Nothing to do.
             return
-        # Insert some special imports at the top of the module but after any
-        # docstrings and __future__ imports.
-        aliases = [
-            ast.alias("builtins", "@py_builtins"),
-            ast.alias("_pytest.assertion.rewrite", "@pytest_ar"),
-        ]
+
+        # We'll insert some special imports at the top of the module, but after any
+        # docstrings and __future__ imports, so first figure out where that is.
         doc = getattr(mod, "docstring", None)
         expect_docstring = doc is None
         if doc is not None and self.is_rewrite_disabled(doc):
@@ -701,17 +717,34 @@ class AssertionRewriter(ast.NodeVisitor):
             lineno = item.decorator_list[0].lineno
         else:
             lineno = item.lineno
+        # Now actually insert the special imports.
+        if sys.version_info >= (3, 10):
+            aliases = [
+                ast.alias("builtins", "@py_builtins", lineno=lineno, col_offset=0),
+                ast.alias(
+                    "_pytest.assertion.rewrite",
+                    "@pytest_ar",
+                    lineno=lineno,
+                    col_offset=0,
+                ),
+            ]
+        else:
+            aliases = [
+                ast.alias("builtins", "@py_builtins"),
+                ast.alias("_pytest.assertion.rewrite", "@pytest_ar"),
+            ]
         imports = [
             ast.Import([alias], lineno=lineno, col_offset=0) for alias in aliases
         ]
         mod.body[pos:pos] = imports
+
         # Collect asserts.
-        nodes = [mod]  # type: List[ast.AST]
+        nodes: List[ast.AST] = [mod]
         while nodes:
             node = nodes.pop()
             for name, field in ast.iter_fields(node):
                 if isinstance(field, list):
-                    new = []  # type: List[ast.AST]
+                    new: List[ast.AST] = []
                     for i, child in enumerate(field):
                         if isinstance(child, ast.Assert):
                             # Transform assert.
@@ -783,7 +816,7 @@ class AssertionRewriter(ast.NodeVisitor):
         to format a string of %-formatted values as added by
         .explanation_param().
         """
-        self.explanation_specifiers = {}  # type: Dict[str, ast.expr]
+        self.explanation_specifiers: Dict[str, ast.expr] = {}
         self.stack.append(self.explanation_specifiers)
 
     def pop_format_context(self, expl_expr: ast.expr) -> ast.Name:
@@ -831,19 +864,19 @@ class AssertionRewriter(ast.NodeVisitor):
                     "assertion is always true, perhaps remove parentheses?"
                 ),
                 category=None,
-                filename=fspath(self.module_path),
+                filename=self.module_path,
                 lineno=assert_.lineno,
             )
 
-        self.statements = []  # type: List[ast.stmt]
-        self.variables = []  # type: List[str]
+        self.statements: List[ast.stmt] = []
+        self.variables: List[str] = []
         self.variable_counter = itertools.count()
 
         if self.enable_assertion_pass_hook:
-            self.format_variables = []  # type: List[str]
+            self.format_variables: List[str] = []
 
-        self.stack = []  # type: List[Dict[str, ast.expr]]
-        self.expl_stmts = []  # type: List[ast.stmt]
+        self.stack: List[Dict[str, ast.expr]] = []
+        self.expl_stmts: List[ast.stmt] = []
         self.push_format_context()
         # Rewrite assert into a bunch of statements.
         top_condition, explanation = self.visit(assert_.test)
@@ -872,7 +905,7 @@ class AssertionRewriter(ast.NodeVisitor):
 
             # Passed
             fmt_pass = self.helper("_format_explanation", msg)
-            orig = self._assert_expr_to_lineno()[assert_.lineno]
+            orig = _get_assertion_exprs(self.source)[assert_.lineno]
             hook_call_pass = ast.Expr(
                 self.helper(
                     "_call_assertion_pass",
@@ -923,9 +956,10 @@ class AssertionRewriter(ast.NodeVisitor):
             variables = [ast.Name(name, ast.Store()) for name in self.variables]
             clear = ast.Assign(variables, ast.NameConstant(None))
             self.statements.append(clear)
-        # Fix line numbers.
+        # Fix locations (line numbers/column offsets).
         for stmt in self.statements:
-            set_location(stmt, assert_.lineno, assert_.col_offset)
+            for node in traverse_node(stmt):
+                ast.copy_location(node, assert_)
         return self.statements
 
     def visit_Name(self, name: ast.Name) -> Tuple[ast.Name, str]:
@@ -950,7 +984,7 @@ class AssertionRewriter(ast.NodeVisitor):
         # Process each operand, short-circuiting if needed.
         for i, v in enumerate(boolop.values):
             if i:
-                fail_inner = []  # type: List[ast.stmt]
+                fail_inner: List[ast.stmt] = []
                 # cond is set in a prior loop iteration below
                 self.expl_stmts.append(ast.If(cond, fail_inner, []))  # noqa
                 self.expl_stmts = fail_inner
@@ -961,10 +995,10 @@ class AssertionRewriter(ast.NodeVisitor):
             call = ast.Call(app, [expl_format], [])
             self.expl_stmts.append(ast.Expr(call))
             if i < levels:
-                cond = res  # type: ast.expr
+                cond: ast.expr = res
                 if is_or:
                     cond = ast.UnaryOp(ast.Not(), cond)
-                inner = []  # type: List[ast.stmt]
+                inner: List[ast.stmt] = []
                 self.statements.append(ast.If(cond, inner, []))
                 self.statements = body = inner
         self.statements = save
@@ -983,7 +1017,7 @@ class AssertionRewriter(ast.NodeVisitor):
         symbol = BINOP_MAP[binop.op.__class__]
         left_expr, left_expl = self.visit(binop.left)
         right_expr, right_expl = self.visit(binop.right)
-        explanation = "({} {} {})".format(left_expl, symbol, right_expl)
+        explanation = f"({left_expl} {symbol} {right_expl})"
         res = self.assign(ast.BinOp(left_expr, binop.op, right_expr))
         return res, explanation
 
@@ -1008,11 +1042,11 @@ class AssertionRewriter(ast.NodeVisitor):
         new_call = ast.Call(new_func, new_args, new_kwargs)
         res = self.assign(new_call)
         res_expl = self.explanation_param(self.display(res))
-        outer_expl = "{}\n{{{} = {}\n}}".format(res_expl, res_expl, expl)
+        outer_expl = f"{res_expl}\n{{{res_expl} = {expl}\n}}"
         return res, outer_expl
 
     def visit_Starred(self, starred: ast.Starred) -> Tuple[ast.Starred, str]:
-        # From Python 3.5, a Starred node can appear in a function call.
+        # A Starred node can appear in a function call.
         res, expl = self.visit(starred.value)
         new_starred = ast.Starred(res, starred.ctx)
         return new_starred, "*" + expl
@@ -1031,7 +1065,7 @@ class AssertionRewriter(ast.NodeVisitor):
         self.push_format_context()
         left_res, left_expl = self.visit(comp.left)
         if isinstance(comp.left, (ast.Compare, ast.BoolOp)):
-            left_expl = "({})".format(left_expl)
+            left_expl = f"({left_expl})"
         res_variables = [self.variable() for i in range(len(comp.ops))]
         load_names = [ast.Name(v, ast.Load()) for v in res_variables]
         store_names = [ast.Name(v, ast.Store()) for v in res_variables]
@@ -1042,11 +1076,11 @@ class AssertionRewriter(ast.NodeVisitor):
         for i, op, next_operand in it:
             next_res, next_expl = self.visit(next_operand)
             if isinstance(next_operand, (ast.Compare, ast.BoolOp)):
-                next_expl = "({})".format(next_expl)
+                next_expl = f"({next_expl})"
             results.append(next_res)
             sym = BINOP_MAP[op.__class__]
             syms.append(ast.Str(sym))
-            expl = "{} {} {}".format(left_expl, sym, next_expl)
+            expl = f"{left_expl} {sym} {next_expl}"
             expls.append(ast.Str(expl))
             res_expr = ast.Compare(left_res, [op], [next_res])
             self.statements.append(ast.Assign([store_names[i]], res_expr))
@@ -1060,7 +1094,7 @@ class AssertionRewriter(ast.NodeVisitor):
             ast.Tuple(results, ast.Load()),
         )
         if len(comp.ops) > 1:
-            res = ast.BoolOp(ast.And(), load_names)  # type: ast.expr
+            res: ast.expr = ast.BoolOp(ast.And(), load_names)
         else:
             res = load_names[0]
         return res, self.explanation_param(self.pop_format_context(expl_call))
@@ -1072,7 +1106,7 @@ def try_makedirs(cache_dir: Path) -> bool:
     Returns True if successful or if it already exists.
     """
     try:
-        os.makedirs(fspath(cache_dir), exist_ok=True)
+        os.makedirs(cache_dir, exist_ok=True)
     except (FileNotFoundError, NotADirectoryError, FileExistsError):
         # One of the path components was not a directory:
         # - we're in a zip file

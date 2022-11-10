@@ -4,7 +4,7 @@
 <link rel="help" href="http://w3c.github.io/IndexedDB/#dom-idbobjectstore-createindex">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 indexeddb_test(
@@ -12,7 +12,7 @@ indexeddb_test(
         var store = db.createObjectStore("s");
     },
     function(t, db) {
-        var txn = db.transaction("s");
+        var txn = db.transaction("s", "readonly", {durability: 'relaxed'});
         var store = txn.objectStore("s");
         txn.oncomplete = function() {
             assert_throws_dom("InvalidStateError", function() {

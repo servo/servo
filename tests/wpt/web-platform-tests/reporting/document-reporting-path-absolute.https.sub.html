@@ -21,7 +21,7 @@
     observer.observe();
   }, "report generated");
 </script>
-<script>window.webkitStorageInfo;</script>
+<script>window.webkitCancelAnimationFrame(() => {});</script>
 <script>
   const base_url = `${location.protocol}//${location.host}`;
   const endpoint = `${base_url}/reporting/resources/report.py`;

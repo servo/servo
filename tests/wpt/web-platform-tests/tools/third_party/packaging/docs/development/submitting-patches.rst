@@ -32,13 +32,6 @@ Every code file must start with the boilerplate licensing notice:
     # 2.0, and the BSD License. See the LICENSE file in the root of this repository
     # for complete details.
 
-Additionally, every Python code file must contain
-
-.. code-block:: python
-
-    from __future__ import absolute_import, division, print_function
-
-
 Tests
 -----
 

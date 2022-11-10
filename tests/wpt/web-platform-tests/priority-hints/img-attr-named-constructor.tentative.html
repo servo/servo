@@ -4,23 +4,23 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<img id=img1 src=/images/green.png importance=high>
-<img id=img2 src=/images/green.png importance=low>
-<img id=img3 src=/images/green.png importance=auto>
-<img id=img4 src=/images/green.png importance=xyz>
+<img id=img1 src=/images/green.png fetchpriority=high>
+<img id=img2 src=/images/green.png fetchpriority=low>
+<img id=img3 src=/images/green.png fetchpriority=auto>
+<img id=img4 src=/images/green.png fetchpriority=xyz>
 <img id=img5 src=/images/green.png>
 
 <script>
   test(() => {
-    assert_equals(img1.importance, "high", "high importance is a valid IDL value on the image element");
-    assert_equals(img2.importance, "low", "high importance is a valid IDL value on the image element");
-    assert_equals(img3.importance, "auto", "auto importance is a valid IDL value on the image element");
-    assert_equals(img4.importance, "auto", "invalid importance reflects as 'auto' IDL attribute on the image element");
-    assert_equals(img5.importance, "auto", "missing importance reflects as 'auto' IDL attribute on the image element");
-  }, "importance attribute on <img> elements should reflect valid IDL values");
+    assert_equals(img1.fetchPriority, "high", "high fetchPriority is a valid IDL value on the image element");
+    assert_equals(img2.fetchPriority, "low", "high fetchPriority is a valid IDL value on the image element");
+    assert_equals(img3.fetchPriority, "auto", "auto fetchPriority is a valid IDL value on the image element");
+    assert_equals(img4.fetchPriority, "auto", "invalid fetchPriority reflects as 'auto' IDL attribute on the image element");
+    assert_equals(img5.fetchPriority, "auto", "missing fetchPriority reflects as 'auto' IDL attribute on the image element");
+  }, "fetchpriority attribute on <img> elements should reflect valid IDL values");
 
   test(() => {
     const img = new Image();
-    assert_equals(img.importance, "auto");
-  }, "importance of new Image() is 'auto'");
+    assert_equals(img.fetchPriority, "auto");
+  }, "fetchPriority of new Image() is 'auto'");
 </script>

@@ -4,7 +4,7 @@
 <link rel='help' href='https://github.com/whatwg/dom/issues/831'>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
-<script src='../resources/shadow-dom-utils.js'></script>
+<script src='../../html/resources/common.js'></script>
 
 <body>
 
@@ -56,8 +56,8 @@ function testElementType(allowsShadowDom, elementType, applyToShadow, mode, dele
 }
 
 function runAllTests() {
-  const allElements = [...HTML5_ELEMENT_NAMES, 'htmlunknown'];
-  const safelisted = ATTACHSHADOW_SAFELISTED_ELEMENTS;
+  const allElements = [...HTML5_ELEMENTS, 'htmlunknown'];
+  const safelisted = HTML5_SHADOW_ALLOWED_ELEMENTS;
   for (const elementName of allElements) {
     const allowsShadowDom = safelisted.includes(elementName);
     for (const applyToShadow of [false, true]) {

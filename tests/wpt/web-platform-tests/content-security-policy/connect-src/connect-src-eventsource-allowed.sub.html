@@ -14,21 +14,18 @@
 <body>
     <script>
         window.addEventListener('securitypolicyviolation', function(e) {
-            log("allowed");
+            log("blocked");
         });
 
         try {
-            var es = new EventSource("http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/connect-src/resources/simple-event-stream");
-            // Firefox and Chrome don't throw an exception and takes some time to close async
-            if (es.readyState == EventSource.CONNECTING) {
-                setTimeout( function() {
-                    es.readyState != EventSource.CLOSED ? log("allowed") : log("blocked");
-                }, 1000);
-            } else if (es.readyState == EventSource.CLOSED) {
-                log("blocked");
-            } else {
+            var es = new EventSource("http://{{host}}:{{ports[http][0]}}/content-security-policy/connect-src/resources/simple-event-stream");
+            // Firefox and Chrome don't throw an exception.
+            es.onopen = function () {
                 log("allowed");
-            }
+            };
+            es.onerror = function () {
+                log("blocked");
+            };
         } catch (e) {
             log("blocked");
         }

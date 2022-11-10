@@ -15,7 +15,7 @@
     left: 0px;
   }
 
-  #selectMenu0-popup {
+  #selectMenu0-popover {
     border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 4px;
     box-shadow: 0px 12.8px 28.8px rgba(0, 0, 0, 0.13), 0px 0px 9.2px rgba(0, 0, 0, 0.11);
@@ -26,7 +26,7 @@
 </style>
 
 <selectmenu id="selectMenu0">
-  <popup slot="listbox" behavior="listbox" id="selectMenu0-popup">
+  <div popover slot="listbox" behavior="listbox" id="selectMenu0-popover">
     <option>bottom left</option>
     <option>two</option>
     <option>three</option>
@@ -114,7 +114,7 @@
     <option>three</option>
     <option>two</option>
     <option>three</option>
-  </popup>
+  </div>
 </selectmenu>
 <br>
 
@@ -129,12 +129,12 @@
 
   promise_test(async () => {
     const selectMenu0 = document.getElementById("selectMenu0");
-    const selectMenu0Popup = document.getElementById("selectMenu0-popup");
+    const selectMenu0Popover = document.getElementById("selectMenu0-popover");
 
     await clickOn(selectMenu0);
-    assert_equals(Math.round(selectMenu0.getBoundingClientRect().bottom), Math.round(selectMenu0Popup.getBoundingClientRect().top));
-    assert_equals(Math.round(selectMenu0.getBoundingClientRect().left), Math.round(selectMenu0Popup.getBoundingClientRect().left));
-    assert_equals(window.innerHeight, Math.round(selectMenu0Popup.getBoundingClientRect().bottom));
-  }, "The popup should be bottom left positioned");
+    assert_equals(Math.round(selectMenu0.getBoundingClientRect().bottom), Math.round(selectMenu0Popover.getBoundingClientRect().top));
+    assert_equals(Math.round(selectMenu0.getBoundingClientRect().left), Math.round(selectMenu0Popover.getBoundingClientRect().left));
+    assert_equals(window.innerHeight, Math.round(selectMenu0Popover.getBoundingClientRect().bottom));
+  }, "The popover should be bottom left positioned");
 
 </script>

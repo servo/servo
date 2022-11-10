@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html id="top">
+<meta charset="utf-8">
+<title>View timeline delay</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+    #container {
+    border:  10px solid lightgray;
+    overflow-x: scroll;
+    height:  200px;
+    width: 200px;
+  }
+  #content {
+    display:  flex;
+    flex-flow:  row nowrap;
+    justify-content:  flex-start;
+    width:  1800px;
+    margin: 0;
+  }
+  .spacer {
+    width:  800px;
+    display:  inline-block;
+  }
+  #target {
+    background-color:  green;
+    height:  100px;
+    width:  100px;
+    display:  inline-block;
+    font-size:  16px;
+  }
+  #target.big-font {
+    font-size:  20px;
+  }
+  #container.scroll-padded {
+    scroll-padding-inline: 10px 20px;
+  }
+</style>
+</style>
+<body>
+  <div id="container">
+    <div id="content">
+      <div class="spacer"></div>
+      <div id="target"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+</body>
+<script type="text/javascript">
+  promise_test(async t => {
+    // These tests are all based on the cover range, which has bounds
+    // [600, 900] if there are no insets.
+    // rangeStart = target_pos - viewport_size + end_side_inset
+    //            = 600 + end_side_inset
+    // rangeEnd = target_pos + target_size - start_side_inset
+    //          = 900 - start_side_inset
+    await runTimelineInsetTest(t, {
+      inset: [ CSS.px(0), CSS.px(0) ],
+      rangeStart: 600,
+      rangeEnd: 900
+    });
+    await runTimelineInsetTest(t, {
+      inset: [ CSS.px(10), CSS.px(20) ],
+      rangeStart: 620,
+      rangeEnd: 890
+    });
+    await runTimelineInsetTest(t, {
+      inset: [ CSS.px(10) ],
+      rangeStart: 610,
+      rangeEnd: 890
+    });
+  }, 'View timeline with px based inset.');
+
+  promise_test(async t => {
+    // These tests are all based on the cover range, which has bounds
+    // [600, 900].
+    // Percentages are relative to the viewport size, which is 200 for this
+    // test.
+    await runTimelineInsetTest(t, {
+      inset: [ CSS.percent(0), CSS.percent(0) ],
+      rangeStart: 600,
+      rangeEnd: 900
+    });
+    await runTimelineInsetTest(t, {
+      inset: [ CSS.percent(10), CSS.percent(20) ],
+      rangeStart: 640,
+      rangeEnd: 880
+    });
+    await runTimelineInsetTest(t, {
+      inset: [ CSS.percent(10) ],
+      rangeStart: 620,
+      rangeEnd: 880
+    });
+  }, 'View timeline with percent based inset.');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      container.class = '';
+    });
+    const anim = await runTimelineInsetTest(t, {
+      inset: [ "auto", "auto" ],
+      rangeStart: 600,
+      rangeEnd: 900
+    });
+    container.classList.add('scroll-padded');
+    await runTimelineRangeTest(t, {
+      anim: anim,
+      rangeStart: 620,
+      rangeEnd: 890,
+    }, 'Adjust for scroll-padding');
+  }, 'view timeline with inset auto.');
+
+promise_test(async t => {
+  t.add_cleanup(() => {
+    target.class = '';
+  });
+  const anim = await runTimelineInsetTest(t, {
+    inset: [ CSS.em(1), CSS.em(2) ],
+    rangeStart: 632,
+    rangeEnd: 884
+  });
+  target.classList.add('big-font');
+  await runTimelineRangeTest(t, {
+    anim: anim,
+    rangeStart: 640,
+    rangeEnd: 880,
+  }, 'Adjust for font size increase');
+}, 'view timeline with font relative inset.');
+
+promise_test(async t => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const vmin = Math.min(vw, vh);
+  await runTimelineInsetTest(t, {
+    inset: [ CSS.vw(10), CSS.vw(20) ],
+    rangeStart: 600 + 0.2 * vw,
+    rangeEnd: 900 - 0.1 * vw
+  });
+  await runTimelineInsetTest(t, {
+    inset: [ CSS.vmin(10), CSS.vmin(20) ],
+    rangeStart: 600 + 0.2 * vmin,
+    rangeEnd: 900 - 0.1 * vmin
+  });
+}, 'view timeline with viewport relative insets.');
+</script>

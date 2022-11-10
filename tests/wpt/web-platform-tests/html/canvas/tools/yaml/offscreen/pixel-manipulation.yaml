@@ -1,25 +1,17 @@
 - name: 2d.imageData.create2.basic
   desc: createImageData(sw, sh) exists and returns something
-  testing:
-  - 2d.imageData.create2.object
   code: |
     @assert ctx.createImageData(1, 1) !== null;
     t.done();
 
 - name: 2d.imageData.create1.basic
   desc: createImageData(imgdata) exists and returns something
-  testing:
-  - 2d.imageData.create1.object
   code: |
     @assert ctx.createImageData(ctx.createImageData(1, 1)) !== null;
     t.done();
 
 - name: 2d.imageData.create2.initial
   desc: createImageData(sw, sh) returns transparent black data of the right size
-  testing:
-  - 2d.imageData.create2.size
-  - 2d.imageData.create.initial
-  - 2d.imageData.initial
   code: |
     var imgdata = ctx.createImageData(10, 20);
     @assert imgdata.data.length === imgdata.width*imgdata.height*4;
@@ -34,10 +26,6 @@
 
 - name: 2d.imageData.create1.initial
   desc: createImageData(imgdata) returns transparent black data of the right size
-  testing:
-  - 2d.imageData.create1.size
-  - 2d.imageData.create.initial
-  - 2d.imageData.initial
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -55,8 +43,6 @@
 
 - name: 2d.imageData.create2.large
   desc: createImageData(sw, sh) works for sizes much larger than the canvas
-  testing:
-  - 2d.imageData.create2.size
   code: |
     var imgdata = ctx.createImageData(1000, 2000);
     @assert imgdata.data.length === imgdata.width*imgdata.height*4;
@@ -71,8 +57,6 @@
 
 - name: 2d.imageData.create2.negative
   desc: createImageData(sw, sh) takes the absolute magnitude of the size arguments
-  testing:
-  - 2d.imageData.create2.size
   code: |
     var imgdata1 = ctx.createImageData(10, 20);
     var imgdata2 = ctx.createImageData(-10, 20);
@@ -85,8 +69,6 @@
 
 - name: 2d.imageData.create2.zero
   desc: createImageData(sw, sh) throws INDEX_SIZE_ERR if size is zero
-  testing:
-  - 2d.imageData.getcreate.zero
   code: |
     @assert throws INDEX_SIZE_ERR ctx.createImageData(10, 0);
     @assert throws INDEX_SIZE_ERR ctx.createImageData(0, 10);
@@ -95,8 +77,6 @@
 
 - name: 2d.imageData.create2.nonfinite
   desc: createImageData() throws TypeError if arguments are not finite
-  testing:
-  - 2d.imageData.getcreate.nonfinite
   code: |
     @nonfinite @assert throws TypeError ctx.createImageData(<10 Infinity -Infinity NaN>, <10 Infinity -Infinity NaN>);
     var posinfobj = { valueOf: function() { return Infinity; } },
@@ -107,16 +87,12 @@
 
 - name: 2d.imageData.create1.zero
   desc: createImageData(null) throws TypeError
-  testing:
-  - 2d.imageData.create.null
   code: |
     @assert throws TypeError ctx.createImageData(null);
     t.done();
 
 - name: 2d.imageData.create2.round
   desc: createImageData(w, h) is rounded the same as getImageData(0, 0, w, h)
-  testing:
-  - 2d.imageData.createround
   code: |
     var imgdata1 = ctx.createImageData(10.01, 10.99);
     var imgdata2 = ctx.getImageData(0, 0, 10.01, 10.99);
@@ -126,16 +102,12 @@
 
 - name: 2d.imageData.get.basic
   desc: getImageData() exists and returns something
-  testing:
-  - 2d.imageData.get.basic
   code: |
     @assert ctx.getImageData(0, 0, 100, 50) !== null;
     t.done();
 
 - name: 2d.imageData.get.zero
   desc: getImageData() throws INDEX_SIZE_ERR if size is zero
-  testing:
-  - 2d.imageData.getcreate.zero
   code: |
     @assert throws INDEX_SIZE_ERR ctx.getImageData(1, 1, 10, 0);
     @assert throws INDEX_SIZE_ERR ctx.getImageData(1, 1, 0, 10);
@@ -144,8 +116,6 @@
 
 - name: 2d.imageData.get.nonfinite
   desc: getImageData() throws TypeError if arguments are not finite
-  testing:
-  - 2d.imageData.getcreate.nonfinite
   code: |
     @nonfinite @assert throws TypeError ctx.getImageData(<10 Infinity -Infinity NaN>, <10 Infinity -Infinity NaN>, <10 Infinity -Infinity NaN>, <10 Infinity -Infinity NaN>);
     var posinfobj = { valueOf: function() { return Infinity; } },
@@ -156,9 +126,6 @@
 
 - name: 2d.imageData.get.source.outside
   desc: getImageData() returns transparent black outside the canvas
-  testing:
-  - 2d.imageData.get.basic
-  - 2d.imageData.get.outside
   code: |
     ctx.fillStyle = '#08f';
     ctx.fillRect(0, 0, 100, 50);
@@ -218,9 +185,6 @@
 - name: 2d.imageData.get.source.negative
   desc: getImageData() works with negative width and height, and returns top-to-bottom
     left-to-right
-  testing:
-  - 2d.imageData.get.basic
-  - 2d.pixelarray.order
   code: |
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 100, 50);
@@ -244,8 +208,6 @@
 
 - name: 2d.imageData.get.source.size
   desc: getImageData() returns bigger ImageData for bigger source rectangle
-  testing:
-  - 2d.imageData.get.basic
   code: |
     var imgdata1 = ctx.getImageData(0, 0, 10, 10);
     var imgdata2 = ctx.getImageData(0, 0, 20, 20);
@@ -254,9 +216,7 @@
     t.done();
 
 - name: 2d.imageData.get.nonpremul
-  desc: getImageData() returns non-premultiplied colours
-  testing:
-  - 2d.imageData.get.premul
+  desc: getImageData() returns non-premultiplied colors
   code: |
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.fillRect(0, 0, 100, 50);
@@ -270,9 +230,6 @@
 
 - name: 2d.imageData.get.range
   desc: getImageData() returns values in the range [0, 255]
-  testing:
-  - 2d.pixelarray.range
-  - 2d.pixelarray.retrieve
   code: |
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 100, 50);
@@ -285,9 +242,7 @@
     t.done();
 
 - name: 2d.imageData.get.clamp
-  desc: getImageData() clamps colours to the range [0, 255]
-  testing:
-  - 2d.pixelarray.range
+  desc: getImageData() clamps colors to the range [0, 255]
   code: |
     ctx.fillStyle = 'rgb(-100, -200, -300)';
     ctx.fillRect(0, 0, 100, 50);
@@ -305,8 +260,6 @@
 
 - name: 2d.imageData.get.length
   desc: getImageData() returns a correctly-sized Uint8ClampedArray
-  testing:
-  - 2d.pixelarray.length
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     @assert imgdata.data.length === imgdata.width*imgdata.height*4;
@@ -314,8 +267,6 @@
 
 - name: 2d.imageData.get.order.cols
   desc: getImageData() returns leftmost columns first
-  testing:
-  - 2d.pixelarray.order
   code: |
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, 100, 50);
@@ -329,8 +280,6 @@
 
 - name: 2d.imageData.get.order.rows
   desc: getImageData() returns topmost rows first
-  testing:
-  - 2d.pixelarray.order
   code: |
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, 100, 50);
@@ -344,9 +293,6 @@
 
 - name: 2d.imageData.get.order.rgb
   desc: getImageData() returns R then G then B
-  testing:
-  - 2d.pixelarray.order
-  - 2d.pixelarray.indexes
   code: |
     ctx.fillStyle = '#48c';
     ctx.fillRect(0, 0, 100, 50);
@@ -363,8 +309,6 @@
 
 - name: 2d.imageData.get.order.alpha
   desc: getImageData() returns A in the fourth component
-  testing:
-  - 2d.pixelarray.order
   code: |
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, 100, 50);
@@ -375,8 +319,6 @@
 
 - name: 2d.imageData.get.unaffected
   desc: getImageData() is not affected by context state
-  testing:
-  - 2d.imageData.unaffected
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 50, 50)
@@ -399,8 +341,6 @@
 
 - name: 2d.imageData.object.properties
   desc: ImageData objects have the right properties
-  testing:
-  - 2d.imageData.type
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     @assert typeof(imgdata.width) === 'number';
@@ -410,8 +350,6 @@
 
 - name: 2d.imageData.object.readonly
   desc: ImageData objects properties are read-only
-  testing:
-  - 2d.imageData.type
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     var w = imgdata.width;
@@ -431,8 +369,6 @@
 
 - name: 2d.imageData.object.set
   desc: ImageData.data can be modified
-  testing:
-  - 2d.pixelarray.modify
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     imgdata.data[0] = 100;
@@ -443,8 +379,6 @@
 
 - name: 2d.imageData.object.undefined
   desc: ImageData.data converts undefined to 0
-  testing:
-  - 2d.pixelarray.modify
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     imgdata.data[0] = 100;
@@ -454,8 +388,6 @@
 
 - name: 2d.imageData.object.nan
   desc: ImageData.data converts NaN to 0
-  testing:
-  - 2d.pixelarray.modify
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     imgdata.data[0] = 100;
@@ -468,8 +400,6 @@
 
 - name: 2d.imageData.object.string
   desc: ImageData.data converts strings to numbers with ToNumber
-  testing:
-  - 2d.pixelarray.modify
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     imgdata.data[0] = 100;
@@ -485,8 +415,6 @@
 
 - name: 2d.imageData.object.clamp
   desc: ImageData.data clamps numbers to [0, 255]
-  testing:
-  - 2d.pixelarray.modify
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     imgdata.data[0] = 100;
@@ -517,8 +445,6 @@
 
 - name: 2d.imageData.object.round
   desc: ImageData.data rounds numbers with round-to-zero
-  testing:
-  - 2d.pixelarray.modify
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     imgdata.data[0] = 0.499;
@@ -553,16 +479,12 @@
 
 - name: 2d.imageData.put.null
   desc: putImageData() with null imagedata throws TypeError
-  testing:
-  - 2d.imageData.put.wrongtype
   code: |
     @assert throws TypeError ctx.putImageData(null, 0, 0);
     t.done();
 
 - name: 2d.imageData.put.nonfinite
   desc: putImageData() throws TypeError if arguments are not finite
-  testing:
-  - 2d.imageData.put.nonfinite
   code: |
     var imgdata = ctx.getImageData(0, 0, 10, 10);
     @nonfinite @assert throws TypeError ctx.putImageData(<imgdata>, <10 Infinity -Infinity NaN>, <10 Infinity -Infinity NaN>);
@@ -571,9 +493,6 @@
 
 - name: 2d.imageData.put.basic
   desc: putImageData() puts image data from getImageData() onto the canvas
-  testing:
-  - 2d.imageData.put.normal
-  - 2d.imageData.put.3arg
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50)
@@ -586,8 +505,6 @@
 
 - name: 2d.imageData.put.created
   desc: putImageData() puts image data from createImageData() onto the canvas
-  testing:
-  - 2d.imageData.put.normal
   code: |
     var imgdata = ctx.createImageData(100, 50);
     for (var i = 0; i < imgdata.data.length; i += 4) {
@@ -604,8 +521,6 @@
 
 - name: 2d.imageData.put.wrongtype
   desc: putImageData() does not accept non-ImageData objects
-  testing:
-  - 2d.imageData.put.wrongtype
   code: |
     var imgdata = { width: 1, height: 1, data: [255, 0, 0, 255] };
     @assert throws TypeError ctx.putImageData(imgdata, 0, 0);
@@ -615,8 +530,6 @@
 
 - name: 2d.imageData.put.cross
   desc: putImageData() accepts image data got from a different canvas
-  testing:
-  - 2d.imageData.put.normal
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -631,8 +544,6 @@
 
 - name: 2d.imageData.put.alpha
   desc: putImageData() puts non-solid image data correctly
-  testing:
-  - 2d.imageData.put.normal
   code: |
     ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
     ctx.fillRect(0, 0, 100, 50)
@@ -645,8 +556,6 @@
 
 - name: 2d.imageData.put.modified
   desc: putImageData() puts modified image data correctly
-  testing:
-  - 2d.imageData.put.normal
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50)
@@ -664,8 +573,6 @@
 
 - name: 2d.imageData.put.dirty.zero
   desc: putImageData() with zero-sized dirty rectangle puts nothing
-  testing:
-  - 2d.imageData.put.normal
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50)
@@ -679,8 +586,6 @@
 - name: 2d.imageData.put.dirty.rect1
   desc: putImageData() only modifies areas inside the dirty rectangle, using width
     and height
-  testing:
-  - 2d.imageData.put.normal
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50)
@@ -702,8 +607,6 @@
 - name: 2d.imageData.put.dirty.rect2
   desc: putImageData() only modifies areas inside the dirty rectangle, using x and
     y
-  testing:
-  - 2d.imageData.put.normal
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50)
@@ -724,8 +627,6 @@
 
 - name: 2d.imageData.put.dirty.negative
   desc: putImageData() handles negative-sized dirty rectangles correctly
-  testing:
-  - 2d.imageData.put.normal
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50)
@@ -746,8 +647,6 @@
 
 - name: 2d.imageData.put.dirty.outside
   desc: putImageData() handles dirty rectangles outside the canvas correctly
-  testing:
-  - 2d.imageData.put.normal
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50)
@@ -769,8 +668,6 @@
 
 - name: 2d.imageData.put.unchanged
   desc: putImageData(getImageData(...), ...) has no effect
-  testing:
-  - 2d.imageData.unchanged
   code: |
     var i = 0;
     for (var y = 0; y < 16; ++y) {
@@ -792,8 +689,6 @@
 
 - name: 2d.imageData.put.unaffected
   desc: putImageData() is not affected by context state
-  testing:
-  - 2d.imageData.unaffected
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50)
@@ -812,8 +707,6 @@
 
 - name: 2d.imageData.put.clip
   desc: putImageData() is not affected by clipping regions
-  testing:
-  - 2d.imageData.unaffected
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50)
@@ -830,8 +723,6 @@
 
 - name: 2d.imageData.put.path
   desc: putImageData() does not affect the current path
-  testing:
-  - 2d.imageData.put.normal
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50)
@@ -842,4 +733,3 @@
     ctx.fill();
     @assert pixel 50,25 ==~ 0,255,0,255;
     t.done();
-

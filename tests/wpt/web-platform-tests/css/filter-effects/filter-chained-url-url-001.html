@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Chained identity url() filters with 'linearRGB' color-interpolation-filters</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#propdef-color-interpolation-filters">
+<link rel="match" href="reference/green-100x100.html">
+<div style="width: 100px; height: 100px; background-color: green; filter: url(#identity) url(#identity)"></div>
+<svg height="0">
+  <filter id="identity">
+    <feColorMatrix type="identity"/>
+  </filter>
+</svg>

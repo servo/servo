@@ -1,0 +1,1 @@
+logScript("Async1");

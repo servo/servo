@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: block formatting context with floats</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="floats-aspect-ratio-001-ref.html" />
+
+<div style="width: 200px; border: solid 1px; display: flow-root;">
+  <div style="float: left; width: 50px; height: 50px; background: lime;"></div>
+  <div style="float: right; width: 50px; height: 50px; background: hotpink;"></div>
+  <div style="float: left; width: 160px; height: 50px; background: aqua;"></div>
+
+  <div style="aspect-ratio: 1/1; background: orange; display: flow-root;"></div>
+</div>

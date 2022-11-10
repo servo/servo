@@ -31,9 +31,9 @@
     },
     {
       destination: 'image', ext: '.png', supports_sri: false,
-      sha256: 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=',
-      sha384: 'sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb',
-      sha512: 'sha512-z4PhNX7vuL3xVChQ1m2AB9Yg5AULVxXcg/SpIdNs6c5H0NE8XYXysP+DGNKHfuwvY7kxvUdBeoGlODJ6+SfaPg=='
+      sha256: 'sha256-h7rQ5CQooD7qmTmrNxykCgjz3lDM1CBl2hkY1CTpB2I=',
+      sha384: 'sha384-DqrhF5pyW9u4FJsleRwjTAwKDSspQbxk9oux9BtcaANyji0kzpb7b4Cw3TM4MGNk',
+      sha512: 'sha512-wyY+ChJ1B5ovayDkbBeEv7nuHJ0uws14KoLyFSLKngFzHzm6VaTNA/ndx/Lnt/vPx6BN1cJB7+JNa4aAUGOlgg=='
     },
     // TODO(domfarolino): Add more destinations.
   ];
@@ -278,6 +278,17 @@
 
       SRIPreloadTest(
         true,
+        true,
+        `Same-origin ${destination} with matching digest re-uses preload with matching digest and options.`,
+        1,
+        destination,
+        same_origin_prefix + destination + ext + `?${token()}`,
+        {integrity: `${sha256}?dummy-option=value`},
+        {integrity: sha256}
+      )
+
+      SRIPreloadTest(
+        true,
         false,
         `Same-origin ${destination} with non-matching digest does not re-use preload with matching digest.`,
         2,
@@ -307,6 +318,61 @@
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: "sha256-deadbeefQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="},
         {integrity: "sha256-deaddeadbeefYHFvsYdWumweeFAw0hJDTFt9seErghA="}
+      )
+
+      SRIPreloadTest(
+        true,
+        true,
+        `Same-origin ${destination} with matching digest does not reuse preload without digest.`,
+        2,
+        destination,
+        same_origin_prefix + destination + ext + `?${token()}`,
+        {},
+        {integrity: sha256}
+      )
+
+      SRIPreloadTest(
+        true,
+        true,
+        `Same-origin ${destination} with matching digest does not reuse preload with matching but stronger digest.`,
+        2,
+        destination,
+        same_origin_prefix + destination + ext + `?${token()}`,
+        {integrity: sha384},
+        {integrity: sha256},
+      )
+
+      SRIPreloadTest(
+        true,
+        false,
+        `Same-origin ${destination} with wrong digest does not reuse preload with correct and stronger digest.`,
+        2,
+        destination,
+        same_origin_prefix + destination + ext + `?${token()}`,
+        {integrity: sha384},
+        {integrity: "sha256-deadbeefQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="}
+      )
+
+      SRIPreloadTest(
+        true,
+        true,
+        `Same-origin ${destination} with matching digest does not reuse preload with matching but weaker digest.`,
+        2,
+        destination,
+        same_origin_prefix + destination + ext + `?${token()}`,
+        {integrity: sha256},
+        {integrity: sha384},
+      )
+
+      SRIPreloadTest(
+        true,
+        false,
+        `Same-origin ${destination} with non-matching digest reuses preload with no digest but fails.`,
+        2,
+        destination,
+        same_origin_prefix + destination + ext + `?${token()}`,
+        {},
+        {integrity: "sha256-sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"},
       )
 
     } // if.

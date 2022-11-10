@@ -3,7 +3,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 indexeddb_test(
@@ -15,7 +15,7 @@ indexeddb_test(
             objStore.add("data2", 2);
   },
   function(t, db, tx) {
-            var idx = db.transaction("test").objectStore("test").index("index");
+            var idx = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index");
 
             assert_throws_dom("DataError",
                 function() { idx.openCursor({ lower: "a" }); });

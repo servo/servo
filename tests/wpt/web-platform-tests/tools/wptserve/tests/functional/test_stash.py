@@ -12,7 +12,7 @@ from .base import TestUsingServer
 class TestResponseSetCookie(TestUsingServer):
     def run(self, result=None):
         with StashServer(None, authkey=str(uuid.uuid4())):
-            super(TestResponseSetCookie, self).run(result)
+            super().run(result)
 
     def test_put_take(self):
         @wptserve.handlers.handler

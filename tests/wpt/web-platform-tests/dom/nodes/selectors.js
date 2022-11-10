@@ -26,7 +26,7 @@ var invalidSelectors = [
   {name: "Invalid class",                selector: "..test"},
   {name: "Invalid class",                selector: ".foo..quux"},
   {name: "Invalid class",                selector: ".bar."},
-  {name: "Invalid combinator",           selector: "div & address, p"},
+  {name: "Invalid combinator",           selector: "div % address, p"},
   {name: "Invalid combinator",           selector: "div ++ address, p"},
   {name: "Invalid combinator",           selector: "div ~~ address, p"},
   {name: "Invalid [att=value] selector", selector: "[*=test]"},

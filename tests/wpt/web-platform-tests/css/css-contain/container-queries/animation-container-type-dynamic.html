@@ -21,19 +21,19 @@
     width: 100px;
   }
 
-  @container size(min-width: 250px) {
+  @container (min-width: 250px) {
     #intermediate {
       container-type: inline-size;
     }
   }
 
-  @container size(width: 200px) {
+  @container (width: 200px) {
     #target {
       background-color: blue;
     }
   }
 
-  @container size(width: 100px) {
+  @container (width: 100px) {
     /* Initially queries  #container, but later queries #intermediate, when
        the other container query starts matching. */
     #target {

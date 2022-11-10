@@ -14,6 +14,10 @@ html,body {
   color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
 }
 
+#report {
+  white-space: pre-wrap;
+}
+
 .grid {
   display: inline-grid;
   height: 50px;
@@ -32,8 +36,8 @@ html,body {
   background: grey;
 }
 
-.fit-0a  { grid-template-rows: repeat(auto-fit, [y] 30px) [z] 1px [z] 1px [z] 1px [z] 1px [z] }
-.fit-0b  { grid-template-rows: [x] repeat(auto-fit, [y] 30px) [z] 1px [z] 1px [z] 1px [z] }
+.fit-0a  { grid-template-rows: repeat(auto-fit, [y] 30px) [z] 1px [z] 1px [z] 1px [z] 1px [z] minmax(0, auto) }
+.fit-0b  { grid-template-rows: [x] repeat(auto-fit, [y] 30px) [z] 1px [z] 1px [z] 1px [z] minmax(0, auto) minmax(0, auto) }
 .fit-0c  { grid-template-rows: [x] 1px [x] repeat(auto-fit, [y] 10px) [z] 1px [z] 1px [z] }
 .fit-0d  { grid-template-rows: [x] 2px [x] 2px [x] repeat(auto-fit, [y] 10px) [z] 1px [z] }
 .fit-0e  { grid-template-rows: [x] 2px [x] 2px [x] 2px [x] repeat(auto-fit, [y] 10px) [z] }
@@ -53,18 +57,18 @@ html,body {
 .fit-1e  { grid-template-rows: [x] 2px [x] 2px [x] 2px [x] repeat(auto-fit, [y] 10px) }
 
 .fit-2a  { grid-template-rows: repeat(auto-fit, [y] 10px) [z] 1px [z] 1px [z] }
-.fit-2b  { grid-template-rows: [x] repeat(auto-fit, [y] 10px) [z] 1px [z] }
-.fit-2c  { grid-template-rows: [x] 2px [x] repeat(auto-fit, [y] 10px) [z] }
+.fit-2b  { grid-template-rows: [x] repeat(auto-fit, [y] 10px) [z] 1px [z] minmax(0, auto) }
+.fit-2c  { grid-template-rows: [x] 2px [x] repeat(auto-fit, [y] 10px) [z] minmax(0, auto) }
 .fit-2d  { grid-template-rows: [x] 2px [x] 2px [x] repeat(auto-fit, [y] 10px) }
 
-.fit-3a  { grid-template-rows: repeat(auto-fit, [y] 10px) [z] 1px [z] }
-.fit-3b  { grid-template-rows: [x] repeat(auto-fit, [y] 10px) [z] }
-.fit-3c  { grid-template-rows: [x] 2px [x] repeat(auto-fit, [y] 10px) }
+.fit-3a  { grid-template-rows: repeat(auto-fit, [y] 10px) [z] 1px [z] minmax(0, auto) }
+.fit-3b  { grid-template-rows: [x] repeat(auto-fit, [y] 10px) [z] minmax(0, auto) }
+.fit-3c  { grid-template-rows: [x] 2px [x] repeat(auto-fit, [y] 10px) minmax(0, auto) }
 
-.fit-4a  { grid-template-rows: repeat(auto-fit, [y] 10px) [z] }
-.fit-4b  { grid-template-rows: [x] repeat(auto-fit, [y] 10px) }
+.fit-4a  { grid-template-rows: repeat(auto-fit, [y] 10px) [z] minmax(0, auto) }
+.fit-4b  { grid-template-rows: [x] repeat(auto-fit, [y] 10px) minmax(0, auto) }
 
-.fit-5   { grid-template-rows: repeat(auto-fit, [y] 10px) }
+.fit-5   { grid-template-rows: repeat(auto-fit, [y] 10px) minmax(0, auto) }
 
 .subgrid > :nth-child(2n)   {  background: black; }
 .subgrid > :nth-child(2n+1) {  background: pink; }
@@ -437,10 +441,12 @@ html,body {
   <div style="grid-row:y -5"></div>
 </div></div>
 
+<div id="report"></div>
+
 <script>
   const expectedResults = [
-    "[y] 0px [z] 1px [z] 1px [z] 1px [z] 1px [z]",
-    "[x y] 0px [z] 1px [z] 1px [z] 1px [z]",
+    "[y] 0px [z] 1px [z] 1px [z] 1px [z] 1px [z] 46px",
+    "[x y] 0px [z] 1px [z] 1px [z] 1px [z] 23.5px 23.5px",
     "[x] 1px [x y] 0px [y] 10px [y] 10px [y] 10px [z] 1px [z] 1px [z]",
     "[x] 2px [x] 2px [x y] 10px [y] 10px [y] 10px [y] 10px [z] 1px [z]",
     "[x] 2px [x] 2px [x] 2px [x y] 10px [y] 10px [y] 10px [y] 0px [z]",
@@ -458,23 +464,23 @@ html,body {
     "[x] 2px [x] 2px [x y] 10px [y] 10px [y] 10px [y] 10px [z]",
     "[x] 2px [x] 2px [x] 2px [x y] 10px [y] 10px [y] 10px [y] 0px",
     "[y] 0px [y] 0px [y] 10px [y] 10px [z] 1px [z] 1px [z]",
-    "[x y] 0px [y] 0px [y] 10px [y] 10px [z] 1px [z]",
-    "[x] 2px [x y] 0px [y] 10px [y] 10px [y] 10px [z]",
+    "[x y] 0px [y] 0px [y] 10px [y] 10px [z] 1px [z] 29px",
+    "[x] 2px [x y] 0px [y] 10px [y] 10px [y] 10px [z] 18px",
     "[x] 2px [x] 2px [x y] 10px [y] 10px [y] 10px [y] 10px",
-    "[y] 0px [y] 0px [y] 10px [y] 10px [z] 1px [z]",
-    "[x y] 0px [y] 0px [y] 10px [y] 10px [y] 10px [z]",
-    "[x] 2px [x y] 0px [y] 10px [y] 10px [y] 10px",
-    "[y] 0px [y] 0px [y] 10px [y] 10px [y] 10px [z]",
-    "[x y] 0px [y] 0px [y] 10px [y] 10px [y] 10px",
-    "[y] 0px [y] 0px [y] 10px [y] 10px [y] 10px",
+    "[y] 0px [y] 0px [y] 10px [y] 10px [z] 1px [z] 29px",
+    "[x y] 0px [y] 0px [y] 10px [y] 10px [y] 10px [z] 20px",
+    "[x] 2px [x y] 0px [y] 10px [y] 10px [y] 10px 18px",
+    "[y] 0px [y] 0px [y] 10px [y] 10px [y] 10px [z] 20px",
+    "[x y] 0px [y] 0px [y] 10px [y] 10px [y] 10px 20px",
+    "[y] 0px [y] 0px [y] 10px [y] 10px [y] 10px 20px",
   ];
   [...document.querySelectorAll('.grid')].forEach(function(grid, i) {
     let actual = window.getComputedStyle(grid)['grid-template-rows'];
     let expected = expectedResults[i];
     if (actual != expected) {
-      let err = "Unexpected getComputedStyle value for grid " + i + " with className '" + grid.className + "':" +
-      " Actual: \"" + actual + "\", Expected: \"" + expected + "\"";
-      document.body.appendChild(document.createTextNode(err));
+      let err = "\nUnexpected getComputedStyle value for grid " + i + " with className '" + grid.className + "':" +
+      " Actual: \"" + actual + "\", Expected: \"" + expected + "\"\n";
+      report.appendChild(document.createTextNode(err));
     }
   });
 </script>

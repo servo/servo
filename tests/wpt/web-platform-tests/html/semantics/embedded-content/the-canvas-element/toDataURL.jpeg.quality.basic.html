@@ -42,8 +42,8 @@ if (!data.match(/^data:image\/jpeg[;,]/)) {
           ctx.drawImage(img_hi, 0, 0, 50, 50, 0, 0, 50, 50);
           ctx.drawImage(img_lo, 0, 0, 50, 50, 50, 0, 50, 50);
           _assert(data_hi.length > data_lo.length, "data_hi.length > data_lo.length");
-          _assertPixelApprox(canvas, 25,25, 0,0,255,255, "25,25", "0,0,255,255", 8);
-          _assertPixelApprox(canvas, 75,25, 0,0,255,255, "75,25", "0,0,255,255", 32);
+          _assertPixelApprox(canvas, 25,25, 0,0,255,255, 8);
+          _assertPixelApprox(canvas, 75,25, 0,0,255,255, 32);
       });
       img_lo.src = data_lo;
   };

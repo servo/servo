@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: WebGL 2.0 Specification (https://www.khronos.org/registry/webgl/specs/latest/2.0/)
+// Source: WebGL 2.0 Specification (https://registry.khronos.org/webgl/specs/latest/2.0/)
 
 typedef long long GLint64;
 typedef unsigned long long GLuint64;

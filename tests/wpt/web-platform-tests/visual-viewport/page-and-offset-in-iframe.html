@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: page and offset values in iframe</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="viewport_support.js"></script>
+        <style>
+          iframe {
+            width: 200px;
+            height: 300px;
+            border: 0;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Page and offset values in iframe</h1>
+    <h4>
+        Test Description: This test checks for correct visualViewport values in
+        an iframe.
+    </h4>
+    <iframe></iframe>
+    </body>
+    <script>
+        var iframe = frames[0].window;
+
+        // Add overflow to the iframe so it can scroll.
+        iframe.document.body.style.width = "2000px";
+        iframe.document.body.style.height = "2000px";
+        iframe.scrollTo(1000, 1200);
+
+        promise_test(async t => {
+          assert_equals(visualViewport.scale, 1,
+              "[PRECONDITION] Start off unzoomed");
+          assert_equals(visualViewport.offsetLeft, 0,
+              "[PRECONDITION] No offsetLeft to start");
+          assert_equals(visualViewport.offsetTop, 0,
+              "[PRECONDITION] No offsetTop to start");
+
+          // The iframe's visual viewport isn't yet offset
+          assert_equals(iframe.visualViewport.offsetLeft, 0,
+              "offsetLeft must be 0");
+          assert_equals(iframe.visualViewport.offsetTop, 0,
+              "offsetTop must be 0");
+
+          // However, page values should reflect layout viewport scrolling.
+          assert_equals(iframe.visualViewport.pageLeft, 1000,
+              "pageLeft must reflect location in document.");
+          assert_equals(iframe.visualViewport.pageTop, 1200,
+              "pageTop must reflect location in document.");
+
+          // Zoom in and pan the viewport to ensure the iframe is independent
+          // of the root frame.
+          await pinchZoomIn();
+
+          // These values are arbitrary since the amount of pinch-zoom caused
+          // by pinchZoomIn will differ but we only care that the iframe's
+          // values aren't changed.
+          assert_greater_than(visualViewport.scale, 1.2,
+              "Pinch zoom must have increased scale");
+          assert_greater_than(visualViewport.offsetLeft, 10,
+              "Pinch zoom must have offsetLeft visualViewport");
+          assert_greater_than(visualViewport.offsetTop, 10,
+              "Pinch zoom must have offsetTop visualViewport");
+
+          // The iframe's visualViewport is independent of the root frame's so
+          // none of the values should have changed.
+          assert_equals(iframe.visualViewport.offsetLeft, 0,
+              "After zooming, offsetLeft must remain 0");
+          assert_equals(iframe.visualViewport.offsetTop, 0,
+              "After zooming, offsetTop must remain 0");
+          assert_equals(iframe.visualViewport.pageLeft, 1000,
+              "After zooming, pageLeft must reflect location in document.");
+          assert_equals(iframe.visualViewport.pageTop, 1200,
+              "After zooming, pageTop must reflect location in document.");
+
+          assert_equals(iframe.visualViewport.scale, 1,
+              "Iframe's visualViewport must not be scaled");
+        }, "VisualViewport page and offset values in iframe");
+    </script>
+</html>

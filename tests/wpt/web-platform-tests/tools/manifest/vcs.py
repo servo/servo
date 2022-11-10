@@ -29,11 +29,11 @@ def get_tree(tests_root, manifest, manifest_path, cache_root,
     # type: (Text, Manifest, Optional[Text], Optional[Text], bool, bool) -> FileSystem
     tree = None
     if cache_root is None:
-        cache_root = os.path.join(tests_root, u".wptcache")
+        cache_root = os.path.join(tests_root, ".wptcache")
     if not os.path.exists(cache_root):
         try:
             os.makedirs(cache_root)
-        except IOError:
+        except OSError:
             cache_root = None
 
     if not working_copy:
@@ -48,7 +48,7 @@ def get_tree(tests_root, manifest, manifest_path, cache_root,
     return tree
 
 
-class GitHasher(object):
+class GitHasher:
     def __init__(self, path):
         # type: (Text) -> None
         self.git = git(path)
@@ -85,7 +85,7 @@ class GitHasher(object):
 
 
 
-class FileSystem(object):
+class FileSystem:
     def __init__(self, tests_root, url_base, cache_path, manifest_path=None, rebuild=False):
         # type: (Text, Text, Optional[Text], Optional[Text], bool) -> None
         self.tests_root = tests_root
@@ -102,10 +102,7 @@ class FileSystem(object):
                                                 extras=[b".git/"],
                                                 cache=self.ignore_cache)
         git = GitHasher(tests_root)
-        if git is not None:
-            self.hash_cache = git.hash_cache()
-        else:
-            self.hash_cache = {}
+        self.hash_cache = git.hash_cache()
 
     def __iter__(self):
         # type: () -> Iterator[Tuple[Text, Optional[Text], bool]]
@@ -154,13 +151,13 @@ class CacheFile(metaclass=abc.ABCMeta):
         data = {}  # type: Dict[Text, Any]
         try:
             if not rebuild:
-                with open(self.path, 'r') as f:
+                with open(self.path) as f:
                     try:
                         data = jsonlib.load(f)
                     except ValueError:
                         pass
                 data = self.check_valid(data)
-        except IOError:
+        except OSError:
             pass
         return data
 
@@ -172,12 +169,12 @@ class CacheFile(metaclass=abc.ABCMeta):
 
 
 class MtimeCache(CacheFile):
-    file_name = u"mtime.json"
+    file_name = "mtime.json"
 
     def __init__(self, cache_root, tests_root, manifest_path, rebuild=False):
         # type: (Text, Text, Text, bool) -> None
         self.manifest_path = manifest_path
-        super(MtimeCache, self).__init__(cache_root, tests_root, rebuild)
+        super().__init__(cache_root, tests_root, rebuild)
 
     def updated(self, rel_path, stat):
         # type: (Text, stat_result) -> bool
@@ -193,12 +190,12 @@ class MtimeCache(CacheFile):
 
     def check_valid(self, data):
         # type: (Dict[Any, Any]) -> Dict[Any, Any]
-        if data.get(u"/tests_root") != self.tests_root:
+        if data.get("/tests_root") != self.tests_root:
             self.modified = True
         else:
             if self.manifest_path is not None and os.path.exists(self.manifest_path):
                 mtime = os.path.getmtime(self.manifest_path)
-                if data.get(u"/manifest_path") != [self.manifest_path, mtime]:
+                if data.get("/manifest_path") != [self.manifest_path, mtime]:
                     self.modified = True
             else:
                 self.modified = True
@@ -216,7 +213,7 @@ class MtimeCache(CacheFile):
         mtime = os.path.getmtime(self.manifest_path)
         self.data["/manifest_path"] = [self.manifest_path, mtime]
         self.data["/tests_root"] = self.tests_root
-        super(MtimeCache, self).dump()
+        super().dump()
 
 
 class GitIgnoreCache(CacheFile, GitIgnoreCacheType):
@@ -226,10 +223,10 @@ class GitIgnoreCache(CacheFile, GitIgnoreCacheType):
         # type: (Dict[Any, Any]) -> Dict[Any, Any]
         ignore_path = os.path.join(self.tests_root, ".gitignore")
         mtime = os.path.getmtime(ignore_path)
-        if data.get(u"/gitignore_file") != [ignore_path, mtime]:
+        if data.get("/gitignore_file") != [ignore_path, mtime]:
             self.modified = True
             data = {}
-            data[u"/gitignore_file"] = [ignore_path, mtime]
+            data["/gitignore_file"] = [ignore_path, mtime]
         return data
 
     def __contains__(self, key):

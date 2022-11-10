@@ -10,9 +10,9 @@ Promise.resolve().then(async () => {
 
     const wakeLock = await navigator.wakeLock.request("screen");
     await wakeLock.release();
-    window.parent.postMessage({ enabled: true }, "*");
+    window.parent.postMessage({ type: 'availability-result', enabled: true }, "*");
   } catch (e) {
-    window.parent.postMessage({ enabled: false }, "*");
+    window.parent.postMessage({ type: 'availability-result', enabled: false }, "*");
   }
 });
 </script>

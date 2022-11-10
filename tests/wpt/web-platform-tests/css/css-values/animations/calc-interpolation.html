@@ -36,9 +36,16 @@
     <div class="target"></div>
   </div>
 </template>
+<div class="target" id="inf-target"></div>
 <script>
+const APPROX_INFINITY = (function() {
+  const target = document.getElementById("inf-target");
+  target.style.letterSpacing = "calc(1px * infinity)";
+  const inf = parseFloat(getComputedStyle(target).letterSpacing);
+  target.remove();
+  return inf;
+}());
 
-const APPROX_INFINITY = 3.35544e+07;
 test_interpolation({
   property: 'left',
   from: '0px',

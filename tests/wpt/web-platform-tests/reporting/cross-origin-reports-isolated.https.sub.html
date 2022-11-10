@@ -33,7 +33,6 @@
       });
 
       // Wait for 2 reports to be received.
-      await wait(3000);
       const reports = await pollReports(endpoint, id, 2);
       assert_equals(reports.length, 2);
 

@@ -33,7 +33,7 @@
   },
   {
     "input": "Access-Control-Expose-Headers: ,bb-8",
-    "exposed": false
+    "exposed": true
   },
   {
     "input": "Access-Control-Expose-Headers: bb-8\u000C",

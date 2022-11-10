@@ -147,17 +147,16 @@ The test collection would look like this:
 
     $ pytest --collect-only
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR, configfile: pytest.ini
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project, configfile: pytest.ini
     collected 2 items
 
     <Module check_myapp.py>
       <Class CheckMyApp>
-          <Function simple_check>
-          <Function complex_check>
+        <Function simple_check>
+        <Function complex_check>
 
-    ========================== no tests ran in 0.12s ===========================
+    ======================== 2 tests collected in 0.12s ========================
 
 You can check for multiple glob patterns by adding a space between the patterns:
 
@@ -209,18 +208,17 @@ You can always peek at the collection tree without running tests like this:
 
     . $ pytest --collect-only pythoncollection.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR, configfile: pytest.ini
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project, configfile: pytest.ini
     collected 3 items
 
     <Module CWD/pythoncollection.py>
       <Function test_function>
       <Class TestClass>
-          <Function test_method>
-          <Function test_anothermethod>
+        <Function test_method>
+        <Function test_anothermethod>
 
-    ========================== no tests ran in 0.12s ===========================
+    ======================== 3 tests collected in 0.12s ========================
 
 .. _customizing-test-collection:
 
@@ -282,7 +280,7 @@ leave out the ``setup.py`` file:
     <Module 'pkg/module_py2.py'>
       <Function 'test_only_on_python2'>
 
-    ====== no tests ran in 0.04 seconds ======
+    ====== 1 tests found in 0.04 seconds ======
 
 If you run with a Python 3 interpreter both the one test and the ``setup.py``
 file will be left out:
@@ -291,12 +289,11 @@ file will be left out:
 
     $ pytest --collect-only
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR, configfile: pytest.ini
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project, configfile: pytest.ini
     collected 0 items
 
-    ========================== no tests ran in 0.12s ===========================
+    ======================= no tests collected in 0.12s ========================
 
 It's also possible to ignore files based on Unix shell-style wildcards by adding
 patterns to :globalvar:`collect_ignore_glob`.

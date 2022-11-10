@@ -1,0 +1,65 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+for (const command of [
+  ["bold", ""],
+  ["italic", ""],
+  ["underline", ""],
+  ["strikethrough", ""],
+  ["subscript", ""],
+  ["superscript", ""],
+  ["cut", ""],
+  ["copy", ""],
+  ["paste", ""],
+  ["delete", ""],
+  ["forwarddelete", ""],
+  ["selectall", ""],
+  ["undo", ""],
+  ["redo", ""],
+  ["indent", ""],
+  ["outdent", ""],
+  ["backcolor", "#888888"],
+  ["forecolor", "#888888"],
+  ["hilitecolor", "#888888"],
+  ["fontname", "Courier"],
+  ["fontsize", "6"],
+  ["increasefontsize", ""],
+  ["decreasefontsize", ""],
+  ["inserthorizontalrule", ""],
+  ["createlink", "foo"],
+  ["insertimage", "foo"],
+  ["inserthtml", "foo"],
+  ["inserttext", "foo"],
+  ["insertparagraph", ""],
+  ["gethtml", ""],
+  ["justifyleft", ""],
+  ["justifyright", ""],
+  ["justifycenter", ""],
+  ["justifyfull", ""],
+  ["removeformat", ""],
+  ["unlink", ""],
+  ["insertorderedlist", ""],
+  ["insertunorderedlist", ""],
+  ["formatblock", "h1"],
+  ["heading", "h1"],
+  ["stylewithcss", "true"],
+  ["usecss", "true"],
+  ["contentreadonly", "true"],
+  ["readonly", "true"],
+  ["insertbronreturn", "true"],
+  ["enableobjectresizing", "true"],
+  ["enableinlinetableediting", "true"],
+]) {
+  document.body.innerHTML = "<div contenteditable>abc</div>";
+  document.querySelector("div[contenteditable]").focus();
+  getSelection().removeAllRanges();
+  try {
+    document.execCommand(command[0], false, command[1]);
+  } catch(e) {}
+}
+</script>
+</body>
+</html>

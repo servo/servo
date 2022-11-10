@@ -1,24 +1,28 @@
+# mypy: allow-untyped-defs
+
 import os
 
-from .base import NullBrowser, ExecutorBrowser, require_arg
+from .base import ExecutorBrowser, NullBrowser, WebDriverBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
+from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorservo import (ServoCrashtestExecutor,  # noqa: F401
                                        ServoTestharnessExecutor,  # noqa: F401
-                                       ServoRefTestExecutor,  # noqa: F401
-                                       ServoWdspecExecutor)  # noqa: F401
+                                       ServoRefTestExecutor)  # noqa: F401
+
 
 here = os.path.dirname(__file__)
 
 __wptrunner__ = {
     "product": "servo",
     "check_args": "check_args",
-    "browser": "ServoBrowser",
+    "browser": {None: "ServoBrowser",
+                "wdspec": "ServoWdspecBrowser"},
     "executor": {
         "crashtest": "ServoCrashtestExecutor",
         "testharness": "ServoTestharnessExecutor",
         "reftest": "ServoRefTestExecutor",
-        "wdspec": "ServoWdspecExecutor",
+        "wdspec": "WdspecExecutor",
     },
     "browser_kwargs": "browser_kwargs",
     "executor_kwargs": "executor_kwargs",
@@ -49,7 +53,6 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     rv["pause_after_test"] = kwargs["pause_after_test"]
     if test_type == "wdspec":
         rv["capabilities"] = {}
-        rv["webdriver_binary"] = kwargs["binary"]
     return rv
 
 
@@ -86,3 +89,30 @@ class ServoBrowser(NullBrowser):
             "user_stylesheets": self.user_stylesheets,
             "ca_certificate_path": self.ca_certificate_path,
         }
+
+
+class ServoWdspecBrowser(WebDriverBrowser):
+    # TODO: could share an implemenation with servodriver.py, perhaps
+    def __init__(self, logger, binary="servo", webdriver_args=None,
+                 binary_args=None, host="127.0.0.1", env=None, port=None):
+
+        env = os.environ.copy() if env is None else env
+        env["RUST_BACKTRACE"] = "1"
+
+        super().__init__(logger,
+                         binary,
+                         None,
+                         webdriver_args=webdriver_args,
+                         host=host,
+                         port=port,
+                         env=env)
+        self.binary_args = binary_args
+
+    def make_command(self):
+        command = [self.binary,
+                   f"--webdriver={self.port}",
+                   "--hard-fail",
+                   "--headless"] + self.webdriver_args
+        if self.binary_args:
+            command += self.binary_args
+        return command

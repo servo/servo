@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+span {
+    /* Use separate longhands
+       as Safari does not support the full syntax of the text-decoration shorthand
+       at the time of writing,
+       but that's not what we're testing here.
+     */
+    text-decoration: underline;
+    text-decoration-color: blue;
+}
+div {
+    color: orange;
+    font-size: 2em;
+    white-space: pre;
+}
+</style>
+
+<p>Test passes if there is an blue underline below orange letters A through F below, <em>but no further</em>.
+
+<div>        <span>ABCDEF</span>        </div>

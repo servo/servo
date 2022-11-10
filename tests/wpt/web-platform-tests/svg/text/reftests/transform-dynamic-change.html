@@ -10,6 +10,10 @@
     <circle cx="475" cy="975" r="40" stroke="black" stroke-width="2" fill="none" />
     <text id="txt" style="font-size: 40px;" transform="matrix(1, 0, 0, 1, 468, 988)">A</text>
   </svg>
+  <svg width="2384" height="1684" style="position:absolute; left:0; top:200px;">
+    <circle cx="475" cy="975" r="40" stroke="black" stroke-width="2" fill="none" />
+    <text style="font-size: 40px;" transform="matrix(1, 0, 0, 1, 468, 988)"><tspan id="inline">B</tspan></text>
+  </svg>
 </div>
 
 <svg id="svg2" width="500" height="400" style="transform-origin: 0px 0px; transform: translate(-300px, -300px);">
@@ -21,6 +25,7 @@ requestAnimationFrame(() => {
   requestAnimationFrame(() => {
     document.getElementById('moveme').style.transform = 'matrix(0.9, 0, 0, 0.9, -210, -777)';
     document.getElementById('txt').style.fill = 'red';
+    document.getElementById('inline').style.fill = 'blue';
 
     document.getElementById('svg2').style.transform = 'scale(2) translate(-300px, -300px)';
     document.getElementById('text2').style.fill = 'green';

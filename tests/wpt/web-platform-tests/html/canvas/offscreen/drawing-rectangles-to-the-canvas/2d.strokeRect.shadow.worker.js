@@ -26,7 +26,7 @@ ctx.shadowOffsetY = 50;
 ctx.strokeStyle = '#f00';
 ctx.lineWidth = 50;
 ctx.strokeRect(0, -75, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

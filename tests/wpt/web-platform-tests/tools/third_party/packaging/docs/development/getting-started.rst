@@ -30,13 +30,10 @@ each supported Python version and run the tests. For example:
     $ nox -s tests
     ...
     nox > Ran multiple sessions:
-    nox > * tests-2.7: success
-    nox > * tests-3.4: skipped
-    nox > * tests-3.5: success
     nox > * tests-3.6: success
     nox > * tests-3.7: success
     nox > * tests-3.8: success
-    nox > * tests-pypy: skipped
+    nox > * tests-3.9: success
     nox > * tests-pypy3: skipped
 
 You may not have all the required Python versions installed, in which case you

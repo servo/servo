@@ -1,0 +1,15 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Region Capture (https://w3c.github.io/mediacapture-region/)
+
+[Exposed=(Window,Worker), Serializable]
+interface CropTarget {
+  [Exposed=Window, SecureContext] static Promise<CropTarget> fromElement(Element element);
+};
+
+[Exposed = Window]
+interface BrowserCaptureMediaStreamTrack : MediaStreamTrack {
+  Promise<undefined> cropTo(CropTarget? cropTarget);
+  BrowserCaptureMediaStreamTrack clone();
+};

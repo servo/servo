@@ -129,10 +129,9 @@ function handleIntegrity(event) {
 }
 
 function handleRequestBody(event) {
-  event.respondWith(event.request.text()
-    .then(text => {
-        return new Response(text);
-      }));
+  event.respondWith(event.request.text().then(text => {
+    return new Response(text);
+  }));
 }
 
 function handleKeepalive(event) {

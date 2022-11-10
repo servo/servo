@@ -1,0 +1,21 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<iframe id="i"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that we are definitely testing the initial
+  // about:blank-ness as the cause of the rejections.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  i.contentWindow.navigation.onnavigate = t.unreached_func("onnavigate should not be called");
+  i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("onnavigatesuccess should not be called");
+  i.contentWindow.navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
+
+  const result = i.contentWindow.navigation.navigate("#1", { history: "push" });
+  await assertBothRejectDOM(t, result, "NotSupportedError", i.contentWindow);
+}, "navigate() with history: 'push' in initial about:blank document");
+</script>

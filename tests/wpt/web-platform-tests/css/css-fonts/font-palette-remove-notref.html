@@ -11,13 +11,13 @@
     src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
 }
 
-@font-palette-values MyPalette {
+@font-palette-values --MyPalette {
     font-family: "COLR-test-font";
     base-palette: 1;
 }
 </style>
 </head>
 <body>
-<div id="target" style="font: 48px 'COLR-test-font'; font-palette: MyPalette;">A</div>
+<div id="target" style="font: 48px 'COLR-test-font'; font-palette: --MyPalette;">A</div>
 </body>
 </html>

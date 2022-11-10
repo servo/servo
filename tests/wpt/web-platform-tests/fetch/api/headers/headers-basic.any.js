@@ -218,3 +218,58 @@ test(function() {
   });
   assert_true(reference.next().done);
 }, "Check forEach method");
+
+test(() => {
+  const headers = new Headers({"foo": "2", "baz": "1", "BAR": "0"});
+  const actualKeys = [];
+  const actualValues = [];
+  for (const [header, value] of headers) {
+    actualKeys.push(header);
+    actualValues.push(value);
+    headers.delete("foo");
+  }
+  assert_array_equals(actualKeys, ["bar", "baz"]);
+  assert_array_equals(actualValues, ["0", "1"]);
+}, "Iteration skips elements removed while iterating");
+
+test(() => {
+  const headers = new Headers({"foo": "2", "baz": "1", "BAR": "0", "quux": "3"});
+  const actualKeys = [];
+  const actualValues = [];
+  for (const [header, value] of headers) {
+    actualKeys.push(header);
+    actualValues.push(value);
+    if (header === "baz")
+      headers.delete("bar");
+  }
+  assert_array_equals(actualKeys, ["bar", "baz", "quux"]);
+  assert_array_equals(actualValues, ["0", "1", "3"]);
+}, "Removing elements already iterated over causes an element to be skipped during iteration");
+
+test(() => {
+  const headers = new Headers({"foo": "2", "baz": "1", "BAR": "0", "quux": "3"});
+  const actualKeys = [];
+  const actualValues = [];
+  for (const [header, value] of headers) {
+    actualKeys.push(header);
+    actualValues.push(value);
+    if (header === "baz")
+      headers.append("X-yZ", "4");
+  }
+  assert_array_equals(actualKeys, ["bar", "baz", "foo", "quux", "x-yz"]);
+  assert_array_equals(actualValues, ["0", "1", "2", "3", "4"]);
+}, "Appending a value pair during iteration causes it to be reached during iteration");
+
+test(() => {
+  const headers = new Headers({"foo": "2", "baz": "1", "BAR": "0", "quux": "3"});
+  const actualKeys = [];
+  const actualValues = [];
+  for (const [header, value] of headers) {
+    actualKeys.push(header);
+    actualValues.push(value);
+    if (header === "baz")
+      headers.append("abc", "-1");
+  }
+  assert_array_equals(actualKeys, ["bar", "baz", "baz", "foo", "quux"]);
+  assert_array_equals(actualValues, ["0", "1", "1", "2", "3"]);
+}, "Prepending a value pair before the current element position causes it to be skipped during iteration and adds the current element a second time");

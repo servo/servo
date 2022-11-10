@@ -4,7 +4,7 @@
 <link rel="help" href="https://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBCursor-update-IDBRequest-any-value">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <div id="log"></div>
 <script>
     var db,
@@ -23,7 +23,7 @@
     };
 
     open_rq.onsuccess = function(e) {
-        var cursor_rq = db.transaction("test", "readwrite")
+        var cursor_rq = db.transaction("test", "readwrite", {durability: 'relaxed'})
                           .objectStore("test")
                           .openCursor();
 

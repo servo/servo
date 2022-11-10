@@ -133,6 +133,14 @@ promise_test(async t => {
 
 test(t => {
   const div = addDiv(t);
+  div.style.animation = 'anim 100s';
+  div.style.animationComposition = 'add';
+  const animation = div.getAnimations()[0];
+  assert_equals(animation.effect.composite, 'add');
+}, 'Setting animation-composition sets the composite property on the effect');
+
+test(t => {
+  const div = addDiv(t);
 
   // Create custom keyframes so we can tweak them
   const stylesheet = document.styleSheets[0];
@@ -161,6 +169,7 @@ test(t => {
   div.style.animationDelay = '8s';
   div.style.animationFillMode = 'both';
   div.style.animationPlayState = 'paused';
+  div.style.animationComposition = 'add';
 
   // Update the keyframes
   keyframesRule.deleteRule(0);
@@ -196,6 +205,11 @@ test(t => {
     animation.effect.getKeyframes()[0].left,
     '200px',
     'keyframes should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.composite,
+    'replace',
+    'composite should be the value set by the API'
   );
 
   // Unlike the other properties animation-play-state maps to the Animation

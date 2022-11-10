@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 
 import pytest
@@ -499,6 +501,31 @@ def test_testharness(ext):
     assert items(s) == [("testharness", "/" + filename)]
 
 
+@pytest.mark.parametrize("variant", ["", "?foo", "#bar", "?foo#bar"])
+def test_testharness_variant(variant):
+    content = (b"<meta name=variant content=\"%s\">" % variant.encode("utf-8") +
+               b"<meta name=variant content=\"?fixed\">" +
+               b"<script src=/resources/testharness.js></script>")
+
+    filename = "html/test.html"
+    s = create(filename, content)
+
+    s.test_variants = [variant, "?fixed"]
+
+
+@pytest.mark.parametrize("variant", ["?", "#", "?#bar"])
+def test_testharness_variant_invalid(variant):
+    content = (b"<meta name=variant content=\"%s\">" % variant.encode("utf-8") +
+               b"<meta name=variant content=\"?fixed\">" +
+               b"<script src=/resources/testharness.js></script>")
+
+    filename = "html/test.html"
+    s = create(filename, content)
+
+    with pytest.raises(ValueError):
+        s.test_variants
+
+
 @pytest.mark.parametrize("ext", ["htm", "html"])
 def test_relative_testharness(ext):
     content = b"<script src=../resources/testharness.js></script>"
@@ -736,7 +763,7 @@ def test_xhtml_with_entity(ext):
 
 
 def test_no_parse():
-    s = create("foo/bar.xml", u"\uFFFF".encode("utf-8"))
+    s = create("foo/bar.xml", "\uFFFF".encode("utf-8"))
 
     assert not s.name_is_non_test
     assert not s.name_is_manual
@@ -792,14 +819,14 @@ test()"""
 
     assert item_type == "testharness"
 
-    assert [item.url for item in items] == [u'/_fake_base/html/test.any.html',
-                                            u'/_fake_base/html/test.any.html?wss',
-                                            u'/_fake_base/html/test.any.serviceworker.html',
-                                            u'/_fake_base/html/test.any.serviceworker.html?wss',
-                                            u'/_fake_base/html/test.any.sharedworker.html',
-                                            u'/_fake_base/html/test.any.sharedworker.html?wss',
-                                            u'/_fake_base/html/test.any.worker.html',
-                                            u'/_fake_base/html/test.any.worker.html?wss']
+    assert [item.url for item in items] == ['/_fake_base/html/test.any.html',
+                                            '/_fake_base/html/test.any.html?wss',
+                                            '/_fake_base/html/test.any.serviceworker.html',
+                                            '/_fake_base/html/test.any.serviceworker.html?wss',
+                                            '/_fake_base/html/test.any.sharedworker.html',
+                                            '/_fake_base/html/test.any.sharedworker.html?wss',
+                                            '/_fake_base/html/test.any.worker.html',
+                                            '/_fake_base/html/test.any.worker.html?wss']
 
     assert items[0].url_base == "/_fake_base/"
 
@@ -822,7 +849,6 @@ def test_reftest_fuzzy(fuzzy, expected):
     assert s.content_is_ref_node
     assert s.fuzzy == expected
 
-
 @pytest.mark.parametrize("fuzzy, expected", [
     ([b"1;200"], {None: [[1, 1], [200, 200]]}),
     ([b"ref-2.html:0-1;100-200"], {("/foo/test.html", "/foo/ref-2.html", "=="): [[0, 1], [100, 200]]}),
@@ -841,6 +867,15 @@ def test_reftest_fuzzy_multi(fuzzy, expected):
     assert s.content_is_ref_node
     assert s.fuzzy == expected
 
+@pytest.mark.parametrize("pac, expected", [
+    (b"proxy.pac", "proxy.pac")])
+def test_pac(pac, expected):
+    content = b"""
+<meta name=pac content="%s">
+""" % pac
+
+    s = create("foo/test.html", content)
+    assert s.pac == expected
 
 @pytest.mark.parametrize("page_ranges, expected", [
     (b"1-2", [[1, 2]]),

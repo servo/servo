@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<script>
+(async () => {
+  const response = await fetch("viewport.py");
+  const body = await response.text();
+  parent.postMessage(body, "*");
+})();
+</script>

@@ -8,68 +8,54 @@
 <body>
 <script>
 let templatesSeen = 0;
+
 function myObserver(mutationsList, observer) {
-  for (let mutation of mutationsList) {
-    for (let n of mutation.addedNodes) {
-      if (n.localName === 'template') {
-        templatesSeen++;
-        switch (mutation.target.id) {
-          case 'openhost':
-          case 'closedhost':
-            const shadowroot = n.getAttribute('shadowroot');
-            assert_in_array(shadowroot, ['open','closed'], 'Declarative template should have shadowroot attribute');
-            assert_equals(n.content, null, 'Declarative template content should be null');
-            assert_equals(n.innerHTML, "", 'Declarative template innerHTML should be empty');
-            assert_equals(n.getInnerHTML({includeShadowRoots: true}), "", 'Declarative template getInnerHTML() should be empty');
-
-            // Make sure removing the shadowroot attribute doesn't affect things.
-            n.removeAttribute('shadowroot');
-            assert_equals(n.content, null, 'Declarative template content should *still* be null');
-            assert_equals(n.innerHTML, "", 'Declarative template innerHTML should *still* be empty');
-            assert_equals(n.getInnerHTML({includeShadowRoots: true}), "", 'Declarative template getInnerHTML() should *still* be empty');
-
-            // Try cloning the in-progress declarative template - shouldn't work.
-            const clone = n.cloneNode(true);
-            assert_equals(clone.children.length,0,'Clone should not contain anything');
-            assert_equals(clone.content.children.length,0,'Clone should not contain anything');
-            break;
-          case 'noroot':
-            // Make sure adding 'shadowroot' attribute doesn't trigger a shadow root,
-            // even if added before parsing completes.
-            n.setAttribute('shadowroot','open');
-            assert_not_equals(n.content, null, 'Regular template should have content, even after adding shadowroot attribute');
-            assert_not_equals(n.innerHTML, "", 'Regular template should have innerHTML, even after adding shadowroot attribute');
-            assert_not_equals(n.getInnerHTML({includeShadowRoots: true}), "", 'Regular template should have getInnerHTML(), even after adding shadowroot attribute');
-            break;
-          default:
-            assert_unreached('Unrecognized template');
-        }
-      }
+  document.querySelectorAll('.host').forEach(n => {
+    templatesSeen++;
+    n.className = 'done';
+    switch (n.id) {
+      case 'openhost':
+      case 'closedhost':
+        assert_equals(n.querySelector('template'),null,'No template ever for streaming declarative Shadow DOM');
+        assert_equals(n.innerHTML, "", 'Declarative shadow host innerHTML should be empty - all content is inside shadow');
+        break;
+      case 'noroot':
+        const template = n.querySelector('template');
+        assert_true(!!template,'Regular template should still be present');
+        // Make sure adding 'shadowroot' attribute doesn't trigger a shadow root,
+        // even if added before parsing completes.
+        template.setAttribute('shadowroot','open');
+        assert_not_equals(template.content, null, 'Regular template should have content, even after adding shadowroot attribute');
+        assert_not_equals(template.innerHTML, "", 'Regular template should have innerHTML, even after adding shadowroot attribute');
+        assert_not_equals(template.getInnerHTML({includeShadowRoots: true}), "", 'Regular template should have getInnerHTML(), even after adding shadowroot attribute');
+        break;
+      default:
+        assert_unreached('Unrecognized template');
     }
-  }
+  });
 }
 const observer = new MutationObserver(myObserver);
 observer.observe(document.body, { childList: true, subtree: true });
 assert_equals(templatesSeen, 0, 'No mutations yet');
 </script>
 
-<div id=openhost>
-  <template shadowroot=open>
-    <slot></slot>
-  </template>
-</div>
+<div id=openhost class=host><template shadowroot=open>
+  <slot></slot>
+  <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
+  <script> // some content, which shouldn't be necessary </script>
+</template></div>
 
-<div id=closedhost>
-  <template shadowroot=closed>
-    <slot></slot>
-  </template>
-</div>
+<div id=closedhost class=host><template shadowroot=closed>
+  <slot></slot>
+  <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
+  <script> // some content, which shouldn't be necessary </script>
+</template></div>
 
-<div id=noroot>
-  <template>
-    <slot></slot>
-  </template>
-</div>
+<div id=noroot class=host><template>
+  <slot></slot>
+  <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
+  <script> // some content, which shouldn't be necessary </script>
+</template></div>
 
 <script>
 test(t => {
@@ -79,18 +65,56 @@ test(t => {
 
   // Open shadow root
   let host = document.querySelector('#openhost');
-  assert_equals(host.querySelector('template'), null, 'No leftover template node');
+  assert_equals(host.querySelector('template'), null, 'No template nodes');
   assert_true(!!host.shadowRoot, 'Shadow root should exist');
 
   // Closed shadow root
   host = document.querySelector('#closedhost');
-  assert_equals(host.querySelector('template'), null, 'No leftover template node');
+  assert_equals(host.querySelector('template'), null, 'No template nodes');
   assert_true(!host.shadowRoot, 'Closed shadow root (can\'t detect)');
 
   // No shadow root
   host = document.querySelector('#noroot');
-  assert_true(!!host.querySelector('template'), 'Template node still present');
+  assert_true(!!host.querySelector('template'), 'Template node still present for invalid shadowroot value');
   assert_true(!host.shadowRoot, 'No shadow root');
-},'Declarative Shadow DOM: template .content() should be null');
+},'Streaming Declarative Shadow DOM: template .content() should be null');
 </script>
-</body>
+
+
+<script>
+let synchronous_events_received = new Set();
+function synchronousHandler(e) {
+  synchronous_events_received.add(e.type);
+}
+const sync_events = ["DOMAttrModified","DOMAttributeNameChanged","DOMCharacterDataModified",
+  "DOMElementNameChanged","DOMNodeInserted","DOMNodeInsertedIntoDocument","DOMNodeRemoved",
+  "DOMNodeRemovedFromDocument","DOMSubtreeModified"];
+function addSyncObserver(evt) {
+  window.addEventListener(evt, synchronousHandler, true);
+}
+function removeSyncObserver(evt) {
+  window.removeEventListener(evt, synchronousHandler, true);
+}
+sync_events.forEach(e => addSyncObserver(e));
+</script>
+
+<div id=synchost1>
+  <template shadowroot=open>
+    <div class=foo>content</div>
+    <slot></slot>
+  </template>
+</div>
+
+<div id=synchost2>
+  <template shadowroot=closed>
+    <div class=foo>content</div>
+    <slot></slot>
+  </template>
+</div>
+
+<script>
+test(t => {
+  t.add_cleanup(function() { sync_events.forEach(e => removeSyncObserver(e)) });
+  assert_true(!synchronous_events_received.size,`Synchronous mutation events fired: ${Array.from(synchronous_events_received)}`);
+},'Synchronous mutation events should not be fired during streaming declarative shadow DOM parsing');
+</script>

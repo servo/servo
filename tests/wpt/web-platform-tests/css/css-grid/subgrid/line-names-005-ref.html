@@ -115,7 +115,7 @@ x {
 <div style="display:grid; width:500px; grid-auto-columns: 50px;">
 <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   <div class="subgrid2">
-    <x style="grid-column: span 4 / 11">x</x>
+    <x style="grid-column: span 3 / 11">x</x>
   </div>
 </div>
 
@@ -129,7 +129,7 @@ x {
 <div style="display:grid; grid: auto / repeat(10, 50px) repeat(10, [a] 50px) [a]">
 <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   <div style="display:grid; grid:auto/subgrid; grid-column: span 10; grid-row:2">
-    <x style="grid-column: 1 / 11">x</x>
+    <x style="grid-column: 10 / 11">x</x>
   </div>
 </div>
 
@@ -141,10 +141,10 @@ x {
 </div>
 
 <div style='display:grid; grid-template-areas: ". . . . . . a a a a"'>
-<div style='display:grid; grid-template-areas: ". . . . . . . a a a"; grid-template-columns:subgrid; grid-column:span 10;'>
+<div style='display:grid; grid-template-areas: ". . . . . . . a a ."; grid-template-columns:subgrid; grid-column:span 10;'>
 <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   <div style="display:grid; grid:auto/subgrid; grid-column: 6 / span 5; grid-row:2">
-    <x style="grid-column: 2 / 6">x</x>
+    <x style="grid-column: 2 / 5">x</x>
   </div>
 </div>
 </div>

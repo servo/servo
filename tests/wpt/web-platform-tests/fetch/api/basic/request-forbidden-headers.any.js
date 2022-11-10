@@ -16,6 +16,21 @@ function requestForbiddenHeaders(desc, forbiddenHeaders) {
   }, desc);
 }
 
+function requestValidOverrideHeaders(desc, validHeaders) {
+  var url = RESOURCES_DIR + "inspect-headers.py";
+  var requestInit = {"headers": validHeaders}
+  var urlParameters = "?headers=" + Object.keys(validHeaders).join("|");
+
+  promise_test(function(test){
+    return fetch(url + urlParameters, requestInit).then(function(resp) {
+      assert_equals(resp.status, 200, "HTTP status is 200");
+      assert_equals(resp.type , "basic", "Response's type is basic");
+      for (var header in validHeaders)
+        assert_equals(resp.headers.get("x-request-" + header), validHeaders[header], header + "is not skipped for non-forbidden methods");
+    });
+  }, desc);
+}
+
 requestForbiddenHeaders("Accept-Charset is a forbidden request header", {"Accept-Charset": "utf-8"});
 requestForbiddenHeaders("Accept-Encoding is a forbidden request header", {"Accept-Encoding": ""});
 
@@ -41,3 +56,42 @@ requestForbiddenHeaders("Proxy- is a forbidden request header", {"Proxy-": "valu
 requestForbiddenHeaders("Proxy-Test is a forbidden request header", {"Proxy-Test": "value"});
 requestForbiddenHeaders("Sec- is a forbidden request header", {"Sec-": "value"});
 requestForbiddenHeaders("Sec-Test is a forbidden request header", {"Sec-Test": "value"});
+
+let forbiddenMethods = [
+  "TRACE",
+  "TRACK",
+  "CONNECT",
+  "trace",
+  "track",
+  "connect",
+  "trace,",
+  "GET,track ",
+  " connect",
+];
+
+let overrideHeaders = [
+  "x-http-method-override",
+  "x-http-method",
+  "x-method-override",
+  "X-HTTP-METHOD-OVERRIDE",
+  "X-HTTP-METHOD",
+  "X-METHOD-OVERRIDE",
+];
+
+for (forbiddenMethod of forbiddenMethods) {
+    for (overrideHeader of overrideHeaders) {
+       requestForbiddenHeaders(`header ${overrideHeader} is forbidden to use value ${forbiddenMethod}`, {[overrideHeader]: forbiddenMethod});
+    }
+}
+
+let permittedValues = [
+  "GETTRACE",
+  "GET",
+  "\",TRACE\",",
+];
+
+for (permittedValue of permittedValues) {
+    for (overrideHeader of overrideHeaders) {
+       requestValidOverrideHeaders(`header ${overrideHeader} is allowed to use value ${permittedValue}`, {[overrideHeader]: permittedValue});
+    }
+}

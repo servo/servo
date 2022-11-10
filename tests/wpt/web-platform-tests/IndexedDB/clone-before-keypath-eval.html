@@ -5,7 +5,7 @@
 <meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbcursor-update">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 function ProbeObject() {
@@ -42,7 +42,7 @@ indexeddb_test(
     db.createObjectStore('store', {keyPath: 'id', autoIncrement: true});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
     const obj = new ProbeObject();
     store.put(obj);
@@ -60,7 +60,7 @@ indexeddb_test(
     db.createObjectStore('store', {keyPath: 'invalid_id', autoIncrement: true});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
     const obj = new ProbeObject();
     assert_throws_dom('DataError', () => { store.put(obj); },
@@ -80,7 +80,7 @@ indexeddb_test(
     store.createIndex('index', 'prop');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
     const obj = new ProbeObject();
     store.put(obj, 'key');
@@ -98,7 +98,7 @@ indexeddb_test(
     store.createIndex('index', 'prop');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
     const obj = new ProbeObject();
     store.put(obj);
@@ -115,7 +115,7 @@ indexeddb_test(
     store.createIndex('index', 'prop');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
     store.put(new ProbeObject());
 

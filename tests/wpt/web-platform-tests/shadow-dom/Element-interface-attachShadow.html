@@ -7,7 +7,7 @@
 <link rel="help" href="https://w3c.github.io/webcomponents/spec/shadow/#widl-Element-attachShadow-ShadowRoot-ShadowRootInit-shadowRootInitDict">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/shadow-dom-utils.js"></script>
+<script src='../html/resources/common.js'></script>
 </head>
 <body>
 <div id="log"></div>
@@ -79,7 +79,7 @@ test(function () {
 }, 'Element.attachShadow must throw a NotSupportedError if the context object already hosts a shadow tree');
 
 test(function () {
-    for (var elementName of ATTACHSHADOW_DISALLOWED_ELEMENTS) {
+    for (var elementName of HTML5_SHADOW_DISALLOWED_ELEMENTS) {
         assert_throws_dom('NotSupportedError', function () {
             document.createElement(elementName).attachShadow({mode: "open"});
         }, 'Calling attachShadow({mode: "open"}) on ' + elementName + ' element must throw');

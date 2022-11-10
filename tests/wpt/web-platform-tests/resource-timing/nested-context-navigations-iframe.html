@@ -10,19 +10,23 @@
 <script src="resources/nested-contexts.js"></script>
 <script>
   open_test_window("resources/iframe-navigate-back.html",
-    "Test that iframe navigations are not observable by the parent, even " +
-    "after history navigations by the parent");
+    "Test that iframe navigations are not observable by the parent, even after history navigations by the parent");
   open_test_window("resources/iframe-navigate-back.html?crossorigin",
-    "Test that crossorigin iframe navigations are not observable by the " +
-    "parent, even after history navigations by the parent");
+    "Test that crossorigin iframe navigations are not observable by the parent, even after history navigations by the parent");
+  open_test_window("resources/iframe-navigate-back.html?cross-site",
+    "Test that cross-site iframe navigations are not observable by the parent, even after history navigations by the parent");
   open_test_window("resources/iframe-navigate.html",
     "Test that iframe navigations are not observable by the parent");
   open_test_window("resources/iframe-navigate.html?crossorigin",
-    "Test that crossorigin iframe navigations are not observable by the " +
-    "parent");
+    "Test that crossorigin iframe navigations are not observable by the parent");
+  open_test_window("resources/iframe-navigate.html?cross-site",
+    "Test that cross-site iframe navigations are not observable by the parent");
   open_test_window("resources/iframe-refresh.html",
     "Test that iframe refreshes are not observable by the parent");
   open_test_window("resources/iframe-refresh.html?crossorigin",
     "Test that crossorigin iframe refreshes are not observable by the parent");
+  open_test_window("resources/iframe-refresh.html?cross-site",
+    "Test that cross-site iframe refreshes are not observable by the parent");
+
 </script>
 

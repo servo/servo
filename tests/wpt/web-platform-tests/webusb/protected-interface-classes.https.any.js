@@ -2,7 +2,7 @@
 // META: script=/webusb/resources/usb-helpers.js
 'use strict';
 
-async function runTestForInterfaceClass(interfaceClass) {
+async function runTestForInterfaceClass(t, interfaceClass) {
   await navigator.usb.test.initialize();
 
   const fakeDeviceTemplate = {
@@ -59,31 +59,31 @@ async function runTestForInterfaceClass(interfaceClass) {
   await device.open();
   await device.selectConfiguration(1);
 
-  try {
-    await device.claimInterface(0);
-    assert_unreached('Should not be able to claim a protected interface.');
-  } catch (e) {
-    assert_equals(e.name, 'SecurityError');
-    assert_equals(e.message,
-                  'The requested interface implements a protected class.');
-  }
-
+  await promise_rejects_dom(t, 'SecurityError', device.claimInterface(0));
   await device.claimInterface(1);
+
   await device.close();
   fakeDevice.disconnect();
 }
 
-usb_test(() => runTestForInterfaceClass(0x01),
-         'Protected audio interface cannot be claimed');
-usb_test(() => runTestForInterfaceClass(0x03),
-         'Protected HID interface cannot be claimed');
-usb_test(() => runTestForInterfaceClass(0x08),
-         'Protected mass storage interface cannot be claimed');
-usb_test(() => runTestForInterfaceClass(0x0B),
-         'Protected smart card interface cannot be claimed');
-usb_test(() => runTestForInterfaceClass(0x0E),
-         'Protected video interface cannot be claimed');
-usb_test(() => runTestForInterfaceClass(0x10),
-         'Protected audio/video interface cannot be claimed');
-usb_test(() => runTestForInterfaceClass(0xE0),
-         'Protected wireless controller interface cannot be claimed');
+usb_test(
+    (t) => runTestForInterfaceClass(t, 0x01),
+    'Protected audio interface cannot be claimed');
+usb_test(
+    (t) => runTestForInterfaceClass(t, 0x03),
+    'Protected HID interface cannot be claimed');
+usb_test(
+    (t) => runTestForInterfaceClass(t, 0x08),
+    'Protected mass storage interface cannot be claimed');
+usb_test(
+    (t) => runTestForInterfaceClass(t, 0x0B),
+    'Protected smart card interface cannot be claimed');
+usb_test(
+    (t) => runTestForInterfaceClass(t, 0x0E),
+    'Protected video interface cannot be claimed');
+usb_test(
+    (t) => runTestForInterfaceClass(t, 0x10),
+    'Protected audio/video interface cannot be claimed');
+usb_test(
+    (t) => runTestForInterfaceClass(t, 0xE0),
+    'Protected wireless controller interface cannot be claimed');

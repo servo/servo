@@ -7,3 +7,7 @@ function checkLongTaskEntry(longtask, name='self') {
   const currentTime = performance.now();
   assert_less_than_equal(longtask.startTime, currentTime);
 }
+
+function hasUnrelatedTaskName(taskName, expectedTaskName) {
+  return (taskName !== expectedTaskName);
+}

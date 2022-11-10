@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
-<title>Tests that contain-intrinsic-size: auto only works with content-visibility: auto, not just hidden visibility</title>
+<title>Tests that contain-intrinsic-size: auto also works with content-visibility: hidden</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -17,8 +17,7 @@ function finalize() {
   el.style.contain = "size";
   el.style.contentVisibility = "hidden";
   log.innerText = el.offsetHeight;
-  // No content-visibility: auto, so this should remain 1.
-  assert_equals(el.offsetHeight, 1);
+  assert_equals(el.offsetHeight, 50);
 }
 
 var t = async_test("contain-intrinsic-size: auto");

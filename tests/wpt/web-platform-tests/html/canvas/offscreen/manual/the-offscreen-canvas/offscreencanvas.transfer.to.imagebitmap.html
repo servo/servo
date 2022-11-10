@@ -50,11 +50,11 @@ test(function() {
 
         if (shouldCallTwice) {
             if (alphaVal)
-                _assertPixel(drawCanvas, 50,25, 0,0,0,0, "50,25", "0,0,0,0");
+                _assertPixel(drawCanvas, 50,25, 0,0,0,0);
             else
-                _assertPixel(drawCanvas, 50,25, 0,0,0,255, "50,25", "0,0,0,255");
+                _assertPixel(drawCanvas, 50,25, 0,0,0,255);
         } else {
-            _assertPixel(drawCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+            _assertPixel(drawCanvas, 50,25, 0,255,0,255);
         }
     }
 
@@ -90,9 +90,9 @@ test(function() {
     var dCtx = drawCanvas.getContext('2d');
     dCtx.drawImage(image2, 0, 0);
     // Verify that transform was carried over.
-    _assertPixel(drawCanvas, 23,25, 0,255,0,255, "23,25", "0,255,0,255");
+    _assertPixel(drawCanvas, 23,25, 0,255,0,255);
     // Verify that clip was carried over.
-    _assertPixel(drawCanvas, 27,25, 0,0,0,0, "27,25", "0,0,0,0");
+    _assertPixel(drawCanvas, 27,25, 0,0,0,0);
 }, "Test that transferToImageBitmap preserves transform");
 
 async_test(function(t) {

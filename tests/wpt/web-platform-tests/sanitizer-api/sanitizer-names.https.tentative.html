@@ -65,9 +65,12 @@
     [ "potato:math", "<potato:math>Hello</potato:math>", "Hello" ],
   ].forEach(([elem, probe, expected], index) => {
     test(t => {
-      const sanitizer = new Sanitizer({allowElements: [elem]});
-      assert_equals(sanitizer.sanitizeFor("template", probe).innerHTML,
-                    expected ?? probe);
+      const sanitizer = new Sanitizer({allowElements: [elem],
+        // TODO(https://github.com/WICG/sanitizer-api/issues/167)
+        allowUnknownMarkup: true});
+      const template = document.createElement("template");
+      template.setHTML(probe, {sanitizer});
+      assert_equals(template.innerHTML, expected ?? probe);
     }, `Namespaced elements #${index}: allowElements: ["${elem}"]`);
   });
 
@@ -81,42 +84,46 @@
     [ "href", "<p xlink:href='bla'></p>", "<p></p>" ],
   ].forEach(([attr, probe, expected], index) => {
     test(t => {
-      const sanitizer = new Sanitizer({allowAttributes: {[attr]: ["*"]}});
-      assert_equals(sanitizer.sanitizeFor("template", probe).innerHTML,
-                    expected ?? probe);
+      const sanitizer = new Sanitizer({allowAttributes: {[attr]: ["*"]},
+        // TODO(https://github.com/WICG/sanitizer-api/issues/167)
+        allowUnknownMarkup: true});
+      const template = document.createElement("template");
+      template.setHTML(probe, {sanitizer});
+      assert_equals(template.innerHTML, expected ?? probe);
     }, `Namespaced attributes #${index}: allowAttributes: {"${attr}": ["*"]}`);
   });
 
   // Most element and attribute names are lower-cased, but "foreign content"
   // like SVG and MathML have some mixed-cased names.
   [
-    [ "svg:feBlend", "<feBlend></feBlend>" ],
-    [ "svg:feColorMatrix", "<feColorMatrix></feColorMatrix>" ],
-    [ "svg:textPath", "<textPath></textPath>" ],
+    [ "feBlend", "<feBlend></feBlend>" ],
+    [ "feColorMatrix", "<feColorMatrix></feColorMatrix>" ],
+    [ "textPath", "<textPath></textPath>" ],
   ].forEach(([elem, probe], index) => {
     const sanitize = (elem, probe) => {
-      return new Sanitizer({allowElements: ["svg:svg", elem]}).
-          sanitizeFor("template", `<svg>${probe}</svg`).
-          content.firstElementChild.innerHTML;
+      const sanitizer = new Sanitizer({allowElements: ["svg:svg", "svg:" + elem],
+        // TODO(https://github.com/WICG/sanitizer-api/issues/167)
+        allowUnknownMarkup: true});
+      const template = document.createElement("template");
+      template.setHTML(`<svg>${probe}</svg>`, {sanitizer});
+      return template.content.firstElementChild.innerHTML;
     };
     test(t => {
       assert_equals(sanitize(elem, probe), probe);
-    }, `Mixed-case element names #${index}: "${elem}"`);
+    }, `Mixed-case element names #${index}: "svg:${elem}"`);
     test(t => {
+      // Lowercase element names should be normalized to mixed-case.
       assert_equals(sanitize(elem.toLowerCase(), probe), probe);
-    }, `Mixed-case element names #${index}: "${elem.toLowerCase()}"`);
+    }, `Lower-case element names #${index}: "svg:${elem.toLowerCase()}"`);
     test(t => {
-      assert_equals(sanitize(elem.toUpperCase(), probe), probe);
-    }, `Mixed-case element names #${index}: "${elem.toUpperCase()}"`);
+      assert_not_equals(sanitize(elem.toUpperCase(), probe), probe);
+    }, `Upper-case element names #${index}: "svg:${elem.toUpperCase()}"`);
     test(t => {
-      assert_equals(sanitize(elem, probe.toLowerCase()), probe);
-    }, `Mixed-case element names #${index}: "${elem}" with lowercase probe.`);
-    test(t => {
-      const elems = [elem];
+      const elems = ["svg:" + elem];
       assert_array_equals(
         new Sanitizer({allowElements: elems}).getConfiguration().allowElements,
         elems);
-    }, `Mixed case element names #${index}: "${elem}" is preserved in config.`);
+    }, `Mixed case element names #${index}: "svg:${elem}" is preserved in config.`);
   });
 </script>
 </body>

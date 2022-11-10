@@ -45,37 +45,6 @@
     },
     {
       tag: "input",
-      types: ["month"],
-      testData: [
-        {conditions: {max: "", value: "2000-01"}, expected: false, name: "[target] The max attribute is not set"},
-        {conditions: {max: "2000-01", value: ""}, expected: false, name: "[target] Value is empty string"},
-        {conditions: {max: "2000/01", value: "2001-02"}, expected: false, name: "[target] The max attribute is an invalid month string"},
-        {conditions: {max: "2000-01", value: "2000-1"}, expected: false, name: "[target] The value attribute is an invalid month string"},
-        {conditions: {max: "987-01", value: "988-01"}, expected: false, name: "[target] The value is an invalid month string(year is three digits)"},
-        {conditions: {max: "2000-01", value: "2000-13"}, expected: false, name: "[target] The value is an invalid month string(month is greater than 12)"},
-        {conditions: {max: "2000-12", value: "2000-01"}, expected: false, name: "[target] The max attribute is greater than value attribute"},
-        {conditions: {max: "2000-01", value: "2000-12"}, expected: true, name: "[target] The value attribute is greater than max attribute"},
-        {conditions: {max: "9999-01", value: "10000-01"}, expected: true, name: "[target] The value attribute is greater than max attribute(Year is 10000 should be valid)"}
-      ]
-    },
-    {
-      tag: "input",
-      types: ["week"],
-      testData: [
-        {conditions: {max: "", value: "2000-W01"}, expected: false, name: "[target] The max attribute is not set"},
-        {conditions: {max: "2000-W01", value: ""}, expected: false, name: "[target] Value is empty string"},
-        {conditions: {max: "2000/W01", value: "2001-W02"}, expected: false, name: "[target] The max attribute is an invalid week string"},
-        {conditions: {max: "2000-W01", value: "2000-W2"}, expected: false, name: "[target] The value attribute is an invalid week string"},
-        {conditions: {max: "2000-W01", value: "2000-w02"}, expected: false, name: "[target] The value attribute is an invalid week string(w is in lowercase)"},
-        {conditions: {max: "987-W01", value: "988-W01"}, expected: false, name: "[target] The value is an invalid week string(year is three digits)"},
-        {conditions: {max: "2000-W01", value: "2000-W57"}, expected: false, name: "[target] The value is an invalid week string(week is too greater)"},
-        {conditions: {max: "2000-W12", value: "2000-W01"}, expected: false, name: "[target] The max attribute is greater than value attribute"},
-        {conditions: {max: "2000-W01", value: "2000-W12"}, expected: true, name: "[target] The value attribute is greater than max attribute"},
-        {conditions: {max: "9999-W01", value: "10000-W01"}, expected: true, name: "[target] The value attribute is greater than max attribute(Year is 10000 should be valid)"}
-      ]
-    },
-    {
-      tag: "input",
       types: ["time"],
       testData: [
         {conditions: {max: "", value: "12:00:00"}, expected: false, name: "[target] The max attribute is not set"},

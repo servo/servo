@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>:modal pseudo-class</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="author" title="Jihwan Marc Kim" href="mailto:bluewhale.marc@gmail.com" />
+<link rel="help" href="https://drafts.csswg.org/selectors/#modal-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<dialog id="dialog">Just another dialog.</dialog>
+<div id="container">
+  <button id="btn"/>
+</div>
+
+<script>
+  test(() => {
+    const dialog = document.getElementById("dialog");
+    assert_false(dialog.matches(":modal"), "dialog is initially closed (does not match :modal)");
+
+    dialog.showModal();
+    assert_true(dialog.matches(":modal"), "dialog should match :modal after showModal() call");
+
+    dialog.close();
+    assert_false(dialog.matches(":modal"), "dialog should no longer match :modal after close() call");
+
+    dialog.show();
+    assert_false(dialog.matches(":modal"), "dialog shouldn't match :modal after show() call");
+
+    dialog.close();
+    dialog.showModal();
+    assert_true(dialog.matches(":modal"), "dialog should match :modal after showModal() call");
+
+    dialog.remove();
+    assert_false(dialog.matches(":modal"), "dialog shouldn't match :modal after being removed from document");
+    document.body.append(dialog);
+    assert_false(dialog.matches(":modal"), "dialog shouldn't match :modal after being re-appended to document");
+
+    dialog.close();
+  }, "Test that :modal matches modal <dialog>");
+
+  promise_test(async () => {
+    const container = document.getElementById("container");
+    const btn = document.getElementById("btn");
+
+    assert_false(container.matches(":modal"), "before requestFullscreen (does not match :modal)");
+
+    await test_driver.click(btn);
+
+    await container.requestFullscreen();
+
+    assert_true(container.matches(":modal"), ":fullscreen should match :modal");
+
+    await document.exitFullscreen();
+
+    assert_false(container.matches(":modal"), "after exitFullscreen (does not match :modal)");
+  }, "Test that :modal matches the fullscreen element");
+</script>

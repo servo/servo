@@ -5,11 +5,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <style>
   :root {
-    font-size: 10px;
+    font-size: 20px;
     transition: font-size steps(2, start) 10s;
   }
   :root.change {
-    font-size: 20px;
+    font-size: 30px;
   }
 
   #target1 {
@@ -22,6 +22,6 @@
 test(() => {
   let unused = getComputedStyle(document.documentElement).getPropertyValue('font-size');
   document.documentElement.className = 'change';
-  assert_equals(getComputedStyle(target1).getPropertyValue('width'), '15px');
+  assert_equals(getComputedStyle(target1).getPropertyValue('width'), '25px');
 }, 'Transitioning font-size on root affects rem units');
 </script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>
+  OOF static pos in fragmented flex container with multicol CB, with align end.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 4;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    position: relative;
+  }
+  .flex {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 400px;
+    width: 50px;
+  }
+  .flex > div {
+    background: green;
+    height: 100px;
+    width: 25px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flex">
+    <div style="position:absolute;"></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div style="background:red;"></div>
+  </div>
+</div>

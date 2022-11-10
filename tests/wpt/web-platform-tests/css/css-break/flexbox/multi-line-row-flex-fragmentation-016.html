@@ -12,27 +12,26 @@
   }
   #flex > div {
     background: green;
-    width: 10px;
+    width: 20px;
   }
 </style>
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
-<div style="width: 100px; height: 100px; columns: 5; column-gap: 0; column-fill: auto; background: red;">
+<div style="width: 100px; height: 100px; columns: 5; column-gap: 0; column-fill: auto; position: relative; background: red;">
+  <div style="position: absolute; top: 40px; left: 20px; width: 20px; height: 60px; background: green;"></div>
   <div id="flex">
-    <div style="position: relative;">
+    <div style="width: 10px;">
       <div style="contain: size; width: 10px; height: 80px;"></div>
       <div style="contain: size; width: 10px; height: 30px;"></div>
-      <div style="position: absolute; width: 10px; height: 10px; background: green;"></div>
     </div>
-    <div>
+    <div style="width: 10px;">
       <div style="contain: size; width: 10px; height: 70px;"></div>
       <div style="contain: size; width: 10px; height: 40px;"></div>
     </div>
-    <div style="margin-top: 10px; width: 20px; position: relative;">
+    <div style="margin-top: 10px;">
       <div style="contain: size; width: 20px; height: 80px;"></div>
       <div style="contain: size; width: 20px; height: 40px;"></div>
-      <div style="position: absolute; top: -60px; width: 20px; height: 60px; background: green;"></div>
     </div>
-    <div style="height: 100px; width: 20px;"></div>
-    <div style="height: 60px; width: 20px;"></div>
+    <div style="height: 100px;"></div>
+    <div style="height: 60px;"></div>
   </div>
 </div>

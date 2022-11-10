@@ -35,7 +35,7 @@ function testClip( name, sx, sy, sw, sh, expectedColors, expectedWidth, expected
             ctx.drawImage(imageBitmap, 0, 0);
 
             for (let [x, y, r, g, b, a] of expectedColors) {
-                _assertPixel(canvas, x,y, r,g,b,a, `${x},${y}`, `${r},${g},${b},${a}`);
+                _assertPixel(canvas, x,y, r,g,b,a);
             }
         });
     }, name);

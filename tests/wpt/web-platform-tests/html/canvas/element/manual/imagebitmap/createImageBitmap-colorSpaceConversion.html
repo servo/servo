@@ -11,9 +11,9 @@
 <script>
 function testCanvasDisplayingPattern(canvas, width, height)
 {
-    var tolerance = 10; // high tolerance for differing colour management results
+    var tolerance = 10; // high tolerance for differing color management results
     const check = (x, y, r, g, b, a) =>
-        _assertPixelApprox(canvas, x,y, r,g,b,a, `${x},${y}`, `${r},${g},${b},${a}`, tolerance);
+        _assertPixelApprox(canvas, x,y, r,g,b,a, tolerance);
 
     check(1 * width / 4, 1 * height / 4, 124,0,27,255);
     check(3 * width / 4, 1 * height / 4, 0,124,46,255);

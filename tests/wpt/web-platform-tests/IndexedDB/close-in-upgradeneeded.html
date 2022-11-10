@@ -3,7 +3,7 @@
 <title>When db.close is called in upgradeneeded, the db is cleaned up on refresh</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 
 <script>
 
@@ -30,7 +30,7 @@ open_rq.onerror = function(e) {
     assert_true(!!db)
     assert_equals(db.version, 1)
     assert_equals(db.objectStoreNames.length, 1)
-    assert_throws_dom("InvalidStateError", function() { db.transaction('os') })
+    assert_throws_dom("InvalidStateError", function() { db.transaction('os', 'readonly', {durability: 'relaxed'}) })
 
     this.done()
 }

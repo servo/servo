@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<title>Test MediaSource object and objectUrl creation and revocation, with MediaSource in dedicated worker</title>
+<title>Test MediaSource object and objectUrl creation and load via that url should fail, with MediaSource in dedicated worker</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="mediasource-message-util.js"></script>
@@ -11,7 +11,7 @@ async_test(t => {
   assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
   assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
 
-  let worker = new Worker("mediasource-worker-play.js");
+  let worker = new Worker("mediasource-worker-get-objecturl.js");
   worker.onmessage = t.step_func(e => {
     let subject = e.data.subject;
     assert_true(subject != undefined, "message must have a subject field");
@@ -21,19 +21,21 @@ async_test(t => {
         break;
       case messageSubject.OBJECT_URL:
         const url = e.data.info;
-        assert_true(url.match(/^blob:.+/) != null);
-        URL.revokeObjectURL(url);
-        // TODO(crbug.com/1196040): Revoking MediaSource objectURLs on thread
-        // that didn't create them is at best a no-op. This test case is
-        // possibly obsolete.
-        t.done();
+        const video = document.createElement("video");
+        document.body.appendChild(video);
+        video.onerror = t.step_func((target) => {
+          assert_true(video.error != null);
+          assert_equals(video.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
+          t.done();
+        });
+        video.onended = t.unreached_func("video should not have successfully loaded and played to end");
+        video.src = url;
         break;
       default:
         assert_unreached("Unexpected message subject: " + subject);
-
     }
   });
-}, "Test main context revocation of DedicatedWorker MediaSource object URL");
+}, "Test main context load of a DedicatedWorker MediaSource object URL should fail");
 
 if (MediaSource.hasOwnProperty("canConstructInDedicatedWorker") && MediaSource.canConstructInDedicatedWorker === true) {
   // If implementation claims support for MSE-in-Workers, then fetch and run

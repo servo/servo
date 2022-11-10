@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: 'contain: size' on grid elements should cause them to be sized as if they had no contents.</title>
+<link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+<style>
+.grid {
+  display: inline-grid;
+  contain: size;
+  border: 5px solid green;
+  background: lightblue;
+}
+.item {
+  color: transparent;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  height: 100px;
+  width: 100px;
+}
+.min-size {
+  min-height: 55px;
+  min-width: 55px;
+}
+.max-size {
+  max-height: 70px;
+  max-width: 70px;
+}
+.auto-tracks {
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+}
+.fixed-tracks {
+  grid-template-columns: 70px 30px;
+  grid-template-rows: 30px 70px;
+}
+.fr-tracks {
+  grid-template-columns: 1fr 2fr;
+  grid-template-rows: 2fr 1fr;
+}
+.auto-repeat-tracks {
+  grid-template-columns: repeat(auto-fill, 40px);
+  grid-template-rows: repeat(auto-fill, 40px);
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+
+<div class="grid auto-tracks" data-expected-height="10" data-expected-width="10"><div class="item"></div></div>
+<div class="grid min-size auto-tracks" data-expected-height="65" data-expected-width="65"><div class="item"></div></div>
+<div class="grid max-size auto-tracks" data-expected-height="10" data-expected-width="10"><div class="item"></div></div>
+<div class="grid min-size max-size auto-tracks" data-expected-height="65" data-expected-width="65"><div class="item"></div></div>
+
+<div class="grid fixed-tracks" data-expected-height="110" data-expected-width="110"><div class="item"></div></div>
+<div class="grid min-size fixed-tracks" data-expected-height="110" data-expected-width="110"><div class="item"></div></div>
+<div class="grid max-size fixed-tracks" data-expected-height="80" data-expected-width="80"><div class="item"></div></div>
+<div class="grid min-size max-size fixed-tracks" data-expected-height="80" data-expected-width="80"><div class="item"></div></div>
+
+<div class="grid fr-tracks" data-expected-height="10" data-expected-width="10"><div class="item"></div></div>
+<div class="grid min-size fr-tracks" data-expected-height="65" data-expected-width="65"><div class="item"></div></div>
+<div class="grid max-size fr-tracks" data-expected-height="10" data-expected-width="10"><div class="item"></div></div>
+<div class="grid min-size max-size fr-tracks" data-expected-height="65" data-expected-width="65"><div class="item"></div></div>
+
+<div class="grid auto-repeat-tracks" data-expected-height="50" data-expected-width="50"><div class="item"></div></div>
+<div class="grid min-size auto-repeat-tracks" data-expected-height="90" data-expected-width="90"><div class="item"></div></div>
+<div class="grid max-size auto-repeat-tracks" data-expected-height="50" data-expected-width="50"><div class="item"></div></div>
+<div class="grid min-size max-size auto-repeat-tracks" data-expected-height="65" data-expected-width="65"><div class="item"></div></div>
+</body>
+</html>

@@ -47,7 +47,7 @@
   autocompletetest(document.forms.autocomplete_off, ["off", "", "on", "off", ""], "form autocomplete attribute off");
   autocompletetest(document.forms.autocomplete_invalid, ["on", "", "on", "off", ""], "form autocomplete attribute invalid");
 
-  var keywords = [ "on", "off", "name", "honorific-prefix", "given-name", "additional-name", "family-name", "honorific-suffix", "nickname", "username", "new-password", "current-password", "one-time-code", "organization-title", "organization", "street-address", "address-line1", "address-line2", "address-line3", "address-level4", "address-level3", "address-level2", "address-level1", "country", "country-name", "postal-code", "cc-name", "cc-given-name", "cc-additional-name", "cc-family-name", "cc-number", "cc-exp", "cc-exp-month", "cc-exp-year", "cc-csc", "cc-type", "transaction-currency", "transaction-amount", "language", "bday", "bday-day", "bday-month", "bday-year", "sex", "url", "photo", "tel", "tel-country-code", "tel-national", "tel-area-code", "tel-local", "tel-local-prefix", "tel-local-suffix", "tel-extension", "email", "impp" ];
+  var keywords = [ "on", "off", "name", "honorific-prefix", "given-name", "additional-name", "family-name", "honorific-suffix", "nickname", "username", "new-password", "current-password", "one-time-code", "organization-title", "organization", "street-address", "address-line1", "address-line2", "address-line3", "address-level4", "address-level3", "address-level2", "address-level1", "country", "country-name", "postal-code", "cc-name", "cc-given-name", "cc-additional-name", "cc-family-name", "cc-number", "cc-exp", "cc-exp-month", "cc-exp-year", "cc-csc", "cc-type", "transaction-currency", "transaction-amount", "language", "bday", "bday-day", "bday-month", "bday-year", "sex", "url", "photo", "tel", "tel-country-code", "tel-national", "tel-area-code", "tel-local", "tel-local-prefix", "tel-local-suffix", "tel-extension", "email", "impp", "webauthn" ];
 
   keywords.forEach(function(keyword) {
     test(function(){
@@ -77,7 +77,11 @@ test(() => {
   assert_equals(select.autocomplete, "");
 
   // Contact category; max=4
-  select.setAttribute("autocomplete", "foo section-bar billing work name");
+  select.setAttribute("autocomplete", "foo section-bar billing work tel");
+  assert_equals(select.autocomplete, "");
+
+  // Credential category; max=5
+  select.setAttribute("autocomplete", "foo section-bar billing work tel webauthn");
   assert_equals(select.autocomplete, "");
 }, "Test maximum number of tokens");
 
@@ -112,5 +116,15 @@ test(() => {
   textarea.setAttribute("autocomplete", "  section-FOO  bday");
   assert_equals(textarea.autocomplete, "section-foo bday");
 }, "Serialize combinations of section, mode, contact, and field");
+
+test(() => {
+  const textarea = document.createElement("textarea");
+
+  textarea.setAttribute("autocomplete", "\tusername webauthn");
+  assert_equals(textarea.autocomplete, "username webauthn");
+
+  textarea.setAttribute("autocomplete", "  section-LOGIN  shipping work tel webauthn ");
+  assert_equals(textarea.autocomplete, "section-login shipping work tel webauthn");
+}, "Serialize combinations of section, mode, contact, field, and credential");
 
 </script>

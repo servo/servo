@@ -3,7 +3,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 function cursor_source_test(test_name, name, stringified_object, cursor_rq_func) {
@@ -49,7 +49,7 @@ cursor_source_test(
   document.title + ' - IDBObjectStore',
   "my_objectstore",
   "[object IDBObjectStore]",
-  function(db) { return db.transaction("my_objectstore")
+  function(db) { return db.transaction("my_objectstore", "readonly", {durability: 'relaxed'})
                           .objectStore("my_objectstore")
                           .openCursor(); }
 );
@@ -58,7 +58,7 @@ cursor_source_test(
   document.title + ' - IDBIndex',
   "my_index",
   "[object IDBIndex]",
-  function(db) { return db.transaction("my_objectstore")
+  function(db) { return db.transaction("my_objectstore", "readonly", {durability: 'relaxed'})
                           .objectStore("my_objectstore")
                           .index("my_index")
                           .openCursor(); }

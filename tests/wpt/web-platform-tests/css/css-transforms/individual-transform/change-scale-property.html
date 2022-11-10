@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Change scale property</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+<link rel="help" href="https://crbug.com/1365255">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<style>
+#target {
+  will-change: transform;
+  scale: 0.5;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+#container {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    target.style.scale = '1';
+    document.documentElement.removeAttribute('class');
+  });
+});
+</script>

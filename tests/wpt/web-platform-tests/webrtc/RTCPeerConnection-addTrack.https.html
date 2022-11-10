@@ -341,4 +341,54 @@
     assert_equals(first_transceiver.transport, second_transceiver.transport);
 
   }, 'Adding more tracks does not generate more candidates if bundled');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = await getNoiseStream({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+
+    pc1.addTrack(track);
+    const offer = await pc1.createOffer();
+    // We do not await here; we want to ensure that the transceiver this creates
+    // is untouched by addTrack, and that addTrack creates _another_ transceiver
+    const srdPromise = pc2.setRemoteDescription(offer);
+
+    const sender = pc2.addTrack(track);
+
+    await srdPromise;
+
+    assert_equals(pc2.getTransceivers().length, 1, "Should have 1 transceiver");
+    assert_equals(pc2.getTransceivers()[0].sender, sender, "The transceiver should be the one added by addTrack");
+  }, 'Calling addTrack while sRD(offer) is pending should allow the new remote transceiver to be the same one that addTrack creates');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('video');
+
+    const stream = await getNoiseStream({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+
+    const offer = await pc1.createOffer();
+    const srdPromise = pc2.setRemoteDescription(offer);
+    assert_equals(pc2.getTransceivers().length, 0);
+    pc2.addTrack(track);
+    assert_equals(pc2.getTransceivers().length, 1);
+    const transceiver0 = pc2.getTransceivers()[0];
+    assert_equals(transceiver0.mid, null);
+    await srdPromise;
+    assert_equals(pc2.getTransceivers().length, 2);
+    const transceiver1 = pc2.getTransceivers()[1];
+    assert_equals(transceiver0.mid, null);
+    assert_not_equals(transceiver1.mid, null);
+  }, 'When addTrack is called while sRD is in progress, and both addTrack and sRD add a transceiver of different media types, the addTrack transceiver should come first, and then the sRD transceiver.');
+
 </script>

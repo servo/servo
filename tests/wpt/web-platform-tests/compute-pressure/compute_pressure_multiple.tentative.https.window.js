@@ -1,34 +1,30 @@
 'use strict';
 
 promise_test(async t => {
-  const update1_promise = new Promise((resolve, reject) => {
-    const observer = new ComputePressureObserver(
-        resolve, {cpuUtilizationThresholds: [0.5], cpuSpeedThresholds: [0.5]});
-    t.add_cleanup(() => observer.stop());
-    observer.observe().catch(reject);
+  const changes1_promise = new Promise(resolve => {
+    const observer = new PressureObserver(resolve, {sampleRate: 1.0});
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe('cpu');
   });
 
-  const update2_promise = new Promise((resolve, reject) => {
-    const observer = new ComputePressureObserver(
-        resolve, {cpuUtilizationThresholds: [0.5], cpuSpeedThresholds: [0.5]});
-    t.add_cleanup(() => observer.stop());
-    observer.observe().catch(reject);
+  const changes2_promise = new Promise(resolve => {
+    const observer = new PressureObserver(resolve, {sampleRate: 1.0});
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe('cpu');
   });
 
-  const update3_promise = new Promise((resolve, reject) => {
-    const observer = new ComputePressureObserver(
-        resolve, {cpuUtilizationThresholds: [0.5], cpuSpeedThresholds: [0.5]});
-    t.add_cleanup(() => observer.stop());
-    observer.observe().catch(reject);
+  const changes3_promise = new Promise(resolve => {
+    const observer = new PressureObserver(resolve, {sampleRate: 1.0});
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe('cpu');
   });
 
-  const [update1, update2, update3] =
-      await Promise.all([update1_promise, update2_promise, update3_promise]);
+  const [changes1, changes2, changes3] =
+      await Promise.all([changes1_promise, changes2_promise, changes3_promise]);
 
-  for (const update of [update1, update2, update3]) {
-    assert_in_array(update.cpuUtilization, [0.25, 0.75],
-                    'cpuUtilization quantization');
-    assert_in_array(update.cpuSpeed, [0.25, 0.75], 'cpuSpeed quantization');
+  for (const changes of [changes1, changes2, changes3]) {
+    assert_in_array(
+        changes[0].state, ['nominal', 'fair', 'serious', 'critical'],
+        'cpu pressure state');
   }
-}, 'Three ComputePressureObserver instances with the same quantization ' +
-   'schema receive updates');
+}, 'Three PressureObserver instances receive changes');

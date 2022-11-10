@@ -1,15 +1,15 @@
+import importlib
 import io
 import operator
-import os
 import queue
 import sys
 import textwrap
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Tuple
+from typing import TYPE_CHECKING
 from typing import Union
-
-import py
 
 import _pytest
 import pytest
@@ -17,15 +17,12 @@ from _pytest._code.code import ExceptionChainRepr
 from _pytest._code.code import ExceptionInfo
 from _pytest._code.code import FormattedExcinfo
 from _pytest._io import TerminalWriter
-from _pytest.compat import TYPE_CHECKING
+from _pytest.monkeypatch import MonkeyPatch
+from _pytest.pathlib import bestrelpath
+from _pytest.pathlib import import_path
 from _pytest.pytester import LineMatcher
+from _pytest.pytester import Pytester
 
-try:
-    import importlib
-except ImportError:
-    invalidate_import_caches = None
-else:
-    invalidate_import_caches = getattr(importlib, "invalidate_caches", None)
 
 if TYPE_CHECKING:
     from _pytest._code.code import _TracebackStyle
@@ -152,24 +149,25 @@ class TestTraceback_f_g_h:
             "    except somenoname:  # type: ignore[name-defined] # noqa: F821",
         ]
 
-    def test_traceback_cut(self):
-        co = _pytest._code.Code(f)
+    def test_traceback_cut(self) -> None:
+        co = _pytest._code.Code.from_function(f)
         path, firstlineno = co.path, co.firstlineno
+        assert isinstance(path, Path)
         traceback = self.excinfo.traceback
         newtraceback = traceback.cut(path=path, firstlineno=firstlineno)
         assert len(newtraceback) == 1
         newtraceback = traceback.cut(path=path, lineno=firstlineno + 2)
         assert len(newtraceback) == 1
 
-    def test_traceback_cut_excludepath(self, testdir):
-        p = testdir.makepyfile("def f(): raise ValueError")
+    def test_traceback_cut_excludepath(self, pytester: Pytester) -> None:
+        p = pytester.makepyfile("def f(): raise ValueError")
         with pytest.raises(ValueError) as excinfo:
-            p.pyimport().f()
-        basedir = py.path.local(pytest.__file__).dirpath()
+            import_path(p, root=pytester.path).f()  # type: ignore[attr-defined]
+        basedir = Path(pytest.__file__).parent
         newtraceback = excinfo.traceback.cut(excludepath=basedir)
         for x in newtraceback:
-            if hasattr(x, "path"):
-                assert not py.path.local(x.path).relto(basedir)
+            assert isinstance(x.path, Path)
+            assert basedir not in x.path.parents
         assert newtraceback[-1].frame.code.path == p
 
     def test_traceback_filter(self):
@@ -206,8 +204,8 @@ class TestTraceback_f_g_h:
         excinfo = pytest.raises(ValueError, h)
         traceback = excinfo.traceback
         ntraceback = traceback.filter()
-        print("old: {!r}".format(traceback))
-        print("new: {!r}".format(ntraceback))
+        print(f"old: {traceback!r}")
+        print(f"new: {ntraceback!r}")
 
         if matching:
             assert len(ntraceback) == len(traceback) - 2
@@ -265,7 +263,7 @@ class TestTraceback_f_g_h:
         decorator = pytest.importorskip("decorator").decorator
 
         def log(f, *k, **kw):
-            print("{} {}".format(k, kw))
+            print(f"{k} {kw}")
             f(*k, **kw)
 
         log = decorator(log)
@@ -296,7 +294,7 @@ class TestTraceback_f_g_h:
         excinfo = pytest.raises(ValueError, f)
         tb = excinfo.traceback
         entry = tb.getcrashentry()
-        co = _pytest._code.Code(h)
+        co = _pytest._code.Code.from_function(h)
         assert entry.frame.code.path == co.path
         assert entry.lineno == co.firstlineno + 1
         assert entry.frame.code.name == "h"
@@ -313,7 +311,7 @@ class TestTraceback_f_g_h:
         excinfo = pytest.raises(ValueError, f)
         tb = excinfo.traceback
         entry = tb.getcrashentry()
-        co = _pytest._code.Code(g)
+        co = _pytest._code.Code.from_function(g)
         assert entry.frame.code.path == co.path
         assert entry.lineno == co.firstlineno + 2
         assert entry.frame.code.name == "g"
@@ -366,19 +364,19 @@ def test_excinfo_no_sourcecode():
     assert s == "  File '<string>':1 in <module>\n  ???\n"
 
 
-def test_excinfo_no_python_sourcecode(tmpdir):
+def test_excinfo_no_python_sourcecode(tmp_path: Path) -> None:
     # XXX: simplified locally testable version
-    tmpdir.join("test.txt").write("{{ h()}}:")
+    tmp_path.joinpath("test.txt").write_text("{{ h()}}:")
 
     jinja2 = pytest.importorskip("jinja2")
-    loader = jinja2.FileSystemLoader(str(tmpdir))
+    loader = jinja2.FileSystemLoader(str(tmp_path))
     env = jinja2.Environment(loader=loader)
     template = env.get_template("test.txt")
     excinfo = pytest.raises(ValueError, template.render, h=h)
     for item in excinfo.traceback:
         print(item)  # XXX: for some reason jinja.Template.render is printed in full
         item.source  # shouldn't fail
-        if isinstance(item.path, py.path.local) and item.path.basename == "test.txt":
+        if isinstance(item.path, Path) and item.path.name == "test.txt":
             assert str(item.source) == "{{ h()}}:"
 
 
@@ -394,16 +392,16 @@ def test_entrysource_Queue_example():
     assert s.startswith("def get")
 
 
-def test_codepath_Queue_example():
+def test_codepath_Queue_example() -> None:
     try:
         queue.Queue().get(timeout=0.001)
     except queue.Empty:
         excinfo = _pytest._code.ExceptionInfo.from_current()
     entry = excinfo.traceback[-1]
     path = entry.path
-    assert isinstance(path, py.path.local)
-    assert path.basename.lower() == "queue.py"
-    assert path.check()
+    assert isinstance(path, Path)
+    assert path.name.lower() == "queue.py"
+    assert path.exists()
 
 
 def test_match_succeeds():
@@ -412,8 +410,8 @@ def test_match_succeeds():
     excinfo.match(r".*zero.*")
 
 
-def test_match_raises_error(testdir):
-    testdir.makepyfile(
+def test_match_raises_error(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import pytest
         def test_division_zero():
@@ -422,32 +420,30 @@ def test_match_raises_error(testdir):
             excinfo.match(r'[123]+')
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     assert result.ret != 0
 
     exc_msg = "Regex pattern '[[]123[]]+' does not match 'division by zero'."
-    result.stdout.fnmatch_lines(["E * AssertionError: {}".format(exc_msg)])
+    result.stdout.fnmatch_lines([f"E * AssertionError: {exc_msg}"])
     result.stdout.no_fnmatch_line("*__tracebackhide__ = True*")
 
-    result = testdir.runpytest("--fulltrace")
+    result = pytester.runpytest("--fulltrace")
     assert result.ret != 0
     result.stdout.fnmatch_lines(
-        ["*__tracebackhide__ = True*", "E * AssertionError: {}".format(exc_msg)]
+        ["*__tracebackhide__ = True*", f"E * AssertionError: {exc_msg}"]
     )
 
 
 class TestFormattedExcinfo:
     @pytest.fixture
-    def importasmod(self, request, _sys_snapshot):
+    def importasmod(self, tmp_path: Path, _sys_snapshot):
         def importasmod(source):
             source = textwrap.dedent(source)
-            tmpdir = request.getfixturevalue("tmpdir")
-            modpath = tmpdir.join("mod.py")
-            tmpdir.ensure("__init__.py")
-            modpath.write(source)
-            if invalidate_import_caches is not None:
-                invalidate_import_caches()
-            return modpath.pyimport()
+            modpath = tmp_path.joinpath("mod.py")
+            tmp_path.joinpath("__init__.py").touch()
+            modpath.write_text(source)
+            importlib.invalidate_caches()
+            return import_path(modpath, root=tmp_path)
 
         return importasmod
 
@@ -459,7 +455,7 @@ class TestFormattedExcinfo:
                 pass
             """
         ).strip()
-        pr.flow_marker = "|"
+        pr.flow_marker = "|"  # type: ignore[misc]
         lines = pr.get_source(source, 0)
         assert len(lines) == 2
         assert lines[0] == "|   def f(x):"
@@ -689,7 +685,7 @@ raise ValueError()
         p = FormattedExcinfo(style="short")
         reprtb = p.repr_traceback_entry(excinfo.traceback[-2])
         lines = reprtb.lines
-        basename = py.path.local(mod.__file__).basename
+        basename = Path(mod.__file__).name
         assert lines[0] == "    func1()"
         assert reprtb.reprfileloc is not None
         assert basename in str(reprtb.reprfileloc.path)
@@ -754,7 +750,6 @@ raise ValueError()
         from _pytest._code.code import Code
 
         monkeypatch.setattr(Code, "path", "bogus")
-        excinfo.traceback[0].frame.code.path = "bogus"  # type: ignore[misc]
         p = FormattedExcinfo(style="short")
         reprtb = p.repr_traceback_entry(excinfo.traceback[-2])
         lines = reprtb.lines
@@ -778,7 +773,7 @@ raise ValueError()
         )
         excinfo = pytest.raises(ValueError, mod.entry)
 
-        styles = ("long", "short")  # type: Tuple[_TracebackStyle, ...]
+        styles: Tuple[_TracebackStyle, ...] = ("long", "short")
         for style in styles:
             p = FormattedExcinfo(style=style)
             reprtb = p.repr_traceback(excinfo)
@@ -810,21 +805,21 @@ raise ValueError()
 
         raised = 0
 
-        orig_getcwd = os.getcwd
+        orig_path_cwd = Path.cwd
 
         def raiseos():
             nonlocal raised
             upframe = sys._getframe().f_back
             assert upframe is not None
-            if upframe.f_code.co_name == "checked_call":
+            if upframe.f_code.co_name == "_makepath":
                 # Only raise with expected calls, but not via e.g. inspect for
                 # py38-windows.
                 raised += 1
                 raise OSError(2, "custom_oserror")
-            return orig_getcwd()
+            return orig_path_cwd()
 
-        monkeypatch.setattr(os, "getcwd", raiseos)
-        assert p._makepath(__file__) == __file__
+        monkeypatch.setattr(Path, "cwd", raiseos)
+        assert p._makepath(Path(__file__)) == __file__
         assert raised == 1
         repr_tb = p.repr_traceback(excinfo)
 
@@ -834,14 +829,14 @@ raise ValueError()
                 "def entry():",
                 ">       f(0)",
                 "",
-                "{}:5: ".format(mod.__file__),
+                f"{mod.__file__}:5: ",
                 "_ _ *",
                 "",
                 "    def f(x):",
                 ">       raise ValueError(x)",
                 "E       ValueError: 0",
                 "",
-                "{}:3: ValueError".format(mod.__file__),
+                f"{mod.__file__}:3: ValueError",
             ]
         )
         assert raised == 3
@@ -905,7 +900,7 @@ raise ValueError()
         )
         excinfo = pytest.raises(ValueError, mod.entry)
 
-        styles = ("short", "long", "no")  # type: Tuple[_TracebackStyle, ...]
+        styles: Tuple[_TracebackStyle, ...] = ("short", "long", "no")
         for style in styles:
             for showlocals in (True, False):
                 repr = excinfo.getrepr(style=style, showlocals=showlocals)
@@ -956,7 +951,9 @@ raise ValueError()
         assert line.endswith("mod.py")
         assert tw_mock.lines[12] == ":3: ValueError"
 
-    def test_toterminal_long_missing_source(self, importasmod, tmpdir, tw_mock):
+    def test_toterminal_long_missing_source(
+        self, importasmod, tmp_path: Path, tw_mock
+    ) -> None:
         mod = importasmod(
             """
             def g(x):
@@ -966,7 +963,7 @@ raise ValueError()
         """
         )
         excinfo = pytest.raises(ValueError, mod.f)
-        tmpdir.join("mod.py").remove()
+        tmp_path.joinpath("mod.py").unlink()
         excinfo.traceback = excinfo.traceback.filter()
         repr = excinfo.getrepr()
         repr.toterminal(tw_mock)
@@ -986,7 +983,9 @@ raise ValueError()
         assert line.endswith("mod.py")
         assert tw_mock.lines[10] == ":3: ValueError"
 
-    def test_toterminal_long_incomplete_source(self, importasmod, tmpdir, tw_mock):
+    def test_toterminal_long_incomplete_source(
+        self, importasmod, tmp_path: Path, tw_mock
+    ) -> None:
         mod = importasmod(
             """
             def g(x):
@@ -996,7 +995,7 @@ raise ValueError()
         """
         )
         excinfo = pytest.raises(ValueError, mod.f)
-        tmpdir.join("mod.py").write("asdf")
+        tmp_path.joinpath("mod.py").write_text("asdf")
         excinfo.traceback = excinfo.traceback.filter()
         repr = excinfo.getrepr()
         repr.toterminal(tw_mock)
@@ -1016,7 +1015,9 @@ raise ValueError()
         assert line.endswith("mod.py")
         assert tw_mock.lines[10] == ":3: ValueError"
 
-    def test_toterminal_long_filenames(self, importasmod, tw_mock):
+    def test_toterminal_long_filenames(
+        self, importasmod, tw_mock, monkeypatch: MonkeyPatch
+    ) -> None:
         mod = importasmod(
             """
             def f():
@@ -1024,25 +1025,22 @@ raise ValueError()
         """
         )
         excinfo = pytest.raises(ValueError, mod.f)
-        path = py.path.local(mod.__file__)
-        old = path.dirpath().chdir()
-        try:
-            repr = excinfo.getrepr(abspath=False)
-            repr.toterminal(tw_mock)
-            x = py.path.local().bestrelpath(path)
-            if len(x) < len(str(path)):
-                msg = tw_mock.get_write_msg(-2)
-                assert msg == "mod.py"
-                assert tw_mock.lines[-1] == ":3: ValueError"
-
-            repr = excinfo.getrepr(abspath=True)
-            repr.toterminal(tw_mock)
+        path = Path(mod.__file__)
+        monkeypatch.chdir(path.parent)
+        repr = excinfo.getrepr(abspath=False)
+        repr.toterminal(tw_mock)
+        x = bestrelpath(Path.cwd(), path)
+        if len(x) < len(str(path)):
             msg = tw_mock.get_write_msg(-2)
-            assert msg == path
-            line = tw_mock.lines[-1]
-            assert line == ":3: ValueError"
-        finally:
-            old.chdir()
+            assert msg == "mod.py"
+            assert tw_mock.lines[-1] == ":3: ValueError"
+
+        repr = excinfo.getrepr(abspath=True)
+        repr.toterminal(tw_mock)
+        msg = tw_mock.get_write_msg(-2)
+        assert msg == str(path)
+        line = tw_mock.lines[-1]
+        assert line == ":3: ValueError"
 
     @pytest.mark.parametrize(
         "reproptions",
@@ -1370,7 +1368,7 @@ raise ValueError()
 @pytest.mark.parametrize("encoding", [None, "utf8", "utf16"])
 def test_repr_traceback_with_unicode(style, encoding):
     if encoding is None:
-        msg = "☹"  # type: Union[str, bytes]
+        msg: Union[str, bytes] = "☹"
     else:
         msg = "☹".encode(encoding)
     try:
@@ -1382,16 +1380,41 @@ def test_repr_traceback_with_unicode(style, encoding):
     assert repr_traceback is not None
 
 
-def test_cwd_deleted(testdir):
-    testdir.makepyfile(
+def test_cwd_deleted(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
-        def test(tmpdir):
-            tmpdir.chdir()
-            tmpdir.remove()
+        import os
+
+        def test(tmp_path):
+            os.chdir(tmp_path)
+            tmp_path.unlink()
             assert False
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
+    result.stdout.fnmatch_lines(["* 1 failed in *"])
+    result.stdout.no_fnmatch_line("*INTERNALERROR*")
+    result.stderr.no_fnmatch_line("*INTERNALERROR*")
+
+
+def test_regression_nagative_line_index(pytester: Pytester) -> None:
+    """
+    With Python 3.10 alphas, there was an INTERNALERROR reported in
+    https://github.com/pytest-dev/pytest/pull/8227
+    This test ensures it does not regress.
+    """
+    pytester.makepyfile(
+        """
+        import ast
+        import pytest
+
+
+        def test_literal_eval():
+            with pytest.raises(ValueError, match="^$"):
+                ast.literal_eval("pytest")
+    """
+    )
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["* 1 failed in *"])
     result.stdout.no_fnmatch_line("*INTERNALERROR*")
     result.stderr.no_fnmatch_line("*INTERNALERROR*")

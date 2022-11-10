@@ -719,16 +719,26 @@ function test16() {
 
   let helper = new ResizeTestHelper(
     // See: https://drafts.csswg.org/resize-observer/#intro.
-    "test16: observations do not fire for non-replaced inline elements",
+    "test16: observations fire once with 0x0 size for non-replaced inline elements",
   [
     {
       setup: observer => {
         observer.observe(t);
       },
       notify: entries => {
-        assert_unreached("No observation should fire for non box element")
-      },
-      timeout: () => {}
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, t, "target is t");
+        assert_equals(entries[0].contentRect.width, 0, "target width");
+        assert_equals(entries[0].contentRect.height, 0, "target height");
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 0,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 0,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize[0].inlineSize, 0,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize[0].blockSize, 0,
+                      "target border-box block size");
+      }
     }
   ]);
 

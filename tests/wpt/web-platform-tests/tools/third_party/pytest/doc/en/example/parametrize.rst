@@ -97,9 +97,9 @@ the argument name:
 
     # content of test_time.py
 
-    import pytest
-
     from datetime import datetime, timedelta
+
+    import pytest
 
     testdata = [
         (datetime(2001, 12, 12), datetime(2001, 12, 11), timedelta(1)),
@@ -160,9 +160,8 @@ objects, they are still using the default pytest representation:
 
     $ pytest test_time.py --collect-only
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 8 items
 
     <Module test_time.py>
@@ -175,7 +174,7 @@ objects, they are still using the default pytest representation:
       <Function test_timedistance_v3[forward]>
       <Function test_timedistance_v3[backward]>
 
-    ========================== no tests ran in 0.12s ===========================
+    ======================== 8 tests collected in 0.12s ========================
 
 In ``test_timedistance_v3``, we used ``pytest.param`` to specify the test IDs
 together with the actual data, instead of listing them separately.
@@ -183,9 +182,7 @@ together with the actual data, instead of listing them separately.
 A quick port of "testscenarios"
 ------------------------------------
 
-.. _`test scenarios`: https://pypi.org/project/testscenarios/
-
-Here is a quick port to run tests configured with `test scenarios`_,
+Here is a quick port to run tests configured with :pypi:`testscenarios`,
 an add-on from Robert Collins for the standard unittest framework. We
 only have to work a bit to construct the correct arguments for pytest's
 :py:func:`Metafunc.parametrize`:
@@ -225,9 +222,8 @@ this is a fully self-contained example which you can run with:
 
     $ pytest test_scenarios.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 4 items
 
     test_scenarios.py ....                                               [100%]
@@ -240,19 +236,18 @@ If you just collect tests you'll also nicely see 'advanced' and 'basic' as varia
 
     $ pytest --collect-only test_scenarios.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 4 items
 
     <Module test_scenarios.py>
       <Class TestSampleWithScenarios>
-          <Function test_demo1[basic]>
-          <Function test_demo2[basic]>
-          <Function test_demo1[advanced]>
-          <Function test_demo2[advanced]>
+        <Function test_demo1[basic]>
+        <Function test_demo2[basic]>
+        <Function test_demo1[advanced]>
+        <Function test_demo2[advanced]>
 
-    ========================== no tests ran in 0.12s ===========================
+    ======================== 4 tests collected in 0.12s ========================
 
 Note that we told ``metafunc.parametrize()`` that your scenario values
 should be considered class-scoped.  With pytest-2.3 this leads to a
@@ -319,16 +314,15 @@ Let's first see how it looks like at collection time:
 
     $ pytest test_backends.py --collect-only
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 2 items
 
     <Module test_backends.py>
       <Function test_db_initialized[d1]>
       <Function test_db_initialized[d2]>
 
-    ========================== no tests ran in 0.12s ===========================
+    ======================== 2 tests collected in 0.12s ========================
 
 And then when we run the test:
 
@@ -339,7 +333,7 @@ And then when we run the test:
     ================================= FAILURES =================================
     _________________________ test_db_initialized[d2] __________________________
 
-    db = <conftest.DB2 object at 0xdeadbeef>
+    db = <conftest.DB2 object at 0xdeadbeef0001>
 
         def test_db_initialized(db):
             # a dummy test
@@ -418,9 +412,9 @@ The result of this test will be successful:
 
     $ pytest -v test_indirect_list.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y -- $PYTHON_PREFIX/bin/python
+    cachedir: .pytest_cache
+    rootdir: /home/sweet/project
     collecting ... collected 1 item
 
     test_indirect_list.py::test_indirect[a-b] PASSED                     [100%]
@@ -478,7 +472,7 @@ argument sets to use for each test function.  Let's run it:
     ================================= FAILURES =================================
     ________________________ TestClass.test_equals[1-2] ________________________
 
-    self = <test_parametrize.TestClass object at 0xdeadbeef>, a = 1, b = 2
+    self = <test_parametrize.TestClass object at 0xdeadbeef0002>, a = 1, b = 2
 
         def test_equals(self, a, b):
     >       assert a == b
@@ -508,11 +502,12 @@ Running it results in some skips if we don't have all the python interpreters in
 .. code-block:: pytest
 
    . $ pytest -rs -q multipython.py
-   ssssssssssss...ssssssssssss                                          [100%]
+   sssssssssssssssssssssssssss                                          [100%]
    ========================= short test summary info ==========================
-   SKIPPED [12] multipython.py:29: 'python3.5' not found
-   SKIPPED [12] multipython.py:29: 'python3.7' not found
-   3 passed, 24 skipped in 0.12s
+   SKIPPED [9] multipython.py:29: 'python3.5' not found
+   SKIPPED [9] multipython.py:29: 'python3.6' not found
+   SKIPPED [9] multipython.py:29: 'python3.7' not found
+   27 skipped in 0.12s
 
 Indirect parametrization of optional implementations/imports
 --------------------------------------------------------------------
@@ -572,9 +567,8 @@ If you run this with reporting for skips enabled:
 
     $ pytest -rs test_module.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 2 items
 
     test_module.py .s                                                    [100%]
@@ -634,16 +628,16 @@ Then run ``pytest`` with verbose mode and with only the ``basic`` marker:
 
     $ pytest -v -m basic
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
-    collecting ... collected 14 items / 11 deselected / 3 selected
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y -- $PYTHON_PREFIX/bin/python
+    cachedir: .pytest_cache
+    rootdir: /home/sweet/project
+    collecting ... collected 24 items / 21 deselected / 3 selected
 
     test_pytest_param_example.py::test_eval[1+7-8] PASSED                [ 33%]
     test_pytest_param_example.py::test_eval[basic_2+4] PASSED            [ 66%]
     test_pytest_param_example.py::test_eval[basic_6*9] XFAIL             [100%]
 
-    =============== 2 passed, 11 deselected, 1 xfailed in 0.12s ================
+    =============== 2 passed, 21 deselected, 1 xfailed in 0.12s ================
 
 As the result:
 

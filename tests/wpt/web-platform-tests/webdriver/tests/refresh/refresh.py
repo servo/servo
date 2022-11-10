@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.error import NoSuchElementException, StaleElementReferenceException
+from webdriver import error
 
 from tests.support.asserts import assert_error, assert_success
 
@@ -32,7 +32,7 @@ def test_no_browsing_context(session, closed_frame, inline):
     response = refresh(session)
     assert_success(response)
 
-    with pytest.raises(StaleElementReferenceException):
+    with pytest.raises(error.StaleElementReferenceException):
         element.property("id")
 
     assert session.url == url
@@ -48,7 +48,7 @@ def test_basic(session, inline):
     response = refresh(session)
     assert_success(response)
 
-    with pytest.raises(StaleElementReferenceException):
+    with pytest.raises(error.StaleElementReferenceException):
         element.property("id")
 
     assert session.url == url
@@ -72,7 +72,7 @@ def test_dismissed_beforeunload(session, inline):
     response = refresh(session)
     assert_success(response)
 
-    with pytest.raises(StaleElementReferenceException):
+    with pytest.raises(error.StaleElementReferenceException):
         element.property("id")
 
     session.find.css("input", all=False)
@@ -106,7 +106,7 @@ def test_history_pushstate(session, inline):
     assert session.url == "{}#pushstate".format(pushstate_page)
     assert session.execute_script("return history.state;") == {"foo": "bar"}
 
-    with pytest.raises(StaleElementReferenceException):
+    with pytest.raises(error.StaleElementReferenceException):
         element.property("id")
 
 
@@ -114,7 +114,7 @@ def test_refresh_switches_to_parent_browsing_context(session, create_frame, inli
     session.url = inline("<div id=foo>")
 
     session.switch_frame(create_frame())
-    with pytest.raises(NoSuchElementException):
+    with pytest.raises(error.NoSuchElementException):
         session.find.css("#foo", all=False)
 
     response = refresh(session)

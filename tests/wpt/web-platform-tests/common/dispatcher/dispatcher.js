@@ -1,4 +1,4 @@
-// Define an universal message passing API. It works cross-origin and across
+// Define a universal message passing API. It works cross-origin and across
 // browsing context groups.
 const dispatcher_path = "/common/dispatcher/dispatcher.py";
 const dispatcher_url = new URL(dispatcher_path, location.href).href;
@@ -37,7 +37,15 @@ const randomDelay = () => {
 // └───────────┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴────┘
 const limiter = concurrencyLimiter(6);
 
-const send = async function(uuid, message) {
+// While requests to different remote contexts can go in parallel, we need to
+// ensure that requests to each remote context are done in order. This maps a
+// uuid to a queue of requests to send. A queue is processed until it is empty
+// and then is deleted from the map.
+const sendQueues = new Map();
+
+// Sends a single item (with rate-limiting) and calls the associated resolver
+// when it is successfully sent.
+const sendItem = async function (uuid, resolver, message) {
   await limiter(async () => {
     // Requests might be dropped. Retry until getting a confirmation it has been
     // processed.
@@ -47,15 +55,45 @@ const send = async function(uuid, message) {
           method: 'POST',
           body: message
         })
-        if (await response.text() == "done")
+        if (await response.text() == "done") {
+          resolver();
           return;
+        }
       } catch (fetch_error) {}
       await randomDelay();
     };
   });
 }
 
-const receive = async function(uuid) {
+// While the queue is non-empty, send the next item. This is async and new items
+// may be added to the queue while others are being sent.
+const processQueue = async function (uuid, queue) {
+  while (queue.length) {
+    const [resolver, message] = queue.shift();
+    await sendItem(uuid, resolver, message);
+  }
+  // The queue is empty, delete it.
+  sendQueues.delete(uuid);
+}
+
+const send = async function (uuid, message) {
+  const itemSentPromise = new Promise((resolve) => {
+    const item = [resolve, message];
+    if (sendQueues.has(uuid)) {
+      // There is already a queue for `uuid`, just add to it and it will be processed.
+      sendQueues.get(uuid).push(item);
+    } else {
+      // There is no queue for `uuid`, create it and start processing.
+      const queue = [item];
+      sendQueues.set(uuid, queue);
+      processQueue(uuid, queue);
+    }
+  });
+  // Wait until the item has been successfully sent.
+  await itemSentPromise;
+}
+
+const receive = async function (uuid) {
   while(1) {
     let data = "not ready";
     try {
@@ -89,6 +127,31 @@ const cacheableShowRequestHeaders = function(origin, uuid) {
 // This script requires
 // - `/common/utils.js` for `token()`.
 
+// Returns the URL of a document that can be used as a `RemoteContext`.
+//
+// `uuid` should be a UUID uniquely identifying the given remote context.
+// `options` has the following shape:
+//
+// {
+//   host: (optional) Sets the returned URL's `host` property. Useful for
+//     cross-origin executors.
+//   protocol: (optional) Sets the returned URL's `protocol` property.
+// }
+function remoteExecutorUrl(uuid, options) {
+  const url = new URL("/common/dispatcher/remote-executor.html", location);
+  url.searchParams.set("uuid", uuid);
+
+  if (options?.host) {
+    url.host = options.host;
+  }
+
+  if (options?.protocol) {
+    url.protocol = options.protocol;
+  }
+
+  return url;
+}
+
 // Represents a remote executor. For more detailed explanation see `README.md`.
 class RemoteContext {
   // `uuid` is a UUID string that identifies the remote context and should
@@ -106,7 +169,7 @@ class RemoteContext {
   //   `execute_script()` returns a rejected Promise with the error's
   //   `message`.
   //   Note that currently the type of error (e.g. DOMException) is not
-  //   preserved.
+  //   preserved, except for `TypeError`.
   // The values should be able to be serialized by JSON.stringify().
   async execute_script(fn, args) {
     const receiver = token();
@@ -117,6 +180,9 @@ class RemoteContext {
     }
 
     // exception
+    if (response.name === 'TypeError') {
+      throw new TypeError(response.value);
+    }
     throw new Error(response.value);
   }
 
@@ -180,6 +246,7 @@ class Executor {
       } catch(e) {
         response = JSON.stringify({
           status: 'exception',
+          name: e.name,
           value: e.message
         });
       }

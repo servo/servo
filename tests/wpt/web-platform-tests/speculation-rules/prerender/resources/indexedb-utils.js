@@ -4,9 +4,14 @@ const INITIATOR_VALUE = INITIATOR_KEY + '_set';
 const PRERENDER_KEY = 'prerender';
 const PRERENDER_VALUE = PRERENDER_KEY + '_set';
 
-async function openIndexedDatabase() {
+async function openIndexedDatabase(t) {
   return new Promise(resolve => {
     const request = window.indexedDB.open(STORAGE_NAME);
+    if (t)
+      t.add_cleanup(() => new Promise(resolve => {
+        window.indexedDB.deleteDatabase(STORAGE_NAME);
+        resolve();
+      }));
     request.onupgradeneeded = e => {
       const db = e.target.result;
       const objectStore =

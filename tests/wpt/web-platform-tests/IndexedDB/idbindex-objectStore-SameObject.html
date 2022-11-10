@@ -4,7 +4,7 @@
 <meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-objectstore">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 indexeddb_test(
@@ -16,7 +16,7 @@ indexeddb_test(
 
   },
   (t, db) => {
-    const tx = db.transaction('store');
+    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
     const store = tx.objectStore('store');
     const index = store.index('index');
     assert_equals(index.objectStore, index.objectStore,

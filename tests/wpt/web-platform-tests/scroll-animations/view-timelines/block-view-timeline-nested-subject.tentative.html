@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html id="top">
+<meta charset="utf-8">
+<title>View timeline nested subject</title>
+<!-- TODO(crbug.com/1329159): Update link once ratified -->
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/rewrite#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style type="text/css">
+  #container {
+    overflow-y: scroll;
+    height:  300px;
+    width: 300px;
+  }
+  .big-spacer {
+    height:  800px;
+  }
+  .small-spacer {
+    height:  100px;
+  }
+  #block {
+    background-color:  #ddd;
+  }
+  #target {
+    background-color:  green;
+    height:  100px;
+    width:  100px;
+  }
+</style>
+<body>
+  <div id="container">
+    <div class="big-spacer"></div>
+    <div id="block">
+      <div class="small-spacer"></div>
+      <div id="target"></div>
+    </div>
+    <div class="big-spacer"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  promise_test(async t => {
+    container.scrollTop = 0;
+    await waitForNextFrame();
+
+    const anim = CreateViewTimelineOpacityAnimation(t, target);
+    const timeline = anim.timeline;
+    await anim.ready;
+
+    // start offset = 800 + 100 - 300 = 600
+    // end offset = 800 + 100 + 100 = 1000
+    // scroll limit = L = 800 + 200 + 800 - 300 = 1500
+    // progress = P =  (current - start) / (end - start)
+    // P(0) = -600 / 400 = -1.5
+    // P(L) = 900 / 400 = 2.5
+
+    // Initially before start-offset and animation effect is in the before
+    // phase.
+    assert_percents_equal(timeline.currentTime, -150,
+                          "Timeline's currentTime at container start boundary");
+    assert_percents_equal(anim.currentTime, -150,
+                          "Animation's currentTime at container start boundary");
+    assert_equals(getComputedStyle(target).opacity, "1",
+                  'Effect is inactive in the before phase');
+
+
+    // Advance to the start offset, which triggers entry to the active phase.
+    container.scrollTop = 600;
+    await waitForNextFrame();
+    assert_percents_equal(timeline.currentTime, 0,
+                          "Timeline's current time at start offset");
+    assert_percents_equal(anim.currentTime, 0,
+                          "Animation's current time at start offset");
+    assert_equals(getComputedStyle(target).opacity, '0.3',
+                  'Effect at the start of the active phase');
+
+    // Advance to the midpoint of the animation.
+    container.scrollTop = 800;
+    await waitForNextFrame();
+    assert_percents_equal(timeline.currentTime, 50,
+                          "Timeline's currentTime at midpoint");
+    assert_percents_equal(anim.currentTime, 50,
+                          "Animation's currentTime at midpoint");
+    assert_equals(getComputedStyle(target).opacity,'0.5',
+                  'Effect at the midpoint of the active range');
+
+    // Advance to the end of the animation.
+    container.scrollTop = 1000;
+    await waitForNextFrame();
+    assert_percents_equal(timeline.currentTime, 100,
+                          "Timeline's currentTime at end offset");
+    assert_percents_equal(anim.currentTime, 100,
+                          "Animation's currentTime at end offset");
+    assert_equals(getComputedStyle(target).opacity, '0.7',
+                  'Effect is in the active phase at effect end time');
+
+    // Advance to the scroll limit.
+    container.scrollTop = 1600;
+    await waitForNextFrame();
+    assert_percents_equal(timeline.currentTime, 225,
+                          "Timeline's currentTime at scroll limit");
+    // Hold time set when the animation finishes, which clamps the value of
+    // the animation's currentTime.
+    assert_percents_equal(anim.currentTime, 100,
+                          "Animation's currentTime at scroll limit");
+    // In the after phase, so the effect should not be applied.
+    assert_equals(getComputedStyle(target).opacity, '1',
+                  'After phase at scroll limit');
+  }, 'View timeline with subject that is not a direct descendant of the ' +
+     'scroll container');
+</script>
+</html>

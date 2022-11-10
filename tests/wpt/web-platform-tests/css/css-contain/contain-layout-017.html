@@ -6,10 +6,11 @@
 <link rel="match" href="../reference/nothing.html">
 <meta name=assert content="Elements in which layout containment doesn't apply, do not create a stacking context.">
 <style>
-div {
+rt {
   display: ruby-text;
   contain: layout;
   background: white;
+  overflow: hidden;
 }
 span {
   position: relative;
@@ -18,4 +19,4 @@ span {
 </style>
 
 <p>There should be nothing below.</p>
-<div><span>FAIL</span></div>
+<ruby><rt><span>FAIL</span></rt></ruby>

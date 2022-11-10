@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Masking: Test clip-path property and shape function with nonzero fill</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+  <link rel="match" href="reference/clip-path-shape-003-ref.html">
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'shape()' for clipping. Test curves.">
+</head>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+  #ref {
+    clip-path: path(nonzero, "M 10 10, Q 40 0 60 20, T 90 0, c 10 40 20 20 -20 60, s -10 70 -40 -10");
+    background-color: red;
+    position: absolute;
+  }
+  #rect {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    clip-path: shape(nonzero from 10px 10px,
+                     curve to 60px 20% via 40px 0,
+                     smooth to 90px 0,
+                     curve by -20px 60% via 10% 40px 20% 20px,
+                     smooth by -40% -10px via -10px 70px);
+  }
+</style>
+<body>
+  <p>You should see no red.</p>
+  <div id="ref"></div>
+  <div id="rect"></div>
+</body>
+</html>

@@ -22,7 +22,6 @@ let MEDIA_LIST = [
 class MediaSourceWorkerUtil {
   constructor() {
     this.mediaSource = new MediaSource();
-    this.mediaSourceObjectUrl = URL.createObjectURL(this.mediaSource);
 
     // Find supported test media, if any.
     this.foundSupportedMedia = false;

@@ -1,16 +1,6 @@
+storageEventList = [];
 iframe = document.createElement("IFRAME");
-iframe.src = "about:blank";
 document.body.appendChild(iframe);
-iframe.contentWindow.document.body.textContent = "Nothing to see here.";
-
-storageEventList = new Array();
-iframe.contentWindow.onstorage = function(e) {
-    if (iframe.contentWindow.sessionStorage === e.storageArea)
-      e.storageAreaString = "sessionStorage";
-    else if (iframe.contentWindow.localStorage === e.storageArea)
-      e.storageAreaString = "localStorage";
-    window.parent.storageEventList.push(e);
-};
 
 function runAfterNStorageEvents(callback, expectedNumEvents)
 {

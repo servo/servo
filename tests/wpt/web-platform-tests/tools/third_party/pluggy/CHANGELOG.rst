@@ -4,6 +4,82 @@ Changelog
 
 .. towncrier release notes start
 
+pluggy 1.0.0 (2021-08-25)
+=========================
+
+Deprecations and Removals
+-------------------------
+
+- `#116 <https://github.com/pytest-dev/pluggy/issues/116>`_: Remove deprecated ``implprefix`` support.
+  Decorate hook implementations using an instance of HookimplMarker instead.
+  The deprecation was announced in release ``0.7.0``.
+
+
+- `#120 <https://github.com/pytest-dev/pluggy/issues/120>`_: Remove the deprecated ``proc`` argument to ``call_historic``.
+  Use ``result_callback`` instead, which has the same behavior.
+  The deprecation was announced in release ``0.7.0``.
+
+
+- `#265 <https://github.com/pytest-dev/pluggy/issues/265>`_: Remove the ``_Result.result`` property. Use ``_Result.get_result()`` instead.
+  Note that unlike ``result``, ``get_result()`` raises the exception if the hook raised.
+  The deprecation was announced in release ``0.6.0``.
+
+
+- `#267 <https://github.com/pytest-dev/pluggy/issues/267>`_: Remove official support for Python 3.4.
+
+
+- `#272 <https://github.com/pytest-dev/pluggy/issues/272>`_: Dropped support for Python 2.
+  Continue to use pluggy 0.13.x for Python 2 support.
+
+
+- `#308 <https://github.com/pytest-dev/pluggy/issues/308>`_: Remove official support for Python 3.5.
+
+
+- `#313 <https://github.com/pytest-dev/pluggy/issues/313>`_: The internal ``pluggy.callers``, ``pluggy.manager`` and ``pluggy.hooks`` are now explicitly marked private by a ``_`` prefix (e.g. ``pluggy._callers``).
+  Only API exported by the top-level ``pluggy`` module is considered public.
+
+
+- `#59 <https://github.com/pytest-dev/pluggy/issues/59>`_: Remove legacy ``__multicall__`` recursive hook calling system.
+  The deprecation was announced in release ``0.5.0``.
+
+
+
+Features
+--------
+
+- `#282 <https://github.com/pytest-dev/pluggy/issues/282>`_: When registering a hookimpl which is declared as ``hookwrapper=True`` but whose
+  function is not a generator function, a ``PluggyValidationError`` exception is
+  now raised.
+
+  Previously this problem would cause an error only later, when calling the hook.
+
+  In the unlikely case that you have a hookwrapper that *returns* a generator
+  instead of yielding directly, for example:
+
+  .. code-block:: python
+
+      def my_hook_real_implementation(arg):
+          print("before")
+          yield
+          print("after")
+
+
+      @hookimpl(hookwrapper=True)
+      def my_hook(arg):
+          return my_hook_implementation(arg)
+
+  change it to use ``yield from`` instead:
+
+  .. code-block:: python
+
+      @hookimpl(hookwrapper=True)
+      def my_hook(arg):
+          yield from my_hook_implementation(arg)
+
+
+- `#309 <https://github.com/pytest-dev/pluggy/issues/309>`_: Add official support for Python 3.9.
+
+
 pluggy 0.13.1 (2019-11-21)
 ==========================
 

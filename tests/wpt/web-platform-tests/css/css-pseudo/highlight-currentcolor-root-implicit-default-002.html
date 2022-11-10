@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: implicit defaulting of ‘color’ in :root highlights</title>
+<meta name="assert" content="Checks the painting for ::selection and ::highlight, when ‘background-color’ is set in the target element but ‘color’ is implicitly defaulted. ‘background-color’ suppresses the UA default ‘color’ for ::selection via paired cascade. The resultant ‘color’ inherits through ancestor highlight pseudos up to the root, where the inherited value is defined as ‘currentColor’ for highlights, yielding green.">
+<link rel="author" title="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-selectors">
+<link rel="match" href="highlight-currentcolor-root-implicit-default-ref.html">
+<p>Pass if text below is green on lime, and the text itself represents green, not initial (black).</p>
+<main>FAIL</main>
+<main>FAIL</main>
+<style>
+  main { color: green; }
+  main::selection { background-color: lime; }
+  main::highlight(foo) { background-color: lime; }
+</style>
+<script>
+  const [selection, highlight] = document.querySelectorAll("main");
+
+  let selectionRange = new Range();
+  selectionRange.selectNode(selection);
+  window.getSelection().addRange(selectionRange);
+  selection.textContent = getComputedStyle(selection, "::selection").color;
+
+  let highlightRange = new Range();
+  highlightRange.selectNode(highlight);
+  CSS.highlights.set("foo", new Highlight(highlightRange));
+  highlight.textContent = getComputedStyle(highlight, "::highlight(foo)").color;
+</script>

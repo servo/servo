@@ -3,7 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+function supportsTouchEvents() {
+  assert_implements_optional('ontouchstart' in document, "'expose legacy touch event APIs'");
+}
 test(function() {
+    supportsTouchEvents();
     var touch_event_list = ['ontouchstart', 'ontouchmove', 'ontouchend', 'ontouchcancel'];
     var global_event_handlers = [window, HTMLElement.prototype, SVGElement.prototype, Document.prototype];
     for (var i in touch_event_list) {
@@ -14,6 +18,7 @@ test(function() {
 }, "Touch events in GlobalEventHandlers");
 
 test(function() {
+    supportsTouchEvents();
     var touch_event_list = ['ontouchstart', 'ontouchmove', 'ontouchend', 'ontouchcancel'];
     var global_event_handlers = [window, HTMLElement.prototype, SVGElement.prototype, Document.prototype];
     for (var i in touch_event_list) {

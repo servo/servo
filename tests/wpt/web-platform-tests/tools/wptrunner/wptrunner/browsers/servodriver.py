@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 import subprocess
 import tempfile
@@ -75,6 +77,7 @@ def write_hosts_file(config):
     with os.fdopen(hosts_fd, "w") as f:
         f.write(make_hosts_file(config, "127.0.0.1"))
     return hosts_path
+
 
 class ServoWebDriverBrowser(Browser):
     init_timeout = 300  # Large timeout for cases where we're booting an Android emulator

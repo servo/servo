@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import json
 
 import webdriver
@@ -9,7 +11,7 @@ import webdriver
 class Encoder(json.JSONEncoder):
     def __init__(self, *args, **kwargs):
         kwargs.pop("session")
-        super(Encoder, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def default(self, obj):
         if isinstance(obj, (list, tuple)):
@@ -22,13 +24,13 @@ class Encoder(json.JSONEncoder):
             return {webdriver.Frame.identifier: obj.id}
         elif isinstance(obj, webdriver.ShadowRoot):
             return {webdriver.ShadowRoot.identifier: obj.id}
-        return super(Encoder, self).default(obj)
+        return super().default(obj)
 
 
 class Decoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         self.session = kwargs.pop("session")
-        super(Decoder, self).__init__(
+        super().__init__(
             object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, payload):

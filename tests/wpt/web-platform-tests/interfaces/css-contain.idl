@@ -1,0 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Containment Module Level 2 (https://drafts.csswg.org/css-contain-2/)
+
+[Exposed=Window]
+interface ContentVisibilityAutoStateChangedEvent : Event {
+  constructor(DOMString type, optional ContentVisibilityAutoStateChangedEventInit eventInitDict = {});
+  readonly attribute boolean skipped;
+};
+dictionary ContentVisibilityAutoStateChangedEventInit : EventInit {
+  boolean skipped = false;
+};

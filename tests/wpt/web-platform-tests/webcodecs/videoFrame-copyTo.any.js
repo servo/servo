@@ -15,6 +15,22 @@ function makeRGBA_2x2() {
   return new VideoFrame(data, init);
 }
 
+const NV12_DATA = new Uint8Array([
+      1, 2, 3, 4,   // y
+      5, 6, 7, 8,
+      9, 10, 11, 12 // uv
+  ]);
+
+function makeNV12_4x2() {
+  const init = {
+      format: 'NV12',
+      timestamp: 0,
+      codedWidth: 4,
+      codedHeight: 2,
+  };
+  return new VideoFrame(NV12_DATA, init);
+}
+
 promise_test(async t => {
   const frame = makeI420_4x2();
   frame.close();
@@ -50,6 +66,24 @@ promise_test(async t => {
   assert_layout_equals(layout, expectedLayout);
   assert_buffer_equals(data, expectedData);
 }, 'Test RGBA frame.');
+
+promise_test(async t => {
+  const frame = makeNV12_4x2();
+  const expectedLayout = [
+      {offset: 0, stride: 4},
+      {offset: 8, stride: 4},
+  ];
+  const expectedData = new Uint8Array([
+      1,2,3,4,
+      5,6,7,8,
+      9,10,11,12
+  ]);
+  assert_equals(frame.allocationSize(), expectedData.length, 'allocationSize()');
+  const data = new Uint8Array(expectedData.length);
+  const layout = await frame.copyTo(data);
+  assert_layout_equals(layout, expectedLayout);
+  assert_buffer_equals(data, expectedData);
+}, 'Test NV12 frame.');
 
 promise_test(async t => {
   const frame = makeI420_4x2();

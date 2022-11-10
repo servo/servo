@@ -21,53 +21,41 @@ function fetch_text(url) {
  *      dependency (i.e. have already been seen).
  */
 function idl_test_shadowrealm(srcs, deps) {
-    const script_urls = [
-        "/resources/testharness.js",
-        "/resources/WebIDLParser.js",
-        "/resources/idlharness.js",
-    ];
     promise_setup(async t => {
         const realm = new ShadowRealm();
         // https://github.com/web-platform-tests/wpt/issues/31996
-        realm.evaluate("globalThis.self = globalThis; undefined");
+        realm.evaluate("globalThis.self = globalThis; undefined;");
 
-        const ss = await Promise.all(script_urls.map(url => fetch_text(url)));
-        for (const s of ss) {
-            realm.evaluate(s);
-        }
+        realm.evaluate(`
+            globalThis.self.GLOBAL = {
+                isWindow: function() { return false; },
+                isWorker: function() { return false; },
+                isShadowRealm: function() { return true; },
+            }; undefined;
+        `);
         const specs = await Promise.all(srcs.concat(deps).map(spec => {
             return fetch_text("/interfaces/" + spec + ".idl");
         }));
         const idls = JSON.stringify(specs);
-        const code = `
-            const idls = ${idls};
-            let results;
-            add_completion_callback(function (tests, harness_status, asserts_run) {
-                results = tests;
-            });
-
-            // Without the wrapping test, testharness.js will think it's done after it has run
-            // the first idlharness test.
-            test(() => {
-                const idl_array = new IdlArray();
-                for (let i = 0; i < ${srcs.length}; i++) {
-                    idl_array.add_idls(idls[i]);
-                }
-                for (let i = ${srcs.length}; i < ${srcs.length + deps.length}; i++) {
-                    idl_array.add_dependency_idls(idls[i]);
-                }
-                idl_array.test();
-            }, "setup");
-            String(JSON.stringify(results))
-        `;
-
-        // We ran the tests in the ShadowRealm and gathered the results. Now treat them as if
-        // we'd run them directly here, so we can see them.
-        const results = JSON.parse(realm.evaluate(code));
-        for (const {name, status, message} of results) {
-            // TODO: make this an API in testharness.js - needs RFC?
-            promise_test(t => {t.set_status(status, message); t.phase = t.phases.HAS_RESULT; t.done()}, name);
-        }
-    }, "outer setup");
+        await new Promise(
+            realm.evaluate(`(resolve,reject) => {
+                (async () => {
+                    await import("/resources/testharness.js");
+                    await import("/resources/WebIDLParser.js");
+                    await import("/resources/idlharness.js");
+                    const idls = ${idls};
+                    const idl_array = new IdlArray();
+                    for (let i = 0; i < ${srcs.length}; i++) {
+                        idl_array.add_idls(idls[i]);
+                    }
+                    for (let i = ${srcs.length}; i < ${srcs.length + deps.length}; i++) {
+                        idl_array.add_dependency_idls(idls[i]);
+                    }
+                    idl_array.test();
+                })().then(resolve, (e) => reject(e.toString()));
+            }`)
+        );
+        await fetch_tests_from_shadow_realm(realm);
+    });
 }
 // vim: set expandtab shiftwidth=4 tabstop=4 foldmarker=@{,@} foldmethod=marker:

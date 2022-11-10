@@ -38,56 +38,9 @@ function downgradeRedirectTo(partialPath) {
   return secureRedirectURL + encodeURIComponent(insecureTestURL + partialPath);
 }
 
-// Helper to test the behavior of the `prefetch` Link type [1]. Because the the
-// behavior under test is optional [2], this function should only be used in
-// tests which have been denoted as "optional" [3].
-//
-// [1] https://html.spec.whatwg.org/#link-type-prefetch
-// [2] https://w3c.github.io/resource-hints/#load-and-error-events
-// [3] https://web-platform-tests.org/writing-tests/file-names.html
-function testPrefetch(nonce, testNamePrefix, urlHelperMethod, expectedResults) {
-  async_test(t => {
-    let key = 'prefetch' + nonce;
-    let e = document.createElement('link');
-    e.rel = 'prefetch';
-    e.crossOrigin = 'anonymous';
-    e.href = urlHelperMethod('resources/record-header.py?file=' + key) + '&simple=true';
-    e.onload = t.step_func(e => {
-      let expectation = { ...expectedResults };
-      if (expectation['mode'] != '')
-        expectation['mode'] = 'cors';
-      fetch('/fetch/metadata/resources/record-header.py?retrieve=true&file=' + key)
-        .then(t.step_func(response => response.text()))
-        .then(t.step_func_done(text => assert_header_equals(text, expectation, testNamePrefix + ' prefetch => No headers')))
-        .catch(t.unreached_func('Fetching and verifying the results should succeed.'));
-    });
-    e.onerror = t.unreached_func();
-    document.head.appendChild(e);
-  }, testNamePrefix + ' prefetch => No headers');
-}
-
 // Helper to run common redirect test cases that don't require special setup on
 // the test page itself.
 function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults) {
-  async_test(t => {
-    let i = document.createElement('iframe');
-    i.src = urlHelperMethod('resources/post-to-owner.py?iframe-navigation' + nonce);
-    window.addEventListener('message', t.step_func(e => {
-      if (e.source != i.contentWindow) {
-        return;
-      }
-      let expectation = { ...expectedResults };
-      if (expectation['mode'] != '')
-        expectation['mode'] = 'navigate';
-      if (expectation['dest'] == 'font')
-        expectation['dest'] = 'iframe';
-      assert_header_equals(e.data, expectation, testNamePrefix + ' iframe');
-      t.done();
-    }));
-
-    document.body.appendChild(i);
-  }, testNamePrefix + ' iframe');
-
   async_test(t => {
     let testWindow = window.open(urlHelperMethod('resources/post-to-owner.py?top-level-navigation' + nonce));
     t.add_cleanup(_ => testWindow.close());
@@ -126,18 +79,6 @@ function RunCommonRedirectTests(testNamePrefix, urlHelperMethod, expectedResults
       document.body.appendChild(e);
     });
   }, testNamePrefix + ' embed');
-
-  promise_test(t => {
-    let key = 'fetch-redirect' + nonce;
-    let expectation = { ...expectedResults };
-    if (expectation['mode'] != '')
-      expectation['mode'] = 'cors';
-    if (expectation['dest'] == 'font')
-      expectation['dest'] = 'empty';
-    return fetch(urlHelperMethod('resources/echo-as-json.py?' + key))
-      .then(r => r.json())
-      .then(j => {assert_header_equals(j, expectation, testNamePrefix + ' fetch() api');});
-  }, testNamePrefix + ' fetch() api');
 
   promise_test(t => {
     return new Promise((resolve, reject) => {

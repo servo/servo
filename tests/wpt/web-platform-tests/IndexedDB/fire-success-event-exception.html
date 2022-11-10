@@ -4,7 +4,7 @@
 <link rel="help" href="https://w3c.github.io/IndexedDB/#fire-success-event">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 <script>
 setup({allow_uncaught_exception:true});
 
@@ -14,7 +14,7 @@ function fire_success_event_test(func, description) {
       db.createObjectStore('s');
     },
     (t, db) => {
-      const tx = db.transaction('s');
+      const tx = db.transaction('s', 'readonly', {durability: 'relaxed'});
       tx.oncomplete = t.unreached_func('transaction should abort');
       const store = tx.objectStore('s');
       const request = store.get(0);

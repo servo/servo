@@ -8,7 +8,7 @@
 <link rel=assert title="If range is defined, the record's key is in range.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 var records = [ 1337, "Alice", "Bob", "Greg", "Åke", ["Anne"] ];
@@ -31,7 +31,7 @@ cases.forEach(function(testcase) {
     },
     function(t, db) {
       var count = 0;
-      var rq = db.transaction("test").objectStore("test").openCursor(IDBKeyRange.bound("AA", "ZZ"), dir);
+      var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").openCursor(IDBKeyRange.bound("AA", "ZZ"), dir);
       rq.onsuccess = t.step_func(function(e) {
         var cursor = e.target.result;
         if (!cursor) {

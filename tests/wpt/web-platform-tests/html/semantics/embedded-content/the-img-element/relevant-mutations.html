@@ -95,8 +95,6 @@
 <picture><source type=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has type changed"></picture>
 <picture><source type=""><img src="/images/green-2x2.png" data-desc="parent is picture, previous source has type removed"></picture>
 
-<!-- should not invoke update the image data -->
-
 <img srcset="/images/green-2x2.png" data-desc="srcset is set to same value">
 <img srcset="/images/green-2x2.png" sizes data-desc="sizes is set to same value">
 
@@ -475,11 +473,11 @@ onload = function() {
 
   t('srcset is set to same value', function(img) {
     img.srcset = "/images/green-2x2.png";
-  }, 'timeout');
+  }, 'load');
 
   t('sizes is set to same value', function(img) {
     img.sizes = '';
-  }, 'timeout');
+  }, 'load');
 
   t('crossorigin state not changed: absent, removeAttribute', function(img) {
     img.removeAttribute('crossorigin');

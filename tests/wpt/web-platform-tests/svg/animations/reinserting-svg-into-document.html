@@ -1,0 +1,37 @@
+<!doctype html>
+<title>Reinserting SVG animation into document should continue the animation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg">
+  <rect id="rect" x="0" y="0" width="20" height="20">
+    <animate attributeName="x" begin="0" from="0" to="90" dur="3s" fill="freeze"/>
+  </rect>
+</svg>
+<script>
+async_test(t => {
+  const svg = document.getElementById('svg');
+
+  // The timeline starts after 'load'.
+  window.onload = t.step_func(() => {
+    svg.setCurrentTime(1);
+
+    t.step_timeout(() => {
+      assert_not_equals(svg.getCurrentTime(), 0, 'started');
+
+      // Removing and re-adding the SVG shouldn't change anything about the
+      // underlying animation.
+      document.body.removeChild(svg);
+      document.body.appendChild(svg);
+
+      // The SVG animation will continue after the next frame runs.
+      window.requestAnimationFrame(t.step_func_done(() => {
+        const rect = document.getElementById('rect');
+        assert_greater_than_equal(svg.getCurrentTime(), 1);
+        assert_greater_than_equal(rect.x.animVal.value, 30);
+        svg.setCurrentTime(2);
+        assert_approx_equals(rect.x.animVal.value, 60, 1);
+      }));
+    });
+  });
+});
+</script>

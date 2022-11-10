@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+const bc = new PrerenderChannel('prerender-channel', uid);
+assert_true(document.prerendering);
+
+const plugins = new Array();
+for (let i = 0; i < navigator.plugins.length; ++i) {
+  const plugin = navigator.plugins[i];
+  const types = Array.from(plugin, x => x.type);
+  plugins[i] = {pluginLength: plugin.length, pluginTypes: types};
+}
+bc.postMessage(JSON.stringify(plugins));
+bc.close();
+</script>

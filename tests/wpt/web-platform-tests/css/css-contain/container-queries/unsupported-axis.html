@@ -24,19 +24,19 @@
 
 
 <style>
-  @container size(width > 0px) {
+  @container (width > 0px) {
     #target { --width:true; }
   }
 </style>
 <script>
   test(function(t) {
     assert_equals(getComputedStyle(target).getPropertyValue('--width'), 'true');
-  }, 'size(width > 0px)');
+  }, '(width > 0px)');
 </script>
 
 
 <style>
-  @container size(height > 0px) {
+  @container (height > 0px) {
     #target { --height:true; }
   }
 </style>
@@ -45,77 +45,75 @@
     // container-type:inline-size does not support queries along the block
     // axis.
     assert_equals(getComputedStyle(target).getPropertyValue('--height'), '');
-  }, 'size(height > 0px)');
+  }, '(height > 0px)');
 </script>
 
 
 <style>
-  @container size((height > 0px) or (width > 0px)) {
+  @container ((height > 0px) or (width > 0px)) {
     #target { --height-or-width:true; }
   }
 </style>
 <script>
   test(function(t) {
-    // (height > 0px) should evaluate to "unknown".
-    assert_equals(getComputedStyle(target).getPropertyValue('--height-or-width'), 'true');
-  }, 'size((height > 0px) or (width > 0px))');
+    // (height > 0px) requires container-type:size.
+    assert_equals(getComputedStyle(target).getPropertyValue('--height-or-width'), '');
+  }, '((height > 0px) or (width > 0px))');
 </script>
 
 
 <style>
-  @container size((width > 0px) or (height > 0px)) {
+  @container ((width > 0px) or (height > 0px)) {
     #target { --width-or-height:true; }
   }
 </style>
 <script>
   test(function(t) {
-    // (height > 0px) should evaluate to "unknown".
-    assert_equals(getComputedStyle(target).getPropertyValue('--width-or-height'), 'true');
-  }, 'size((width > 0px) or (height > 0px))');
+    // (height > 0px) requires container-type:size.
+    assert_equals(getComputedStyle(target).getPropertyValue('--width-or-height'), '');
+  }, '((width > 0px) or (height > 0px))');
 </script>
 
 <style>
-  @container size((orientation: landscape) or (width > 0px)) {
+  @container ((orientation: landscape) or (width > 0px)) {
     #target { --orientation-or-width:true; }
   }
 </style>
 <script>
   test(function(t) {
-    // (orientation: landscape) depends on both axes, and should evaluate
-    // to "unknown".
-    assert_equals(getComputedStyle(target).getPropertyValue('--orientation-or-width'), 'true');
-  }, 'size((orientation: landscape) or (width > 0px))');
+    // (orientation: landscape) requires container-type:size.
+    assert_equals(getComputedStyle(target).getPropertyValue('--orientation-or-width'), '');
+  }, '((orientation: landscape) or (width > 0px))');
 </script>
 
 
 <style>
-  @container size((width > 0px) or (orientation: landscape)) {
+  @container ((width > 0px) or (orientation: landscape)) {
     #target { --width-or-orientation:true; }
   }
 </style>
 <script>
   test(function(t) {
-    // (orientation: landscape) depends on both axes, and should evaluate
-    // to "unknown".
-    assert_equals(getComputedStyle(target).getPropertyValue('--width-or-orientation'), 'true');
-  }, 'size((width > 0px) or (orientation: landscape))');
+    // (orientation: landscape) requires container-type:size.
+    assert_equals(getComputedStyle(target).getPropertyValue('--width-or-orientation'), '');
+  }, '((width > 0px) or (orientation: landscape))');
 </script>
 
 
 <style>
-  @container size((height > 0px) or (orientation: landscape)) {
+  @container ((height > 0px) or (orientation: landscape)) {
     #target { --height-or-orientation:true; }
   }
 </style>
 <script>
   test(function(t) {
     assert_equals(getComputedStyle(target).getPropertyValue('--height-or-orientation'), '');
-  }, 'size((height > 0px) or (orientation: landscape))');
+  }, '((height > 0px) or (orientation: landscape))');
 </script>
 
 
 <style>
-  @container size((height > 0px) or (orientation: landscape)) {
+  @container ((height > 0px) or (orientation: landscape)) {
     #target { --height-or-orientation2:true; }
   }
 </style>
@@ -126,24 +124,24 @@
     t.add_cleanup(() => { target.style = ''; });
     target.style.contain = 'size';
     assert_equals(getComputedStyle(target).getPropertyValue('--height-or-orientation2'), '');
-  }, 'size((height > 0px) or (orientation: landscape)), with contain:size');
+  }, '((height > 0px) or (orientation: landscape)), with contain:size');
 </script>
 
 
 <style>
-  @container size(inline-size > 0px) {
+  @container (inline-size > 0px) {
     #target { --inline-size:true; }
   }
 </style>
 <script>
   test(function(t) {
     assert_equals(getComputedStyle(target).getPropertyValue('--inline-size'), 'true');
-  }, 'size(inline-size > 0px)');
+  }, '(inline-size > 0px)');
 </script>
 
 
 <style>
-  @container size(block-size > 0px) {
+  @container (block-size > 0px) {
     #target { --block-size:true; }
   }
 </style>
@@ -152,12 +150,12 @@
     // container-type:inline-size does not support queries along the block
     // axis.
     assert_equals(getComputedStyle(target).getPropertyValue('--block-size'), '');
-  }, 'size(block-size > 0px)');
+  }, '(block-size > 0px)');
 </script>
 
 
 <style>
-  @container size(block-size > 0px) {
+  @container (block-size > 0px) {
     #target { --block-size2:true; }
   }
 </style>
@@ -167,5 +165,5 @@
     t.add_cleanup(() => { target.style = ''; });
     target.style.writingMode = 'vertical-rl';
     assert_equals(getComputedStyle(target).getPropertyValue('--block-size2'), '');
-  }, 'size(block-size > 0px), with writing-mode:vertical-rl');
+  }, '(block-size > 0px), with writing-mode:vertical-rl');
 </script>

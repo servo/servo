@@ -38,7 +38,8 @@ async_test(t => {
   frame.onload = t.step_func(() => {
     frame.contentWindow.location.search = "\u00FF";
     frame.onload = t.step_func_done(() => {
-      assert_equals(frame.contentWindow.location.search, expected(actualEncoding));
+      // location.search always uses UTF-8
+      assert_equals(frame.contentWindow.location.search, expected("UTF-8"));
     });
   });
 }, "location.search");

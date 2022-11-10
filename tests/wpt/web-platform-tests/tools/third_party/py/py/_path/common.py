@@ -11,6 +11,12 @@ import py
 iswin32 = sys.platform == "win32" or (getattr(os, '_name', False) == 'nt')
 
 try:
+    # FileNotFoundError might happen in py34, and is not available with py27.
+    import_errors = (ImportError, FileNotFoundError)
+except NameError:
+    import_errors = (ImportError,)
+
+try:
     from os import fspath
 except ImportError:
     def fspath(path):
@@ -35,7 +41,7 @@ except ImportError:
                 raise
             try:
                 import pathlib
-            except ImportError:
+            except import_errors:
                 pass
             else:
                 if isinstance(path, pathlib.PurePath):

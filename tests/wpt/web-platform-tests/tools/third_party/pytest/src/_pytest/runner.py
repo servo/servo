@@ -2,6 +2,7 @@
 import bdb
 import os
 import sys
+import warnings
 from typing import Callable
 from typing import cast
 from typing import Dict
@@ -9,6 +10,8 @@ from typing import Generic
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Type
+from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
 
@@ -23,17 +26,18 @@ from _pytest._code.code import ExceptionChainRepr
 from _pytest._code.code import ExceptionInfo
 from _pytest._code.code import TerminalRepr
 from _pytest.compat import final
-from _pytest.compat import TYPE_CHECKING
 from _pytest.config.argparsing import Parser
+from _pytest.deprecated import check_ispytest
+from _pytest.deprecated import UNITTEST_SKIP_DURING_COLLECTION
 from _pytest.nodes import Collector
 from _pytest.nodes import Item
 from _pytest.nodes import Node
 from _pytest.outcomes import Exit
+from _pytest.outcomes import OutcomeException
 from _pytest.outcomes import Skipped
 from _pytest.outcomes import TEST_OUTCOME
 
 if TYPE_CHECKING:
-    from typing import Type
     from typing_extensions import Literal
 
     from _pytest.main import Session
@@ -77,8 +81,7 @@ def pytest_terminal_summary(terminalreporter: "TerminalReporter") -> None:
                 dlist.append(rep)
     if not dlist:
         return
-    dlist.sort(key=lambda x: x.duration)
-    dlist.reverse()
+    dlist.sort(key=lambda x: x.duration, reverse=True)  # type: ignore[no-any-return]
     if not durations:
         tr.write_sep("=", "slowest durations")
     else:
@@ -93,7 +96,7 @@ def pytest_terminal_summary(terminalreporter: "TerminalReporter") -> None:
                 % (len(dlist) - i, durations_min)
             )
             break
-        tr.write_line("{:02.2f}s {:<8} {}".format(rep.duration, rep.when, rep.nodeid))
+        tr.write_line(f"{rep.duration:02.2f}s {rep.when:<8} {rep.nodeid}")
 
 
 def pytest_sessionstart(session: "Session") -> None:
@@ -101,7 +104,7 @@ def pytest_sessionstart(session: "Session") -> None:
 
 
 def pytest_sessionfinish(session: "Session") -> None:
-    session._setupstate.teardown_all()
+    session._setupstate.teardown_exact(None)
 
 
 def pytest_runtest_protocol(item: Item, nextitem: Optional[Item]) -> bool:
@@ -117,6 +120,8 @@ def runtestprotocol(
 ) -> List[TestReport]:
     hasrequest = hasattr(item, "_request")
     if hasrequest and not item._request:  # type: ignore[attr-defined]
+        # This only happens if the item is re-run, as is done by
+        # pytest-rerunfailures.
         item._initrequest()  # type: ignore[attr-defined]
     rep = call_and_report(item, "setup", log)
     reports = [rep]
@@ -148,7 +153,7 @@ def show_test_item(item: Item) -> None:
 
 def pytest_runtest_setup(item: Item) -> None:
     _update_current_test_var(item, "setup")
-    item.session._setupstate.prepare(item)
+    item.session._setupstate.setup(item)
 
 
 def pytest_runtest_call(item: Item) -> None:
@@ -173,7 +178,7 @@ def pytest_runtest_call(item: Item) -> None:
 
 def pytest_runtest_teardown(item: Item, nextitem: Optional[Item]) -> None:
     _update_current_test_var(item, "teardown")
-    item.session._setupstate.teardown_exact(item, nextitem)
+    item.session._setupstate.teardown_exact(nextitem)
     _update_current_test_var(item, None)
 
 
@@ -186,7 +191,7 @@ def _update_current_test_var(
     """
     var_name = "PYTEST_CURRENT_TEST"
     if when:
-        value = "{} ({})".format(item.nodeid, when)
+        value = f"{item.nodeid} ({when})"
         # don't allow null bytes on environment variables (see #2644, #2957)
         value = value.replace("\x00", "(null)")
         os.environ[var_name] = value
@@ -215,7 +220,7 @@ def call_and_report(
 ) -> TestReport:
     call = call_runtest_hook(item, when, **kwds)
     hook = item.ihook
-    report = hook.pytest_runtest_makereport(item=item, call=call)  # type: TestReport
+    report: TestReport = hook.pytest_runtest_makereport(item=item, call=call)
     if log:
         hook.pytest_runtest_logreport(report=report)
     if check_interactive_exception(call, report):
@@ -242,14 +247,14 @@ def call_runtest_hook(
     item: Item, when: "Literal['setup', 'call', 'teardown']", **kwds
 ) -> "CallInfo[None]":
     if when == "setup":
-        ihook = item.ihook.pytest_runtest_setup  # type: Callable[..., None]
+        ihook: Callable[..., None] = item.ihook.pytest_runtest_setup
     elif when == "call":
         ihook = item.ihook.pytest_runtest_call
     elif when == "teardown":
         ihook = item.ihook.pytest_runtest_teardown
     else:
-        assert False, "Unhandled runtest hook case: {}".format(when)
-    reraise = (Exit,)  # type: Tuple[Type[BaseException], ...]
+        assert False, f"Unhandled runtest hook case: {when}"
+    reraise: Tuple[Type[BaseException], ...] = (Exit,)
     if not item.config.getoption("usepdb", False):
         reraise += (KeyboardInterrupt,)
     return CallInfo.from_call(
@@ -261,36 +266,49 @@ TResult = TypeVar("TResult", covariant=True)
 
 
 @final
-@attr.s(repr=False)
+@attr.s(repr=False, init=False, auto_attribs=True)
 class CallInfo(Generic[TResult]):
-    """Result/Exception info a function invocation.
+    """Result/Exception info of a function invocation."""
 
-    :param T result:
-        The return value of the call, if it didn't raise. Can only be
-        accessed if excinfo is None.
-    :param Optional[ExceptionInfo] excinfo:
-        The captured exception of the call, if it raised.
-    :param float start:
-        The system time when the call started, in seconds since the epoch.
-    :param float stop:
-        The system time when the call ended, in seconds since the epoch.
-    :param float duration:
-        The call duration, in seconds.
-    :param str when:
-        The context of invocation: "setup", "call", "teardown", ...
-    """
+    _result: Optional[TResult]
+    #: The captured exception of the call, if it raised.
+    excinfo: Optional[ExceptionInfo[BaseException]]
+    #: The system time when the call started, in seconds since the epoch.
+    start: float
+    #: The system time when the call ended, in seconds since the epoch.
+    stop: float
+    #: The call duration, in seconds.
+    duration: float
+    #: The context of invocation: "collect", "setup", "call" or "teardown".
+    when: "Literal['collect', 'setup', 'call', 'teardown']"
 
-    _result = attr.ib(type="Optional[TResult]")
-    excinfo = attr.ib(type=Optional[ExceptionInfo[BaseException]])
-    start = attr.ib(type=float)
-    stop = attr.ib(type=float)
-    duration = attr.ib(type=float)
-    when = attr.ib(type="Literal['collect', 'setup', 'call', 'teardown']")
+    def __init__(
+        self,
+        result: Optional[TResult],
+        excinfo: Optional[ExceptionInfo[BaseException]],
+        start: float,
+        stop: float,
+        duration: float,
+        when: "Literal['collect', 'setup', 'call', 'teardown']",
+        *,
+        _ispytest: bool = False,
+    ) -> None:
+        check_ispytest(_ispytest)
+        self._result = result
+        self.excinfo = excinfo
+        self.start = start
+        self.stop = stop
+        self.duration = duration
+        self.when = when
 
     @property
     def result(self) -> TResult:
+        """The return value of the call, if it didn't raise.
+
+        Can only be accessed if excinfo is None.
+        """
         if self.excinfo is not None:
-            raise AttributeError("{!r} has no valid result".format(self))
+            raise AttributeError(f"{self!r} has no valid result")
         # The cast is safe because an exception wasn't raised, hence
         # _result has the expected function return type (which may be
         #  None, that's why a cast and not an assert).
@@ -301,13 +319,25 @@ class CallInfo(Generic[TResult]):
         cls,
         func: "Callable[[], TResult]",
         when: "Literal['collect', 'setup', 'call', 'teardown']",
-        reraise: "Optional[Union[Type[BaseException], Tuple[Type[BaseException], ...]]]" = None,
+        reraise: Optional[
+            Union[Type[BaseException], Tuple[Type[BaseException], ...]]
+        ] = None,
     ) -> "CallInfo[TResult]":
+        """Call func, wrapping the result in a CallInfo.
+
+        :param func:
+            The function to call. Called without arguments.
+        :param when:
+            The phase in which the function is called.
+        :param reraise:
+            Exception or exceptions that shall propagate if raised by the
+            function, instead of being wrapped in the CallInfo.
+        """
         excinfo = None
         start = timing.time()
         precise_start = timing.perf_counter()
         try:
-            result = func()  # type: Optional[TResult]
+            result: Optional[TResult] = func()
         except BaseException:
             excinfo = ExceptionInfo.from_current()
             if reraise is not None and isinstance(excinfo.value, reraise):
@@ -324,12 +354,13 @@ class CallInfo(Generic[TResult]):
             when=when,
             result=result,
             excinfo=excinfo,
+            _ispytest=True,
         )
 
     def __repr__(self) -> str:
         if self.excinfo is None:
-            return "<CallInfo when={!r} result: {!r}>".format(self.when, self._result)
-        return "<CallInfo when={!r} excinfo={!r}>".format(self.when, self.excinfo)
+            return f"<CallInfo when={self.when!r} result: {self._result!r}>"
+        return f"<CallInfo when={self.when!r} excinfo={self.excinfo!r}>"
 
 
 def pytest_runtest_makereport(item: Item, call: CallInfo[None]) -> TestReport:
@@ -338,9 +369,9 @@ def pytest_runtest_makereport(item: Item, call: CallInfo[None]) -> TestReport:
 
 def pytest_make_collect_report(collector: Collector) -> CollectReport:
     call = CallInfo.from_call(lambda: list(collector.collect()), "collect")
-    longrepr = None  # type: Union[None, Tuple[str, int, str], str, TerminalRepr]
+    longrepr: Union[None, Tuple[str, int, str], str, TerminalRepr] = None
     if not call.excinfo:
-        outcome = "passed"  # type: Literal["passed", "skipped", "failed"]
+        outcome: Literal["passed", "skipped", "failed"] = "passed"
     else:
         skip_exceptions = [Skipped]
         unittest = sys.modules.get("unittest")
@@ -348,6 +379,11 @@ def pytest_make_collect_report(collector: Collector) -> CollectReport:
             # Type ignored because unittest is loaded dynamically.
             skip_exceptions.append(unittest.SkipTest)  # type: ignore
         if isinstance(call.excinfo.value, tuple(skip_exceptions)):
+            if unittest is not None and isinstance(
+                call.excinfo.value, unittest.SkipTest  # type: ignore[attr-defined]
+            ):
+                warnings.warn(UNITTEST_SKIP_DURING_COLLECTION, stacklevel=2)
+
             outcome = "skipped"
             r_ = collector._repr_failure_py(call.excinfo, "line")
             assert isinstance(r_, ExceptionChainRepr), repr(r_)
@@ -368,93 +404,144 @@ def pytest_make_collect_report(collector: Collector) -> CollectReport:
 
 
 class SetupState:
-    """Shared state for setting up/tearing down test items or collectors."""
+    """Shared state for setting up/tearing down test items or collectors
+    in a session.
 
-    def __init__(self):
-        self.stack = []  # type: List[Node]
-        self._finalizers = {}  # type: Dict[Node, List[Callable[[], object]]]
+    Suppose we have a collection tree as follows:
 
-    def addfinalizer(self, finalizer: Callable[[], object], colitem) -> None:
-        """Attach a finalizer to the given colitem."""
-        assert colitem and not isinstance(colitem, tuple)
-        assert callable(finalizer)
-        # assert colitem in self.stack  # some unit tests don't setup stack :/
-        self._finalizers.setdefault(colitem, []).append(finalizer)
+    <Session session>
+        <Module mod1>
+            <Function item1>
+        <Module mod2>
+            <Function item2>
 
-    def _pop_and_teardown(self):
-        colitem = self.stack.pop()
-        self._teardown_with_finalization(colitem)
+    The SetupState maintains a stack. The stack starts out empty:
 
-    def _callfinalizers(self, colitem) -> None:
-        finalizers = self._finalizers.pop(colitem, None)
-        exc = None
-        while finalizers:
-            fin = finalizers.pop()
-            try:
-                fin()
-            except TEST_OUTCOME as e:
-                # XXX Only first exception will be seen by user,
-                #     ideally all should be reported.
-                if exc is None:
-                    exc = e
-        if exc:
-            raise exc
+        []
 
-    def _teardown_with_finalization(self, colitem) -> None:
-        self._callfinalizers(colitem)
-        colitem.teardown()
-        for colitem in self._finalizers:
-            assert colitem in self.stack
+    During the setup phase of item1, setup(item1) is called. What it does
+    is:
 
-    def teardown_all(self) -> None:
-        while self.stack:
-            self._pop_and_teardown()
-        for key in list(self._finalizers):
-            self._teardown_with_finalization(key)
-        assert not self._finalizers
+        push session to stack, run session.setup()
+        push mod1 to stack, run mod1.setup()
+        push item1 to stack, run item1.setup()
 
-    def teardown_exact(self, item, nextitem) -> None:
-        needed_collectors = nextitem and nextitem.listchain() or []
-        self._teardown_towards(needed_collectors)
+    The stack is:
 
-    def _teardown_towards(self, needed_collectors) -> None:
-        exc = None
-        while self.stack:
-            if self.stack == needed_collectors[: len(self.stack)]:
-                break
-            try:
-                self._pop_and_teardown()
-            except TEST_OUTCOME as e:
-                # XXX Only first exception will be seen by user,
-                #     ideally all should be reported.
-                if exc is None:
-                    exc = e
-        if exc:
-            raise exc
+        [session, mod1, item1]
 
-    def prepare(self, colitem) -> None:
-        """Setup objects along the collector chain to the test-method."""
+    While the stack is in this shape, it is allowed to add finalizers to
+    each of session, mod1, item1 using addfinalizer().
 
-        # Check if the last collection node has raised an error.
-        for col in self.stack:
-            if hasattr(col, "_prepare_exc"):
-                exc = col._prepare_exc  # type: ignore[attr-defined]
+    During the teardown phase of item1, teardown_exact(item2) is called,
+    where item2 is the next item to item1. What it does is:
+
+        pop item1 from stack, run its teardowns
+        pop mod1 from stack, run its teardowns
+
+    mod1 was popped because it ended its purpose with item1. The stack is:
+
+        [session]
+
+    During the setup phase of item2, setup(item2) is called. What it does
+    is:
+
+        push mod2 to stack, run mod2.setup()
+        push item2 to stack, run item2.setup()
+
+    Stack:
+
+        [session, mod2, item2]
+
+    During the teardown phase of item2, teardown_exact(None) is called,
+    because item2 is the last item. What it does is:
+
+        pop item2 from stack, run its teardowns
+        pop mod2 from stack, run its teardowns
+        pop session from stack, run its teardowns
+
+    Stack:
+
+        []
+
+    The end!
+    """
+
+    def __init__(self) -> None:
+        # The stack is in the dict insertion order.
+        self.stack: Dict[
+            Node,
+            Tuple[
+                # Node's finalizers.
+                List[Callable[[], object]],
+                # Node's exception, if its setup raised.
+                Optional[Union[OutcomeException, Exception]],
+            ],
+        ] = {}
+
+    def setup(self, item: Item) -> None:
+        """Setup objects along the collector chain to the item."""
+        needed_collectors = item.listchain()
+
+        # If a collector fails its setup, fail its entire subtree of items.
+        # The setup is not retried for each item - the same exception is used.
+        for col, (finalizers, exc) in self.stack.items():
+            assert col in needed_collectors, "previous item was not torn down properly"
+            if exc:
                 raise exc
 
-        needed_collectors = colitem.listchain()
         for col in needed_collectors[len(self.stack) :]:
-            self.stack.append(col)
+            assert col not in self.stack
+            # Push onto the stack.
+            self.stack[col] = ([col.teardown], None)
             try:
                 col.setup()
-            except TEST_OUTCOME as e:
-                col._prepare_exc = e  # type: ignore[attr-defined]
-                raise e
+            except TEST_OUTCOME as exc:
+                self.stack[col] = (self.stack[col][0], exc)
+                raise exc
+
+    def addfinalizer(self, finalizer: Callable[[], object], node: Node) -> None:
+        """Attach a finalizer to the given node.
+
+        The node must be currently active in the stack.
+        """
+        assert node and not isinstance(node, tuple)
+        assert callable(finalizer)
+        assert node in self.stack, (node, self.stack)
+        self.stack[node][0].append(finalizer)
+
+    def teardown_exact(self, nextitem: Optional[Item]) -> None:
+        """Teardown the current stack up until reaching nodes that nextitem
+        also descends from.
+
+        When nextitem is None (meaning we're at the last item), the entire
+        stack is torn down.
+        """
+        needed_collectors = nextitem and nextitem.listchain() or []
+        exc = None
+        while self.stack:
+            if list(self.stack.keys()) == needed_collectors[: len(self.stack)]:
+                break
+            node, (finalizers, _) = self.stack.popitem()
+            while finalizers:
+                fin = finalizers.pop()
+                try:
+                    fin()
+                except TEST_OUTCOME as e:
+                    # XXX Only first exception will be seen by user,
+                    #     ideally all should be reported.
+                    if exc is None:
+                        exc = e
+        if exc:
+            raise exc
+        if nextitem is None:
+            assert not self.stack
 
 
 def collect_one_node(collector: Collector) -> CollectReport:
     ihook = collector.ihook
     ihook.pytest_collectstart(collector=collector)
-    rep = ihook.pytest_make_collect_report(collector=collector)  # type: CollectReport
+    rep: CollectReport = ihook.pytest_make_collect_report(collector=collector)
     call = rep.__dict__.pop("call", None)
     if call and check_interactive_exception(call, rep):
         ihook.pytest_exception_interact(node=collector, call=call, report=rep)

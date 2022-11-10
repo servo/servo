@@ -7,11 +7,11 @@
 <body>
 <script>
 
-const AFTER_SETTING_SRC = "after setting src";
+const AFTER_SETTING_SRCOBJECT = "after setting srcObject";
 const AFTER_STARTED_BUFFERING = "after receiving Started Buffering message from worker";
 const AFTER_FINISHED_BUFFERING = "after receiving Finished Buffering message from worker";
 
-[ AFTER_SETTING_SRC, AFTER_STARTED_BUFFERING, AFTER_FINISHED_BUFFERING ].forEach(when => {
+[ AFTER_SETTING_SRCOBJECT, AFTER_STARTED_BUFFERING, AFTER_FINISHED_BUFFERING ].forEach(when => {
   for (let timeouts = 0; timeouts < 5; ++timeouts) {
     async_test(test => { startWorkerAndDetachElement(test, when, timeouts); },
         "Test element detachment from worker MediaSource after at least " + timeouts +
@@ -22,9 +22,8 @@ const AFTER_FINISHED_BUFFERING = "after receiving Finished Buffering message fro
 function detachElementAfterMultipleSetTimeouts(test, element, timeouts_remaining) {
   if (timeouts_remaining <= 0) {
     // While not the best way to detach, this triggers interoperable logic that
-    // includes detachment, though also begins a failed load(). We don't handle
-    // video error event, so the latter is not an issue in this test.
-    element.src='';
+    // includes detachment.
+    element.srcObject = null;
     test.step_timeout(() => { test.done(); }, 10);
   } else {
     test.step_timeout(() => {
@@ -51,11 +50,10 @@ function startWorkerAndDetachElement(test, when_to_start_timeouts, timeouts_to_a
       case messageSubject.ERROR:
         assert_unreached("Worker error: " + e.data.info);
         break;
-      case messageSubject.OBJECT_URL:
-        const url = e.data.info;
-        assert_true(url.match(/^blob:.+/) != null);
-        video.src = url;
-        if (when_to_start_timeouts == AFTER_SETTING_SRC) {
+      case messageSubject.HANDLE:
+        const handle = e.data.info;
+        video.srcObject = handle;
+        if (when_to_start_timeouts == AFTER_SETTING_SRCOBJECT) {
           detachElementAfterMultipleSetTimeouts(test, video, timeouts_to_await);
         }
         break;

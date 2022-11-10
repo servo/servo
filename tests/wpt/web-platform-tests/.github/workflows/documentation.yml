@@ -17,17 +17,19 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
+          # Documentation is generated using Python 3.9 due to spinx-js not
+          # supporting 3.10: https://github.com/mozilla/sphinx-js/issues/186
           python-version: '3.9'
       - name: Set up Node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '14'
       - name: Set up Virtualenv
         run: pip install virtualenv
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 50
       - name: Run website_build.sh

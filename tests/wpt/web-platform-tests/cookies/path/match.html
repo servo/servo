@@ -41,14 +41,14 @@ var testCookiePathFromHeader = function (testCase, test) {
     iframe.contentWindow.fetchCookieThen('header-' + testCase.name, testCase.path).then(test.step_func(function (response) {
       assert_true(response.ok);
       var cookieSet = iframe.contentWindow.isCookieSet('header-' + testCase.name, testCase.path);
-      iframe.contentWindow.expireCookies().then(() => {
+      iframe.contentWindow.expireCookies().then(test.step_func(function () {
         if (testCase.match === false) {
           assert_equals(cookieSet, null);
         } else {
           assert_not_equals(cookieSet, null, "Cookie path from header should not be `null`");
         }
         test.done();
-      });
+      }));
     })).catch(test.unreached_func());
   }));
 };

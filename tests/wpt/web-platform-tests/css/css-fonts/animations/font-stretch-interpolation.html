@@ -87,13 +87,13 @@ test_interpolation({
   from: 'normal',
   to: 'ultra-expanded'
 }, [
-  {at: -0.25, expect: 'condensed'},
-  {at: 0, expect: 'normal'},
-  {at: 0.125, expect: 'semi-expanded'},
-  {at: 0.25, expect: 'expanded'},
-  {at: 0.5, expect: 'extra-expanded'},
+  {at: -0.25, expect: '75%'},
+  {at: 0, expect: '100%'},
+  {at: 0.125, expect: '112.5%'},
+  {at: 0.25, expect: '125%'},
+  {at: 0.5, expect: '150%'},
   {at: 0.75, expect: '175%'},
-  {at: 1, expect: 'ultra-expanded'},
+  {at: 1, expect: '200%'},
 ]);
 
 test_interpolation({
@@ -101,9 +101,9 @@ test_interpolation({
   from: 'ultra-condensed',
   to: 'condensed'
 }, [
-  {at: 0, expect: 'ultra-condensed'},
-  {at: 0.5, expect: 'extra-condensed'},
-  {at: 1, expect: 'condensed'},
+  {at: 0, expect: '50%'},
+  {at: 0.5, expect: '62.5%'},
+  {at: 1, expect: '75%'},
 ]);
 
 test_interpolation({
@@ -111,9 +111,9 @@ test_interpolation({
   from: 'extra-condensed',
   to: 'semi-condensed'
 }, [
-  {at: 0, expect: 'extra-condensed'},
-  {at: 0.5, expect: 'condensed'},
-  {at: 1, expect: 'semi-condensed'},
+  {at: 0, expect: '62.5%'},
+  {at: 0.5, expect: '75%'},
+  {at: 1, expect: '87.5%'},
 ]);
 
 test_interpolation({
@@ -121,11 +121,11 @@ test_interpolation({
   from: 'condensed',
   to: 'expanded'
 }, [
-  {at: 0, expect: 'condensed'},
-  {at: 0.25, expect: 'semi-condensed'},
-  {at: 0.5, expect: 'normal'},
-  {at: 0.75, expect: 'semi-expanded'},
-  {at: 1, expect: 'expanded'},
+  {at: 0, expect: '75%'},
+  {at: 0.25, expect: '87.5%'},
+  {at: 0.5, expect: '100%'},
+  {at: 0.75, expect: '112.5%'},
+  {at: 1, expect: '125%'},
 ]);
 
 test_interpolation({
@@ -133,9 +133,9 @@ test_interpolation({
   from: 'semi-condensed',
   to: 'semi-expanded'
 }, [
-  {at: 0, expect: 'semi-condensed'},
-  {at: 0.5, expect: 'normal'},
-  {at: 1, expect: 'semi-expanded'},
+  {at: 0, expect: '87.5%'},
+  {at: 0.5, expect: '100%'},
+  {at: 1, expect: '112.5%'},
 ]);
 
 test_interpolation({
@@ -143,10 +143,10 @@ test_interpolation({
   from: 'normal',
   to: 'extra-expanded'
 }, [
-  {at: 0, expect: 'normal'},
-  {at: 0.25, expect: 'semi-expanded'},
-  {at: 0.5, expect: 'expanded'},
-  {at: 1, expect: 'extra-expanded'},
+  {at: 0, expect: '100%'},
+  {at: 0.25, expect: '112.5%'},
+  {at: 0.5, expect: '125%'},
+  {at: 1, expect: '150%'},
 ]);
 
 test(t => {
@@ -155,10 +155,10 @@ test(t => {
   var anim = target.animate({fontStretch: ['normal', 'inherit']}, 1000);
   anim.pause();
   anim.currentTime = 500;
-  assert_equals(getComputedStyle(target).fontStretch, 'extra-expanded');
+  assert_equals(getComputedStyle(target).fontStretch, '150%');
 
   container.setAttribute('class', 'container2');
-  assert_equals(getComputedStyle(target).fontStretch, 'condensed');
+  assert_equals(getComputedStyle(target).fontStretch, '75%');
 }, "An interpolation to inherit updates correctly on a parent style change.");
 
 </script>

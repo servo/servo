@@ -1,5 +1,5 @@
 // META: title=Blob Content Type
-// META: script=support.js
+// META: script=resources/support.js
 // META: timeout=long
 
 indexeddb_test(
@@ -12,11 +12,11 @@ indexeddb_test(
         var blob = new Blob(['mulder', 'scully'], {type: type});
         assert_equals(blob.type, type, 'Blob type should match constructor option');
 
-        var tx = db.transaction('store', 'readwrite');
+        var tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
         tx.objectStore('store').put(blob, 'key');
 
         tx.oncomplete = t.step_func(function() {
-            var tx = db.transaction('store');
+            var tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
             tx.objectStore('store').get('key').onsuccess = t.step_func(function(e) {
                 var result = e.target.result;
                 assert_equals(result.type, type, 'Blob type should survive round-trip');

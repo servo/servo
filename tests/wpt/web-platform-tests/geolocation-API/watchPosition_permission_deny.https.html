@@ -1,33 +1,45 @@
-<!DOCTYPE HTML>
-<meta charset='utf-8'>
+<!DOCTYPE html>
+<meta charset="utf-8" />
 <title>Geolocation Test: watchPosition location access denied</title>
-<link rel='help' href='http://www.w3.org/TR/geolocation-API/#watch-position'>
-<script src='/resources/testharness.js'></script>
-<script src='/resources/testharnessreport.js'></script>
-<script src='support.js'></script>
-
-<p>Clear all Geolocation permissions before running this test. If prompted for permission, please deny.</p>
-<div id='log'></div>
-
+<link rel="help" href="http://www.w3.org/TR/geolocation-API/#privacy_for_uas" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
-// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00062
-var t = async_test('Check that watchPosition returns synchronously before any callbacks are invoked.'),
-    id, checkMethodHasReturned, hasMethodReturned = false;
+  const resetPermission = () => {
+    return test_driver.set_permission({ name: "geolocation" }, "prompt");
+  };
 
-checkMethodHasReturned = t.step_func_done(function() {
-  assert_true(hasMethodReturned);
-});
+  promise_test(async (t) => {
+    t.add_cleanup(resetPermission);
+    await test_driver.set_permission({ name: "geolocation" }, "denied");
+    let errorCBCalled = false;
+    let id;
+    const errorPromise = new Promise((resolve, reject) => {
+      id = navigator.geolocation.watchPosition(reject, () => {
+        errorCBCalled = true;
+        resolve();
+      });
+    });
+    assert_false(
+      errorCBCalled,
+      "error callback must not be called synchronously"
+    );
+    await errorPromise;
+    navigator.geolocation.clearWatch(id);
+  }, "Check that watchPosition returns synchronously before any callbacks are invoked.");
 
-try {
-  id = geo.watchPosition(checkMethodHasReturned, checkMethodHasReturned);
-  hasMethodReturned = true;
-} catch(e) {
-  t.unreached_func('An exception was thrown unexpectedly: ' + e.message);
-}
-
-// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00151
-test(function() {
-  assert_greater_than_equal(id, -2147483648);
-  assert_less_than_equal(id, 2147483647);
-}, 'Check that watchPosition returns a long');
+  promise_test(async (t) => {
+    t.add_cleanup(resetPermission);
+    await test_driver.set_permission({ name: "geolocation" }, "denied");
+    const promise = new Promise((resolve, reject) => {
+      navigator.geolocation.watchPosition(reject, resolve);
+    });
+    const result = await promise;
+    assert_true(
+      result instanceof GeolocationPositionError,
+      "expected GeolocationPositionError"
+    );
+  }, "User denies access, check that error callback is called.");
 </script>

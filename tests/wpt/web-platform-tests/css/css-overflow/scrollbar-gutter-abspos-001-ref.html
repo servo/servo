@@ -1,0 +1,19 @@
+<!doctype html>
+<title>CSS Overflow Reference: scrollbar-gutter is accounted for in abspos sizing</title>
+<style>
+.container {
+  scrollbar-gutter: stable;
+  overflow-y: auto;
+  width: 100px;
+  height: 200px;
+  position: relative;
+}
+.child {
+  width: 100%;
+  height: 100px;
+  background: green;
+}
+</style>
+<div class="container">
+  <div class="child"></div>
+</div>

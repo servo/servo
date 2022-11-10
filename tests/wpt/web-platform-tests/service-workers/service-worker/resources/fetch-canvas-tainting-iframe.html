@@ -39,6 +39,7 @@ function create_test_case_promise(url, cross_origin) {
       if (url.indexOf('VIDEO') != -1) {
         const video = document.createElement('video');
         video.autoplay = true;
+        video.muted = true;
         if (cross_origin != '') {
           video.crossOrigin = cross_origin;
         }

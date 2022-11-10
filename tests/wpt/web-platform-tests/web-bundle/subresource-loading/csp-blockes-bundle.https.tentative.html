@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>CSP blocks WebBundle</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<meta
+  http-equiv="Content-Security-Policy"
+  content="
+    default-src
+      https://web-platform.test:8444/web-bundle/resources/wbn/relative-url-file.js
+      https://web-platform.test:8444/resources/testharness.js
+      https://web-platform.test:8444/resources/testharnessreport.js
+      https://web-platform.test:8444/web-bundle/resources/test-helpers.js
+      'unsafe-inline';
+    img-src
+      https://web-platform.test:8444/web-bundle/resources/wbn/pass.png;"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+<body>
+  <script>
+    // This bundle should be blocked because its URL is not listed in CSP directive.
+    const bundle_url =
+      "https://web-platform.test:8444/web-bundle/resources/wbn/relative-url.wbn";
+
+    const subresource_url =
+      "https://web-platform.test:8444/web-bundle/resources/wbn/relative-url-file.js";
+
+    promise_test(() => {
+      // if a WebBundle is blocked by CSP,
+      // - A request for the WebBundle should fail.
+      // - A subresource request associated with the bundle should fail.
+      // - A window.load should be fired. In other words, any request shouldn't remain
+      //   pending forever.
+
+      const window_load = new Promise((resolve) => {
+        window.addEventListener("load", () => {
+          resolve();
+        });
+      });
+
+      const script_webbundle = createWebBundleElement(bundle_url, [
+        subresource_url,
+      ]);
+      const webbundle_error = new Promise((resolve) => {
+        script_webbundle.addEventListener("error", () => {
+          resolve();
+        });
+      });
+      document.body.appendChild(script_webbundle);
+
+      const script_js = document.createElement("script");
+      script_js.src = subresource_url;
+      const script_js_error = new Promise((resolve) => {
+        script_js.addEventListener("error", () => {
+          resolve();
+        });
+      });
+      document.body.appendChild(script_js);
+
+      return Promise.all([window_load, webbundle_error, script_js_error]);
+    }, "WebBundle and subresource loadings should fail when CSP blocks a WebBundle");
+  </script>
+</body>

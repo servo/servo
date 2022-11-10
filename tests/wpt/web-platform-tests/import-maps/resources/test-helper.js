@@ -107,15 +107,7 @@ function testInIframe(importMapString, importMapBaseURL, testScript) {
     <script src="/resources/testharness.js"></script>
     <script src="/import-maps/resources/test-helper.js"></script>
     <base href="${importMapBaseURL}">
-  `;
-  if (importMapString) {
-    content += `
-      <script type="importmap">
-      ${importMapString}
-      </sc` + `ript>
-    `;
-  }
-  content += `
+    <script type="importmap">${importMapString}</script>
     <body>
     <script>
     setup({ allow_uncaught_exception: true });
@@ -124,11 +116,11 @@ function testInIframe(importMapString, importMapBaseURL, testScript) {
   `;
   iframe.contentDocument.write(content);
   iframe.contentDocument.close();
-  fetch_tests_from_window(iframe.contentWindow);
+  return fetch_tests_from_window(iframe.contentWindow);
 }
 
 function testScriptElement(importMapString, importMapBaseURL, specifier, expected, type) {
-  testInIframe(importMapString, importMapBaseURL, `
+  return testInIframe(importMapString, importMapBaseURL, `
     const t = async_test("${specifier}: <script src type=${type}>");
     const handlers = getHandlers(t, "${specifier}", "${expected}");
     const script = document.createElement("script");
@@ -142,13 +134,13 @@ function testScriptElement(importMapString, importMapBaseURL, specifier, expecte
 }
 
 function testStaticImport(importMapString, importMapBaseURL, specifier, expected) {
-  testInIframe(importMapString, importMapBaseURL, `
+  return testInIframe(importMapString, importMapBaseURL, `
     const t = async_test("${specifier}: static import");
     const handlers = getHandlers(t, "${specifier}", "${expected}");
     const script = document.createElement("script");
     script.setAttribute("type", "module");
     script.setAttribute("src",
-        "static-import.py?url=" +
+        "/import-maps/static-import.py?url=" +
         encodeURIComponent("${specifier}"));
     script.addEventListener("load", handlers[Handler.ScriptLoadEvent]);
     script.addEventListener("error", handlers[Handler.ScriptErrorEvent]);
@@ -158,7 +150,7 @@ function testStaticImport(importMapString, importMapBaseURL, specifier, expected
 }
 
 function testDynamicImport(importMapString, importMapBaseURL, specifier, expected, type) {
-  testInIframe(importMapString, importMapBaseURL, `
+  return testInIframe(importMapString, importMapBaseURL, `
     const t = async_test("${specifier}: dynamic import (from ${type})");
     const handlers = getHandlers(t, "${specifier}", "${expected}");
     const script = document.createElement("script");
@@ -173,28 +165,82 @@ function testDynamicImport(importMapString, importMapBaseURL, specifier, expecte
   `);
 }
 
+function testInIframeInjectBase(importMapString, importMapBaseURL, testScript) {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  let content = `
+    <script src="/resources/testharness.js"></script>
+    <script src="/import-maps/resources/test-helper.js"></script>
+    <script src="/import-maps/resources/inject-base.js?pipe=sub&baseurl=${importMapBaseURL}"></script>
+    <script type="importmap">
+      ${importMapString}
+    </script>
+    <body>
+    <script>
+    setup({ allow_uncaught_exception: true });
+    ${testScript}
+    </sc` + `ript>
+  `;
+  iframe.contentDocument.write(content);
+  iframe.contentDocument.close();
+  return fetch_tests_from_window(iframe.contentWindow);
+}
+
+function testStaticImportInjectBase(importMapString, importMapBaseURL, specifier, expected) {
+  return testInIframeInjectBase(importMapString, importMapBaseURL, `
+    const t = async_test("${specifier}: static import with inject <base>");
+    const handlers = getHandlers(t, "${specifier}", "${expected}");
+    const script = document.createElement("script");
+    script.setAttribute("type", "module");
+    script.setAttribute("src",
+        "/import-maps/static-import.py?url=" +
+        encodeURIComponent("${specifier}"));
+    script.addEventListener("load", handlers[Handler.ScriptLoadEvent]);
+    script.addEventListener("error", handlers[Handler.ScriptErrorEvent]);
+    window.addEventListener("error", handlers[Handler.WindowErrorEvent]);
+    document.body.appendChild(script);
+  `);
+}
+
+function testDynamicImportInjectBase(importMapString, importMapBaseURL, specifier, expected, type) {
+  return testInIframeInjectBase(importMapString, importMapBaseURL, `
+    const t = async_test("${specifier}: dynamic import (from ${type}) with inject <base>");
+    const handlers = getHandlers(t, "${specifier}", "${expected}");
+    const script = document.createElement("script");
+    script.setAttribute("type", "${type}");
+    script.innerText =
+        "import(\\"${specifier}\\")" +
+        ".then(handlers[Handler.DynamicImportResolve], " +
+        "handlers[Handler.DynamicImportReject]);";
+    script.addEventListener("error",
+        t.unreached_func("top-level inline script shouldn't error"));
+    document.body.appendChild(script);
+  `);
+}
+
 function doTests(importMapString, importMapBaseURL, tests) {
-  window.addEventListener("load", () => {
-    for (const specifier in tests) {
-      // <script src> (module scripts)
-      testScriptElement(importMapString, importMapBaseURL, specifier,
-        tests[specifier][0], "module");
+  promise_setup(function () {
+    return new Promise((resolve) => {
+      window.addEventListener("load", async () => {
+        for (const specifier in tests) {
+          // <script src> (module scripts)
+          await testScriptElement(importMapString, importMapBaseURL, specifier, tests[specifier][0], "module");
 
-      // <script src> (classic scripts)
-      testScriptElement(importMapString, importMapBaseURL, specifier,
-        tests[specifier][1], "text/javascript");
+          // <script src> (classic scripts)
+          await testScriptElement(importMapString, importMapBaseURL, specifier, tests[specifier][1], "text/javascript");
 
-      // static imports.
-      testStaticImport(importMapString, importMapBaseURL, specifier,
-        tests[specifier][2]);
+          // static imports.
+          await testStaticImport(importMapString, importMapBaseURL, specifier, tests[specifier][2]);
 
-      // dynamic imports from a module script.
-      testDynamicImport(importMapString, importMapBaseURL, specifier,
-        tests[specifier][3], "module");
+          // dynamic imports from a module script.
+          await testDynamicImport(importMapString, importMapBaseURL, specifier, tests[specifier][3], "module");
 
-      // dynamic imports from a classic script.
-      testDynamicImport(importMapString, importMapBaseURL, specifier,
-        tests[specifier][3], "text/javascript");
-    }
-  });
+          // dynamic imports from a classic script.
+          await testDynamicImport(importMapString, importMapBaseURL, specifier, tests[specifier][3], "text/javascript");
+        }
+        done();
+        resolve();
+      });
+    });
+  }, { explicit_done: true });
 }

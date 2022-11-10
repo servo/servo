@@ -6,7 +6,7 @@ Use
 $ tools/generate.py
 ```
 
-to generate test HTML files.
+to generate test HTML files (except for tests in subdirectories).
 
 Background:
 

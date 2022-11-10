@@ -5,6 +5,7 @@
 
 [Exposed=Window]
 interface CSPViolationReportBody : ReportBody {
+  [Default] object toJSON();
   readonly attribute USVString documentURL;
   readonly attribute USVString? referrer;
   readonly attribute USVString? blockedURL;

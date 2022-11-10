@@ -20,7 +20,7 @@ var t = async_test("");
 _addTest(function(canvas, ctx) {
 
 var img = document.getElementById('broken.png');
-_assertSame(ctx.createPattern(img, 'repeat'), null, "ctx.createPattern(img, 'repeat')", "null");
+assert_throws_dom("INVALID_STATE_ERR", function() { ctx.createPattern(img, 'repeat'); });
 
 
 });

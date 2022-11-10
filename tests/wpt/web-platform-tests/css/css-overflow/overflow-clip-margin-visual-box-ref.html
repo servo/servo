@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verifies overflow-clip-margin supports visual-box</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#propdef-overflow-clip-margin">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    overflow: visible;
+    padding: 10px;
+    border: 10px solid black;
+    margin: 10px;
+    background: grey;
+  }
+
+  .inner_border_box {
+    width: 140px;
+    height: 140px;
+    position: relative;
+    top: -20px;
+    left: -20px;
+    background: blue;
+  }
+
+  .inner_padding_box {
+    width: 120px;
+    height: 120px;
+    position: relative;
+    top: -10px;
+    left: -10px;
+    background: blue;
+  }
+
+  .inner_content_box {
+    width: 100px;
+    height: 100px;
+    background: blue;
+  }
+</style>
+<div class="container">
+  <div class="inner_border_box"></div>
+</div>
+<div class="container">
+  <div class="inner_padding_box"></div>
+</div>
+<div class="container">
+  <div class="inner_content_box"></div>
+</div>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSS Cascade Test: import conditions</title>
+<link rel="help" href="https://www.w3.org/TR/css-cascade-5/#import-conditions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target { color: red; }
+</style>
+<style id="styleElement"></style>
+<div id="target"></div>
+<script>
+  const testCases = [
+    {
+      importCondition: "supports(display:block)",
+      matches: true
+    },
+    {
+      importCondition: "supports(foo:bar)",
+      matches: false
+    },
+    {
+      importCondition: "supports(display:block) (width >= 0px)",
+      matches: true
+    },
+    {
+      importCondition: "(width >= 0px) supports(foo:bar)",
+      matches: false
+    },
+    {
+      importCondition: "(width >= 0px) supports(display:block)",
+      matches: false
+    }
+  ];
+
+  let styleElement = document.querySelector("#styleElement");
+
+  styleElement.remove();
+
+  for (let testCase of testCases) {
+    promise_test(async t => {
+      styleElement.innerText = "@import url(data:text/css,#target{color:green}) " + testCase.importCondition + ";";
+
+      await new Promise(resolve => {
+        styleElement.onload = resolve;
+        styleElement.onerror = resolve;
+        document.head.appendChild(styleElement);
+      });
+
+      try {
+        assert_equals(getComputedStyle(target).color, testCase.matches ? "rgb(0, 128, 0)" : "rgb(255, 0, 0)");
+      } finally {
+        styleElement.remove();
+      }
+    }, testCase.importCondition + " is " + (testCase.matches ? "" : "not ")  + "a valid import condition");
+  }
+</script>

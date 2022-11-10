@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verifies overflow allows scrolling when rendering alt test for img elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="overflow-img-scroll-non-replaced-ref.html">
+<style>
+  img {
+    border: solid;
+    display: block;
+    width: 150px;
+    padding: 10px;
+    overflow: scroll;
+  }
+</style>
+<body>
+<img src="about:invalid" alt="I have scrollbar ................................................................"></img>
+</body>

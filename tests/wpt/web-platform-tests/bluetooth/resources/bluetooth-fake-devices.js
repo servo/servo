@@ -135,6 +135,19 @@ const manufacturer2Data = new Uint8Array([3, 4]);
 const uuid1234Data = new Uint8Array([5, 6]);
 const uuid5678Data = new Uint8Array([7, 8]);
 const uuidABCDData = new Uint8Array([9, 10]);
+
+// TODO(crbug.com/1163207): Add the blocklist link.
+// Fake manufacturer data following iBeacon format listed in
+// https://en.wikipedia.org/wiki/IBeacon, which will be blocked according to [TBD blocklist link].
+const blocklistedManufacturerId = 0x4c;
+const blocklistedManufacturerData = new Uint8Array([
+  0x02, 0x15, 0xb3, 0xeb, 0x8d, 0xb1, 0x30, 0xa5, 0x44, 0x8d, 0xb4, 0xac,
+  0xfb, 0x68, 0xc9, 0x23, 0xa3, 0x0e, 0x00, 0x00, 0x00, 0x00, 0xbf
+]);
+// Fake manufacturer data that is not in [TBD blocklist link].
+const nonBlocklistedManufacturerId = 0x0001;
+const nonBlocklistedManufacturerData =  new Uint8Array([1, 2]);
+
 /**
  * An advertisement packet object that simulates a device that advertises
  * service and manufacturer data.
@@ -368,8 +381,8 @@ async function setUpPreconnectedFakeDevice(setupOptionsOverride) {
     preconnectedDevice.fake_services.set(service, fake_service);
   }
 
-  // Request the device if options have been provided.
-  if (setupOptions.requestDeviceOptions) {
+  // Request the device if the request option isn't empty.
+  if (Object.keys(setupOptions.requestDeviceOptions).length !== 0) {
     preconnectedDevice.device =
         await requestDeviceWithTrustedClick(setupOptions.requestDeviceOptions);
   }
@@ -381,38 +394,6 @@ async function setUpPreconnectedFakeDevice(setupOptionsOverride) {
   }
 
   return preconnectedDevice;
-}
-
-/**
- * Deprecated: Use setUpPreconnectedFakeDevice() instead.
- * Simulates a preconnected device with |address|, |name|, |manufacturerData|
- * and |knownServiceUUIDs|. A preconnected device is a device that has been
- * paired with the system previously. This can be done if, for example, the user
- * pairs the device using the OS'es settings.
- * TODO(https://crbug.com/1070816): Remove this method when all uses have been
- * converted to using setUpPreconnectedFakeDevice();
- * @param {string} address The device MAC address.
- * @param {string} name The device name.
- * @param {Object<uint16,Array<uint8>>} manufacturerData A map of company
- *     identifier and manufacturer data to set up the fake with.
- * @param {Array<string>} knownServiceUUIDs An array of GATT service UUIDs to
- *     set up the fake with.
- * @returns {Promise<FakePeripheral>} The fake devices are initialized with the
- *     parameter values.
- */
-async function setUpPreconnectedDevice({
-  address = '00:00:00:00:00:00',
-  name = 'LE Device',
-  manufacturerData = {},
-  knownServiceUUIDs = []
-}) {
-  await initializeFakeCentral({state: 'powered-on'});
-  return await fake_central.simulatePreconnectedPeripheral({
-    address: address,
-    name: name,
-    manufacturerData: manufacturerData,
-    knownServiceUUIDs: knownServiceUUIDs,
-  });
 }
 
 /** Blocklisted GATT Device Helper Methods */
@@ -731,41 +712,45 @@ async function getHIDDevice(options) {
 
 /** Health Thermometer Bluetooth Device Helper Methods */
 
+/** @type {FakeDeviceOptions} */
+const healthTherometerFakeDeviceOptionsDefault = {
+  address: '09:09:09:09:09:09',
+  name: 'Health Thermometer',
+  manufacturerData: {0x0001: manufacturer1Data, 0x0002: manufacturer2Data},
+  knownServiceUUIDs: ['generic_access', 'health_thermometer'],
+};
+
 /**
- * Returns a FakePeripheral that corresponds to a simulated pre-connected device
+ * Returns a FakeDevice that corresponds to a simulated pre-connected device
  * called 'Health Thermometer'. The device has two known serviceUUIDs:
  * 'generic_access' and 'health_thermometer' and some fake manufacturer data.
- * @returns {Promise<FakePeripheral>} The device fake initialized as a Health
+ * @returns {Promise<FakeDevice>} The device fake initialized as a Health
  *     Thermometer device.
  */
-function setUpHealthThermometerDevice() {
-  return setUpPreconnectedDevice({
-    address: '09:09:09:09:09:09',
-    name: 'Health Thermometer',
-    manufacturerData: {0x0001: manufacturer1Data, 0x0002: manufacturer2Data},
-    knownServiceUUIDs: ['generic_access', 'health_thermometer'],
-  });
+async function setUpHealthThermometerDevice(setupOptionsOverride = {}) {
+  let setupOptions = createSetupOptions(
+      {fakeDeviceOptions: healthTherometerFakeDeviceOptionsDefault},
+      setupOptionsOverride);
+  return await setUpPreconnectedFakeDevice(setupOptions);
 }
 
 /**
- * Returns the same fake peripheral as setUpHealthThermometerDevice() except
+ * Returns the same fake device as setUpHealthThermometerDevice() except
  * that connecting to the peripheral will succeed.
- * @returns {Promise<FakePeripheral>} The device fake initialized as a
+ * @returns {Promise<FakeDevice>} The device fake initialized as a
  *     connectable Health Thermometer device.
  */
 async function setUpConnectableHealthThermometerDevice() {
-  let fake_peripheral = await setUpHealthThermometerDevice();
-  await fake_peripheral.setNextGATTConnectionResponse({
-    code: HCI_SUCCESS,
-  });
-  return fake_peripheral;
+  let fake_device = await setUpHealthThermometerDevice(
+      {fakeDeviceOptions: {connectable: true}});
+  return fake_device;
 }
 
 /**
- * Populates a fake_peripheral with various fakes appropriate for a health
+ * Populates a fake_device with various fakes appropriate for a health
  * thermometer. This resolves to an associative array composed of the fakes,
  * including the |fake_peripheral|.
- * @param {FakePeripheral} fake_peripheral The Bluetooth fake to populate GATT
+ * @param {FakeDevice} fake_device The Bluetooth fake to populate GATT
  *     services, characteristics, and descriptors on.
  * @returns {Promise<{fake_peripheral: FakePeripheral,
  *     fake_generic_access: FakeRemoteGATTService,
@@ -778,12 +763,11 @@ async function setUpConnectableHealthThermometerDevice() {
  * passed into this method along with the fake GATT services, characteristics,
  *         and descriptors added to it.
  */
-async function populateHealthThermometerFakes(fake_peripheral) {
-  let fake_generic_access =
-      await fake_peripheral.addFakeService({uuid: 'generic_access'});
-  let fake_health_thermometer = await fake_peripheral.addFakeService({
-    uuid: 'health_thermometer',
-  });
+async function populateHealthThermometerFakes(fake_device) {
+  let fake_peripheral = fake_device.fake_peripheral;
+  let fake_generic_access = fake_device.fake_services.get('generic_access');
+  let fake_health_thermometer =
+      fake_device.fake_services.get('health_thermometer');
   let fake_measurement_interval =
       await fake_health_thermometer.addFakeCharacteristic({
         uuid: 'measurement_interval',
@@ -838,9 +822,9 @@ async function populateHealthThermometerFakes(fake_peripheral) {
  */
 async function getHealthThermometerDeviceWithServicesDiscovered(options) {
   let iframe = document.createElement('iframe');
-  let fake_peripheral = await setUpConnectableHealthThermometerDevice();
-  let fakes = populateHealthThermometerFakes(fake_peripheral);
-  await fake_peripheral.setNextGATTDiscoveryResponse({
+  let fake_device = await setUpConnectableHealthThermometerDevice();
+  let fakes = populateHealthThermometerFakes(fake_device);
+  await fake_device.fake_peripheral.setNextGATTDiscoveryResponse({
     code: HCI_SUCCESS,
   });
   await new Promise(resolve => {
@@ -878,6 +862,56 @@ async function getHealthThermometerDeviceWithServicesDiscovered(options) {
 }
 
 /**
+ * Returns the device requested and connected in the given iframe context and
+ * fakes from populateHealthThermometerFakes().
+ * @param {object} iframe The iframe element set up by the caller document.
+ * @returns {Promise<{device: BluetoothDevice, fakes: {
+ *         fake_peripheral: FakePeripheral,
+ *         fake_generic_access: FakeRemoteGATTService,
+ *         fake_health_thermometer: FakeRemoteGATTService,
+ *         fake_measurement_interval: FakeRemoteGATTCharacteristic,
+ *         fake_cccd: FakeRemoteGATTDescriptor,
+ *         fake_user_description: FakeRemoteGATTDescriptor,
+ *         fake_temperature_measurement: FakeRemoteGATTCharacteristic,
+ *         fake_temperature_type: FakeRemoteGATTCharacteristic}}>} An object
+ *         containing a requested BluetoothDevice and all of the GATT fake
+ *         objects.
+ */
+async function getHealthThermometerDeviceFromIframe(iframe) {
+  const fake_device = await setUpConnectableHealthThermometerDevice();
+  const fakes = await populateHealthThermometerFakes(fake_device);
+  await new Promise(resolve => {
+    let src = '/bluetooth/resources/health-thermometer-iframe.html';
+    iframe.src = src;
+    document.body.appendChild(iframe);
+    iframe.addEventListener('load', resolve, {once: true});
+  });
+  await new Promise((resolve, reject) => {
+    callWithTrustedClick(() => {
+      iframe.contentWindow.postMessage(
+          {
+            type: 'RequestAndConnect',
+            options: {filters: [{services: [health_thermometer.name]}]}
+          },
+          '*');
+    });
+
+    function messageHandler(messageEvent) {
+      if (messageEvent.data == 'Connected') {
+        window.removeEventListener('message', messageHandler);
+        resolve();
+      } else {
+        reject(new Error(`Unexpected message: ${messageEvent.data}`));
+      }
+    }
+    window.addEventListener('message', messageHandler, {once: true});
+  });
+  const devices = await iframe.contentWindow.navigator.bluetooth.getDevices();
+  assert_equals(devices.length, 1);
+  return Object.assign({device: devices[0]}, {fakes});
+}
+
+/**
  * Similar to getHealthThermometerDevice() except the device
  * is not connected and thus its services have not been
  * discovered.
@@ -889,9 +923,7 @@ async function getHealthThermometerDeviceWithServicesDiscovered(options) {
 async function getDiscoveredHealthThermometerDevice(options = {
   filters: [{services: ['health_thermometer']}]
 }) {
-  let fake_peripheral = await setUpHealthThermometerDevice();
-  let device = await requestDeviceWithTrustedClick(options);
-  return {device: device, fake_peripheral: fake_peripheral};
+  return await setUpHealthThermometerDevice({requestDeviceOptions: options});
 }
 
 /**
@@ -903,13 +935,19 @@ async function getDiscoveredHealthThermometerDevice(options = {
  *     containing a requested BluetoothDevice and its fake counter part.
  */
 async function getEmptyHealthThermometerDevice(options) {
-  let result = await getDiscoveredHealthThermometerDevice(options);
-  await result.fake_peripheral.setNextGATTConnectionResponse(
+  let fake_device = await getDiscoveredHealthThermometerDevice(options);
+  let fake_generic_access = fake_device.fake_services.get('generic_access');
+  let fake_health_thermometer =
+      fake_device.fake_services.get('health_thermometer');
+  // Remove services that have been set up by previous steps.
+  await fake_generic_access.remove();
+  await fake_health_thermometer.remove();
+  await fake_device.fake_peripheral.setNextGATTConnectionResponse(
       {code: HCI_SUCCESS});
-  await result.device.gatt.connect();
-  await result.fake_peripheral.setNextGATTDiscoveryResponse(
+  await fake_device.device.gatt.connect();
+  await fake_device.fake_peripheral.setNextGATTDiscoveryResponse(
       {code: HCI_SUCCESS});
-  return result;
+  return fake_device;
 }
 
 /**
@@ -956,13 +994,13 @@ async function getEmptyHealthThermometerService(options) {
  *         objects.
  */
 async function getConnectedHealthThermometerDevice(options) {
-  let result = await getDiscoveredHealthThermometerDevice(options);
-  await result.fake_peripheral.setNextGATTConnectionResponse({
+  let fake_device = await getDiscoveredHealthThermometerDevice(options);
+  await fake_device.fake_peripheral.setNextGATTConnectionResponse({
     code: HCI_SUCCESS,
   });
-  let fakes = await populateHealthThermometerFakes(result.fake_peripheral);
-  await result.device.gatt.connect();
-  return Object.assign({device: result.device}, fakes);
+  let fakes = await populateHealthThermometerFakes(fake_device);
+  await fake_device.device.gatt.connect();
+  return Object.assign({device: fake_device.device}, fakes);
 }
 
 /**

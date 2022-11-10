@@ -2,18 +2,14 @@ import os
 import re
 import sys
 import textwrap
+from pathlib import Path
 from typing import Dict
 from typing import Generator
-
-import py
+from typing import Type
 
 import pytest
-from _pytest.compat import TYPE_CHECKING
 from _pytest.monkeypatch import MonkeyPatch
-from _pytest.pytester import Testdir
-
-if TYPE_CHECKING:
-    from typing import Type
+from _pytest.pytester import Pytester
 
 
 @pytest.fixture
@@ -133,7 +129,7 @@ def test_setitem() -> None:
 
 
 def test_setitem_deleted_meanwhile() -> None:
-    d = {}  # type: Dict[str, object]
+    d: Dict[str, object] = {}
     monkeypatch = MonkeyPatch()
     monkeypatch.setitem(d, "x", 2)
     del d["x"]
@@ -158,7 +154,7 @@ def test_setenv_deleted_meanwhile(before: bool) -> None:
 
 
 def test_delitem() -> None:
-    d = {"x": 1}  # type: Dict[str, object]
+    d: Dict[str, object] = {"x": 1}
     monkeypatch = MonkeyPatch()
     monkeypatch.delitem(d, "x")
     assert "x" not in d
@@ -236,8 +232,8 @@ def test_setenv_prepend() -> None:
     assert "XYZ123" not in os.environ
 
 
-def test_monkeypatch_plugin(testdir: Testdir) -> None:
-    reprec = testdir.inline_runsource(
+def test_monkeypatch_plugin(pytester: Pytester) -> None:
+    reprec = pytester.inline_runsource(
         """
         def test_method(monkeypatch):
             assert monkeypatch.__class__.__name__ == "MonkeyPatch"
@@ -271,33 +267,33 @@ def test_syspath_prepend_double_undo(mp: MonkeyPatch) -> None:
         sys.path[:] = old_syspath
 
 
-def test_chdir_with_path_local(mp: MonkeyPatch, tmpdir: py.path.local) -> None:
-    mp.chdir(tmpdir)
-    assert os.getcwd() == tmpdir.strpath
+def test_chdir_with_path_local(mp: MonkeyPatch, tmp_path: Path) -> None:
+    mp.chdir(tmp_path)
+    assert os.getcwd() == str(tmp_path)
 
 
-def test_chdir_with_str(mp: MonkeyPatch, tmpdir: py.path.local) -> None:
-    mp.chdir(tmpdir.strpath)
-    assert os.getcwd() == tmpdir.strpath
+def test_chdir_with_str(mp: MonkeyPatch, tmp_path: Path) -> None:
+    mp.chdir(str(tmp_path))
+    assert os.getcwd() == str(tmp_path)
 
 
-def test_chdir_undo(mp: MonkeyPatch, tmpdir: py.path.local) -> None:
+def test_chdir_undo(mp: MonkeyPatch, tmp_path: Path) -> None:
     cwd = os.getcwd()
-    mp.chdir(tmpdir)
+    mp.chdir(tmp_path)
     mp.undo()
     assert os.getcwd() == cwd
 
 
-def test_chdir_double_undo(mp: MonkeyPatch, tmpdir: py.path.local) -> None:
-    mp.chdir(tmpdir.strpath)
+def test_chdir_double_undo(mp: MonkeyPatch, tmp_path: Path) -> None:
+    mp.chdir(str(tmp_path))
     mp.undo()
-    tmpdir.chdir()
+    os.chdir(tmp_path)
     mp.undo()
-    assert os.getcwd() == tmpdir.strpath
+    assert os.getcwd() == str(tmp_path)
 
 
-def test_issue185_time_breaks(testdir: Testdir) -> None:
-    testdir.makepyfile(
+def test_issue185_time_breaks(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import time
         def test_m(monkeypatch):
@@ -306,7 +302,7 @@ def test_issue185_time_breaks(testdir: Testdir) -> None:
             monkeypatch.setattr(time, "time", f)
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(
         """
         *1 passed*
@@ -314,9 +310,9 @@ def test_issue185_time_breaks(testdir: Testdir) -> None:
     )
 
 
-def test_importerror(testdir: Testdir) -> None:
-    p = testdir.mkpydir("package")
-    p.join("a.py").write(
+def test_importerror(pytester: Pytester) -> None:
+    p = pytester.mkpydir("package")
+    p.joinpath("a.py").write_text(
         textwrap.dedent(
             """\
         import doesnotexist
@@ -325,7 +321,7 @@ def test_importerror(testdir: Testdir) -> None:
     """
         )
     )
-    testdir.tmpdir.join("test_importerror.py").write(
+    pytester.path.joinpath("test_importerror.py").write_text(
         textwrap.dedent(
             """\
         def test_importerror(monkeypatch):
@@ -333,7 +329,7 @@ def test_importerror(testdir: Testdir) -> None:
     """
         )
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(
         """
         *import error in package.a: No module named 'doesnotexist'*
@@ -352,9 +348,11 @@ class SampleInherit(Sample):
 
 
 @pytest.mark.parametrize(
-    "Sample", [Sample, SampleInherit], ids=["new", "new-inherit"],
+    "Sample",
+    [Sample, SampleInherit],
+    ids=["new", "new-inherit"],
 )
-def test_issue156_undo_staticmethod(Sample: "Type[Sample]") -> None:
+def test_issue156_undo_staticmethod(Sample: Type[Sample]) -> None:
     monkeypatch = MonkeyPatch()
 
     monkeypatch.setattr(Sample, "hello", None)
@@ -412,17 +410,29 @@ def test_context() -> None:
     assert inspect.isclass(functools.partial)
 
 
+def test_context_classmethod() -> None:
+    class A:
+        x = 1
+
+    with MonkeyPatch.context() as m:
+        m.setattr(A, "x", 2)
+        assert A.x == 2
+    assert A.x == 1
+
+
 def test_syspath_prepend_with_namespace_packages(
-    testdir: Testdir, monkeypatch: MonkeyPatch
+    pytester: Pytester, monkeypatch: MonkeyPatch
 ) -> None:
     for dirname in "hello", "world":
-        d = testdir.mkdir(dirname)
-        ns = d.mkdir("ns_pkg")
-        ns.join("__init__.py").write(
+        d = pytester.mkdir(dirname)
+        ns = d.joinpath("ns_pkg")
+        ns.mkdir()
+        ns.joinpath("__init__.py").write_text(
             "__import__('pkg_resources').declare_namespace(__name__)"
         )
-        lib = ns.mkdir(dirname)
-        lib.join("__init__.py").write("def check(): return %r" % dirname)
+        lib = ns.joinpath(dirname)
+        lib.mkdir()
+        lib.joinpath("__init__.py").write_text("def check(): return %r" % dirname)
 
     monkeypatch.syspath_prepend("hello")
     import ns_pkg.hello
@@ -439,8 +449,7 @@ def test_syspath_prepend_with_namespace_packages(
     assert ns_pkg.world.check() == "world"
 
     # Should invalidate caches via importlib.invalidate_caches.
-    tmpdir = testdir.tmpdir
-    modules_tmpdir = tmpdir.mkdir("modules_tmpdir")
+    modules_tmpdir = pytester.mkdir("modules_tmpdir")
     monkeypatch.syspath_prepend(str(modules_tmpdir))
-    modules_tmpdir.join("main_app.py").write("app = True")
+    modules_tmpdir.joinpath("main_app.py").write_text("app = True")
     from main_app import app  # noqa: F401

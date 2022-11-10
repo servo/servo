@@ -30,7 +30,17 @@
               element.appendChild(mrow);
           }
       }
-      math.appendChild(element);
+      if (FragmentHelper.isValidChildOfMrow(tag)) {
+          math.appendChild(element);
+      } else if (tag === "mtd") {
+          let mtr = FragmentHelper.createElement("mtr");
+          mtr.appendChild(element);
+          let mtable = FragmentHelper.createElement("mtable");
+          mtable.appendChild(mtr);
+          math.appendChild(mtable);
+      } else {
+          throw `Invalid argument: ${tag}`;
+      }
       return math;
   }
 
@@ -38,7 +48,7 @@
   window.addEventListener("load", function() {
 
       for (tag in MathMLFragments) {
-          if (!FragmentHelper.isValidChildOfMrow(tag))
+          if (!FragmentHelper.isValidChildOfMrow(tag) || tag === "mtd")
               continue;
 
           document.body.insertAdjacentHTML("beforeend", `<div style='display: none; background: pink;'>${tag}: <div></div><div></div><div></div></div>`);

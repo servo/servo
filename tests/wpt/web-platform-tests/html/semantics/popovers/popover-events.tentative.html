@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover events</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div popover>Popover</div>
+
+<script>
+window.onload = () => {
+  for(const method of ["listener","attribute"]) {
+    promise_test(async t => {
+      const popover = document.querySelector('[popover]');
+      assert_false(popover.matches(':open'));
+      let showCount = 0;
+      let hideCount = 0;
+      switch (method) {
+        case "listener":
+          const controller = new AbortController();
+          const signal = controller.signal;
+          t.add_cleanup(() => controller.abort());
+          document.addEventListener('popovershow',() => ++showCount, {signal});
+          document.addEventListener('popoverhide',() => ++hideCount, {signal});
+          break;
+        case "attribute":
+          assert_false(popover.hasAttribute('onpopovershow'));
+          assert_false(popover.hasAttribute('onpopoverhide'));
+          t.add_cleanup(() => popover.removeAttribute('onpopovershow'));
+          t.add_cleanup(() => popover.removeAttribute('onpopoverhide'));
+          popover.onpopovershow = () => ++showCount;
+          popover.onpopoverhide = () => ++hideCount;
+          break;
+        default: assert_unreached();
+      }
+      assert_equals(0,showCount);
+      assert_equals(0,hideCount);
+      popover.showPopover();
+      assert_true(popover.matches(':open'));
+      assert_equals(1,showCount);
+      assert_equals(0,hideCount);
+      await waitForRender();
+      assert_true(popover.matches(':open'));
+      popover.hidePopover();
+      assert_false(popover.matches(':open'));
+      assert_equals(1,showCount);
+      assert_equals(1,hideCount);
+      await waitForRender();
+      // No additional events after animation frame
+      assert_false(popover.matches(':open'));
+      assert_equals(1,showCount);
+      assert_equals(1,hideCount);
+    }, `Popovershow and popoverhide events (${method}) get properly dispatched for popovers`);
+  }
+
+  promise_test(async t => {
+    const popover = document.querySelector('[popover]');
+    const controller = new AbortController();
+    const signal = controller.signal;
+    t.add_cleanup(() => controller.abort());
+    let cancel = true;
+    popover.addEventListener('popovershow',(e) => {
+      if (cancel)
+        e.preventDefault();
+    }, {signal});
+    assert_false(popover.matches(':open'));
+    popover.showPopover();
+    assert_false(popover.matches(':open'),'The "popovershow" event should be cancelable');
+    cancel = false;
+    popover.showPopover();
+    assert_true(popover.matches(':open'));
+    popover.hidePopover();
+    assert_false(popover.matches(':open'));
+  }, 'Popovershow event is cancelable');
+};
+</script>

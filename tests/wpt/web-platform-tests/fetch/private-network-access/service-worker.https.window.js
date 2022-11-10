@@ -15,7 +15,7 @@ const TestResult = {
     unregister: { unregistered: true },
   },
   FAILURE: {
-    register: { loaded: false, error: "TypeError" },
+    register: { error: "TypeError" },
     unregister: { unregistered: false, error: "no registration" },
   },
 };
@@ -24,8 +24,7 @@ async function makeTest(t, { source, target, expected }) {
   const sourceUrl = resolveUrl("resources/service-worker-bridge.html",
                                sourceResolveOptions(source));
 
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
   targetUrl.searchParams.append("body", "undefined");
   targetUrl.searchParams.append("mime-type", "application/javascript");
 
@@ -75,7 +74,7 @@ promise_test(t => makeTest(t, {
   },
   target: {
     server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    behavior: { preflight: PreflightBehavior.serviceWorkerSuccess(token()) },
   },
   expected: TestResult.SUCCESS,
 }), "treat-as-public to local: success.");
@@ -96,7 +95,7 @@ promise_test(t => makeTest(t, {
   },
   target: {
     server: Server.HTTPS_PRIVATE,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    behavior: { preflight: PreflightBehavior.serviceWorkerSuccess(token()) },
   },
   expected: TestResult.SUCCESS,
 }), "treat-as-public to private: success.");

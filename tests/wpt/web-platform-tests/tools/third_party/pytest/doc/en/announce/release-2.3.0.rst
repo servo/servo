@@ -13,12 +13,12 @@ re-usable fixture design.
 
 For detailed info and tutorial-style examples, see:
 
-    http://pytest.org/en/stable/fixture.html
+    http://pytest.org/en/stable/explanation/fixtures.html
 
 Moreover, there is now support for using pytest fixtures/funcargs with
 unittest-style suites, see here for examples:
 
-    http://pytest.org/en/stable/unittest.html
+    http://pytest.org/en/stable/how-to/unittest.html
 
 Besides, more unittest-test suites are now expected to "simply work"
 with pytest.

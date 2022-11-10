@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: The relational pseudo-class (disallow nesting :has() inside :has())</title>
+<link rel="author" title="Byungwoo Lee" href="mailto:blee@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#has-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('.a:has(.b:has(.c))', '.a:has()');
+  test_valid_selector('.a:has(.b:has(.c), .d)', '.a:has(.d)');
+  test_valid_selector('.a:has(.b:is(.c:has(.d) .e))', '.a:has(.b:is())');
+</script>

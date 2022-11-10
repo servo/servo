@@ -19,6 +19,9 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   assert_equals(entry.id, expectedID, "Entry ID matches expected one");
   assert_equals(entry.element, document.getElementById(expectedID),
     "Entry element is expected one");
+  if (options.includes('skip')) {
+    return;
+  }
   if (options.includes('renderTimeIs0')) {
     assert_equals(entry.renderTime, 0, 'renderTime should be 0');
     assert_between_exclusive(entry.loadTime, timeLowerBound, performance.now(),
@@ -64,5 +67,24 @@ const load_and_observe = url => {
     img.id = 'image_id';
     img.src = url;
     document.body.appendChild(img);
+  });
+};
+
+const load_video_and_observe = url => {
+  return new Promise(resolve => {
+    (new PerformanceObserver(entryList => {
+      for (let entry of entryList.getEntries()) {
+        if (entry.url == url) {
+          resolve(entryList.getEntries()[0]);
+        }
+      }
+    })).observe({type: 'largest-contentful-paint', buffered: true});
+    const video = document.createElement("video");
+    video.id = 'video_id';
+    video.src = url;
+    video.autoplay = true;
+    video.muted = true;
+    video.loop = true;
+    document.body.appendChild(video);
   });
 };

@@ -8,8 +8,12 @@
 </video>
 </body>
 <script>
-window.requestIdleCallback(() => {
-  document.documentElement.style.display = 'none';
-  document.documentElement.className = '';
-});
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.style.display = 'none';
+      document.documentElement.className = '';
+    });
+  });
+}
 </script>

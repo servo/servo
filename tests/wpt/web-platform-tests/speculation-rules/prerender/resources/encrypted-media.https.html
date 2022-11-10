@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-encrypted-media*.https.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+
+  const config = [{
+      initDataTypes:  ['keyids', 'webm' ,'cenc'],
+      audioCapabilities: [
+        {contentType: 'audio/mp4; codecs="mp4a.40.2"'},
+        {contentType: 'audio/webm; codecs="opus"'}
+      ]
+  }];
+
+  const fakeConfig = [{
+      initDataTypes: ['fakeidt'],
+      audioCapabilities: [{contentType: 'audio/fake; codecs="mp4a.40.2"'}]
+  }];
+
+  const promise =
+      navigator.requestMediaKeySystemAccess('org.w3.clearkey',
+          params.get('config') === 'support' ? config : fakeConfig);
+  prerenderEventCollector.start(
+      promise, 'navigator.requestMediaKeySystemAccess');
+}
+
+</script>

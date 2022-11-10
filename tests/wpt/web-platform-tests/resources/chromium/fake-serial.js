@@ -307,10 +307,14 @@ class FakeSerialPort {
     }
     this.writable_ = undefined;
 
-    if (this.receiver_) {
-      this.receiver_.$.close();
-      this.receiver_ = undefined;
-    }
+    // Close the receiver asynchronously so the reply to this message can be
+    // sent first.
+    const receiver = this.receiver_;
+    this.receiver_ = undefined;
+    setTimeout(() => {
+      receiver.$.close();
+    }, 0);
+
     return {};
   }
 }
@@ -419,6 +423,20 @@ class FakeSerialService {
     } else {
       return {port: null};
     }
+  }
+
+  async forgetPort(token) {
+    let record = this.ports_.get(Number(token.low));
+    if (record === undefined) {
+      return {success: false};
+    }
+
+    this.ports_.delete(Number(token.low));
+    if (record.fakePort.receiver_) {
+      record.fakePort.receiver_.$.close();
+      record.fakePort.receiver_ = undefined;
+    }
+    return {success: true};
   }
 }
 

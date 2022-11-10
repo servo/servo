@@ -24,23 +24,11 @@
   The margin collapsing rules apply exactly with the block-start margin substituted for the top margin and the block-end margin substituted for the bottom margin.
   "
   -->
+  <link rel="match" href="reference/margin-collapse-022-023-1.xht" />
+  <link rel="match" href="reference/margin-collapse-022-023-2.xht" />
 
   <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
   <style type="text/css"><![CDATA[
-  body
-    {
-      margin-left: 66px;
-      /*
-      The sole purpose of this rule is to increase noticeability
-      of test failure in Google Chrome 40+
-      */
-    }
-
-  p
-    {
-      font: 16px/1.25 serif; /* computes to 16px/20px */
-    }
-
   div#test
     {
       border: teal solid 1em;
@@ -67,30 +55,8 @@
     {
       background-color: blue;
       position: absolute;
-      top: 97px;
-      /*
-      16px : p's margin-top
-    +
-      20px : p's top-most line box height
-    +
-      20px : p's bottom-most line box height
-    +
-      16px : p's margin-bottom
-    +
-      25px : div#test's border-top
-   ==========
-      97px
-      */
+      top: 33px;  /* body's margin + div#test's border-top */
       width: 1em;
-    }
-
-  div.ref
-    {
-      border: teal solid 1em;
-      font: 25px/1 Ahem;
-      height: 4em; /* computes to 100px */
-      margin-bottom: 0.2em;
-      width: 4em;
     }
   ]]></style>
 
@@ -98,18 +64,12 @@
 
  <body>
 
-  <p>Test passes if the top square has a layout<br />identical to one of the squares below it.</p>
-
   <div id="test">
     <div id="wrapper">
       <div id="widthless-static"></div>
       <div id="abs-pos"></div>
     </div>
   </div>
-
-  <div class="ref" id="ref1"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /></div>
-
-  <div class="ref" id="ref2"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /></div>
 
  </body>
 </html>

@@ -141,3 +141,26 @@ function test_invalid_rule(rule) {
           rule + " should throw in insertRule");
     }, rule + " should be an invalid rule");
 }
+
+function _set_style(rule) {
+    const style = document.createElement('style');
+    style.innerText = rule;
+    document.head.append(style);
+    const { sheet } = style;
+    document.head.removeChild(style);
+    return sheet;
+}
+
+function test_keyframes_name_valid(keyframes_name) {
+    test(t => {
+        const sheet = _set_style(`@keyframes ${keyframes_name} {}`);
+        assert_equals(sheet.cssRules.length, 1);
+    }, `valid: @keyframes ${keyframes_name} { }`);
+}
+
+function test_keyframes_name_invalid(keyframes_name) {
+    test(t => {
+        const sheet = _set_style(`@keyframes ${keyframes_name} {}`);
+        assert_equals(sheet.cssRules.length, 0);
+    }, `invalid: @keyframes ${keyframes_name} { }`);
+}

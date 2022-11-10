@@ -5,7 +5,7 @@ from typing import List
 import asynctest
 
 
-teardowns = []  # type: List[None]
+teardowns: List[None] = []
 
 
 class Test(asynctest.TestCase):

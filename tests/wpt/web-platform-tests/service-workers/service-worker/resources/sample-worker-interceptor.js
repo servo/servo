@@ -5,9 +5,25 @@ const dedicated_worker_script = `postMessage('${text}');`;
 const shared_worker_script =
     `onconnect = evt => evt.ports[0].postMessage('${text}');`;
 
+let source;
+let resolveDone;
+let done = new Promise(resolve => resolveDone = resolve);
+
+// The page messages this worker to ask for the result. Keep the worker alive
+// via waitUntil() until the result is sent.
+self.addEventListener('message', event => {
+  source = event.data.port;
+  source.postMessage({id: event.source.id});
+  source.onmessage = resolveDone;
+  event.waitUntil(done);
+});
+
 self.onfetch = event => {
   const url = event.request.url;
   const destination = event.request.destination;
+
+  if (source)
+     source.postMessage({clientId:event.clientId, resultingClientId: event.resultingClientId});
 
   // Request handler for a synthesized response.
   if (url.indexOf('synthesized') != -1) {

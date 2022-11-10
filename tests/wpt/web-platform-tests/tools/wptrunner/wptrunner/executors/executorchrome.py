@@ -1,12 +1,13 @@
+# mypy: allow-untyped-defs
+
 import os
 import traceback
 
 from urllib.parse import urljoin
 
-from .base import WdspecProtocol, WdspecExecutor, get_pages
+from .base import get_pages
 from .executorwebdriver import WebDriverProtocol, WebDriverRefTestExecutor, WebDriverRun
 from .protocol import PrintProtocolPart
-from ..webdriver_server import ChromeDriverServer
 
 here = os.path.dirname(__file__)
 
@@ -70,7 +71,7 @@ class ChromeDriverPrintRefTestExecutor(WebDriverRefTestExecutor):
     protocol_cls = ChromeDriverProtocol
 
     def setup(self, runner):
-        super(ChromeDriverPrintRefTestExecutor, self).setup(runner)
+        super().setup(runner)
         self.protocol.pdf_print.load_runner()
         self.has_window = False
         with open(os.path.join(here, "reftest.js")) as f:
@@ -111,11 +112,3 @@ class ChromeDriverPrintRefTestExecutor(WebDriverRefTestExecutor):
                 screenshots[i] = screenshot.split(",", 1)[1]
 
         return screenshots
-
-
-class ChromeDriverWdspecProtocol(WdspecProtocol):
-    server_cls = ChromeDriverServer
-
-
-class ChromeDriverWdspecExecutor(WdspecExecutor):
-    protocol_cls = ChromeDriverWdspecProtocol

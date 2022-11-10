@@ -1,0 +1,33 @@
+<!DOCTYPE html><meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Custom Highlights currentcolor painting single layer</title>
+<meta name="assert" content="Checks the painting for highlight pseudos (using ::highlight), when ‘text-shadow’ contains a shadow with ‘currentColor’ (and ‘color’ is also ‘currentColor’, via implicit defaulting up to the root). The color of the text shadow should equal the originating element ‘color’.">
+<link rel="author" title="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-text">
+<link rel="match" href="highlight-currentcolor-painting-text-shadow-001-ref.html">
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+div {
+  color: lime;
+  background: green;
+  margin: 10px;
+}
+::highlight(textshadow-currentcolor) {
+  text-shadow: currentcolor 2px 2px;
+}
+</style>
+
+<div id="textshadow-currentcolor" class="highlight_reftest">example - textshadow-currentcolor</div>
+
+<script>
+  function range(node, start, end) {
+    let range = new Range();
+    range.setStart(node, start);
+    range.setEnd(node, end);
+    return range;
+  }
+
+  const divs = document.getElementsByTagName("div");
+  for (let div of divs) {
+    CSS.highlights.set(div.id, new Highlight(range(div.firstChild, 0, 7)));
+  }
+</script>

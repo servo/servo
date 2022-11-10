@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs
+
+import textwrap
 import unittest
 
 from .. import parser
@@ -52,7 +55,8 @@ class TokenizerTest(unittest.TestCase):
         self.compare(br"""[Heading [\]text] #comment""",
                      [(token_types.paren, "["),
                       (token_types.string, "Heading []text"),
-                      (token_types.paren, "]")])
+                      (token_types.paren, "]"),
+                      (token_types.inline_comment, "comment")])
 
     def test_heading_6(self):
         self.compare(br"""[Heading \ttext]""",
@@ -82,7 +86,8 @@ class TokenizerTest(unittest.TestCase):
         self.compare(b"""key: value#comment""",
                      [(token_types.string, "key"),
                       (token_types.separator, ":"),
-                      (token_types.string, "value")])
+                      (token_types.string, "value"),
+                      (token_types.inline_comment, "comment")])
 
     def test_key_4(self):
         with self.assertRaises(parser.ParseError):
@@ -175,6 +180,7 @@ key: [a, #b]
              (token_types.separator, ":"),
              (token_types.list_start, "["),
              (token_types.string, "a"),
+             (token_types.inline_comment, "b]"),
              (token_types.string, "c"),
              (token_types.list_end, "]")])
 
@@ -330,6 +336,50 @@ key:
              (token_types.number, "1."),
              (token_types.separator, ":"),
              (token_types.string, "value")])
+
+    def test_comment_with_indents(self):
+        self.compare(
+            textwrap.dedent(
+                """\
+                # comment 0
+                [Heading]
+                  # comment 1
+                # comment 2
+                """).encode(),
+            [(token_types.comment, " comment 0"),
+             (token_types.paren, "["),
+             (token_types.string, "Heading"),
+             (token_types.paren, "]"),
+             (token_types.comment, " comment 1"),
+             (token_types.comment, " comment 2")])
+
+    def test_comment_inline(self):
+        self.compare(
+            textwrap.dedent(
+                """\
+                [Heading]          # after heading
+                key:               # after key
+                # before group start
+                  if cond: value1  # after value1
+                  value2           # after value2
+                """).encode(),
+            [(token_types.paren, "["),
+             (token_types.string, "Heading"),
+             (token_types.paren, "]"),
+             (token_types.inline_comment, " after heading"),
+             (token_types.string, "key"),
+             (token_types.separator, ":"),
+             (token_types.inline_comment, " after key"),
+             (token_types.comment, " before group start"),
+             (token_types.group_start, None),
+             (token_types.ident, "if"),
+             (token_types.ident, "cond"),
+             (token_types.separator, ":"),
+             (token_types.string, "value1"),
+             (token_types.inline_comment, " after value1"),
+             (token_types.string, "value2"),
+             (token_types.inline_comment, " after value2")])
+
 
 if __name__ == "__main__":
     unittest.main()

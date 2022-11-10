@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+
 import imp
 import json
 import os

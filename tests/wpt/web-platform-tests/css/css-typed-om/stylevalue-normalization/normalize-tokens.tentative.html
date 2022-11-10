@@ -57,7 +57,6 @@ for (const {value, expectedResult} of gTestCases) {
 
   test(t => {
     assert_string_normalizes_to(t, 'margin', value, new CSSUnparsedValue(expectedResult));
-    assert_false(true);
   }, 'Normalizing "' + value + '" on a shorthand returns correct CSSUnparsedValue');
 
   test(t => {

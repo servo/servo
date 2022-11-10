@@ -5,7 +5,7 @@
 <link rel="help" href="https://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBIndex-getKey-IDBRequest-any-key">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 <div id="log"></div>
 <script>
     var db,
@@ -20,7 +20,7 @@
     }
     open_rq.onsuccess = function(e) {
         db = e.target.result;
-        var tx = db.transaction('store');
+        var tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
         var index = tx.objectStore('store').index('index');
         tx.abort();
 

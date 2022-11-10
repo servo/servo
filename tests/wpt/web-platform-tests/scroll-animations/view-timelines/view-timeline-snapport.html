@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>ViewTimeline vs. scroll-padding-*</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-progress-visibility-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+  #container {
+    border: 10px solid lightgray;
+    overflow-y: scroll;
+    height: 200px;
+    width: 200px;
+    scroll-padding: 40px;
+  }
+  .spacer {
+    height: 800px;
+  }
+  #target {
+    background-color: green;
+    height: 200px;
+    width: 100px;
+  }
+</style>
+<body>
+  <div id="container">
+    <div id="leading-space" class="spacer"></div>
+    <div id="target"></div>
+    <div id="trailing-space" class="spacer"></div>
+  </div>
+</body>
+<script>
+  promise_test(async t => {
+    container.scrollTop = 0;
+    await waitForNextFrame();
+
+    const anim = CreateViewTimelineOpacityAnimation(t, target);
+    await anim.ready;
+
+    // 0%
+    container.scrollTop = 600;
+    await waitForNextFrame();
+    assert_percents_equal(anim.currentTime, 0);
+
+    // 50%
+    container.scrollTop = 800;
+    await waitForNextFrame();
+    assert_percents_equal(anim.currentTime, 50);
+
+    // 100%
+    container.scrollTop = 1000;
+    await waitForNextFrame();
+    assert_percents_equal(anim.currentTime, 100);
+  }, 'Default ViewTimeline is not affected by scroll-padding');
+</script>
+</html>

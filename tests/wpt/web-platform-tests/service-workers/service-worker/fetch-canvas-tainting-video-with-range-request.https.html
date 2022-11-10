@@ -63,12 +63,11 @@ range_request_test(
 
 // (3) Range responses come from multiple origins. The first response comes from
 //     cross-origin (and without CORS sharing, so is opaque). Subsequent
-//     responses come from same-origin. The canvas should be tainted (but in
-//     Chrome this is a LOAD_ERROR since it disallows range responses from
-//     multiple origins, period).
+//     responses come from same-origin. This should result in a load error, as regardless of canvas
+//     loading range requests from multiple opaque origins can reveal information across those origins.
 range_request_test(
   'resources/range-request-to-different-origins-worker.js',
-  'TAINTED',
+  'LOAD_ERROR',
   'range responses from multiple origins (cross-origin first)');
 
 // (4) Range responses come from multiple origins. The first response comes from

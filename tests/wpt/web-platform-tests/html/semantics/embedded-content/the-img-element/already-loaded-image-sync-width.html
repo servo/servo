@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Image dimensions are available synchronously after changing src to an already-loaded image</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1797798">
+<img id="existing">
+<script>
+  let src = "/images/green.png";
+  let existing = document.getElementById("existing");
+  async_test(function(t) {
+    let tmp = document.createElement("img");
+    tmp.src = src;
+    tmp.onload = t.step_func_done(function() {
+      existing.src = src;
+      assert_equals(existing.width, 100);
+      assert_equals(existing.height, 50);
+    });
+  });
+</script>

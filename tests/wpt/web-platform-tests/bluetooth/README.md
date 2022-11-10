@@ -95,7 +95,7 @@ For more implementation details, see the [Web Bluetooth Service README].
 
 [MojoJS]: https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/testing/web_platform_tests.md#mojojs
 [Web Bluetooth Service README]:
-https://chromium.googlesource.com/chromium/src.git/+/master/content/browser/bluetooth/README.md
+https://chromium.googlesource.com/chromium/src.git/+/main/content/browser/bluetooth/README.md
 
 # Resources and Documentation
 

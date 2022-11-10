@@ -1,0 +1,67 @@
+<!doctype html>
+<title>DeferAllScript: document.write()</title>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+    const t1 = async_test("document.write()");
+    const t2 = async_test("document.write(),close()");
+    const t3 = async_test("document.open(),write()");
+    const t4 = async_test("document.open(),write(),close()");
+    function finish() {
+      const expected = ["Inline1", "Sync2", "Async1", "Sync1",
+                        "EndOfBody", "DOMContentLoaded", "WindowLoad"];
+      t1.step_func_done(() => {
+        assert_array_equals(
+          document.getElementById("document-write").contentWindow.result,
+          expected,
+          "Execution order");
+      })();
+
+      t2.step_func_done(() => {
+        assert_array_equals(
+          document.getElementById("document-write-close").contentWindow.result,
+          expected,
+          "Execution order");
+      })();
+
+      t3.step_func_done(() => {
+        assert_array_equals(
+          document.getElementById("document-open-write").contentWindow.result,
+          expected,
+          "Execution order");
+      })();
+
+      t4.step_func_done(() => {
+        assert_array_equals(
+          document.getElementById(
+              "document-open-write-close").contentWindow.result,
+          expected,
+          "Execution order");
+      })();
+      // For cases where documents are kept open, call `document.close()` here
+      // to finish the test harness.
+      for (const iframe of document.querySelectorAll("iframe")) {
+        iframe.contentDocument.close();
+      }
+    }
+
+    // For cases where documents are kept open (that should never occur in
+    // non-intervention cases), schedule `finish()` because Window load events
+    // might be not fired.
+    setTimeout(finish, 5000);
+    </script>
+</head>
+<body onload="finish()">
+<iframe id="document-write"
+        src="resources/document-write-iframe.sub.html?script=document-write.js"></iframe>
+<iframe id="document-write-close"
+        src="resources/document-write-iframe.sub.html?script=document-write-close.js"></iframe>
+<iframe id="document-open-write"
+        src="resources/document-write-iframe.sub.html?script=document-open-write.js"></iframe>
+<iframe id="document-open-write-close"
+        src="resources/document-write-iframe.sub.html?script=document-open-write-close.js"></iframe>
+</body>
+</html>

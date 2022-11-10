@@ -13,7 +13,7 @@ if sys.version_info < (3,0):
         def write(self, data):
             if not isinstance(data, unicode):
                 data = unicode(data, getattr(self, '_encoding', 'UTF-8'), 'replace')
-            StringIO.write(self, data)
+            return StringIO.write(self, data)
 else:
     TextIO = StringIO
 
@@ -24,7 +24,7 @@ except ImportError:
         def write(self, data):
             if isinstance(data, unicode):
                 raise TypeError("not a byte value: %r" %(data,))
-            StringIO.write(self, data)
+            return StringIO.write(self, data)
 
 patchsysdict = {0: 'stdin', 1: 'stdout', 2: 'stderr'}
 
@@ -266,7 +266,7 @@ class StdCaptureFD(Capture):
             err = self._readsnapshot(self.err.tmpfile)
         else:
             err = ""
-        return [out, err]
+        return out, err
 
     def _readsnapshot(self, f):
         f.seek(0)

@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v3.4.0
     hooks:
       - id: check-toml
       - id: check-yaml
@@ -8,23 +8,30 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.790
+    rev: v0.812
     hooks:
       - id: mypy
         exclude: '^(docs|tasks|tests)|setup\.py'
         args: []
-      - id: mypy
-        name: mypy for Python 2
-        exclude: '^(docs|tasks|tests)|setup\.py|noxfile\.py'
-        args: ["--py2"]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.29.0
+    hooks:
+      - id: pyupgrade
+        args: [--py36-plus]
 
   - repo: https://github.com/psf/black
-    rev: 19.3b0
+    rev: 20.8b1
     hooks:
       - id: black
 
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.8.0
+    hooks:
+      - id: isort
+
   - repo: https://gitlab.com/PyCQA/flake8
-    rev: "3.7.8"
+    rev: "3.9.0"
     hooks:
       - id: flake8
         additional_dependencies: ["pep8-naming"]

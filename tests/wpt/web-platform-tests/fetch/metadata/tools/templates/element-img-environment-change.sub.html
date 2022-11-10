@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on image request triggered by change to environment</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  // The response to the request under test must describe a valid image
+  // resource in order for the `load` event to be fired.
+  const params = {
+    body: `
+      <svg xmlns="http://www.w3.org/2000/svg" width="123" height="123">
+        <rect fill="lime" width="123" height="123"/>
+      </svg>
+    `,
+    mime: 'image/svg+xml'
+  };
+
+  function induceRequest(t, url, attributes) {
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '50px';
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    iframe.contentDocument.open();
+    iframe.contentDocument.close();
+
+    const image = iframe.contentDocument.createElement('img');
+    for (const [ name, value ] of Object.entries(attributes)) {
+      image.setAttribute(name, value);
+    }
+    iframe.contentDocument.body.appendChild(image);
+
+    image.setAttribute('srcset', `${url} 100w, /media/1x1-green.png 1w`);
+    image.setAttribute('sizes', '(max-width: 100px) 1px, (min-width: 150px) 123px');
+
+    return new Promise((resolve) => {
+        image.onload = image.onerror = resolve;
+      })
+      .then(() => {
+
+        iframe.style.width = '200px';
+
+        return new Promise((resolve) => image.onload = resolve);
+      });
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, [% subtest.origins %], params),
+        [%subtest.elementAttrs | default({}) | tojson%]
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("end", ", ")%][%subtest.elementAttrs | collection("attributes")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

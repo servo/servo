@@ -1,5 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 // META: script=/bluetooth/resources/bluetooth-test.js
@@ -8,8 +6,8 @@
 const test_desc = 'Reject with SecurityError if requesting a blocklisted ' +
     'service.';
 const expected = new DOMException(
-    'requestDevice() called with a filter containing a blocklisted UUID. ' +
-        'https://goo.gl/4NeimX',
+    'requestDevice() called with a filter containing a blocklisted UUID ' +
+    'or manufacturer data. https://goo.gl/4NeimX',
     'SecurityError');
 
 bluetooth_test(async () => {

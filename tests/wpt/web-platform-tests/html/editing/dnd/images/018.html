@@ -1,0 +1,49 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Dropping image on vertical page scrollbar</title>
+<style type="text/css">
+p:first-child
+  {padding-left:1em;}
+div
+  {width:1ex;
+  margin-left:auto;}
+img
+  {width:5px;
+  height:5px;}
+body
+  {height:3000px;}
+</style>
+<script type="application/ecmascript">
+function dragImage()
+  {event.dataTransfer.effectAllowed = 'copy';}
+function dropImage(event)
+  {document.querySelector('div').firstChild.nodeValue = 'P A S S';}
+</script>
+</head>
+<body ondragenter="event.preventDefault()" ondragover="return false">
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==" alt="PNG green pixel" ondragstart="dragImage()"/></p>
+<p>Drag little square above and drop it on vertical scrollbar. Word PASS should appear near scrollbar once you drop it.</p>
+<div>→ → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → →</div>
+<script>
+async function test(){
+  await new Promise(loaded => window.addEventListener("load", loaded));
+  const img = document.querySelector('img');
+  const div = document.querySelector('div');
+  function onDropCallBack(event) {
+    dropImage(event);
+    assert_equals('P A S S', div.firstChild.nodeValue);
+    return true;
+  }
+
+  dragDropTest(img, div, onDropCallBack, 'Dragging the image to the vertical scrollbar should copy it there');
+}
+test();
+</script>
+</body>
+</html>

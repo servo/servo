@@ -5,9 +5,7 @@
 function nestedLoaded() {
   parent.postMessage({ type: 'NESTED_LOADED' }, '*');
 }
-</script>
-<iframe id="nested" onload="nestedLoaded()"></iframe>
-<script>
+
 // Helper routine to make it slightly easier for our parent to find
 // the nested frame.
 function nested() {
@@ -18,5 +16,6 @@ function nested() {
 //       test the case where the initial about:blank document is not
 //       directly accessed before load.
 </script>
+<iframe id="nested" onload="nestedLoaded()"></iframe>
 </body>
 </html>

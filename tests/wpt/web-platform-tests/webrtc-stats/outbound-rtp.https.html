@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection getStats test related to outbound-rtp stats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+function extractOutboundRtpStats(stats) {
+  const wantedStats = [];
+  stats.forEach(report => {
+    if (report.type === 'outbound-rtp') {
+     wantedStats.push(report);
+    }
+  });
+  return wantedStats;
+}
+
+promise_test(async (test) => {
+  const pc1 = new RTCPeerConnection();
+  test.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  test.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({audio: true, video: true});
+  stream.getTracks().forEach(t => pc1.addTrack(t, stream));
+  exchangeOfferAnswer(pc1, pc2);
+  exchangeIceCandidates(pc1, pc2);
+  await listenToConnected(pc1);
+
+  let outboundStats = extractOutboundRtpStats(await pc1.getStats());
+  assert_equals(outboundStats.length, 2);
+  assert_true(outboundStats[0].active);
+  assert_true(outboundStats[1].active);
+
+  pc1.getSenders().forEach(async sender => {
+    const parameters = sender.getParameters();
+    parameters.encodings[0].active = false;
+    await sender.setParameters(parameters);
+  });
+  // Avoid any stats caching.
+  await (new Promise(r => test.step_timeout(r, 100)));
+
+  outboundStats = extractOutboundRtpStats(await pc1.getStats());
+  assert_equals(outboundStats.length, 2);
+  assert_false(outboundStats[0].active);
+  assert_false(outboundStats[1].active);
+}, 'setting an encoding to false is reflected in outbound-rtp stats');
+</script>

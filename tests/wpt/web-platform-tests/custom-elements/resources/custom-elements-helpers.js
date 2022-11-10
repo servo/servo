@@ -12,6 +12,20 @@ function create_window_in_test(t, srcdoc) {
   return p;
 }
 
+function create_window_in_test_async(test, mime, doc) {
+    return new Promise((resolve) => {
+        let iframe = document.createElement('iframe');
+        blob = new Blob([doc], {type: mime});
+        iframe.src = URL.createObjectURL(blob);
+        iframe.onload = (event) => {
+            let contentWindow = iframe.contentWindow;
+            test.add_cleanup(() => iframe.remove());
+            resolve(contentWindow);
+        };
+        document.body.appendChild(iframe);
+    });
+}
+
 function test_with_window(f, name, srcdoc) {
   promise_test((t) => {
     return create_window_in_test(t, srcdoc)

@@ -31,6 +31,15 @@ def pytest_configure(config):
     )
 
 
+def pytest_sessionfinish(session, exitstatus):
+    # Cleanup at the end of a test run
+    global _current_session
+
+    if _current_session is not None:
+        _current_session.end()
+        _current_session = None
+
+
 @pytest.fixture
 def capabilities():
     """Default capabilities to use for a new WebDriver session."""
@@ -239,3 +248,9 @@ def iframe(inline):
         return "<iframe src='{}'></iframe>".format(inline(src, **kwargs))
 
     return iframe
+
+
+@pytest.fixture
+async def top_context(bidi_session):
+    contexts = await bidi_session.browsing_context.get_tree()
+    return contexts[0]

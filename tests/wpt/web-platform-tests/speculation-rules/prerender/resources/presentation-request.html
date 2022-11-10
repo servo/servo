@@ -6,7 +6,7 @@
 assert_true(document.prerendering);
 
 async function startPresentationRequest() {
-  const bc = new BroadcastChannel('prerender-channel');
+  const bc = new PrerenderChannel('prerender-channel');
   const presentationRequest = new PresentationRequest(
       'https://example.com/presentation.html');
 

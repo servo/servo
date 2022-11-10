@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<!--
+This test was procedurally generated. Please do not modify it directly.
+Sources:
+- fetch/metadata/tools/fetch-metadata.conf.yml
+- fetch/metadata/tools/templates/element-link-prefetch.optional.sub.html
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <title>HTTP headers on request for HTML "link" element with rel="prefetch"</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  /**
+   * The `link` element supports a `load` event. That event would reliably
+   * indicate that the browser had received the request. Multiple major
+   * browsers do not implement the event, however, so in order to promote the
+   * visibility of this test, a less efficient polling-based detection
+   * mechanism is used.
+   *
+   * https://bugzilla.mozilla.org/show_bug.cgi?id=1638188
+   * https://bugs.chromium.org/p/chromium/issues/detail?id=1083034
+   */
+  function induceRequest(t, url, attributes) {
+    const link = document.createElement('link');
+    link.setAttribute('rel', 'prefetch');
+    link.setAttribute('href', url);
+
+    for (const [ name, value ] of Object.entries(attributes)) {
+      link.setAttribute(name, value);
+    }
+
+    document.head.appendChild(link);
+    t.add_cleanup(() => link.remove());
+  }
+
+  setup(() => {
+    assert_implements_optional(document.createElement('link').relList.supports('prefetch'));
+  });
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+      });
+  }, 'sec-fetch-site - Same origin no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - Cross-site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      });
+  }, 'sec-fetch-site - Same site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      });
+  }, 'sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - Cross-Site -> Same Origin no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - Cross-Site -> Same-Site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - Cross-Site -> Cross-Site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsOrigin', 'httpsOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+      });
+  }, 'sec-fetch-site - Same-Origin -> Same Origin no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsOrigin', 'httpsSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      });
+  }, 'sec-fetch-site - Same-Origin -> Same-Site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsSameSite', 'httpsOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      });
+  }, 'sec-fetch-site - Same-Site -> Same Origin no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsSameSite', 'httpsSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      });
+  }, 'sec-fetch-site - Same-Site -> Same-Site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - Same-Site -> Cross-Site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['no-cors']);
+      });
+  }, 'sec-fetch-mode no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"crossorigin": ""}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['cors']);
+      });
+  }, 'sec-fetch-mode attributes: crossorigin');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"crossorigin": "anonymous"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['cors']);
+      });
+  }, 'sec-fetch-mode attributes: crossorigin=anonymous');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"crossorigin": "use-credentials"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['cors']);
+      });
+  }, 'sec-fetch-mode attributes: crossorigin=use-credentials');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['empty']);
+      });
+  }, 'sec-fetch-dest no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "audio"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['audio']);
+      });
+  }, 'sec-fetch-dest attributes: as=audio');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "document"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['document']);
+      });
+  }, 'sec-fetch-dest attributes: as=document');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "embed"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['embed']);
+      });
+  }, 'sec-fetch-dest attributes: as=embed');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "fetch"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['fetch']);
+      });
+  }, 'sec-fetch-dest attributes: as=fetch');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "font"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['font']);
+      });
+  }, 'sec-fetch-dest attributes: as=font');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "image"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['image']);
+      });
+  }, 'sec-fetch-dest attributes: as=image');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "object"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['object']);
+      });
+  }, 'sec-fetch-dest attributes: as=object');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "script"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['script']);
+      });
+  }, 'sec-fetch-dest attributes: as=script');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "style"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['style']);
+      });
+  }, 'sec-fetch-dest attributes: as=style');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "track"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['track']);
+      });
+  }, 'sec-fetch-dest attributes: as=track');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "video"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['video']);
+      });
+  }, 'sec-fetch-dest attributes: as=video');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {"as": "worker"}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['worker']);
+      });
+  }, 'sec-fetch-dest attributes: as=worker');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, []),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+      });
+  }, 'sec-fetch-user no attributes');
+  </script>
+  </body>
+</html>
+

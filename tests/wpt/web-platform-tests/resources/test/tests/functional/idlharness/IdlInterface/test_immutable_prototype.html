@@ -2,10 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="variant" content="">
-  <meta name="variant" content="?keep-promise">
   <title>idlharness: Immutable prototypes</title>
-  <script src="../../../../variants.js"></script>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/WebIDLParser.js"></script>
@@ -13,13 +10,17 @@
 </head>
 <body>
 <script>
-"use strictt";
+"use strict";
 
 Object.defineProperty(window, "Foo", {
     enumerable: false,
     writable: true,
     configurable: true,
-    value: function Foo() {}
+    value: function Foo() {
+        if (!new.target) {
+            throw new TypeError('Foo() must be called with new');
+        }
+    }
   });
 Object.defineProperty(window.Foo, "prototype", {
     writable: false,

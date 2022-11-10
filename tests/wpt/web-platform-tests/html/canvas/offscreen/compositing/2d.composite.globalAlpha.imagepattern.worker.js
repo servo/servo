@@ -32,10 +32,9 @@ promise.then(function(response) {
         ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
         ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
         ctx.fillRect(0, 0, 100, 50);
-        _assertPixelApprox(canvas, 50,25, 2,253,0,255, "50,25", "2,253,0,255", 2);
+        _assertPixelApprox(canvas, 50,25, 2,253,0,255, 2);
     }, t_fail);
 }).then(t_pass, t_fail);
-t.done();
 
 });
 done();

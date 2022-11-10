@@ -38,13 +38,13 @@
                         ["getCoalescedEvents()[" + i + "].isPrimary", coalescedEvent.isPrimary, event.isPrimary],
                         ["getCoalescedEvents()[" + i + "].getCoalescedEvents().length", coalescedEvent.getCoalescedEvents().length, 0],
                         ["getCoalescedEvents()[" + i + "].getPredictedEvents().length", coalescedEvent.getPredictedEvents().length, 0],
-                        ["getCoalescedEvents()[" + i + "].target", coalescedEvent.target, target0],
+                        ["getCoalescedEvents()[" + i + "].target", coalescedEvent.target, null],
                         ["getCoalescedEvents()[" + i + "].currentTarget", coalescedEvent.currentTarget, null],
                         ["getCoalescedEvents()[" + i + "].eventPhase", coalescedEvent.eventPhase, Event.NONE],
                         ["getCoalescedEvents()[" + i + "].cancelable", coalescedEvent.cancelable, false],
                         ["getCoalescedEvents()[" + i + "].bubbles", coalescedEvent.bubbles, false],
-                        ["getCoalescedEvents()[" + i + "].offsetX", coalescedEvent.offsetX, event.offsetX + (i==0?-10:0)],
-                        ["getCoalescedEvents()[" + i + "].offsetY", coalescedEvent.offsetY, event.offsetY],
+                        ["getCoalescedEvents()[" + i + "].offsetX", coalescedEvent.offsetX, 310 + (i==0?-10:0)],
+                        ["getCoalescedEvents()[" + i + "].offsetY", coalescedEvent.offsetY, 0],
                     ]);
                 }
                 for (var i=0; i<event.getPredictedEvents().length; i++) {
@@ -55,13 +55,13 @@
                         ["getPredictedEvents()[" + i + "].isPrimary", predictedEvent.isPrimary, event.isPrimary],
                         ["getPredictedEvents()[" + i + "].getCoalescedEvents().length", predictedEvent.getCoalescedEvents().length, 0],
                         ["getPredictedEvents()[" + i + "].getPredictedEvents().length", predictedEvent.getPredictedEvents().length, 0],
-                        ["getPredictedEvents()[" + i + "].target", predictedEvent.target, target0],
+                        ["getPredictedEvents()[" + i + "].target", predictedEvent.target, null],
                         ["getPredictedEvents()[" + i + "].currentTarget", predictedEvent.currentTarget, null],
                         ["getPredictedEvents()[" + i + "].eventPhase", predictedEvent.eventPhase, Event.NONE],
                         ["getPredictedEvents()[" + i + "].cancelable", predictedEvent.cancelable, false],
                         ["getPredictedEvents()[" + i + "].bubbles", predictedEvent.bubbles, false],
-                        ["getPredictedEvents()[" + i + "].offsetX", predictedEvent.offsetX, event.offsetX + (i==0?10:20)],
-                        ["getPredictedEvents()[" + i + "].offsetY", predictedEvent.offsetY, event.offsetY],
+                        ["getPredictedEvents()[" + i + "].offsetX", predictedEvent.offsetX, 310 + (i==0?10:20)],
+                        ["getPredictedEvents()[" + i + "].offsetY", predictedEvent.offsetY, 0],
                     ]);
                 }
             }));

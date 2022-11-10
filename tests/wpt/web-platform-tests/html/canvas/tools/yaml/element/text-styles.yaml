@@ -1,7 +1,4 @@
 - name: 2d.text.font.parse.basic
-  testing:
-  - 2d.text.font.parse
-  - 2d.text.font.get
   code: |
     ctx.font = '20px serif';
     @assert ctx.font === '20px serif';
@@ -10,27 +7,16 @@
     @assert ctx.font === '20px serif'; @moz-todo
 
 - name: 2d.text.font.parse.tiny
-  testing:
-  - 2d.text.font.parse
-  - 2d.text.font.get
   code: |
     ctx.font = '1px sans-serif';
     @assert ctx.font === '1px sans-serif';
 
 - name: 2d.text.font.parse.complex
-  testing:
-  - 2d.text.font.parse
-  - 2d.text.font.get
-  - 2d.text.font.lineheight
   code: |
     ctx.font = 'small-caps italic 400 12px/2 Unknown Font, sans-serif';
     @assert ctx.font === 'italic small-caps 12px "Unknown Font", sans-serif'; @moz-todo
 
 - name: 2d.text.font.parse.family
-  testing:
-  - 2d.text.font.parse
-  - 2d.text.font.get
-  - 2d.text.font.lineheight
   code: |
     ctx.font = '20px cursive,fantasy,monospace,sans-serif,serif,UnquotedFont,"QuotedFont\\\\\\","';
     @assert ctx.font === '20px cursive, fantasy, monospace, sans-serif, serif, UnquotedFont, "QuotedFont\\\\\\","';
@@ -46,11 +32,6 @@
   #     in cm mm pt pc
 
 - name: 2d.text.font.parse.size.percentage
-  testing:
-  - 2d.text.font.parse
-  - 2d.text.font.get
-  - 2d.text.font.fontsize
-  - 2d.text.font.size
   canvas: 'style="font-size: 144px" width="100" height="50"'
   code: |
     ctx.font = '50% serif';
@@ -59,8 +40,6 @@
     @assert ctx.font === '72px serif'; @moz-todo
 
 - name: 2d.text.font.parse.size.percentage.default
-  testing:
-  - 2d.text.font.undefined
   code: |
     var canvas2 = document.createElement('canvas');
     var ctx2 = canvas2.getContext('2d');
@@ -69,17 +48,11 @@
 
 - name: 2d.text.font.parse.system
   desc: System fonts must be computed to explicit values
-  testing:
-  - 2d.text.font.parse
-  - 2d.text.font.get
-  - 2d.text.font.systemfonts
   code: |
     ctx.font = 'message-box';
     @assert ctx.font !== 'message-box';
 
 - name: 2d.text.font.parse.invalid
-  testing:
-  - 2d.text.font.invalid
   code: |
     ctx.font = '20px serif';
     @assert ctx.font === '20px serif';
@@ -129,14 +102,10 @@
     @assert ctx.font === '20px serif';
 
 - name: 2d.text.font.default
-  testing:
-  - 2d.text.font.default
   code: |
     @assert ctx.font === '10px sans-serif';
 
 - name: 2d.text.font.relative_size
-  testing:
-  - 2d.text.font.relative_size
   code: |
     var canvas2 = document.createElement('canvas');
     var ctx2 = canvas2.getContext('2d');
@@ -144,9 +113,6 @@
     @assert ctx2.font === '10px sans-serif';
 
 - name: 2d.text.align.valid
-  testing:
-  - 2d.text.align.get
-  - 2d.text.align.set
   code: |
     ctx.textAlign = 'start';
     @assert ctx.textAlign === 'start';
@@ -164,8 +130,6 @@
     @assert ctx.textAlign === 'center';
 
 - name: 2d.text.align.invalid
-  testing:
-  - 2d.text.align.invalid
   code: |
     ctx.textAlign = 'start';
     ctx.textAlign = 'bogus';
@@ -184,16 +148,11 @@
     @assert ctx.textAlign === 'start';
 
 - name: 2d.text.align.default
-  testing:
-  - 2d.text.align.default
   code: |
     @assert ctx.textAlign === 'start';
 
 
 - name: 2d.text.baseline.valid
-  testing:
-  - 2d.text.baseline.get
-  - 2d.text.baseline.set
   code: |
     ctx.textBaseline = 'top';
     @assert ctx.textBaseline === 'top';
@@ -214,8 +173,6 @@
     @assert ctx.textBaseline === 'bottom';
 
 - name: 2d.text.baseline.invalid
-  testing:
-  - 2d.text.baseline.invalid
   code: |
     ctx.textBaseline = 'top';
     ctx.textBaseline = 'bogus';
@@ -234,8 +191,6 @@
     @assert ctx.textBaseline === 'top';
 
 - name: 2d.text.baseline.default
-  testing:
-  - 2d.text.baseline.default
   code: |
     @assert ctx.textBaseline === 'alphabetic';
 
@@ -245,8 +200,6 @@
 
 - name: 2d.text.draw.baseline.top
   desc: textBaseline top is the top of the em square (not the bounding box)
-  testing:
-  - 2d.text.baseline.top
   fonts:
   - CanvasTest
   code: |
@@ -269,8 +222,6 @@
 
 - name: 2d.text.draw.baseline.bottom
   desc: textBaseline bottom is the bottom of the em square (not the bounding box)
-  testing:
-  - 2d.text.baseline.bottom
   fonts:
   - CanvasTest
   code: |
@@ -293,8 +244,6 @@
 
 - name: 2d.text.draw.baseline.middle
   desc: textBaseline middle is the middle of the em square (not the bounding box)
-  testing:
-  - 2d.text.baseline.middle
   fonts:
   - CanvasTest
   code: |
@@ -316,8 +265,6 @@
   expected: green
 
 - name: 2d.text.draw.baseline.alphabetic
-  testing:
-  - 2d.text.baseline.alphabetic
   fonts:
   - CanvasTest
   code: |
@@ -339,8 +286,6 @@
   expected: green
 
 - name: 2d.text.draw.baseline.ideographic
-  testing:
-  - 2d.text.baseline.ideographic
   fonts:
   - CanvasTest
   code: |
@@ -362,8 +307,6 @@
   expected: green
 
 - name: 2d.text.draw.baseline.hanging
-  testing:
-  - 2d.text.baseline.hanging
   fonts:
   - CanvasTest
   code: |
@@ -386,8 +329,6 @@
 
 - name: 2d.text.draw.space.collapse.space
   desc: Space characters are converted to U+0020, and collapsed (per CSS)
-  testing:
-  - 2d.text.draw.spaces
   fonts:
   - CanvasTest
   code: |
@@ -405,8 +346,6 @@
 
 - name: 2d.text.draw.space.collapse.other
   desc: Space characters are converted to U+0020, and collapsed (per CSS)
-  testing:
-  - 2d.text.draw.spaces
   fonts:
   - CanvasTest
   code: |
@@ -424,8 +363,6 @@
 
 - name: 2d.text.draw.space.collapse.start
   desc: Space characters at the start of a line are collapsed (per CSS)
-  testing:
-  - 2d.text.draw.spaces
   fonts:
   - CanvasTest
   code: |
@@ -443,8 +380,6 @@
 
 - name: 2d.text.draw.space.collapse.end
   desc: Space characters at the end of a line are collapsed (per CSS)
-  testing:
-  - 2d.text.draw.spaces
   fonts:
   - CanvasTest
   code: |
@@ -464,8 +399,6 @@
 
 - name: 2d.text.measure.width.space
   desc: Space characters are converted to U+0020 and collapsed (per CSS)
-  testing:
-  - 2d.text.measure.spaces
   fonts:
   - CanvasTest
   code: |
@@ -487,8 +420,6 @@
 
 - name: 2d.text.measure.rtl.text
   desc: Measurement should follow canvas direction instead text direction
-  testing:
-  - 2d.text.measure.rtl.text
   fonts:
   - CanvasTest
   code: |
@@ -500,8 +431,6 @@
 
 - name: 2d.text.measure.boundingBox.textAlign
   desc: Measurement should be related to textAlignment
-  testing:
-  - 2d.text.measure.boundingBox.textAlign
   code: |
     ctx.textAlign = "right";
     metrics = ctx.measureText('hello');
@@ -513,8 +442,6 @@
 
 - name: 2d.text.measure.boundingBox.direction
   desc: Measurement should follow text direction
-  testing:
-  - 2d.text.measure.boundingBox.direction
   code: |
     ctx.direction = "ltr";
     metrics = ctx.measureText('hello');

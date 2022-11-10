@@ -70,10 +70,6 @@
   test_selector_all(':has(:is(.target ~ .sibling .descendant))', [a, h, j]);
   test_selector_all('.parent:has(:is(.target ~ .sibling .descendant))', [h]);
   test_selector_all('.sibling:has(.descendant) ~ .target', [e]);
-  test_selector_all(':has(.sibling:has(.descendant) ~ .target)', [a, b]);
-  test_selector_all(
-      ':has(.sibling:has(.descendant) ~ .target) ~ .parent > .descendant',
-      [g, i, j]);
   test_selector_all(':has(> .parent)', [a]);
   test_selector_all(':has(> .target)', [b, f, h]);
   test_selector_all(':has(> .parent, > .target)', [a, b, f, h]);

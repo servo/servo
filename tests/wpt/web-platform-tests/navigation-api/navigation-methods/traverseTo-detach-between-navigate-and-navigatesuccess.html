@@ -1,0 +1,46 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="return-value/resources/helpers.js"></script>
+
+<iframe id="i" src="/common/blank.html"></iframe>
+
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    const iWindow = i.contentWindow;
+    const iDOMException = iWindow.DOMException;
+    const iNavigationHistoryEntry = iWindow.NavigationHistoryEntry;
+
+    i.contentWindow.navigation.navigate("#1").finished.then(t.step_func(() => {
+      assert_equals(i.contentWindow.navigation.entries().length, 2);
+      let key = i.contentWindow.navigation.entries()[0].key;
+
+      let onnavigateerror_called = false;
+      let result;
+
+      i.contentWindow.navigation.onnavigate = t.step_func(e => {
+        e.intercept({ handler: () => new Promise(resolve => t.step_timeout(resolve, 2)) });
+        t.step_timeout(() => i.remove(), 1);
+      });
+
+      i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("navigatesuccess must not fire");
+
+      i.contentWindow.navigation.onnavigateerror = t.step_func(e => {
+        assert_false(onnavigateerror_called);
+        onnavigateerror_called = true;
+        assert_equals(e.filename, location.href);
+        assert_greater_than(e.lineno, 0);
+        assert_greater_than(e.colno, 0);
+
+        assertCommittedFulfillsFinishedRejectsExactly(t, result, iWindow.navigation.currentEntry, e.error, iWindow, iDOMException, iNavigationHistoryEntry).then(
+          () => t.done(),
+          t.step_func(err => { throw err; })
+        );
+      });
+
+      result = i.contentWindow.navigation.traverseTo(key);
+    }));
+  });
+}, "Detach a window between when a traverseTo() fires navigate and navigatesuccess");
+</script>

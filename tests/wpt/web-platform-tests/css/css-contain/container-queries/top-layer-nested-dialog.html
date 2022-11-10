@@ -8,10 +8,10 @@
   dialog { color: red; }
   #container { width: 100px; }
   #container, #outer { container-type: inline-size; }
-  @container size(min-width: 200px) {
+  @container (min-width: 200px) {
     #outer { width: 400px; color: lime; }
   }
-  @container size(min-width: 400px) {
+  @container (min-width: 400px) {
     #inner { color: green; }
   }
 </style>

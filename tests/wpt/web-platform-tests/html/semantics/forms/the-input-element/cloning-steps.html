@@ -35,6 +35,15 @@ for (const inputType of inputTypes) {
   test(function() {
     var input = document.createElement("input");
     input.setAttribute("type", inputType);
+    input.indeterminate = true;
+
+    var copy = input.cloneNode();
+    assert_equals(copy.indeterminate, true);
+  }, `input[type=${inputType}] element's indeterminateness should be cloned`);
+
+  test(function() {
+    var input = document.createElement("input");
+    input.setAttribute("type", inputType);
     input.checked = true;
 
     var copy = input.cloneNode();

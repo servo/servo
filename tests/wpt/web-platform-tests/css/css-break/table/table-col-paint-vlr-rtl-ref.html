@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<style>
+body {
+  writing-mode: vertical-lr;
+  direction: rtl;
+}
+.multicol {
+  inline-size: 400px;
+  block-size: 100px;
+  columns: 4;
+  column-fill: auto;
+  gap: 0;
+}
+.pattern1 {
+  background: repeating-linear-gradient(to right, lime, lime 20px, blue 20px, blue 40px);
+}
+.pattern2 {
+  background: repeating-linear-gradient(to right, orange, orange 30px, dodgerblue 30px, dodgerblue 60px);
+}
+</style>
+<div class="multicol">
+  <div style="position: relative; inline-size: 100%; block-size: 400px;">
+    <div style="position: absolute; inset-block-start: 0; inline-size: 100%; background: red; block-size: 50px;"></div>
+    <div class="pattern1" style="position: absolute; inset-block-start: 60px; inset-inline-start: 10px; inline-size: calc(50% - 15px); block-size: 255px;"></div>
+    <div class="pattern2" style="position: absolute; inset-block-start: 60px; inset-inline-start: 55px; inline-size: calc(50% - 15px); block-size: 255px;"></div>
+    <div style="position: absolute; inset-block-start: 170px; inline-size: 100%; block-size: 10px; background: white;"></div>
+    <div style="position: absolute; inset-block-end: 0; inline-size: 100%; background: red; block-size: 75px;"></div>
+  </div>
+</div>

@@ -16,6 +16,14 @@ test_invalid_value('font-variant-east-asian', 'normal ruby');
 test_invalid_value('font-variant-east-asian', 'jis78 jis83');
 
 test_invalid_value('font-variant-east-asian', 'full-width proportional-width');
+
+test_invalid_value('font-variant-east-asian', 'normal garbage');
+test_invalid_value('font-variant-east-asian', 'normal none');
+test_invalid_value('font-variant-east-asian', 'normal 30px');
+
+test_invalid_value('font-variant-east-asian', 'full-width garbage');
+test_invalid_value('font-variant-east-asian', 'full-width none');
+test_invalid_value('font-variant-east-asian', 'full-width 30px');
 </script>
 </body>
 </html>

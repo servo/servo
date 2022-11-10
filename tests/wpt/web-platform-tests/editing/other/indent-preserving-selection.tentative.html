@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+<meta chareset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?styleWithCSS=false">
+<meta name="variant" content="?styleWithCSS=true">
+<title>Test preserving selection after indent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head>
+<body>
+<div contenteditable></div>
+<script>
+"use strict";
+
+const editor = document.querySelector("div[contenteditable]");
+const utils = new EditorTestUtils(editor);
+const styleWithCSS =
+  new URLSearchParams(document.location.search).get("styleWithCSS");
+document.execCommand("styleWithCSS", false, styleWithCSS);
+
+// Note that it's not scope of this test how browsers to indent the selected
+// content.
+
+// html: Initial HTML which will be set editor.innerHTML, it should contain
+//       selection range with a pair of "[" or "{" and "]" or "}".
+// expectedSelectedString: After executing "indent", compared with
+//                         getSelection().toString().replace(/[ \n\r]+/g, "")
+const tests = [
+  {
+    html: "<div>a[b]c</div>",
+    expectedSelectedString: "b",
+  },
+  {
+    html: "<div>a[bc</div><div>de]f</div>",
+    expectedSelectedString: "bcde",
+  },
+  {
+    html: "<ul><li>a[b]c</li></ul>",
+    expectedSelectedString: "b",
+  },
+  {
+    html: "<ul><li>a[bc</li><li>de]f</li></ul>",
+    expectedSelectedString: "bcde",
+  },
+  {
+    html: "<div>a[bc</div>" +
+          "<ul><li>de]f</li></ul>",
+    expectedSelectedString: "bcde",
+  },
+  {
+    html: "<ul><li>a[bc</li></ul>" +
+          "<ul><li>de]f</li></ul>",
+    expectedSelectedString: "bcde",
+  },
+  {
+    html: "<ul><li>abc</li><li>d[ef</li></ul>" +
+          "<ul><li>gh]i</li></ul>",
+    expectedSelectedString: "efgh",
+  },
+  {
+    html: "<ul><li>abc</li><li>d[ef</li></ul>" +
+          "<ul><li>gh]i</li><li>jkl</li></ul>",
+    expectedSelectedString: "efgh",
+  },
+  {
+    html: "<ul><ul><li>a[bc</li></ul><li>de]f</li></ul>",
+    expectedSelectedString: "bcde",
+  },
+  {
+    html: "<ol><ul><li>a[bc</li></ul><li>de]f</li></ol>",
+    expectedSelectedString: "bcde",
+  },
+  {
+    html: "<ul><li>a[bc</li><ul><li>de]f</li></ul></ul>",
+    expectedSelectedString: "bcde",
+  },
+  {
+    html: "<ol><li>a[bc</li><ul><li>de]f</li></ul></ol>",
+    expectedSelectedString: "bcde",
+  },
+];
+
+for (const t of tests) {
+  test(() => {
+    utils.setupEditingHost(t.html);
+    document.execCommand("indent");
+    assert_equals(
+      getSelection().toString().replace(/[ \n\r]+/g, ""),
+      t.expectedSelectedString,
+      `Result: ${editor.innerHTML}`
+    );
+  }, `Preserve selection after indent at ${t.html}`);
+}
+
+</script>
+</body>
+</html>

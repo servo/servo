@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html>
+<title>Static CSS animation</title>
+<style>
+
+p {
+  color: blue;
+}
+
+p::after {
+    content: "(::after)";
+}
+
+p::before {
+    content: "(::before)";
+}
+</style>
+<p>blue with animation support; olive without</p>

@@ -28,7 +28,7 @@
 
     img.promise
       .then(t.unreached_func("The image should not load."))
-      .catch(t.step_func_done());
+      .catch(t.step_func(() => { img.element().onload = t.step_func_done(); img.element().src = 'resources/image.png'; }));
   }, "Test that when deferred image is loaded, it uses the latest crossorigin attribute.");
 </script>
 

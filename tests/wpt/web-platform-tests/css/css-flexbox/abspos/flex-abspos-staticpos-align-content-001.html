@@ -9,6 +9,7 @@
   <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
   <link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
   <link rel="help" href="https://drafts.csswg.org/css-flexbox/#abspos-items">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7596#issuecomment-1225952646">
   <meta charset="utf-8">
   <style>
     .container {
@@ -38,10 +39,9 @@
       background: teal;
       height: 6px;
       width: 8px;
-      /* This "align-self" only gets a chance to take effect when our container
-         has "align-content: stretch". In that case, it helps us verify that
-         the container's "align-content: stretch" is actually taking effect
-         and stretching the flex line (and giving us space to center in). */
+      /* This "align-self" is actually the only alignment that matters here.
+         The flex containers' various "align-content" values have no impact on
+         the positioning of absolutely-positioned flex children. */
       align-self: center;
     }
   </style>
@@ -57,23 +57,23 @@
     <div class="container" style="align-content: normal"><div data-offset-x="2" data-offset-y="3"></div></div>
     <br>
     <!-- <baseline-position> -->
-    <div class="container" style="align-content: baseline"><div data-offset-x="2" data-offset-y="1"></div></div>
-    <div class="container" style="align-content: last baseline"><div data-offset-x="2" data-offset-y="5"></div></div>
+    <div class="container" style="align-content: baseline"><div data-offset-x="2" data-offset-y="3"></div></div>
+    <div class="container" style="align-content: last baseline"><div data-offset-x="2" data-offset-y="3"></div></div>
     <br>
     <!-- <content-distribution> -->
-    <div class="container" style="align-content: space-between"><div data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container" style="align-content: space-between"><div data-offset-x="2" data-offset-y="3"></div></div>
     <div class="container" style="align-content: space-around"><div data-offset-x="2" data-offset-y="3"></div></div>
     <div class="container" style="align-content: space-evenly"><div data-offset-x="2" data-offset-y="3"></div></div>
     <div class="container" style="align-content: stretch"><div data-offset-x="2" data-offset-y="3"></div></div>
     <br>
     <!-- <content-position>, part 1 -->
     <div class="container" style="align-content: center"><div data-offset-x="2" data-offset-y="3"></div></div>
-    <div class="container" style="align-content: start"><div data-offset-x="2" data-offset-y="1"></div></div>
-    <div class="container" style="align-content: end"><div data-offset-x="2" data-offset-y="5"></div></div>
+    <div class="container" style="align-content: start"><div data-offset-x="2" data-offset-y="3"></div></div>
+    <div class="container" style="align-content: end"><div data-offset-x="2" data-offset-y="3"></div></div>
     <br>
     <!-- <content-position>, part 2 -->
-    <div class="container" style="align-content: flex-start"><div data-offset-x="2" data-offset-y="1"></div></div>
-    <div class="container" style="align-content: flex-end"><div data-offset-x="2" data-offset-y="5"></div></div>
+    <div class="container" style="align-content: flex-start"><div data-offset-x="2" data-offset-y="3"></div></div>
+    <div class="container" style="align-content: flex-end"><div data-offset-x="2" data-offset-y="3"></div></div>
     <br>
   </div>
   <div class="small">
@@ -83,23 +83,23 @@
     <div class="container" style="align-content: normal"><div data-offset-x="2" data-offset-y="-1"></div></div>
     <br>
     <!-- <baseline-position> -->
-    <div class="container" style="align-content: baseline"><div data-offset-x="2" data-offset-y="1"></div></div>
-    <div class="container" style="align-content: last baseline"><div data-offset-x="2" data-offset-y="-3"></div></div>
+    <div class="container" style="align-content: baseline"><div data-offset-x="2" data-offset-y="-1"></div></div>
+    <div class="container" style="align-content: last baseline"><div data-offset-x="2" data-offset-y="-1"></div></div>
     <br>
     <!-- <content-distribution> -->
-    <div class="container" style="align-content: space-between"><div data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container" style="align-content: space-between"><div data-offset-x="2" data-offset-y="-1"></div></div>
     <div class="container" style="align-content: space-around"><div data-offset-x="2" data-offset-y="-1"></div></div>
     <div class="container" style="align-content: space-evenly"><div data-offset-x="2" data-offset-y="-1"></div></div>
     <div class="container" style="align-content: stretch"><div data-offset-x="2" data-offset-y="-1"></div></div>
     <br>
     <!-- <content-position>, part 1 -->
     <div class="container" style="align-content: center"><div data-offset-x="2" data-offset-y="-1"></div></div>
-    <div class="container" style="align-content: start"><div data-offset-x="2" data-offset-y="1"></div></div>
-    <div class="container" style="align-content: end"><div data-offset-x="2" data-offset-y="-3"></div></div>
+    <div class="container" style="align-content: start"><div data-offset-x="2" data-offset-y="-1"></div></div>
+    <div class="container" style="align-content: end"><div data-offset-x="2" data-offset-y="-1"></div></div>
     <br>
     <!-- <content-position>, part 2 -->
-    <div class="container" style="align-content: flex-start"><div data-offset-x="2" data-offset-y="1"></div></div>
-    <div class="container" style="align-content: flex-end"><div data-offset-x="2" data-offset-y="-3"></div></div>
+    <div class="container" style="align-content: flex-start"><div data-offset-x="2" data-offset-y="-1"></div></div>
+    <div class="container" style="align-content: flex-end"><div data-offset-x="2" data-offset-y="-1"></div></div>
     <br>
   </div>
 </body>

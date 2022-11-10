@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>mathvariant="double-struck" and font-style/font-weight</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#the-mathvariant-attribute">
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1789081">
+    <link rel="match" href="mathvariant-double-struck-font-style-font-weight-ref.html"/>
+    <meta name="assert" content="Verify that mathvariant='double-struck' don't reset the font-style/font-weight properties.">
+    <style>
+      @font-face {
+        font-family: TestFont;
+        src: url("/fonts/math/mathvariant-double-struck.woff");
+      }
+      .testfont {
+        font-family: TestFont;
+        font-size: 32px;
+      }
+      .italic { font-style: italic; }
+      .bold { font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if you see three lines with text <span class="testfont">&#x1EEA1;</span> respectively rendered with italic, bold and bold-italic style:</p>
+    <p><math class="testfont"><mtext mathvariant="double-struck" class="italic">&#x628;</mtext></math></p>
+    <p><math class="testfont"><mtext mathvariant="double-struck" class="bold">&#x628;</mtext></math></p>
+    <p><math class="testfont"><mtext mathvariant="double-struck" class="bold italic">&#x628;</mtext></math></p>
+  </body>
+</html>

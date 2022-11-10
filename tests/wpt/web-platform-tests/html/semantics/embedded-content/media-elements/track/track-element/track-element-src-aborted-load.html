@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>HTMLTrackElement 'src' attribute changed, load pending</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#start-the-track-processing-model">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video></video>
+<script>
+async_test(t => {
+  const track = document.createElement('track');
+  track.onload = t.unreached_func('first source should not load');
+  track.onerror = t.step_func_done();
+  track.src = 'resources/settings.vtt?pipe=trickle(d3600)';
+  track.track.mode = 'hidden';
+  document.querySelector('video').appendChild(track);
+  t.step_timeout(() => {
+    track.src = 'resources/entities.vtt';
+  }, 0);
+});
+</script>

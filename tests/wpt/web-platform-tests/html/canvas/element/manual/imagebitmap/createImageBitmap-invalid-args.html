@@ -209,7 +209,7 @@ promise_test( t => {
 }, "createImageBitmap with a broken image source.");
 
 promise_test( t => {
-  return makeAvailableButBrokenImage("/images/broken.png").then(image => {
+  return makeAvailableButBrokenImage("/images/undecodable.png").then(image => {
     return promise_rejects_dom(t, "InvalidStateError",
         createImageBitmap(image));
   });

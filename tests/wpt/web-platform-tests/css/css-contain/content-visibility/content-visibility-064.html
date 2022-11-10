@@ -13,12 +13,13 @@
 <style>
 .spacer {
   height: 1000px;
-  background: lightgreen;
+  background: lightblue;
 }
 #container {
   width: 150px;
   background: lightblue;
   contain-intrinsic-size: 50px 150px;
+  contain: paint;
 }
 #child {
   width: 150px;
@@ -30,7 +31,7 @@
 
   width: 50px;
   height: 50px;
-  background: red;
+  background: green;
 }
 .auto {
   content-visibility: auto;
@@ -41,7 +42,7 @@
 <div class=spacer></div>
 <div id=container class=auto>
   <div id=child></div>
-  <div id=target tabindex=0></div>
+  <div id=target tabindex=0>PASS</div>
 </div>
 <div class=spacer></div>
 <div>bottom of the page</div>

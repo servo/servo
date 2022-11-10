@@ -58,6 +58,6 @@ holger
 .. _`default plugins`: http://codespeak.net/py/dist/test/plugin/index.html
 .. _`distributed testing`: http://codespeak.net/py/dist/test/dist.html
 .. _`elastic distributed execution`: http://codespeak.net/py/dist/execnet.html
-.. _`1.0.0 py lib release`: http://pypi.python.org/pypi/py
+.. _`1.0.0 py lib release`: https://pypi.org/project/py/
 .. _`oejskit`: http://codespeak.net/py/dist/test/plugin/oejskit.html
 

@@ -11,7 +11,7 @@ function verifyPlaceholder(placeholder, expectedR, expectedG, expectedB, expecte
     canvas.width = canvas.height = 10;
     var ctx = canvas.getContext('2d');
     ctx.drawImage(placeholder, 0, 0);
-    _assertPixel(canvas, 5,5, expectedR, expectedG, expectedB, expectedA, "5,5", expectedClrStr);
+    _assertPixel(canvas, 5,5, expectedR, expectedG, expectedB, expectedA);
 }
 
 async_test(function(t) {

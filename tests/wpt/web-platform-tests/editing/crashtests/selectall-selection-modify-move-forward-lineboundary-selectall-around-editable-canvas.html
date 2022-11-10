@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+onload = () => {
+  document.querySelector("canvas[contenteditable]").blur();
+  document.execCommand("selectAll", false);
+  getSelection().modify("move", "forward", "lineboundary");
+  document.execCommand("selectAll", false);
+};
+</script>
+<canvas contenteditable="true">
+<audio controls>

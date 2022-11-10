@@ -28,4 +28,28 @@
   test(function() {
     assert_equals(CSS.supports("selector(div | .c)"), false);
   }, "selector() with unknown combinators");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(:is(:foo))"), false);
+  }, "selector() with forgiving :is, 1 arg");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(:is(:foo, div))"), false);
+  }, "selector() with forgiving :is, multiple args");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(:where(:foo))"), false);
+  }, "selector() with forgiving :where, 1 arg");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(:where(:foo, div))"), false);
+  }, "selector() with forgiving :where, multiple args");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(:has(:foo))"), false);
+  }, "selector() with forgiving :has, 1 arg");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(:has(:foo, div))"), false);
+  }, "selector() with forgiving :has, multiple args");
 </script>

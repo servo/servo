@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#propdef-animation-delay-start">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_invalid_value("animation-delay-start", "infinite");
+test_invalid_value("animation-delay-start", "0");
+test_invalid_value("animation-delay-start", "1s 2s");
+test_invalid_value("animation-delay-start", "1s / 2s");
+test_invalid_value("animation-delay-start", "100px");
+test_invalid_value("animation-delay-start", "100%");
+
+test_invalid_value("animation-delay-start", "peek 50%");
+test_invalid_value("animation-delay-start", "50% contain");
+test_invalid_value("animation-delay-start", "50% cover");
+test_invalid_value("animation-delay-start", "50% entry");
+test_invalid_value("animation-delay-start", "50% enter");
+test_invalid_value("animation-delay-start", "50% exit");
+test_invalid_value("animation-delay-start", "contain contain");
+test_invalid_value("animation-delay-start", "auto");
+test_invalid_value("animation-delay-start", "none");
+test_invalid_value("animation-delay-start", "cover 50% enter 50%");
+test_invalid_value("animation-delay-start", "cover 100px");
+test_invalid_value("animation-delay-start", "cover");
+test_invalid_value("animation-delay-start", "contain");
+test_invalid_value("animation-delay-start", "enter");
+test_invalid_value("animation-delay-start", "exit");
+</script>

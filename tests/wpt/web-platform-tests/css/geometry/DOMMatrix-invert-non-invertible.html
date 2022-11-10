@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.fxtf.org/geometry-1/#DOMMatrix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>Test DOMMatrix.inverse()/invertSelf() for non-invertible matrix</p>
+<script>
+function checkResult(m) {
+  assert_false(m.is2D, 'is2D');
+  assert_false(m.isIdentity, 'isIdentity');
+  assert_true(isNaN(m.m11), 'm11 isNaN');
+  assert_true(isNaN(m.m12), 'm12 isNaN');
+  assert_true(isNaN(m.m13), 'm13 isNaN');
+  assert_true(isNaN(m.m14), 'm14 isNaN');
+  assert_true(isNaN(m.m21), 'm21 isNaN');
+  assert_true(isNaN(m.m22), 'm22 isNaN');
+  assert_true(isNaN(m.m23), 'm23 isNaN');
+  assert_true(isNaN(m.m24), 'm24 isNaN');
+  assert_true(isNaN(m.m31), 'm31 isNaN');
+  assert_true(isNaN(m.m32), 'm32 isNaN');
+  assert_true(isNaN(m.m33), 'm33 isNaN');
+  assert_true(isNaN(m.m34), 'm34 isNaN');
+  assert_true(isNaN(m.m41), 'm41 isNaN');
+  assert_true(isNaN(m.m42), 'm42 isNaN');
+  assert_true(isNaN(m.m43), 'm43 isNaN');
+  assert_true(isNaN(m.m44), 'm44 isNaN');
+
+  var f32 = m.toFloat32Array();
+  assert_equals(f32.length, 16, 'toFloat32Array().length');
+  for (var i = 0; i < 16; i++)
+    assert_true(isNaN(f32[i]), 'toFloat32Array()[' + i + '] isNaN');
+
+  var f64 = m.toFloat64Array();
+  assert_equals(f64.length, 16, 'toFloat64Array().length');
+  for (var i = 0; i < 16; i++)
+    assert_true(isNaN(f64[i]), 'toFloat64()[' + i + '] isNaN');
+}
+
+test(function() {
+  var m = new DOMMatrix();
+  m.a = 0;
+  m.invertSelf();
+  checkResult(m);
+},"invertSelf()");
+
+test(function() {
+  var m = new DOMMatrix();
+  m.a = 0;
+  checkResult(m.inverse());
+},"inverse()");
+</script>

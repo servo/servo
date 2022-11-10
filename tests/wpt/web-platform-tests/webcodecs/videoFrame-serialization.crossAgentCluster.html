@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/common/get-host-info.sub.js'></script>
+  <script id='workerCode' type='javascript/worker'>
+    self.onmessage = (e) => {
+      postMessage(e.data);
+    };
+  </script>
+</head>
+<body>
+<script>
+const HELPER = '/webcodecs/videoFrame-serialization.crossAgentCluster.helper.html';
+const SAMEORIGIN_BASE = get_host_info().HTTP_ORIGIN;
+const CROSSORIGIN_BASE = get_host_info().HTTP_NOTSAMESITE_ORIGIN;
+const SAMEORIGIN_HELPER = SAMEORIGIN_BASE + HELPER;
+const CROSSORIGIN_HELPER = CROSSORIGIN_BASE + HELPER;
+
+promise_test(async () => {
+  const target = (await appendIframe(SAMEORIGIN_HELPER)).contentWindow;
+  let frame = createVideoFrame(10);
+  assert_true(await canSendVideoFrame(target, frame));
+}, 'Verify frames can be passed within the same agent clusters');
+
+promise_test(async () => {
+  const target = (await appendIframe(CROSSORIGIN_HELPER)).contentWindow;
+  let frame = createVideoFrame(20);
+  assert_false(await canSendVideoFrame(target, frame));
+}, 'Verify frames cannot be passed accross the different agent clusters');
+
+promise_test(async () => {
+  const blob = new Blob([document.querySelector('#workerCode').textContent], {
+    type: 'text/javascript',
+  });
+  const worker = new Worker(window.URL.createObjectURL(blob));
+  let frame = createVideoFrame(30);
+  worker.postMessage(frame);
+  const received = await new Promise(resolve => worker.onmessage = e => {
+    resolve(e.data);
+  });
+  assert_equals(received.toString(), '[object VideoFrame]');
+  assert_equals(received.timestamp, 30);
+}, 'Verify frames can be passed back and forth between main and worker');
+
+function appendIframe(src) {
+  const frame = document.createElement('iframe');
+  document.body.appendChild(frame);
+  frame.src = src;
+  return new Promise(resolve => frame.onload = () => resolve(frame));
+};
+
+function createVideoFrame(ts) {
+  let data = new Uint8Array([
+    1, 2, 3, 4, 5, 6, 7, 8,
+    9, 10, 11, 12, 13, 14, 15, 16,
+  ]);
+  return new VideoFrame(data, {
+    timestamp: ts,
+    codedWidth: 2,
+    codedHeight: 2,
+    format: 'RGBA',
+  });
+}
+
+function canSendVideoFrame(target, vf) {
+  target.postMessage(vf, '*');
+  target.postMessage({'id': vf.timestamp}, '*');
+  return new Promise(resolve => window.onmessage = e => {
+    resolve(e.data == 'RECEIVED');
+  });
+};
+</script>
+</body>
+</html>

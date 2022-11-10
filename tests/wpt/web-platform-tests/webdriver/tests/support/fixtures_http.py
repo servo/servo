@@ -150,3 +150,27 @@ def create_frame(session):
         return session.execute_script(append)
 
     return create_frame
+
+
+@pytest.fixture
+def stale_element(current_session, iframe, inline):
+    """Create a stale element reference
+
+    The given document will be loaded in the top-level or child browsing context.
+    Before the requested element is returned it is removed from the document's DOM.
+    """
+    def stale_element(doc, css_value, as_frame=False):
+        if as_frame:
+            current_session.url = inline(iframe(doc))
+            frame = current_session.find.css("iframe", all=False)
+            current_session.switch_frame(frame)
+        else:
+            current_session.url = inline(doc)
+
+        element = current_session.find.css(css_value, all=False)
+
+        current_session.execute_script("arguments[0].remove();", args=[element])
+
+        return element
+
+    return stale_element

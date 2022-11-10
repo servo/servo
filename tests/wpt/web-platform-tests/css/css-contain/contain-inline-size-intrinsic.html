@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>contain:inline-size with contain-intrinsic-size</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#containment-inline-size">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#propdef-contain-intrinsic-size">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="background:green; contain:inline-size; height:50px; width:fit-content; contain-intrinsic-inline-size:100px">
+  <div style="display:inline-block; width:75px;"></div>
+  <div style="display:inline-block; width:75px;"></div>
+</div>
+<div style="background:green; contain:inline-size; height:fit-content; width:100px; contain-intrinsic-inline-size:50px; writing-mode: vertical-rl;">
+  <div style="display:inline-block; height:35px;"></div>
+  <div style="display:inline-block; height:35px;"></div>
+</div>

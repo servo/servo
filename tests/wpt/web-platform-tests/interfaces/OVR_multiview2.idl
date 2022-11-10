@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: WebGL OVR_multiview2 Extension Specification (https://www.khronos.org/registry/webgl/extensions/OVR_multiview2/)
+// Source: WebGL OVR_multiview2 Extension Specification (https://registry.khronos.org/webgl/extensions/OVR_multiview2/)
 
 [Exposed=(Window,Worker), LegacyNoInterfaceObject]
 interface OVR_multiview2 {

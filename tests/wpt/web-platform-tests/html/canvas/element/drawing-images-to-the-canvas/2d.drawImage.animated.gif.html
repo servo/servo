@@ -22,7 +22,7 @@ _addTest(function(canvas, ctx) {
 deferTest();
 step_timeout(t.step_func_done(function () {
     ctx.drawImage(document.getElementById('anim-gr.gif'), 0, 0);
-    _assertPixelApprox(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
+    _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
 }), 500);
 
 

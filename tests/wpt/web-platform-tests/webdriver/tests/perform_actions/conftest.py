@@ -2,6 +2,8 @@ import pytest
 
 from webdriver.error import NoSuchWindowException
 
+from tests.perform_actions.support.keys import Keys
+
 
 @pytest.fixture
 def session_new_window(capabilities, session):
@@ -72,6 +74,14 @@ def key_reporter(session, test_actions_page, request):
     input_el.click()
     session.execute_script("resetEvents();")
     return input_el
+
+
+@pytest.fixture
+def modifier_key(session):
+    if session.capabilities["platformName"] == "mac":
+        return Keys.META
+    else:
+        return Keys.CONTROL
 
 
 @pytest.fixture

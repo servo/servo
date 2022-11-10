@@ -74,13 +74,24 @@ const testCases = [
 ];
 
 for (let testCase of testCases) {
-  const style = document.createElement('style');
-  style.appendChild(document.createTextNode(testCase.style));
-  document.head.appendChild(style);
-
-  test(function () {
+  promise_test(async function (t) {
     assert_implements(window.CSSLayerBlockRule);
     assert_implements(window.CSSLayerStatementRule);
+
+    const style = document.createElement('style');
+    t.add_cleanup(() => style.remove());
+
+    const isLoadAsync = testCase.style.includes("@import");
+    const load = new Promise(resolve => {
+      style.addEventListener("load", resolve, { once: true });
+    });
+
+    style.appendChild(document.createTextNode(testCase.style));
+    document.head.appendChild(style);
+
+    if (isLoadAsync) {
+      await load;
+    }
 
     let index = 0;
     function compareNames(ruleOrSheet) {
@@ -98,7 +109,5 @@ for (let testCase of testCases) {
     compareNames(style.sheet);
     assert_equals(index, testCase.expectedNames.length);
   }, testCase.title);
-
-  style.remove();
 }
 </script>

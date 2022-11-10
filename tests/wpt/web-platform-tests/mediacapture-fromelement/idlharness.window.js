@@ -9,11 +9,16 @@ idl_test(
   ['mediacapture-fromelement'],
   ['mediacapture-streams', 'html', 'dom'],
   idl_array => {
-    // Ignored errors will be surfaced when media/canvas undefined below.
+    // Ignored errors will be surfaced when the elements are undefined below.
     try {
-      self.media = document.createElement('media');
-      media.width = media.height = 10;
-      document.body.appendChild(media);
+      self.video = document.createElement('video');
+      video.width = video.height = 10;
+      document.body.appendChild(video);
+    } catch (e) { }
+
+    try {
+      self.audio = document.createElement('audio');
+      document.body.appendChild(audio);
     } catch (e) { }
 
     try {
@@ -24,7 +29,8 @@ idl_test(
     } catch (e) { }
 
     idl_array.add_objects({
-      HTMLMediaElement: ['media'],
+      HTMLVideoElement: ['video'],
+      HTMLAudioElement: ['audio'],
       HTMLCanvasElement: ['canvas'],
       CanvasCaptureMediaStreamTrack: ['track'],
     });

@@ -1,11 +1,16 @@
+# mypy: allow-untyped-defs
+
 import logging
+import os
 import inspect
+import requests
 import subprocess
 import sys
 from unittest import mock
 
 import pytest
 
+from packaging.specifiers import SpecifierSet
 from tools.wpt import browser
 
 
@@ -59,15 +64,15 @@ def test_edgechromium_webdriver_version(mocked_call):
     webdriver_binary = '/usr/bin/edgedriver'
 
     # Working cases.
-    mocked_call.return_value = 'MSEdgeDriver 84.0.4147.30'
+    mocked_call.return_value = 'Microsoft Edge WebDriver 84.0.4147.30'
     assert edge.webdriver_version(webdriver_binary) == '84.0.4147.30'
-    mocked_call.return_value = 'MSEdgeDriver 87.0.1 (abcd1234-refs/branch-heads/4147@{#310})'
+    mocked_call.return_value = 'Microsoft Edge WebDriver 87.0.1 (abcd1234-refs/branch-heads/4147@{#310})'
     assert edge.webdriver_version(webdriver_binary) == '87.0.1'
 
     # Various invalid version strings
     mocked_call.return_value = 'Edge 84.0.4147.30 (dev)'
     assert edge.webdriver_version(webdriver_binary) is None
-    mocked_call.return_value = 'MSEdgeDriver New 84.0.4147.30'
+    mocked_call.return_value = 'Microsoft Edge WebDriver New 84.0.4147.30'
     assert edge.webdriver_version(webdriver_binary) is None
     mocked_call.return_value = ''
     assert edge.webdriver_version(webdriver_binary) is None
@@ -109,6 +114,31 @@ def test_chrome_webdriver_supports_browser():
     assert chrome.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome', 'dev')
     chrome.webdriver_version = mock.MagicMock(return_value='71.0.1')
     assert chrome.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome', 'dev')
+
+
+def test_chromium_webdriver_supports_browser():
+    # ChromeDriver binary cannot be called.
+    chromium = browser.Chromium(logger)
+    chromium.webdriver_version = mock.MagicMock(return_value=None)
+    assert not chromium.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome')
+
+    # Browser binary cannot be called.
+    chromium = browser.Chromium(logger)
+    chromium.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chromium.version = mock.MagicMock(return_value=None)
+    assert chromium.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome')
+
+    # Browser version matches.
+    chromium = browser.Chromium(logger)
+    chromium.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chromium.version = mock.MagicMock(return_value='70.0.1')
+    assert chromium.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome')
+
+    # Browser version doesn't match.
+    chromium = browser.Chromium(logger)
+    chromium.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chromium.version = mock.MagicMock(return_value='69.0.1')
+    assert not chromium.webdriver_supports_browser('/usr/bin/chromedriver', '/usr/bin/chrome', 'stable')
 
 
 # On Windows, webdriver_version directly calls _get_fileversion, so there is no
@@ -165,6 +195,131 @@ def test_safari_version_errors(mocked_check_output):
     mocked_check_output.return_value = b'dummy'
     mocked_check_output.side_effect = subprocess.CalledProcessError(1, 'cmd')
     assert safari.version(webdriver_binary="safaridriver") is None
+
+
+@pytest.mark.parametrize(
+    "page_path",
+    sorted(
+        p.path
+        for p in os.scandir(os.path.join(os.path.dirname(__file__), "safari-downloads"))
+        if p.name.endswith(".html")
+    ),
+)
+@mock.patch("tools.wpt.browser.get")
+def test_safari_find_downloads_stp(mocked_get, page_path):
+    safari = browser.Safari(logger)
+
+    # Setup mock
+    response = requests.models.Response()
+    response.status_code = 200
+    response.encoding = "utf-8"
+    with open(page_path, "rb") as fp:
+        response._content = fp.read()
+    mocked_get.return_value = response
+
+    downloads = safari._find_downloads()
+
+    if page_path.endswith(
+        (
+            "2022-07-05.html",
+        )
+    ):
+        # occasionally STP is only shipped for a single OS version
+        assert len(downloads) == 1
+    else:
+        assert len(downloads) == 2
+
+
+@mock.patch("tools.wpt.browser.get")
+def test_safari_find_downloads_stp_20180517(mocked_get):
+    safari = browser.Safari(logger)
+    page_path = os.path.join(os.path.dirname(__file__), "safari-downloads", "2018-05-17.html")
+
+    # Setup mock
+    response = requests.models.Response()
+    response.status_code = 200
+    response.encoding = "utf-8"
+    with open(page_path, "rb") as fp:
+        response._content = fp.read()
+    mocked_get.return_value = response
+
+    downloads = safari._find_downloads()
+
+    assert len(downloads) == 2
+
+    assert downloads[0][0] == SpecifierSet("==10.13.*")
+    assert "10.12" not in downloads[0][0]
+    assert "10.13" in downloads[0][0]
+    assert "10.13.3" in downloads[0][0]
+    assert "10.14" not in downloads[0][0]
+
+    assert downloads[1][0] == SpecifierSet("~=10.12.6")
+    assert "10.12" not in downloads[1][0]
+    assert "10.12.6" in downloads[1][0]
+    assert "10.12.9" in downloads[1][0]
+    assert "10.13" not in downloads[1][0]
+
+
+@mock.patch("tools.wpt.browser.get")
+def test_safari_find_downloads_stp_20220529(mocked_get):
+    safari = browser.Safari(logger)
+    page_path = os.path.join(os.path.dirname(__file__), "safari-downloads", "2022-05-29.html")
+
+    # Setup mock
+    response = requests.models.Response()
+    response.status_code = 200
+    response.encoding = "utf-8"
+    with open(page_path, "rb") as fp:
+        response._content = fp.read()
+    mocked_get.return_value = response
+
+    downloads = safari._find_downloads()
+
+    assert len(downloads) == 2
+
+    assert downloads[0][0] == SpecifierSet("==12.*")
+    assert "11.4" not in downloads[0][0]
+    assert "12.0" in downloads[0][0]
+    assert "12.5" in downloads[0][0]
+    assert "13.0" not in downloads[0][0]
+
+    assert downloads[1][0] == SpecifierSet("==11.*")
+    assert "10.15.7" not in downloads[1][0]
+    assert "11.0.1" in downloads[1][0]
+    assert "11.3" in downloads[1][0]
+    assert "11.5" in downloads[1][0]
+    assert "12.0" not in downloads[1][0]
+
+
+@mock.patch("tools.wpt.browser.get")
+def test_safari_find_downloads_stp_20220707(mocked_get):
+    safari = browser.Safari(logger)
+    page_path = os.path.join(os.path.dirname(__file__), "safari-downloads", "2022-07-07.html")
+
+    # Setup mock
+    response = requests.models.Response()
+    response.status_code = 200
+    response.encoding = "utf-8"
+    with open(page_path, "rb") as fp:
+        response._content = fp.read()
+    mocked_get.return_value = response
+
+    downloads = safari._find_downloads()
+
+    assert len(downloads) == 2
+
+    assert downloads[0][0] == SpecifierSet("==13.*")
+    assert "12.4" not in downloads[0][0]
+    assert "13.0" in downloads[0][0]
+    assert "13.5" in downloads[0][0]
+    assert "14.0" not in downloads[0][0]
+
+    assert downloads[1][0] == SpecifierSet("~=12.3")
+    assert "11.5" not in downloads[1][0]
+    assert "12.2" not in downloads[1][0]
+    assert "12.3" in downloads[1][0]
+    assert "12.5" in downloads[1][0]
+    assert "13.0" not in downloads[1][0]
 
 
 @mock.patch('subprocess.check_output')

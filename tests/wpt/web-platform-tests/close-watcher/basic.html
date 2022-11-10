@@ -1,0 +1,167 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id='d' style='height: 100px; width: 100px'></div>
+<script>
+// *not* \uu001B; see https://w3c.github.io/webdriver/#keyboard-actions
+const ESC = '\uE00C';
+
+test(() => {
+  let watcher = new CloseWatcher();
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = e => {
+    assert_equals(e.constructor, Event);
+    assert_false(e.cancelable);
+    assert_false(e.bubbles);
+    onclose_called = true;
+  }
+
+  watcher.close();
+
+  assert_false(oncancel_called);
+  assert_true(onclose_called);
+}, "close() with no user activation only fires close");
+
+test(() => {
+  let watcher = new CloseWatcher();
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = () => onclose_called = true;
+
+  watcher.destroy();
+  watcher.close();
+
+  assert_false(oncancel_called);
+  assert_false(onclose_called);
+}, "destroy() then close() fires no events");
+
+test(() => {
+  let watcher = new CloseWatcher();
+  let oncancel_call_count_ = 0;
+  let onclose_call_count_ = 0;
+  watcher.oncancel = () => oncancel_call_count_++;
+  watcher.onclose = () => onclose_call_count_++;
+
+  watcher.close();
+  watcher.destroy();
+  assert_equals(oncancel_call_count_, 0);
+  assert_equals(onclose_call_count_, 1);
+}, "close() then destroy() fires only one close event");
+
+promise_test(async t => {
+  let watcher = new CloseWatcher();
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = () => onclose_called = true;
+
+  await test_driver.send_keys(document.getElementById('d'), ESC);
+
+  assert_false(oncancel_called);
+  assert_true(onclose_called);
+}, "Esc key does not count as user activation, so it fires close but not cancel");
+
+promise_test(async t => {
+  let watcher = new CloseWatcher();
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = () => onclose_called = true;
+
+  watcher.destroy();
+  await test_driver.send_keys(document.getElementById('d'), ESC);
+
+  assert_false(oncancel_called);
+  assert_false(onclose_called);
+}, "destroy() then close via Esc key fires no events");
+
+promise_test(async t => {
+  let watcher = new CloseWatcher();
+  let oncancel_call_count_ = 0;
+  let onclose_call_count_ = 0;
+  watcher.oncancel = () => oncancel_call_count_++;
+  watcher.onclose = () => onclose_call_count_++;
+
+  await test_driver.send_keys(document.getElementById('d'), ESC);
+  watcher.destroy();
+
+  assert_equals(oncancel_call_count_, 0);
+  assert_equals(onclose_call_count_, 1);
+}, "Esc key then destroy() fires only one close event");
+
+test(t => {
+  let watcher = new CloseWatcher();
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = () => onclose_called = true;
+
+  t.add_cleanup(() => watcher.destroy());
+
+  let keydown = new KeyboardEvent('keydown', {'key': 'Escape', 'keyCode': 27});
+  window.dispatchEvent(keydown);
+  let keyup = new KeyboardEvent('keyup', {'key': 'Escape', 'keyCode': 27});
+  window.dispatchEvent(keyup);
+
+  assert_false(oncancel_called);
+  assert_false(onclose_called);
+
+  let keyup2 = document.createEvent("Event");
+  keyup2.initEvent("keyup", true);
+  window.dispatchEvent(keyup2);
+
+  assert_false(oncancel_called);
+  assert_false(onclose_called);
+}, "close via synthesized escape key should not work");
+
+promise_test(async t => {
+  let watcher = new CloseWatcher();
+  watcher.oncancel = () => { watcher.destroy(); }
+  watcher.onclose = t.unreached_func("onclose");
+  await test_driver.bless("give user activation so that cancel will fire", () => {
+    watcher.close();
+  });
+}, "destroy inside oncancel");
+
+test(t => {
+  let watcher = new CloseWatcher();
+  watcher.onclose = () => { watcher.destroy(); }
+  watcher.close();
+}, "destroy inside onclose is benign");
+
+promise_test(async t => {
+  let watcher = new CloseWatcher();
+  watcher.oncancel = () => { watcher.close(); }
+  await test_driver.bless("give user activation so that cancel will fire", () => {
+    watcher.close();
+  });
+}, "close inside oncancel should not trigger an infinite loop");
+
+test(t => {
+  let watcher = new CloseWatcher();
+  watcher.onclose = () => { watcher.close(); }
+  watcher.close();
+}, "close inside onclose should not trigger an infinite loop");
+
+promise_test(async () => {
+  let watcher = new CloseWatcher();
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.addEventListener("cancel", () => oncancel_called = true);
+  watcher.addEventListener("close", () => onclose_called = true);
+
+  await test_driver.bless("give user activation so that cancel will fire", () => {
+    watcher.close();
+  });
+
+  assert_true(oncancel_called);
+  assert_true(onclose_called);
+}, "close with events added via addEventListener");
+</script>

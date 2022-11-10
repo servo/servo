@@ -2,7 +2,7 @@ import pytest
 
 @pytest.fixture
 def checkbox_dom(inline):
-    return inline("""
+    return """
         <style>
             custom-checkbox-element {
                 display:block; width:20px; height:20px;
@@ -19,4 +19,4 @@ def checkbox_dom(inline):
                             `;
                         }
                 });
-        </script>""")
+        </script>"""

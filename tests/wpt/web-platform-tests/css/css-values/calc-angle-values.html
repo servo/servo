@@ -20,7 +20,7 @@
   <link rel="help" href="https://www.w3.org/TR/css-values-3/#calc-computed-value">
   <link rel="help" href="https://www.w3.org/TR/css-values-3/#angles">
 
-  <meta content="This test checks that additions, substractions, multiplications and divisions in calc() function when applied to angle units." name="assert">
+  <meta content="This test checks that additions, subtractions, multiplications and divisions in calc() function when applied to angle units." name="assert">
 
   <script src="/resources/testharness.js"></script>
 
@@ -34,103 +34,94 @@
   <script>
   function startTesting()
   {
+    /*
+    In this mega-test of 27 sub-tests, we intentionally
+    set the tolerance precision (epsilon) to a rather big
+    value (0.0001 === 100 millionths). The reason for this
+    is we want to verify if browsers and CSS-capable
+    applications do the right calculations. We do not want
+    to penalize browsers and CSS-capable applications that
+    have modest precision (not capable of a 1 millionth
+    level precision).
+    */
 
- /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+    // testTransformValuesCloseTo(property_name, calcValue, epsilon, expectedValue, description)
 
-    compareValueCloseTo("transform", "rotate(calc(45deg + 45deg))", 0.0001, "rotate(90deg)", "addition of 2 angle units: deg plus deg");
+    testTransformValuesCloseTo("rotate(calc(45deg + 45deg))", 0.0001, "rotate(90deg)", "addition of 2 angle units: deg plus deg");
 
-    compareValueCloseTo("transform", "rotate(calc(45deg + 1rad))", 0.0001, "rotate(102.29578deg)", "addition of 2 angle units: deg plus rad");
+    testTransformValuesCloseTo("rotate(calc(45deg + 1rad))", 0.0001, "rotate(102.29578deg)", "addition of 2 angle units: deg plus rad");
     /*
     1 radian == 57.295779513 degrees
     The original test was using the slightly imprecise rotate(102.3deg)
     */
 
-    compareValueCloseTo("transform", "rotate(calc(20deg + 200grad))", 0.0001, "rotate(200deg)", "addition of 2 angle units: deg plus grad");
+    testTransformValuesCloseTo("rotate(calc(20deg + 200grad))", 0.0001, "rotate(200deg)", "addition of 2 angle units: deg plus grad");
 
-    compareValueCloseTo("transform", "rotate(calc(200deg + 0.5turn))", 0.0001, "rotate(380deg)", "addition of 2 angle units: deg plus turn");
+    testTransformValuesCloseTo("rotate(calc(200deg + 0.5turn))", 0.0001, "rotate(380deg)", "addition of 2 angle units: deg plus turn");
 
-    compareValueCloseTo("transform", "rotate(calc(45rad + 45rad))", 0.0001, "rotate(90rad)", "addition of 2 angle units: rad plus rad");
+    testTransformValuesCloseTo("rotate(calc(45rad + 45rad))", 0.0001, "rotate(90rad)", "addition of 2 angle units: rad plus rad");
 
-    compareValueCloseTo("transform", "rotate(calc(1rad + 40grad))", 0.0001, "rotate(93.29578deg)", "addition of 2 angle units: rad plus grad");
-
-    /*
-    1 radian == 57.295779513 degrees; 40 gradians is 36 degrees.
-    */
-
-    compareValueCloseTo("transform", "rotate(calc(1rad + 0.5turn))", 0.0001, "rotate(237.29578deg)", "addition of 2 angle units: rad plus turn");
-
-    compareValueCloseTo("transform", "rotate(calc(45grad + 45grad))", 0.0001, "rotate(90grad)", "addition of 2 angle units: grad plus grad");
-
-    compareValueCloseTo("transform", "rotate(calc(10grad + 0.5turn))", 0.0001, "rotate(189deg)", "addition of 2 angle units: grad plus turn");
-
-    /*
-    10 gradians is 9 degrees.
-    */
-
- /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+    testTransformValuesCloseTo("rotate(calc(1rad + 40grad))", 0.0001, "rotate(93.29578deg)", "addition of 2 angle units: rad plus grad");
 
 
-   /* Substraction of angle unit */
-
- /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
-
-    compareValueCloseTo("transform", "rotate(calc(45deg - 15deg))", 0.0001, "rotate(30deg)", "substraction of angle unit: deg minus deg");
-
-    compareValueCloseTo("transform", "rotate(calc(90deg - 1rad))", 0.0001, "rotate(32.70422deg)", "substraction of angle unit: deg minus rad");
-
-    /*
-    1 radian == 57.295779513 degrees
-    */
-
-    compareValueCloseTo("transform", "rotate(calc(38deg - 20grad))", 0.0001, "rotate(20deg)", "substraction of angle unit: deg minus grad");
-
-    compareValueCloseTo("transform", "rotate(calc(360deg - 0.5turn))", 0.0001, "rotate(180deg)", "substraction of angle unit: deg minus turn");
-
-    compareValueCloseTo("transform", "rotate(calc(45rad - 15rad))", 0.0001, "rotate(30rad)", "substraction of angle unit: rad minus rad");
-
-    compareValueCloseTo("transform", "rotate(calc(30rad - 10grad))", 0.0001, "rotate(1709.87339deg)", "substraction of angle unit: rad minus grad");
-
-    /*
-    30 radians is 1718.8733854 degrees ; 10 gradians is 9 degrees.
-    */
-
-    compareValueCloseTo("transform", "rotate(calc(4rad - 0.1turn))", 0.0001, "rotate(193.18312deg)", "substraction of angle unit: rad minus turn");
-
-    /*
-    4 radians is 229.183118052 degrees ; 0.1 turn is 36 degrees.
-    */
-
-    compareValueCloseTo("transform", "rotate(calc(45grad - 15grad))", 0.0001, "rotate(30grad)", "substraction of angle unit: grad minus grad");
-
-    compareValueCloseTo("transform", "rotate(calc(100grad - 0.25turn))", 0.0001, "rotate(0deg)", "substraction of angle unit: grad minus turn");
+    // 1 radian == 57.295779513 degrees; 40 gradians is 36 degrees.
 
 
-   /* Multiplication of angle unit */
+    testTransformValuesCloseTo("rotate(calc(1rad + 0.5turn))", 0.0001, "rotate(237.29578deg)", "addition of 2 angle units: rad plus turn");
 
- /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+    testTransformValuesCloseTo("rotate(calc(45grad + 45grad))", 0.0001, "rotate(90grad)", "addition of 2 angle units: grad plus grad");
 
-    compareValueCloseTo("transform", "rotate(calc(45deg * 2))", 0.0001, "rotate(90deg)", "multiplication of angle unit: deg multiplied by int");
+    testTransformValuesCloseTo("rotate(calc(10grad + 0.5turn))", 0.0001, "rotate(189deg)", "addition of 2 angle units: grad plus turn");
 
-    compareValueCloseTo("transform", "rotate(calc(2 * 45rad))", 0.0001, "rotate(90rad)", "multiplication of angle unit: int multiplied by rad");
+    // 10 gradians is 9 degrees.
 
-    compareValueCloseTo("transform", "rotate(calc(45grad * 2))", 0.0001, "rotate(90grad)", "multiplication of angle unit: grad multiplied by int");
+    // subtraction of angle unit
 
-    compareValueCloseTo("transform", "rotate(calc(2 * 45turn))", 0.0001, "rotate(90turn)", "multiplication of angle unit: int multiplied by turn");
+    testTransformValuesCloseTo("rotate(calc(45deg - 15deg))", 0.0001, "rotate(30deg)", "subtraction of angle unit: deg minus deg");
+
+    testTransformValuesCloseTo("rotate(calc(90deg - 1rad))", 0.0001, "rotate(32.70422deg)", "subtraction of angle unit: deg minus rad");
+
+    // 1 radian == 57.295779513 degrees
+
+    testTransformValuesCloseTo("rotate(calc(38deg - 20grad))", 0.0001, "rotate(20deg)", "subtraction of angle unit: deg minus grad");
+
+    testTransformValuesCloseTo("rotate(calc(360deg - 0.5turn))", 0.0001, "rotate(180deg)", "subtraction of angle unit: deg minus turn");
+
+    testTransformValuesCloseTo("rotate(calc(45rad - 15rad))", 0.0001, "rotate(30rad)", "subtraction of angle unit: rad minus rad");
+
+    testTransformValuesCloseTo("rotate(calc(30rad - 10grad))", 0.0001, "rotate(1709.87339deg)", "subtraction of angle unit: rad minus grad");
+
+    // 30 radians is 1718.8733854 degrees ; 10 gradians is 9 degrees.
+
+    testTransformValuesCloseTo("rotate(calc(4rad - 0.1turn))", 0.0001, "rotate(193.18312deg)", "subtraction of angle unit: rad minus turn");
+
+    // 4 radians is 229.183118052 degrees ; 0.1 turn is 36 degrees.
+
+    testTransformValuesCloseTo("rotate(calc(45grad - 15grad))", 0.0001, "rotate(30grad)", "subtraction of angle unit: grad minus grad");
+
+    testTransformValuesCloseTo("rotate(calc(100grad - 0.25turn))", 0.0001, "rotate(0deg)", "subtraction of angle unit: grad minus turn");
 
 
-   /* Division of angle unit */
+    // Multiplication of angle unit
 
- /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+    testTransformValuesCloseTo("rotate(calc(45deg * 2))", 0.0001, "rotate(90deg)", "multiplication of angle unit: deg multiplied by int");
 
-    compareValueCloseTo("transform", "rotate(calc(90deg / 2))", 0.0001, "rotate(45deg)", "division of angle unit: deg divided by int");
+    testTransformValuesCloseTo("rotate(calc(2 * 45rad))", 0.0001, "rotate(90rad)", "multiplication of angle unit: int multiplied by rad");
 
-    compareValueCloseTo("transform", "rotate(calc(90rad / 2))", 0.0001, "rotate(45rad)", "division of angle unit: rad divided by int");
+    testTransformValuesCloseTo("rotate(calc(45grad * 2))", 0.0001, "rotate(90grad)", "multiplication of angle unit: grad multiplied by int");
 
-    compareValueCloseTo("transform", "rotate(calc(90grad / 2))", 0.0001, "rotate(45grad)", "division of angle unit: grad divided by int");
+    testTransformValuesCloseTo("rotate(calc(2 * 45turn))", 0.0001, "rotate(90turn)", "multiplication of angle unit: int multiplied by turn");
 
-    compareValueCloseTo("transform", "rotate(calc(90turn / 2))", 0.0001, "rotate(45turn)", "division of angle unit: turn divided by int");
 
- /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+   // Division of angle unit
+
+    testTransformValuesCloseTo( "rotate(calc(90deg / 2))", 0.0001, "rotate(45deg)", "division of angle unit: deg divided by int");
+
+    testTransformValuesCloseTo("rotate(calc(90rad / 2))", 0.0001, "rotate(45rad)", "division of angle unit: rad divided by int");
+
+    testTransformValuesCloseTo("rotate(calc(90grad / 2))", 0.0001, "rotate(45grad)", "division of angle unit: grad divided by int");
+
+    testTransformValuesCloseTo("rotate(calc(90turn / 2))", 0.0001, "rotate(45turn)", "division of angle unit: turn divided by int");
 
     /*
 
@@ -155,11 +146,9 @@
 
 
 
-  /* Testing conversion of angle unit  */
+   // Testing conversion of angle unit
 
- /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
-
-    compareValueCloseTo("transform", "rotate(calc(50grad)", 0.0001, "rotate(45deg)", "conversion of angle unit: grad into deg");
+    testTransformValuesCloseTo("rotate(calc(50grad)", 0.0001, "rotate(45deg)", "conversion of angle unit: grad into deg");
 
   }
 

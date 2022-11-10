@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<style>
+  body { margin: 0; }
+  .cb {
+    position: relative;
+    inline-size: 45px;
+    block-size: 40px;
+    background: lightblue;
+    border: solid gray;
+    border-width: 1px 2px 3px 4px;
+    float: left;
+    margin-right: 5px;
+  }
+  .parent {
+    inline-size: 35px;
+    block-size: 30px;
+    background: orange;
+  }
+  .abspos {
+    inline-size: 20px;
+    block-size: 15px;
+    background: pink;
+  }
+
+  .vrl {
+    writing-mode: vertical-rl;
+  }
+  .vlr {
+    writing-mode: vertical-lr;
+  }
+  .srl {
+    writing-mode: sideways-rl;
+  }
+  .slr {
+    writing-mode: sideways-lr;
+  }
+  .htb {
+    writing-mode: horizontal-tb;
+  }
+
+  .ltr {
+    direction: ltr;
+  }
+  .rtl {
+    direction: rtl;
+  }
+
+  .sep {
+    clear: both;
+    display: block;
+    height: 5px;
+  }
+</style>
+<body>
+  <div class="cb htb ltr">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb htb ltr">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb htb ltr">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb htb ltr">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb htb rtl">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb htb rtl">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb htb rtl">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb htb rtl">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb vlr ltr">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vlr ltr">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vlr ltr">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vlr ltr">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb vlr rtl">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vlr rtl">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vlr rtl">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vlr rtl">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb vrl ltr">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vrl ltr">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vrl ltr">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vrl ltr">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb vrl rtl">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vrl rtl">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vrl rtl">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb vrl rtl">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb slr ltr">
+    <div class="parent htb ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent htb rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent vlr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent vlr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent vrl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent vrl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr ltr">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb slr rtl">
+    <div class="parent htb ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent htb rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent vlr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent vlr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent vrl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent vrl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb slr rtl">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb srl ltr">
+    <div class="parent htb ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent htb rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent vlr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent vlr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent vrl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent vrl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl ltr">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+
+  <div class="cb srl rtl">
+    <div class="parent htb ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent htb rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent vlr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent vlr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent vrl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent vrl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent slr ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent slr rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent srl ltr">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="cb srl rtl">
+    <div class="parent srl rtl">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="sep"></div>
+</body>

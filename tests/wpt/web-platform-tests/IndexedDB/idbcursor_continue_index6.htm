@@ -6,7 +6,7 @@
 <link rel=assert title="If position is defined, the record's key is greater than position.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -34,7 +34,7 @@
 
     open_rq.onsuccess = function(e) {
         var count = 0,
-          cursor_rq = db.transaction("test")
+          cursor_rq = db.transaction("test", "readonly", {durability: 'relaxed'})
                         .objectStore("test")
                         .index("index")
                         .openCursor(undefined, "nextunique");

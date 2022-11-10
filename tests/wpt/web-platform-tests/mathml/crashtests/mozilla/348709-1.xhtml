@@ -1,0 +1,20 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+<script>
+function foo()
+{
+  document.getElementById("mtr").appendChild(document.createTextNode("a"));
+}
+</script>
+</head>
+
+<body onload="foo()">
+
+<div><math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+<mrow>  <mfenced open="[" close="]">    <mtable>      <mtr id="mtr">         <mtd><mi>x</mi></mtd>         <mtd><mi>y</mi></mtd>      </mtr>    </mtable>  </mfenced></mrow>
+</math></div>
+
+</body>
+
+</html>

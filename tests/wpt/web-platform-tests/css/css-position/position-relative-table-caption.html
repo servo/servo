@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>position:relative should work on table captions</title>
+<link rel="match" href="position-relative-table-top-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#rel-pos" />
+<meta name="assert" content="This test checks that the position:relative top constraint behaves correctly for &lt;caption&gt; elements">
+<style>
+table {
+  border-collapse:collapse;
+}
+
+caption {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  top: 100px;
+  background-color: green;
+}
+
+.group {
+  position: relative;
+  display: inline-block;
+  height: 200px;
+}
+
+.indicator {
+  position: absolute;
+  background-color: red;
+  left: 0;
+  top: 100px;
+  height: 50px;
+  width: 50px;
+}
+</style>
+
+<div class="group">
+  <div class="indicator"></div>
+  <table>
+    <caption></caption>
+  </table>
+</div>
+
+<div>You should see a green box above. No red should be visible.</div>
+

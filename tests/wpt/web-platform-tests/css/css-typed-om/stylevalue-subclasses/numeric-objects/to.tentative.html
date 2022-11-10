@@ -66,6 +66,16 @@ test(() => {
 }, 'Converting a CSSMathMax to a single unit with different units throws a TypeError');
 
 test(() => {
+  assert_style_value_equals(new CSSMathClamp(CSS.px(90), CSS.px(100), CSS.px(110)).to("px"), CSS.px(100));
+}, 'Converting a CSSMathClamp to a single unit returns the clamped value');
+
+test(() => {
+  assert_throws_js(TypeError, () => new CSSMathClamp(CSS.px(2), CSS.s(3), CSS.px(4)).to('px'));
+  assert_throws_js(TypeError, () => new CSSMathClamp(CSS.px(2), CSS.em(3), CSS.px(4)).to('px'));
+  assert_throws_js(TypeError, () => new CSSMathClamp(CSS.px(2), 3, CSS.px(4)).to('px'));
+}, 'Converting a CSSMathClamp to a single unit with different units throws a TypeError');
+
+test(() => {
   assert_style_value_equals(new CSSMathNegate(CSS.px(1)).to('px'), CSS.px(-1));
 }, 'Converting a CSSMathNegate to a single unit negates its value');
 

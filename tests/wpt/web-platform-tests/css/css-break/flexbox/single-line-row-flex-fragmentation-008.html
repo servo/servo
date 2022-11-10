@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <title>
-  Tests that a flex-item with a fixed block-size container grows due to fragmentation.
+  Tests that a flex-item with a fixed block-size container *doesn't* grow due to fragmentation
+  if stretched.
 </title>
 <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
 <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
@@ -12,4 +13,5 @@
       <div style="display: inline-block; width: 50px; height: 100px;"></div>
     </div>
   </div>
+  <div style="background: green; width: 50px; height: 100px;"></div>
 </div>

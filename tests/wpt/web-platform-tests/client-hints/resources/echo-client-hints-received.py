@@ -32,3 +32,5 @@ def main(request, response):
         response.headers.set(b"mobile-received", request.headers.get(b"sec-ch-ua-mobile"))
     if b"sec-ch-prefers-color-scheme" in request.headers:
         response.headers.set(b"prefers-color-scheme-received", request.headers.get(b"sec-ch-prefers-color-scheme"))
+    if b"sec-ch-prefers-reduced-motion" in request.headers:
+        response.headers.set(b"prefers-reduced-motion-received", request.headers.get(b"sec-ch-prefers-reduced-motion"))

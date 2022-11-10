@@ -138,14 +138,16 @@ test(function() {
 }, "Dynamically change to display: contents on pseudo-elements");
 test(function() {
   var div = document.getElementById('test');
-  assert_not_equals(
-    getComputedStyle(div, "totallynotapseudo").length, 0,
+  // Note that these assertions deliberately avoid assert_[not_]equals to
+  // avoid gCS().length in the failure output.
+  assert_true(
+    getComputedStyle(div, "totallynotapseudo").length != 0,
     "Should return the element's style for unknown pseudo-elements that don't start with a colon");
-  assert_equals(
-    getComputedStyle(div, "::totallynotapseudo").length, 0,
+  assert_true(
+    getComputedStyle(div, "::totallynotapseudo").length == 0,
     "Should return an empty style for unknown pseudo-elements starting with double-colon");
-  assert_equals(
-    getComputedStyle(div, ":totallynotapseudo").length, 0,
+  assert_true(
+    getComputedStyle(div, ":totallynotapseudo").length == 0,
     "Should return an empty style for unknown pseudo-elements starting with colon");
 }, "Unknown pseudo-elements");
 </script>

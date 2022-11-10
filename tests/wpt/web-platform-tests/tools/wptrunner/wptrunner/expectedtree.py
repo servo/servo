@@ -1,7 +1,9 @@
+# mypy: allow-untyped-defs
+
 from math import log
 from collections import defaultdict
 
-class Node(object):
+class Node:
     def __init__(self, prop, value):
         self.prop = prop
         self.value = value
@@ -20,8 +22,7 @@ class Node(object):
     def __iter__(self):
         yield self
         for node in self.children:
-            for item in node:
-                yield item
+            yield from node
 
     def __len__(self):
         return 1 + sum(len(item) for item in self.children)

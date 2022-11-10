@@ -11,19 +11,17 @@
 const longContainerName = 'iframeWithLongNameMoreThan100CharactersSpaceHolderSpaceHolderSpaceHolderSpaceHolderSpaceHolderSpaceHolder';
 
 promise_test(async t => {
-assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
-const initialTime = performance.now();
-return new Promise(resolve => {
+  assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+  const initialTime = performance.now();
+  const performanceObserverTimeout = 5 * 1000;
+  const longTasksPromise = new Promise(resolve => {
     const observer = new PerformanceObserver(t.step_func(entryList => {
-        const entries = entryList.getEntries();
-        assert_equals(entries.length, 1,
-            'Exactly one entry is expected.');
-        const longtask = entries[0];
+      const entries = entryList.getEntries();
+      entries.forEach(longtask => {
         assert_equals(longtask.entryType, 'longtask');
-        if (longtask.name == 'self' ||
-            longtask.name == 'multiple-contexts' ||
-            longtask.name == 'unknown')
+        if (hasUnrelatedTaskName(longtask.name, 'same-origin-descendant')) {
             return;
+        }
         checkLongTaskEntry(longtask, 'same-origin-descendant');
         // Assert the TaskAttributionTiming entry in attribution.
         assert_equals(longtask.attribution.length, 1,
@@ -38,6 +36,7 @@ return new Promise(resolve => {
         assert_equals(attribution.containerSrc, 'resources/subframe-with-longtask.html');
         observer.disconnect();
         resolve();
+      })
     }));
     observer.observe({entryTypes: ['longtask']});
     const iframe = document.createElement('iframe');
@@ -45,7 +44,13 @@ return new Promise(resolve => {
     iframe.name = longContainerName + '-name';
     iframe.src = 'resources/subframe-with-longtask.html';
     document.body.appendChild(iframe);
-});
+  });
+  const timeout = new Promise(
+    (resolve, reject) => t.step_timeout(
+      () => { reject(new Error('observer failed to find any entries')) },
+      performanceObserverTimeout)
+  )
+  return Promise.race([longTasksPromise, timeout]);
 }, `Performance longtask entries in ${longContainerName} are observable in parent.`);
 </script>
 </body>

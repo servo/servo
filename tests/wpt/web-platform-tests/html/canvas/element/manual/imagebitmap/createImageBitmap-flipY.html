@@ -30,7 +30,7 @@ function testCanvasDisplayingPattern(canvas, width, height, sourceIsVideo, flipp
         [topRight, bottomRight] = [bottomRight, topRight];
     }
     const check = (x, y, [r, g, b, a]) =>
-        _assertPixelApprox(canvas, x,y, r,g,b,a, `${x},${y}`, `${r},${g},${b},${a}`, tolerance);
+        _assertPixelApprox(canvas, x,y, r,g,b,a, tolerance);
     check(1 * width / 4, 1 * height / 4, topLeft);
     check(3 * width / 4, 1 * height / 4, topRight);
     check(1 * width / 4, 3 * height / 4, bottomLeft);

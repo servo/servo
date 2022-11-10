@@ -40,20 +40,3 @@ function assert_header_equals(value, expected, tag) {
   test(t => assert_equals(value.site, expected.site), `${tag}: sec-fetch-site`);
   test(t => assert_equals(value.user, expected.user), `${tag}: sec-fetch-user`);
 }
-
-/**
- * @param {object} value
- * @param {string} tag
- **/
-function assert_no_headers(value, tag) {
-  if (typeof(value) === "string"){
-    if (value == "No header has been recorded") return;
-    value = JSON.parse(value);
-  }
-
-  test(t => assert_equals(value.mode, ""), `${tag}: sec-fetch-mode`);
-  test(t => assert_equals(value.site, ""), `${tag}: sec-fetch-site`);
-  if (expected.hasOwnProperty("user"))
-    test(t => assert_equals(value.user, ""), `${tag}: sec-fetch-user`);
-  test(t => assert_equals(value.dest, ""), `${tag}: sec-fetch-dest`);
-}

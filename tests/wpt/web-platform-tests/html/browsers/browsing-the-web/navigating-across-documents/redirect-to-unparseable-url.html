@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Session history interaction with redirects to unparseable URLs</title>
+<link rel="help" href="https://html.spec.whatwg.org/#create-navigation-params-by-fetching">
+<link rel="help" href="https://html.spec.whatwg.org/#read-ua-inline">
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+const kUnparseableURL = self.origin + ":notaport/common/blank.html";
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => {
+    iframe.remove();
+  });
+
+  function getIframeLoadPromise() {
+    return new Promise(resolve => {
+      iframe.addEventListener('load', () => {
+        // Wait for the iframe to load + one task so that its navigations are
+        // not done in "replace" mode.
+        t.step_timeout(resolve, 0);
+      }, {once: true});
+    });
+  }
+
+  document.body.append(iframe);
+
+  assert_equals(history.length, 1, "Precondition: history.length is 1");
+
+  const first_load_promise = getIframeLoadPromise();
+  iframe.src = '/common/blank.html';
+  await first_load_promise;
+
+  // This navigation will fail, because it redirects to an unparseable URL.
+  const error_load_promise = getIframeLoadPromise();
+  const error_url = new URL('resources/no-cache-single-redirect.py', location.href);
+  error_url.searchParams.append('uuid', token());
+  error_url.searchParams.append('location', kUnparseableURL);
+  iframe.src = error_url;
+  await error_load_promise;
+
+  assert_equals(history.length, 2,
+      "history.length is 2 after two iframe navigations beyond the initial " +
+      "about:blank Document, the first of which 'replaced' the initial " +
+      "about:blank Document");
+
+  // Per https://html.spec.whatwg.org/#read-ua-inline, error Documents have
+  // opaque origins, so the `contentDocument` shouldn't be accessible.
+  assert_equals(iframe.contentDocument, null,
+      "Cannot reach iframe.contentDocument for error Documents");
+
+  const back_load_promise = getIframeLoadPromise();
+  history.back();
+  await back_load_promise;
+
+  const forward_load_promise = getIframeLoadPromise();
+  history.forward();
+  await forward_load_promise;
+
+  assert_not_equals(iframe.contentDocument, null, "iframe.contentDocument is accessible");
+  assert_equals(iframe.contentDocument.body.innerText, "No redirect",
+      "Traversal to history entry whose URL was once associated with an " +
+      "error Document correctly requests the same URL again");
+}, "Navigating to a url (A) that redirects to an unparseable URL (B), saves " +
+   "the URL (A) in the history entry, for later traversal");
+</script>
+</body>

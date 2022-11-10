@@ -19,9 +19,9 @@ def find_element(session, shadow_id, using, value):
 
 
 @pytest.fixture
-def check_user_prompt_closed_without_exception(session, create_dialog, get_shadow_page):
+def check_user_prompt_closed_without_exception(session, create_dialog, inline, get_shadow_page):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
-        session.url = get_shadow_page("<div><p>bar</p><div>")
+        session.url = inline(get_shadow_page("<div><p>bar</p><div>"))
         outer_element = session.find.css("custom-shadow-element", all=False)
         shadow_root = outer_element.shadow_root
         inner_element = session.execute_script("return arguments[0].shadowRoot.querySelector('p')",
@@ -40,9 +40,9 @@ def check_user_prompt_closed_without_exception(session, create_dialog, get_shado
 
 
 @pytest.fixture
-def check_user_prompt_closed_with_exception(session, create_dialog, get_shadow_page):
+def check_user_prompt_closed_with_exception(session, create_dialog, inline, get_shadow_page):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
-        session.url = get_shadow_page("<div><p>bar</p><div>")
+        session.url = inline(get_shadow_page("<div><p>bar</p><div>"))
         outer_element = session.find.css("custom-shadow-element", all=False)
         shadow_root = outer_element.shadow_root
 
@@ -57,9 +57,9 @@ def check_user_prompt_closed_with_exception(session, create_dialog, get_shadow_p
 
 
 @pytest.fixture
-def check_user_prompt_not_closed_but_exception(session, create_dialog, get_shadow_page):
+def check_user_prompt_not_closed_but_exception(session, create_dialog, inline, get_shadow_page):
     def check_user_prompt_not_closed_but_exception(dialog_type):
-        session.url = get_shadow_page("<div><p>bar</p><div>")
+        session.url = inline(get_shadow_page("<div><p>bar</p><div>"))
         outer_element = session.find.css("custom-shadow-element", all=False)
         shadow_root = outer_element.shadow_root
 

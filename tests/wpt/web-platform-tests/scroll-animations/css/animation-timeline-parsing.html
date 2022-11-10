@@ -16,7 +16,7 @@ test_valid_value('animation-timeline', 'auto, auto');
 test_valid_value('animation-timeline', 'none, none');
 test_valid_value('animation-timeline', 'auto, none');
 test_valid_value('animation-timeline', 'none, auto');
-test_valid_value('animation-timeline', '"test"');
+test_valid_value('animation-timeline', '"test"', ["test", '"test"']);
 test_valid_value('animation-timeline', '"none"');
 test_valid_value('animation-timeline', '"auto"');
 test_valid_value('animation-timeline', '"initial"');
@@ -25,7 +25,7 @@ test_valid_value('animation-timeline', '"unset"');
 test_valid_value('animation-timeline', '"revert"');
 test_valid_value('animation-timeline', 'test');
 test_valid_value('animation-timeline', 'test1, test2');
-test_valid_value('animation-timeline', 'test1, "test2", none, test3, auto');
+test_valid_value('animation-timeline', 'test1, "test2", none, test3, auto', ["test1, test2, none, test3, auto", 'test1, "test2", none, test3, auto']);
 
 test_invalid_value('animation-timeline', '10px');
 test_invalid_value('animation-timeline', 'auto auto');
@@ -34,4 +34,25 @@ test_invalid_value('animation-timeline', 'foo bar');
 test_invalid_value('animation-timeline', '"foo" "bar"');
 test_invalid_value('animation-timeline', 'rgb(1, 2, 3)');
 test_invalid_value('animation-timeline', '#fefefe');
+
+// https://drafts.csswg.org/scroll-animations-1/#scroll-notation
+//
+// animation-timeline: scroll(<axis>? <scroller>?);
+// <axis> = block | inline | vertical | horizontal
+// <scroller> = root | nearest
+test_valid_value('animation-timeline', 'scroll()');
+test_valid_value('animation-timeline', 'scroll(block)', 'scroll()');
+test_valid_value('animation-timeline', 'scroll(inline)');
+test_valid_value('animation-timeline', 'scroll(horizontal)');
+test_valid_value('animation-timeline', 'scroll(vertical)');
+test_valid_value('animation-timeline', 'scroll(root)');
+test_valid_value('animation-timeline', 'scroll(nearest)', 'scroll()');
+test_valid_value('animation-timeline', 'scroll(inline nearest)', 'scroll(inline)');
+test_valid_value('animation-timeline', 'scroll(vertical root)');
+
+test_invalid_value('animation-timeline', 'scroll(root block)');
+test_invalid_value('animation-timeline', 'scroll(abc root)');
+test_invalid_value('animation-timeline', 'scroll(abc)');
+test_invalid_value('animation-timeline', 'scroll(vertical abc)');
+test_invalid_value('animation-timeline', 'scroll("string")');
 </script>

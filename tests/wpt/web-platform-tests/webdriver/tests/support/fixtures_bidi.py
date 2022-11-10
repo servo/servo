@@ -3,6 +3,16 @@ from typing import Any, Mapping
 
 import pytest
 import webdriver
+from webdriver.bidi.modules.script import ContextTarget
+
+
+@pytest.fixture
+async def new_tab(bidi_session):
+    """Open and focus a new tab to run the test in a foreground tab."""
+    new_tab = await bidi_session.browsing_context.create(type_hint='tab')
+    yield new_tab
+    # Close the tab.
+    await bidi_session.browsing_context.close(context=new_tab["context"])
 
 
 @pytest.fixture
@@ -28,3 +38,19 @@ def wait_for_event(bidi_session, event_loop):
 
         return future
     return wait_for_event
+
+@pytest.fixture
+def current_time(bidi_session, top_context):
+    """Get the current time stamp in ms from the remote end.
+
+    This is required especially when tests are run on different devices like
+    for Android, where it's not guaranteed that both machines are in sync.
+    """
+    async def _():
+        result = await bidi_session.script.evaluate(
+            expression="Date.now()",
+            target=ContextTarget(top_context["context"]),
+            await_promise=True)
+        return result["value"]
+
+    return _

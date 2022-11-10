@@ -40,7 +40,7 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
     video.loop = true;
   }
 
-  if (when_to_start_timeouts == "before setting src") {
+  if (when_to_start_timeouts == "before setting srcObject") {
     terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
   }
 
@@ -51,11 +51,10 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
       case messageSubject.ERROR:
         assert_unreached("Worker error: " + e.data.info);
         break;
-      case messageSubject.OBJECT_URL:
-        const url = e.data.info;
-        assert_true(url.match(/^blob:.+/) != null);
-        video.src = url;
-        if (when_to_start_timeouts == "after setting src") {
+      case messageSubject.HANDLE:
+        const handle = e.data.info;
+        video.srcObject = handle;
+        if (when_to_start_timeouts == "after setting srcObject") {
           terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
         }
         video.play().catch(error => {
@@ -73,7 +72,7 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
   });
 }
 
-[ "before setting src", "after setting src", "after first ended event" ].forEach(when => {
+[ "before setting srcObject", "after setting srcObject", "after first ended event" ].forEach(when => {
   for (let timeouts = 0; timeouts < 10; ++timeouts) {
     async_test(test => { startWorkerAndTerminateWorker(test, when, timeouts); },
         "Test worker MediaSource termination after at least " + timeouts +

@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection a=setup SDP parameter test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+
+// Tests for correct behavior of the transport-stats.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  pc1.createDataChannel('wpt');
+  await pc1.setLocalDescription();
+  const stats = await pc1.getStats();
+  let transportStats;
+  stats.forEach(report => {
+    if (report.type === 'transport') {
+      transportStats = report;
+    }
+  });
+  assert_equals(transportStats.dtlsState, 'new');
+  assert_equals(transportStats.dtlsRole, 'unknown');
+}, 'DTLS statistics on transport-stats after setLocalDescription');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  pc1.createDataChannel('wpt');
+  await pc1.setLocalDescription();
+  const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
+  const iceParameters = SDPUtils.getIceParameters(sections[1], sections[0]);
+  const stats = await pc1.getStats();
+  let transportStats;
+  stats.forEach(report => {
+    if (report.type === 'transport') {
+      transportStats = report;
+    }
+  });
+  assert_equals(transportStats.iceRole, 'controlling');
+  assert_equals(transportStats.iceLocalUsernameFragment, iceParameters.usernameFragment);
+  assert_equals(transportStats.iceState, 'new');
+  assert_equals(transportStats.selectedCandidatePairChanges, 0);
+}, 'ICE statistics on transport-stats after setLocalDescription');
+</script>

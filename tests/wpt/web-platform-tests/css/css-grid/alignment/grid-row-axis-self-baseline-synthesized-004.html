@@ -40,8 +40,9 @@
 </script>
 <body onload="document.fonts.ready.then(() => { checkLayout('.inline-grid'); })">
 
-<pre>Horizontal grid and verticalLR item with relative width</pre>
+<pre>Horizontal grid and verticalLR item with fixed width</pre>
 
+<!-- The two items share a baseline group. -->
 <div class="inline-grid justifyItemsBaseline" data-expected-width="180" data-expected-height="300">
   <div class="firstRowFirstColumn fixedWidth"                       data-offset-x="30" data-offset-y="0"   data-expected-width="125" data-expected-height="100"></div>
   <div class="secondRowFirstColumn bigFont paddingLeft verticalLR"  data-offset-x="0"  data-offset-y="100" data-expected-width="120" data-expected-height="200">É É ÉÉ</div>
@@ -50,9 +51,10 @@
 
 <pre>Horizontal grid and verticalRL item with fixed width</pre>
 
-<div class="inline-grid justifyItemsBaseline" data-expected-width="210" data-expected-height="300">
-  <div class="firstRowFirstColumn fixedWidth"                       data-offset-x="60" data-offset-y="0"   data-expected-width="125" data-expected-height="100"></div>
-  <div class="secondRowFirstColumn bigFont paddingRight verticalRL" data-offset-x="0"  data-offset-y="100" data-expected-width="120" data-expected-height="200">É É ÉÉ</div>
+<!-- The two items *do not* share a baseline group. -->
+<div class="inline-grid justifyItemsBaseline" data-expected-width="150" data-expected-height="300">
+  <div class="firstRowFirstColumn fixedWidth"                       data-offset-x="0" data-offset-y="0"   data-expected-width="125" data-expected-height="100"></div>
+  <div class="secondRowFirstColumn bigFont paddingRight verticalRL" data-offset-x="5"  data-offset-y="100" data-expected-width="120" data-expected-height="200">É É ÉÉ</div>
   <div class="autoRowSpanning2AutoColumn width25"></div>
 </div>
 

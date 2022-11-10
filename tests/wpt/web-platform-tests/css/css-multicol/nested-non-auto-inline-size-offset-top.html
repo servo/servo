@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1349884">
+<div style="position:relative; columns:2; gap:0; width:600px; column-fill:auto; height:100px;">
+  <div style="height:70px; contain:size;"></div>
+  <div style="width:40px; column-width:20px; gap:0; column-fill:auto;">
+    <div style="height:20px;"></div>
+    <div id="secondouter" style="height:50px; contain:size;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(secondouter.offsetTop, 0);
+  }, "offsetTop on element in second outer column");
+</script>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<meta name="assert" content="min-content width is calculated correctly in a variety of scenarios with two flex items" />
+
+<style>
+  .zero-width {
+    width: 0px;
+    height: 100px;
+    margin-bottom: 20px;
+  }
+
+  .floating-flexbox {
+    display: flex;
+    outline: 5px solid blue;
+    height: 100px;
+    float: left;
+  }
+
+  .floating-flexbox>div:nth-child(1) {
+    background: yellow;
+  }
+
+  .floating-flexbox>div:nth-child(2) {
+    background: orange;
+  }
+
+  .floating-flexbox>div>div {
+    width: 100px;
+  }
+</style>
+
+<body onload="checkLayout('.floating-flexbox')">
+  <div class="zero-width">
+    <div class="floating-flexbox" data-expected-width="300">
+      <!-- min contribution: 100 -->
+      <!-- fraction: -0.5 -->
+      <!-- flex base size + product: 200px + -0.5*200px = 100px -->
+      <div style="flex: 1 1 200px; width:50px;">
+        <div></div>
+      </div>
+      <!-- min contribution: 100 -->
+      <!-- fraction: -0.75 -->
+      <!-- flex base size + product: 400px + -0.5*400px = 200px -->
+      <div style="flex: 1 1 400px; width:50px;">
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zero-width">
+    <div class="floating-flexbox" data-expected-width="225">
+      <div style="flex: 1 1 200px; width:50px;">
+        <div></div>
+      </div>
+      <div style="flex: 1 2 400px; width:50px;">
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- This is same as above except for min-width auto is no longer in
+      effect. EdgeHTML renders it differently than the above. -->
+  <div class="zero-width">
+    <div class="floating-flexbox" data-expected-width="225">
+      <div style="flex: 1 1 200px; width:50px; min-width: 0px;">
+        <div></div>
+      </div>
+      <div style="flex: 1 2 400px; width:50px; min-width: 0px;">
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zero-width">
+    <div class="floating-flexbox" data-expected-width="300">
+      <!-- min contribution: 100 -->
+      <!-- fraction: -inf -->
+      <!-- flex base size + product: 200px + -0.75*0px = 200px -->
+      <div style="flex: 1 0 200px; width:50px;">
+        <div></div>
+      </div>
+      <!-- min contribution: 100 -->
+      <!-- fraction: -0.75 -->
+      <!-- flex base size + product: 400px + -0.75*400px = 100px -->
+      <div style="flex: 1 1 400px; width:50px;">
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zero-width">
+    <div class="floating-flexbox" data-expected-width="200">
+      <div style="flex: 0 0 50px; width: 200px;">
+        <div></div>
+      </div>
+      <div style="flex: 0 0 50px; width: 200px;">
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zero-width">
+    <!-- 200 + 400 = 600 -->
+    <div class="floating-flexbox" data-expected-width="600">
+      <!-- contribution: 200 -->
+      <!-- fraction: 150 -->
+      <!-- 50 + 1*150 = 200 -->
+      <div style="flex: 1 0 50px; width: 200px;">
+        <div></div>
+      </div>
+      <!-- contribution: 200 -->
+      <!-- fraction: 100 -->
+      <!-- 100 + 2*150 = 400 -->
+      <div style="flex: 2 0 100px; width: 200px;">
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zero-width">
+    <div class="floating-flexbox" data-expected-width="400">
+      <!-- min contribution: 100 -->
+      <!-- fraction: -0.5 -->
+      <!-- flex base size + product: = 200px + 50px*0 = 200px -->
+      <div style="flex: 0 1 200px; width: 50px;">
+        <div></div>
+      </div>
+      <!-- min contribution: 200 -->
+      <!-- fraction: (200px - 100px) / 2 = 50px -->
+      <!-- flex base size + product: = 100px + 50px*2 = 200px -->
+      <div style="flex: 2 0 100px; width: 200px;">
+        <div></div>
+      </div>
+    </div>
+  </div>
+</body>

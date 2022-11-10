@@ -8,6 +8,7 @@ serial_test(async (t, fake) => {
   await port.open({baudRate: 9600, bufferSize: 64});
 
   const reader = port.readable.getReader();
+  assert_true(reader instanceof ReadableStreamDefaultReader);
 
   await fakePort.writable();
   const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);

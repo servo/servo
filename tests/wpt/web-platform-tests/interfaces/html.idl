@@ -115,7 +115,8 @@ interface HTMLElement : Element {
   [CEReactions] attribute DOMString dir;
 
   // user interaction
-  [CEReactions] attribute boolean hidden;
+  [CEReactions] attribute (boolean or unrestricted double or DOMString)? hidden;
+  [CEReactions] attribute boolean inert;
   undefined click();
   [CEReactions] attribute DOMString accessKey;
   readonly attribute DOMString accessKeyLabel;
@@ -191,7 +192,7 @@ interface HTMLLinkElement : HTMLElement {
   [CEReactions] attribute USVString href;
   [CEReactions] attribute DOMString? crossOrigin;
   [CEReactions] attribute DOMString rel;
-  [CEReactions] attribute DOMString as; // (default "")
+  [CEReactions] attribute DOMString as;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   [CEReactions] attribute DOMString media;
   [CEReactions] attribute DOMString integrity;
@@ -201,6 +202,7 @@ interface HTMLLinkElement : HTMLElement {
   [CEReactions] attribute USVString imageSrcset;
   [CEReactions] attribute DOMString imageSizes;
   [CEReactions] attribute DOMString referrerPolicy;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
   [CEReactions] attribute boolean disabled;
 
   // also has obsolete members
@@ -223,7 +225,9 @@ interface HTMLMetaElement : HTMLElement {
 interface HTMLStyleElement : HTMLElement {
   [HTMLConstructor] constructor();
 
+  attribute boolean disabled;
   [CEReactions] attribute DOMString media;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
 
   // also has obsolete members
 };
@@ -488,16 +492,6 @@ interface HTMLObjectElement : HTMLElement {
   boolean checkValidity();
   boolean reportValidity();
   undefined setCustomValidity(DOMString error);
-
-  // also has obsolete members
-};
-
-[Exposed=Window]
-interface HTMLParamElement : HTMLElement {
-  [HTMLConstructor] constructor();
-
-  [CEReactions] attribute DOMString name;
-  [CEReactions] attribute DOMString value;
 
   // also has obsolete members
 };
@@ -1221,6 +1215,7 @@ interface HTMLScriptElement : HTMLElement {
   [CEReactions] attribute DOMString text;
   [CEReactions] attribute DOMString integrity;
   [CEReactions] attribute DOMString referrerPolicy;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
 
   static boolean supports(DOMString type);
 
@@ -1338,7 +1333,7 @@ interface mixin CanvasTransform {
 interface mixin CanvasCompositing {
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)
-  attribute DOMString globalCompositeOperation; // (default source-over)
+  attribute DOMString globalCompositeOperation; // (default "source-over")
 };
 
 interface mixin CanvasImageSmoothing {
@@ -1369,14 +1364,7 @@ interface mixin CanvasShadowStyles {
 
 interface mixin CanvasFilters {
   // filters
-  attribute (DOMString or CanvasFilter) filter; // (default "none")
-};
-
-typedef record<DOMString, any> CanvasFilterInput;
-
-[Exposed=(Window,Worker,PaintWorklet)]
-interface CanvasFilter {
-  constructor(optional (CanvasFilterInput or sequence<CanvasFilterInput>) filters);
+  attribute DOMString filter; // (default "none")
 };
 
 interface mixin CanvasRect {
@@ -1460,12 +1448,12 @@ interface mixin CanvasTextDrawingStyles {
   attribute CanvasTextAlign textAlign; // (default: "start")
   attribute CanvasTextBaseline textBaseline; // (default: "alphabetic")
   attribute CanvasDirection direction; // (default: "inherit")
-  attribute double letterSpacing; // (default: 0)
+  attribute DOMString letterSpacing; // (default: "0px")
   attribute CanvasFontKerning fontKerning; // (default: "auto")
   attribute CanvasFontStretch fontStretch; // (default: "normal")
   attribute CanvasFontVariantCaps fontVariantCaps; // (default: "normal")
   attribute CanvasTextRendering textRendering; // (default: "auto")
-  attribute double wordSpacing; // (default: 0)
+  attribute DOMString wordSpacing; // (default: "0px")
 };
 
 interface mixin CanvasPath {
@@ -1477,7 +1465,7 @@ interface mixin CanvasPath {
   undefined bezierCurveTo(unrestricted double cp1x, unrestricted double cp1y, unrestricted double cp2x, unrestricted double cp2y, unrestricted double x, unrestricted double y);
   undefined arcTo(unrestricted double x1, unrestricted double y1, unrestricted double x2, unrestricted double y2, unrestricted double radius);
   undefined rect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
-  undefined roundRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h, sequence<(unrestricted double or DOMPointInit)> radii);
+  undefined roundRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h, optional (unrestricted double or DOMPointInit or sequence<(unrestricted double or DOMPointInit)>) radii = 0);
   undefined arc(unrestricted double x, unrestricted double y, unrestricted double radius, unrestricted double startAngle, unrestricted double endAngle, optional boolean counterclockwise = false);
   undefined ellipse(unrestricted double x, unrestricted double y, unrestricted double radiusX, unrestricted double radiusY, unrestricted double rotation, unrestricted double startAngle, unrestricted double endAngle, optional boolean counterclockwise = false);
 };
@@ -1646,8 +1634,19 @@ dictionary ValidityStateFlags {
   boolean customError = false;
 };
 
+[Exposed=Window]
+interface UserActivation {
+  readonly attribute boolean hasBeenActive;
+  readonly attribute boolean isActive;
+};
+
+partial interface Navigator {
+  [SameObject] readonly attribute UserActivation userActivation;
+};
+
 dictionary FocusOptions {
   boolean preventScroll = false;
+  boolean focusVisible;
 };
 
 interface mixin ElementContentEditable {
@@ -1774,20 +1773,6 @@ interface BarProp {
   readonly attribute boolean visible;
 };
 
-enum ScrollRestoration { "auto", "manual" };
-
-[Exposed=Window]
-interface History {
-  readonly attribute unsigned long length;
-  attribute ScrollRestoration scrollRestoration;
-  readonly attribute any state;
-  undefined go(optional long delta = 0);
-  undefined back();
-  undefined forward();
-  undefined pushState(any data, DOMString unused, optional USVString? url = null);
-  undefined replaceState(any data, DOMString unused, optional USVString? url = null);
-};
-
 [Exposed=Window]
 interface Location { // but see also additional creation steps and overridden internal methods
   [LegacyUnforgeable] stringifier attribute USVString href;
@@ -1805,6 +1790,20 @@ interface Location { // but see also additional creation steps and overridden in
   [LegacyUnforgeable] undefined reload();
 
   [LegacyUnforgeable, SameObject] readonly attribute DOMStringList ancestorOrigins;
+};
+
+enum ScrollRestoration { "auto", "manual" };
+
+[Exposed=Window]
+interface History {
+  readonly attribute unsigned long length;
+  attribute ScrollRestoration scrollRestoration;
+  readonly attribute any state;
+  undefined go(optional long delta = 0);
+  undefined back();
+  undefined forward();
+  undefined pushState(any data, DOMString unused, optional USVString? url = null);
+  undefined replaceState(any data, DOMString unused, optional USVString? url = null);
 };
 
 [Exposed=Window]
@@ -1847,7 +1846,7 @@ interface BeforeUnloadEvent : Event {
   attribute DOMString returnValue;
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=*]
 interface ErrorEvent : Event {
   constructor(DOMString type, optional ErrorEventInit eventInitDict = {});
 
@@ -1863,10 +1862,10 @@ dictionary ErrorEventInit : EventInit {
   USVString filename = "";
   unsigned long lineno = 0;
   unsigned long colno = 0;
-  any error = null;
+  any error;
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=*]
 interface PromiseRejectionEvent : Event {
   constructor(DOMString type, PromiseRejectionEventInit eventInitDict);
 
@@ -1894,6 +1893,8 @@ typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 interface mixin GlobalEventHandlers {
   attribute EventHandler onabort;
   attribute EventHandler onauxclick;
+  attribute EventHandler onbeforeinput;
+  attribute EventHandler onbeforematch;
   attribute EventHandler onblur;
   attribute EventHandler oncancel;
   attribute EventHandler oncanplay;
@@ -1943,6 +1944,7 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler onreset;
   attribute EventHandler onresize;
   attribute EventHandler onscroll;
+  attribute EventHandler onscrollend;
   attribute EventHandler onsecuritypolicyviolation;
   attribute EventHandler onseeked;
   attribute EventHandler onseeking;
@@ -2203,53 +2205,6 @@ interface EventSource : EventTarget {
 
 dictionary EventSourceInit {
   boolean withCredentials = false;
-};
-
-enum BinaryType { "blob", "arraybuffer" };
-[Exposed=(Window,Worker)]
-interface WebSocket : EventTarget {
-  constructor(USVString url, optional (DOMString or sequence<DOMString>) protocols = []);
-
-  readonly attribute USVString url;
-
-  // ready state
-  const unsigned short CONNECTING = 0;
-  const unsigned short OPEN = 1;
-  const unsigned short CLOSING = 2;
-  const unsigned short CLOSED = 3;
-  readonly attribute unsigned short readyState;
-  readonly attribute unsigned long long bufferedAmount;
-
-  // networking
-  attribute EventHandler onopen;
-  attribute EventHandler onerror;
-  attribute EventHandler onclose;
-  readonly attribute DOMString extensions;
-  readonly attribute DOMString protocol;
-  undefined close(optional [Clamp] unsigned short code, optional USVString reason);
-
-  // messaging
-  attribute EventHandler onmessage;
-  attribute BinaryType binaryType;
-  undefined send(USVString data);
-  undefined send(Blob data);
-  undefined send(ArrayBuffer data);
-  undefined send(ArrayBufferView data);
-};
-
-[Exposed=(Window,Worker)]
-interface CloseEvent : Event {
-  constructor(DOMString type, optional CloseEventInit eventInitDict = {});
-
-  readonly attribute boolean wasClean;
-  readonly attribute unsigned short code;
-  readonly attribute USVString reason;
-};
-
-dictionary CloseEventInit : EventInit {
-  boolean wasClean = false;
-  unsigned short code = 0;
-  USVString reason = "";
 };
 
 [Exposed=(Window,Worker)]
@@ -2634,7 +2589,12 @@ partial interface HTMLParagraphElement {
   [CEReactions] attribute DOMString align;
 };
 
-partial interface HTMLParamElement {
+[Exposed=Window]
+interface HTMLParamElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions] attribute DOMString name;
+  [CEReactions] attribute DOMString value;
   [CEReactions] attribute DOMString type;
   [CEReactions] attribute DOMString valueType;
 };

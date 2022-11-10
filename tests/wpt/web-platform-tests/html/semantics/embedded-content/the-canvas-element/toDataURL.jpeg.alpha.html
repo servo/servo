@@ -34,7 +34,7 @@ if (!data.match(/^data:image\/jpeg[;,]/)) {
   img.onload = t.step_func_done(function ()
   {
       ctx.drawImage(img, 0, 0);
-      _assertPixelApprox(canvas, 50,25, 63,127,63,255, "50,25", "63,127,63,255", 8);
+      _assertPixelApprox(canvas, 50,25, 63,127,63,255, 8);
   });
   img.src = data;
 }
@@ -42,4 +42,3 @@ if (!data.match(/^data:image\/jpeg[;,]/)) {
 
 });
 </script>
-

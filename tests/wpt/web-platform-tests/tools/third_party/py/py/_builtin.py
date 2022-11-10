@@ -1,120 +1,21 @@
 import sys
 
-try:
-    reversed = reversed
-except NameError:
-    def reversed(sequence):
-        """reversed(sequence) -> reverse iterator over values of the sequence
 
-        Return a reverse iterator
-        """
-        if hasattr(sequence, '__reversed__'):
-            return sequence.__reversed__()
-        if not hasattr(sequence, '__getitem__'):
-            raise TypeError("argument to reversed() must be a sequence")
-        return reversed_iterator(sequence)
-
-    class reversed_iterator(object):
-
-        def __init__(self, seq):
-            self.seq = seq
-            self.remaining = len(seq)
-
-        def __iter__(self):
-            return self
-
-        def next(self):
-            i = self.remaining
-            if i > 0:
-                i -= 1
-                item = self.seq[i]
-                self.remaining = i
-                return item
-            raise StopIteration
-
-        def __length_hint__(self):
-            return self.remaining
-
-try:
-    any = any
-except NameError:
-    def any(iterable):
-        for x in iterable:
-            if x:
-                return True
-        return False
-
-try:
-    all = all
-except NameError:
-    def all(iterable):
-        for x in iterable:
-            if not x:
-                return False
-        return True
-
-try:
-    sorted = sorted
-except NameError:
-    builtin_cmp = cmp # need to use cmp as keyword arg
-
-    def sorted(iterable, cmp=None, key=None, reverse=0):
-        use_cmp = None
-        if key is not None:
-            if cmp is None:
-                def use_cmp(x, y):
-                    return builtin_cmp(x[0], y[0])
-            else:
-                def use_cmp(x, y):
-                    return cmp(x[0], y[0])
-            l = [(key(element), element) for element in iterable]
-        else:
-            if cmp is not None:
-                use_cmp = cmp
-            l = list(iterable)
-        if use_cmp is not None:
-            l.sort(use_cmp)
-        else:
-            l.sort()
-        if reverse:
-            l.reverse()
-        if key is not None:
-            return [element for (_, element) in l]
-        return l
-
-try:
-    set, frozenset = set, frozenset
-except NameError:
-    from sets import set, frozenset
-
-# pass through
-enumerate = enumerate
-
-try:
-    BaseException = BaseException
-except NameError:
-    BaseException = Exception
-
-try:
-    GeneratorExit = GeneratorExit
-except NameError:
-    class GeneratorExit(Exception):
-        """ This exception is never raised, it is there to make it possible to
-        write code compatible with CPython 2.5 even in lower CPython
-        versions."""
-        pass
-    GeneratorExit.__module__ = 'exceptions'
-
+# Passthrough for builtins supported with py27.
+BaseException = BaseException
+GeneratorExit = GeneratorExit
 _sysex = (KeyboardInterrupt, SystemExit, MemoryError, GeneratorExit)
+all = all
+any = any
+callable = callable
+enumerate = enumerate
+reversed = reversed
+set, frozenset = set, frozenset
+sorted = sorted
 
-try:
-    callable = callable
-except NameError:
-    def callable(obj):
-        return hasattr(obj, "__call__")
 
 if sys.version_info >= (3, 0):
-    exec ("print_ = print ; exec_=exec")
+    exec("print_ = print ; exec_=exec")
     import builtins
 
     # some backward compatibility helpers
@@ -131,12 +32,12 @@ if sys.version_info >= (3, 0):
 
     def _isbytes(x):
         return isinstance(x, bytes)
+
     def _istext(x):
         return isinstance(x, str)
 
     text = str
     bytes = bytes
-
 
     def _getimself(function):
         return getattr(function, '__self__', None)

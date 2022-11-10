@@ -33,7 +33,6 @@
       <input type="range" id="max_smaller_than_min" min=2 max=-3 />
       <input type="range" id="default_step_scale_factor_1" min=5 max=12.6 value=6.7 />
       <input type="range" id="default_step_scale_factor_2" min=5.3 max=12 value=6.7 />
-      <input type="range" id="default_step_scale_factor_3"min=5 max=12.6 step=0.5 value=6.7 />
       <input type="range" id="float_step_scale_factor" min=5.3 max=12 step=0.5 value=6.7 />
       <input type="range" id="stepup" min=3 max=14 value=6 step=3 />
       <input type="range" id="stepdown" min=3 max=11 value=9 step=3 />
@@ -166,13 +165,6 @@
 
       test(
         function() {
-          assert_equals(document.getElementById('default_step_scale_factor_3').step, "1")
-        },
-        "The default scale factor is 1 even if step attribute is explicitly set to non-integer value, unless min attribute has non-integer value"
-      );
-
-      test(
-        function() {
           assert_equals(document.getElementById('float_step_scale_factor').value, "6.8")
         },
         "Solving the step mismatch"
@@ -222,8 +214,8 @@
       test(
         function() {
           var e = document.getElementById('should_skip_whitespace');
-          assert_equals(e.value, "123")
-        }, "Skip ASCII whitespace within input"
+          assert_equals(e.value, "50")
+        }, "Input should be reset to the default value when value attribute has whitespace"
       );
 
       test(

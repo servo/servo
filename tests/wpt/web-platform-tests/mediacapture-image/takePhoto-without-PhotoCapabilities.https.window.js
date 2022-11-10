@@ -1,6 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
-
 promise_test(async t => {
   const track = new MediaStreamTrackGenerator('video');
   const capturer = new ImageCapture(track);

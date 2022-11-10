@@ -1,0 +1,39 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Image drag and drop to iframe</title>
+<style type="text/css">
+p:first-child
+  {padding-left:20px;}
+iframe
+  {width:160px;
+  height:160px;
+  border-style:none;}
+</style>
+</head>
+<body>
+<p><img src="../resources/circle.png" alt="PNG circle" ondragstart="event.dataTransfer.effectAllowed = 'copy'"/></p>
+<p>Drag circle above to the box below. It should be copied to the box once you drop it there.</p>
+<p><iframe src="helper-drop-image-here.xhtml">XHTML with image</iframe></p>
+<script>
+async function test() {
+  await new Promise(loaded => window.addEventListener("load", loaded));
+  const img = document.querySelector('img');
+  const iframe = document.querySelector('iframe');
+  const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+  const div = innerDoc.querySelector('div');
+  function onDropCallBack(event) {
+    assert_equals(img.src, event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+    return true;
+  }
+  dragDropTest(img, div, onDropCallBack, 'Dragging an image to an iframe should copy it there', iframe)
+};
+test();
+</script>
+</body>
+</html>

@@ -1,8 +1,6 @@
 - name: 2d.conformance.requirements.delete
   desc: window.CanvasRenderingContext2D is Configurable
   notes: &bindings Defined in "Web IDL" (draft)
-  testing:
-  - context.2d.type
   canvasType: ['HTMLCanvas']
   code: |
     @assert window.CanvasRenderingContext2D !== undefined;

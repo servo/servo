@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>Clipped shapes can be hit when rendered</title>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#RectElement"/>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#CircleElement"/>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#EllipseElement"/>
+  </metadata>
+  <defs>
+    <clipPath id="clip1">
+      <circle cx="100" cy="100" r="25"/>
+    </clipPath>
+    <clipPath id="clip2">
+      <circle cx="150" cy="150" r="25"/>
+    </clipPath>
+    <clipPath id="clip3">
+      <circle cx="250" cy="150" r="25"/>
+    </clipPath>
+    <clipPath id="clip4">
+      <circle cx="350" cy="150" r="25"/>
+    </clipPath>
+  </defs>
+  <g>
+    <circle id="circle1" cx="100" cy="100" r="25"/>
+    <circle id="circle2" cx="150" cy="100" r="25" clip-path="url(#unknown)"/>
+    <circle id="circle3" cx="100" cy="150" r="25" clip-path="url(#clip1)"/>
+    <circle id="circle4" cx="150" cy="150" r="25" clip-path="url(#clip2)"/>
+  </g>
+  <g>
+    <ellipse id="ellipse1" cx="200" cy="100" rx="25" ry="15"/>
+    <ellipse id="ellipse2" cx="250" cy="100" rx="25" ry="15" clip-path="url(#unknown)"/>
+    <ellipse id="ellipse3" cx="200" cy="150" rx="25" ry="15" clip-path="url(#clip1)"/>
+    <ellipse id="ellipse4" cx="250" cy="150" rx="25" ry="15" clip-path="url(#clip3)"/>
+  </g>
+  <g>
+    <rect id="rect1" x="285" y="85" width="30" height="30"/>
+    <rect id="rect2" x="335" y="85" width="30" height="30" clip-path="url(#unknown)"/>
+    <rect id="rect3" x="285" y="135" width="30" height="30" clip-path="url(#clip1)"/>
+    <rect id="rect4" x="335" y="135" width="30" height="30" clip-path="url(#clip4)"/>
+  </g>
+  <script><![CDATA[
+    class Expectation {
+      constructor(x, y, id = null) {
+        this.x = x;
+        this.y = y;
+        this.element = id ? document.getElementById(id) : document.documentElement;
+      }
+    }
+    class Shape {
+      constructor(name, offset) {
+        this.name = name;
+        this.offset = offset;
+      }
+    }
+    let shapes = [];
+    shapes.push(new Shape("circle", 0));
+    shapes.push(new Shape("ellipse", 100));
+    shapes.push(new Shape("rect", 200));
+
+    shapes.forEach(shape => {
+      test(function() {
+        let expectations = [];
+
+        expectations.push(new Expectation(100 + shape.offset, 100, shape.name + "1"));
+        expectations.push(new Expectation(150 + shape.offset, 100, shape.name + "2"));
+        expectations.push(new Expectation(100 + shape.offset, 150));
+        expectations.push(new Expectation(150 + shape.offset, 150, shape.name + "4"));
+
+        expectations.forEach(expectation => {
+          let element = document.elementFromPoint(expectation.x, expectation.y);
+          assert_equals(element, expectation.element, "finds " + shape.name);
+        });
+      }, document.title + ": " + shape.name);
+    });
+  ]]>
+  </script>
+</svg>

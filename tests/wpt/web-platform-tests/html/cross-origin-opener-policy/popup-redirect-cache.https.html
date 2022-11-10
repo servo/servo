@@ -8,40 +8,50 @@
 <meta name="variant" content="?8-last">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/subset-tests.js"></script>
+<script src="/common/utils.js"></script>
 <script src="resources/common.js"></script>
 
 <div id=log></div>
 <script>
 
-function url_test_cache(t, url, channelName, hasOpener) {
-  const bc = new BroadcastChannel(channelName);
-  bc.onmessage = t.step_func(event => {
-    const payload = event.data;
-    validate_results(() => {
-      bc.close()
-      // test the same url for cache
-      url_test(t, url, channelName, hasOpener);
-    }, t, w, channelName, hasOpener, undefined /* OpenerDomAccess */, payload)
+function url_test_cache(t, url, responseToken, iframeToken, hasOpener) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      await dispatcher_url_test(t, url, responseToken, iframeToken, hasOpener, undefined /* OpenerDomAccess */, resolve);
+    } catch(e) {
+      reject(e);
+    }
+  }).then(() => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Test the same url for cache.
+        // Note that at this point the popup from the first
+        // `dispatcher_url_test()` call hasn't been closed yet, but once this
+        // test has finished both will be cleaned up.
+        await dispatcher_url_test(t, url, responseToken, iframeToken, hasOpener, undefined /* OpenerDomAccess */, resolve);
+      } catch(e) {
+        reject(e);
+      }
+    });
   });
-
-  const w = window.open(url, channelName);
-
-  // The popup is closed by url_test.
 }
 
 // Redirect from hostA to hostB with same coop and coep.
 // Cache the hostA page if redirectCache is true.
 // Cache the hostB page if destCache is true.
-function coop_redirect_cache_test(t, hostA, hostB, coop, coep, redirectCache, destCache, channelName, hasOpener) {
+function coop_redirect_cache_test(t, hostA, hostB, coop, coep, redirectCache, destCache, hasOpener) {
   let redirectUrl = `${hostA.origin}/html/cross-origin-opener-policy/resources/coop-coep.py`;
   let redirectCacheString = redirectCache ? "&cache=1" : "";
   let destCacheString = destCache ? "&cache=1" : "";
-  let destUrl = `${hostB.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${coop}&coep=${coep}${destCacheString}&channel=${channelName}`;
+  let responseToken = token();
+  let iframeToken = token();
+  let destUrl = `${hostB.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${coop}&coep=${coep}${destCacheString}&responseToken=${responseToken}&iframeToken=${iframeToken}`;
   let url = `${redirectUrl}?coop=${coop}&coep=${coep}${redirectCacheString}&redirect=${encodeURIComponent(destUrl)}`;
 
-  url_test_cache(t, url, channelName, hasOpener);
+  return url_test_cache(t, url, responseToken, iframeToken, hasOpener);
 }
 
 function run_redirect_cache_tests(documentCOOPValueTitle, testArray) {
@@ -51,10 +61,8 @@ function run_redirect_cache_tests(documentCOOPValueTitle, testArray) {
       return;
     }
 
-    async_test(t => {
-      // Use a consistent channel name for deterministic failure output
-      let channelName = `${test[0].name}_${test[1].name}${test[2] ? "" : "_not"}_cache_redirect${test[3] ? "" : "_not"}_cache_destination`;
-      coop_redirect_cache_test(t, test[0], test[1], "same-origin", "require-corp", test[2], test[3], channelName, test[4]);
+    promise_test(t => {
+      return coop_redirect_cache_test(t, test[0], test[1], "same-origin", "require-corp", test[2], test[3], test[4]);
     }, `${documentCOOPValueTitle} document opening popup redirect from ${test[0].origin} to ${test[1].origin} with redirectCache ${test[2]} and destCache ${test[3]}`);
   });
 }

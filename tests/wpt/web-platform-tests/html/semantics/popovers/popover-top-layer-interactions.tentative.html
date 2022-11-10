@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Interactions between top layer element types</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+const types = Object.freeze({
+  popover: Symbol("Popover API"),
+  modalDialog: Symbol("Modal Dialog"),
+  fullscreen: Symbol("Fullscreen Element"),
+});
+const examples = [
+  {
+    type: types.popover,
+    closes: [types.popover],
+    createElement: () => Object.assign(document.createElement('div'), {popover: 'auto'}),
+    trigger: function() {this.element.showPopover()},
+    close: function() {this.element.hidePopover()},
+    isTopLayer: function() {return this.element.matches(':open')},
+  },
+  {
+    type: types.modalDialog,
+    closes: [types.popover],
+    createElement: () => document.createElement('dialog'),
+    trigger: function() {this.element.showModal();this.showing=true;},
+    close: function() {this.element.close();this.showing=false;},
+    isTopLayer: function() {return !!(this.element.isConnected && this.showing);},
+  },
+  {
+    type: types.fullscreen,
+    closes: [types.popover, types.fullscreen],
+    createElement: () => document.createElement('div'),
+    trigger: async function(visibleElement) {assert_false(this.isTopLayer());await bless(visibleElement);await this.element.requestFullscreen();},
+    close: function() {assert_equals(this.element,document.fullscreenElement); document.exitFullscreen();},
+    isTopLayer: function() {return this.element.matches(':fullscreen');},
+  },
+];
+
+function createElement(ex) {
+  assert_true(!ex.element);
+  const element = ex.element = ex.createElement();
+  assert_true(!!element);
+  element.appendChild(document.createTextNode(`This is a ${ex.type.description}`));
+  document.body.appendChild(element);
+  assert_false(ex.isTopLayer(),'Element should start out not in the top layer');
+  return element;
+}
+function doneWithExample(ex) {
+  assert_true(!!ex.element);
+  if (ex.isTopLayer())
+    ex.close();
+  ex.element.remove();
+  ex.element = null;
+}
+async function bless(visibleElement) {
+  // The normal "bless" function doesn't work well when there are top layer
+  // elements blocking clicks. Additionally, since the normal test_driver.bless
+  // function just adds a button to the main document and clicks it, we can't
+  // call that in the presence of open popovers, since that click will close them.
+  const button = document.createElement('button');
+  button.innerHTML = "Click me to activate";
+  visibleElement.appendChild(button);
+  let wait_click = new Promise(resolve => button.addEventListener("click", resolve, {once: true}));
+  await test_driver.click(button);
+  await wait_click;
+  button.remove();
+}
+// Test interactions between top layer elements
+for(let i=0;i<examples.length;++i) {
+  for(let j=0;j<examples.length;++j) {
+    const example1 = Object.assign([],examples[i]);
+    const example2 = Object.assign([],examples[j]);
+    const shouldClose = example2.closes.includes(example1.type);
+    const desc = `A ${example2.type.description} should ${shouldClose ? "" : "*not*"} close a ${example1.type.description}`;
+    promise_test(async t => {
+      const element1 = createElement(example1);
+      const element2 = createElement(example2);
+      t.add_cleanup(() => {doneWithExample(example1);doneWithExample(example2);});
+      await example1.trigger(document.body); // Open the 1st top layer element
+      assert_true(example1.isTopLayer()); // Make sure it is top layer
+      await example2.trigger(element1); // Open the 2nd top layer element
+      assert_true(example2.isTopLayer()); // Make sure it is top layer
+      assert_equals(shouldClose,!example1.isTopLayer(),desc);
+    },desc);
+  }
+}
+
+</script>

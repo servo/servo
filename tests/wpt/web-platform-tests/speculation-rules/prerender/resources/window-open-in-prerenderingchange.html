@@ -14,12 +14,12 @@ function runAsTriggerPage() {
   assert_false(document.prerendering);
 
   // Start prerendering.
-  const prerendering_url = location.href + '?prerendering';
+  const prerendering_url = location.href + '&prerendering=true';
   startPrerendering(prerendering_url);
 
   // Activate the prerendering page once it gets ready.
-  const bc = new BroadcastChannel('activation-ready');
-  bc.onmessage = () => window.location = prerendering_url;
+  const bc = new PrerenderChannel('activation-ready');
+  bc.onmessage = () => { window.location = prerendering_url };
 }
 
 // Runs as prerendeirng page. First this page waits for the load event and
@@ -32,10 +32,13 @@ function runAsPrerenderingPage() {
     assert_true(document.prerendering);
 
     // Notify the trigger page of activation ready.
-    const bc = new BroadcastChannel('activation-ready');
+    const bc = new PrerenderChannel('activation-ready');
     bc.postMessage('ready for activation');
   }
 
+  new PrerenderChannel('close').addEventListener('message', () => {
+    window.close();
+  });
   document.onprerenderingchange = () => {
     assert_false(document.prerendering);
 
@@ -43,20 +46,17 @@ function runAsPrerenderingPage() {
     const win = window.open('empty.html', '_blank');
 
     // Send the result to the test runner page.
-    const bc = new BroadcastChannel('result');
+    const bc = new PrerenderChannel('result');
     if (win) {
       bc.postMessage('opened');
       win.close();
     } else {
       bc.postMessage('failed to open');
     }
-
-    // Close this window for cleanup.
-    window.close();
   };
 }
 
-if (location.search === '?prerendering') {
+if (new URLSearchParams(location.search).has('prerendering')) {
   runAsPrerenderingPage();
 } else {
   runAsTriggerPage();

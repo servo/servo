@@ -1,22 +1,24 @@
+# mypy: allow-untyped-defs
+
 from .base import (NullBrowser,  # noqa: F401
                    certificate_domain_list,
                    get_timeout_multiplier,  # noqa: F401
                    maybe_add_args)
-from .webkit import WebKitBrowser
+from .webkit import WebKitBrowser  # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
+from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor,  # noqa: F401
                                            WebDriverCrashtestExecutor)  # noqa: F401
-from ..executors.executorwebkit import WebKitDriverWdspecExecutor  # noqa: F401
 
 __wptrunner__ = {"product": "epiphany",
                  "check_args": "check_args",
-                 "browser": {None: "EpiphanyBrowser",
+                 "browser": {None: "WebKitBrowser",
                              "wdspec": "NullBrowser"},
                  "browser_kwargs": "browser_kwargs",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
-                              "wdspec": "WebKitDriverWdspecExecutor",
+                              "wdspec": "WdspecExecutor",
                               "crashtest": "WebDriverCrashtestExecutor"},
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -71,10 +73,3 @@ def env_options():
 
 def run_info_extras(**kwargs):
     return {"webkit_port": "gtk"}
-
-
-class EpiphanyBrowser(WebKitBrowser):
-    def __init__(self, logger, binary=None, webdriver_binary=None,
-                 webdriver_args=None, **kwargs):
-        WebKitBrowser.__init__(self, logger, binary, webdriver_binary,
-                               webdriver_args)

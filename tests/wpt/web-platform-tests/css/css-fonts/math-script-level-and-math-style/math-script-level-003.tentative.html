@@ -18,12 +18,14 @@
   </head>
   <body>
     <p>Test passes if you see two squares of side 100px.</p>
-    <div class="container" style="math-script-level: 3;">
-      <div style="math-level: 9; font-size: 100px;">X</div>
+    <div class="container">
+      <!-- font-size: <length> -->
+      <div style="math-depth: 1; font-size: 100px;">X</div>
     </div>
     <br/>
-    <div class="container" style="math-script-level: 3;">
-      <div style="math-level: 9;">X</div>
+    <div class="container">
+      <!-- inherited font-size -->
+      <div style="math-depth: 1;">X</div>
     </div>
   </body>
 </html>

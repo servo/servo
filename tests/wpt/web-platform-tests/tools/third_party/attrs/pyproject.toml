@@ -1,3 +1,47 @@
+[build-system]
+requires = ["setuptools>=40.6.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["attr", "attrs"]
+
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    # PyPy is unacceptably slow under coverage.
+    "if PYPY:",
+]
+
+
+[tool.black]
+line-length = 79
+extend-exclude = '''
+# Exclude pattern matching test till black gains Python 3.10 support
+.*test_pattern_matching.*
+'''
+
+
+[tool.interrogate]
+verbose = 2
+fail-under = 100
+whitelist-regex = ["test_.*"]
+
+
+[tool.check-wheel-contents]
+toplevel = ["attr", "attrs"]
+
+
+[tool.isort]
+profile = "attrs"
+
+
 [tool.towncrier]
     package = "attr"
     package_dir = "src"

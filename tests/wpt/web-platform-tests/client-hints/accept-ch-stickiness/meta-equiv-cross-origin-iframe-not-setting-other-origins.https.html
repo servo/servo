@@ -1,0 +1,19 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Meta cross origin iframe not setting other origins</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/accept-ch-test.js"></script>
+
+<script>
+run_test({ name: "meta-equiv delegate-ch cross origin iframe not setting other origins",
+    initial_url: echo,
+    accept_url: host_info.HTTPS_REMOTE_ORIGIN + metaequiv_delegate,
+    expect_url: do_not_expect,
+    type: "iframe" });
+</script>
+</body>
+</html>
+

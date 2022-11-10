@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<title>CSS outline</title>
+<link rel="match" href="svg-with-outline-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css"/>
+
+<style>
+body { margin: 0; padding: 0; }
+.test1 {
+  outline: 2px solid blue;
+}
+.test2 {
+  outline: 1px solid blue;
+  outline-offset: 2px;
+}
+</style>
+
+<svg height=500>
+  <rect class="test1" x="10" y="10" width="20" height="20" fill="green"/>
+
+  <rect class="test2" x="10" y="50" width="20" height="20" fill="green"/>
+
+  <text font-family="Ahem" font-size="100px" class="test1" x="10" y="200">X</text>
+</svg>
+

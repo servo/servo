@@ -96,7 +96,7 @@ ctx.setTransform(0, 0, 0, Infinity, 0, Infinity);
 ctx.setTransform(0, 0, 0, 0, Infinity, Infinity);
 ctx.fillStyle = '#0f0';
 ctx.fillRect(-100, -10, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

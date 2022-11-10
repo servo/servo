@@ -7,7 +7,9 @@ steps:
   parameters:
     packages: tox
 
-- script: tox -c ${{ parameters.directory }} -e ${{ parameters.toxenv }} -- --junitxml=results.xml
+- script: |
+    set -eux -o pipefail
+    tox -c ${{ parameters.directory }} -e ${{ parameters.toxenv }} -- --junitxml=results.xml
   displayName: 'Run tests'
 
 - task: PublishTestResults@2

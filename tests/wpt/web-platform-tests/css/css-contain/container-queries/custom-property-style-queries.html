@@ -1,0 +1,337 @@
+<!doctype html>
+<title>CSS Container Queries Test: custom property style queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #outer {
+    container-name: outer;
+    --inner: false;
+    --outer: true;
+    --inner-no-space:false;
+    --outer-no-space:true;
+    --inner-space-after:false ;
+    --outer-space-after:true ;
+  }
+  #inner {
+    --inner: true;
+    --outer: false;
+    --inner-no-space:true;
+    --outer-no-space:false;
+    --inner-space-after:true ;
+    --outer-space-after:false ;
+  }
+</style>
+<div id="outer">
+  <div id="inner">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+  const green = "rgb(0, 128, 0)";
+
+  function test_evaluation(query, expected) {
+    test((t) => {
+      let style_node = document.createElement('style');
+      t.add_cleanup(() => {
+        style_node.remove();
+      });
+      style_node.innerText = `@container ${query} { #target { --applied:true; } }`;
+
+      assert_equals(getComputedStyle(target).getPropertyValue('--applied'), '');
+      document.head.append(style_node);
+      assert_equals(getComputedStyle(target).getPropertyValue('--applied'), expected ? 'true' : '');
+    }, `${query}`);
+  }
+
+  setup(() => assert_implements_container_queries());
+
+  test_evaluation('style(--inner: true)', true);
+  test_evaluation('style(--inner:true)', true);
+  test_evaluation('style(--inner:true )', true);
+  test_evaluation('style(--inner: true )', true);
+  test_evaluation('style(--inner-no-space: true)', true);
+  test_evaluation('style(--inner-no-space:true)', true);
+  test_evaluation('style(--inner-no-space:true )', true);
+  test_evaluation('style(--inner-no-space: true )', true);
+  test_evaluation('style(--inner-space-after: true)', true);
+  test_evaluation('style(--inner-space-after:true)', true);
+  test_evaluation('style(--inner-space-after:true )', true);
+  test_evaluation('style(--inner-space-after: true )', true);
+  test_evaluation('style(--outer: true)', false);
+  test_evaluation('style(--outer:true)', false);
+  test_evaluation('style(--outer:true )', false);
+  test_evaluation('style(--outer: true )', false);
+  test_evaluation('style(--outer-no-space: true)', false);
+  test_evaluation('style(--outer-no-space:true)', false);
+  test_evaluation('style(--outer-no-space:true )', false);
+  test_evaluation('style(--outer-no-space: true )', false);
+  test_evaluation('style(--outer-space-after: true)', false);
+  test_evaluation('style(--outer-space-after:true)', false);
+  test_evaluation('style(--outer-space-after:true )', false);
+  test_evaluation('style(--outer-space-after: true )', false);
+  test_evaluation('outer style(--inner: true)', false);
+  test_evaluation('outer style(--inner:true)', false);
+  test_evaluation('outer style(--inner:true )', false);
+  test_evaluation('outer style(--inner: true )', false);
+  test_evaluation('outer style(--inner-no-space: true)', false);
+  test_evaluation('outer style(--inner-no-space:true)', false);
+  test_evaluation('outer style(--inner-no-space:true )', false);
+  test_evaluation('outer style(--inner-no-space: true )', false);
+  test_evaluation('outer style(--inner-space-after: true)', false);
+  test_evaluation('outer style(--inner-space-after:true)', false);
+  test_evaluation('outer style(--inner-space-after:true )', false);
+  test_evaluation('outer style(--inner-space-after: true )', false);
+  test_evaluation('outer style(--outer: true)', true);
+  test_evaluation('outer style(--outer:true)', true);
+  test_evaluation('outer style(--outer:true )', true);
+  test_evaluation('outer style(--outer: true )', true);
+  test_evaluation('outer style(--outer-no-space: true)', true);
+  test_evaluation('outer style(--outer-no-space:true)', true);
+  test_evaluation('outer style(--outer-no-space:true )', true);
+  test_evaluation('outer style(--outer-no-space: true )', true);
+  test_evaluation('outer style(--outer-space-after: true)', true);
+  test_evaluation('outer style(--outer-space-after:true)', true);
+  test_evaluation('outer style(--outer-space-after:true )', true);
+  test_evaluation('outer style(--outer-space-after: true )', true);
+</script>
+
+<style>
+  #important {
+    --foo: bar;
+  }
+  @container style(--foo: bar !important) {
+    #important-child { color: green; }
+  }
+</style>
+<div id="important">
+  <div id="important-child"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#important-child")).color, green);
+  }, "Query custom property with !important declaration");
+</script>
+
+<style>
+  #var-query {
+    --foo: baz;
+    --bar: baz;
+  }
+  @container style(--foo: var(--bar)) {
+    #var-subst { color: green; }
+  }
+  @container not style(--foo: var(--unknown)) {
+    #var-subst-unknown { color: green; }
+  }
+  @container not style(--foo: var(--unknown, nomatch)) {
+    #var-subst-unknown-fallback { color: green; }
+  }
+  @container style(--foo: var(--unknown, baz)) {
+    #var-subst-matching-fallback { color: green; }
+  }
+  @container style(--baz: var(--unknown)) {
+    #var-subst-unknown-matching { color: green; }
+  }
+</style>
+<div id="var-query">
+  <div id="var-subst"></div>
+  <div id="var-subst-unknown"></div>
+  <div id="var-subst-unknown-fallback"></div>
+  <div id="var-subst-matching-fallback"></div>
+  <div id="var-subst-unknown-matching"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#var-subst")).color, green);
+  }, "Query custom property using var()");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#var-subst-unknown")).color, green);
+  }, "Query custom property including unknown var() reference");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#var-subst-unknown-fallback")).color, green);
+  }, "Query custom property including unknown var() reference with non-matching fallback");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#var-subst-matching-fallback")).color, green);
+  }, "Query custom property including unknown var() reference with matching fallback");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#var-subst-unknown-matching")).color, green);
+  }, "Query custom property matching guaranteed-invalid values");
+</script>
+
+<style>
+  #revert {
+    --foo: revert;
+  }
+  #revert-layer {
+    --foo: revert-layer;
+  }
+  #revert-child, #revert-layer-child {
+      color: green;
+  }
+  @container style(--foo: revert) {
+    #revert-child { color: red; }
+  }
+  @container style(--foo: revert-layer) {
+    #revert-layer-child { color: red; }
+  }
+</style>
+<div id="revert">
+  <div id="revert-child"></div>
+</div>
+<div id="revert-layer">
+  <div id="revert-layer-child"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#revert-child")).color, green);
+  }, "Style query with revert keyword is false");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#revert-layer-child")).color, green);
+  }, "Style query with revert-layer keyword is false");
+</script>
+
+<style>
+  #defaulting {
+    --inherit: baz;
+    --inherit-no: baz;
+  }
+  #defaulting-container {
+    --inherit-no: bar;
+    --unset-no: baz;
+    --initial-no: baz;
+  }
+  @container style(--initial: initial) {
+    #initial { color: green; }
+  }
+  @container not style(--initial-no: initial) {
+    #initial-no { color: green; }
+  }
+  @container style(--inherit: inherit) {
+    #inherit { color: green; }
+  }
+  @container not style(--inherit-no: inherit) {
+    #inherit-no { color: green; }
+  }
+  @container style(--unset: unset) {
+    #unset { color: green; }
+  }
+  @container not style(--unset-no: unset) {
+    #unset-no { color: green; }
+  }
+</style>
+<div id="defaulting">
+  <div id="defaulting-container">
+    <div id="initial"></div>
+    <div id="initial-no"></div>
+    <div id="inherit"></div>
+    <div id="inherit-no"></div>
+    <div id="unset"></div>
+    <div id="unset-no"></div>
+  </div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#initial")).color, green);
+  }, "Style query 'initial' matching");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#initial-no")).color, green);
+  }, "Style query 'initial' not matching");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#inherit")).color, green);
+  }, "Style query 'inherit' matching");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#inherit-no")).color, green);
+  }, "Style query 'inherit' not matching");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#unset")).color, green);
+  }, "Style query 'unset' matching");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#unset-no")).color, green);
+  }, "Style query 'unset' not matching");
+</script>
+
+<style>
+  @property --reg-length {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 10px;
+  }
+
+  #registered {
+    container-type: inline-size;
+    width: 200px;
+    font-size: 20px;
+  }
+
+  #reg-container-px {
+    --reg-length: 10px;
+  }
+  @container style(--reg-length: 10px) {
+    #reg-px { color: green; }
+  }
+
+  #reg-container-font-relative {
+    --reg-length: 10px;
+  }
+  @container style(--reg-length: 0.5em) {
+    #reg-font-relative { color: green; }
+  }
+
+  #reg-container-font-relative-2 {
+    --reg-length: 0.5em;
+  }
+  @container style(--reg-length: 10px) {
+    #reg-font-relative-2 { color: green; }
+  }
+
+  #reg-container-container-relative {
+    width: 100px;
+    --reg-length: 100px;
+  }
+  @container style(--reg-length: 50cqi) {
+    #reg-container-relative { color: green; }
+  }
+</style>
+<div id="registered">
+  <div id="reg-container-px">
+    <div id="reg-px"></div>
+  </div>
+  <div id="reg-container-font-relative">
+    <div id="reg-font-relative"></div>
+  </div>
+  <div id="reg-container-font-relative-2">
+    <div id="reg-font-relative-2"></div>
+  </div>
+  <div id="reg-container-container-relative">
+    <div id="reg-container-relative"></div>
+  </div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#reg-px")).color, green);
+  }, "Match registered <length> custom property with px.");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#reg-font-relative")).color, green);
+  }, "Match registered <length> custom property with em in query.");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#reg-font-relative-2")).color, green);
+  }, "Match registered <length> custom property with em in computed value.");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#reg-container-relative")).color, green);
+  }, "Match registered <length> custom property with cqi unit.");
+</script>

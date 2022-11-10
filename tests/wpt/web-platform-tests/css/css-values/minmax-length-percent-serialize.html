@@ -32,19 +32,26 @@ test_serialization(
 // If not, keep as the function.
 test_serialization(
     'min(1% + 1px)',
-    'min(1% + 1px)',
-    'min(1% + 1px)',
+    'calc(1% + 1px)',
+    'calc(1% + 1px)',
     '2px');
 test_serialization(
     'min(1px + 1%)',
-    'min(1% + 1px)',
-    'min(1% + 1px)',
+    'calc(1% + 1px)',
+    'calc(1% + 1px)',
     '2px');
 test_serialization(
     'max(1px + 1%)',
-    'max(1% + 1px)',
-    'max(1% + 1px)',
+    'calc(1% + 1px)',
+    'calc(1% + 1px)',
     '2px');
+
+// Arguments are simplified eagerly as per spec:
+test_serialization(
+    'min(1px, 2px)',
+    'calc(1px)',
+    '1px',
+    '1px');
 
 // Arguments are simplified, but not reordered.
 test_serialization(
@@ -104,8 +111,8 @@ test_serialization(
 // and retain their relative order
 test_serialization(
     'calc(min(10% + 1px) + max(1em + 10%) + min(10% + 20px))',
-    'calc(min(10% + 1px) + max(10% + 1em) + min(10% + 20px))',
-    'calc(min(10% + 1px) + max(10% + 16px) + min(10% + 20px))',
+    'calc(30% + 1em + 21px)',
+    'calc(30% + 37px)',
     '67px');
 
 // min()/max() can be combined with plain units as well.
@@ -113,7 +120,7 @@ test_serialization(
 // ordinary units will re-sort around them.
 test_serialization(
     'calc(1em + max(10% + 20px) + 5% + min(1em + 10%) + 10px)',
-    'calc(5% + 1em + 10px + max(10% + 20px) + min(10% + 1em))',
-    'calc(5% + 26px + max(10% + 20px) + min(10% + 16px))',
+    'calc(25% + 2em + 30px)',
+    'calc(25% + 62px)',
     '87px');
 </script>

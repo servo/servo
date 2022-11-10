@@ -51,6 +51,7 @@ test_valid_value("grid-template", '[a] "a" [a] "b" [a]');
 test_valid_value("grid-template", '"a" "a" [a] "b" [a]');
 test_valid_value("grid-template", '"a" [a] "b" [a] / 0', '"a" [a] "b" [a] / 0px');
 test_valid_value("grid-template", '"a" "a" [a] [a] "b" / auto', '"a" "a" [a a] "b" / auto');
+test_valid_value("grid-template", '"a" auto [a] "b" auto [b] / 10px');
 
 // FIXME: add more values to test full syntax
 

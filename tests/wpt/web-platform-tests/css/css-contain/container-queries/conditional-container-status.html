@@ -8,7 +8,7 @@
   .parent { width: 300px; }
   .child { width: 100px; }
   .parent, .child { container-type: inline-size; }
-  @container size(min-width: 200px) {
+  @container (min-width: 200px) {
     .child { container-type: initial; }
     .grandchild { border: 3px solid green }
   }

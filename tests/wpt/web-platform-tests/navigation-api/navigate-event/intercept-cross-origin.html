@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+async_test(t => {
+  navigation.onnavigate = t.step_func_done(e => {
+    assert_true(e.cancelable);
+    assert_false(e.canIntercept);
+    assert_false(e.userInitiated);
+    assert_false(e.hashChange);
+    assert_throws_dom("SecurityError", () => e.intercept());
+    e.preventDefault();
+  });
+
+  window.onload = t.step_func(() => location.href = get_host_info().HTTPS_REMOTE_ORIGIN);
+}, "event.intercept() should throw if called for a cross origin navigation");
+</script>

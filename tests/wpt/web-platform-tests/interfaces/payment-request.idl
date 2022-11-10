@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Payment Request API (https://w3c.github.io/payment-request/)
+// Source: Payment Request API 1.1 (https://w3c.github.io/payment-request/)
 
 [SecureContext, Exposed=Window]
 interface PaymentRequest : EventTarget {
@@ -59,6 +59,10 @@ dictionary PaymentItem {
   boolean pending = false;
 };
 
+dictionary PaymentCompleteDetails {
+  object? data = null;
+};
+
 enum PaymentComplete {
   "fail",
   "success",
@@ -74,7 +78,10 @@ interface PaymentResponse : EventTarget  {
   readonly attribute object details;
 
   [NewObject]
-  Promise<undefined> complete(optional PaymentComplete result = "unknown");
+  Promise<undefined> complete(
+    optional PaymentComplete result = "unknown",
+    optional PaymentCompleteDetails details = {}
+  );
   [NewObject]
   Promise<undefined> retry(optional PaymentValidationErrors errorFields = {});
 };

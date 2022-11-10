@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Background Shorthand Serialization Test: background shorthand should only serialize non-initial values</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background">
+<meta name="assert" content="background shorthand should only serialize non-initial values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  const element = document.createElement('div');
+
+  test((t) => {
+    element.style = 'background: yellow;';
+    assert_equals(element.style.background , 'yellow');
+  }, "single value");
+
+  test((t) => {
+    element.style = 'background: no-repeat url(/favicon.ico);';
+    assert_equals(element.style.background , 'url("/favicon.ico") no-repeat');
+  }, "multiple values");
+
+  test((t) => {
+    element.style = 'background: url(/favicon.ico) no-repeat, url(/favicon.ico) no-repeat;';
+    assert_equals(element.style.background , 'url("/favicon.ico") no-repeat, url("/favicon.ico") no-repeat');
+  }, "multiple backgrounds");
+
+  test((t) => {
+    element.style = 'background: url("/favicon.ico") 0% 0% / 10rem;';
+    assert_equals(element.style.background , 'url("/favicon.ico") 0% 0% / 10rem');
+  }, "background-size with non-initial background-position");
+
+  test((t) => {
+    element.style = `background: url(/favicon.ico) top left no-repeat,
+        url(/favicon.ico) center / 100% 100% no-repeat,
+        url(/favicon.ico) white;`;
+    assert_equals(element.style.background , 'url("/favicon.ico") left top no-repeat, url("/favicon.ico") center center / 100% 100% no-repeat, white url("/favicon.ico")');
+  }, "multiple backgrounds with varying values");
+
+  test((t) => {
+    element.style = `background: padding-box border-box;`;
+    assert_equals(element.style.background , 'none');
+  }, "all initial values");
+</script>

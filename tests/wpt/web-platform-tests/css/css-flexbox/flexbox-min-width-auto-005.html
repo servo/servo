@@ -2,8 +2,8 @@
 <title>CSS Flexible Box Test: Aspect ratio handling of images</title>
 <link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com" />
 <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto" />
+<link rel="help" href="https://github.com/web-platform-tests/wpt/issues/31609" />
 <link rel="match" href="reference/flexbox-min-width-auto-005-ref.html" />
-<meta name="assert" content="Test that min-width:auto does not incorrectly stretch items with aspect ratio" />
 
 <style>
 .reference-overlapped-red {
@@ -29,7 +29,7 @@ br { margin: 50px; }
 
 <br>
 
-<div class="reference-overlapped-red" style="width: 40px;"></div>
+<div class="reference-overlapped-red"></div>
 <div style="display: flex">
     <div class="constrained-flex">
         <img src="support/40x20-green.png" />

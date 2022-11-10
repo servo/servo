@@ -1,0 +1,33 @@
+<p class="desc"> Test to ensure beginlayer works for filter, alpha and shadow, even with consecutive layers. </p>
+<script>
+var canvas;
+var ctx;
+canvas = document.createElement("canvas");
+canvas.width = 500;
+canvas.height = 500;
+document.body.appendChild(canvas);
+
+ctx = canvas.getContext("2d");
+ctx.fillStyle = 'rgba(0,0,255,1)';
+ctx.fillRect(50,50,95,70);
+
+ctx.globalAlpha = 0.5;
+ctx.filter = 'sepia(0.5)';
+ctx.shadowOffsetX = -10;
+ctx.shadowOffsetY = 10;
+ctx.shadowColor = 'orange';
+
+var canvas2 = [5];
+var ctx2 = [5];
+
+for(let i=0; i<5; i++){
+  canvas2[i] = document.createElement("canvas");
+  ctx2[i] = canvas2[i].getContext("2d");
+  ctx2[i].fillStyle = 'rgba(225,0,0,1)';
+  ctx2[i].fillRect(60,40,75,50);
+  ctx2[i].fillStyle = 'rgba(0,255,0,1)';
+  ctx2[i].fillRect(80,60,75,50);
+
+  ctx.drawImage(canvas2[i],i,i);
+}
+</script>

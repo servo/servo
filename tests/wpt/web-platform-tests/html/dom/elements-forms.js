@@ -52,7 +52,7 @@ var formElements = {
     src: "url",
     step: "string",
     type: {type: "enum", keywords: ["hidden", "text", "search", "tel",
-      "url", "email", "password", "date", "month", "week",
+      "url", "email", "password", "date",
       "time", "datetime-local", "number", "range", "color", "checkbox",
       "radio", "file", "submit", "image", "reset", "button"], defaultVal:
       "text"},

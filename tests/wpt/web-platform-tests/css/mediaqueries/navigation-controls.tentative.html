@@ -4,16 +4,11 @@
 <script type="text/javascript" src="/resources/testharnessreport.js"></script>
 <script type="text/javascript" src="resources/matchmedia-utils.js"></script>
 <script>
-    query_should_be_css_parseable("(navigation-controls)");
-    query_should_be_css_parseable("(navigation-controls: none)");
-    query_should_be_css_parseable("(navigation-controls: back-button)");
-    query_should_not_be_css_parseable("(navigation-controls: none back-button)");
-    query_should_not_be_css_parseable("(navigation-controls: back-button/none)");
-    query_should_be_js_parseable("(navigation-controls)");
-    query_should_be_js_parseable("(navigation-controls: none)");
-    query_should_be_js_parseable("(navigation-controls: back-button)");
-    query_should_not_be_js_parseable("(navigation-controls: none back-button)");
-    query_should_not_be_js_parseable("(navigation-controls: back-button/none)");
+    query_should_be_known("(navigation-controls)");
+    query_should_be_known("(navigation-controls: none)");
+    query_should_be_known("(navigation-controls: back-button)");
+    query_should_be_unknown("(navigation-controls: none back-button)");
+    query_should_be_unknown("(navigation-controls: back-button/none)");
     test(() => {
         let booleanContext = window.matchMedia("(navigation-controls)");
         let none = window.matchMedia("(navigation-controls: none)");

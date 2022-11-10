@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<script src="resources/focus-utils.js"></script>
+<!-- Adapted from http://jsbin.com/dexinu/6/edit for layout test -->
+
+<template id='XMenuTemplate'>
+  <style>
+    :host {
+      display: inline-block;
+      position: relative;
+      background-color: #aaa;
+    }
+    :host(:focus) {
+      background-color: #ccc;
+    }
+    li {
+      display: inline-block;
+      position: relative;
+      background-color: #eee;
+    }
+    li:focus {
+      background-color: #fff;
+    }
+  </style>
+  <li tabindex='0'>Item One</li>
+  <li tabindex='0'>Item Two</li>
+  <li tabindex='0'>Item Three</li>
+</template>
+
+<section>
+  <x-menu id='XMenu1' tabindex='0'></x-menu>
+</section>
+<section>
+  <x-menu id='XMenu2' tabindex='0' delegatesFocus></x-menu>
+  <x-menu id='XMenu3' tabindex='0' delegatesFocus></x-menu>
+</section>
+<section>
+  <x-menu id='XMenu4' tabindex='0' delegatesFocus></x-menu>
+</section>
+
+<script>
+'use strict';
+
+const template = document.querySelector('#XMenuTemplate');
+
+customElements.define('x-menu', class extends HTMLElement {
+    connectedCallback() {
+        const delegatesFocus = this.hasAttribute('delegatesFocus');
+        this.attachShadow({mode: 'open', delegatesFocus: delegatesFocus})
+            .appendChild(document.importNode(template.content, true));
+    }
+});
+
+promise_test(async () => {
+    let xmenu1 = document.getElementById('XMenu1');
+
+    xmenu1.focus();
+    await navigateFocusForward();
+    await navigateFocusForward();
+    await navigateFocusForward();
+    assert_equals(document.activeElement.id, 'XMenu1');
+    assert_background_color('XMenu1', 'rgb(204, 204, 204)');
+    assert_background_color('XMenu2', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu3', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu4', 'rgb(170, 170, 170)');
+
+    await navigateFocusForward();
+    await navigateFocusForward();
+    await navigateFocusForward();
+    assert_equals(document.activeElement.id, 'XMenu2');
+    await assert_background_color('XMenu1', 'rgb(170, 170, 170)');
+    await assert_background_color('XMenu2', 'rgb(204, 204, 204)');
+    await assert_background_color('XMenu3', 'rgb(170, 170, 170)');
+    await assert_background_color('XMenu4', 'rgb(170, 170, 170)');
+
+    await navigateFocusForward();
+    await navigateFocusForward();
+    await navigateFocusForward();
+    assert_equals(document.activeElement.id, 'XMenu3');
+    assert_background_color('XMenu1', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu2', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu3', 'rgb(204, 204, 204)');
+    assert_background_color('XMenu4', 'rgb(170, 170, 170)');
+
+    await navigateFocusForward();
+    await navigateFocusForward();
+    await navigateFocusForward();
+    assert_equals(document.activeElement.id, 'XMenu4');
+    assert_background_color('XMenu1', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu2', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu3', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu4', 'rgb(204, 204, 204)');
+
+    await navigateFocusBackward();
+    await navigateFocusBackward();
+    await navigateFocusBackward();
+    assert_equals(document.activeElement.id, 'XMenu3');
+    assert_background_color('XMenu1', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu2', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu3', 'rgb(204, 204, 204)');
+    assert_background_color('XMenu4', 'rgb(170, 170, 170)');
+
+    await navigateFocusBackward();
+    await navigateFocusBackward();
+    await navigateFocusBackward();
+    assert_equals(document.activeElement.id, 'XMenu2');
+    assert_background_color('XMenu1', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu2', 'rgb(204, 204, 204)');
+    assert_background_color('XMenu3', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu4', 'rgb(170, 170, 170)');
+
+    await navigateFocusBackward();
+    await navigateFocusBackward();
+    await navigateFocusBackward();
+    assert_equals(document.activeElement.id, 'XMenu1');
+    assert_background_color('XMenu1', 'rgb(204, 204, 204)');
+    assert_background_color('XMenu2', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu3', 'rgb(170, 170, 170)');
+    assert_background_color('XMenu4', 'rgb(170, 170, 170)');
+}, 'crbug/474687 :focus style should properly be applied to shadow hosts.');
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta name="assert" content="Test inserting an inline child in the middle of blocks-in-inline">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link ref="match" href="block-in-inline-insert-019-ref.html">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<body>
+  <!-- Insert a span in the middle of blocks-in-inline -->
+  <section>
+    <span>
+      <div>1</div>
+      <div class="before">3</div>
+    </span>
+  </section>
+  <!-- Insert a span before a block-in-inline -->
+  <section>
+    <span>
+      <div class="before">3</div>
+      <div>4</div>
+    </span>
+  </section>
+  <!-- Check it works in multicol container -->
+  <section style="columns: 1">
+    <span>
+      <div>1</div>
+      <div class="before">3</div>
+    </span>
+  </section>
+<script>
+(function () {
+  document.body.offsetTop;
+  for (const before of document.getElementsByClassName('before')) {
+    const span = document.createElement('span');
+    span.textContent = '2';
+    before.before(span);
+  }
+})();
+</script>
+</body>

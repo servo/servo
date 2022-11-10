@@ -197,12 +197,6 @@
 	}, "Inserting @font-face inside @supports works");
 
 	test(function(){
-		var style_rule = document.styleSheets[0].cssRules[0].cssRules[1];
-
-		assert_throws_js(TypeError, function() { style_rule.insertRule("@supports (width: 0) { ol { width: 0; } }", 0);} );
-
-	}, "Inserting an @supports inside a style rule should fail");
-	test(function(){
 		var rule = document.styleSheets[0].cssRules[1];
 		assert_equals_normalized(rule.cssText,
 		              "@supports (border: black) and (padding: 0) and (width: 0) {\n"

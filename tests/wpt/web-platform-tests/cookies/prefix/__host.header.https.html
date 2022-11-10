@@ -14,6 +14,15 @@
       title: "__Host: Secure origin: Does not set 'Path=/;" + extraParams + "'"
     });
 
+    set_prefixed_cookie_via_http_test({
+      prefix: "__HoSt-",
+      params: "Path=/;" + extraParams,
+      origin: self.origin,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__HoSt: Secure origin: Does not set 'Path=/;" + extraParams + "'"
+    });
+
     // With 'secure'
     set_prefixed_cookie_via_http_test({
       prefix: "__Host-",
@@ -22,6 +31,15 @@
       shouldExistInDOM: true,
       shouldExistViaHTTP: true,
       title: "__Host: Secure origin: Does set 'Secure; Path=/;" + extraParams + "'"
+    });
+
+    set_prefixed_cookie_via_http_test({
+      prefix: "__HoSt-",
+      params: "Secure; Path=/;" + extraParams,
+      origin: self.origin,
+      shouldExistInDOM: true,
+      shouldExistViaHTTP: true,
+      title: "__HoSt: Secure origin: Does set 'Secure; Path=/;" + extraParams + "'"
     });
 
     // With 'domain'
@@ -33,6 +51,15 @@
       shouldExistViaHTTP: false,
       title: "__Host: Secure origin: Does not set 'Secure; Path=/; Domain=" + document.location.hostname + "; " + extraParams + "'"
     });
+
+    set_prefixed_cookie_via_http_test({
+      prefix: "__HoSt-",
+      params: "Secure; Path=/; Domain=" + document.location.hostname + "; " + extraParams,
+      origin: self.origin,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__HoSt: Secure origin: Does not set 'Secure; Path=/; Domain=" + document.location.hostname + "; " + extraParams + "'"
+    });
   });
 
   set_prefixed_cookie_via_http_test({
@@ -42,6 +69,15 @@
     shouldExistInDOM: false,
     shouldExistViaHTTP: false,
     title: "__Host: Secure origin: Does not set 'Secure; Path=/cookies/resources/list.py'"
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__HoSt-",
+    params: "Secure; Path=/cookies/resources/list.py",
+    origin: self.origin,
+    shouldExistInDOM: false,
+    shouldExistViaHTTP: false,
+    title: "__HoSt: Secure origin: Does not set 'Secure; Path=/cookies/resources/list.py'"
   });
 </script>
 

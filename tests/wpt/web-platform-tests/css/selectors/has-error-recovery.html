@@ -1,0 +1,53 @@
+<!doctype html>
+<title>CSS Selectors: :has() error recovery</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#typedef-forgiving-selector-list">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="test-sheet">
+  random-selector { color: blue; }
+</style>
+<div id="test-div">
+  <div id="test-descendant">
+  </div>
+</div>
+<script>
+  let rule = document.getElementById("test-sheet").sheet.cssRules[0];
+  test(function() {
+    rule.selectorText = "random-selector";
+    let invalidSelector = `:has(:total-nonsense)`;
+    rule.selectorText = invalidSelector;
+    assert_not_equals(
+      rule.selectorText,
+      "random-selector",
+      "Should've parsed",
+    );
+    assert_not_equals(
+      rule.selectorText,
+      invalidSelector,
+      "Should not be considered valid and parsed as-is",
+    );
+    let emptyList = `:has()`;
+    assert_equals(
+      rule.selectorText,
+      emptyList,
+      "Should be serialized as an empty selector-list",
+    );
+    assert_equals(document.querySelector(emptyList), null, "Should never match, but should parse");
+    for (let mixedList of [
+      `:has(:total-nonsense, > #test-descendant)`,
+      `:has(:total-nonsense and-more-stuff, > #test-descendant)`,
+      `:has(weird-token || and-more-stuff, > #test-descendant)`,
+    ]) {
+      rule.selectorText = mixedList;
+      assert_equals(
+        rule.selectorText,
+        `:has(> #test-descendant)`,
+        `${mixedList}: Should ignore invalid selectors`,
+      );
+      let testDiv = document.getElementById("test-div");
+      assert_equals(document.querySelector(mixedList), testDiv, "Should correctly match");
+      assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 255)", "test element should be blue");
+    }
+  });
+</script>

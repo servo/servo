@@ -8,6 +8,6 @@ doc = html.html(
    html.body(
         [html.p(p) for p in paras]))
 
-print unicode(doc).encode('latin1')
+print(unicode(doc).encode('latin1'))
 
 

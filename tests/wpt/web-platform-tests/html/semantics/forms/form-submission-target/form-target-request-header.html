@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Form request header test</title>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  window.addEventListener("load", function() {
+    let form = document.createElement("form");
+    form.action = "resources/form-target-request-header-helper.py";
+    form.method = "post";
+    form.target = "_blank";
+
+    const channelName = token();
+    const channel = new BroadcastChannel(channelName);
+    channel.onmessage = t.step_func_done(e => {
+      assert_equals(e.data, "OK");
+    });
+
+    let url_input = document.createElement("input");
+    url_input.type = "hidden";
+    url_input.name = "channelname";
+    url_input.value = channelName;
+
+    form.appendChild(url_input);
+    document.body.appendChild(form);
+    form.submit();
+  });
+}, 'Verify the content-type exist during a form submission toward "_blank"');
+</script>
+<body>

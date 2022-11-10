@@ -39,6 +39,7 @@ dictionary VideoConfiguration {
   ColorGamut colorGamut;
   TransferFunction transferFunction;
   DOMString scalabilityMode;
+  boolean spatialScalability;
 };
 
 enum HdrMetadataType {
@@ -68,19 +69,19 @@ dictionary AudioConfiguration {
 };
 
 dictionary MediaCapabilitiesKeySystemConfiguration {
-    required DOMString keySystem;
-    DOMString initDataType = "";
-    MediaKeysRequirement distinctiveIdentifier = "optional";
-    MediaKeysRequirement persistentState = "optional";
-    sequence<DOMString> sessionTypes;
-    KeySystemTrackConfiguration audio;
-    KeySystemTrackConfiguration video;
-  };
+  required DOMString keySystem;
+  DOMString initDataType = "";
+  MediaKeysRequirement distinctiveIdentifier = "optional";
+  MediaKeysRequirement persistentState = "optional";
+  sequence<DOMString> sessionTypes;
+  KeySystemTrackConfiguration audio;
+  KeySystemTrackConfiguration video;
+};
 
 dictionary KeySystemTrackConfiguration {
-    DOMString robustness = "";
-    DOMString? encryptionScheme = null;
-  };
+  DOMString robustness = "";
+  DOMString? encryptionScheme = null;
+};
 
 dictionary MediaCapabilitiesInfo {
   required boolean supported;

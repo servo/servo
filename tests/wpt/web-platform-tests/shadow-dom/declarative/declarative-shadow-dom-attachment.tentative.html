@@ -4,7 +4,7 @@
 <link rel='help' href='https://github.com/whatwg/dom/issues/831'>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
-<script src='../resources/shadow-dom-utils.js'></script>
+<script src='../../html/resources/common.js'></script>
 <script src="support/helpers.js"></script>
 
 <script>
@@ -59,7 +59,6 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
         element.attachShadow({mode: oppositeMode});
       }, 'Calling attachShadow a second time on an element with a declarative shadow fails (opposite mode)');
     } else {
-      const wrapper = nodes.wrapper;
       if (!nochildren) {
         // Invalid elements should retain a <template> element child with a shadowroot attribute.
         const template = nodes.wrapper.querySelector('template[shadowroot]');
@@ -78,9 +77,9 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
 }
 
 function runAllTests() {
-  const noCheck = ['body'];
-  const safelisted = ATTACHSHADOW_SAFELISTED_ELEMENTS.filter(el => !noCheck.includes(el));
-  const disallowed = ATTACHSHADOW_DISALLOWED_ELEMENTS.filter(el => !noCheck.includes(el));
+  const noCheck = ['body', 'template'];
+  const safelisted = HTML5_SHADOW_ALLOWED_ELEMENTS.filter(el => !noCheck.includes(el));
+  const disallowed = HTML5_SHADOW_DISALLOWED_ELEMENTS.filter(el => !noCheck.includes(el));
   const noChildElements = ['iframe','noscript','script','select','style','textarea','title'];
   for (let delegatesFocus of [false, true]) {
     for (let mode of ['open', 'closed', 'invalid']) {

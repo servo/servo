@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1356699">
+<audio>
+  <div>
+    <div id=test1></div>
+  </div>
+</audio>
+<script>
+getComputedStyle(test1).getPropertyValue('--a');
+CSS.registerProperty({name: '--a', syntax: '<length>', initialValue: '2px', inherits: false});
+test1.style.setProperty('--a', 'initial');
+getComputedStyle(test1).getPropertyValue('--a');
+</script>

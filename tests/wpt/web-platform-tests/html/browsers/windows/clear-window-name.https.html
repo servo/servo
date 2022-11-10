@@ -38,7 +38,7 @@ promise_test(async t => {
   const id = token();
 
   window.open(`resources/window-name.sub.html?report=${id}|close`, id);
-  await pollResultAndCheck(t, id, id);;
+  await pollResultAndCheck(t, id, id);
 }, "Window.name is not reset when there is an opener around");
 
 promise_test(async t => {
@@ -106,6 +106,16 @@ promise_test(async t => {
   window.open(`resources/window-name.sub.html?open|navOpener=about:blank|reportOpener=${id}|closeOpener|close`, id, "noopener");
   await pollResultAndCheck(t, id, id);
 }, "window.name is not reset after navigating to an about:blank page from a non-about:blank page");
+
+
+promise_test(async t => {
+  const id = token();
+  const domain = window.location.host;
+
+  anchorClick(`resources/window-name.sub.html?sub|set=${id}|setDomain=${domain}|sub|report=${id}|close`);
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is not reset if the document.domain is set to the parent domain");
+
 
   </script>
 </body>

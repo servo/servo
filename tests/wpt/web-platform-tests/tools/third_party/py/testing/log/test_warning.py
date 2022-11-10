@@ -8,8 +8,7 @@ import py
 mypath = py.path.local(__file__).new(ext=".py")
 
 
-win = sys.platform.startswith('win')
-pytestmark = pytest.mark.skipif(win and LooseVersion(pytest.__version__) >= LooseVersion('3.1'),
+pytestmark = pytest.mark.skipif(LooseVersion(pytest.__version__) >= LooseVersion('3.1'),
                                 reason='apiwarn is not compatible with pytest >= 3.1 (#162)')
 
 

@@ -2,45 +2,35 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>This test validates resource timing information for a cross-origin redirect chain.</title>
-<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<title>This test validates the values in resource timing for cross-origin
+redirects.</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src=/common/get-host-info.sub.js></script>
-<script src="resources/webperftestharness.js"></script>
-<script src="resources/webperftestharnessextension.js"></script>
-
-<script>
-    setup({explicit_done: true});
-    test_namespace('getEntriesByName');
-
-    function onload_test()
-    {
-        const context = new PerformanceContext(performance);
-        const entries = context.getEntriesByName(document.querySelector('object').data, 'resource');
-        test_equals(entries.length, 1, 'There should be one entry.');
-        const entry = entries[0];
-
-        test_equals(entry.redirectStart, 0, 'redirectStart == 0 in cross-origin redirect.');
-        test_equals(entry.redirectEnd, 0, 'redirectEnd == 0 in cross-origin redirect.');
-        test_greater_than(entry.fetchStart, 0, 'fetchStart > 0 in cross-origin redirect.');
-        test_equals(entry.startTime, entry.fetchStart, 'startTime == fetchStart in cross-origin redirect.');
-        done();
-    }
-</script>
-
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/resource-loaders.js"></script>
+<script src="resources/entry-invariants.js"></script>
 </head>
 <body>
 <script>
-    let destUrl = get_host_info().HTTP_REMOTE_ORIGIN + '/resource-timing/resources/multi_redirect.py?';
-    destUrl += 'page_origin=' + 'http://' + document.location.host;
-    destUrl += '&cross_origin=' + get_host_info().HTTP_REMOTE_ORIGIN;
-    destUrl += '&final_resource=' + encodeURIComponent("/resource-timing/resources/status-code.py?status=404");
-    const objElement = document.createElement('object');
-    objElement.style = 'width: 0px; height: 0px;';
-    objElement.data = destUrl;
-    objElement.onerror = onload_test;
-    document.body.appendChild(objElement);
+const {REMOTE_ORIGIN} = get_host_info();
+const delay = 2
+const not_found_page = encodeURIComponent("/resource-timing/resources/status-code.py?status=404");
+const load_null_object = async path => {
+  return load.object(path, null);
+}
+const destUrl = `/common/slow-redirect.py?delay=${delay}&location=${REMOTE_ORIGIN}/${not_found_page}`;
+
+const timeBefore = performance.now()
+attribute_test(load_null_object, destUrl, entry => {
+    assert_equals(entry.startTime, entry.fetchStart, 'startTime and fetchStart should be equal');
+    assert_greater_than(entry.startTime, timeBefore, 'startTime and fetchStart should be greater than the time before fetching');
+    // See https://github.com/w3c/resource-timing/issues/264
+    assert_less_than(Math.round(entry.startTime - timeBefore), delay * 1000, 'startTime should not expose redirect delays');
+}, "Verify that cross-origin object resources don't implicitly expose their redirect timings")
+
 </script>
 </body>
 </html>

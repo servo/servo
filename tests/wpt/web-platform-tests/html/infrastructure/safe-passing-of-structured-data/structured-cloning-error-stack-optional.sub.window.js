@@ -37,6 +37,18 @@ stackTests(() => {
 }, 'web API-created DOMException');
 
 function stackTests(errorFactory, description) {
+  test(t => {
+    const error = errorFactory();
+    const originalStack = error.stack;
+
+    if (!originalStack) {
+      return;
+    }
+
+    const clonedError = structuredClone(error);
+    assert_equals(clonedError.stack, originalStack);
+  }, description + ' (structuredClone())');
+
   async_test(t => {
     const error = errorFactory();
     const originalStack = error.stack;
@@ -54,7 +66,7 @@ function stackTests(errorFactory, description) {
     worker.postMessage(error);
   }, description + ' (worker)');
 
-  async_test(t => {
+  let iframeTest = (t, url) => {
     const thisTestId = token();
 
     const error = errorFactory();
@@ -77,9 +89,18 @@ function stackTests(errorFactory, description) {
       iframe.contentWindow.postMessage({ error, testId: thisTestId }, "*");
     });
 
-    const crossSiteEchoIFrame = new URL('resources/echo-iframe.html', location.href);
-    crossSiteEchoIFrame.hostname = '{{hosts[alt][www1]}}';
-    iframe.src = crossSiteEchoIFrame;
+    iframe.src = url;
     document.body.append(iframe);
+  }
+
+  async_test(t => {
+    const crossSiteURL = new URL('resources/echo-iframe.html', location.href);
+    crossSiteURL.hostname = '{{hosts[alt][www1]}}';
+    iframeTest(t, crossSiteURL);
   }, description + ' (cross-site iframe)');
+
+  async_test(t => {
+    const sameOriginURL = new URL('resources/echo-iframe.html', location.href);
+    iframeTest(t, sameOriginURL);
+  }, description + ' (same-origin iframe)')
 }

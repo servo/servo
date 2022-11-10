@@ -32,7 +32,12 @@
   <summary>Lorem ipsum</summary>
   <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
 </details>
-<details id=details9 open>
+<script>
+  window.details9TogglePromise = new Promise(resolve => {
+    window.details9TogglePromiseResolver = resolve;
+  });
+</script>
+<details id=details9 ontoggle="window.details9TogglePromiseResolver()" open>
   <summary>Lorem ipsum</summary>
   <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
 </details>
@@ -128,22 +133,20 @@
   });
   details8.removeAttribute('open'); // closes details8
 
-  var toggleFiredOnDetails9 = false;
-  details9.ontoggle = t9.step_func_done(function(evt) {
-    if (toggleFiredOnDetails9) {
+  window.details9TogglePromise.then(t9.step_func(() => {
+    // The toggle event should be fired once when declaring details9 with open
+    // attribute.
+    details9.ontoggle = t9.step_func(() => {
       assert_unreached("toggle event fired twice on opened details element");
-    } else {
-      toggleFiredOnDetails9 = true;
-    }
-  });
-  // The toggle event should be fired once when declaring details9 with open
-  // attribute.
-  details9.open = true; // opens details9
-  t9.step_timeout(function() {
-    assert_true(details9.open);
-    assert_true(toggleFiredOnDetails9);
-    t9.done();
-  }, 0);
+    });
+    // setting open=true on details9 should not fire another event since it is
+    // already open.
+    details9.open = true;
+    t9.step_timeout(() => {
+      assert_true(details9.open);
+      t9.done();
+    });
+  }));
 
   details10.ontoggle = t10.step_func_done(function(evt) {
     assert_unreached("toggle event fired on closed details element");

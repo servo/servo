@@ -23,7 +23,7 @@ ctx.beginPath();
 ctx.moveTo(100, 0);
 ctx.arc(100, 0, 150, (512+1/2)*Math.PI, (1024-1)*Math.PI, true);
 ctx.fill();
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

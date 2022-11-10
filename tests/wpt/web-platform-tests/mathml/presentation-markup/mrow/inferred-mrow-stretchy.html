@@ -32,7 +32,7 @@
   window.addEventListener("load", () => { loadAllFonts().then(runTests); });
   function runTests()
   {
-      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown"].forEach((tag) => {
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd"].forEach((tag) => {
           var mo = document.getElementById("mo" + tag);
           test(function() {
               assert_true(MathMLFeatureDetection.has_mspace());
@@ -56,6 +56,7 @@
     <math><menclose notation="box"><mo id="moMenclose">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></menclose></math>
     <math><mpadded lspace="10px"><mo id="moMpadded">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mpadded></math>
     <math><unknown><mo id="moUnknown">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></unknown></math>
+    <math><mtable><mtr><mtd><mo id="moMtd">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mtd></mtr></mtable></math>
   </p>
 </body>
 </html>

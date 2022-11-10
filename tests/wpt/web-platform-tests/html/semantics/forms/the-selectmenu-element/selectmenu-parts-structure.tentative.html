@@ -9,31 +9,31 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <selectmenu id="selectMenu0">
-  <popup slot="listbox" behavior="listbox">
+  <div popover slot="listbox" behavior="listbox">
     <option id="selectMenu0-child1">one</option>
     <option id="selectMenu0-child2">two</option>
     <div behavior="option" id="selectMenu0-child3">three</div>
-  </popup>
+  </div>
   <option id="selectMenu0-child4">four</option>
 </selectmenu>
 
 <selectmenu id="selectMenu1">
-  <popup slot="listbox" behavior="listbox" id="selectMenu1-popup">
+  <div popover slot="listbox" behavior="listbox" id="selectMenu1-popover">
     <div behavior="button" id="selectMenu1-button">
       Custom button
     </div>
     <option>one</option>
     <option id="selectMenu1-child2">two</option>
-  </popup>
+  </div>
 </selectmenu>
 
 <selectmenu id="selectMenu2">
   <div slot="button" behavior="button" id="selectMenu2-button">
     Custom button
-    <popup behavior="listbox" id="selectMenu2-popup">
+    <div popover behavior="listbox" id="selectMenu2-popover">
       <option>one</option>
       <option id="selectMenu2-child2">two</option>
-    </popup>
+    </div>
   </div>
   <option>three</option>
   <div>
@@ -53,10 +53,10 @@
 <selectmenu id="selectMenu4">
   <div slot="button" behavior="button" id="selectMenu4-button0">button0</div>
   <div slot="listbox" id="selectMenu4-listbox-slot">
-    <popup behavior="listbox" id="selectMenu4-listbox0">
+    <div popover behavior="listbox" id="selectMenu4-listbox0">
       <option>one</option>
       <option id="selectMenu4-option2">two</option>
-    </popup>
+    </div>
   </div>
 </selectmenu>
 
@@ -72,7 +72,7 @@
 <!-- No associated JS test -- just don't crash when parsing! -->
 <selectmenu id="selectMenu6">
   <div slot="button"></div>
-  <popup slot="listbox" behavior="listbox"></popup>
+  <div popover slot="listbox" behavior="listbox"></div>
 </selectmenu>
 
 <!-- No associated JS test -- just don't crash when parsing! -->
@@ -89,10 +89,10 @@
 
 <selectmenu id="selectMenu9">
   <div slot="listbox" id="selectMenu9-listbox-slot">
-    <popup behavior="listbox" id="selectMenu9-originalListbox">
+    <div popover behavior="listbox" id="selectMenu9-originalListbox">
       <option>one</option>
       <option id="selectMenu9-option2">two</option>
-    </popup>
+    </div>
   </div>
 </selectmenu>
 
@@ -103,9 +103,9 @@
 </selectmenu>
 
 <selectmenu id="selectMenu11">
-  <popup slot="listbox" behavior="listbox">
+  <div popover slot="listbox" behavior="listbox">
     <option>one</option>
-  </popup>
+  </div>
   <div slot="button" behavior="listbox" id="selectMenu11-button">Test</div>
 </selectmenu>
 
@@ -114,10 +114,10 @@
     <div behavior="button" id="selectMenu12-button0">button0</div>
   </div>
   <div slot="listbox" id="selectMenu12-listbox-slot">
-    <popup behavior="listbox" id="selectMenu12-originalListbox">
+    <div popover behavior="listbox" id="selectMenu12-originalListbox">
       <option id="selectMenu12-option1">one</option>
       <option>two</option>
-    </popup>
+    </div>
   </div>
 </selectmenu>
 
@@ -131,15 +131,15 @@
   </div>
   <div slot="listbox" id="selectMenu13-listbox-slot">
     <div id="selectMenu13-removeContent-listbox">
-      <popup behavior="listbox" id="selectMenu13-originalListbox">
+      <div popover behavior="listbox" id="selectMenu13-originalListbox">
         <option id="selectMenu13-option1">one</option>
         <option id="selectMenu13-option2">two</option>
-      </popup>
+      </div>
     </div>
-    <popup behavior="listbox" id="selectMenu13-newListbox">
+    <div popover behavior="listbox" id="selectMenu13-newListbox">
       <option>three</option>
       <option id="selectMenu13-option4">four</option>
-    </popup>
+    </div>
   </div>
 </selectmenu>
 
@@ -147,6 +147,20 @@
   <div slot="button" behavior="button" id="selectMenu14-button0">button0</div>
   <option>one</option>
   <option id="selectMenu14-option2">two</option>
+</selectmenu>
+
+<selectmenu id="selectMenu15">
+  <div slot="button" id="selectMenu15-div0"></div>
+  <option>one</option>
+</selectmenu>
+
+<selectmenu id="selectMenu16">
+  <div slot="button">
+    <div id="selectMenu16-div0">
+      <div behavior="button" id="selectMenu16-button0">button</div>
+    </div>
+  </div>
+  <option>one</option>
 </selectmenu>
 
 <script>
@@ -186,35 +200,35 @@
     await clickOn(selectMenu0);
     assert_true(selectMenu0.open);
     selectMenu0Child4.click();
-    assert_equals(selectMenu0.value, "one", "Clicking an option outside of the popup should not change the value");
+    assert_equals(selectMenu0.value, "one", "Clicking an option outside of the popover should not change the value");
   }, "To receive option part controller code, an option must be a descendant of the listbox part in a flat tree traversal");
 
   promise_test(async () => {
     const selectMenu1 = document.getElementById("selectMenu1");
-    const selectMenu1Popup = document.getElementById("selectMenu1-popup");
+    const selectMenu1Popover = document.getElementById("selectMenu1-popover");
     const selectMenu1Button = document.getElementById("selectMenu1-button");
     const selectMenu1Child2 = document.getElementById("selectMenu1-child2");
-    assert_false(selectMenu1Popup.open);
+    assert_false(selectMenu1Popover.matches(':open'));
     selectMenu1Button.click();
-    assert_false(selectMenu1Popup.open, "Clicking a button part that is a descendant of the listbox part should have no effect");
+    assert_false(selectMenu1Popover.matches(':open'), "Clicking a button part that is a descendant of the listbox part should have no effect");
 
     assert_equals(selectMenu1.value, "one");
     await clickOn(selectMenu1);
-    assert_true(selectMenu1Popup.open);
+    assert_true(selectMenu1Popover.matches(':open'));
     await clickOn(selectMenu1Child2);
     assert_equals(selectMenu1.value, "two", "Clicking an <option> should change the value");
   }, "To receive button part controller code, an element labeled as a button must not be a descendant of the listbox part in a flat tree traversal");
 
   promise_test(async () => {
     const selectMenu2 = document.getElementById("selectMenu2");
-    const selectMenu2Popup = document.getElementById("selectMenu2-popup");
+    const selectMenu2Popover = document.getElementById("selectMenu2-popover");
     const selectMenu2Button = document.getElementById("selectMenu2-button");
     const selectMenu2Child2 = document.getElementById("selectMenu2-child2");
     const selectMenu2Child4 = document.getElementById("selectMenu2-child4");
 
-    assert_false(selectMenu2Popup.open);
+    assert_false(selectMenu2Popover.matches(':open'));
     await clickOn(selectMenu2Button);
-    assert_false(selectMenu2Popup.open, "Clicking a button part should not show an invalid listbox part");
+    assert_false(selectMenu2Popover.matches(':open'), "Clicking a button part should not show an invalid listbox part");
 
     assert_equals(selectMenu2.value, "three");
     await clickOn(selectMenu2Button);
@@ -298,7 +312,8 @@ promise_test(async () => {
     const option2 = document.getElementById("selectMenu9-option2");
     assert_equals(selectMenu.value, "one", "Initial value should be the first option");
 
-    let newListbox = document.createElement("popup");
+    let newListbox = document.createElement("div");
+    newListbox.setAttribute("popover", "auto");
     newListbox.setAttribute("behavior", "listbox");
     let newOption = document.createElement("option");
     newOption.innerText = "three";
@@ -312,8 +327,8 @@ promise_test(async () => {
     assert_true(selectMenu.open, "Menu should open when clicked");
 
     option2.click(); // clickOn doesn't work because the old options are not displayed
-    assert_equals(selectMenu.value, "three", "Elements in second popup should no longer be option parts");
-    assert_true(selectMenu.open, "Clicking non-part options shouldn't close the popup");
+    assert_equals(selectMenu.value, "three", "Elements in second popover should no longer be option parts");
+    assert_true(selectMenu.open, "Clicking non-part options shouldn't close the popover");
 
     await clickOn(newOption2);
     assert_false(selectMenu.open);
@@ -386,7 +401,8 @@ promise_test(async () => {
     await clickOn(selectMenuOption1);
     assert_false(selectMenu.open);
 
-    let newListbox = document.createElement("popup");
+    let newListbox = document.createElement("div");
+    newListbox.setAttribute("popover", "auto");
     newListbox.setAttribute("behavior", "listbox");
     let newOption = document.createElement("option");
     newOption.innerText = "three";
@@ -485,4 +501,30 @@ promise_test(async () => {
     selectMenu1.removeChild(secondOption);
     assert_equals(selectMenu1.value, "one");
   }, "Moving a selectmenu between documents should keep controller code active");
+
+  promise_test(async () => {
+    const selectMenu = document.getElementById("selectMenu15");
+    const selectMenuButtonContainer = document.getElementById("selectMenu15-div0");
+
+    const outerDiv = document.createElement("div");
+    const button = document.createElement("input");
+    button.type = button.value = "button";
+    button.setAttribute("behavior", "button");
+    outerDiv.appendChild(button);
+    selectMenuButtonContainer.appendChild(outerDiv);
+
+    await clickOn(selectMenu);
+    assert_true(selectMenu.open, "New button should receive controller code");
+  }, "New parts should be detected even when in the subtree of an inserted node");
+
+  promise_test(async () => {
+    const selectMenu = document.getElementById("selectMenu16");
+    const selectMenuButtonContainer = document.getElementById("selectMenu16-div0");
+    const selectMenuButton = document.getElementById("selectMenu16-button0");
+
+    selectMenuButtonContainer.remove();
+
+    selectMenuButton.click();
+    assert_false(selectMenu.open, "Removed button should no longer have controller code");
+  }, "Part removals should be detected even when in the subtree of a removed node");
 </script>

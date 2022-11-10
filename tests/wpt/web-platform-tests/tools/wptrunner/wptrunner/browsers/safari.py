@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 import plistlib
 from distutils.spawn import find_executable
@@ -5,24 +7,21 @@ from distutils.version import LooseVersion
 
 import psutil
 
-from .base import Browser, ExecutorBrowser, require_arg
-from .base import NullBrowser  # noqa: F401
+from .base import WebDriverBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
-from ..webdriver_server import SafariDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
+from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor,  # noqa: F401
                                            WebDriverCrashtestExecutor)  # noqa: F401
-from ..executors.executorsafari import SafariDriverWdspecExecutor  # noqa: F401
 
 
 __wptrunner__ = {"product": "safari",
                  "check_args": "check_args",
-                 "browser": {None: "SafariBrowser",
-                             "wdspec": "NullBrowser"},
+                 "browser": "SafariBrowser",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
-                              "wdspec": "SafariDriverWdspecExecutor",
+                              "wdspec": "WdspecExecutor",
                               "crashtest": "WebDriverCrashtestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
@@ -143,20 +142,24 @@ def get_webkit_info(safari_bundle_path):
     return (None, None)
 
 
-class SafariBrowser(Browser):
+class SafariBrowser(WebDriverBrowser):
     """Safari is backed by safaridriver, which is supplied through
     ``wptrunner.webdriver.SafariDriverServer``.
     """
-
-    def __init__(self, logger, webdriver_binary, webdriver_args=None, kill_safari=False, **kwargs):
+    def __init__(self, logger, binary=None, webdriver_binary=None, webdriver_args=None,
+                 port=None, env=None, kill_safari=False, **kwargs):
         """Creates a new representation of Safari.  The `webdriver_binary`
         argument gives the WebDriver binary to use for testing. (The browser
         binary location cannot be specified, as Safari and SafariDriver are
         coupled.) If `kill_safari` is True, then `Browser.stop` will stop Safari."""
-        Browser.__init__(self, logger)
-        self.server = SafariDriverServer(self.logger,
-                                         binary=webdriver_binary,
-                                         args=webdriver_args)
+        super().__init__(logger,
+                         binary,
+                         webdriver_binary,
+                         webdriver_args=webdriver_args,
+                         port=None,
+                         supports_pac=False,
+                         env=env)
+
         if "/" not in webdriver_binary:
             wd_path = find_executable(webdriver_binary)
         else:
@@ -181,16 +184,17 @@ class SafariBrowser(Browser):
 
         return exe_path
 
-    def start(self, **kwargs):
-        self.server.start(block=False)
+    def make_command(self):
+        return [self.webdriver_binary, f"--port={self.port}"] + self.webdriver_args
 
     def stop(self, force=False):
-        self.server.stop(force=force)
+        super().stop(force)
 
         if self.kill_safari:
             self.logger.debug("Going to stop Safari")
             for proc in psutil.process_iter(attrs=["exe"]):
-                if proc.info["exe"] is not None and os.path.samefile(proc.info["exe"], self.safari_path):
+                if (proc.info["exe"] is not None and
+                    os.path.samefile(proc.info["exe"], self.safari_path)):
                     self.logger.debug("Stopping Safari %s" % proc.pid)
                     try:
                         proc.terminate()
@@ -198,20 +202,6 @@ class SafariBrowser(Browser):
                             proc.wait(10)
                         except psutil.TimeoutExpired:
                             proc.kill()
+                            proc.wait(10)
                     except psutil.NoSuchProcess:
                         pass
-
-    def pid(self):
-        return self.server.pid
-
-    def is_alive(self):
-        # TODO(ato): This only indicates the driver is alive,
-        # and doesn't say anything about whether a browser session
-        # is active.
-        return self.server.is_alive()
-
-    def cleanup(self):
-        self.stop()
-
-    def executor_browser(self):
-        return ExecutorBrowser, {"webdriver_url": self.server.url}

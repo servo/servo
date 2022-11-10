@@ -123,5 +123,13 @@ promise_test(async t => {
   assert_active_only(registration, expected_url);
 }, 'update() should find an update in an imported script but update() should ' +
    'result in failure due to missing the other imported script.');
+
+promise_test(async t => {
+  const [registration, expected_url] = await prepare_ready_normal_worker(
+    t, 'import-scripts-cross-origin-worker.sub.js');
+  t.add_cleanup(() => registration.unregister());
+  await registration.update();
+  assert_installing_and_active(registration, expected_url);
+}, 'update() should work with cross-origin importScripts.');
 </script>
 </body>

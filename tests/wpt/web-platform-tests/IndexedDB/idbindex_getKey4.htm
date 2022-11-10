@@ -4,7 +4,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 
 <script>
     var db, t = async_test();
@@ -22,7 +22,7 @@
     }
 
     open_rq.onsuccess = function(e) {
-        var rq = db.transaction("store")
+        var rq = db.transaction("store", "readonly", {durability: 'relaxed'})
                    .objectStore("store")
                    .index("index")
                    .getKey(IDBKeyRange.bound('data4', 'data7'));

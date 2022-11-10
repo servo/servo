@@ -25,36 +25,24 @@
     });
   }
 
-  promise_test(test => {
-    return promise_rejects_dom(test, 'SyntaxError', document.fonts.load('initial'));
-  }, 'Loading CSS-wide keyword "initial" causes SyntaxError (document)')
-
-  promise_test(test => {
-    return promise_rejects_dom(test, 'SyntaxError', document.fonts.load('inherit'));
-  }, 'Loading CSS-wide keyword "inherit" causes SyntaxError (document)')
-
-  promise_test(test => {
-    return promise_rejects_dom(test, 'SyntaxError', document.fonts.load('unset'));
-  }, 'Loading CSS-wide keyword "unset" causes SyntaxError (document)')
-
-  promise_test(test => {
-    return promise_rejects_dom(test, 'SyntaxError', document.fonts.load('revert'));
-  }, 'Loading CSS-wide keyword "revert" causes SyntaxError (document)')
-
-  promise_test(test => {
-    return promise_rejects_dom(test, 'SyntaxError', load_on_worker('initial'));
-  }, 'Loading CSS-wide keyword "initial" causes SyntaxError (worker)')
-
-  promise_test(test => {
-    return promise_rejects_dom(test, 'SyntaxError', load_on_worker('inherit'));
-  }, 'Loading CSS-wide keyword "inherit" causes SyntaxError (worker)')
-
-  promise_test(test => {
-    return promise_rejects_dom(test, 'SyntaxError', load_on_worker('unset'));
-  }, 'Loading CSS-wide keyword "unset" causes SyntaxError (worker)')
-
-  promise_test(test => {
-    return promise_rejects_dom(test, 'SyntaxError', load_on_worker('revert'));
-  }, 'Loading CSS-wide keyword "revert" causes SyntaxError (worker)')
+  // https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces
+  // forbids CSS-wide keywords as the value of the font given to the
+  // load method (equivalent to the font shorthand).  Note that the test
+  // for this case will also pass when the system-wide keyword simply
+  // isn't supported, since the syntax won't be valid syntax for the
+  // 'font' shorthand.
+  // https://drafts.csswg.org/css-fonts-4/#family-name-syntax also
+  // forbids using the CSS-wide keywords as unquoted keywords within
+  // <font-family>.
+  for (let [description_prefix, syntax_prefix] of [["", ""], ["value with ", "medium "]]) {
+    for (let keyword of ["initial", "inherit", "unset", "default", "revert", "revert-layer"]) {
+      promise_test(test => {
+        return promise_rejects_dom(test, 'SyntaxError', document.fonts.load(`${syntax_prefix}${keyword}`));
+      }, `Loading ${description_prefix}CSS-wide keyword "${keyword}" causes SyntaxError (document)`)
+      promise_test(test => {
+        return promise_rejects_dom(test, 'SyntaxError', load_on_worker(`${syntax_prefix}${keyword}`));
+      }, `Loading ${description_prefix}CSS-wide keyword "${keyword}" causes SyntaxError (worker)`)
+    }
+  }
 
 </script>

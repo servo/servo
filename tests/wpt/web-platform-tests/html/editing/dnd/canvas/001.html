@@ -1,0 +1,67 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Canvas drag and drop carrying image as dataURL</title>
+<style type="text/css">
+div[ondragenter]
+  {width:105px;
+  min-height:105px;
+  text-align:center;
+  margin-top:20px;
+  padding:10px;
+  border:solid thin navy;}
+p:first-child
+  {padding-left:12px;}
+</style>
+<script type="application/ecmascript">
+function addImage(event)
+  {var c = document.createElement('img');
+  c.setAttribute('src',event.dataTransfer.getData('text/uri-list'));
+  document.querySelector('div').appendChild(c);}
+function start(event)
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/uri-list', document.querySelector('canvas').toDataURL('image/png'));}
+</script>
+</head>
+<body>
+<p>
+  <canvas width="100" height="100" draggable="true" ondragstart="start(event)">Canvas</canvas>
+</p>
+<p>Drag canvas pattern above to the box below. It should be copied to the box once you drop it there.</p>
+<div
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+/>
+<script type="application/ecmascript">
+var canvas = document.querySelector('canvas'),
+c = canvas.getContext('2d');
+for(var x = 0; x != 50; x++)
+  {c.fillStyle = (x%2 == 0)?'navy':'white';
+  c.beginPath();
+  c.moveTo(x,x);
+  c.lineTo(100-x,x);
+  c.lineTo(100-x,100-x);
+  c.lineTo(x,100-x);
+  c.closePath();
+  c.fill();}
+async function test() {
+  const canvas = document.querySelector('canvas');
+  const div = document.querySelector('div');
+  function onDropCallBack(event) {
+    addImage(event);
+    const img = document.querySelector('img');
+    assert_equals(img.src, canvas.toDataURL('image/png'));
+    return true;
+  }
+
+  dragDropTest(canvas, div, onDropCallBack, 'Dragging the canvas to the bottom div should turn it green');
+}
+test();
+</script>
+</body>
+</html>

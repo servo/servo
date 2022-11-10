@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  getSelection().collapse(document.querySelector("content"), 1);
+  document.querySelector("div[contenteditable]").addEventListener("DOMSubtreeModified", () => {
+    document.querySelector("tr").replaceChild(
+      document.querySelector("meter"),
+      document.querySelector("th")
+    );
+  });
+  document.execCommand("justifyFull");
+});
+</script>
+</head>
+<body>
+<table>
+<tr>
+<th>
+<div contenteditable>
+<meter>
+<content>
+<ul></ul>
+</div>
+</th></tr></table>
+</body>
+</html>

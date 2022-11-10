@@ -14,6 +14,11 @@
 <script>
 // <single-transition> = [ none | <single-transition-property> ] ||
 // <time> || <easing-function> || <time>
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById('target')).transition, "all 0s ease 0s");
+}, "Default transition value");
+
 test_computed_value("transition", "1s", "all 1s ease 0s");
 test_computed_value("transition", "cubic-bezier(0, -2, 1, 3)", "all 0s cubic-bezier(0, -2, 1, 3) 0s");
 test_computed_value("transition", "1s -3s", "all 1s ease -3s");

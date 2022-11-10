@@ -36,7 +36,7 @@ enum CookieSameSite {
 dictionary CookieInit {
   required USVString name;
   required USVString value;
-  DOMTimeStamp? expires = null;
+  EpochTimeStamp? expires = null;
   USVString? domain = null;
   USVString path = "/";
   CookieSameSite sameSite = "strict";
@@ -53,7 +53,7 @@ dictionary CookieListItem {
   USVString value;
   USVString? domain;
   USVString path;
-  DOMTimeStamp? expires;
+  EpochTimeStamp? expires;
   boolean secure;
   CookieSameSite sameSite;
 };

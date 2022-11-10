@@ -39,12 +39,12 @@ g.addColorStop(0.5, '#ff0');
 g.addColorStop(1, '#00f');
 ctx.fillStyle = g;
 ctx.fillRect(0, 0, 200, 50);
-_assertPixelApprox(canvas, 49,25, 0,0,255,255, "49,25", "0,0,255,255", 16);
-_assertPixelApprox(canvas, 51,25, 255,255,0,255, "51,25", "255,255,0,255", 16);
-_assertPixelApprox(canvas, 99,25, 0,0,255,255, "99,25", "0,0,255,255", 16);
-_assertPixelApprox(canvas, 101,25, 255,255,0,255, "101,25", "255,255,0,255", 16);
-_assertPixelApprox(canvas, 149,25, 0,0,255,255, "149,25", "0,0,255,255", 16);
-_assertPixelApprox(canvas, 151,25, 255,255,0,255, "151,25", "255,255,0,255", 16);
+_assertPixelApprox(canvas, 49,25, 0,0,255,255, 16);
+_assertPixelApprox(canvas, 51,25, 255,255,0,255, 16);
+_assertPixelApprox(canvas, 99,25, 0,0,255,255, 16);
+_assertPixelApprox(canvas, 101,25, 255,255,0,255, 16);
+_assertPixelApprox(canvas, 149,25, 0,0,255,255, 16);
+_assertPixelApprox(canvas, 151,25, 255,255,0,255, 16);
 
 
 });

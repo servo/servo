@@ -12,6 +12,8 @@
     @supports not ({ something @with (unbalanced parens }) {
       html { background-color: red }
     }
+    /* parser still looking for second close parenthesis */
+    html { background-color: red }
   ]]></style>
  </head>
  <body>

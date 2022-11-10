@@ -9,12 +9,14 @@
 		<meta name="assert" content="Test basic functioning of hsla() colors." />
 		<style type="text/css"><![CDATA[
 		html, body { background: white; }
-		#one { color: hsla(120, 100%, 70%, 1.0); }
-		#two { color: hsla(120, 100%, 50%, 0.6); }
+		div { width: 600px; height: 30px; margin-bottom: 10px; }
+		#one { background-color: hsla(120, 100%, 70%, 1.0); }
+		#two { background-color: hsla(120, 100%, 50%, 0.6); }
 		]]></style>
 	</head>
 	<body>
-		<p id="one">This text should be light green (the same color as the line below).</p>
-		<p id="two">This text should be light green (the same color as the line above).</p>
+		<p>Test passes if the two boxes below are the same color.</p>
+		<div id="one"></div>
+		<div id="two"></div>
 	</body>
 </html>

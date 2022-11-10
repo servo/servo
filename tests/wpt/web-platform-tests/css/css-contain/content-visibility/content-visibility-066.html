@@ -18,7 +18,7 @@
 #container {
   width: 150px;
   height: 150px;
-  background: lightblue;
+  background: red;
 }
 #target {
   display: contents;
@@ -35,9 +35,9 @@
 }
 </style>
 
-<div class=spacer></div>
+<div class=spacer>Test passes if there is no red.</div>
 <div id=container class=auto>
-  <div id=target tabindex=0></div>
+  <div id=target tabindex=0>FAIL</div>
 </div>
 
 <script>

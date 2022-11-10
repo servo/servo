@@ -46,7 +46,10 @@ promise_test(() => {
         'responseEnd',
         'transferSize',
         'encodedBodySize',
-        'decodedBodySize'
+        'decodedBodySize',
+        'renderBlockingStatus',
+        'responseStatus',
+        'contentType',
       ];
       for (const key of performanceResourceTimingKeys) {
         try {

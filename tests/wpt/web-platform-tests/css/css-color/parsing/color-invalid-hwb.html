@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using invalid HWB notation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#the-hwb-notation">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-sRGB-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-sRGB-values">
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+tests = [
+    ["hwba(120 30% 50%)"],
+    ["hwba(120 30% 50% / 0.5)"],
+
+    ["hwb(90deg, 50%, 50%)", "HWB value with commas should not be parsed"],
+    ["hwb(90deg, 50%, 50%, 0.2)", "HWB value with commas should not be parsed"],
+    ["hwb(90, 50%, 50%)", "HWB value with commas should not be parsed"],
+    ["hwb(90, 50%, 50%, 0.2)", "HWB value with commas should not be parsed"],
+];
+
+for (const test of tests) {
+    test_invalid_value("color", test[0]);
+}
+</script>
+</body>
+</html>

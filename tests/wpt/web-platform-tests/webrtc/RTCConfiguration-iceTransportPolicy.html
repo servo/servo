@@ -1,8 +1,10 @@
 <!doctype html>
+<meta name="timeout" content="long">
 <title>RTCConfiguration iceTransportPolicy</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCConfiguration-helper.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -115,5 +117,190 @@
     const pc = new RTCPeerConnection({ iceTransports: null });
     assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
   }, `new RTCPeerConnection({ iceTransports: null }) should have no effect`);
+
+  const getLines = (sdp, startsWith) =>
+    sdp.split('\r\n').filter(l => l.startsWith(startsWith));
+
+  const getUfrags = ({sdp}) => getLines(sdp, 'a=ice-ufrag:');
+
+  promise_test(async t => {
+    const offerer = new RTCPeerConnection({iceTransportPolicy: 'relay'});
+    t.add_cleanup(() => offerer.close());
+
+    offerer.addEventListener('icecandidate',
+        e => assert_equals(e.candidate, null, 'Should get no ICE candidates'));
+
+    offerer.addTransceiver('audio');
+    await offerer.setLocalDescription();
+
+    await waitForIceGatheringState(offerer, ['complete']);
+  }, `iceTransportPolicy "relay" on offerer should prevent candidate gathering`);
+
+  promise_test(async t => {
+    const offerer = new RTCPeerConnection();
+    const answerer = new RTCPeerConnection({iceTransportPolicy: 'relay'});
+    t.add_cleanup(() => offerer.close());
+    t.add_cleanup(() => answerer.close());
+
+    answerer.addEventListener('icecandidate',
+        e => assert_equals(e.candidate, null, 'Should get no ICE candidates'));
+
+    offerer.addTransceiver('audio');
+    const offer = await offerer.createOffer();
+    await answerer.setRemoteDescription(offer);
+    await answerer.setLocalDescription(await answerer.createAnswer());
+    await waitForIceGatheringState(answerer, ['complete']);
+  }, `iceTransportPolicy "relay" on answerer should prevent candidate gathering`);
+
+  promise_test(async t => {
+    const offerer = new RTCPeerConnection();
+    const answerer = new RTCPeerConnection();
+    t.add_cleanup(() => offerer.close());
+    t.add_cleanup(() => answerer.close());
+
+    offerer.addTransceiver('audio');
+
+    exchangeIceCandidates(offerer, answerer);
+
+    await Promise.all([
+      exchangeOfferAnswer(offerer, answerer),
+      listenToIceConnected(offerer),
+      listenToIceConnected(answerer),
+      waitForIceGatheringState(offerer, ['complete']),
+      waitForIceGatheringState(answerer, ['complete'])
+    ]);
+
+    const [oldUfrag] = getUfrags(offerer.localDescription);
+
+    offerer.setConfiguration({iceTransportPolicy: 'relay'});
+
+    offerer.addEventListener('icecandidate',
+        e => assert_equals(e.candidate, null, 'Should get no ICE candidates'));
+
+    await Promise.all([
+      exchangeOfferAnswer(offerer, answerer),
+      waitForIceStateChange(offerer, ['failed']),
+      waitForIceStateChange(answerer, ['failed']),
+      waitForIceGatheringState(offerer, ['complete']),
+      waitForIceGatheringState(answerer, ['complete'])
+    ]);
+
+    const [newUfrag] = getUfrags(offerer.localDescription);
+    assert_not_equals(oldUfrag, newUfrag,
+        'Changing iceTransportPolicy should prompt an ICE restart');
+  }, `Changing iceTransportPolicy from "all" to "relay" causes an ICE restart which should fail, with no new candidates`);
+
+  promise_test(async t => {
+    const offerer = new RTCPeerConnection({iceTransportPolicy: 'relay'});
+    const answerer = new RTCPeerConnection();
+    t.add_cleanup(() => offerer.close());
+    t.add_cleanup(() => answerer.close());
+
+    offerer.addTransceiver('audio');
+
+    exchangeIceCandidates(offerer, answerer);
+
+    const checkNoCandidate =
+        e => assert_equals(e.candidate, null, 'Should get no ICE candidates');
+
+    offerer.addEventListener('icecandidate', checkNoCandidate);
+
+    await Promise.all([
+      exchangeOfferAnswer(offerer, answerer),
+      waitForIceStateChange(offerer, ['failed']),
+      waitForIceStateChange(answerer, ['failed']),
+      waitForIceGatheringState(offerer, ['complete']),
+      waitForIceGatheringState(answerer, ['complete'])
+    ]);
+
+    const [oldUfrag] = getUfrags(offerer.localDescription);
+
+    offerer.setConfiguration({iceTransportPolicy: 'all'});
+
+    offerer.removeEventListener('icecandidate', checkNoCandidate);
+
+    await Promise.all([
+      exchangeOfferAnswer(offerer, answerer),
+      listenToIceConnected(offerer),
+      listenToIceConnected(answerer),
+      waitForIceGatheringState(offerer, ['complete']),
+      waitForIceGatheringState(answerer, ['complete'])
+    ]);
+
+    const [newUfrag] = getUfrags(offerer.localDescription);
+    assert_not_equals(oldUfrag, newUfrag,
+        'Changing iceTransportPolicy should prompt an ICE restart');
+  }, `Changing iceTransportPolicy from "relay" to "all" causes an ICE restart which should succeed`);
+
+  promise_test(async t => {
+    const offerer = new RTCPeerConnection();
+    const answerer = new RTCPeerConnection();
+    t.add_cleanup(() => offerer.close());
+    t.add_cleanup(() => answerer.close());
+
+    offerer.addTransceiver('audio');
+
+    exchangeIceCandidates(offerer, answerer);
+
+    await Promise.all([
+      exchangeOfferAnswer(offerer, answerer),
+      listenToIceConnected(offerer),
+      listenToIceConnected(answerer),
+      waitForIceGatheringState(offerer, ['complete']),
+      waitForIceGatheringState(answerer, ['complete'])
+    ]);
+
+    const [oldUfrag] = getUfrags(offerer.localDescription);
+
+    offerer.setConfiguration({iceTransportPolicy: 'relay'});
+    offerer.setConfiguration({iceTransportPolicy: 'all'});
+
+    await Promise.all([
+      exchangeOfferAnswer(offerer, answerer),
+      listenToIceConnected(offerer),
+      listenToIceConnected(answerer),
+      waitForIceGatheringState(offerer, ['complete']),
+      waitForIceGatheringState(answerer, ['complete'])
+    ]);
+
+    const [newUfrag] = getUfrags(offerer.localDescription);
+    assert_not_equals(oldUfrag, newUfrag,
+        'Changing iceTransportPolicy should prompt an ICE restart');
+  }, `Changing iceTransportPolicy from "all" to "relay", and back to "all" prompts an ICE restart`);
+
+  promise_test(async t => {
+    const offerer = new RTCPeerConnection();
+    const answerer = new RTCPeerConnection();
+    t.add_cleanup(() => offerer.close());
+    t.add_cleanup(() => answerer.close());
+
+    offerer.addTransceiver('audio');
+
+    exchangeIceCandidates(offerer, answerer);
+
+    await Promise.all([
+      exchangeOfferAnswer(offerer, answerer),
+      listenToIceConnected(offerer),
+      listenToIceConnected(answerer),
+      waitForIceGatheringState(offerer, ['complete']),
+      waitForIceGatheringState(answerer, ['complete'])
+    ]);
+
+    const [oldUfrag] = getUfrags(answerer.localDescription);
+
+    answerer.setConfiguration({iceTransportPolicy: 'relay'});
+
+    await Promise.all([
+      exchangeOfferAnswer(offerer, answerer),
+      listenToIceConnected(offerer),
+      listenToIceConnected(answerer),
+      waitForIceGatheringState(offerer, ['complete']),
+      waitForIceGatheringState(answerer, ['complete'])
+    ]);
+
+    const [newUfrag] = getUfrags(answerer.localDescription);
+    assert_equals(oldUfrag, newUfrag,
+        'Changing iceTransportPolicy on answerer should not effect ufrag');
+  }, `Changing iceTransportPolicy from "all" to "relay" on the answerer has no effect on a subsequent offer/answer`);
 
 </script>

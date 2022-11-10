@@ -7,13 +7,20 @@
 <script src="Document-createEvent.js"></script>
 <div id="log"></div>
 <script>
-function testAlias(arg, iface) {
+function supportsTouchEvents(isTouchEvent) {
+  if (isTouchEvent) {
+    assert_implements_optional('ontouchstart' in document, "'expose legacy touch event APIs'");
+  }
+}
+function testAlias(arg, iface, isTouchEvent) {
   var ev;
   test(function() {
+    supportsTouchEvents(isTouchEvent);
     ev = document.createEvent(arg);
     assert_equals(Object.getPrototypeOf(ev), window[iface].prototype);
   }, arg + " should be an alias for " + iface + ".");
   test(function() {
+    supportsTouchEvents(isTouchEvent);
     assert_equals(ev.type, "",
                   "type should be initialized to the empty string");
     assert_equals(ev.target, null,
@@ -32,11 +39,13 @@ function testAlias(arg, iface) {
                   "isTrusted should be initialized to false");
   }, "createEvent('" + arg + "') should be initialized correctly.");
 }
+aliases.TouchEvent = 'TouchEvent';
 for (var alias in aliases) {
+  var isTouchEvent = alias === 'TouchEvent';
   var iface = aliases[alias];
-  testAlias(alias, iface);
-  testAlias(alias.toLowerCase(), iface);
-  testAlias(alias.toUpperCase(), iface);
+  testAlias(alias, iface, isTouchEvent);
+  testAlias(alias.toLowerCase(), iface, isTouchEvent);
+  testAlias(alias.toUpperCase(), iface, isTouchEvent);
 
   if (alias[alias.length - 1] != "s") {
     var plural = alias + "s";
@@ -134,7 +143,6 @@ var someNonCreateableEvents = [
   "SpeechSynthesisEvent",
   "SyncEvent",
   "TimeEvent",
-  "TouchEvent",
   "TrackEvent",
   "TransitionEvent",
   "WebGLContextEvent",

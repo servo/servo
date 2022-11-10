@@ -87,6 +87,22 @@ masked_entry_with_csp_test(
   new URL("/resource-timing/resources/200_empty.asis", REMOTE_ORIGIN),
   "Cross-origin empty iframe with a 200 status gets reported");
 
+unmasked_entry_with_csp_test(
+    new URL("/resource-timing/resources/204_empty.asis"),
+    "Same-origin empty iframe with a 204 status gets reported");
+
+unmasked_entry_with_csp_test(
+    new URL("/resource-timing/resources/205_empty.asis"),
+    "Same-origin empty iframe with a 205 status gets reported");
+
+masked_entry_with_csp_test(
+    new URL("/resource-timing/resources/204_empty.asis", REMOTE_ORIGIN),
+    "Cross-origin empty iframe with a 204 status gets reported");
+
+masked_entry_with_csp_test(
+    new URL("/resource-timing/resources/205_empty.asis", REMOTE_ORIGIN),
+    "Cross-origin empty iframe with a 205 status gets reported");
+
 </script>
 </body>
 </html>

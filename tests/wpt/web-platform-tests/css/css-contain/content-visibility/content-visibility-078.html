@@ -12,16 +12,26 @@
 <style>
 .hidden { content-visibility: hidden; }
 #target {
-  top: 0;
+  top: 50px;
   left: 0;
   position: absolute;
   width: 100px;
   height: 100px;
   background: blue;
 }
+#t2 {
+  top: 150px;
+  left: 100px;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
 </style>
 
-<div id=target class=hidden>Content</div>
+<p>Test passes if the blue and orange boxes are vertically aligned with each other.
+<div id=target class=hidden>FAIL</div>
+<div id=t2 class=hidden>FAIL</div>
 
 <script>
 function runTest() {

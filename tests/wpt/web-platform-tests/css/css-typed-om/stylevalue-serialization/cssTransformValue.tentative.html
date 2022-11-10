@@ -111,6 +111,28 @@ const gTestCases = [
     desc: 'CSSTransformValue containing CSSMathValues'
   },
   {
+    value: new CSSTransformValue([
+      new CSSRotate(
+        new CSSMathInvert(
+          new CSSUnitValue(0, 'number')),
+        0, 0, CSS.deg(0))
+      ]),
+    cssText:'rotate3d(calc(1 / 0), 0, 0, 0deg)',
+    desc: 'CSSMathInvert with 0 parameter'
+  },
+  {
+    value: new CSSTransformValue([
+      new CSSRotate(
+        0, 0, 0,
+          new CSSMathProduct(CSS.deg(1),
+            new CSSMathInvert(
+              new CSSUnitValue(0, 'number')))
+        )
+      ]),
+    cssText:'rotate3d(0, 0, 0, calc(1deg * (1 / 0)))',
+    desc: 'CSSMathInvert with 0 parameter and nested'
+  },
+  {
     value: new CSSMatrixComponent(new DOMMatrixReadOnly([1, 2, 3, 4, 5, 6])),
     cssText: 'matrix(1, 2, 3, 4, 5, 6)',
     desc: 'CSSMatrixComponent with 6 elements'

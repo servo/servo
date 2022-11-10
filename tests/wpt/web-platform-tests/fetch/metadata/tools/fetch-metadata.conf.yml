@@ -1,0 +1,806 @@
+---
+templates: templates
+output_directory: ../generated
+cases:
+  - all_subtests:
+      expected: NULL
+      filename_flags: []
+    common_axis:
+      - headerName: sec-fetch-site
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-site
+        origins: [httpSameSite]
+        description: Not sent to non-trustworthy same-site destination
+      - headerName: sec-fetch-site
+        origins: [httpCrossSite]
+        description: Not sent to non-trustworthy cross-site destination
+      - headerName: sec-fetch-mode
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-mode
+        origins: [httpSameSite]
+        description: Not sent to non-trustworthy same-site destination
+      - headerName: sec-fetch-mode
+        origins: [httpCrossSite]
+        description: Not sent to non-trustworthy cross-site destination
+      - headerName: sec-fetch-dest
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-dest
+        origins: [httpSameSite]
+        description: Not sent to non-trustworthy same-site destination
+      - headerName: sec-fetch-dest
+        origins: [httpCrossSite]
+        description: Not sent to non-trustworthy cross-site destination
+      - headerName: sec-fetch-user
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-user
+        origins: [httpSameSite]
+        description: Not sent to non-trustworthy same-site destination
+      - headerName: sec-fetch-user
+        origins: [httpCrossSite]
+        description: Not sent to non-trustworthy cross-site destination
+    template_axes:
+      # Unused
+      appcache-manifest.sub.https.html: []
+      # The `audioWorklet` interface is only available in secure contexts
+      # https://webaudio.github.io/web-audio-api/#BaseAudioContext
+      audioworklet.https.sub.html: []
+      # Service workers are only available in secure context
+      fetch-via-serviceworker.https.sub.html: []
+      # Service workers are only available in secure context
+      serviceworker.https.sub.html: []
+
+      css-images.sub.html:
+        - filename_flags: [tentative]
+      css-font-face.sub.html:
+        - filename_flags: [tentative]
+      element-a.sub.html: [{}]
+      element-area.sub.html: [{}]
+      element-audio.sub.html: [{}]
+      element-embed.sub.html: [{}]
+      element-frame.sub.html: [{}]
+      element-iframe.sub.html: [{}]
+      element-img.sub.html:
+        - sourceAttr: src
+        - sourceAttr: srcset
+      element-img-environment-change.sub.html: [{}]
+      element-input-image.sub.html: [{}]
+      element-link-icon.sub.html: [{}]
+      element-link-prefetch.optional.sub.html: [{}]
+      element-meta-refresh.optional.sub.html: [{}]
+      element-picture.sub.html: [{}]
+      element-script.sub.html:
+        - {}
+        - elementAttrs: { type: module }
+      element-video.sub.html: [{}]
+      element-video-poster.sub.html: [{}]
+      fetch.sub.html: [{}]
+      form-submission.sub.html:
+        - method: GET
+        - method: POST
+      header-link.sub.html:
+        - rel: icon
+        - rel: stylesheet
+      header-refresh.optional.sub.html: [{}]
+      window-location.sub.html: [{}]
+      script-module-import-dynamic.sub.html: [{}]
+      script-module-import-static.sub.html: [{}]
+      svg-image.sub.html: [{}]
+      window-history.sub.html: [{}]
+      worker-dedicated-importscripts.sub.html: [{}]
+      worker-dedicated-constructor.sub.html: [{}]
+
+  # Sec-Fetch-Site - direct requests
+  - all_subtests:
+      headerName: sec-fetch-site
+      filename_flags: [https]
+    common_axis:
+      - description: Same origin
+        origins: [httpsOrigin]
+        expected: same-origin
+      - description: Cross-site
+        origins: [httpsCrossSite]
+        expected: cross-site
+      - description: Same site
+        origins: [httpsSameSite]
+        expected: same-site
+    template_axes:
+      # Unused
+      # - the request mode of all "classic" worker scripts is set to
+      #   "same-origin"
+      #   https://html.spec.whatwg.org/#fetch-a-classic-worker-script
+      # - the request mode of all "top-level "module" worker scripts is set to
+      #   "same-origin":
+      #   https://html.spec.whatwg.org/#fetch-a-single-module-script
+      worker-dedicated-constructor.sub.html: []
+
+      appcache-manifest.sub.https.html: [{}]
+      audioworklet.https.sub.html: [{}]
+      css-images.sub.html:
+        - filename_flags: [tentative]
+      css-font-face.sub.html:
+        - filename_flags: [tentative]
+      element-a.sub.html: [{}]
+      element-area.sub.html: [{}]
+      element-audio.sub.html: [{}]
+      element-embed.sub.html: [{}]
+      element-frame.sub.html: [{}]
+      element-iframe.sub.html: [{}]
+      element-img.sub.html:
+        - sourceAttr: src
+        - sourceAttr: srcset
+      element-img-environment-change.sub.html: [{}]
+      element-input-image.sub.html: [{}]
+      element-link-icon.sub.html: [{}]
+      element-link-prefetch.optional.sub.html: [{}]
+      element-meta-refresh.optional.sub.html: [{}]
+      element-picture.sub.html: [{}]
+      element-script.sub.html:
+        - {}
+        - elementAttrs: { type: module }
+      element-video.sub.html: [{}]
+      element-video-poster.sub.html: [{}]
+      fetch.sub.html: [{ init: { mode: no-cors } }]
+      fetch-via-serviceworker.https.sub.html: [{ init: { mode: no-cors } }]
+      form-submission.sub.html:
+        - method: GET
+        - method: POST
+      header-link.sub.html:
+        - rel: icon
+        - rel: stylesheet
+      header-refresh.optional.sub.html: [{}]
+      window-location.sub.html: [{}]
+      script-module-import-dynamic.sub.html: [{}]
+      script-module-import-static.sub.html: [{}]
+      serviceworker.https.sub.html: [{}]
+      svg-image.sub.html: [{}]
+      window-history.sub.html: [{}]
+      worker-dedicated-importscripts.sub.html: [{}]
+
+  # Sec-Fetch-Site - redirection from HTTP
+  - all_subtests:
+      headerName: sec-fetch-site
+      filename_flags: []
+    common_axis:
+      - description: HTTPS downgrade (header not sent)
+        origins: [httpsOrigin, httpOrigin]
+        expected: NULL
+      - description: HTTPS upgrade
+        origins: [httpOrigin, httpsOrigin]
+        expected: cross-site
+      - description: HTTPS downgrade-upgrade
+        origins: [httpsOrigin, httpOrigin, httpsOrigin]
+        expected: cross-site
+    template_axes:
+      # Unused
+      # The `audioWorklet` interface is only available in secure contexts
+      # https://webaudio.github.io/web-audio-api/#BaseAudioContext
+      audioworklet.https.sub.html: []
+      # Service workers are only available in secure context
+      fetch-via-serviceworker.https.sub.html: []
+      # Service workers' redirect mode is "error"
+      serviceworker.https.sub.html: []
+      # Interstitial locations in an HTTP redirect chain are not added to the
+      # session history, so these requests cannot be initiated using the
+      # History API.
+      window-history.sub.html: []
+      # Unused
+      # - the request mode of all "classic" worker scripts is set to
+      #   "same-origin"
+      #   https://html.spec.whatwg.org/#fetch-a-classic-worker-script
+      # - the request mode of all "top-level "module" worker scripts is set to
+      #   "same-origin":
+      #   https://html.spec.whatwg.org/#fetch-a-single-module-script
+      worker-dedicated-constructor.sub.html: []
+
+      appcache-manifest.sub.https.html: [{}]
+      css-images.sub.html:
+        - filename_flags: [tentative]
+      css-font-face.sub.html:
+        - filename_flags: [tentative]
+      element-a.sub.html: [{}]
+      element-area.sub.html: [{}]
+      element-audio.sub.html: [{}]
+      element-embed.sub.html: [{}]
+      element-frame.sub.html: [{}]
+      element-iframe.sub.html: [{}]
+      element-img.sub.html:
+        - sourceAttr: src
+        - sourceAttr: srcset
+      element-img-environment-change.sub.html: [{}]
+      element-input-image.sub.html: [{}]
+      element-link-icon.sub.html: [{}]
+      element-link-prefetch.optional.sub.html: [{}]
+      element-meta-refresh.optional.sub.html: [{}]
+      element-picture.sub.html: [{}]
+      element-script.sub.html:
+        - {}
+        - elementAttrs: { type: module }
+      element-video.sub.html: [{}]
+      element-video-poster.sub.html: [{}]
+      fetch.sub.html: [{}]
+      form-submission.sub.html:
+        - method: GET
+        - method: POST
+      header-link.sub.html:
+        - rel: icon
+        - rel: stylesheet
+      header-refresh.optional.sub.html: [{}]
+      window-location.sub.html: [{}]
+      script-module-import-dynamic.sub.html: [{}]
+      script-module-import-static.sub.html: [{}]
+      svg-image.sub.html: [{}]
+      worker-dedicated-importscripts.sub.html: [{}]
+
+  # Sec-Fetch-Site - redirection from HTTPS
+  - all_subtests:
+      headerName: sec-fetch-site
+      filename_flags: [https]
+    common_axis:
+      - description: Same-Origin -> Cross-Site -> Same-Origin redirect
+        origins: [httpsOrigin, httpsCrossSite, httpsOrigin]
+        expected: cross-site
+      - description: Same-Origin -> Same-Site -> Same-Origin redirect
+        origins: [httpsOrigin, httpsSameSite, httpsOrigin]
+        expected: same-site
+      - description: Cross-Site -> Same Origin
+        origins: [httpsCrossSite, httpsOrigin]
+        expected: cross-site
+      - description: Cross-Site -> Same-Site
+        origins: [httpsCrossSite, httpsSameSite]
+        expected: cross-site
+      - description: Cross-Site -> Cross-Site
+        origins: [httpsCrossSite, httpsCrossSite]
+        expected: cross-site
+      - description: Same-Origin -> Same Origin
+        origins: [httpsOrigin, httpsOrigin]
+        expected: same-origin
+      - description: Same-Origin -> Same-Site
+        origins: [httpsOrigin, httpsSameSite]
+        expected: same-site
+      - description: Same-Origin -> Cross-Site
+        origins: [httpsOrigin, httpsCrossSite]
+        expected: cross-site
+      - description: Same-Site -> Same Origin
+        origins: [httpsSameSite, httpsOrigin]
+        expected: same-site
+      - description: Same-Site -> Same-Site
+        origins: [httpsSameSite, httpsSameSite]
+        expected: same-site
+      - description: Same-Site -> Cross-Site
+        origins: [httpsSameSite, httpsCrossSite]
+        expected: cross-site
+    template_axes:
+      # Service Workers' redirect mode is "error"
+      serviceworker.https.sub.html: []
+      # Interstitial locations in an HTTP redirect chain are not added to the
+      # session history, so these requests cannot be initiated using the
+      # History API.
+      window-history.sub.html: []
+      # Unused
+      # - the request mode of all "classic" worker scripts is set to
+      #   "same-origin"
+      #   https://html.spec.whatwg.org/#fetch-a-classic-worker-script
+      # - the request mode of all "top-level "module" worker scripts is set to
+      #   "same-origin":
+      #   https://html.spec.whatwg.org/#fetch-a-single-module-script
+      worker-dedicated-constructor.sub.html: []
+
+      appcache-manifest.sub.https.html: [{}]
+      audioworklet.https.sub.html: [{}]
+      css-images.sub.html:
+        - filename_flags: [tentative]
+      css-font-face.sub.html:
+        - filename_flags: [tentative]
+      element-a.sub.html: [{}]
+      element-area.sub.html: [{}]
+      element-audio.sub.html: [{}]
+      element-embed.sub.html: [{}]
+      element-frame.sub.html: [{}]
+      element-iframe.sub.html: [{}]
+      element-img.sub.html:
+        - sourceAttr: src
+        - sourceAttr: srcset
+      element-img-environment-change.sub.html: [{}]
+      element-input-image.sub.html: [{}]
+      element-link-icon.sub.html: [{}]
+      element-link-prefetch.optional.sub.html: [{}]
+      element-meta-refresh.optional.sub.html: [{}]
+      element-picture.sub.html: [{}]
+      element-script.sub.html:
+        - {}
+        - elementAttrs: { type: module }
+      element-video.sub.html: [{}]
+      element-video-poster.sub.html: [{}]
+      fetch.sub.html: [{ init: { mode: no-cors } }]
+      fetch-via-serviceworker.https.sub.html: [{ init: { mode: no-cors } }]
+      form-submission.sub.html:
+        - method: GET
+        - method: POST
+      header-link.sub.html:
+        - rel: icon
+        - rel: stylesheet
+      header-refresh.optional.sub.html: [{}]
+      window-location.sub.html: [{}]
+      script-module-import-dynamic.sub.html: [{}]
+      script-module-import-static.sub.html: [{}]
+      svg-image.sub.html: [{}]
+      worker-dedicated-importscripts.sub.html: [{}]
+
+  # Sec-Fetch-Site - redirection with mixed content
+  # These tests verify the effect that redirection has on the request's "site".
+  # The initial request must be made to a resource that is "same-site" with its
+  # origin. This avoids false positives because if the request were made to a
+  # cross-site resource, the value of "cross-site" would be assigned regardless
+  # of the subseqent redirection.
+  #
+  # Because these conditions necessarily warrant mixed content, only templates
+  # which can be configured to allow mixed content [1] can be used.
+  #
+  # [1] https://w3c.github.io/webappsec-mixed-content/#should-block-fetch
+
+  - common_axis:
+      - description: HTTPS downgrade-upgrade
+        headerName: sec-fetch-site
+        origins: [httpsOrigin, httpOrigin, httpsOrigin]
+        expected: cross-site
+        filename_flags: [https]
+    template_axes:
+      # Mixed Content considers only a small subset of requests as
+      # "optionally-blockable." These are the only requests that can be tested
+      # for the "downgrade-upgrade" scenario, so all other templates must be
+      # explicitly ignored.
+      audioworklet.https.sub.html: []
+      css-font-face.sub.html: []
+      element-embed.sub.html: []
+      element-frame.sub.html: []
+      element-iframe.sub.html: []
+      element-img-environment-change.sub.html: []
+      element-link-icon.sub.html: []
+      element-link-prefetch.optional.sub.html: []
+      element-picture.sub.html: []
+      element-script.sub.html: []
+      fetch.sub.html: []
+      fetch-via-serviceworker.https.sub.html: []
+      header-link.sub.html: []
+      script-module-import-static.sub.html: []
+      script-module-import-dynamic.sub.html: []
+      # Service Workers' redirect mode is "error"
+      serviceworker.https.sub.html: []
+      # Interstitial locations in an HTTP redirect chain are not added to the
+      # session history, so these requests cannot be initiated using the
+      # History API.
+      window-history.sub.html: []
+      worker-dedicated-constructor.sub.html: []
+      worker-dedicated-importscripts.sub.html: []
+      # Avoid duplicate subtest for 'sec-fetch-site - HTTPS downgrade-upgrade'
+      appcache-manifest.sub.https.html: []
+      css-images.sub.html:
+        - filename_flags: [tentative]
+      element-a.sub.html: [{}]
+      element-area.sub.html: [{}]
+      element-audio.sub.html: [{}]
+      element-img.sub.html:
+        # srcset omitted because it is not "optionally-blockable"
+        # https://w3c.github.io/webappsec-mixed-content/#category-optionally-blockable
+        - sourceAttr: src
+      element-input-image.sub.html: [{}]
+      element-meta-refresh.optional.sub.html: [{}]
+      element-video.sub.html: [{}]
+      element-video-poster.sub.html: [{}]
+      form-submission.sub.html:
+        - method: GET
+        - method: POST
+      header-refresh.optional.sub.html: [{}]
+      svg-image.sub.html: [{}]
+      window-location.sub.html: [{}]
+
+  # Sec-Fetch-Mode
+  # These tests are served over HTTPS so the induced requests will be both
+  # same-origin with the document [1] and a potentially-trustworthy URL [2].
+  #
+  # [1] https://html.spec.whatwg.org/multipage/origin.html#same-origin
+  # [2] https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-url
+  - common_axis:
+      - headerName: sec-fetch-mode
+        filename_flags: [https]
+        origins: []
+    template_axes:
+      appcache-manifest.sub.https.html:
+        - expected: no-cors
+      audioworklet.https.sub.html:
+        # https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script
+        - expected: cors
+      css-images.sub.html:
+        - expected: no-cors
+          filename_flags: [tentative]
+      css-font-face.sub.html:
+        - expected: cors
+          filename_flags: [tentative]
+      element-a.sub.html:
+        - expected: navigate
+        # https://html.spec.whatwg.org/multipage/links.html#downloading-hyperlinks
+        - elementAttrs: {download: ''}
+          expected: no-cors
+      element-area.sub.html:
+        - expected: navigate
+        # https://html.spec.whatwg.org/multipage/links.html#downloading-hyperlinks
+        - elementAttrs: {download: ''}
+          expected: no-cors
+      element-audio.sub.html:
+        - expected: no-cors
+        - expected: cors
+          elementAttrs: { crossorigin: '' }
+        - expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      element-embed.sub.html:
+        - expected: no-cors
+      element-frame.sub.html:
+        - expected: navigate
+      element-iframe.sub.html:
+        - expected: navigate
+      element-img.sub.html:
+        - sourceAttr: src
+          expected: no-cors
+        - sourceAttr: src
+          expected: cors
+          elementAttrs: { crossorigin: '' }
+        - sourceAttr: src
+          expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - sourceAttr: src
+          expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+        - sourceAttr: srcset
+          expected: no-cors
+        - sourceAttr: srcset
+          expected: cors
+          elementAttrs: { crossorigin: '' }
+        - sourceAttr: srcset
+          expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - sourceAttr: srcset
+          expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      element-img-environment-change.sub.html:
+        - expected: no-cors
+        - expected: cors
+          elementAttrs: { crossorigin: '' }
+        - expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      element-input-image.sub.html:
+        - expected: no-cors
+      element-link-icon.sub.html:
+        - expected: no-cors
+        - expected: cors
+          elementAttrs: { crossorigin: '' }
+        - expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      element-link-prefetch.optional.sub.html:
+        - expected: no-cors
+        - expected: cors
+          elementAttrs: { crossorigin: '' }
+        - expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      element-meta-refresh.optional.sub.html:
+        - expected: navigate
+      element-picture.sub.html:
+        - expected: no-cors
+        - expected: cors
+          elementAttrs: { crossorigin: '' }
+        - expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      element-script.sub.html:
+        - expected: no-cors
+        - expected: cors
+          elementAttrs: { type: module }
+        - expected: cors
+          elementAttrs: { crossorigin: '' }
+        - expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      element-video.sub.html:
+        - expected: no-cors
+        - expected: cors
+          elementAttrs: { crossorigin: '' }
+        - expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      element-video-poster.sub.html:
+        - expected: no-cors
+      fetch.sub.html:
+        - expected: cors
+        - expected: cors
+          init: { mode: cors }
+        - expected: no-cors
+          init: { mode: no-cors }
+        - expected: same-origin
+          init: { mode: same-origin }
+      fetch-via-serviceworker.https.sub.html:
+        - expected: cors
+        - expected: cors
+          init: { mode: cors }
+        - expected: no-cors
+          init: { mode: no-cors }
+        - expected: same-origin
+          init: { mode: same-origin }
+      form-submission.sub.html:
+        - method: GET
+          expected: navigate
+        - method: POST
+          expected: navigate
+      header-link.sub.html:
+        - rel: icon
+          expected: no-cors
+        - rel: stylesheet
+          expected: no-cors
+      header-refresh.optional.sub.html:
+        - expected: navigate
+      window-history.sub.html:
+        - expected: navigate
+      window-location.sub.html:
+        - expected: navigate
+      script-module-import-dynamic.sub.html:
+        - expected: cors
+      script-module-import-static.sub.html:
+        - expected: cors
+      # https://svgwg.org/svg2-draft/linking.html#processingURL-fetch
+      svg-image.sub.html:
+        - expected: no-cors
+        - expected: cors
+          elementAttrs: { crossorigin: '' }
+        - expected: cors
+          elementAttrs: { crossorigin: anonymous }
+        - expected: cors
+          elementAttrs: { crossorigin: use-credentials }
+      serviceworker.https.sub.html:
+        - expected: same-origin
+          options: { type: 'classic' }
+        # https://github.com/whatwg/html/pull/5875
+        - expected: same-origin
+      worker-dedicated-constructor.sub.html:
+        - expected: same-origin
+        - options: { type: module }
+          expected: same-origin
+      worker-dedicated-importscripts.sub.html:
+        - expected: no-cors
+
+  # Sec-Fetch-Dest
+  - common_axis:
+      - headerName: sec-fetch-dest
+        filename_flags: [https]
+        origins: []
+    template_axes:
+      appcache-manifest.sub.https.html:
+        - expected: empty
+      audioworklet.https.sub.html:
+        # https://github.com/WebAudio/web-audio-api/issues/2203
+        - expected: audioworklet
+      css-images.sub.html:
+        - expected: image
+          filename_flags: [tentative]
+      css-font-face.sub.html:
+        - expected: font
+          filename_flags: [tentative]
+      element-a.sub.html:
+        - expected: document
+        # https://html.spec.whatwg.org/multipage/links.html#downloading-hyperlinks
+        - elementAttrs: {download: ''}
+          expected: empty
+      element-area.sub.html:
+        - expected: document
+        # https://html.spec.whatwg.org/multipage/links.html#downloading-hyperlinks
+        - elementAttrs: {download: ''}
+          expected: empty
+      element-audio.sub.html:
+        - expected: audio
+      element-embed.sub.html:
+        - expected: embed
+      element-frame.sub.html:
+        # https://github.com/whatwg/html/pull/4976
+        - expected: frame
+      element-iframe.sub.html:
+        # https://github.com/whatwg/html/pull/4976
+        - expected: iframe
+      element-img.sub.html:
+        - sourceAttr: src
+          expected: image
+        - sourceAttr: srcset
+          expected: image
+      element-img-environment-change.sub.html:
+        - expected: image
+      element-input-image.sub.html:
+        - expected: image
+      element-link-icon.sub.html:
+        - expected: empty
+      element-link-prefetch.optional.sub.html:
+        - expected: empty
+        - elementAttrs: { as: audio }
+          expected: audio
+        - elementAttrs: { as: document }
+          expected: document
+        - elementAttrs: { as: embed }
+          expected: embed
+        - elementAttrs: { as: fetch }
+          expected: fetch
+        - elementAttrs: { as: font }
+          expected: font
+        - elementAttrs: { as: image }
+          expected: image
+        - elementAttrs: { as: object }
+          expected: object
+        - elementAttrs: { as: script }
+          expected: script
+        - elementAttrs: { as: style }
+          expected: style
+        - elementAttrs: { as: track }
+          expected: track
+        - elementAttrs: { as: video }
+          expected: video
+        - elementAttrs: { as: worker }
+          expected: worker
+      element-meta-refresh.optional.sub.html:
+        - expected: document
+      element-picture.sub.html:
+        - expected: image
+      element-script.sub.html:
+        - expected: script
+      element-video.sub.html:
+        - expected: video
+      element-video-poster.sub.html:
+        - expected: image
+      fetch.sub.html:
+        - expected: empty
+      fetch-via-serviceworker.https.sub.html:
+        - expected: empty
+      form-submission.sub.html:
+        - method: GET
+          expected: document
+        - method: POST
+          expected: document
+      header-link.sub.html:
+        - rel: icon
+          expected: empty
+        - rel: stylesheet
+          filename_flags: [tentative]
+          expected: style
+      header-refresh.optional.sub.html:
+        - expected: document
+      window-history.sub.html:
+        - expected: document
+      window-location.sub.html:
+        - expected: document
+      script-module-import-dynamic.sub.html:
+        - expected: script
+      script-module-import-static.sub.html:
+        - expected: script
+      serviceworker.https.sub.html:
+        - expected: serviceworker
+      # Implemented as "image" in Chromium and Firefox, but specified as
+      # "empty"
+      # https://github.com/w3c/svgwg/issues/782
+      svg-image.sub.html:
+        - expected: empty
+      worker-dedicated-constructor.sub.html:
+        - expected: worker
+        - options: { type: module }
+          expected: worker
+      worker-dedicated-importscripts.sub.html:
+        - expected: script
+
+  # Sec-Fetch-User
+  - common_axis:
+      - headerName: sec-fetch-user
+        filename_flags: [https]
+        origins: []
+    template_axes:
+      appcache-manifest.sub.https.html:
+        - expected: NULL
+      audioworklet.https.sub.html:
+        - expected: NULL
+      css-images.sub.html:
+        - expected: NULL
+          filename_flags: [tentative]
+      css-font-face.sub.html:
+        - expected: NULL
+          filename_flags: [tentative]
+      element-a.sub.html:
+        - expected: NULL
+        - userActivated: TRUE
+          expected: ?1
+      element-area.sub.html:
+        - expected: NULL
+        - userActivated: TRUE
+          expected: ?1
+      element-audio.sub.html:
+        - expected: NULL
+      element-embed.sub.html:
+        - expected: NULL
+      element-frame.sub.html:
+        - expected: NULL
+        - userActivated: TRUE
+          expected: ?1
+      element-iframe.sub.html:
+        - expected: NULL
+        - userActivated: TRUE
+          expected: ?1
+      element-img.sub.html:
+        - sourceAttr: src
+          expected: NULL
+        - sourceAttr: srcset
+          expected: NULL
+      element-img-environment-change.sub.html:
+        - expected: NULL
+      element-input-image.sub.html:
+        - expected: NULL
+      element-link-icon.sub.html:
+        - expected: NULL
+      element-link-prefetch.optional.sub.html:
+        - expected: NULL
+      element-meta-refresh.optional.sub.html:
+        - expected: NULL
+      element-picture.sub.html:
+        - expected: NULL
+      element-script.sub.html:
+        - expected: NULL
+      element-video.sub.html:
+        - expected: NULL
+      element-video-poster.sub.html:
+        - expected: NULL
+      fetch.sub.html:
+        - expected: NULL
+      fetch-via-serviceworker.https.sub.html:
+        - expected: NULL
+      form-submission.sub.html:
+        - method: GET
+          expected: NULL
+        - method: GET
+          userActivated: TRUE
+          expected: ?1
+        - method: POST
+          expected: NULL
+        - method: POST
+          userActivated: TRUE
+          expected: ?1
+      header-link.sub.html:
+        - rel: icon
+          expected: NULL
+        - rel: stylesheet
+          expected: NULL
+      header-refresh.optional.sub.html:
+        - expected: NULL
+      window-history.sub.html:
+        - expected: NULL
+      window-location.sub.html:
+        - expected: NULL
+        - userActivated: TRUE
+          expected: ?1
+      script-module-import-dynamic.sub.html:
+        - expected: NULL
+      script-module-import-static.sub.html:
+        - expected: NULL
+      serviceworker.https.sub.html:
+        - expected: NULL
+      svg-image.sub.html:
+        - expected: NULL
+      worker-dedicated-constructor.sub.html:
+        - expected: NULL
+        - options: { type: module }
+          expected: NULL
+      worker-dedicated-importscripts.sub.html:
+        - expected: NULL

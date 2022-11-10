@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>pushState/replaceState on iframe with src set to URL that doesn't load a document (HTTP 204)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<body></body>
+<script>
+/*
+  When an iframe is created it will contain the initial empty document. If the
+  src is set to a URL that doesn't load a new document (e.g. it results in a
+  HTTP 204 response), it will stay on the initial empty document. If
+  history.pushState() or history.replaceState() is called on it, it should
+  still stay on the initial empty document.
+  These tests verifies the behavior of navigations that happen on the initial
+  empty document in that situation. They should all be converted to do a
+  replacement.
+*/
+"use strict";
+const crossDocumentURL = "/common/blank.html?2";
+
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src set to URL that doesn't load a new document, so
+  // it will stay on the initial empty document.
+  const iframe = insertIframeWith204Src(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with src set to URL that doesn't load a new document must not change history.length");
+
+  // Do a history.pushState() to about:blank#foo.
+  let pushURL = "about:blank#foo";
+  iframe.contentWindow.history.pushState({}, "title", pushURL);
+  assert_equals(iframe.contentWindow.location.href, pushURL);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after history.pushState() on the initial empty document");
+
+  // Navigate away from the initial empty document. This should do replacement.
+  iframe.src = crossDocumentURL;
+  await waitForLoad(t, iframe, crossDocumentURL);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation from initial empty document");
+}, "history.pushState");
+
+
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src set to URL that doesn't load a new document, so
+  // it will stay on the initial empty document.
+  const iframe = insertIframeWith204Src(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with src set to URL that doesn't load a new document must not change history.length");
+
+  // Do a history.replaceState() to about:blank#foo.
+  let replaceURL = "about:blank#foo";
+  iframe.contentWindow.history.replaceState({}, "title", replaceURL);
+  assert_equals(iframe.contentWindow.location.href, replaceURL);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after history.replaceState() on the initial empty document");
+
+  // Navigate away from the initial empty document. This should do replacement.
+  iframe.src = crossDocumentURL;
+  await waitForLoad(t, iframe, crossDocumentURL);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation from initial empty document");
+}, "history.replaceState");
+</script>

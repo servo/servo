@@ -1,6 +1,9 @@
 import pytest
 
-from tests.support.asserts import assert_error, assert_files_uploaded, assert_success
+from tests.support.asserts import (assert_element_has_focus,
+                                   assert_error,
+                                   assert_files_uploaded,
+                                   assert_success)
 
 from . import map_files_to_multiline_text
 
@@ -204,6 +207,38 @@ def test_display_none(session, create_files, inline):
 
     response = element_send_keys(session, element, str(files[0]))
     assert_success(response)
+    assert_files_uploaded(session, element, files)
+
+
+@pytest.mark.capabilities({"strictFileInteractability": False})
+def test_not_focused(session, create_files, inline):
+    files = create_files(["foo"])
+
+    session.url = inline("<input type=file>")
+    body = session.find.css("body", all=False)
+    element = session.find.css("input", all=False)
+    assert_element_has_focus(body)
+
+    response = element_send_keys(session, element, str(files[0]))
+    assert_success(response)
+    assert_element_has_focus(body)
+
+    assert_files_uploaded(session, element, files)
+
+
+@pytest.mark.capabilities({"strictFileInteractability": True})
+def test_focused(session, create_files, inline):
+    files = create_files(["foo"])
+
+    session.url = inline("<input type=file>")
+    body = session.find.css("body", all=False)
+    element = session.find.css("input", all=False)
+    assert_element_has_focus(body)
+
+    response = element_send_keys(session, element, str(files[0]))
+    assert_success(response)
+    assert_element_has_focus(element)
+
     assert_files_uploaded(session, element, files)
 
 

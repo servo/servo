@@ -423,6 +423,9 @@ const invariants = {
 
     assert_positive_(entry, [
       "startTime",
+    ]);
+
+    assert_not_negative_(entry, [
       "duration",
     ]);
 

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#box-splitting">
+<link rel="match" href="table-border-008-ref.html">
+<p>There should be a pink table box with a black border. The table box should be
+  split into three columns.</p>
+<div style="columns:6; gap:0; column-fill:auto; width:600px; height:100px;">
+  <div style="display:table; border:10px solid; height:180px; width:50px; background:pink;">
+    <div style="display:table-caption; caption-side:top; height:150px;"></div>
+    <div style="display:table-caption; caption-side:bottom; height:150px;"></div>
+  </div>
+</div>

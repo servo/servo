@@ -36,12 +36,12 @@ New Features
 
     import pytest ; pytest.main(arglist, pluginlist)
 
-  see http://pytest.org/en/stable/usage.html for details.
+  see http://pytest.org/en/stable/how-to/usage.html for details.
 
 - new and better reporting information in assert expressions
   if comparing lists, sequences or strings.
 
-  see http://pytest.org/en/stable/assert.html#newreport
+  see http://pytest.org/en/stable/how-to/assert.html#newreport
 
 - new configuration through ini-files (setup.cfg or tox.ini recognized),
   for example::
@@ -50,7 +50,7 @@ New Features
     norecursedirs = .hg data*  # don't ever recurse in such dirs
     addopts = -x --pyargs      # add these command line options by default
 
-  see http://pytest.org/en/stable/customize.html
+  see http://pytest.org/en/stable/reference/customize.html
 
 - improved standard unittest support.  In general py.test should now
   better be able to run custom unittest.TestCases like twisted trial

@@ -1,0 +1,48 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="variant" content="">
+<meta name="variant" content="?currententrychange">
+
+<script type="module">
+import { Recorder, hasVariant } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  await navigation.navigate("#1").finished;
+
+  const from = navigation.currentEntry;
+
+  const recorder = new Recorder({
+    skipCurrentChange: !hasVariant("currententrychange"),
+    finalExpectedEvent: "transition.finished fulfilled"
+  });
+
+  recorder.setUpNavigationAPIListeners();
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler() { recorder.record("handler run"); } });
+  });
+
+  const result = navigation.back();
+  recorder.setUpResultListeners(result);
+
+  Promise.resolve().then(() => recorder.record("promise microtask"));
+
+  await recorder.readyToAssert;
+
+  recorder.assert([
+    /* event name, location.hash value, navigation.transition properties */
+    ["promise microtask", "#1", null],
+    ["navigate", "#1", null],
+    ["currententrychange", "", { from, navigationType: "traverse" }],
+    ["handler run", "", { from, navigationType: "traverse" }],
+    ["committed fulfilled", "", { from, navigationType: "traverse" }],
+    ["navigatesuccess", "", { from, navigationType: "traverse" }],
+    ["finished fulfilled", "", null],
+    ["transition.finished fulfilled", "", null]
+  ]);
+}, "event and promise ordering for same-document navigation.back() intercepted by intercept()");
+</script>

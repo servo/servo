@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    i.contentWindow.navigation.navigate("?1");
+    i.onload = t.step_func_done(() => {
+      let iframe_url = new URL(i.contentWindow.navigation.currentEntry.url);
+      assert_equals(iframe_url.search, "?1");
+      assert_equals(iframe_url.pathname, "/common/blank.html");
+    });
+  });
+}, "navigate() should resolve urls relative to navigation object, not the caller");
+</script>

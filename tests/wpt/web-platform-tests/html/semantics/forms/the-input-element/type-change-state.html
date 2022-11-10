@@ -70,8 +70,6 @@
     { type: "password", sanitizer: sanitizeText },
     { type: "datetime-local", sanitizer: sanitizeTemporal },
     { type: "date", sanitizer: sanitizeTemporal },
-    { type: "month", sanitizer: sanitizeTemporal },
-    { type: "week", sanitizer: sanitizeTemporal },
     { type: "time", sanitizer: sanitizeTemporal },
     { type: "number", sanitizer: sanitizeNumber },
     { type: "range", sanitizer: sanitizeRange },
@@ -130,6 +128,7 @@
 
             input.type = types[j].type;  // change state
 
+            var preSanitizeValue = expected;
             // type[j] sanitization
             if (types[j].sanitizer) {
               expected = types[j].sanitizer(expected);
@@ -146,9 +145,12 @@
 
             if (nowSelectable) {
               if (previouslySelectable) {
-                assert_equals(input.selectionStart, selectionStart, "selectionStart should be unchanged");
-                assert_equals(input.selectionEnd, selectionEnd, "selectionEnd should be unchanged");
-                assert_equals(input.selectionDirection, selectionDirection, "selectionDirection should be unchanged");
+                // Value might change after sanitization. The following checks are only valid when the value stays the same.
+                if (preSanitizeValue === expected) {
+                  assert_equals(input.selectionStart, selectionStart, "selectionStart should be unchanged");
+                  assert_equals(input.selectionEnd, selectionEnd, "selectionEnd should be unchanged");
+                  assert_equals(input.selectionDirection, selectionDirection, "selectionDirection should be unchanged");
+                }
               } else {
                 assert_equals(input.selectionStart, 0, "selectionStart should be 0");
                 assert_equals(input.selectionEnd, 0, "selectionEnd should be 0");

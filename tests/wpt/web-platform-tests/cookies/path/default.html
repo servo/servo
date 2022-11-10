@@ -31,13 +31,13 @@ async_test(function (t) {
       !!iframe.contentWindow.isCookieSet('cookies-path-default'),
       'cookie can be retrieved from expected path'
     );
-    iframe.contentWindow.expireCookies().then(() => {
+    iframe.contentWindow.expireCookies().then(t.step_func(function () {
       assert_false(
         !!iframe.contentWindow.isCookieSet('cookies-path-default'),
         'cookie can be referenced using the expected path'
       );
       t.done();
-    });
+    }));
   });
 
   createIframe('/cookies/resources/echo-cookie.html', t.step_func(function (_iframe) {

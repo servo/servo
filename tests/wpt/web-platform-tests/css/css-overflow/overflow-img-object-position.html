@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verifies overflow applies to img elements with object-position</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="overflow-img-object-position-ref.html">
+<style>
+  .default {
+    object-fit: none;
+    overflow: visible;
+    object-position: 25px 50px;
+  }
+</style>
+<body>
+<img class=default src="../css-images/support/exif-orientation-6-ru.jpg"></img>
+</body>

@@ -3,7 +3,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -19,7 +19,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test").objectStore("test").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       if (!e.target.result) {
@@ -61,7 +61,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       if (!e.target.result) {
@@ -107,7 +107,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       if (!e.target.result) {
@@ -146,7 +146,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test").objectStore("test").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       if (!e.target.result) {

@@ -28,11 +28,12 @@ body { margin: 0; }
 .extraRightPadding { padding-right: 30px; }
 .inline { display: inline-block; }
 .item { display: inline-block; }
+.item.horizontalTB:not(.bottom) { margin-left: 0px; }
 .bottom { vertical-align: bottom; }
 </style>
 
 <p>4x1 with parallel and orthogonal items.</p>
-<div class="block verticalLR"><div class="item horizontalTB bottom">É</div><div class="item">É</div><div class="item bottom horizontalTB">É</div><div class="item">É</div></div>
-<div class="block verticalLR"><div class="item horizontalTB bottom extraRightPadding">É</div><div class="item extraLeftPadding">É</div><div class="item bottom horizontalTB">É</div><div class="item">É</div></div>
+<div class="block verticalLR"><div class="item horizontalTB">É</div><div class="item">É</div><div class="item horizontalTB">É</div><div class="item">É</div></div>
+<div class="block verticalLR"><div class="item horizontalTB extraRightPadding">É</div><div class="item extraLeftPadding">É</div><div class="item horizontalTB">É</div><div class="item">É</div></div>
 <div class="block verticalRL"><div class="item horizontalTB bottom">É</div><div class="item">É</div><div class="item bottom horizontalTB">É</div><div class="item">É</div></div>
 <div class="block verticalRL"><div class="item horizontalTB bottom extraRightPadding">É</div><div class="item extraLeftPadding">É</div><div class="item bottom horizontalTB">É</div><div class="item">É</div></div>

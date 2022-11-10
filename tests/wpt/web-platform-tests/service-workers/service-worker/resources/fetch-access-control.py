@@ -35,7 +35,7 @@ def main(request, response):
         return headers, body
 
     if b"VIDEO" in request.GET:
-        headers.append((b"Content-Type", b"video/webm"))
+        headers.append((b"Content-Type", b"video/ogg"))
         body = open(os.path.join(request.doc_root, u"media", u"movie_5.ogv"), "rb").read()
         length = len(body)
         # If "PartialContent" is specified, the requestor wants to test range

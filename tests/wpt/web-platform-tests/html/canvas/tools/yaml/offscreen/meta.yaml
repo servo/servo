@@ -17,7 +17,6 @@
         tests.append( {
             'name': '2d.state.saverestore.%s' % key,
             'desc': 'save()/restore() works for %s' % key,
-            'testing': [ '2d.state.%s' % key ],
             'code':
     """// Test that restore() undoes any modifications
     var old = ctx.%(key)s;
@@ -41,7 +40,6 @@
     tests.append( {
         'name': 'initial.reset.2dstate',
         'desc': 'Resetting the canvas state resets 2D state variables',
-        'testing': [ 'initial.reset' ],
         'code':
     """canvas.width = 100;
     var default_val;
@@ -119,7 +117,6 @@
             expected = calc_output(src, dest, FA_code, FB_code)
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
-                'testing': [ '2d.composite.%s' % op ],
                 'code': """
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
@@ -136,7 +133,6 @@
             expected = calc_output(src, dest, FA_code, FB_code)
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
-                'testing': [ '2d.composite.%s' % op ],
                 'images': [ 'yellow75.png' ],
                 'code': """
     ctx.fillStyle = 'rgba%s';
@@ -165,7 +161,6 @@
             expected = calc_output(src, dest, FA_code, FB_code)
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
-                'testing': [ '2d.composite.%s' % op ],
                 'images': [ 'yellow75.png' ],
                 'code': """
     var offscreenCanvas2 = new OffscreenCanvas(canvas.width, canvas.height);
@@ -199,7 +194,6 @@
             new_test = {
                 'name': '2d.composite.%s.%s' % (name, op),
                 'desc': 'fill() draws pixels not covered by the source object as (0,0,0,0), and does not leave the pixels unchanged.',
-                'testing': [ '2d.composite.%s' % op ],
                 'code': """
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
@@ -222,7 +216,6 @@
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
                 'desc': 'drawImage() draws pixels not covered by the source object as (0,0,0,0), and does not leave the pixels unchanged.',
-                'testing': [ '2d.composite.%s' % op ],
                 'images': [ 'yellow.png' ],
                 'code': """
     ctx.fillStyle = 'rgba%s';
@@ -254,7 +247,6 @@
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
                 'desc': 'drawImage() of a canvas with no context draws pixels as (0,0,0,0), and does not leave the pixels unchanged.',
-                'testing': [ '2d.composite.%s' % op ],
                 'code': """
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
@@ -273,7 +265,6 @@
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
                 'desc': 'Pattern fill() draws pixels not covered by the source object as (0,0,0,0), and does not leave the pixels unchanged.',
-                'testing': [ '2d.composite.%s' % op ],
                 'images': [ 'yellow.png' ],
                 'code': """
     ctx.fillStyle = 'rgba%s';
@@ -302,7 +293,6 @@
         tests.append( {
             'name': '2d.composite.clip.%s' % (op),
             'desc': 'fill() does not affect pixels outside the clip region.',
-            'testing': [ '2d.composite.%s' % op ],
             'code': """
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -318,7 +308,7 @@
         } )
 
 - meta: |
-    # Colour parsing tests
+    # Color parsing tests
 
     # Try most of the CSS3 Color <color> values - http://www.w3.org/TR/css3-color/#colorunits
     big_float = '1' + ('0' * 39)
@@ -330,11 +320,11 @@
         ('hex6', '#00fF00', 0,255,0,255, ""),
         ('hex8', '#00ff00ff', 0,255,0,255, ""),
         ('rgb-num', 'rgb(0,255,0)', 0,255,0,255, ""),
-        ('rgb-clamp-1', 'rgb(-1000, 1000, -1000)', 0,255,0,255, 'Assumes colours are clamped to [0,255].'),
-        ('rgb-clamp-2', 'rgb(-200%, 200%, -200%)', 0,255,0,255, 'Assumes colours are clamped to [0,255].'),
-        ('rgb-clamp-3', 'rgb(-2147483649, 4294967298, -18446744073709551619)', 0,255,0,255, 'Assumes colours are clamped to [0,255].'),
-        ('rgb-clamp-4', 'rgb(-'+big_float+', '+big_float+', -'+big_float+')', 0,255,0,255, 'Assumes colours are clamped to [0,255].'),
-        ('rgb-clamp-5', 'rgb(-'+big_double+', '+big_double+', -'+big_double+')', 0,255,0,255, 'Assumes colours are clamped to [0,255].'),
+        ('rgb-clamp-1', 'rgb(-1000, 1000, -1000)', 0,255,0,255, 'Assumes colors are clamped to [0,255].'),
+        ('rgb-clamp-2', 'rgb(-200%, 200%, -200%)', 0,255,0,255, 'Assumes colors are clamped to [0,255].'),
+        ('rgb-clamp-3', 'rgb(-2147483649, 4294967298, -18446744073709551619)', 0,255,0,255, 'Assumes colors are clamped to [0,255].'),
+        ('rgb-clamp-4', 'rgb(-'+big_float+', '+big_float+', -'+big_float+')', 0,255,0,255, 'Assumes colors are clamped to [0,255].'),
+        ('rgb-clamp-5', 'rgb(-'+big_double+', '+big_double+', -'+big_double+')', 0,255,0,255, 'Assumes colors are clamped to [0,255].'),
         ('rgb-percent', 'rgb(0% ,100% ,0%)', 0,255,0,255, 'CSS3 Color says "The integer value 255 corresponds to 100%". (In particular, it is not 254...)'),
         ('rgb-eof', 'rgb(0, 255, 0', 0,255,0,255, ""), # see CSS2.1 4.2 "Unexpected end of style sheet"
         ('rgba-solid-1', 'rgba(  0  ,  255  ,  0  ,  1  )', 0,255,0,255, ""),
@@ -409,7 +399,6 @@
         # TODO: test strokeStyle, shadowColor in the same way
         test = {
             'name': '2d.fillStyle.parse.%s' % name,
-            'testing': [ '2d.colours.parse' ],
             'notes': notes,
             'code': """
     ctx.fillStyle = '#f00';
@@ -421,7 +410,7 @@
         }
         tests.append(test)
 
-    # Also test that invalid colours are ignored
+    # Also test that invalid colors are ignored
     for name, string in [
         ('hex1', '#f'),
         ('hex2', '#f0'),
@@ -475,7 +464,6 @@
     ]:
         test = {
             'name': '2d.fillStyle.parse.invalid.%s' % name,
-            'testing': [ '2d.colours.parse' ],
             'code': """
     ctx.fillStyle = '#0f0';
     try { ctx.fillStyle = '%s'; } catch (e) { } // this shouldn't throw, but it shouldn't matter here if it does
@@ -486,14 +474,13 @@
         }
         tests.append(test)
 
-    # Some can't have positive tests, only negative tests, because we don't know what colour they're meant to be
+    # Some can't have positive tests, only negative tests, because we don't know what color they're meant to be
     for name, string in [
         ('system', 'ThreeDDarkShadow'),
         #('flavor', 'flavor'), # removed from latest CSS3 Color drafts
     ]:
         test = {
             'name': '2d.fillStyle.parse.%s' % name,
-            'testing': [ '2d.colours.parse' ],
             'code': """
     ctx.fillStyle = '#f00';
     ctx.fillStyle = '%s';
@@ -522,9 +509,7 @@
         ("trailingjunk", "100#!?", "exception"),
     ]
     def gen(name, string, exp, code):
-        testing = ["size.nonnegativeinteger"]
         if exp is None:
-            testing.append("size.error")
             code += "canvas.width = '%s';\ncanvas.height = '%s';\n" % (string, string)
             code += "@assert canvas.width === 100;\n@assert canvas.height === 50;\n"
             expected = None
@@ -541,15 +526,13 @@
         if exp == 0:
             expected = None # can't generate zero-sized PNGs for the expected image
 
-        return code, testing, expected
+        return code, expected
 
     for name, string, exp in cases:
         code = ""
-        code, testing, expected = gen(name, string, exp, code)
+        code, expected = gen(name, string, exp, code)
         tests.append( {
             "name": "size.attributes.parse.%s" % name,
             "desc": "Parsing of non-negative integers",
-            "testing": testing,
             "code": code,
         } )
-

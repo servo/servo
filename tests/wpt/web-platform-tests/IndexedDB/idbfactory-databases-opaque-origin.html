@@ -17,46 +17,81 @@ function load_iframe(src, sandbox) {
   });
 }
 
-function wait_for_message(iframe) {
+function wait_for_message(recipient, source) {
   return new Promise(resolve => {
-    self.addEventListener('message', function listener(e) {
-      if (e.source === iframe.contentWindow) {
+    recipient.onmessage = function listener(e) {
+      if (e.source === source) {
         resolve(e.data);
-        self.removeEventListener('message', listener);
+        recipient.removeEventListener('message', listener);
       }
-    });
-  });
+    };
+  })
 }
 
-const script =
-  '<script>' +
-  '  window.onmessage = () => {' +
+const test_code =
+  '  const handler = (reply) => {' +
   '    try { ' +
   '      if (!indexedDB || !indexedDB.databases) {' +
-  '        window.parent.postMessage({result: "indexedDB.databases undefined"}, "*")' +
+  '        reply({result: "indexedDB.databases undefined"});' +
   '      }' +
   '      indexedDB.databases().then(' +
-  '        () => window.parent.postMessage({result: "no exception"}, "*"),' +
-  '        ex => window.parent.postMessage({result: ex.name}, "*"));' +
+  '        () => reply({result: "no exception"}),' +
+  '        ex => reply({result: ex.name}));' +
   '    } catch(e) { ' +
-  '      window.parent.postMessage({result: e.name + " thrown, not rejected"}, "*")' +
-  '    }'+
+  '      reply({result: e.name + " thrown, not rejected"});' +
+  '    }' +
+  '  };';
+
+const iframe_script =
+  '<script>' +
+  test_code +
+  '  window.onmessage = () => {' +
+  '    handler(msg => window.parent.postMessage(msg, "*"));' +
   '  };' +
   '<\/script>';
 
 promise_test(async t => {
-  const iframe = await load_iframe(script);
+  const iframe = await load_iframe(iframe_script);
   iframe.contentWindow.postMessage({}, '*');
-  const message = await wait_for_message(iframe);
+  const message = await wait_for_message(self, iframe.contentWindow);
   assert_equals(message.result, 'no exception',
                 'IDBFactory.databases() should not reject');
 }, 'IDBFactory.databases() in non-sandboxed iframe should not reject');
 
 promise_test(async t => {
-  const iframe = await load_iframe(script, 'allow-scripts');
+  const iframe = await load_iframe(iframe_script, 'allow-scripts');
   iframe.contentWindow.postMessage({}, '*');
-  const message = await wait_for_message(iframe);
+  const message = await wait_for_message(self, iframe.contentWindow);
   assert_equals(message.result, 'SecurityError',
                 'Promise should be rejected with SecurityError');
 }, 'IDBFactory.databases() in sandboxed iframe should reject');
+
+const worker_script = `
+${test_code}
+// For dedicated workers:
+self.addEventListener("message", () => handler(self.postMessage));
+// For shared workers:
+self.addEventListener("connect", (e) => {
+  var port = e.ports[0];
+  handler(msg => port.postMessage(msg));
+});
+`;
+const worker_data_url = "data:,".concat(encodeURIComponent(worker_script));
+
+promise_test(async t => {
+  let worker = new Worker(worker_data_url);
+  t.add_cleanup(() => worker.terminate());
+  worker.postMessage({});
+  const message = await wait_for_message(worker, null);
+  assert_equals(message.result, 'SecurityError',
+                'Promise should be rejected with SecurityError');
+}, 'IDBFactory.databases() in data URL dedicated worker should throw SecurityError');
+
+promise_test(async t => {
+  let worker = new SharedWorker(worker_data_url, 'idb_databases_opaque');
+  worker.port.postMessage({});
+  const message = await wait_for_message(worker.port, null);
+  assert_equals(message.result, 'SecurityError',
+                'Promise should be rejected with SecurityError');
+}, 'IDBFactory.databases() in data URL shared worker should throw SecurityError');
 </script>

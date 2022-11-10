@@ -3,8 +3,8 @@ pytest-{version}
 
 The pytest team is proud to announce the {version} release!
 
-This release contains new features, improvements, bug fixes, and breaking changes, so users
-are encouraged to take a look at the CHANGELOG carefully:
+This release contains new features, improvements, and bug fixes,
+the full list of changes is available in the changelog:
 
     https://docs.pytest.org/en/stable/changelog.html
 

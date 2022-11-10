@@ -33,7 +33,7 @@ promise.then(function(response) {
         ctx.drawImage(bitmap, 0, 0, 100, 50);
         ctx.drawImage(bitmap, 0, 0, 100, 50);
         ctx.drawImage(bitmap, 0, 0, 100, 50);
-        _assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+        _assertPixel(canvas, 50,25, 0,255,0,255);
     }, t_fail);
 }).then(t_pass, t_fail);
 

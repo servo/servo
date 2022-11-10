@@ -18,6 +18,12 @@ test_invalid_value('counter-set', '3');
 test_invalid_value('counter-set', '99 imagenum');
 test_invalid_value('counter-set', 'section -1, imagenum 99');
 test_invalid_value('counter-set', 'section 3.14');
+test_invalid_value('counter-set', 'inherit 2');
+test_invalid_value('counter-set', 'initial 2');
+test_invalid_value('counter-set', 'unset 2');
+test_invalid_value('counter-set', 'default 2');
+test_invalid_value('counter-set', 'revert 2');
+test_invalid_value('counter-set', 'revert-layer 2');
 </script>
 </body>
 </html>

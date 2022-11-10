@@ -5,23 +5,10 @@
     <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
     <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
     <link rel="reviewer" title="Apple Inc." href="http://www.apple.com">
-    <meta name="assert" content='"If the root element is transformed, the
-    transformation applies to the entire canvas, including any background
-    specified for the root element. Since the background painting area for the
-    root element is the entire canvas, which is infinite, the transformation
-    might cause parts of the background that were originally off-screen to
-    appear. For example, if the root element&apos;s background were repeating
-    dots, and a transformation of &apos;scale(0.5)&apos; were specified on the
-    root element, the dots would shrink to half their size, but there will be
-    twice as many, so they still cover the whole viewport."  In this case, the
-    background is specified on the body but propagates to the root element.
-    The transform is on the root element, so it needs to affect the background.
-    The rotation 90 degrees clockwise means that most of the screen will be
-    filled with triangles that were originally above the top of the viewport;
-    the original top row of triangles will now be on the left.'>
+    <meta name="assert" content='"If the root element is transformed, the transformation should not apply to
+    any background specified for the root element.'>
     <meta name="flags" content="svg">
-    <link rel="match" href="transform-background-ref-2.html">
-    <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-4800">
+    <link rel="match" href="transform-root-bg-001-ref.html">
     <style>
       html {
         overflow: hidden;

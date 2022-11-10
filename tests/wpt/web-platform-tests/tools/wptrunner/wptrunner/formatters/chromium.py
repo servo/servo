@@ -1,8 +1,15 @@
+# mypy: allow-untyped-defs
+
+import functools
 import json
 import time
 
 from collections import defaultdict
 from mozlog.formatters import base
+
+from wptrunner.wptmanifest import serializer
+
+_escape_heading = functools.partial(serializer.escape, extras="]")
 
 
 class ChromiumFormatter(base.BaseFormatter):  # type: ignore
@@ -23,8 +30,14 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
         # A map of test status to the number of tests that had that status.
         self.num_failures_by_status = defaultdict(int)
 
-        # Start time, expressed as offset since UNIX epoch in seconds.
+        # Start time, expressed as offset since UNIX epoch in seconds. Measured
+        # from the first `suite_start` event.
         self.start_timestamp_seconds = None
+
+        # A map of test names to test start timestamps, expressed in seconds
+        # since UNIX epoch. Only contains tests that are currently running
+        # (i.e., have not received the `test_end` event).
+        self.test_starts = {}
 
         # Trie of test results. Each directory in the test name is a node in
         # the trie and the leaf contains the dict of per-test data.
@@ -67,7 +80,8 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
         Messages are appended verbatim to self.messages[test].
         """
         if subtest:
-            result = "  [%s]\n    expected: %s\n" % (subtest, wpt_actual_status)
+            result = "  [%s]\n    expected: %s\n" % (_escape_heading(subtest),
+                                                     wpt_actual_status)
             self.actual_metadata[test].append(result)
             if message:
                 self.messages[test].append("%s: %s\n" % (subtest, message))
@@ -75,7 +89,8 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
             # No subtest, so this is the top-level test. The result must be
             # prepended to the list, so that it comes before any subtest.
             test_name_last_part = test.split("/")[-1]
-            result = "[%s]\n  expected: %s\n" % (test_name_last_part, wpt_actual_status)
+            result = "[%s]\n  expected: %s\n" % (
+                _escape_heading(test_name_last_part), wpt_actual_status)
             self.actual_metadata[test].insert(0, result)
             if message:
                 self.messages[test].insert(0, "Harness: %s\n" % message)
@@ -94,7 +109,7 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
 
     def _store_test_result(self, name, actual, expected, actual_metadata,
                            messages, wpt_actual, subtest_failure,
-                           reftest_screenshots=None):
+                           duration=None, reftest_screenshots=None):
         """
         Stores the result of a single test in |self.tests|
 
@@ -105,6 +120,7 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
         :param list messages: a list of test messages.
         :param str wpt_actual: actual status reported by wpt, may differ from |actual|.
         :param bool subtest_failure: whether this test failed because of subtests.
+        :param Optional[float] duration: time it took in seconds to run this test.
         :param Optional[list] reftest_screenshots: see executors/base.py for definition.
         """
         # The test name can contain a leading / which will produce an empty
@@ -114,8 +130,19 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
         cur_dict = self.tests
         for name_part in name_parts:
             cur_dict = cur_dict.setdefault(name_part, {})
-        cur_dict["actual"] = actual
+        # Splitting and joining the list of statuses here avoids the need for
+        # recursively postprocessing the |tests| trie at shutdown. We assume the
+        # number of repetitions is typically small enough for the quadratic
+        # runtime to not matter.
+        statuses = cur_dict.get("actual", "").split()
+        statuses.append(actual)
+        cur_dict["actual"] = " ".join(statuses)
         cur_dict["expected"] = expected
+        if duration is not None:
+            # Record the time to run the first invocation only.
+            cur_dict.setdefault("time", duration)
+            durations = cur_dict.setdefault("times", [])
+            durations.append(duration)
         if subtest_failure:
             self._append_artifact(cur_dict, "wpt_subtest_failure", "true")
         if wpt_actual != actual:
@@ -136,13 +163,20 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
             data = "%s: %s" % (item["url"], item["screenshot"])
             self._append_artifact(cur_dict, "screenshots", data)
 
-        # Figure out if there was a regression or unexpected status. This only
-        # happens for tests that were run
+        # Figure out if there was a regression, unexpected status, or flake.
+        # This only happens for tests that were run
         if actual != "SKIP":
             if actual not in expected:
                 cur_dict["is_unexpected"] = True
                 if actual != "PASS":
                     cur_dict["is_regression"] = True
+            if len(set(statuses)) > 1:
+                cur_dict["is_flaky"] = True
+
+        # Update the count of how many tests ran with each status. Only includes
+        # the first invocation's result in the totals.
+        if len(statuses) == 1:
+            self.num_failures_by_status[actual] += 1
 
     def _map_status_name(self, status):
         """
@@ -197,11 +231,37 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
             expected_statuses = " ".join(sorted(all_statsues))
         return expected_statuses
 
+    def _get_time(self, data):
+        """Get the timestamp of a message in seconds since the UNIX epoch."""
+        maybe_timestamp_millis = data.get("time")
+        if maybe_timestamp_millis is not None:
+            return float(maybe_timestamp_millis) / 1000
+        return time.time()
+
+    def _time_test(self, test_name, data):
+        """Time how long a test took to run.
+
+        :param str test_name: the name of the test to time
+        :param data: a data dictionary to extract the test end timestamp from
+        :return Optional[float]: a nonnegative duration in seconds or None if
+                                 the measurement is unavailable or invalid
+        """
+        test_start = self.test_starts.pop(test_name, None)
+        if test_start is not None:
+            # The |data| dictionary only provides millisecond resolution
+            # anyway, so further nonzero digits are unlikely to be meaningful.
+            duration = round(self._get_time(data) - test_start, 3)
+            if duration >= 0:
+                return duration
+        return None
+
     def suite_start(self, data):
-        # |data| contains a timestamp in microseconds, while time.time() gives
-        # it in seconds.
-        self.start_timestamp_seconds = (float(data["time"]) / 1000 if "time" in data
-                                        else time.time())
+        if self.start_timestamp_seconds is None:
+            self.start_timestamp_seconds = self._get_time(data)
+
+    def test_start(self, data):
+        test_name = data["test"]
+        self.test_starts[test_name] = self._get_time(data)
 
     def test_status(self, data):
         test_name = data["test"]
@@ -225,6 +285,7 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
         wpt_actual_status = data["status"]
         actual_status = self._map_status_name(wpt_actual_status)
         expected_statuses = self._get_expected_status_from_data(actual_status, data)
+        duration = self._time_test(test_name, data)
         subtest_failure = False
         if test_name in self.tests_with_subtest_fails:
             subtest_failure = True
@@ -245,19 +306,17 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
                                 self.messages[test_name],
                                 wpt_actual_status,
                                 subtest_failure,
+                                duration,
                                 data.get("extra", {}).get("reftest_screenshots"))
 
         # Remove the test from dicts to avoid accumulating too many.
         self.actual_metadata.pop(test_name)
         self.messages.pop(test_name)
 
-        # Update the count of how many tests ran with each status.
-        self.num_failures_by_status[actual_status] += 1
-
         # New test, new browser logs.
         self.browser_log = []
 
-    def suite_end(self, data):
+    def shutdown(self, data):
         # Create the final result dictionary
         final_result = {
             # There are some required fields that we just hard-code.

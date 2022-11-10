@@ -7,9 +7,15 @@
 <script>
 async_test(t => {
   const worker = new Worker('./support/WorkerText.txt');
-  worker.onmessage = t.unreached_func("Worker should not recieve messages");
+  worker.onmessage = t.unreached_func("Worker should not receive messages");
   worker.onerror = () => t.done();
 }, "HTTP(S) URLs which respond with text/plain MIME type must not work");
+
+async_test(t => {
+  const worker = new SharedWorker('./support/WorkerText.txt');
+  worker.onmessage = t.unreached_func("Worker should not receive messages");
+  worker.onerror = () => t.done();
+}, "HTTP(S) URLs which respond with text/plain MIME type must not work on SharedWorkers");
 
 async_test(t => {
   const url = URL.createObjectURL(new Blob(['postMessage("PASS")'])); // no MIME type parameter

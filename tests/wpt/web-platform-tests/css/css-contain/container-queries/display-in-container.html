@@ -18,19 +18,19 @@
   }
 
   /* Note: 150px - 2px, since .container has a 1px border */
-  @container size(min-width: 148px) {
+  @container (min-width: 148px) {
     div { display: flex; }
     span { flex: 1; }
   }
 
   /* Note: 200px - 2px, since .container has a 1px border */
-  @container size(min-width: 198px) {
+  @container (min-width: 198px) {
     div { display: revert; }
     span { display: block; }
   }
 
   /* Should not apply: */
-  @container size(min-width: 199px) {
+  @container (min-width: 199px) {
     * { color: red; background-color: red; }
   }
 </style>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may">
+<title>Multi-Screen Window Management test: window.open()</title>
+<link rel="help" href="https://w3c.github.io/window-placement/">
+This test uses multi-screen details to open a popup window on each screen.<br>
+It runs automated or manually with `wpt serve` and a compatible browser.<br><br>
+<button id="setUpButton">Request screen details</button>
+<ul id="popupButtons"></ul>
+<button id="cleanUpButton">Close any open popups</button><br>
+<input id="autoCleanUp" type="checkbox" checked=true>Auto-close popups</input>
+<ul id="logger"></ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/helpers.js"></script>
+
+<script>
+'use strict';
+let popups = [];
+
+cleanUpButton.addEventListener('click', async () => {
+  popups.forEach(p => p.close());
+});
+
+function checkPopupPlacement(popup, x, y, allowSameScreenClamping) {
+  // Window.screenX|Y may be zero, if the user agent wishes to hide information
+  // about the screen of the output device. They also may incorrectly reflect
+  // the origin of content viewport; in that case, estimate window coordinates
+  // by subtracing estimated frame insets (top-heavy, horizontally centered).
+  // Synchronous estimated placements may be clamped to the current screen.
+  const error = 10;
+  const dX = popup.screenX - x - (popup.outerWidth - popup.innerWidth) / 2;
+  const dY = popup.screenY - y - (popup.outerHeight - popup.innerHeight);
+
+  assert_true(!popup.screenX || popup.screenX == x || Math.abs(dX) <= error ||
+              (allowSameScreenClamping && popup.screenX >= screen.availLeft &&
+               popup.screenX < screen.availLeft + screen.availWidth));
+  assert_true(!popup.screenY || popup.screenY == y || Math.abs(dY) <= error ||
+              (allowSameScreenClamping && popup.screenY >= screen.availTop &&
+               popup.screenY < screen.availTop + screen.availHeight));
+}
+
+async function testPopupOnScreen(popupTest, screen) {
+  // Show a popup child window on the associated screen.
+  const left = screen.availLeft + Math.floor(screen.availWidth / 2) - 150;
+  const top = screen.availTop + Math.floor(screen.availHeight / 2) - 50;
+  log(`Opening a popup on '${screen.label}' at (${left}, ${top})`);
+  let popup = window.open(
+      '/resources/blank.html', '',
+      `left=${left},top=${top},width=300,height=100`);
+  popups.push(popup);
+  if (autoCleanUp.checked)
+    popupTest.add_cleanup(popup.close);
+
+  // Window.open() synchronously returns a Window with estimated screenX|Y.
+  // Initial `screenX` and `screenY` values should match `left` and `top`.
+  log(`<div style='margin-left: 40px'>Initial bounds:
+         (${popup.screenX}, ${popup.screenY})
+       </div>`);
+  // Allow synchronous estimated placements to be clamped to the current screen.
+  checkPopupPlacement(popup, left, top, true);
+  popup.initialScreenX = popup.screenX;
+  popup.initialScreenY = popup.screenY;
+
+  // Await document.visibilitychange to check resolved Window.screenX|Y values
+  // after asynchronous window creation and clamped placement has occurred.
+  const visibilitychangeWatcher =
+      new EventWatcher(popupTest, popup.document, ['visibilitychange']);
+  await visibilitychangeWatcher.wait_for('visibilitychange');
+  popup.document.write(`Expected: (${left}, ${top}) <br> \
+       Initial: (${popup.initialScreenX}, ${popup.initialScreenY}) <br> \
+       Resolved: (${popup.screenX}, ${popup.screenY}) `);
+  log(`<div style='margin-left: 40px'>Resolved bounds:
+         (${popup.screenX}, ${popup.screenY})
+       </div>`);
+  // Do not allow resolved placements to be clamped to the current screen.
+  checkPopupPlacement(popup, left, top, false);
+}
+
+promise_test(async setUpTest => {
+  await setUpWindowManagement(setUpTest, setUpButton);
+  const screenDetails = await getScreenDetails();
+  assert_true(!!screenDetails, 'Error getting screen details');
+  assert_greater_than(screenDetails.screens.length, 0, 'Connect a screen');
+  for (const s of screenDetails.screens) {
+    promise_test(async popupTest => {
+      await addTestTriggerButtonAndAwaitClick(popupButtons,
+        `Open a popup on '${s.label}'`,
+        popupTest);
+      await testPopupOnScreen(popupTest, s);
+    }, `Open a popup on '${s.label}'`);
+  }
+}, 'Use multi-screen details to open a popup window on each screen');
+</script>

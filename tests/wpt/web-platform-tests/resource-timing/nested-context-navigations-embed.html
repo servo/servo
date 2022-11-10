@@ -15,13 +15,22 @@
   open_test_window("resources/embed-navigate-back.html?crossorigin",
     "Test that crossorigin embed navigations are not observable by the " +
     "parent, even after history navigations by the parent");
+  open_test_window("resources/embed-navigate-back.html?cross-site",
+    "Test that cross-site embed navigations are not observable by the " +
+    "parent, even after history navigations by the parent");
+
   open_test_window("resources/embed-navigate.html",
     "Test that embed navigations are not observable by the parent");
   open_test_window("resources/embed-navigate.html?crossorigin",
     "Test that crossorigin embed navigations are not observable by the parent");
+  open_test_window("resources/embed-navigate.html?cross-site",
+    "Test that cross-site embed navigations are not observable by the parent");
   open_test_window("resources/embed-refresh.html",
     "Test that embed refreshes are not observable by the parent");
   open_test_window("resources/embed-refresh.html?crossorigin",
     "Test that crossorigin embed refreshes are not observable by the parent");
+  open_test_window("resources/embed-refresh.html?cross-site",
+    "Test that cross-site embed refreshes are not observable by the parent");
+
 </script>
 

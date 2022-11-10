@@ -1,3 +1,5 @@
+# mypy: no-warn-return-any
+
 from enum import IntEnum
 from typing import Iterator, Optional
 

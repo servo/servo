@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ResizeObserver with multiple fragments</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/resize-observer-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3673">
+<meta name="assert" content="Tests ResizeObserver supports multiple fragments." />
+
+<style>
+#wrapper {
+  column-width: 100px;
+  width: max-content;
+  height: 100px;
+  margin: 10px;
+}
+#target {
+  outline: solid;
+  background: orange;
+}
+.w50 {
+  width: 50px;
+}
+.w75 {
+  width: 75px;
+}
+.h100 {
+  height: 100px;
+}
+.h150 {
+  height: 150px;
+}
+.h175 {
+  height: 175px;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="wrapper">
+  <div id="target"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+
+const nextSizes = (() => {
+  let callback = null;
+  new ResizeObserver((entries) => {
+    if (callback) {
+      callback(entries[0].contentBoxSize);
+      callback = null;
+    }
+  }).observe(target);
+  return () => {
+    if (callback) {
+      throw "Already awaiting another notification";
+    }
+    return new Promise((resolve, reject) => {
+      callback = resolve;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          reject("Missing ResizeObserver notification");
+          callback = null;
+        });
+      });
+    });
+  };
+})();
+
+function checkSizes(className, expectedSizes, msg) {
+  promise_test(async () => {
+    await new Promise(requestAnimationFrame);
+    target.className = className;
+    let sizes;
+    try {
+      sizes = await nextSizes();
+    } catch (error) {
+      assert_unreached(error);
+    }
+    assert_equals(sizes.length, expectedSizes.length, "number of fragments");
+    for (let i = 0; i < sizes.length; ++i) {
+      assert_equals(sizes[i].inlineSize, expectedSizes[i][0], `fragment #${i+1} inline size`);
+      assert_equals(sizes[i].blockSize, expectedSizes[i][1], `fragment #${i+1} block size`);
+    }
+  }, msg);
+}
+
+checkSizes(
+  "w50 h100",
+  [[50, 100]],
+  "Single fragment"
+);
+checkSizes(
+  "w50 h150",
+  [[50, 100], [50, 50]],
+  "Adding 2nd fragment"
+);
+checkSizes(
+  "w50 h175",
+  [[50, 100], [50, 75]],
+  "Resizing 2nd fragment"
+);
+checkSizes(
+  "w75 h175",
+  [[75, 100], [75, 75]],
+  "Resizing all fragments"
+);
+checkSizes(
+  "w75 h100",
+  [[75, 100]],
+  "Removing 2nd fragment"
+);
+</script>

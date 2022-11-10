@@ -70,7 +70,7 @@ promise_test(async t => {
       'display locked subtree');
   await waitForAnimationFrames(2);
   assert_false(animationIterationEvent,
-               'Animation events do no fire while the animation is ' +
+               'Animation events do not fire while the animation is ' +
                'running in a display locked subtree');
   container.style.contentVisibility = 'visible';
   await waitForAnimationFrames(2);
@@ -144,30 +144,44 @@ promise_test(async t => {
   target.className = '';
   container.style.contentVisibility = 'hidden';
   assert_equals(target.getAnimations().length, 0);
-  let animationStartEvent = false;
-  let animationFinished = false;
-  target.addEventListener('animationstart', () => {
-    animationStartEvent = true;
-  });
+
   // Though originally a CSS animation, it is no longer associated with
   // CSS rules and no longer has an owning element. It now behaves like a
-  // programmatic web animation. Events should be dispatched and promises
-  // resolved despite being in a display locked subtree.
-  animation.play();
+  // programmatic web animation. Animation playback events (but not CSS
+  // animation events) should be dispatched and promises resolved despite
+  // being in a display locked subtree.
+
+  let cssAnimationEndEvent = false;
+  target.addEventListener('animationend', () => {
+    cssAnimationEndEvent = true;
+  });
+
+  let animationFinishEvent = false;
+  animation.addEventListener('finish', () => {
+    animationFinishEvent = true;
+  });
+
+  let animationFinished = false;
   animation.finished.then(() => {
     animationFinished = true;
   });
+
+  animation.play();
   assert_equals(target.getAnimations().length, 1);
+
+  animation.currentTime = 1999;
   await animation.ready;
   await waitForAnimationFrames(2);
-  assert_true(animationStartEvent,
+
+  assert_true(animationFinishEvent,
               'Animation event not blocked on display locked subtree if ' +
               'no owning element');
-  animation.currentTime = 1999;
-  await waitForAnimationFrames(2);
   assert_true(animationFinished,
               'Finished promise not blocked on display locked subtrtee if ' +
               'no owning element');
+  assert_false(cssAnimationEndEvent,
+              'CSS animation events should not be dispatched if there is no ' +
+              'owning element');
 }, 'Events and promises are handled normally for animations without an ' +
    'owning element');
 

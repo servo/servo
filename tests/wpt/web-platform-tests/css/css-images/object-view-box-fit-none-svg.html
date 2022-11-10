@@ -1,0 +1,37 @@
+<!-- This is an autogen file. Run support/generate_object_view_box_tests.py to update -->
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box with object-fit:none</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="object-view-box-fit-none-svg-ref.html">
+<script src="support/testHelper.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<body>
+<style>
+.view_box_subset {
+  width: 50px;
+  height: 100px;
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: none;
+  background-color: grey;
+  margin: 5px;
+}
+
+.view_box_subset_with_position {
+  width: 50px;
+  height: 100px;
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: none;
+  background-color: grey;
+  margin: 5px;
+  object-position: 10px 10px;
+}
+</style>
+</body>
+<img class="view_box_subset"></img>
+<img class="view_box_subset_with_position"></img>
+</body>
+<script>
+  populateElements("support/blue-green-red-yellow-50x100.svg");
+</script>

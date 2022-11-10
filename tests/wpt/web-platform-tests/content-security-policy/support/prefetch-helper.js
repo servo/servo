@@ -22,9 +22,14 @@ async function waitUntilResourceDownloaded(url) {
   });
 }
 
-async function assert_resource_not_downloaded(test, url) {
-  if (performance.getEntriesByName(url).length >= 1) {
-    (test.unreached_func(`'${url}' should not have downloaded.`))();
+function assert_resource_not_downloaded(test, url) {
+  // CSP failures generate resource timing entries, so let's make sure that
+  // download sizes are 0.
+  const entries = performance.getEntriesByName(url, 'resource');
+  for (const entry of entries) {
+    assert_equals(entry.transferSize, 0, 'transferSize');
+    assert_equals(entry.encodedBodySize, 0, 'encodedBodySize');
+    assert_equals(entry.decodedBodySize, 0, 'decodedBodySize');
   }
 }
 

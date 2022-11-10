@@ -23,10 +23,9 @@
         Decoration paints are ordered by text-decoration-line
         (underline, overline, text, line-through), then by highlight
         overlay (originating, ::grammar-error, ::spelling-error,
-        ::target-text, ::selection). See options (d, d, d) in
-        csswg-drafts#6022 for more details.
+        ::target-text, ::selection).
     */
-    * {
+    *, *::selection {
         text-decoration-skip-ink: none;
         text-decoration-skip: none;
     }

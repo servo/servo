@@ -1,70 +1,139 @@
-// Creates a new iframe in |doc|, calls |func| on it and appends it as a child
-// of |doc|.
+// Creates a new iframe in `doc`, calls `func` on it and appends it as a child
+// of `doc`.
 // Returns a promise that resolves to the iframe once loaded (successfully or
 // not).
-// The iframe is removed from |doc| once test |t| is done running.
+// The iframe is removed from `doc` once test `t` is done running.
 //
-// NOTE: Because iframe elements always invoke the onload event handler, even
-// in case of error, we cannot wire onerror to a promise rejection. The Promise
-// constructor requires users to resolve XOR reject the promise.
+// NOTE: There exists no interoperable way to check whether an iframe failed to
+// load, so this should only be used when the iframe is expected to load. It
+// also means we cannot wire the iframe's `error` event to a promise
+// rejection. See: https://github.com/whatwg/html/issues/125
 function appendIframeWith(t, doc, func) {
   return new Promise(resolve => {
       const child = doc.createElement("iframe");
+      t.add_cleanup(() => child.remove());
+
+      child.addEventListener("load", () => resolve(child), { once: true });
       func(child);
-      child.onload = () => { resolve(child); };
       doc.body.appendChild(child);
-      t.add_cleanup(() => { doc.body.removeChild(child); });
     });
 }
 
-// Appends a child iframe to |doc| sourced from |src|.
+// Appends a child iframe to `doc` sourced from `src`.
 //
-// See append_child_frame_with() for more details.
+// See `appendIframeWith()` for more details.
 function appendIframe(t, doc, src) {
   return appendIframeWith(t, doc, child => { child.src = src; });
 }
 
-// Register an event listener that will resolve this promise when this
+// Registers an event listener that will resolve this promise when this
 // window receives a message posted to it.
-function futureMessage() {
+//
+// `options` has the following shape:
+//
+//  {
+//    source: If specified, this function waits for the first message from the
+//      given source only, ignoring other messages.
+//
+//    filter: If specified, this function calls `filter` on each incoming
+//      message, and resolves iff it returns true.
+//  }
+//
+function futureMessage(options) {
   return new Promise(resolve => {
-      window.addEventListener("message", e => resolve(e.data));
+    window.addEventListener("message", (e) => {
+      if (options?.source && options.source !== e.source) {
+        return;
+      }
+
+      if (options?.filter && !options.filter(e.data)) {
+        return;
+      }
+
+      resolve(e.data);
+    });
   });
 };
 
-const Server = {
-  HTTP_LOCAL: {
-    port: {{ports[http][0]}},
-    protocol: "http:",
+// Like `promise_test()`, but executes tests in parallel like `async_test()`.
+//
+// Cribbed from COEP tests.
+function promise_test_parallel(promise, description) {
+  async_test(test => {
+    promise(test)
+        .then(() => test.done())
+        .catch(test.step_func(error => { throw error; }));
+  }, description);
+};
+
+async function postMessageAndAwaitReply(target, message) {
+  const reply = futureMessage({ source: target });
+  target.postMessage(message, "*");
+  return await reply;
+}
+
+// Maps protocol (without the trailing colon) and address space to port.
+const SERVER_PORTS = {
+  "http": {
+    "local": {{ports[http][0]}},
+    "private": {{ports[http-private][0]}},
+    "public": {{ports[http-public][0]}},
   },
-  HTTP_PRIVATE: {
-    port: {{ports[http-private][0]}},
-    protocol: "http:",
+  "https": {
+    "local": {{ports[https][0]}},
+    "private": {{ports[https-private][0]}},
+    "public": {{ports[https-public][0]}},
   },
-  HTTP_PUBLIC: {
-    port: {{ports[http-public][0]}},
-    protocol: "http:",
+  "ws": {
+    "local": {{ports[ws][0]}},
   },
-  HTTPS_LOCAL: {
-    port: {{ports[https][0]}},
-    protocol: "https:",
+  "wss": {
+    "local": {{ports[wss][0]}},
   },
-  HTTPS_PRIVATE: {
-    port: {{ports[https-private][0]}},
-    protocol: "https:",
-  },
-  HTTPS_PUBLIC: {
-    port: {{ports[https-public][0]}},
-    protocol: "https:",
-  },
-  WS_LOCAL: {
-    port: {{ports[ws][0]}},
-    protocol: "ws:",
-  },
-  WSS_LOCAL: {
-    port: {{ports[wss][0]}},
-    protocol: "wss:",
-  },
+};
+
+// A `Server` is a web server accessible by tests. It has the following shape:
+//
+// {
+//   addressSpace: the IP address space of the server ("local", "private" or
+//     "public"),
+//   name: a human-readable name for the server,
+//   port: the port on which the server listens for connections,
+//   protocol: the protocol (including trailing colon) spoken by the server,
+// }
+//
+// Constants below define the available servers, which can also be accessed
+// programmatically with `get()`.
+class Server {
+  // Maps the given `protocol` (without a trailing colon) and `addressSpace` to
+  // a server. Returns null if no such server exists.
+  static get(protocol, addressSpace) {
+    const ports = SERVER_PORTS[protocol];
+    if (ports === undefined) {
+      return null;
+    }
+
+    const port = ports[addressSpace];
+    if (port === undefined) {
+      return null;
+    }
+
+    return {
+      addressSpace,
+      name: `${protocol}-${addressSpace}`,
+      port,
+      protocol: protocol + ':',
+    };
+  }
+
+  static HTTP_LOCAL = Server.get("http", "local");
+  static HTTP_PRIVATE = Server.get("http", "private");
+  static HTTP_PUBLIC = Server.get("http", "public");
+  static HTTPS_LOCAL = Server.get("https", "local");
+  static HTTPS_PRIVATE = Server.get("https", "private");
+  static HTTPS_PUBLIC = Server.get("https", "public");
+  static WS_LOCAL = Server.get("ws", "local");
+  static WSS_LOCAL = Server.get("wss", "local");
 };
 
 // Resolves a URL relative to the current location, returning an absolute URL.
@@ -128,22 +197,27 @@ function sourceResolveOptions({ server, treatAsPublic }) {
   return options;
 }
 
-// Computes options to pass to `resolveUrl()` for `resources/preflight.py`.
+// Computes the URL of a preflight handler configured with the given options.
 //
 // `server` identifies the server from which to load the resource.
 // `behavior` specifies the behavior of the target server. It may contain:
 //   - `preflight`: The result of calling one of `PreflightBehavior`'s methods.
 //   - `response`: The result of calling one of `ResponseBehavior`'s methods.
-function targetResolveOptions({ server, behavior }) {
+//   - `redirect`: A URL to which the target should redirect GET requests.
+function preflightUrl({ server, behavior }) {
   const options = {...server};
   if (behavior) {
-    const { preflight, response } = behavior;
+    const { preflight, response, redirect } = behavior;
     options.searchParams = {
       ...preflight,
       ...response,
     };
+    if (redirect !== undefined) {
+      options.searchParams.redirect = redirect;
+    }
   }
-  return options;
+
+  return resolveUrl("resources/preflight.py", options);
 }
 
 // Methods generate behavior specifications for how `resources/preflight.py`
@@ -170,6 +244,21 @@ const PreflightBehavior = {
   success: (uuid) => ({
     "preflight-uuid": uuid,
     "preflight-headers": "cors+pna",
+  }),
+
+  // The preflight response should succeed and allow service-worker header.
+  // `uuid` should be a UUID that uniquely identifies the preflight request.
+  serviceWorkerSuccess: (uuid) => ({
+    "preflight-uuid": uuid,
+    "preflight-headers": "cors+pna+sw",
+  }),
+
+  // The preflight response should succeed only if it is the first preflight.
+  // `uuid` should be a UUID that uniquely identifies the preflight request.
+  singlePreflight: (uuid) => ({
+    "preflight-uuid": uuid,
+    "preflight-headers": "cors+pna",
+    "expect-single-preflight": true,
   }),
 };
 
@@ -206,7 +295,7 @@ const FetchTestResult = {
 //     // Optional. Passed to `sourceResolveOptions()`.
 //     source,
 //
-//     // Optional. Passed to `targetResolveOptions()`.
+//     // Optional. Passed to `preflightUrl()`.
 //     target,
 //
 //     // Optional. Passed to `fetch()`.
@@ -220,11 +309,10 @@ async function fetchTest(t, { source, target, fetchOptions, expected }) {
   const sourceUrl =
       resolveUrl("resources/fetcher.html", sourceResolveOptions(source));
 
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
 
   const iframe = await appendIframe(t, document, sourceUrl);
-  const reply = futureMessage();
+  const reply = futureMessage({ source: iframe.contentWindow });
 
   const message = {
     url: targetUrl.href,
@@ -264,7 +352,7 @@ const XhrTestResult = {
 //     // Optional. Passed to `sourceResolveOptions()`.
 //     source,
 //
-//     // Optional. Passed to `targetResolveOptions()`.
+//     // Optional. Passed to `preflightUrl()`.
 //     target,
 //
 //     // Optional. Method to use when sending the request. Defaults to "GET".
@@ -278,8 +366,7 @@ async function xhrTest(t, { source, target, method, expected }) {
   const sourceUrl =
       resolveUrl("resources/xhr-sender.html", sourceResolveOptions(source));
 
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
 
   const iframe = await appendIframe(t, document, sourceUrl);
   const reply = futureMessage();
@@ -296,6 +383,113 @@ async function xhrTest(t, { source, target, method, expected }) {
   assert_equals(status, expected.status, "response status");
   assert_equals(body, expected.body, "response body");
 }
+
+const IframeTestResult = {
+  SUCCESS: "loaded",
+  FAILURE: "timeout",
+};
+
+async function iframeTest(t, { source, target, expected }) {
+  // Allows running tests in parallel.
+  const uuid = token();
+
+  const targetUrl = preflightUrl(target);
+  targetUrl.searchParams.set("file", "iframed.html");
+  targetUrl.searchParams.set("iframe-uuid", uuid);
+
+  const sourceUrl =
+      resolveUrl("resources/iframer.html", sourceResolveOptions(source));
+  sourceUrl.searchParams.set("url", targetUrl);
+
+  const messagePromise = futureMessage({
+    filter: (data) => data.uuid === uuid,
+  });
+  const iframe = await appendIframe(t, document, sourceUrl);
+
+  // The grandchild frame posts a message iff it loads successfully.
+  // There exists no interoperable way to check whether an iframe failed to
+  // load, so we use a timeout.
+  // See: https://github.com/whatwg/html/issues/125
+  const result = await Promise.race([
+      messagePromise.then((data) => data.message),
+      new Promise((resolve) => {
+        t.step_timeout(() => resolve("timeout"), 500 /* ms */);
+      }),
+  ]);
+
+  assert_equals(result, expected);
+}
+
+const iframeGrandparentTest = ({
+  name,
+  grandparentServer,
+  child,
+  grandchild,
+  expected,
+}) => promise_test_parallel(async (t) => {
+  // Allows running tests in parallel.
+  const grandparentUuid = token();
+  const childUuid = token();
+  const grandchildUuid = token();
+
+  const grandparentUrl =
+      resolveUrl("resources/executor.html", grandparentServer);
+  grandparentUrl.searchParams.set("executor-uuid", grandparentUuid);
+
+  const childUrl = preflightUrl(child);
+  childUrl.searchParams.set("file", "executor.html");
+  childUrl.searchParams.set("executor-uuid", childUuid);
+
+  const grandchildUrl = preflightUrl(grandchild);
+  grandchildUrl.searchParams.set("file", "iframed.html");
+  grandchildUrl.searchParams.set("iframe-uuid", grandchildUuid);
+
+  const iframe = await appendIframe(t, document, grandparentUrl);
+
+  const addChild = (url) => new Promise((resolve) => {
+    const child = document.createElement("iframe");
+    child.src = url;
+    child.addEventListener("load", () => resolve(), { once: true });
+    document.body.appendChild(child);
+  });
+
+  const grandparentCtx = new RemoteContext(grandparentUuid);
+  await grandparentCtx.execute_script(addChild, [childUrl]);
+
+  // Add a blank grandchild frame inside the child.
+  // Apply a timeout to this step so that failures at this step do not block the
+  // execution of other tests.
+  const childCtx = new RemoteContext(childUuid);
+  await Promise.race([
+      childCtx.execute_script(addChild, ["about:blank"]),
+      new Promise((resolve, reject) => t.step_timeout(
+          () => reject("timeout adding grandchild"),
+          2000 /* ms */
+      )),
+  ]);
+
+  const messagePromise = futureMessage({
+    filter: (data) => data.uuid === grandchildUuid,
+  });
+  await grandparentCtx.execute_script((url) => {
+    const child = window.frames[0];
+    const grandchild = child.frames[0];
+    grandchild.location = url;
+  }, [grandchildUrl]);
+
+  // The great-grandchild frame posts a message iff it loads successfully.
+  // There exists no interoperable way to check whether an iframe failed to
+  // load, so we use a timeout.
+  // See: https://github.com/whatwg/html/issues/125
+  const result = await Promise.race([
+      messagePromise.then((data) => data.message),
+      new Promise((resolve) => {
+        t.step_timeout(() => resolve("timeout"), 2000 /* ms */);
+      }),
+  ]);
+
+  assert_equals(result, expected);
+}, name);
 
 const WebsocketTestResult = {
   SUCCESS: "open",
@@ -343,14 +537,20 @@ const WorkerScriptTestResult = {
   FAILURE: { error: "unknown error" },
 };
 
+function workerScriptUrl(target) {
+  const url = preflightUrl(target);
+
+  url.searchParams.append("body", "postMessage({ loaded: true })")
+  url.searchParams.append("mime-type", "application/javascript")
+
+  return url;
+}
+
 async function workerScriptTest(t, { source, target, expected }) {
   const sourceUrl =
       resolveUrl("resources/worker-fetcher.html", sourceResolveOptions(source));
 
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
-  targetUrl.searchParams.append("body", "postMessage({ loaded: true })")
-  targetUrl.searchParams.append("mime-type", "application/javascript")
+  const targetUrl = workerScriptUrl(target);
 
   const iframe = await appendIframe(t, document, sourceUrl);
   const reply = futureMessage();
@@ -363,14 +563,34 @@ async function workerScriptTest(t, { source, target, expected }) {
   assert_equals(loaded, expected.loaded, "response loaded");
 }
 
+async function nestedWorkerScriptTest(t, { source, target, expected }) {
+  const targetUrl = workerScriptUrl(target);
+
+  const sourceUrl = resolveUrl(
+      "resources/worker-fetcher.js", sourceResolveOptions(source));
+  sourceUrl.searchParams.append("url", targetUrl);
+
+  // Iframe must be same-origin with the parent worker.
+  const iframeUrl = new URL("worker-fetcher.html", sourceUrl);
+
+  const iframe = await appendIframe(t, document, iframeUrl);
+  const reply = futureMessage();
+
+  iframe.contentWindow.postMessage({ url: sourceUrl.href }, "*");
+
+  const { error, loaded } = await reply;
+
+  assert_equals(error, expected.error, "worker error");
+  assert_equals(loaded, expected.loaded, "response loaded");
+}
+
 async function sharedWorkerScriptTest(t, { source, target, expected }) {
   const sourceUrl = resolveUrl("resources/shared-worker-fetcher.html",
                                sourceResolveOptions(source));
-
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
   targetUrl.searchParams.append(
       "body", "onconnect = (e) => e.ports[0].postMessage({ loaded: true })")
+  targetUrl.searchParams.append("mime-type", "application/javascript")
 
   const iframe = await appendIframe(t, document, sourceUrl);
   const reply = futureMessage();
@@ -390,8 +610,7 @@ const WorkerFetchTestResult = {
 };
 
 async function workerFetchTest(t, { source, target, expected }) {
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
 
   const sourceUrl =
       resolveUrl("resources/fetcher.js", sourceResolveOptions(source));
@@ -411,8 +630,7 @@ async function workerFetchTest(t, { source, target, expected }) {
 }
 
 async function sharedWorkerFetchTest(t, { source, target, expected }) {
-  const targetUrl =
-      resolveUrl("resources/preflight.py", targetResolveOptions(target));
+  const targetUrl = preflightUrl(target);
 
   const sourceUrl =
       resolveUrl("resources/shared-fetcher.js", sourceResolveOptions(source));

@@ -10,7 +10,6 @@ A basic example for specifying tests in Yaml files
 --------------------------------------------------------------
 
 .. _`pytest-yamlwsgi`: http://bitbucket.org/aafshar/pytest-yamlwsgi/src/tip/pytest_yamlwsgi.py
-.. _`PyYAML`: https://pypi.org/project/PyYAML/
 
 Here is an example ``conftest.py`` (extracted from Ali Afshar's special purpose `pytest-yamlwsgi`_ plugin).   This ``conftest.py`` will  collect ``test*.yaml`` files and will execute the yaml-formatted content as custom tests:
 
@@ -22,16 +21,15 @@ You can create a simple example file:
 .. include:: nonpython/test_simple.yaml
     :literal:
 
-and if you installed `PyYAML`_ or a compatible YAML-parser you can
+and if you installed :pypi:`PyYAML` or a compatible YAML-parser you can
 now execute the test specification:
 
 .. code-block:: pytest
 
     nonpython $ pytest test_simple.yaml
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR/nonpython
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project/nonpython
     collected 2 items
 
     test_simple.yaml F.                                                  [100%]
@@ -66,9 +64,9 @@ consulted when reporting in ``verbose`` mode:
 
     nonpython $ pytest -v
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR/nonpython
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y -- $PYTHON_PREFIX/bin/python
+    cachedir: .pytest_cache
+    rootdir: /home/sweet/project/nonpython
     collecting ... collected 2 items
 
     test_simple.yaml::hello FAILED                                       [ 50%]
@@ -92,9 +90,8 @@ interesting to just look at the collection tree:
 
     nonpython $ pytest --collect-only
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR/nonpython
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project/nonpython
     collected 2 items
 
     <Package nonpython>
@@ -102,4 +99,4 @@ interesting to just look at the collection tree:
         <YamlItem hello>
         <YamlItem ok>
 
-    ========================== no tests ran in 0.12s ===========================
+    ======================== 2 tests collected in 0.12s ========================

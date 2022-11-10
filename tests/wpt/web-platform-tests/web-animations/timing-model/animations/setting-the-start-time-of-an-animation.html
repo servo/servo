@@ -16,10 +16,10 @@ promise_test(async t => {
     new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
                   null);
 
-  assert_throws_dom('NotSupportedError', () => {
+  assert_throws_js(TypeError, () => {
     animation.startTime = CSSNumericValue.parse("30%");
   });
-  assert_throws_dom('NotSupportedError', () => {
+  assert_throws_js(TypeError, () => {
     animation.startTime = CSSNumericValue.parse("30deg");
   });
 

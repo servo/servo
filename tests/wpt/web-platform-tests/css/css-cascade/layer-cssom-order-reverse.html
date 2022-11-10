@@ -10,7 +10,6 @@
   color: green;
   font: 20px/1 ahem;
   width: max-content;
-  --foo: green;
 }
 </style>
 
@@ -112,58 +111,6 @@ const testCases = [
       await document.fonts.load('20px/1 custom');
     },
     property: 'width',
-  },
-  {
-    title: 'Insert layer invalidates @property',
-    sheets: [
-      '',
-      `
-        @layer first {
-          @property --foo {
-            syntax: '<color>';
-            inherits: false;
-            initial-value: green;
-          }
-        }
-        @layer second {
-          @property --foo {
-            syntax: '<color>';
-            inherits: false;
-            initial-value: red;
-          }
-        }
-      `,
-    ],
-    update: function(sheets) {
-      sheets[0].insertRule('@layer second {}', 0);
-    },
-    property: '--foo',
-  },
-  {
-    title: 'Delete layer invalidates @property',
-    sheets: [
-      '@layer second {}',
-      `
-        @layer first {
-          @property --foo {
-            syntax: '<color>';
-            inherits: false;
-            initial-value: red;
-          }
-        }
-        @layer second {
-          @property --foo {
-            syntax: '<color>';
-            inherits: false;
-            initial-value: green;
-          }
-        }
-      `,
-    ],
-    update: function(sheets) {
-      sheets[0].deleteRule(0);
-    },
-    property: '--foo',
   },
 ];
 

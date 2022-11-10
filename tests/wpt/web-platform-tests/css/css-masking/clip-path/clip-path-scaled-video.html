@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta name="assert" content="There should be no hairline along the edges of clip-path bounding box">
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#ClipPathElement">
+<link rel="help" href="https://crbug.com/1171601">
+<link rel="match" href="clip-path-scaled-video-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<body style="overflow: hidden">
+<p>Expect no hairlines below.</p>
+<svg width="700" height="550">
+  <!-- Clipping the video-->
+  <clipPath id="clip">
+    <polygon points="100,100 250,250"/>
+  </clipPath>
+  <g clip-path="url(#clip)" transform="scale(0.112)">
+    <foreignObject width="320" height="240">
+      <video src="/media/test.ogv" autoplay loop></video>
+    </foreignObject>
+  </g>
+  <g clip-path="url(#clip)" transform="scale(0.345)">
+    <foreignObject width="320" height="240">
+      <video src="/media/test.ogv" autoplay loop></video>
+    </foreignObject>
+  </g>
+  <g clip-path="url(#clip)" transform="scale(0.778)">
+    <foreignObject width="320" height="240">
+      <video src="/media/test.ogv" autoplay loop></video>
+    </foreignObject>
+  </g>
+  <g clip-path="url(#clip)" transform="scale(0.912)">
+    <foreignObject width="320" height="240">
+      <video src="/media/test.ogv" autoplay loop></video>
+    </foreignObject>
+  </g>
+  <g clip-path="url(#clip)" transform="scale(1.678)">
+    <foreignObject width="320" height="240">
+      <video src="/media/test.ogv" autoplay loop></video>
+    </foreignObject>
+  </g>
+  <g clip-path="url(#clip)" transform="scale(3.333)">
+    <foreignObject width="320" height="240">
+      <video src="/media/test.ogv" oncanplaythrough="takeScreenshot()" autoplay loop></video>
+    </foreignObject>
+  </g>
+</svg>
+</body>

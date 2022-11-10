@@ -31,6 +31,10 @@
     el.setSelectionRange(0, 1);
     assert_equals(el.selectionStart, 0, "final selectionStart");
     assert_equals(el.selectionEnd, 1, "final selectionEnd");
-    assert_equals(el.selectionDirection, "forward", "final selectionDirection");
+    assert_in_array(el.selectionDirection, ["none", "forward"]);
+
+    const finalDirection = el.selectionDirection;
+    el.finalDirection = "forward";
+    assert_equals(el.selectionDirection, finalDirection);
   }, "text field selection for the input textarea");
 </script>

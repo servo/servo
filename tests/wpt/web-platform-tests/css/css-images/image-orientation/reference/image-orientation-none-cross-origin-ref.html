@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org">
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5165">
-<meta name=fuzzy content="10;100">
 <style>
     body {
         overflow: hidden;
@@ -26,5 +25,9 @@
     <p>This image should rotate respecting their EXIF orientation because
        image-orientation: none should be effectively ignored for opaque (cross-origin) images.</p>
     <div><img src="../support/exif-orientation-3-lr.jpg" style="image-orientation: from-image" /></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
 </body>
 </html>

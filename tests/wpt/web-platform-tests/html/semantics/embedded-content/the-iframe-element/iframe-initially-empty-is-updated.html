@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Iframe that doesn't load can be updated and rendered.</title>
+<meta charset="utf-8">
+<link rel="match" href="iframe-initially-empty-is-updated-ref.html"/>
+<html>
+  <body>
+    <iframe src="resources/empty.html"></iframe>
+    <script>
+      window[0].document.body.appendChild(document.createElement('div'))
+          .appendChild(document.createTextNode('Hello world!'));
+      window[0].document.body.firstChild.style = 'color: green';
+      window.stop();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove("reftest-wait");
+        });
+      });
+    </script>
+  </body>
+</html>

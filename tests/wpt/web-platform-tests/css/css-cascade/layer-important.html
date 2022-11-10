@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Cascade Layers: !important </title>
+<meta name="assert" content="!important functionality of CSS Cascade Layers">
+<link rel="author" title="Romain Menke" href="mailto:romainmenke@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-cascade-5/#cascade-layering">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<target class="first"></target>
+<target class="second"></target>
+<div id="log"></div>
+<script>
+
+// In all test cases, the rule specified as "color: green" should win.
+var testCases = [
+    {
+        title: 'A1 Unlayered !important style',
+        style: `
+            target { color: green !important; }
+            target { color: red; }
+        `
+    },
+    {
+        title: 'B1 Same specificity, layered !important first',
+        style: `
+            @layer { target { color: green !important; } }
+            target { color: red; }
+        `,
+    },
+    {
+        title: 'C1 Same specificity, layered !important second',
+        style: `
+            target { color: red; }
+            @layer { target { color: green !important; } }
+        `,
+    },
+    {
+        title: 'D1 Same specificity, all !important',
+        style: `
+            @layer { target { color: green !important; } }
+            @layer { target { color: red !important; } }
+            target { color: red !important; }
+        `,
+    },
+    {
+        title: 'D2 Same specificity, all !important',
+        style: `
+            @layer { target { color: green !important; } }
+            target { color: red !important; }
+            @layer { target { color: red !important; } }
+        `,
+    },
+    {
+        title: 'D3 Same specificity, all !important',
+        style: `
+            target { color: red !important; }
+            @layer { target { color: green !important; } }
+            @layer { target { color: red !important; } }
+        `,
+    },
+    {
+        title: 'D4 Same specificity, all !important',
+        style: `
+            @layer A, B;
+            @layer B { target { color: red !important; } }
+            @layer A { target { color: green !important; } }
+            target { color: red !important; }
+        `,
+    },
+    {
+        title: 'E1 Different specificity, all !important',
+        style: `
+            @layer { target { color: green !important; } }
+            @layer { target { color: red !important; } }
+            target.first { color: red !important; }
+        `,
+    },
+    {
+        title: 'E2 Different specificity, all !important',
+        style: `
+            @layer { target { color: green !important; } }
+            @layer { target.first { color: red !important; } }
+            target { color: red !important; }
+        `,
+    },
+];
+
+for (let testCase of testCases) {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = testCase['style'];
+    document.head.append(styleElement);
+
+    test(function () {
+        var targets = document.querySelectorAll('target');
+        for (target of targets)
+            assert_equals(window.getComputedStyle(target).color, 'rgb(0, 128, 0)',
+                      testCase['title'] + ", target '" + target.classList[0] + "'");
+    }, testCase['title']);
+
+    styleElement.remove();
+}
+</script>
+</body>
+</html>

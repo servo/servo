@@ -27,16 +27,47 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
+@pytest.mark.parametrize(
+    "value",
+    ["#same1", "#frame", "#shadow"],
+    ids=["not-existent", "existent-other-frame", "existent-shadow-dom"],
+)
+def test_no_such_element_with_invalid_value(session, iframe, inline, value):
+    session.url = inline(f"""
+        <style>
+            custom-checkbox-element {{
+                display:block; width:20px; height:20px;
+            }}
+        </style>
+        <script>
+            customElements.define('custom-checkbox-element',
+                class extends HTMLElement {{
+                    constructor() {{
+                        super();
+                        this.attachShadow({{mode: 'open'}}).innerHTML = `
+                            <div id="shadow"><input type="checkbox"/></div>
+                        `;
+                    }}
+                }});
+        </script>
+        <div id="top">
+            <div id="same"/>
+            {iframe("<div id='frame'>")}
+            <custom-checkbox-element id='checkbox'></custom-checkbox-element>
+        </div>""")
+
+    response = find_element(session, "css selector", value)
+    assert_error(response, "no such element")
+
+
 @pytest.mark.parametrize("using", ["a", True, None, 1, [], {}])
 def test_invalid_using_argument(session, using):
-    # Step 1 - 2
     response = find_element(session, using, "value")
     assert_error(response, "invalid argument")
 
 
 @pytest.mark.parametrize("value", [None, [], {}])
 def test_invalid_selector_argument(session, value):
-    # Step 3 - 4
     response = find_element(session, "css selector", value)
     assert_error(response, "invalid argument")
 
@@ -48,7 +79,6 @@ def test_invalid_selector_argument(session, value):
                           ("tag name", "a"),
                           ("xpath", "//a")])
 def test_find_element(session, inline, using, value):
-    # Step 8 - 9
     session.url = inline("<a href=# id=linkText>full link text</a>")
 
     response = find_element(session, using, value)
@@ -64,7 +94,6 @@ def test_find_element(session, inline, using, value):
     ("<a href=# style='text-transform: uppercase'>link text</a>", "LINK TEXT"),
 ])
 def test_find_element_link_text(session, inline, document, value):
-    # Step 8 - 9
     session.url = inline(document)
 
     response = find_element(session, "link text", value)
@@ -81,18 +110,10 @@ def test_find_element_link_text(session, inline, document, value):
     ("<a href=# style='text-transform: uppercase'>partial link text</a>", "LINK"),
 ])
 def test_find_element_partial_link_text(session, inline, document, value):
-    # Step 8 - 9
     session.url = inline(document)
 
     response = find_element(session, "partial link text", value)
     assert_success(response)
-
-
-@pytest.mark.parametrize("using,value", [("css selector", "#wontExist")])
-def test_no_element(session, using, value):
-    # Step 8 - 9
-    response = find_element(session, using, value)
-    assert_error(response, "no such element")
 
 
 @pytest.mark.parametrize("using,value",

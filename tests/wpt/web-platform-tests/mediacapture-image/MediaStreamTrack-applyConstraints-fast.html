@@ -43,7 +43,7 @@ return videoTrack.applyConstraints({advanced: []});
 
 // This test verifies that applyConstraints() rejects the returned Promise if
 // passed a non-supported image-capture constraint (https://crbug.com/711694).
-promise_test(function(t) {
+promise_test(async function(t) {
   var canvas = document.getElementById('canvas');
   var context = canvas.getContext("2d");
   context.fillStyle = "red";
@@ -54,9 +54,13 @@ promise_test(function(t) {
 
   // Use e.g. |torch| as an example of unsupported constraint.
   assert_false("torch" in videoTrack.getCapabilities());
-  return promise_rejects_dom(
-      t, 'NotSupportedError',
-      videoTrack.applyConstraints({advanced : [ {torch : true} ]}));
+  try {
+    await videoTrack.applyConstraints({advanced : [ {torch : true} ]});
+  } catch (error) {
+    assert_equals(error.name, 'OverconstrainedError');
+    return;
+  }
+  assert_unreached('expected applyConstraints to reject');
 }, 'MediaStreamTrack.applyConstraints() with unsupported constraint');
 
 </script>

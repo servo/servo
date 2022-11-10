@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/2368">
+<link rel=help href="https://github.com/whatwg/html/issues/5886">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id=targetparent>
+  <button id=target disabled>
+    hello world
+    <span style="border: 1px solid black" id=targetchild>child</span>
+  </button>
+</div>
+
+<script>
+['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(eventName => {
+  [true, false].forEach(clickChildElement => {
+    promise_test(async () => {
+      const parentShouldReceiveEvents = eventName.startsWith('pointer');
+      let parentReceivedEvent = false;
+      targetparent.addEventListener(eventName, () => {
+        if (parentShouldReceiveEvents) {
+          parentReceivedEvent = true;
+        } else {
+          assert_unreached(`parent element should not receive ${eventName} events.`);
+        }
+      });
+
+      const targetShouldReceiveEvents = eventName.startsWith('pointer');
+      let targetReceivedEvent = false;
+      target.addEventListener(eventName, () => {
+        if (targetShouldReceiveEvents) {
+          targetReceivedEvent = true;
+        } else {
+          assert_unreached(`target element should not receive ${eventName} events.`);
+        }
+      });
+
+      let childReceivedEvent = false;
+      targetchild.addEventListener(eventName, () => {
+        childReceivedEvent = true;
+      });
+
+      await test_driver.click(clickChildElement ? targetchild : target);
+
+      if (parentShouldReceiveEvents) {
+        assert_true(parentReceivedEvent, `parent element should receive ${eventName} events.`);
+      }
+      if (targetShouldReceiveEvents) {
+        assert_true(targetReceivedEvent, `target element should receive ${eventName} events.`);
+      }
+      if (clickChildElement) {
+        assert_true(childReceivedEvent, `child element should receive ${eventName} events.`);
+      }
+    }, `Testing ${eventName} events when clicking ${clickChildElement ? 'child of ' : ''}disabled form controls.`);
+  });
+});
+</script>

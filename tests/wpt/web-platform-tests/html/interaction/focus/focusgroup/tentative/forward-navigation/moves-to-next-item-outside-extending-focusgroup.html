@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus moves to next item outside the extending focusgroup.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup>
+  <div id=item1 tabindex=0 focusgroup=extend>
+    <span id=item2>item2</span> <!--NOT FOCUSABLE-->
+    <span id=item3>item3</span> <!--NOT FOCUSABLE-->
+  </div>
+  <span id=item4 tabindex=-1>item4</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item4 = document.getElementById("item4");
+
+    await focusAndKeyPress(item1, kArrowDown);
+    assert_equals(document.activeElement, item4);
+
+    await focusAndKeyPress(item1, kArrowRight);
+    assert_equals(document.activeElement, item4);
+  }, "When the focus is set on a focusgroup item which happens to also be an extending focusgroup, an arrow key press should move the focus to the next item within the extending focusgroup and skip non-focusable items. If no valid candidate is found within that extending focusgroup, the next element (in pre-order traversal) should be considered. In this case, |item4| is the valid next candidate.");
+
+</script>

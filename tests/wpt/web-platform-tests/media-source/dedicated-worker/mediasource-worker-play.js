@@ -9,9 +9,37 @@ onmessage = function(evt) {
 };
 
 let util = new MediaSourceWorkerUtil();
+let handle = util.mediaSource.handle;
 
-util.mediaSource.addEventListener("sourceopen", () => {
-  URL.revokeObjectURL(util.mediaSourceObjectUrl);
+util.mediaSource.addEventListener('sourceopen', () => {
+  // Immediately re-verify the SameObject property of the handle we transferred.
+  if (handle !== util.mediaSource.handle) {
+    postMessage({
+      subject: messageSubject.ERROR,
+      info: 'mediaSource.handle changed from the original value'
+    });
+  }
+
+  // Also verify that transferring the already-transferred handle instance is
+  // prevented correctly.
+  try {
+    postMessage(
+        {
+          subject: messageSubject.ERROR,
+          info:
+              'This postMessage should fail: the handle has already been transferred',
+          extra_info: util.mediaSource.handle
+        },
+        {transfer: [util.mediaSource.handle]});
+  } catch (e) {
+    if (e.name != 'DataCloneError') {
+      postMessage({
+        subject: messageSubject.ERROR,
+        info: 'Expected handle retransfer exception did not occur'
+      });
+    }
+  }
+
   sourceBuffer = util.mediaSource.addSourceBuffer(util.mediaMetadata.type);
   sourceBuffer.onerror = (err) => {
     postMessage({ subject: messageSubject.ERROR, info: err });
@@ -41,6 +69,6 @@ util.mediaSource.addEventListener("sourceopen", () => {
   };
   util.mediaLoadPromise.then(mediaData => { sourceBuffer.appendBuffer(mediaData); },
                              err => { postMessage({ subject: messageSubject.ERROR, info: err }) });
-}, { once : true });
+}, {once: true});
 
-postMessage({ subject: messageSubject.OBJECT_URL, info: util.mediaSourceObjectUrl });
+postMessage({ subject: messageSubject.HANDLE, info: handle }, { transfer: [handle] });

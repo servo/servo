@@ -23,13 +23,8 @@
 
     4.2.1.  RTCConfiguration Dictionary
       dictionary RTCConfiguration {
-        sequence<RTCIceServer>   iceServers;
+        sequence<RTCIceServer>   iceServers = [];
         ...
-      };
-
-    4.2.2.  RTCIceCredentialType Enum
-      enum RTCIceCredentialType {
-        "password"
       };
 
     4.2.4.  RTCIceServer Dictionary
@@ -37,13 +32,12 @@
         required (DOMString or sequence<DOMString>) urls;
                  DOMString                          username;
                  DOMString                          credential;
-                 RTCIceCredentialType               credentialType = "password";
       };
    */
 
   test(() => {
     const pc = new RTCPeerConnection();
-    assert_equals(pc.getConfiguration().iceServers, undefined);
+    assert_array_equals(pc.getConfiguration().iceServers, []);
   }, 'new RTCPeerConnection() should have default configuration.iceServers of undefined');
 
   config_test(makePc => {
@@ -57,7 +51,7 @@
 
   config_test(makePc => {
     const pc = makePc({ iceServers: undefined });
-    assert_equals(pc.getConfiguration().iceServers, undefined);
+    assert_array_equals(pc.getConfiguration().iceServers, []);
   }, '{ iceServers: undefined } should succeed');
 
   config_test(makePc => {
@@ -90,7 +84,6 @@
 
     const server = iceServers[0];
     assert_array_equals(server.urls, ['stun:stun1.example.net']);
-    assert_equals(server.credentialType, 'password');
 
   }, `with stun server should succeed`);
 
@@ -104,7 +97,6 @@
 
     const server = iceServers[0];
     assert_array_equals(server.urls, ['stun:stun1.example.net']);
-    assert_equals(server.credentialType, 'password');
 
   }, `with stun server array should succeed`);
 
@@ -118,7 +110,6 @@
 
     const server = iceServers[0];
     assert_array_equals(server.urls, ['stun:stun1.example.net', 'stun:stun2.example.net']);
-    assert_equals(server.credentialType, 'password');
 
   }, `with 2 stun servers should succeed`);
 
@@ -134,7 +125,6 @@
 
     const server = iceServers[0];
     assert_array_equals(server.urls, ['turn:turn.example.org']);
-    assert_equals(server.credentialType, 'password');
     assert_equals(server.username, 'user');
     assert_equals(server.credential, 'cred');
 
@@ -190,21 +180,6 @@
     assert_equals(server.credential, 'cred');
 
   }, `with one turns server, one turn server, username, credential should succeed`);
-
-  config_test(makePc => {
-    const pc = makePc({ iceServers: [{
-      urls: 'stun:stun1.example.net',
-      credentialType: 'password'
-    }] });
-
-    const { iceServers } = pc.getConfiguration();
-    assert_equals(iceServers.length, 1);
-
-    const server = iceServers[0];
-    assert_array_equals(server.urls, ['stun:stun1.example.net']);
-    assert_equals(server.credentialType, 'password');
-
-  }, `with stun server and credentialType password should succeed`);
 
   /*
     4.3.2.  To set a configuration
@@ -326,23 +301,6 @@
       }] }));
   }, `with empty urls should throw SyntaxError`);
 
-  config_test(makePc => {
-    assert_throws_js(TypeError, () =>
-      makePc({ iceServers: [{
-        urls: [],
-        credentialType: 'invalid'
-      }] }));
-  }, 'with invalid credentialType should throw TypeError');
-
-  // token credentialType was removed from the spec since 20170508
-  config_test(makePc => {
-    assert_throws_js(TypeError, () =>
-      makePc({ iceServers: [{
-        urls: [],
-        credentialType: 'token'
-      }] }));
-  }, 'with credentialType token should throw TypeError');
-
   // Blink and Gecko fall back to url, but it's not in the spec.
   config_test(makePc => {
     assert_throws_js(TypeError, () =>
@@ -353,7 +311,7 @@
 
   /*
     4.3.2.  To set a configuration
-      11.5. If scheme name is turn or turns, and server.credentialType is "password",
+      11.5. If scheme name is turn or turns,
             and server.credential is not a DOMString, then throw an InvalidAccessError
             and abort these steps.
    */
@@ -361,13 +319,12 @@
     assert_throws_dom('InvalidAccessError', () =>
       makePc({ iceServers: [{
         urls: 'turns:turn.example.org',
-        credentialType: 'password',
         username: 'user',
         credential: {
           macKey: '',
           accessToken: ''
         }
       }] }));
-  }, 'with turns server, credentialType password, and object credential should throw InvalidAccessError');
+  }, 'with turns server, and object credential should throw InvalidAccessError');
 
 </script>

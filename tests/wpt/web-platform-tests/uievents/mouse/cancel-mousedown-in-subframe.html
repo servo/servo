@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+  <div>
+    Dragging the mouse from child frame to parent frame causes both <code>mousedown</code> and
+    <code>mouseup</code> events being dispatched to child frame, regardless of whether the
+    <code>mousedown</code> event is canceled or not.
+  </div>
+  <iframe id="child_frame" width="300px" height="40px"
+          src="resources/mouse-event-reporter-subframe.html">
+  </iframe>
+</body>
+<script>
+  "use strict"
+  let topframe_loaded = getEvent("load", window);
+  let subframe_loaded = getMessageData("load", frames[0]);
+
+  let top_frame_mousedown;
+  let top_frame_mouseup;
+
+  promise_setup(async () => {
+      await topframe_loaded;
+      await subframe_loaded;
+
+      window.addEventListener("mousedown", e => top_frame_mousedown = true);
+      window.addEventListener("mouseup",   e => top_frame_mouseup   = true);
+  });
+
+  [false, true].forEach(cancel_mousedown => {
+      let mousedown_msg = cancel_mousedown ? "canceled" : "not-canceled";
+
+      promise_test(async () => {
+          top_frame_mousedown = false;
+          top_frame_mouseup = false;
+
+          sendMessage(frames[0], "cancel-mousedown", cancel_mousedown);
+
+          const mousedown_promise = getMessageData("mousedown", frames[0]);
+          const mouseup_promise   = getMessageData("mouseup", frames[0]);
+
+          const child_frame = document.getElementById("child_frame");
+          const actions_promise = new test_driver.Actions()
+                .pointerMove(5, 5, {origin: child_frame})
+                .pointerDown()
+                .pointerMove(5, 5, {origin: document.body})
+                .pointerUp()
+                .send();
+
+          await actions_promise;
+
+          let mousedown_message = await mousedown_promise;
+          let mouseup_message   = await mouseup_promise;
+
+          assert_equals(mousedown_message.param, mousedown_msg, "Child frame canceled mousedown?");
+          assert_false(top_frame_mousedown, "Top frame received mousedown?");
+          assert_false(top_frame_mouseup,   "Top frame received mouseup?");
+      }, "Child frame receives mousedown/mouseup when mousedown is " + mousedown_msg);
+  });
+</script>

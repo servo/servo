@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: speak-as digits</title>
+        <link rel="author" title="Alexander Lehner" href="mailto:alexlehner86@gmail.com">
+        <link rel="help" href="https://www.w3.org/TR/css-speech-1/#speaking-props-speak-as">
+        <meta
+            name="flags"
+            content="speech"
+        >
+        <meta
+            name="assert"
+            content="The digits value of speak-as makes screen readers read a number one digit at a time."
+        >
+        <style>
+            p.speak-as-digits { speak-as: digits; }
+        </style>
+    </head>
+    <body>
+        <h1>Test Case</h1>
+        <p>
+            The following telephone number should be read one digit at a time:
+        </p>
+        <p class="speak-as-digits">01 55 40 3005</p>
+        <h2>Instructions for Manual Test</h2>
+        <ol>
+            <li>Open the website in your browser.</li>
+            <li>
+                Activate your screen reader (NVDA, VoiceOver, TalkBack etc.) and, in browse mode, navigate to the paragraph following the first heading.
+            </li>
+            <li>
+                The screen reader should read the telephone number one digit at a time: zero one five five four zero three zero zero five
+            </li>
+        </ol>
+    </body>
+</html>

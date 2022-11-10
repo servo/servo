@@ -11,12 +11,12 @@
     height: 200px;
   }
 
-  @keyframes anim_qw { from { top: 20qw; } to { top: 40qw; } }
-  @keyframes anim_qh { from { top: 20qh; } to { top: 40qh; } }
-  @keyframes anim_qi { from { top: 20qi; } to { top: 40qi; } }
-  @keyframes anim_qb { from { top: 20qb; } to { top: 40qb; } }
-  @keyframes anim_qmin { from { top: 20qmin; } to { top: 40qmin; } }
-  @keyframes anim_qmax { from { top: 20qmax; } to { top: 40qmax; } }
+  @keyframes anim_cqw { from { top: 20cqw; } to { top: 40cqw; } }
+  @keyframes anim_cqh { from { top: 20cqh; } to { top: 40cqh; } }
+  @keyframes anim_cqi { from { top: 20cqi; } to { top: 40cqi; } }
+  @keyframes anim_cqb { from { top: 20cqb; } to { top: 40cqb; } }
+  @keyframes anim_cqmin { from { top: 20cqmin; } to { top: 40cqmin; } }
+  @keyframes anim_cqmax { from { top: 20cqmax; } to { top: 40cqmax; } }
 
   #container > div {
     animation-delay: -5s;
@@ -25,26 +25,26 @@
     animation-timing-function: linear;
   }
 
-  #element_qw { animation-name: anim_qw; }
-  #element_qh { animation-name: anim_qh; }
-  #element_qi { animation-name: anim_qi; }
-  #element_qb { animation-name: anim_qb; }
-  #element_qmin { animation-name: anim_qmin; }
-  #element_qmax { animation-name: anim_qmax; }
+  #element_cqw { animation-name: anim_cqw; }
+  #element_cqh { animation-name: anim_cqh; }
+  #element_cqi { animation-name: anim_cqi; }
+  #element_cqb { animation-name: anim_cqb; }
+  #element_cqmin { animation-name: anim_cqmin; }
+  #element_cqmax { animation-name: anim_cqmax; }
 
 </style>
 <div id=container>
-  <div id=element_qw></div>
-  <div id=element_qh></div>
-  <div id=element_qi></div>
-  <div id=element_qb></div>
-  <div id=element_qmin></div>
-  <div id=element_qmax></div>
+  <div id=element_cqw></div>
+  <div id=element_cqh></div>
+  <div id=element_cqi></div>
+  <div id=element_cqb></div>
+  <div id=element_cqmin></div>
+  <div id=element_cqmax></div>
 </div>
 <script>
   setup(() => assert_implements_container_queries());
 
-  const units = ['qw', 'qh', 'qi', 'qb', 'qmin', 'qmax'];
+  const units = ['cqw', 'cqh', 'cqi', 'cqb', 'cqmin', 'cqmax'];
 
   for (let unit of units) {
     test(() => {

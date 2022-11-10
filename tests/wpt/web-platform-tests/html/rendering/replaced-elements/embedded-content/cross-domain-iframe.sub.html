@@ -6,6 +6,12 @@
 <meta name="assert" content="Checks that iframe content is correctly rendered even if it is retrieved from a different domain.">
 <iframe id=myframe src="http://{{domains[www1]}}:{{ports[http][0]}}/images/green.png"></iframe>
 <script>
-  myframe.onload = () => document.documentElement.classList.remove('reftest-wait');
+  myframe.onload = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('reftest-wait');
+      });
+    });
+  }
 </script>
 </html>

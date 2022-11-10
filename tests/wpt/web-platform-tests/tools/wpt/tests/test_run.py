@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import tempfile
 import shutil
 import sys

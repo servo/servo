@@ -1,0 +1,22 @@
+<head>
+<script src="/common/utils.js"></script>
+<script src="./utils.js"></script>
+<script>
+    const search = new URLSearchParams(location.search);
+    const uid = search.get('uid');
+    const uid1 = token();
+    const uid2 = token();
+    const bc = new BroadcastChannel(uid);
+
+    window.onload = async () => {
+        bc.addEventListener('message', ({data}) => {
+            if (data === 'close')
+                window.close();
+            else if (data === 'activate')
+                location.href = url;
+        })
+
+        startPrerendering(`/speculation-rules/prerender/resources/dual-exec.html?uid1=${uid1}&uid2=${uid2}`);
+    };
+</script>
+</head>

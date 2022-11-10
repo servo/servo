@@ -34,6 +34,10 @@ REGENDOC_ARGS := \
 
 regen: REGENDOC_FILES:=*.rst */*.rst
 regen:
-	PYTHONDONTWRITEBYTECODE=1 PYTEST_ADDOPTS="-pno:hypothesis -Wignore::pytest.PytestUnknownMarkWarning" COLUMNS=76 regendoc --update ${REGENDOC_FILES} ${REGENDOC_ARGS}
+# need to reset cachedir to the non-tox default
+	PYTHONDONTWRITEBYTECODE=1 \
+	PYTEST_ADDOPTS="-pno:hypothesis -p no:hypothesispytest -Wignore::pytest.PytestUnknownMarkWarning -o cache_dir=.pytest_cache" \
+	COLUMNS=76 \
+	regendoc --update ${REGENDOC_FILES} ${REGENDOC_ARGS}
 
 .PHONY: regen

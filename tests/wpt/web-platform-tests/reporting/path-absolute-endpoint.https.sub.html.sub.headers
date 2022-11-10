@@ -1,2 +1,0 @@
-Report-To: { "group": "csp-group", "max_age": 10886400, "endpoints": [{ "url": "/reporting/resources/report.py?reportID=33444bb6-e444-4978-9d62-d3825844041f" }] }
-Content-Security-Policy: script-src 'self' 'unsafe-inline'; img-src 'none'; report-to csp-group

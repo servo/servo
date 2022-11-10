@@ -9,10 +9,10 @@
 
 function runAsTriggerPage() {
   assert_false(document.prerendering);
-  startPrerendering(location.href + '?prerendering');
+  startPrerendering(location.href + '&prerendering=true');
 
   // Close this window for cleanup after the prerendering page runs the test.
-  const bc = new BroadcastChannel('result');
+  const bc = new PrerenderChannel('result');
   bc.onmessage = e => window.close();
 }
 
@@ -23,7 +23,7 @@ function runAsPrerenderingPage() {
   const win = window.open('empty.html', '_blank');
 
   // Send the result to the test runner page.
-  const bc = new BroadcastChannel('result');
+  const bc = new PrerenderChannel('result');
   if (win) {
     bc.postMessage('opened');
     win.close();
@@ -32,7 +32,7 @@ function runAsPrerenderingPage() {
   }
 }
 
-if (location.search === '?prerendering') {
+if (new URLSearchParams(location.search).has('prerendering')) {
   runAsPrerenderingPage();
 } else {
   runAsTriggerPage();

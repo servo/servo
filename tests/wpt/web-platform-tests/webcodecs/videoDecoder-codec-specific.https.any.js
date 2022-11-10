@@ -261,6 +261,7 @@ promise_test(async t => {
   callbacks.output = frame => {
     outputs++;
     assert_equals(frame.timestamp, CHUNKS[0].timestamp, 'timestamp');
+    assert_equals(frame.duration, CHUNKS[0].duration, 'duration');
     frame.close();
   };
 
@@ -484,3 +485,48 @@ promise_test(async t => {
     };
   });
 }, 'Test low-latency decoding');
+
+
+promise_test(async t => {
+  const callbacks = {};
+  const decoder = createVideoDecoder(t, callbacks);
+
+  // No decodes yet.
+  assert_equals(decoder.decodeQueueSize, 0);
+
+  decoder.configure(CONFIG);
+
+  // Still no decodes.
+  assert_equals(decoder.decodeQueueSize, 0);
+
+  let lastDequeueSize = Infinity;
+  decoder.ondequeue = () => {
+    assert_greater_than(lastDequeueSize, 0, "Dequeue event after queue empty");
+    assert_greater_than(lastDequeueSize, decoder.decodeQueueSize,
+                        "Dequeue event without decreased queue size");
+    lastDequeueSize = decoder.decodeQueueSize;
+  };
+
+  for (let chunk of CHUNKS)
+    decoder.decode(chunk);
+
+  assert_greater_than_equal(decoder.decodeQueueSize, 0);
+  assert_less_than_equal(decoder.decodeQueueSize, CHUNKS.length);
+
+  await decoder.flush();
+  // We can guarantee that all decodes are processed after a flush.
+  assert_equals(decoder.decodeQueueSize, 0);
+  // Last dequeue event should fire when the queue is empty.
+  assert_equals(lastDequeueSize, 0);
+
+  // Reset this to Infinity to track the decline of queue size for this next
+  // batch of decodes.
+  lastDequeueSize = Infinity;
+
+  for (let chunk of CHUNKS)
+    decoder.decode(chunk);
+
+  assert_greater_than_equal(decoder.decodeQueueSize, 0);
+  decoder.reset();
+  assert_equals(decoder.decodeQueueSize, 0);
+}, 'VideoDecoder decodeQueueSize test');

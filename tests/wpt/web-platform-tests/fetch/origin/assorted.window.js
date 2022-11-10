@@ -194,7 +194,7 @@ function referrerPolicyTestString(referrerPolicy, method, destination) {
     promise_test(fetchReferrerPolicy(testObj.policy,
                                      destination.name,
                                      "cors",
-                                     (destination.name == "same-origin") ? destination.expectedOrigin : origins.HTTP_ORIGIN,
+                                     origins.HTTP_ORIGIN,
                                      "POST"),
                  referrerPolicyTestString(testObj.policy, "POST",
                                           destination.name + " fetch cors mode"));

@@ -69,7 +69,7 @@ Here is a basic pattern to achieve this:
 
 
 For this to work we need to add a command line option and
-provide the ``cmdopt`` through a :ref:`fixture function <fixture function>`:
+provide the ``cmdopt`` through a :ref:`fixture function <fixture>`:
 
 .. code-block:: python
 
@@ -139,10 +139,67 @@ And now with supplying a command line option:
     FAILED test_sample.py::test_answer - assert 0
     1 failed in 0.12s
 
-You can see that the command line option arrived in our test.  This
-completes the basic pattern.  However, one often rather wants to process
-command line options outside of the test and rather pass in different or
-more complex objects.
+You can see that the command line option arrived in our test.
+
+We could add simple validation for the input by listing the choices:
+
+.. code-block:: python
+
+    # content of conftest.py
+    import pytest
+
+
+    def pytest_addoption(parser):
+        parser.addoption(
+            "--cmdopt",
+            action="store",
+            default="type1",
+            help="my option: type1 or type2",
+            choices=("type1", "type2"),
+        )
+
+Now we'll get feedback on a bad argument:
+
+.. code-block:: pytest
+
+    $ pytest -q --cmdopt=type3
+    ERROR: usage: pytest [options] [file_or_dir] [file_or_dir] [...]
+    pytest: error: argument --cmdopt: invalid choice: 'type3' (choose from 'type1', 'type2')
+
+
+If you need to provide more detailed error messages, you can use the
+``type`` parameter and raise ``pytest.UsageError``:
+
+.. code-block:: python
+
+    # content of conftest.py
+    import pytest
+
+
+    def type_checker(value):
+        msg = "cmdopt must specify a numeric type as typeNNN"
+        if not value.startswith("type"):
+            raise pytest.UsageError(msg)
+        try:
+            int(value[4:])
+        except ValueError:
+            raise pytest.UsageError(msg)
+
+        return value
+
+
+    def pytest_addoption(parser):
+        parser.addoption(
+            "--cmdopt",
+            action="store",
+            default="type1",
+            help="my option: type1 or type2",
+            type=type_checker,
+        )
+
+This completes the basic pattern.  However, one often rather wants to
+process command line options outside of the test and rather pass in
+different or more complex objects.
 
 Dynamically adding command line options
 --------------------------------------------------------------
@@ -166,7 +223,7 @@ the command line arguments before they get processed:
             num = max(multiprocessing.cpu_count() / 2, 1)
             args[:] = ["-n", str(num)] + args
 
-If you have the `xdist plugin <https://pypi.org/project/pytest-xdist/>`_ installed
+If you have the :pypi:`xdist plugin <pytest-xdist>` installed
 you will now always perform test runs using a number
 of subprocesses close to your CPU. Running in an empty
 directory with the above conftest.py:
@@ -175,9 +232,8 @@ directory with the above conftest.py:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 0 items
 
     ========================== no tests ran in 0.12s ===========================
@@ -240,9 +296,8 @@ and when running it will see a skipped "slow" test:
 
     $ pytest -rs    # "-rs" means report details on the little 's'
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 2 items
 
     test_module.py .s                                                    [100%]
@@ -257,9 +312,8 @@ Or run it including the ``slow`` marked test:
 
     $ pytest --runslow
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 2 items
 
     test_module.py ..                                                    [100%]
@@ -401,10 +455,9 @@ which will add the string to the test header accordingly:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
     project deps: mylib-1.1
-    rootdir: $REGENDOC_TMPDIR
+    rootdir: /home/sweet/project
     collected 0 items
 
     ========================== no tests ran in 0.12s ===========================
@@ -430,11 +483,11 @@ which will add info only when run with "--v":
 
     $ pytest -v
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python
-    cachedir: $PYTHON_PREFIX/.pytest_cache
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y -- $PYTHON_PREFIX/bin/python
+    cachedir: .pytest_cache
     info1: did you know that ...
     did you?
-    rootdir: $REGENDOC_TMPDIR
+    rootdir: /home/sweet/project
     collecting ... collected 0 items
 
     ========================== no tests ran in 0.12s ===========================
@@ -445,14 +498,13 @@ and nothing when run plainly:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 0 items
 
     ========================== no tests ran in 0.12s ===========================
 
-profiling test duration
+Profiling test duration
 --------------------------
 
 .. regendoc:wipe
@@ -485,9 +537,8 @@ Now we can profile which test functions execute the slowest:
 
     $ pytest --durations=3
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 3 items
 
     test_some_are_slow.py ...                                            [100%]
@@ -498,7 +549,7 @@ Now we can profile which test functions execute the slowest:
     0.10s call     test_some_are_slow.py::test_funcfast
     ============================ 3 passed in 0.12s =============================
 
-incremental testing - test steps
+Incremental testing - test steps
 ---------------------------------------------------
 
 .. regendoc:wipe
@@ -591,9 +642,8 @@ If we run this:
 
     $ pytest -rx
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 4 items
 
     test_step.py .Fx.                                                    [100%]
@@ -601,7 +651,7 @@ If we run this:
     ================================= FAILURES =================================
     ____________________ TestUserHandling.test_modification ____________________
 
-    self = <test_step.TestUserHandling object at 0xdeadbeef>
+    self = <test_step.TestUserHandling object at 0xdeadbeef0001>
 
         def test_modification(self):
     >       assert 0
@@ -621,7 +671,7 @@ Package/Directory-level fixtures (setups)
 -------------------------------------------------------
 
 If you have nested test directories, you can have per-directory fixture scopes
-by placing fixture functions in a ``conftest.py`` file in that directory
+by placing fixture functions in a ``conftest.py`` file in that directory.
 You can use all types of fixtures including :ref:`autouse fixtures
 <autouse fixtures>` which are the equivalent of xUnit's setup/teardown
 concept.  It's however recommended to have explicit fixture references in your
@@ -675,9 +725,8 @@ We can run this:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 7 items
 
     test_step.py .Fx.                                                    [ 57%]
@@ -687,17 +736,17 @@ We can run this:
 
     ================================== ERRORS ==================================
     _______________________ ERROR at setup of test_root ________________________
-    file $REGENDOC_TMPDIR/b/test_error.py, line 1
+    file /home/sweet/project/b/test_error.py, line 1
       def test_root(db):  # no db here, will error out
     E       fixture 'db' not found
     >       available fixtures: cache, capfd, capfdbinary, caplog, capsys, capsysbinary, doctest_namespace, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
     >       use 'pytest --fixtures [testpath]' for help on them.
 
-    $REGENDOC_TMPDIR/b/test_error.py:1
+    /home/sweet/project/b/test_error.py:1
     ================================= FAILURES =================================
     ____________________ TestUserHandling.test_modification ____________________
 
-    self = <test_step.TestUserHandling object at 0xdeadbeef>
+    self = <test_step.TestUserHandling object at 0xdeadbeef0002>
 
         def test_modification(self):
     >       assert 0
@@ -706,21 +755,21 @@ We can run this:
     test_step.py:11: AssertionError
     _________________________________ test_a1 __________________________________
 
-    db = <conftest.DB object at 0xdeadbeef>
+    db = <conftest.DB object at 0xdeadbeef0003>
 
         def test_a1(db):
     >       assert 0, db  # to show value
-    E       AssertionError: <conftest.DB object at 0xdeadbeef>
+    E       AssertionError: <conftest.DB object at 0xdeadbeef0003>
     E       assert 0
 
     a/test_db.py:2: AssertionError
     _________________________________ test_a2 __________________________________
 
-    db = <conftest.DB object at 0xdeadbeef>
+    db = <conftest.DB object at 0xdeadbeef0003>
 
         def test_a2(db):
     >       assert 0, db  # to show value
-    E       AssertionError: <conftest.DB object at 0xdeadbeef>
+    E       AssertionError: <conftest.DB object at 0xdeadbeef0003>
     E       assert 0
 
     a/test_db2.py:2: AssertionError
@@ -739,7 +788,7 @@ it (unless you use "autouse" fixture which are always executed ahead of the firs
 executing).
 
 
-post-process test reports / failures
+Post-process test reports / failures
 ---------------------------------------
 
 If you want to postprocess test reports and need access to the executing
@@ -768,8 +817,8 @@ case we just write some information out to a ``failures`` file:
             mode = "a" if os.path.exists("failures") else "w"
             with open("failures", mode) as f:
                 # let's also access a fixture for the fun of it
-                if "tmpdir" in item.fixturenames:
-                    extra = " ({})".format(item.funcargs["tmpdir"])
+                if "tmp_path" in item.fixturenames:
+                    extra = " ({})".format(item.funcargs["tmp_path"])
                 else:
                     extra = ""
 
@@ -781,7 +830,7 @@ if you then have failing tests:
 .. code-block:: python
 
     # content of test_module.py
-    def test_fail1(tmpdir):
+    def test_fail1(tmp_path):
         assert 0
 
 
@@ -794,9 +843,8 @@ and run them:
 
     $ pytest test_module.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 2 items
 
     test_module.py FF                                                    [100%]
@@ -804,9 +852,9 @@ and run them:
     ================================= FAILURES =================================
     ________________________________ test_fail1 ________________________________
 
-    tmpdir = local('PYTEST_TMPDIR/test_fail10')
+    tmp_path = PosixPath('PYTEST_TMPDIR/test_fail10')
 
-        def test_fail1(tmpdir):
+        def test_fail1(tmp_path):
     >       assert 0
     E       assert 0
 
@@ -901,9 +949,8 @@ and run it:
 
     $ pytest -s test_module.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
-    cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR
+    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
     collected 3 items
 
     test_module.py Esetting up a test failed! test_module.py::test_setup_fails
@@ -957,8 +1004,7 @@ which test got stuck, for example if pytest was run in quiet mode (``-q``) or yo
 output. This is particularly a problem if the problem happens only sporadically, the famous "flaky" kind of tests.
 
 ``pytest`` sets the :envvar:`PYTEST_CURRENT_TEST` environment variable when running tests, which can be inspected
-by process monitoring utilities or libraries like `psutil <https://pypi.org/project/psutil/>`_ to discover which
-test got stuck if necessary:
+by process monitoring utilities or libraries like :pypi:`psutil` to discover which test got stuck if necessary:
 
 .. code-block:: python
 
@@ -1012,7 +1058,7 @@ your frozen program work as the pytest runner by some clever
 argument handling during program startup. This allows you to
 have a single executable, which is usually more convenient.
 Please note that the mechanism for plugin discovery used by pytest
-(setupttools entry points) doesn't work with frozen executables so pytest
+(setuptools entry points) doesn't work with frozen executables so pytest
 can't find any third party plugins automatically. To include third party plugins
 like ``pytest-timeout`` they must be imported explicitly and passed on to pytest.main.
 

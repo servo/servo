@@ -1,0 +1,32 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="resources/is_uuid.js"></script>
+
+<script>
+// This test:
+// * Does a fragment navigation, then goes back (same-document).
+// * Navigates away, then back via bfcache.
+// When navigating away, navigation.entries()[1] will be overwritten.
+// When returning after bfcache restore, navigation.entries()[1] should represent
+// pageB, and the original navigation.entries()[1] should have been disposed.
+runBfcacheTest({
+  targetOrigin: originSameOrigin,
+  funcBeforeNavigation: async () => {
+    window.events = [];
+    await navigation.navigate("#1");
+    await navigation.back();
+    window.originalEntry1 = navigation.entries()[1];
+    window.originalEntry1.ondispose = () => events.push("dispose");
+    window.onpageshow = () => events.push("pageshow");
+  },
+  async funcAfterAssertion(pageA, pageB) {
+    assert_equals(await pageA.execute_script(() => navigation.entries().length), 2);
+    assert_false(await pageA.execute_script(() => window.originalEntry1 === navigation.entries[1]));
+    assert_array_equals(await pageA.execute_script(() => window.events), ["pageshow", "dispose"]);
+  }
+}, "entries() must contain the forward-history page after navigating back to a bfcached page");
+</script>

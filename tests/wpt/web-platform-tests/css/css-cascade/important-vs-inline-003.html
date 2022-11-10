@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: inline style loses to !important</title>
+  <link rel="help" href="https://crbug.com/1332956">
+  <link rel="author" href="mailto:sesse@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    .cls {
+      visibility: inherit !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="cls" id="el" style="visibility: hidden; height: 200px;"><iframe></iframe></div>
+</body>
+<script>
+test(() => {
+  el.setAttribute('disabled', 'disabled');
+  el.offsetTop;
+  el.style.height = '400px';
+  assert_equals(getComputedStyle(el).visibility, "visible", "!important has higher priority than inline style");
+});
+</script>
+</html>

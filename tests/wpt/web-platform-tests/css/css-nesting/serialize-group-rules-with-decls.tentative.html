@@ -1,0 +1,69 @@
+<!doctype html>
+<title>Serialization of declarations in group rules</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7850">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id="test-sheet"></style>
+<script>
+  function serialize(cssText) {
+    let [ss] = document.styleSheets;
+    while (ss.rules.length) {
+      ss.removeRule(0)
+    }
+    ss.insertRule(cssText);
+    return ss.rules[0].cssText;
+  }
+
+  function assert_unchanged(cssText) {
+    assert_equals(serialize(cssText), cssText);
+  }
+
+  function assert_becomes(cssText, serializedCssText) {
+    assert_equals(serialize(cssText), serializedCssText);
+  }
+
+  // Declarations are serialized on one line, rules on two.
+  test(() => {
+    assert_unchanged("@media screen {\n  div { color: red; background-color: green; }\n}");
+    assert_unchanged("div {\n  @media screen { color: red; background-color: green; }\n}");
+  });
+
+  // Mixed declarations/rules are on two lines.
+  test(() => {
+    assert_unchanged("div {\n  @supports selector(&) {\n  color: red; background-color: green;\n  &:hover { color: navy; }\n}\n}");
+  });
+
+  // & {} rules are removed if and only if they are first, and they have no children.
+  test(() => {
+    assert_becomes("div { @media screen { & { color: red; } }",
+                   "div {\n  @media screen { color: red; }\n}");
+    assert_becomes("div { @media screen { & { color: red; &:hover { } } }",
+                   "div {\n  @media screen {\n  & {\n  color: red;\n  &:hover { }\n}\n}\n}");
+    assert_becomes("div { @media screen { &.cls { color: red; } & { color: red; }",
+                   "div {\n  @media screen {\n  &.cls { color: red; }\n  & { color: red; }\n}\n}");
+    assert_becomes("div { @media screen { & { color: red; } & { color: red; }",
+                   "div {\n  @media screen {\n  color: red;\n  & { color: red; }\n}\n}");
+    assert_becomes("div { @media screen { color: red; & { color: red; }",
+                   "div {\n  @media screen {\n  color: red;\n  & { color: red; }\n}\n}");
+    assert_becomes("div { @media screen { color: red; & { color: blue; }",
+                   "div {\n  @media screen {\n  color: red;\n  & { color: blue; }\n}\n}");
+    assert_becomes("div { @media screen { &, p > & { color: blue; }",
+                   "div {\n  @media screen {\n  &, p > & { color: blue; }\n}\n}");
+  });
+
+  // They are not removed from regular rules.
+  test(() => {
+    assert_becomes("div { & { color: red; } }", "div {\n  & { color: red; }\n}");
+  });
+
+  // Empty rules (confusingly?) serialize different between style rules
+  // and conditional group rules.
+  test(() => {
+    assert_unchanged("@media screen {\n}");
+    assert_unchanged("div { }");
+    assert_unchanged("div {\n  @media screen {\n}\n}");
+    assert_unchanged("@media screen {\n  div { }\n}");
+  });
+</script>

@@ -16,12 +16,11 @@
   <style>
     .flexContainer {
       display: inline-block;
-      /* Split testcase's 40px width into 20px of padding-left and 20px of
-         width, to set aside space for the testcase's (invisible) second line
-         (which is to the left of the first line, since this is wrap-reverse)
+      /* Split testcase's 40px width into 20px of padding-right and 20px of
+         width, to set aside space for the testcase's (invisible) second line.
       */
       width: 20px;
-      padding-left: 20px;
+      padding-right: 20px;
       height: 40px;
       background: lightblue;
     }
@@ -50,20 +49,15 @@
   a
   <!-- Flex containers with flex items that have a mix of baselines: -->
   <div class="flexContainer medFont">
-    <div class="medFont">b</div
-    ><br><div class="bigFont unaligned">c</div>
-  </div>
-
-  <div class="flexContainer bigFont">
-    <div class="bigFont">f</div
-    ><br><div class="smallFont unaligned">g</div>
+    <div class="bigFont">d</div
+    ><br><div class="medFont unaligned">e</div>
   </div>
 
   <!-- Flex container with second line baseline-aligned
        (shouldn't make a difference) -->
   <div class="flexContainer smallFont">
-    <div class="smallFont">j</div
-    ><br><div class="bigFont unaligned">k</div>
+    <div class="bigFont">l</div
+    ><br><div class="medFont unaligned">m</div>
   </div>
   n
 

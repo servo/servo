@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<!--
+This test was procedurally generated. Please do not modify it directly.
+Sources:
+- fetch/metadata/tools/fetch-metadata.conf.yml
+- fetch/metadata/tools/templates/appcache-manifest.sub.https.html
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for Appcache manifest</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url) {
+    const iframe = document.createElement('iframe');
+    iframe.src =
+      '/fetch/metadata/resources/appcache-iframe.sub.html?manifest=' + encodeURIComponent(url);
+
+    return new Promise((resolve) => {
+        addEventListener('message', function onMessage(event) {
+          if (event.source !== iframe.contentWindow) {
+            return;
+          }
+          removeEventListener('message', onMessage);
+          resolve(event.data);
+        });
+
+        document.body.appendChild(iframe);
+      })
+      .then((message) => {
+        if (message !== 'okay') {
+          throw message;
+        }
+      })
+      .then(() => iframe.remove());
+  }
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsCrossSite']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsSameSite']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsOrigin', 'httpOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-site');
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - HTTPS downgrade (header not sent)');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpOrigin', 'httpsOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - HTTPS upgrade');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - HTTPS downgrade-upgrade');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Cross-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Cross-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Cross-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsOrigin', 'httpsOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same-Origin -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsOrigin', 'httpsSameSite']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same-Origin -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same-Origin -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsSameSite', 'httpsOrigin']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsSameSite', 'httpsSameSite']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite']))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-site - Same-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, []))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['no-cors']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-mode');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, []))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['empty']);
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-dest');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, []))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, 'sec-fetch-user');
+  </script>
+  </body>
+</html>

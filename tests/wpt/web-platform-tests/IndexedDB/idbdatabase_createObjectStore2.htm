@@ -3,7 +3,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -21,7 +21,7 @@ open_rq.onupgradeneeded = function(e) {
 
 open_rq.onsuccess = function(e) {
     var db = e.target.result
-    var objStore = db.transaction('prop').objectStore('prop')
+    var objStore = db.transaction('prop', 'readonly', {durability: 'relaxed'}).objectStore('prop')
 
     assert_equals(objStore.name, "prop", "object store name")
     assert_equals(objStore.keyPath, "mykeypath", "key path")

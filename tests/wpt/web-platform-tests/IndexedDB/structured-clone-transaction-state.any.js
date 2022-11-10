@@ -1,4 +1,4 @@
-// META: script=support-promises.js
+// META: script=resources/support-promises.js
 // META: title=Indexed DB transaction state during Structured Serializing
 // META: timeout=long
 'use strict';

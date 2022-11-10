@@ -121,7 +121,7 @@ def branch_point():
         merge_base = git("merge-base", "HEAD", "origin/master")
         if (branch_point is None or
             (branch_point != merge_base and
-             not git("log", "--oneline", "%s..%s" % (merge_base, branch_point)).strip())):
+             not git("log", "--oneline", f"{merge_base}..{branch_point}").strip())):
             logger.debug("Using merge-base as the branch point")
             branch_point = merge_base
         else:
@@ -135,17 +135,17 @@ def branch_point():
 
 def compile_ignore_rule(rule):
     # type: (Text) -> Pattern[Text]
-    rule = rule.replace(os.path.sep, u"/")
-    parts = rule.split(u"/")
+    rule = rule.replace(os.path.sep, "/")
+    parts = rule.split("/")
     re_parts = []
     for part in parts:
-        if part.endswith(u"**"):
-            re_parts.append(re.escape(part[:-2]) + u".*")
-        elif part.endswith(u"*"):
-            re_parts.append(re.escape(part[:-1]) + u"[^/]*")
+        if part.endswith("**"):
+            re_parts.append(re.escape(part[:-2]) + ".*")
+        elif part.endswith("*"):
+            re_parts.append(re.escape(part[:-1]) + "[^/]*")
         else:
             re_parts.append(re.escape(part))
-    return re.compile(u"^%s$" % u"/".join(re_parts))
+    return re.compile("^%s$" % "/".join(re_parts))
 
 
 def repo_files_changed(revish, include_uncommitted=False, include_new=False):
@@ -163,7 +163,7 @@ def repo_files_changed(revish, include_uncommitted=False, include_new=False):
         # gives us that (via the merge-base)
         revish = revish.replace("..", "...")
 
-    files_list = git("diff", "--no-renames", "--name-only", "-z", revish).split(u"\0")
+    files_list = git("diff", "--no-renames", "--name-only", "-z", revish).split("\0")
     assert not files_list[-1], f"final item should be empty, got: {files_list[-1]!r}"
     files = set(files_list[:-1])
 
@@ -238,7 +238,7 @@ def _in_repo_root(full_path):
 def load_manifest(manifest_path=None, manifest_update=True):
     # type: (Optional[Text], bool) -> manifest.Manifest
     if manifest_path is None:
-        manifest_path = os.path.join(wpt_root, u"MANIFEST.json")
+        manifest_path = os.path.join(wpt_root, "MANIFEST.json")
     return manifest.load_and_update(wpt_root, manifest_path, "/",
                                     update=manifest_update)
 
@@ -251,7 +251,7 @@ def affected_testfiles(files_changed,  # type: Iterable[Text]
     # type: (...) -> Tuple[Set[Text], Set[Text]]
     """Determine and return list of test files that reference changed files."""
     if skip_dirs is None:
-        skip_dirs = {u"conformance-checkers", u"docs", u"tools"}
+        skip_dirs = {"conformance-checkers", "docs", "tools"}
     affected_testfiles = set()
     # Exclude files that are in the repo root, because
     # they are not part of any test.
@@ -390,7 +390,7 @@ def get_revish(**kwargs):
     # type: (**Any) -> Text
     revish = kwargs.get("revish")
     if revish is None:
-        revish = u"%s..HEAD" % branch_point()
+        revish = "%s..HEAD" % branch_point()
     return revish.strip()
 
 
@@ -402,7 +402,7 @@ def run_changed_files(**kwargs):
                                include_uncommitted=kwargs["modified"],
                                include_new=kwargs["new"])
 
-    separator = u"\0" if kwargs["null"] else u"\n"
+    separator = "\0" if kwargs["null"] else "\n"
 
     for item in sorted(changed):
         line = os.path.relpath(item, wpt_root) + separator

@@ -3,7 +3,7 @@
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     /* The goal here is to test that any prefetching of cursor values performs
@@ -57,7 +57,7 @@
 
 
     function CursorDeleteRecord(e) {
-        var txn = db.transaction("test", "readwrite"),
+        var txn = db.transaction("test", "readwrite", {durability: 'relaxed'}),
           object_store = txn.objectStore("test"),
           cursor_rq = object_store.openCursor();
 
@@ -91,7 +91,7 @@
 
 
     function VerifyRecordWasDeleted(e) {
-        var cursor_rq = db.transaction("test")
+        var cursor_rq = db.transaction("test", "readonly", {durability: 'relaxed'})
                           .objectStore("test")
                           .openCursor();
 

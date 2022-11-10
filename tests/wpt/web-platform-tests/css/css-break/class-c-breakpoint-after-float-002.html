@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#possible-breaks">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="There should be a class C breakpoint after the float, since the flow-root sibling is cleared past the float (but note that it would otherwise fit beside it), so that there'll be a gap to establish a class C break opportunity">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; gap:0; column-fill:auto; width:100px; height:100px; background:red;">
+  <div style="width:200%;">
+    <div style="width:50%; height:50px; background:green;"></div>
+    <div style="float:left; width:50%; height:40px; background:green;"></div>
+    <div style="clear:both; width:50%; background:green;">
+      <div style="float:left; width:10px; height:10px;"></div>
+      <div style="clear:both; display:flow-root; break-inside:avoid; height:100px;"></div>
+    </div>
+  </div>
+</div>

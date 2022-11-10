@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://crbug.com/1308752">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="column-count: 2; width: 200px; height: 100px">
+  <div style="perspective: 100px">
+    <div id="child1" style="height: 100px; position: relative"></div>
+    <div id="child2" style="height: 100px; position: relative"></div>
+  </div>
+</div>
+<script>
+  test(()=> {
+    assert_equals(document.elementFromPoint(50, 50), child1);
+    assert_equals(document.elementFromPoint(150, 50), child2);
+  }, "test");
+</script>

@@ -1,4 +1,4 @@
-// META: script=support.js
+// META: script=resources/support.js
 
 function cursorRequestTest({ useIndex, useKeyCursor }) {
   indexeddb_test(
@@ -8,7 +8,7 @@ function cursorRequestTest({ useIndex, useKeyCursor }) {
       objStore.createIndex("my_index", "");
     },
     (t, db) => {
-      const tx = db.transaction("my_objectstore");
+      const tx = db.transaction("my_objectstore", "readonly", {durability: 'relaxed'});
       let source = tx.objectStore("my_objectstore");
       if (useIndex) source = source.index('my_index');
       const req = useKeyCursor ? source.openKeyCursor() : source.openCursor();

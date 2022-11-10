@@ -3,9 +3,9 @@ import warnings
 from contextlib import contextmanager
 from typing import Generator
 from typing import Optional
+from typing import TYPE_CHECKING
 
 import pytest
-from _pytest.compat import TYPE_CHECKING
 from _pytest.config import apply_warning_filters
 from _pytest.config import Config
 from _pytest.config import parse_warning_filter
@@ -21,7 +21,7 @@ def pytest_configure(config: Config) -> None:
     config.addinivalue_line(
         "markers",
         "filterwarnings(warning): add a warning filter to the given test. "
-        "see https://docs.pytest.org/en/stable/warnings.html#pytest-mark-filterwarnings ",
+        "see https://docs.pytest.org/en/stable/how-to/capture-warnings.html#pytest-mark-filterwarnings ",
     )
 
 
@@ -48,6 +48,8 @@ def catch_warnings_for_item(
             # If user is not explicitly configuring warning filters, show deprecation warnings by default (#2908).
             warnings.filterwarnings("always", category=DeprecationWarning)
             warnings.filterwarnings("always", category=PendingDeprecationWarning)
+
+        warnings.filterwarnings("error", category=pytest.PytestRemovedIn7Warning)
 
         apply_warning_filters(config_filters, cmdline_filters)
 

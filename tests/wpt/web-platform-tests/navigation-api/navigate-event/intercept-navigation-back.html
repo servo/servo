@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(() => {
+    navigation.navigate("#foo").committed.then(() => {
+      assert_true(navigation.canGoBack);
+      navigation.onnavigate = t.step_func(e => e.intercept());
+      navigation.back().committed.then(t.step_func_done(() => {
+        assert_equals(navigation.entries().length, 2);
+        assert_equals(navigation.currentEntry, navigation.entries()[0]);
+      }));
+    });
+  }, 0);
+}, "event.intercept() can intercept navigation.back()");
+</script>

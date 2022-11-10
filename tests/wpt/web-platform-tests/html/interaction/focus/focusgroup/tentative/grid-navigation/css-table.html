@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Validate that Focusgroup works with CSS tables too.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div style="display:table" focusgroup=grid>
+  <div style="display:table-row">
+    <div id=r1c1 style="display:table-cell" tabindex=0>r1c1</div>
+    <div id=r1c2 style="display:table-cell" tabindex=-1>r1c2</div>
+  </div>
+  <div style="display:table-row">
+    <div id=r2c1 style="display:table-cell" tabindex=-1>r2c1</div>
+    <div id=r2c2 style="display:table-cell" tabindex=-1>r2c2</div>
+  </div>
+</div>
+
+<script>
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r1c2 = document.getElementById("r1c2");
+    var r2c1 = document.getElementById("r2c1");
+    var r2c2 = document.getElementById("r2c2");
+
+    await focusAndKeyPress(r1c1, kArrowRight);
+    assert_equals(document.activeElement, r1c2);
+
+    await focusAndKeyPress(r1c2, kArrowDown);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndKeyPress(r2c2, kArrowLeft);
+    assert_equals(document.activeElement, r2c1);
+
+    await focusAndKeyPress(r2c1, kArrowUp);
+    assert_equals(document.activeElement, r1c1);
+  }, "Tests that grid focusgroups also work on CSS tables (i.e.: 'display: table'). The implementation relies on the layout objects, so the other tests that covers HTML tables don't need to be duplicated to test the same cases with CSS tables.");
+
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: line-height transition affecting lh units</title>
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#lh">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    width: 20lh;
+    line-height: 10px;
+    transition: line-height 1s;
+  }
+  #target.lh {
+    line-height: 20px;
+  }
+</style>
+<div id="target"></div>
+<script>
+  let t = async_test("lh unit length should change with transitioning line-height");
+
+  t.step(() => {
+    target.offsetTop;
+    target.className = "lh";
+  });
+
+  requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+    t.step(() => {
+      assert_not_equals(getComputedStyle(target).width, "200px");
+      assert_not_equals(getComputedStyle(target).width, "400px");
+      t.done();
+    }, "Transition should be progressing. Not at start/end.");
+  })));
+</script>

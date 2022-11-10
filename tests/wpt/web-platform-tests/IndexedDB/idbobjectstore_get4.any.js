@@ -1,5 +1,5 @@
 // META: title=IDBObjectStore.get() - attempt to retrieve a record that doesn't exist
-// META: script=support.js
+// META: script=resources/support.js
 // @author Microsoft <https://www.microsoft.com>
 
 "use strict";

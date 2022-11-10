@@ -22,7 +22,17 @@ function submitPromise(form, iframe) {
 
 function loadPromise(iframe) {
   return new Promise((resolve, reject) => {
-    iframe.onload = resolve;
+    iframe.onload = function() {
+      // The initial about:blank load event can be fired before the form navigation occurs.
+      // See https://github.com/whatwg/html/issues/490 for more information.
+      if (iframe.contentWindow.location == "about:blank") { return; }
+      resolve();
+    };
     iframe.onerror = () => reject(new Error('iframe onerror fired'));
   });
+}
+
+function getParamValue(iframe, paramName) {
+  let params = (new URL(iframe.contentWindow.location)).searchParams;
+  return params.get(paramName);
 }

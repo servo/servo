@@ -174,15 +174,9 @@ enum MediaDeviceKind {
   "videoinput"
 };
 
-[Exposed=Window]
+[Exposed=Window, SecureContext]
 interface InputDeviceInfo : MediaDeviceInfo {
   MediaTrackCapabilities getCapabilities();
-};
-
-partial interface Navigator {
-  [SecureContext] undefined getUserMedia(MediaStreamConstraints constraints,
-                                    NavigatorUserMediaSuccessCallback successCallback,
-                                    NavigatorUserMediaErrorCallback errorCallback);
 };
 
 partial interface MediaDevices {
@@ -193,6 +187,12 @@ partial interface MediaDevices {
 dictionary MediaStreamConstraints {
   (boolean or MediaTrackConstraints) video = false;
   (boolean or MediaTrackConstraints) audio = false;
+};
+
+partial interface Navigator {
+  [SecureContext] undefined getUserMedia(MediaStreamConstraints constraints,
+                                    NavigatorUserMediaSuccessCallback successCallback,
+                                    NavigatorUserMediaErrorCallback errorCallback);
 };
 
 callback NavigatorUserMediaSuccessCallback = undefined (MediaStream stream);

@@ -17,34 +17,40 @@ function load_iframe(src, sandbox) {
   });
 }
 
-function wait_for_message(iframe) {
+function wait_for_message(recipient, source) {
   return new Promise(resolve => {
-    self.addEventListener('message', function listener(e) {
-      if (e.source === iframe.contentWindow) {
+    recipient.onmessage = function listener(e) {
+      if (e.source === source) {
         resolve(e.data);
-        self.removeEventListener('message', listener);
+        recipient.removeEventListener('message', listener);
       }
-    });
-  });
+    };
+  })
 }
 
-const script =
-  '<script>' +
-  '  window.onmessage = () => {' +
+const test_code =
+  '  const handler = (reply) => {' +
   '    try {' +
   '      const r = indexedDB.deleteDatabase("opaque-origin-test");' +
-  '      window.parent.postMessage({result: "no exception"}, "*");' +
+  '      reply({result: "no exception"});' +
   '    } catch (ex) {' +
-  '      window.parent.postMessage({result: ex.name}, "*");' +
+  '      reply({result: ex.name});' +
   '    };' +
+  '  };';
+
+const iframe_script =
+  '<script>' +
+  test_code +
+  '  window.onmessage = () => {' +
+  '    handler(msg => window.parent.postMessage(msg, "*"));' +
   '  };' +
   '<\/script>';
 
 promise_test(t => {
-  return load_iframe(script)
+  return load_iframe(iframe_script)
     .then(iframe => {
       iframe.contentWindow.postMessage({}, '*');
-      return wait_for_message(iframe);
+      return wait_for_message(self, iframe.contentWindow);
     })
     .then(message => {
       assert_equals(message.result, 'no exception',
@@ -53,14 +59,43 @@ promise_test(t => {
 }, 'IDBFactory.deleteDatabase() in non-sandboxed iframe should not throw');
 
 promise_test(t => {
-  return load_iframe(script, 'allow-scripts')
+  return load_iframe(iframe_script, 'allow-scripts')
     .then(iframe => {
       iframe.contentWindow.postMessage({}, '*');
-      return wait_for_message(iframe);
+      return wait_for_message(self, iframe.contentWindow);
     })
     .then(message => {
       assert_equals(message.result, 'SecurityError',
                     'Exception should be SecurityError');
     });
 }, 'IDBFactory.deleteDatabase() in sandboxed iframe should throw SecurityError');
+
+const worker_script = `
+${test_code}
+// For dedicated workers:
+self.addEventListener("message", () => handler(self.postMessage));
+// For shared workers:
+self.addEventListener("connect", (e) => {
+  var port = e.ports[0];
+  handler(msg => port.postMessage(msg));
+});
+`;
+const worker_data_url = "data:,".concat(encodeURIComponent(worker_script));
+
+promise_test(async t => {
+  let worker = new Worker(worker_data_url);
+  t.add_cleanup(() => worker.terminate());
+  worker.postMessage({});
+  const message = await wait_for_message(worker, null);
+  assert_equals(message.result, 'SecurityError',
+                'Promise should be rejected with SecurityError');
+}, 'IDBFactory.deleteDatabase() in data URL dedicated worker should throw SecurityError');
+
+promise_test(async t => {
+  let worker = new SharedWorker(worker_data_url, 'idb_deleteDatabase_opaque');
+  worker.port.postMessage({});
+  const message = await wait_for_message(worker.port, null);
+  assert_equals(message.result, 'SecurityError',
+                'Promise should be rejected with SecurityError');
+}, 'IDBFactory.deleteDatabase() in data URL shared worker should throw SecurityError');
 </script>

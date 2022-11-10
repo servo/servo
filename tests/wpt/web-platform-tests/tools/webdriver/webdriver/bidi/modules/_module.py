@@ -1,5 +1,13 @@
 import functools
-from typing import Any, Awaitable, Callable, Optional, Mapping, MutableMapping, TYPE_CHECKING
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Optional,
+    Mapping,
+    MutableMapping,
+    TYPE_CHECKING,
+)
 
 if TYPE_CHECKING:
     from ..client import BidiSession
@@ -19,7 +27,9 @@ class command:
     can be done by specifying a second decorated method like
     @command_name.result. That method will then be called once the
     result of the original command is known, and the return value of
-    the method used as the response of the command.
+    the method used as the response of the command. If this method
+    is specified, the `raw_result` parameter of the command can be set
+    to `True` to get the result without post-processing.
 
     So for an example, if we had a command test.testMethod, which
     returned a result which we want to convert to a TestResult type,
@@ -50,10 +60,11 @@ class command:
 
         @functools.wraps(params_fn)
         async def inner(self: Any, **kwargs: Any) -> Any:
+            raw_result = kwargs.pop("raw_result", False)
             params = params_fn(self, **kwargs)
 
             # Convert the classname and the method name to a bidi command name
-            mod_name = owner.__name__.lower()
+            mod_name = owner.__name__[0].lower() + owner.__name__[1:]
             if hasattr(owner, "prefix"):
                 mod_name = f"{owner.prefix}:{mod_name}"
             cmd_name = f"{mod_name}.{to_camelcase(name)}"
@@ -61,7 +72,7 @@ class command:
             future = await self.session.send_command(cmd_name, params)
             result = await future
 
-            if result_fn is not None:
+            if result_fn is not None and not raw_result:
                 # Convert the result if we have a conversion function defined
                 result = result_fn(self, result)
             return result

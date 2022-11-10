@@ -8,7 +8,7 @@ window.onmessage = function(e) {
   assert_equals(e.data.name, 'crossOriginIsolated');
   assert_true(e.data.value);
 
-  const testChannel = new BroadcastChannel('test-channel');
+  const testChannel = new PrerenderChannel('test-channel');
   testChannel.postMessage(self.crossOriginIsolated);
   testChannel.close();
 };

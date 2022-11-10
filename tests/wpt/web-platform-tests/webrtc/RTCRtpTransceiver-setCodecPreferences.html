@@ -291,7 +291,7 @@
     let i;
     for (i = 0; i < codecs.length; i++) {
       const codec = codecs[i];
-      if (codec.mimeType === 'video/VP8') {
+      if (codec.mimeType === 'video/VP8' && vp8 === -1) {
         vp8 = i;
         if (h264 !== -1) {
           codecs[vp8] = codecs[h264];
@@ -300,7 +300,7 @@
           break;
         }
       }
-      if (codec.mimeType === 'video/H264') {
+      if (codec.mimeType === 'video/H264' && h264 === -1) {
         h264 = i;
         if (vp8 !== -1) {
           codecs[h264] = codecs[vp8];

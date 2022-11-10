@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#repeated-headers">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="columns:4; gap:0; column-fill:auto; height:130px;">
+    <div style="display:table; width:100%; border-top:20px solid green;">
+      <div style="display:table-caption; height:230px;">
+        <div style="height:100px; background:green;"></div>
+        <div style="height:30px;"></div>
+        <div style="height:100px; background:green;"></div>
+      </div>
+      <div style="display:table-header-group; break-inside:avoid;">
+        <div style="height:20px; background:green;"></div>
+      </div>
+      <div style="height:200px;">
+        <div style="height:60px; background:green;"></div>
+        <div style="height:30px;"></div>
+        <div style="height:80px; background:green;"></div>
+      </div>
+    </div>
+  </div>
+</div>

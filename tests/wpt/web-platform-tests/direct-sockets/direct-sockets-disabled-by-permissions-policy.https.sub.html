@@ -9,16 +9,6 @@
     <script src="/resources/testdriver-vendor.js"></script>
   </head>
   <body>
-    <script>
-      'use strict';
-
-      promise_test(async t => {
-        await promise_rejects_dom(t, "NotAllowedError", navigator.openTCPSocket({ remotePort: 53 }));
-      }, "direct sockets (TCP) can be disabled by feature policy");
-
-      promise_test(async t => {
-        await promise_rejects_dom(t, "NotAllowedError", navigator.openUDPSocket({ remotePort: 53 }));
-      }, "direct sockets (UDP) can be disabled by feature policy");
-    </script>
+    <script src="direct-sockets-disabled-by-permissions-policy.js"></script>
   </body>
 </html>

@@ -30,7 +30,7 @@ ctx.beginPath();
 ctx.moveTo(60, 25);
 ctx.arc(50, 25, 10, 0, 0, false);
 ctx.stroke();
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

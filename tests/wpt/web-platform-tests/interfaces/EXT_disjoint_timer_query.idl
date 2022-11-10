@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: WebGL EXT_disjoint_timer_query Extension Specification (https://www.khronos.org/registry/webgl/extensions/EXT_disjoint_timer_query/)
+// Source: WebGL EXT_disjoint_timer_query Extension Specification (https://registry.khronos.org/webgl/extensions/EXT_disjoint_timer_query/)
 
 typedef unsigned long long GLuint64EXT;
 

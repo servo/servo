@@ -9,45 +9,47 @@ interface mixin NavigatorML {
 Navigator includes NavigatorML;
 WorkerNavigator includes NavigatorML;
 
-enum MLDevicePreference {
-  "default",
-  "gpu",
-  "cpu"
+enum MLDeviceType {
+  "cpu",
+  "gpu"
 };
 
 enum MLPowerPreference {
-  // Let the user agent select the most suitable behavior.
   "default",
-
-  // Prioritizes execution speed over power consumption.
   "high-performance",
-
-  // Prioritizes power consumption over other considerations such as execution speed.
   "low-power"
 };
 
 dictionary MLContextOptions {
-  // Preferred kind of device used
-  MLDevicePreference devicePreference = "default";
-
-  // Preference as related to power consumption
+  MLDeviceType deviceType = "cpu";
   MLPowerPreference powerPreference = "default";
 };
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface ML {
-  // Create a context with options
   MLContext createContext(optional MLContextOptions options = {});
-
-  // Create a context from WebGL rendering context
-  MLContext createContext(WebGLRenderingContext glContext);
-
-  // Create a context from WebGPU device
   MLContext createContext(GPUDevice gpuDevice);
 };
 
+typedef record<DOMString, ArrayBufferView> MLNamedArrayBufferViews;
+
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLContext {};
+
+partial interface MLContext {
+  [Exposed=(DedicatedWorker)]
+  undefined compute(
+      MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
+};
+
+partial interface MLContext {
+  Promise<undefined> computeAsync(
+      MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
+};
+
+partial interface MLContext {
+  MLCommandEncoder createCommandEncoder();
+};
 
 enum MLInputOperandLayout {
   "nchw",
@@ -68,8 +70,7 @@ dictionary MLOperandDescriptor {
   required MLOperandType type;
 
   // The dimensions field is only required for tensor operands.
-  // The negative value means an unknown dimension.
-  sequence<long> dimensions;
+  sequence<unsigned long> dimensions;
 };
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
@@ -81,7 +82,7 @@ interface MLOperator {};
 typedef record<DOMString, MLOperand> MLNamedOperands;
 
 dictionary MLBufferResourceView {
-  required (WebGLBuffer or GPUBuffer) resource;
+  required GPUBuffer resource;
   unsigned long long offset = 0;
   unsigned long long size;
 };
@@ -102,8 +103,12 @@ interface MLGraphBuilder {
   // Create a single-value operand from the specified number of the specified type.
   MLOperand constant(double value, optional MLOperandType type = "float32");
 
-  // Compile the graph up to the specified output operands
+  // Compile the graph up to the specified output operands synchronously.
+  [Exposed=(DedicatedWorker)]
   MLGraph build(MLNamedOperands outputs);
+
+  // Compile the graph up to the specified output operands asynchronously.
+  Promise<MLGraph> buildAsync(MLNamedOperands outputs);
 };
 
 dictionary MLBatchNormalizationOptions {
@@ -467,17 +472,24 @@ partial interface MLGraphBuilder {
   MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
 };
 
-typedef (MLBufferView or WebGLTexture or GPUTexture) MLResource;
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLGraph {};
 
-dictionary MLInput {
-  required MLResource resource;
-  required sequence<long> dimensions;
-};
+typedef (GPUBuffer or GPUTexture) MLGPUResource;
 
-typedef record<DOMString, (MLResource or MLInput)> MLNamedInputs;
-typedef record<DOMString, MLResource> MLNamedOutputs;
+typedef record<DOMString, MLGPUResource> MLNamedGPUResources;
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
-interface MLGraph {
-  undefined compute(MLNamedInputs inputs, MLNamedOutputs outputs);
+interface MLCommandEncoder {};
+
+partial interface MLCommandEncoder {
+  undefined initializeGraph(MLGraph graph);
+};
+
+partial interface MLCommandEncoder {
+  undefined dispatch(MLGraph graph, MLNamedGPUResources inputs, MLNamedGPUResources outputs);
+};
+
+partial interface MLCommandEncoder {
+  GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
 };

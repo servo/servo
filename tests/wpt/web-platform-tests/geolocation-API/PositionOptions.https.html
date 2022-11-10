@@ -1,101 +1,93 @@
-<!DOCTYPE HTML>
-<meta charset="utf-8">
+<!DOCTYPE html>
+<meta charset="utf-8" />
 <title>Geolocation Test: PositionOptions tests</title>
-<link rel="help" href="http://www.w3.org/TR/geolocation-API/#position_options_interface">
+<link
+  rel="help"
+  href="http://www.w3.org/TR/geolocation-API/#position_options_interface"
+/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src='support.js'></script>
 
 <script>
-// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00123
-test(function() {
-  try {
-    geo.getCurrentPosition(dummyFunction, null, {enableHighAccuracy: "boom"});
-    geo.getCurrentPosition(dummyFunction, null, {enableHighAccuracy: 321});
-    geo.getCurrentPosition(dummyFunction, null, {enableHighAccuracy: -Infinity});
-    geo.getCurrentPosition(dummyFunction, null, {enableHighAccuracy: {foo: 5}});
-  } catch(e) {
-    assert_unreached('An exception was thrown unexpectedly: ' + e.message);
-  }
-}, 'Call getCurrentPosition with wrong type for enableHighAccuracy. No exception expected.');
+  const resetPermission = () => {
+    return test_driver.set_permission({ name: "geolocation" }, "prompt");
+  };
+  const invalidValues = ["boom", 321, -Infinity, { foo: 5 }];
 
-// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00124
-test(function() {
-  try {
-    geo.watchPosition(dummyFunction, null, {enableHighAccuracy: "boom"});
-    geo.watchPosition(dummyFunction, null, {enableHighAccuracy: 321});
-    geo.watchPosition(dummyFunction, null, {enableHighAccuracy: -Infinity});
-    geo.watchPosition(dummyFunction, null, {enableHighAccuracy: {foo: 5}});
-  } catch(e) {
-    assert_unreached('An exception was thrown unexpectedly: ' + e.message);
-  }
-}, 'Call watchPosition with wrong type for enableHighAccuracy. No exception expected.');
+  promise_test(async (t) => {
+    t.add_cleanup(resetPermission);
+    await test_driver.set_permission({ name: "geolocation" }, "granted");
+    for (const enableHighAccuracy of invalidValues) {
+      navigator.geolocation.getCurrentPosition(() => {}, null, {
+        enableHighAccuracy,
+      });
+    }
+  }, "Call getCurrentPosition with wrong type for enableHighAccuracy. No exception expected.");
 
-// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00086, 00088, 00091 and 00092
-promise_test(async function() {
-  await test_driver.set_permission({name: 'geolocation'}, 'granted');
+  promise_test(async (t) => {
+    t.add_cleanup(resetPermission);
+    await test_driver.set_permission({ name: "geolocation" }, "granted");
+    for (const enableHighAccuracy of invalidValues) {
+      const id = navigator.geolocation.watchPosition(() => {}, null, {
+        enableHighAccuracy,
+      });
+      navigator.geolocation.clearWatch(id);
+    }
+  }, "Call watchPosition with wrong type for enableHighAccuracy. No exception expected.");
 
-  var t86 = async_test('Set timeout and maximumAge to 0, check that timeout error raised (getCurrentPosition)'),
-      t88 = async_test('Set timeout and maximumAge to 0, check that timeout error raised (watchPosition)'),
-      t91 = async_test('Check that a negative timeout value is equivalent to a 0 timeout value (getCurrentLocation)'),
-      t92 = async_test('Check that a negative timeout value is equivalent to a 0 timeout value (watchPosition)');
-
-  try {
-    geo.getCurrentPosition(
-        t86.unreached_func('A success callback was invoked unexpectedly'),
-        t86.step_func_done(function(err) {
-          assert_equals(err.code, err.TIMEOUT);
-        }),
-        {timeout: 0, maximumAge: 0}
-    );
-  } catch(e) {
-    t86.step(function() {
-      assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  promise_test(async (t) => {
+    t.add_cleanup(resetPermission);
+    await test_driver.set_permission({ name: "geolocation" }, "granted");
+    const error = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(reject, resolve, {
+        timeout: 0,
+        maxAge: 0,
+      });
     });
-  }
+    assert_equals(error.code, GeolocationPositionError.TIMEOUT);
+  }, "Set timeout and maximumAge to 0, check that timeout error raised (getCurrentPosition)");
 
-  try {
-    geo.watchPosition(
-        t88.unreached_func('A success callback was invoked unexpectedly'),
-        t88.step_func_done(function(err) {
-          assert_equals(err.code, err.TIMEOUT);
-        }),
-        {timeout: 0, maximumAge: 0}
-    );
-  } catch(e) {
-    t88.step(function() {
-      assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  promise_test(async (t) => {
+    t.add_cleanup(resetPermission);
+    await test_driver.set_permission({ name: "geolocation" }, "granted");
+    let watchId;
+    const error = await new Promise((resolve, reject) => {
+      watchId = navigator.geolocation.watchPosition(reject, resolve, {
+        timeout: 0,
+        maxAge: 0,
+      });
     });
-  }
+    assert_equals(error.code, GeolocationPositionError.TIMEOUT);
+    navigator.geolocation.clearWatch(watchId);
+  }, "Set timeout and maximumAge to 0, check that timeout error raised (watchPosition)");
 
-  try {
-    geo.getCurrentPosition(
-        t91.unreached_func('A success callback was invoked unexpectedly'),
-        t91.step_func_done(function(err) {
-          assert_equals(err.code, err.TIMEOUT);
-        }),
-        {timeout:-1, maximumAge: 0}
-    );
-  } catch(e) {
-    t91.step(function() {
-      assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  promise_test(async (t) => {
+    t.add_cleanup(resetPermission);
+    await test_driver.set_permission({ name: "geolocation" }, "granted");
+    let watchId;
+    const error = await new Promise((resolve, reject) => {
+      watchId = navigator.geolocation.getCurrentPosition(reject, resolve, {
+        timeout: -100,
+        maxAge: -100,
+      });
     });
-  }
+    assert_equals(error.code, GeolocationPositionError.TIMEOUT);
+    navigator.geolocation.clearWatch(watchId);
+  }, "Check that a negative timeout and maxAge values are clamped to 0 (getCurrentPosition)");
 
-  try {
-    geo.watchPosition(
-        t92.unreached_func('A success callback was invoked unexpectedly'),
-        t92.step_func_done(function(err) {
-          assert_equals(err.code, err.TIMEOUT);
-        }),
-        {timeout: -1, maximumAge: 0}
-    );
-  } catch(e) {
-    t92.step(function() {
-      assert_unreached('An exception was thrown unexpectedly: ' + e.message);
+  promise_test(async (t) => {
+    t.add_cleanup(resetPermission);
+    await test_driver.set_permission({ name: "geolocation" }, "granted");
+    let watchId;
+    const error = await new Promise((resolve, reject) => {
+      watchId = navigator.geolocation.watchPosition(reject, resolve, {
+        timeout: -100,
+        maxAge: -100,
+      });
     });
-  }
-}, 'PositionOptions tests');
+    assert_equals(error.code, GeolocationPositionError.TIMEOUT);
+    navigator.geolocation.clearWatch(watchId);
+  }, "Check that a negative timeout and maxAge values are clamped to 0 (watchPosition)");
 </script>

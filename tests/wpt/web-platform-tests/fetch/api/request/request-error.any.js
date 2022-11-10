@@ -14,6 +14,14 @@ for (const { args, testName } of badRequestArgTests) {
 }
 
 test(function() {
+  assert_throws_js(
+      TypeError,
+      () => Request("about:blank"),
+      "Calling Request constructor without 'new' must throw"
+    );
+});
+
+test(function() {
   var initialHeaders = new Headers([["Content-Type", "potato"]]);
   var initialRequest = new Request("", {"headers" : initialHeaders});
   var request = new Request(initialRequest);

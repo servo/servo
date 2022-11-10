@@ -1,6 +1,0 @@
-We have restructured the documentation a bit to account for ``attrs``' growth in scope.
-Instead of putting everything into the `examples <http://www.attrs.org/en/stable/examples.html>`_ page, we have started to extract narrative chapters.
-
-So far, we've added chapters on `initialization <http://www.attrs.org/en/stable/init.html>`_ and `hashing <http://www.attrs.org/en/stable/hashing.html>`_.
-
-Expect more to come!

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Web Bundle fetching failed due to a network error</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+<body>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    // This test uses a non-existing WebBundle from a non-existent host, which makes
+    // Web Bundle fetching fail due to a network error. The intent of is to check if
+    // failing to fetch a WebBundle also makes subresource fetch requests fail.
+    promise_test(async () => {
+      const prefix = "https://{{hosts[][nonexistent]}}/";
+      const resources = [prefix + "resource.js"];
+      await addWebBundleElementAndWaitForError(
+        prefix + "non-existing.wbn",
+        resources
+      );
+
+      // Can not fetch a subresource because Web Bundle fetch failed.
+      await fetchAndWaitForReject(prefix + "resource.js");
+    }, "Subresource fetch requests for non-existing Web Bundle should fail.");
+  </script>
+</body>

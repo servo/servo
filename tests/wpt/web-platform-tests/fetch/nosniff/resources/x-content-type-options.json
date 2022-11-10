@@ -28,6 +28,10 @@
     "nosniff": false
   },
   {
+    "input": "X-Content-Type-Options: nosniff\r\nX-Content-Type-Options: nosniff",
+    "nosniff": true
+  },
+  {
     "input": "X-Content-Type-Options: ,nosniff",
     "nosniff": false
   },

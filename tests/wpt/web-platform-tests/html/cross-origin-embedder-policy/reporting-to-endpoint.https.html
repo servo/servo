@@ -19,6 +19,7 @@
 //  - reporting-subresource-corp.https.html
 //  - cache-storage-reporting*.https.html
 // .
+
 const { REMOTE_ORIGIN } = get_host_info();
 const BASE = new URL("resources", location).pathname
 const FRAME_URL = `resources/reporting-empty-frame.html` +
@@ -27,13 +28,15 @@ const FRAME_URL = `resources/reporting-empty-frame.html` +
 const WORKER_URL = `resources/shared-worker.js` +
   '?pipe=header(cross-origin-embedder-policy,require-corp;report-to="endpoint")' +
   `|header(cross-origin-embedder-policy-report-only,require-corp;report-to="report-only-endpoint")`;
+const REPORT_UUID = "4d8b6d86-c9a8-47c1-871b-111169a8f79c";
+const REPORT_ONLY_UUID = "5d7c1e33-ef88-43c2-9ca3-c67ff300b8c2";
 
 function wait(ms) {
   return new Promise(resolve => step_timeout(resolve, ms));
 }
 
 async function fetchReports(endpoint) {
-  const res = await fetch(`resources/report.py?endpoint=${endpoint}`, {cache: 'no-store'});
+  const res = await fetch(`resources/report.py?key=${endpoint}`, {cache: 'no-store'});
   if (res.status == 200) {
     return await res.json();
   }
@@ -102,9 +105,9 @@ promise_test(async t => {
   // header, so it is blocked.
   iframe.contentWindow.fetch(url, init).catch(() => {});
 
-  await checkCorpReportExistence('endpoint', url, iframe.src, '', 'enforce');
+  await checkCorpReportExistence(REPORT_UUID, url, iframe.src, '', 'enforce');
   await checkCorpReportExistence(
-      'report-only-endpoint', url, iframe.src, '', 'reporting');
+      REPORT_ONLY_UUID, url, iframe.src, '', 'reporting');
 }, 'subresource CORP');
 
 promise_test(async t => {
@@ -131,9 +134,9 @@ promise_test(async t => {
   attachFrame(url);
 
   await checkCorpReportExistence(
-      'endpoint', url, iframe.src, 'iframe', 'enforce');
+      REPORT_UUID, url, iframe.src, 'iframe', 'enforce');
   await checkCorpReportExistence(
-      'report-only-endpoint', url, iframe.src, 'iframe', 'reporting');
+      REPORT_ONLY_UUID, url, iframe.src, 'iframe', 'reporting');
 }, 'navigation CORP');
 
 promise_test(async (t) => {
@@ -152,9 +155,9 @@ promise_test(async (t) => {
   document.body.appendChild(iframe);
 
   await checkNavigationReportExistence(
-      'endpoint', targetUrl, iframe.src, 'enforce');
+      REPORT_UUID, targetUrl, iframe.src, 'enforce');
   await checkNavigationReportExistence(
-    'report-only-endpoint', targetUrl, iframe.src, 'reporting');
+      REPORT_ONLY_UUID, targetUrl, iframe.src, 'reporting');
 }, 'COEP violation on nested frame navigation');
 
 promise_test(async (t) => {
@@ -174,9 +177,9 @@ promise_test(async (t) => {
   document.body.appendChild(iframe);
 
   await checkNavigationReportExistence(
-      'endpoint', targetUrl, iframe.src, 'enforce');
+      REPORT_UUID, targetUrl, iframe.src, 'enforce');
   await checkNavigationReportExistence(
-    'report-only-endpoint', targetUrl, iframe.src, 'reporting');
+      REPORT_ONLY_UUID, targetUrl, iframe.src, 'reporting');
 
 }, 'Two COEP headers, split inside report-to value');
 
@@ -198,9 +201,9 @@ promise_test(async (t) => {
   worker.port.postMessage(script);
 
   await checkCorpReportExistence(
-      'endpoint', targetUrl, WORKER_URL, 'iframe', 'enforce');
+      REPORT_UUID, targetUrl, WORKER_URL, 'iframe', 'enforce');
   await checkCorpReportExistence(
-      'report-only-endpoint', targetUrl, WORKER_URL, 'iframe', 'reporting');
+      REPORT_ONLY_UUID, targetUrl, WORKER_URL, 'iframe', 'reporting');
 }, 'Shared worker fetch');
 
 </script>

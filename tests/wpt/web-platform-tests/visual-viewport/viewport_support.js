@@ -1,3 +1,30 @@
+// Simulates a small pinch-zoom to provide some page scale to make the visual
+// viewport able to differ from the layout viewport. The amount of zoom is
+// likely to vary between browsers so tests shouldn't rely on an exact scale
+// factor.
+//
+// Simulates two fingers, 100px apart, pulling apart vertically to 200px of
+// separation.
+function pinchZoomIn() {
+  const viewport = window.visualViewport;
+  const center_x = Math.floor((viewport.width * viewport.scale) / 2);
+  const center_y = Math.floor((viewport.height * viewport.scale) / 2);
+
+  return new test_driver.Actions()
+      .setContext(window)
+      .addPointer("finger1", "touch")
+      .addPointer("finger2", "touch")
+      .pointerMove(center_x, center_y-50, {origin: "viewport", sourceName: "finger1"})
+      .pointerMove(center_x, center_y+50, {origin: "viewport", sourceName: "finger2"})
+      .pointerDown({sourceName: "finger1"})
+      .pointerDown({sourceName: "finger2"})
+      .pointerMove(center_x, center_y-100, {origin: "viewport", sourceName: "finger1"})
+      .pointerMove(center_x, center_y+100, {origin: "viewport", sourceName: "finger2"})
+      .pointerUp({sourceName: "finger1"})
+      .pointerUp({sourceName: "finger2"})
+      .send();
+}
+
 // If scrollbars affect layout (i.e. what the CSS Overflow spec calls "classic
 // scrollbars", as opposed to overlay scrollbars), return the scrollbar
 // thickness in CSS pixels. Returns 0 otherwise.

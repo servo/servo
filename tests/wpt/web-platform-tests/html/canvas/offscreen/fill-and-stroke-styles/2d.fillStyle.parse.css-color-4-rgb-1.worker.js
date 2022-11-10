@@ -20,7 +20,7 @@ var ctx = canvas.getContext('2d');
 ctx.fillStyle = '#f00';
 ctx.fillStyle = 'rgb(0, 255.0, 0)';
 ctx.fillRect(0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

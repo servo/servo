@@ -4,6 +4,7 @@
 <link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 
 <!-- The onclick submit() should get superseded by the default
      action submit(), which isn't preventDefaulted by onclick here.
@@ -35,8 +36,7 @@ promise_test(async () => {
 
   const frame1LoadPromise = getLoadPromise(frame1);
   let frame2LoadPromise = getLoadPromise(frame2);
-  const subframeScheme = window.location.protocol === 'https:' ? 'http://' : 'https://';
-  const subframeUrl = subframeScheme + window.location.host;
+  const subframeUrl = get_host_info().REMOTE_ORIGIN;
   frame1.src = subframeUrl;
   frame2.src = subframeUrl;
   await frame1LoadPromise;

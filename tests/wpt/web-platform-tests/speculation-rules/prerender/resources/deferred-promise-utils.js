@@ -23,6 +23,9 @@
 class PrerenderEventCollector {
   constructor() {
     this.eventsSeen_ = [];
+    new PrerenderChannel('close').addEventListener('message', () => {
+      window.close();
+    });
   }
 
   // Adds an event to `eventsSeen_` along with the prerendering state of the
@@ -49,11 +52,10 @@ class PrerenderEventCollector {
             })
         .finally(() => {
           // Used to communicate with the main test page.
-          const testChannel = new BroadcastChannel('test-channel');
+          const testChannel = new PrerenderChannel('test-channel');
           // Send the observed events back to the main test page.
           testChannel.postMessage(this.eventsSeen_);
           testChannel.close();
-          window.close();
         });
     document.addEventListener('prerenderingchange', () => {
       this.addEvent('prerendering change');
@@ -63,7 +65,7 @@ class PrerenderEventCollector {
     // resolves a promise without waiting for activation.
     setTimeout(() => {
       // Used to communicate with the initiator page.
-      const prerenderChannel = new BroadcastChannel('prerender-channel');
+      const prerenderChannel = new PrerenderChannel('prerender-channel');
       // Inform the initiator page that this page is ready to be activated.
       prerenderChannel.postMessage('readyToActivate');
       prerenderChannel.close();

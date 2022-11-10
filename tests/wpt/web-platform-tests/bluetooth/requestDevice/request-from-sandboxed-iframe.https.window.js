@@ -1,5 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 // META: script=/bluetooth/resources/bluetooth-test.js
@@ -7,8 +5,9 @@
 'use strict';
 const test_desc = 'Request device from a unique origin. ' +
     'Should reject with SecurityError.';
-const expected = 'SecurityError: requestDevice() called from cross-origin ' +
-    'iframe.';
+const expected = 'SecurityError: Failed to execute \'requestDevice\' on ' +
+    '\'Bluetooth\': Access to the feature "bluetooth" is disallowed by ' +
+    'permissions policy.';
 
 let iframe = document.createElement('iframe');
 

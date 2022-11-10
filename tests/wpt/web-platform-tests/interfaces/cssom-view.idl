@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: CSSOM View Module (https://drafts.csswg.org/cssom-view/)
+// Source: CSSOM View Module (https://drafts.csswg.org/cssom-view-1/)
 
 enum ScrollBehavior { "auto", "smooth" };
 
@@ -16,6 +16,7 @@ dictionary ScrollToOptions : ScrollOptions {
 partial interface Window {
     [NewObject] MediaQueryList matchMedia(CSSOMString query);
     [SameObject, Replaceable] readonly attribute Screen screen;
+    [SameObject, Replaceable] readonly attribute VisualViewport? visualViewport;
 
     // browsing context
     undefined moveTo(long x, long y);
@@ -100,9 +101,17 @@ dictionary ScrollIntoViewOptions : ScrollOptions {
   ScrollLogicalPosition inline = "nearest";
 };
 
+dictionary CheckVisibilityOptions {
+    boolean checkOpacity = false;
+    boolean checkVisibilityCSS = false;
+};
+
 partial interface Element {
   DOMRectList getClientRects();
   [NewObject] DOMRect getBoundingClientRect();
+
+  boolean checkVisibility(optional CheckVisibilityOptions options = {});
+
   undefined scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg = {});
   undefined scroll(optional ScrollToOptions options = {});
   undefined scroll(unrestricted double x, unrestricted double y);
@@ -171,3 +180,20 @@ CSSPseudoElement includes GeometryUtils;
 Document includes GeometryUtils;
 
 typedef (Text or Element or CSSPseudoElement or Document) GeometryNode;
+
+[Exposed=Window]
+interface VisualViewport : EventTarget {
+  readonly attribute double offsetLeft;
+  readonly attribute double offsetTop;
+
+  readonly attribute double pageLeft;
+  readonly attribute double pageTop;
+
+  readonly attribute double width;
+  readonly attribute double height;
+
+  readonly attribute double scale;
+
+  attribute EventHandler onresize;
+  attribute EventHandler onscroll;
+};

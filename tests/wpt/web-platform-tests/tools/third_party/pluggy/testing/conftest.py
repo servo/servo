@@ -10,7 +10,7 @@ def he_pm(request, pm):
 
     hookspec = HookspecMarker("example")
 
-    class Hooks(object):
+    class Hooks:
         @hookspec
         def he_method1(self, arg):
             return arg + 1

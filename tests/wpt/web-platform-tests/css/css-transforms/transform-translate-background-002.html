@@ -6,11 +6,11 @@
 <link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-rendering">
 <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=988446">
 <link rel="match" href="transform-translate-background-001-ref.html">
-<meta name="assert" content="Checks that the linear gradient is modified when you dynamically translate the root element. The test passes if you see only green.">
+<meta name="assert" content="Checks that the linear gradient is not modified when you dynamically translate the root element. The test passes if you see only green.">
 <script src="/common/reftest-wait.js"></script>
 <style>
   html {
-    background: linear-gradient(to bottom, red 0%, red 50%, green 50%, green 100%);
+    background: linear-gradient(to bottom, green 0%, green 50%, red 50%, red 100%);
   }
 </style>
 <div style="height: 400vh;"></div>

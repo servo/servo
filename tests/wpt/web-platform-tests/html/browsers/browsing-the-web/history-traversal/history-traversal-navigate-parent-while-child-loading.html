@@ -10,10 +10,10 @@ async_test(t => {
   i.src = iframe_url;
 
   history.pushState("a", "", "#a");
-  assert_equals(starting_history_length + 1, history.length);
+  assert_equals(history.length, starting_history_length + 1, "First history length");
 
   i.onload = t.step_func(() => {
-    assert_equals(starting_history_length + 1, history.length);
+    assert_equals(history.length, starting_history_length + 1, "Second history length");
     assert_equals(i.contentWindow.location.href, iframe_url);
     assert_equals(location.hash, "#a");
     history.back();

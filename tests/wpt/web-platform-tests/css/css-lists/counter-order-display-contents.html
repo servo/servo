@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS counter order with "display: contents"</title>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+    <link rel="help" href="https://www.w3.org/TR/css-lists-3/#inheriting-counters">
+    <link rel="match" href="counter-order-display-contents-ref.html">
+  </head>
+
+  <body>
+    <style>
+      .counted {
+        counter-increment: section;
+      }
+
+      .counted::before {
+        content: "C=" counter(section) " ";
+      }
+    </style>
+    <div style="display: contents;">
+        <div class="counted">One</div>
+    </div>
+    <div style="display: contents;">
+        <div class="counted">Two</div>
+    </div>
+    <div style="display: contents;">
+        <div class="counted">Three</div>
+    </div>
+  </body>
+</html>

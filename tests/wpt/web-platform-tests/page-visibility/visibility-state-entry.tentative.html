@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<title>Test VisibleStateEntry</title>
+<link rel="author" title="Noam Rosenthal"  href="mailto:noam@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#page-visibility">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/window_state_context.js"></script>
+<script>
+
+setup(() => {
+    assert_implements(window.VisibilityStateEntry, 'VisibilityStateEntry is not supported.');
+});
+
+promise_test(async t => {
+    const {minimize, restore} = window_state_context(t);
+    let entries = performance.getEntriesByType("visibility-state");
+    assert_equals(entries.length, 1);
+    assert_equals(entries[0].name, "visible");
+    assert_equals(entries[0].startTime, 0);
+    assert_equals(entries[0].duration, 0);
+    await minimize();
+    entries = performance.getEntriesByType("visibility-state");
+    assert_equals(entries.length, 2);
+    assert_equals(entries[1].name, "hidden");
+    assert_equals(entries[1].duration, 0);
+    await restore();
+    assert_equals(entries.length, 3);
+    assert_equals(entries[2].name, "visible");
+    assert_equals(entries[2].duration, 0);
+}, "Hiding/showing the page should create visibility-state entries");
+
+promise_test(async t => {
+    const {minimize, restore} = window_state_context(t);
+    await minimize();
+    const popup = window.open("resources/blank_page_green.html");
+    t.add_cleanup(() => popup.close());
+    await restore();
+    let entries = popup.performance.getEntriesByType("visibility-state");
+    assert_equals(entries.length, 2);
+    assert_equals(entries[0].name, "hidden");
+    assert_equals(entries[0].startTime, 0);
+    assert_equals(entries[1].name, "visible");
+    assert_greater_than(entries[1].startTime, 0);
+
+}, "If a page starts as hidden, the first visibility-state entry should be hidden");
+
+promise_test(async t => {
+    const {minimize, restore} = window_state_context(t);
+    await minimize();
+    const observed = new Promise(resolve => new PerformanceObserver(list => {
+        const entries = list.getEntries();
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].name, "visible");
+        assert_greater_than(entries[0].startTime, 0);
+        assert_equals(entries[0].duration, 0);
+        resolve();
+    }).observe({entryTypes: ['visibility-state'], buffered: true}));
+    await restore();
+    await observed;
+}, "Visibility state entries should be queued to performance observers");
+
+promise_test(async t => {
+    const {minimize, restore} = window_state_context(t);
+    await minimize();
+    await restore();
+    await new Promise(resolve => new PerformanceObserver(list => {
+        const entries = list.getEntries();
+        assert_equals(entries.length, 3);
+        assert_equals(entries[0].name, "visible");
+        assert_equals(entries[0].startTime, 0);
+        assert_equals(entries[0].duration, 0);
+        assert_equals(entries[1].name, "hidden");
+        assert_equals(entries[1].duration, 0);
+        assert_equals(entries[2].name, "visible");
+        assert_equals(entries[2].duration, 0);
+        resolve();
+    }).observe({entryTypes: ['visibility-state'], buffered: true}));
+}, "Visibility state entries should respect the buffered flag");
+</script>

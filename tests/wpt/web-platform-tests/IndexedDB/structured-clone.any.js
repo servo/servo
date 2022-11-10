@@ -1,6 +1,6 @@
 // META: title=Indexed DB and Structured Serializing/Deserializing
 // META: timeout=long
-// META: script=support-promises.js
+// META: script=resources/support-promises.js
 // META: script=/common/subset-tests.js
 // META: variant=?1-20
 // META: variant=?21-40
@@ -40,7 +40,7 @@ function cloneTest(value, verifyFunc) {
         indexedDB.deleteDatabase(db.name);
       }
     });
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
     await promiseForRequest(t, store.put(value, 'key'));
     const result = await promiseForRequest(t, store.get('key'));
@@ -70,7 +70,7 @@ function cloneFailureTest(value) {
         indexedDB.deleteDatabase(db.name);
       }
     });
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
     assert_throws_dom('DataCloneError', () => store.put(value, 'key'));
   }, 'Not serializable: ' + describe(value));

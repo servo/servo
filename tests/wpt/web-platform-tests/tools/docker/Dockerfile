@@ -16,9 +16,11 @@ RUN apt-get -qqy update \
     fluxbox \
     gdebi \
     git \
+    glib-networking-services \
     gstreamer1.0-plugins-bad \
     gstreamer1.0-gl \
     libosmesa6-dev \
+    libproxy1-plugin-webkit \
     libvirt-daemon-system \
     libvirt-clients \
     libunwind8 \

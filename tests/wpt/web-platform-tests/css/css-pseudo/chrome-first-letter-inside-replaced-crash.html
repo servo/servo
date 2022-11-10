@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Chrome issue 1370386</title>
+<link rel="help" href="https://crbug.com/1370386">
+<style>
+  #fl::first-letter {
+    float: right;
+  }
+</style>
+<body>
+  <div id="outer">
+    <div style="display:table-column;float:left">
+      <span id="fl" style="display:inline-block">x</span>
+    </div>
+  </div>
+</body>
+<script>
+  document.body.offsetTop;
+  outer.style.content = "url(data:text/plain,x)";
+  fl.firstChild.remove();
+  document.body.offsetTop;
+</script>

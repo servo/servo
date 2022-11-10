@@ -1,4 +1,4 @@
-// META: global=window,worker,jsshell
+// META: global=window,worker
 'use strict';
 
 promise_test(() => {
@@ -249,6 +249,23 @@ async_test(t => {
   reader.read(new Uint8Array([4, 5, 6]));
 }, 'ReadableStream with byte source: respondWithNewView() throws if the supplied view\'s buffer has a ' +
    'different length (in the readable state)');
+
+async_test(t => {
+  // Tests https://github.com/nodejs/node/issues/41886
+  const stream = new ReadableStream({
+    pull: t.step_func_done(c => {
+      const view = new Uint8Array(new ArrayBuffer(11), 0, 3);
+
+      assert_throws_js(RangeError, () => c.byobRequest.respondWithNewView(view));
+    }),
+    type: 'bytes',
+    autoAllocateChunkSize: 10
+  });
+  const reader = stream.getReader();
+
+  reader.read();
+}, 'ReadableStream with byte source: respondWithNewView() throws if the supplied view\'s buffer has a ' +
+   'different length (autoAllocateChunkSize)');
 
 async_test(t => {
   const stream = new ReadableStream({

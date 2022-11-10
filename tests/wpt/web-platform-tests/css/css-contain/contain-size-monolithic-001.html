@@ -10,6 +10,7 @@
   <link rel="match" href="reference/contain-size-monolithic-001-ref.html">
 
   <meta content="This test checks that an element with size containment becomes monolithic. In this test, the only way to break the content of such monolithic element is to break (or slice) the content at each pair of characters. Since column rules are only drawn between two columns that both have content and since the test expects only 1 column filled with content, therefore the column rule should not be painted, thus the 'no red' test success condition." name="assert">
+  <meta name="fuzzy" content="maxDifference=0-16; totalPixels=0-2">
 
   <style>
   div#multi-column

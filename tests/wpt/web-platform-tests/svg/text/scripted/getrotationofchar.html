@@ -29,38 +29,41 @@ function normalizedRotation(element, index) {
 }
 
 const container = document.querySelector('#container');
-['horizontal-tb', 'vertical-rl'].forEach(mode => {
+['horizontal-tb', 'vertical-rl', 'vertical-lr', 'sideways-rl', 'sideways-lr'].forEach(mode => {
   const isHorizontal = mode == 'horizontal-tb';
+  const isVertical = mode == 'vertical-rl' || mode == 'vertical-lr';
+  const sidewaysDelta = 90 * ((mode == 'sideways-rl') - (mode == 'sideways-lr'));
   container.style.writingMode = mode;
 
   test(() => {
     container.style.textOrientation = 'mixed';
-    const element = container.appendChild(createSVGElement('text', {}, 'M月'));
-    assert_equals(element.getRotationOfChar(0), isHorizontal ? 0 : 90, 'M');
-    assert_equals(element.getRotationOfChar(1), 0, '月');
+    const element = container.appendChild(createSVGElement('text', {}, '  M月X'));
+    assert_equals(element.getRotationOfChar(0), isVertical ? 90 : sidewaysDelta, 'M');
+    assert_equals(element.getRotationOfChar(1), sidewaysDelta, '月');
+    assert_equals(element.getRotationOfChar(2), isVertical ? 90 : sidewaysDelta, 'X');
   }, `'text-orientation: mixed' - ${mode}`);
 
   test(() => {
     container.style.textOrientation = 'upright';
     const element = container.appendChild(createSVGElement('text', {}, 'T火'));
-    assert_equals(element.getRotationOfChar(0), 0, 'T');
-    assert_equals(element.getRotationOfChar(1), 0, '火');
+    assert_equals(element.getRotationOfChar(0), sidewaysDelta, 'T');
+    assert_equals(element.getRotationOfChar(1), sidewaysDelta, '火');
   }, `'text-orientation: upright' - ${mode}`);
 
   test(() => {
     container.style.textOrientation = 'sideways';
     const element = container.appendChild(createSVGElement('text', {}, 'W水'));
-    assert_equals(element.getRotationOfChar(0), isHorizontal ? 0 : 90, 'W');
-    assert_equals(element.getRotationOfChar(1), isHorizontal ? 0 : 90, '水');
+    assert_equals(element.getRotationOfChar(0), isVertical ? 90 : sidewaysDelta, 'W');
+    assert_equals(element.getRotationOfChar(1), isVertical ? 90 : sidewaysDelta, '水');
   }, `'text-orientation: sideways' - ${mode}`);
 
   test(() => {
     container.style.textOrientation = 'mixed';
     const element = container.appendChild(
         createSVGElement('text', {rotate: '0 180.5 360 365 -10'}, 't木cde'));
-    const shift = isHorizontal ? 0 : 90;
+    const shift = isHorizontal ? 0 : 90 * (mode == 'sideways-rl' || isVertical) + 270 * (mode == 'sideways-lr');
     assert_equals(normalizedRotation(element, 0), 0 + shift, 't');
-    assert_equals(normalizedRotation(element, 1), 180.5, '木');
+    assert_equals(normalizedRotation(element, 1), 180.5 + sidewaysDelta, '木');
     assert_equals(normalizedRotation(element, 2), 0 + shift, 'c');
     assert_equals(normalizedRotation(element, 3), 5 + shift, 'd');
     assert_equals(normalizedRotation(element, 4), normalize(350 + shift), 'e');
@@ -72,9 +75,10 @@ const container = document.querySelector('#container');
     const element = container.appendChild(
         createSVGElement('text', {rotate: '0 0 25'},
             createSVGElement('textPath', {href: '#path1'}, 'F金r')));
-    assert_equals(normalizedRotation(element, 0), 45, 'F');
-    assert_equals(normalizedRotation(element, 1), isHorizontal ? 45 : 315, '金');
-    assert_equals(normalizedRotation(element, 2), 45 + 25, 'r');
+    const shift = (mode == 'sideways-lr') ? 180 : 0;
+    assert_equals(normalizedRotation(element, 0), 45 + shift, 'F');
+    assert_equals(normalizedRotation(element, 1), isVertical ? 315 : 45 + shift, '金');
+    assert_equals(normalizedRotation(element, 2), 45 + 25 + shift, 'r');
   }, `<textPath> - ${mode}`);
 });
 </script>

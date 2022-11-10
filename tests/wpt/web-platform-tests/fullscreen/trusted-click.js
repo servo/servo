@@ -1,5 +1,9 @@
-// Invokes callback from a trusted click event, to satisfy
-// https://html.spec.whatwg.org/#triggered-by-user-activation
+// Invokes callback from a trusted click event.
+//
+// TODO(mustaq): This method needs a cleanup.  This is based on an old version
+// of the HTML spec.  The new spec doesn't require a callback because the user
+// activation is visible across the Window object:
+// https://html.spec.whatwg.org/multipage/interaction.html#tracking-user-activation.
 function trusted_click(test, callback, container)
 {
     var document = container.ownerDocument;

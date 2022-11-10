@@ -1,6 +1,4 @@
 - name: 2d.composite.globalAlpha.range
-  testing:
-  - 2d.composite.globalAlpha.range
   code: |
     ctx.globalAlpha = 0.5;
     var a = ctx.globalAlpha; // might not be exactly 0.5, if it is rounded/quantised, so remember for future comparisons
@@ -14,8 +12,6 @@
     @assert ctx.globalAlpha === 1;
 
 - name: 2d.composite.globalAlpha.invalid
-  testing:
-  - 2d.composite.globalAlpha.range
   code: |
     ctx.globalAlpha = 0.5;
     var a = ctx.globalAlpha; // might not be exactly 0.5, if it is rounded/quantised, so remember for future comparisons
@@ -27,14 +23,10 @@
     @assert ctx.globalAlpha === a;
 
 - name: 2d.composite.globalAlpha.default
-  testing:
-  - 2d.composite.globalAlpha.default
   code: |
     @assert ctx.globalAlpha === 1.0;
 
 - name: 2d.composite.globalAlpha.fill
-  testing:
-  - 2d.composite.globalAlpha.shape
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -45,8 +37,6 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.image
-  testing:
-  - 2d.composite.globalAlpha.image
   images:
   - red.png
   canvasType:
@@ -60,8 +50,6 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvas
-  testing:
-  - 2d.composite.globalAlpha.image
   canvasType: ['HTMLCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
@@ -79,8 +67,6 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.imagepattern
-  testing:
-  - 2d.composite.globalAlpha.image
   images:
   - red.png
   canvasType: ['HTMLCanvas']
@@ -94,8 +80,6 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvaspattern
-  testing:
-  - 2d.composite.globalAlpha.image
   canvasType: ['HTMLCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
@@ -114,8 +98,6 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvascopy
-  testing:
-  - 2d.composite.globalAlpha.image
   canvasType: ['HTMLCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
@@ -136,8 +118,6 @@
 
 
 - name: 2d.composite.operation.get
-  testing:
-  - 2d.composite.operation
   code: |
     var modes = ['source-atop', 'source-in', 'source-out', 'source-over',
         'destination-atop', 'destination-in', 'destination-out', 'destination-over',
@@ -149,71 +129,53 @@
     }
 
 - name: 2d.composite.operation.unrecognised
-  testing:
-  - 2d.composite.operation.unrecognised
   code: |
     ctx.globalCompositeOperation = 'xor';
     ctx.globalCompositeOperation = 'nonexistent';
     @assert ctx.globalCompositeOperation === 'xor';
 
 - name: 2d.composite.operation.darker
-  testing:
-  - 2d.composite.operation.unrecognised
   code: |
     ctx.globalCompositeOperation = 'xor';
     ctx.globalCompositeOperation = 'darker';
     @assert ctx.globalCompositeOperation === 'xor';
 
 - name: 2d.composite.operation.over
-  testing:
-  - 2d.composite.operation.unrecognised
   code: |
     ctx.globalCompositeOperation = 'xor';
     ctx.globalCompositeOperation = 'over';
     @assert ctx.globalCompositeOperation === 'xor';
 
 - name: 2d.composite.operation.clear
-  testing:
-  - 2d.composite.operation.unrecognised
   code: |
     ctx.globalCompositeOperation = 'xor';
     ctx.globalCompositeOperation = 'clear';
     @assert ctx.globalCompositeOperation === 'clear';
 
 - name: 2d.composite.operation.highlight
-  testing:
-  - 2d.composite.operation.unrecognised
   code: |
     ctx.globalCompositeOperation = 'xor';
     ctx.globalCompositeOperation = 'highlight';
     @assert ctx.globalCompositeOperation === 'xor';
 
 - name: 2d.composite.operation.nullsuffix
-  testing:
-  - 2d.composite.operation.exact
   code: |
     ctx.globalCompositeOperation = 'xor';
     ctx.globalCompositeOperation = 'source-over\0';
     @assert ctx.globalCompositeOperation === 'xor';
 
 - name: 2d.composite.operation.casesensitive
-  testing:
-  - 2d.composite.operation.casesensitive
   code: |
     ctx.globalCompositeOperation = 'xor';
     ctx.globalCompositeOperation = 'Source-over';
     @assert ctx.globalCompositeOperation === 'xor';
 
 - name: 2d.composite.operation.default
-  testing:
-  - 2d.composite.operation.default
   code: |
     @assert ctx.globalCompositeOperation === 'source-over';
 
 
 - name: 2d.composite.globalAlpha.image
-  testing:
-  - 2d.composite.globalAlpha.image
   canvasType: ['OffscreenCanvas']
   code: |
     ctx.fillStyle = '#0f0';
@@ -236,8 +198,6 @@
     }).then(t_pass, t_fail);
 
 - name: 2d.composite.globalAlpha.canvas
-  testing:
-  - 2d.composite.globalAlpha.image
   canvasType: ['OffscreenCanvas']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
@@ -251,8 +211,6 @@
     @assert pixel 50,25 ==~ 2,253,0,255;
 
 - name: 2d.composite.globalAlpha.imagepattern
-  testing:
-  - 2d.composite.globalAlpha.image
   canvasType: ['OffscreenCanvas']
   code: |
     ctx.fillStyle = '#0f0';
@@ -276,8 +234,6 @@
     }).then(t_pass, t_fail);
 
 - name: 2d.composite.globalAlpha.canvaspattern
-  testing:
-  - 2d.composite.globalAlpha.image
   canvasType: ['OffscreenCanvas']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
@@ -292,8 +248,6 @@
     @assert pixel 50,25 ==~ 2,253,0,255;
 
 - name: 2d.composite.globalAlpha.canvascopy
-  testing:
-  - 2d.composite.globalAlpha.image
   canvasType: ['OffscreenCanvas']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);

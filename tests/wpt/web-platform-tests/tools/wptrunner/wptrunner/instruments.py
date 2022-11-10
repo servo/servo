@@ -1,6 +1,9 @@
+# mypy: allow-untyped-defs
+
 import time
 import threading
-from queue import Queue
+
+from . import mpcontext
 
 """Instrumentation for measuring high-level time spent on various tasks inside the runner.
 
@@ -23,7 +26,7 @@ with Instrument(*args) as recording:
     do_teardown()
 """
 
-class NullInstrument(object):
+class NullInstrument:
     def set(self, stack):
         """Set the current task to stack
 
@@ -45,7 +48,7 @@ class NullInstrument(object):
         return
 
 
-class InstrumentWriter(object):
+class InstrumentWriter:
     def __init__(self, queue):
         self.queue = queue
 
@@ -62,7 +65,7 @@ class InstrumentWriter(object):
         return [item.replace(" ", "_") for item in stack]
 
 
-class Instrument(object):
+class Instrument:
     def __init__(self, file_path):
         """Instrument that collects data from multiple threads and sums the time in each
         thread. The output is in the format required by flamegraph.pl to enable visualisation
@@ -75,20 +78,21 @@ class Instrument(object):
         self.queue = None
         self.current = None
         self.start_time = None
-        self.thread = None
+        self.instrument_proc = None
 
     def __enter__(self):
-        assert self.thread is None
+        assert self.instrument_proc is None
         assert self.queue is None
-        self.queue = Queue()
-        self.thread = threading.Thread(target=self.run)
-        self.thread.start()
+        mp = mpcontext.get_context()
+        self.queue = mp.Queue()
+        self.instrument_proc = mp.Process(target=self.run)
+        self.instrument_proc.start()
         return InstrumentWriter(self.queue)
 
     def __exit__(self, *args, **kwargs):
         self.queue.put(("stop", None, time.time(), None))
-        self.thread.join()
-        self.thread = None
+        self.instrument_proc.join()
+        self.instrument_proc = None
         self.queue = None
 
     def run(self):

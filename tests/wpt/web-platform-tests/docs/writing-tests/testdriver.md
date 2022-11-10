@@ -50,6 +50,8 @@ the global scope.
 ### Cookies ###
 ```eval_rst
 .. js:autofunction:: test_driver.delete_all_cookies
+.. js:autofunction:: test_driver.get_all_cookies
+.. js:autofunction:: test_driver.get_named_cookie
 ```
 
 ### Permissions ###
@@ -129,9 +131,9 @@ function that can be used to send arbitary messages to the test
 window. For example, in an auxillary browsing context:
 
 ```js
-testdriver.set_test_context(window.opener)
-await testdriver.click(document.getElementsByTagName("button")[0])
-testdriver.message_test("click complete")
+test_driver.set_test_context(window.opener)
+await test_driver.click(document.getElementsByTagName("button")[0])
+test_driver.message_test("click complete")
 ```
 
 The requirement to have a handle to the test window does mean it's
@@ -167,11 +169,11 @@ let actions = new test_driver.Actions()
     .setContext(frames[0])
     .keyDown("p")
     .keyUp("p");
-actions.send();
+await actions.send();
 ```
 
 Note that if an action uses an element reference, the context will be
-derived from that element, and must match any explictly set
+derived from that element, and must match any explicitly set
 context. Using elements in multiple contexts in a single action chain
 is not supported.
 

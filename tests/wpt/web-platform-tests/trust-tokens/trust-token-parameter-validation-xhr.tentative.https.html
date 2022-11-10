@@ -50,17 +50,6 @@
       request.open('GET', 'https://trusttoken.example');
       request.setTrustToken({
         type: "token-request",
-        signRequestData: "not a member of the signRequestData enum"
-      });
-    });
-  }, 'Trust Tokens operations require valid `signRequestData` values, if provided.');
-
-  test(() => {
-    assert_throws_js(TypeError, () => {
-      let request = new XMLHttpRequest();
-      request.open('GET', 'https://trusttoken.example');
-      request.setTrustToken({
-        type: "token-request",
         refreshPolicy: "not a member of the refreshPolicy enum",
       });
     });

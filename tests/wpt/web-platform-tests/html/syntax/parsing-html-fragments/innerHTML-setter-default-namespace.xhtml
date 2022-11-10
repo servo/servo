@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<span xmlns="someNamespace" xmlns:html="http://www.w3.org/1999/xhtml">
+    <html:span id="target"/>
+</span>
+<script>
+<![CDATA[
+
+test(() => {
+    const element = document.getElementById("target");
+    element.innerHTML = '<b /><html:b />';
+    assert_equals(element.firstChild.prefix, null);
+    assert_equals(element.firstChild.namespaceURI, "someNamespace");
+    assert_equals(element.lastChild.prefix, 'html');
+    assert_equals(element.lastChild.namespaceURI, "http://www.w3.org/1999/xhtml");
+}, "Setting innerHTML on a HTML element with a non-HTML namespace as the default namespace");
+
+test(() => {
+    const element = document.getElementById("target");
+    element.outerHTML = '<b /><html:b />';
+    assert_equals(element.firstChild.prefix, null);
+    assert_equals(element.firstChild.namespaceURI, "someNamespace");
+    assert_equals(element.lastChild.prefix, 'html');
+    assert_equals(element.lastChild.namespaceURI, "http://www.w3.org/1999/xhtml");
+}, "Setting outerHTML on a HTML element with a non-HTML namespace as the default namespace");
+
+]]>
+</script>
+</body>
+</html>

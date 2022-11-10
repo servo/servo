@@ -345,10 +345,10 @@ function test11() {
         observer.observe(view);
       },
       notify: (entries, observer) => {
-        assert_unreached("no entries should be observed on <view> Element");
-      },
-      timeout: () => {
-        // expected
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].target, view);
+        assert_equals(entries[0].contentRect.width, 0);
+        assert_equals(entries[0].contentRect.height, 0);
       }
     },
     {
@@ -356,10 +356,10 @@ function test11() {
         observer.observe(stop);
       },
       notify: (entries, observer) => {
-        assert_unreached("no entries should be observed on <stop> Element");
-      },
-      timeout: () => {
-        // expected
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].target, stop);
+        assert_equals(entries[0].contentRect.width, 0);
+        assert_equals(entries[0].contentRect.height, 0);
       }
     },
   ]);

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>@property: viewport units in initial value (dynamic)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#initial-value-descriptor" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  iframe {
+    width: 400px;
+    height: 200px;
+  }
+</style>
+<iframe id=iframe srcdoc="
+  <style>
+    @property --10vw { syntax: '<length>'; inherits: true; initial-value: 10vw}
+    @property --10vh { syntax: '<length>'; inherits: true; initial-value: 10vh}
+    div {
+      background: green;
+      width: var(--10vw);
+      height: var(--10vh);
+    }
+  </style>
+  <div style='width:10vw'></div>
+"></iframe>
+<script>
+  iframe.offsetTop;
+
+  function waitForLoad(w) {
+    return new Promise(resolve => w.addEventListener('load', resolve));
+  }
+
+  promise_test(async (t) => {
+    await waitForLoad(window);
+    let element = iframe.contentDocument.querySelector('div');
+    assert_equals(getComputedStyle(element).getPropertyValue('--10vw'), '40px');
+    assert_equals(getComputedStyle(element).getPropertyValue('--10vh'), '20px');
+
+    iframe.style.width = '100px';
+    assert_equals(getComputedStyle(element).getPropertyValue('--10vw'), '10px');
+    assert_equals(getComputedStyle(element).getPropertyValue('--10vh'), '20px');
+  });
+</script>

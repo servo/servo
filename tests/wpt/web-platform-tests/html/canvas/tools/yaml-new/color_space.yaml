@@ -1,6 +1,4 @@
 - name: 2d.color.space.p3.to.p3
-  testing:
-  - 2d.color.space.p3.to.p3
   desc: test getImageData with display-p3 and uint8 from display p3 uint8 canvas
   attributes: |
     {colorSpace: "display-p3"}
@@ -20,8 +18,6 @@
     assert_approx_equals(pixel[3], pixel_expected[3], 2);
 
 - name: 2d.color.space.p3.to.srgb
-  testing:
-  - 2d.color.space.p3.to.srgb
   desc: test getImageData with srsb and uint8 from display p3 uint8 canvas
   attributes: |
     {colorSpace: "display-p3"}
@@ -40,8 +36,6 @@
     assert_approx_equals(pixel[3], pixel_expected[3], 2);
 
 - name: 2d.color.space.p3.toBlob.p3.canvas
-  testing:
-  - 2d.color.space.p3.and.uint8
   desc: test if toblob returns p3 data from p3 color space canvas
   attributes: |
     {colorSpace: "display-p3"}
@@ -75,8 +69,6 @@
     }, 'image/png', 1);
 
 - name: 2d.color.space.p3.toDataURL.p3.canvas
-  testing:
-  - 2d.color.space.p3.and.uint8
   desc: test if toDataURL returns p3 data from canvas with p3 color space
   attributes: |
     {colorSpace: "display-p3"}
@@ -106,8 +98,6 @@
     image.src = canvas.toDataURL();
 
 - name: 2d.color.space.p3.toDataURL.jpeg.p3.canvas
-  testing:
-  - 2d.color.space.p3.and.uint8
   desc: test if toDataURL('image/jpeg') returns p3 data from canvas with p3 color space
   attributes: |
     {colorSpace: "display-p3"}
@@ -137,8 +127,6 @@
     image.src = canvas.toDataURL("image/jpeg");
 
 - name: 2d.color.space.p3.toBlob.with.putImageData
-  testing:
-  - 2d.color.space.p3.and.uint8
   desc: Use putImageData to put some p3 data in canvas and test if toBlob returns the same data
   attributes: |
     {colorSpace: "display-p3"}
@@ -178,8 +166,6 @@
     }, 'image/png', 1);
 
 - name: 2d.color.space.p3.toDataURL.with.putImageData
-  testing:
-  - 2d.color.space.p3.and.uint8
   desc: Use putImageData to put some p3 data in canvas and test if toDataURL returns the same data
   attributes: |
     {colorSpace: "display-p3"}
@@ -216,8 +202,6 @@
     image.src = canvas.toDataURL();
 
 - name: 2d.color.space.p3.fillText
-  testing:
-  - 2d.color.space.p3.and.uint8
   desc: Test if fillText can be used with a solid display-p3 color
   attributes: |
     {colorSpace: "display-p3"}
@@ -258,8 +242,6 @@
     });
 
 - name: 2d.color.space.p3.strokeText
-  testing:
-  - 2d.color.space.p3.and.uint8
   desc: Test if strokeText can be used with a solid display-p3 color
   attributes: |
     {colorSpace: "display-p3"}
@@ -302,8 +284,6 @@
     });
 
 - name: 2d.color.space.p3.fillText.shadow
-  testing:
-  - 2d.color.space.p3.and.uint8
   desc: Test if fillText can be used with a display-p3 shadow color
   attributes: |
     {colorSpace: "display-p3"}

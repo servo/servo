@@ -29,7 +29,7 @@ img.src = '../images/red.png';
 // until a fetch task in the networking task source is processed,
 // so the image must not be fully decodable yet:
 ctx.drawImage(img, 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
+_assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
 
 
 });

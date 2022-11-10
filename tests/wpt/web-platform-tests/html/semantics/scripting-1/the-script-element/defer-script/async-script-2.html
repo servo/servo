@@ -1,0 +1,40 @@
+<!doctype html>
+<title>Async Script Execution Order</title>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/helper.js"></script>
+</head>
+<body>
+  <script>
+  setup({single_test: true});
+  function finish() {
+    assert_array_equals(
+        window.result,
+        ["Inline1", "Sync1", "Async1", "Sync2", "EndOfBody",
+         "DOMContentLoaded"],
+        "Execution order");
+    // Chromium's force-defer order would be:
+    //  ["EndOfBody", "Inline1", "Sync1", "Sync2",
+    //   "DOMContentLoaded", "Async1"]
+    //
+    // If we delay async script e.g. after DOMContentLoaded,
+    // the order would be:
+    // ["Inline1", "Sync1", "Sync2", "EndOfBody",
+    //  "DOMContentLoaded", "Async1"]
+    done();
+  }
+  logScript("Inline1");
+  window.addEventListener("load", finish);
+  </script>
+  <script src="resources/sync-script-1.js"></script>
+  <!-- To test the async script loaded before force-deferred scripts
+       should be evaluated after the force-deferred scripts
+       in Chromium's force-defer order. -->
+  <script src="resources/async-script-1.js?pipe=trickle(d1)" async></script>
+  <script src="resources/sync-script-2.js?pipe=trickle(d2)"></script>
+  <pre id="bodyend">End</pre>
+</body>
+</html>

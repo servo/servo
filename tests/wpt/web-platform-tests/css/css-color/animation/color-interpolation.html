@@ -91,4 +91,43 @@ test_interpolation({
   {at: 1, expect: 'rgb(255, 165, 0)'},
   {at: 1.5, expect: 'rgb(255, 248, 0)'},
 ]);
+
+test_interpolation({
+  property: 'color',
+  from: 'rgb(0 0 0)',
+  to: 'color(srgb 1 1 1)',
+}, [
+  {at: -0.3, expect: 'oklab(0 0 0)'},
+  {at: 0, expect: 'oklab(0 0 0)'},
+  {at: 0.3, expect: 'oklab(0.3 0 0)'},
+  {at: 0.6, expect: 'oklab(0.6 0 0)'},
+  {at: 1, expect: 'oklab(1 0 0)'},
+  {at: 1.5, expect: 'oklab(1.5 0 0)'},
+]);
+
+test_interpolation({
+  property: 'color',
+  from: 'color(srgb 0 0 0)',
+  to: 'rgb(255 255 255)',
+}, [
+  {at: -0.3, expect: 'oklab(0 0 0)'},
+  {at: 0, expect: 'oklab(0 0 0)'},
+  {at: 0.3, expect: 'oklab(0.3 0 0)'},
+  {at: 0.6, expect: 'oklab(0.6 0 0)'},
+  {at: 1, expect: 'oklab(1 0 0)'},
+  {at: 1.5, expect: 'oklab(1.5 0 0)'},
+]);
+
+test_interpolation({
+  property: 'color',
+  from: 'color(srgb 0 0 0)',
+  to: 'color(srgb 1 1 1)',
+}, [
+  {at: -0.3, expect: 'oklab(0 0 0)'},
+  {at: 0, expect: 'oklab(0 0 0)'},
+  {at: 0.3, expect: 'oklab(0.3 0 0)'},
+  {at: 0.6, expect: 'oklab(0.6 0 0)'},
+  {at: 1, expect: 'oklab(1 0 0)'},
+  {at: 1.5, expect: 'oklab(1.5 0 0)'},
+]);
 </script>

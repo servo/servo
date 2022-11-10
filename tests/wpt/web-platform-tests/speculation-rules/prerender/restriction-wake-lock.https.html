@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>Access to the Wake Lock API is deferred</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<body>
+<script>
+
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+
+  // We grant the permission here to make a more discerning test because
+  // navigator.wakeLock.request() waits until the permission is granted, which
+  // is deferred during prerendering so the test would trivially pass without
+  // the permission.
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  const url = `resources/wake-lock.https.html?uid=${uid}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  const expected = [
+    {
+      event: 'started waiting navigator.wakeLock.request test',
+      prerendering: true
+    },
+    {
+      event: 'navigator.wakeLock.request failed',
+      prerendering: true
+    },
+    {
+      event: 'requesting navigator.wakeLock.request on prerendering change',
+      prerendering: false
+    },
+    {
+      event: 'prerendering change',
+      prerendering: false
+    },
+    {
+      event: 'finished waiting navigator.wakeLock.request test',
+      prerendering: false
+    },
+  ];
+  assert_equals(result.length, expected.length);
+  for (let i = 0; i < result.length; i++) {
+    assert_equals(result[i].event, expected[i].event, `event[${i}]`);
+    assert_equals(result[i].prerendering, expected[i].prerendering,
+      `prerendering[${i}]`);
+  }
+  bc.close();
+
+  // Send a close signal to PrerenderEventCollector on the prerendered page.
+  new PrerenderChannel('close', uid).postMessage('');
+}, `the access to the Wake Lock API should be deferred until the prerendered
+    page is activated`);
+
+</script>
+</body>

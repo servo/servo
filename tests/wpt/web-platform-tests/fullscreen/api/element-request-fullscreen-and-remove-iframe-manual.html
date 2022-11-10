@@ -16,7 +16,10 @@ async_test(t => {
   iframeDocument.onfullscreenerror = t.unreached_func("iframe fullscreenerror event");
 
   trusted_click(t, () => {
-    iframeDocument.body.requestFullscreen();
+    iframeDocument.body.requestFullscreen().then(t.unreached_func("promise should be rejected"),
+    () => {
+      assert_true(true, "promise is rejected correctly");
+    });
     iframe.remove();
     // No events will be fired, end test after 100ms.
     step_timeout(t.step_func_done(() => {

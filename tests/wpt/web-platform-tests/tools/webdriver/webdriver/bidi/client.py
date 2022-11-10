@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import asyncio
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, List, Optional, Mapping, MutableMapping
@@ -89,6 +91,15 @@ class BidiSession:
         # Modules.
         # For each module, have a property representing that module
         self.session = modules.Session(self)
+        self.browsing_context = modules.BrowsingContext(self)
+        self.script = modules.Script(self)
+
+    @property
+    def event_loop(self):
+        if self.transport:
+            return self.transport.loop
+
+        return None
 
     @classmethod
     def from_http(cls,
@@ -108,7 +119,7 @@ class BidiSession:
     @classmethod
     def bidi_only(cls,
                   websocket_url: str,
-                  requested_capabilities: Optional[Mapping[str, Any]]) -> "BidiSession":
+                  requested_capabilities: Optional[Mapping[str, Any]] = None) -> "BidiSession":
         """Create a BiDi session where there is no existing HTTP session
 
         :param webdocket_url: URL to the WebSocket server listening for BiDi connections
@@ -128,13 +139,13 @@ class BidiSession:
 
         if loop is None:
             loop = get_running_loop()
+
         self.transport = Transport(self.websocket_url, self.on_message, loop=loop)
+        await self.transport.start()
 
         if self.session_id is None:
             self.session_id, self.capabilities = await self.session.new(
-                self.requested_capabilities)
-
-        await self.transport.start()
+                capabilities=self.requested_capabilities)
 
     async def send_command(
         self,

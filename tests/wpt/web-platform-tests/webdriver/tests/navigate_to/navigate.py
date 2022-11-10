@@ -4,7 +4,6 @@ import pytest
 from webdriver import error
 from webdriver.transport import Response
 
-from tests.support import platform_name
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -40,21 +39,20 @@ def test_no_browsing_context(session, closed_frame, inline):
     assert session.url == doc
 
 
-def test_file_protocol(session, server_config):
-    # tests that the browsing context remains the same
-    # when navigated privileged documents
-    path = server_config["doc_root"]
-    if platform_name == "windows":
-        # Convert the path into the format eg. /c:/foo/bar
-        path = "/{}".format(path.replace("\\", "/"))
-    url = u"file://{}".format(path)
+def test_basic(session, inline):
+    url = inline("<div id=foo>")
+
+    session.url = inline("<div id=bar>")
+    element = session.find.css("#bar", all=False)
 
     response = navigate_to(session, url)
     assert_success(response)
 
-    if session.url.endswith('/'):
-        url += '/'
+    with pytest.raises(error.StaleElementReferenceException):
+        element.property("id")
+
     assert session.url == url
+    assert session.find.css("#foo", all=False)
 
 
 # Capability needed as long as no valid certificate is available:

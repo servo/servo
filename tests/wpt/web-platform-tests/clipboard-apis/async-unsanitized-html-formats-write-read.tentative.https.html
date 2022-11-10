@@ -32,20 +32,18 @@ promise_test(async t => {
 
   // Create and write unsanitized version of standard HTML and custom formats.
   const format1 = 'text/html';
-  const format2 = 'application/x-custom-format-clipboard-test-format-2';
+  const format2 = 'web text/html';
   const textInput = '<style>p {color:blue}</style><p>Hello World</p>';
-  const blobInput1 = new Blob([textInput], {type: 'text/html'});
-  const blobInput2 = new Blob(['input data 2'], {type: format2});
+  const blobInput1 = new Blob([textInput], {type: format1});
+  const blobInput2 = new Blob([textInput], {type: format2});
   const clipboardItemInput = new ClipboardItem(
-      {[format1]: blobInput1, [format2]: blobInput2},
-      {unsanitized: [format1, format2]});
+      {[format1]: blobInput1, [format2]: blobInput2});
   await waitForUserActivation();
   await navigator.clipboard.write([clipboardItemInput]);
 
   // Read unsanitized version of HTML format.
   await waitForUserActivation();
-  const clipboardItems = await navigator.clipboard.read(
-    {unsanitized: [format1, format2]});
+  const clipboardItems = await navigator.clipboard.read();
 
   assert_equals(clipboardItems.length, 1);
   const clipboardItem = clipboardItems[0];
@@ -55,12 +53,20 @@ promise_test(async t => {
   assert_equals(blobOutput1.type, format1);
   const data1 = await (new Response(blobOutput1)).text();
   const outputHtml = reformatHtml(data1);
-  const inputHtml = reformatHtml(textInput);
+  const expectedHtml = '<p style="color: blue; font-size: medium; font-style: normal; ' +
+                       'font-variant-ligatures: normal; font-variant-caps: normal; ' +
+                       'font-weight: 400; letter-spacing: normal; orphans: 2; ' +
+                       'text-align: start; text-indent: 0px; text-transform: none; '+
+                       'white-space: normal; widows: 2; word-spacing: 0px; ' +
+                       '-webkit-text-stroke-width: 0px; text-decoration-thickness: initial; ' +
+                       'text-decoration-style: initial; text-decoration-color: initial;">' +
+                       'Hello World</p>';
+  const inputHtml = reformatHtml(expectedHtml);
   assert_equals(outputHtml, inputHtml);
 
   const blobOutput2 = await clipboardItem.getType(format2);
   assert_equals(blobOutput2.type, format2);
   const data2 = await (new Response(blobOutput2)).text();
-  assert_equals(data2, 'input data 2');
+  assert_equals(data2, textInput);
 }, 'Verify write and read unsanitized content to the clipboard given text/html format as input');
 </script>

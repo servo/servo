@@ -10,7 +10,7 @@ wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
 
 def calculate_cutoff_date(until: int, epoch: int, offset: int) -> int:
-    return ((((until - offset) // epoch)) * epoch) + offset
+    return (((until - offset) // epoch) * epoch) + offset
 
 
 def parse_epoch(string: str) -> int:
@@ -29,9 +29,9 @@ def get_tagged_revisions(pattern: str) -> Iterator[Tuple[str, str, int]]:
     git = get_git_cmd(wpt_root)
     args = [
         pattern,
-        u'--sort=-committerdate',
-        u'--format=%(refname:lstrip=2) %(objectname) %(committerdate:raw)',
-        u'--count=100000'
+        '--sort=-committerdate',
+        '--format=%(refname:lstrip=2) %(objectname) %(committerdate:raw)',
+        '--count=100000'
     ]
     ref_list = git("for-each-ref", *args)  # type: ignore
     for line in ref_list.splitlines():

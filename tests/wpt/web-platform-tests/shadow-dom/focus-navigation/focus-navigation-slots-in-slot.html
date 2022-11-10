@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<script src="resources/focus-utils.js"></script>
+<p>Tests for moving focus by pressing tab key across nodes in slot scope.<br>
+
+<button id="b1">outside</button>
+<div id='host'>
+  <template data-mode='open'>
+    <slot></slot>
+  </template>
+  <slot>
+    <button id="1A">single nested slot</button>
+    <button id="1B">single nested slot</button>
+  </slot>
+  <slot>
+    <button id="1C">single nested slot</button>
+  </slot>
+  <slot>
+    <slot>
+      <button id="2A">double nested slot</button>
+      <button id="2B">double nested slot</button>
+    </slot>
+  </slot>
+  <slot>
+    <button id="3A">single nested slot</button>
+    <slot>
+      <button id="3B">double nested slot</button>
+      <slot>
+        <button id="3C">Triple nested slot</button>
+        <button id="3D">Triple nested slot</button>
+      </slot>
+      <button id="3E">double nested slot</button>
+    </slot>
+    <button id="3F">single nested slot</button>
+  </slot>
+</div>
+<button id="b2">outside</button>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  convertTemplatesToShadowRootsWithin(host);
+
+  let elements = [
+    'b1',
+    '1A',
+    '1B',
+    '1C',
+    '2A',
+    '2B',
+    '3A',
+    '3B',
+    '3C',
+    '3D',
+    '3E',
+    '3F',
+    'b2',
+  ];
+
+  await assert_focus_navigation_forward(elements);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements);
+}, 'Focus should cover assigned nodes of slot, especially for nested slots in slot scope.');
+
+</script>

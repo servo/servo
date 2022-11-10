@@ -20,11 +20,6 @@ const cross_origin = {
   name: "Cross origin"
 };
 
-function reportToken() {
-  // Report endpoint name must start with lower case alphabet.
-  return token().replace(/./, 'a');
-}
-
 // Tests the redirect interaction with COOP same-origin-allow-popups and
 // reporting:
 // 1 - open the opener document on origin same_origin wit COOP

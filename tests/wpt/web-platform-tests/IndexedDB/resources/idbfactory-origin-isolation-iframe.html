@@ -40,7 +40,7 @@ async function run() {
     openRequest.result.createObjectStore('s');
   };
   openRequest.onsuccess = () => {
-    var tx = openRequest.result.transaction('s');
+    var tx = openRequest.result.transaction('s', 'readonly', {durability: 'relaxed'});
     keep_alive(tx, 's');
     window.parent.postMessage("keep_alive_started", "*");
   };

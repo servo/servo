@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using invalid color() function syntax</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#color-function">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-color-function-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-color-function-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb" ]) {
+    test_invalid_value("color", `color(${colorSpace} 0 0 0 0)`);
+    test_invalid_value("color", `color(${colorSpace} 0deg 0% 0)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0 1)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0 10%)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0% 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 40% 0 0deg)`);
+}
+
+for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
+    test_invalid_value("color", `color(${colorSpace} 0 0 0 0)`);
+    test_invalid_value("color", `color(${colorSpace} 0deg 0% 0)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0 1)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0 10%)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 0% 0% 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 40% 0 0deg)`);
+}
+
+test_invalid_value("color", "color()");  // Empty
+test_invalid_value("color", "color(banana 1 1 1)");  // Bad color space
+test_invalid_value("color", "color(displayp3 1 1 1)");  // Bad Display P3 color space
+test_invalid_value("color", "color(1 1 1)");  // No color space
+test_invalid_value("color", "color(srgb 1 1 1 1)");  // Too many parameters
+test_invalid_value("color", "color(srgb 1 1 1 1 1)");  // Way too many parameters
+test_invalid_value("color", "color(srgb 1 eggs 1)");  // Bad parameters
+test_invalid_value("color", "color(srgb 1 1 1 / bacon)");  // Bad alpha
+test_invalid_value("color", "color(srgb 1 1 1 / 1 cucumber)");  // Junk after alpha
+</script>
+</body>
+</html>
