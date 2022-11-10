@@ -17,7 +17,7 @@ use crate::values::{specified, CSSFloat};
 use crate::Zero;
 use app_units::Au;
 use std::fmt::{self, Write};
-use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Rem, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 use style_traits::{CSSPixel, CssWriter, ToCss};
 
 pub use super::image::Image;
@@ -399,15 +399,6 @@ impl Neg for CSSPixelLength {
     #[inline]
     fn neg(self) -> Self {
         CSSPixelLength::new(-self.0)
-    }
-}
-
-impl Rem for CSSPixelLength {
-    type Output = Self;
-
-    #[inline]
-    fn rem(self, other: Self) -> Self {
-        CSSPixelLength::new(self.0 % other.0)
     }
 }
 
