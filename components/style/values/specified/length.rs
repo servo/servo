@@ -22,7 +22,7 @@ use crate::{Zero, ZeroNoPercent};
 use app_units::Au;
 use cssparser::{Parser, Token};
 use std::cmp;
-use std::ops::{Add, Mul, Rem, Sub};
+use std::ops::{Add, Mul, Sub};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
@@ -756,24 +756,6 @@ impl Sub<AbsoluteLength> for AbsoluteLength {
             (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(x - y),
             (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(x - y),
             _ => AbsoluteLength::Px(self.to_px() - rhs.to_px()),
-        }
-    }
-}
-
-impl Rem<AbsoluteLength> for AbsoluteLength {
-    type Output = Self;
-
-    #[inline]
-    fn rem(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (AbsoluteLength::Px(x), AbsoluteLength::Px(y)) => AbsoluteLength::Px(x % y),
-            (AbsoluteLength::In(x), AbsoluteLength::In(y)) => AbsoluteLength::In(x % y),
-            (AbsoluteLength::Cm(x), AbsoluteLength::Cm(y)) => AbsoluteLength::Cm(x % y),
-            (AbsoluteLength::Mm(x), AbsoluteLength::Mm(y)) => AbsoluteLength::Mm(x % y),
-            (AbsoluteLength::Q(x), AbsoluteLength::Q(y)) => AbsoluteLength::Q(x % y),
-            (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(x % y),
-            (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(x % y),
-            _ => AbsoluteLength::Px(self.to_px() % rhs.to_px()),
         }
     }
 }
