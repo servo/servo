@@ -39,8 +39,9 @@ For concrete examples, see
 and
 [executor.html](../../html/browsers/browsing-the-web/back-forward-cache/resources/executor.html)
 in back-forward cache tests.
-Note that executor files under `/common/dispatcher/` are NOT for
-`RemoteContext.execute_script()`.
+
+Note that `executor*` files under `/common/dispatcher/` are NOT for
+`RemoteContext.execute_script()`. Use `remote-executor.html` instead.
 
 This is universal and avoids introducing many specific `XXX-helper.html`
 resources.
@@ -89,9 +90,26 @@ active (for example before it is created, before navigation to the page, or
 during the page is in back-forward cache), the injected script is evaluated
 after the remote context becomes active.
 
-`RemoteContext.execute_script()` calls should be serialized by always waiting
-for the returned promise to be resolved.
-So it's a good practice to always write `await ctx.execute_script(...)`.
+Multiple calls to `RemoteContext.execute_script()` will result in multiple scripts
+being executed in remote context and ordering will be maintained.
+
+## Errors from `execute_script()`
+
+Errors from `execute_script()` will result in promise rejections, so it is
+important to await the result.  This can be `await ctx.execute_script(...)` for
+every call but if there are multiple scripts to executed, it may be preferable
+to wait on them in parallel to avoid incurring full round-trip time for each,
+e.g.
+
+```js
+await Promise.all(
+  ctx1.execute_script(...),
+  ctx1.execute_script(...),
+  ctx2.execute_script(...),
+  ctx2.execute_script(...),
+  ...
+)
+```
 
 ## Evaluation timing of injected functions
 

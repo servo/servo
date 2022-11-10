@@ -13,6 +13,14 @@
       title: "__Secure: Non-secure origin: Should not set 'Path=/;" + extraParams + "'"
     });
 
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__SeCuRe-",
+      params: "Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__SeCuRe: Non-secure origin: Should not set 'Path=/;" + extraParams + "'"
+    });
+
     // With 'secure'
     set_prefixed_cookie_via_dom_test({
       prefix: "__Secure-",
@@ -20,6 +28,14 @@
       shouldExistInDOM: false,
       shouldExistViaHTTP: false,
       title: "__Secure: Non-secure origin: Should not set 'Secure; Path=/;" + extraParams + "'"
+    });
+
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__SeCuRe-",
+      params: "Secure; Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__SeCuRe: Non-secure origin: Should not set 'Secure; Path=/;" + extraParams + "'"
     });
   });
 </script>

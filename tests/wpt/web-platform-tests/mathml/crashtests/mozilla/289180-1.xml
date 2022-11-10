@@ -1,0 +1,16 @@
+
+
+    <math xmlns="http://www.w3.org/1998/Math/MathML" mode="inline">
+      <mfrac>
+        <mi>x</mi>
+        <mi>y</mi>
+      </mfrac>
+    </math>
+    <math xmlns="http://www.w3.org/1998/Math/MathML" mode="display">
+      <mfrac>
+
+        <mi>x</mi>
+        <mi>y</mi>
+      </mfrac>
+    </math>
+

@@ -1,3 +1,0 @@
-Content-Security-Policy: script-src 'nonce-abc'
-Link: </preload/resources/dummy.js?from-header&without-nonce>;rel=preload;as=script
-Link: </preload/resources/dummy.js?from-header&with-nonce>;rel=preload;as=script;nonce=abc

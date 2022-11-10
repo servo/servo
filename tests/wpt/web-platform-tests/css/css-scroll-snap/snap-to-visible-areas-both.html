@@ -54,7 +54,7 @@ div {
   <div id="right-top" class="snap"></div>
 </div>
 <script>
-test(() => {
+test(t => {
   const scroller = document.getElementById("scroller");
   scroller.scrollTo(0, 0);
   assert_equals(scroller.scrollLeft, 0);

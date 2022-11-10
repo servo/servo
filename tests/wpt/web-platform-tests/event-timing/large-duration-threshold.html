@@ -10,7 +10,7 @@
 <div id='myDiv'>Click me</div>
 <script>
 promise_test(async t => {
-  return testDuration(t, 'myDiv', numEntries=2, dur=125, fastDur=70, slowDur=140);
+  return testDuration(t, 'myDiv', numEntries=2, dur=125, slowDur=140);
 }, "PerformanceObserver observes events according to its durationThreshold");
 </script>
 </html>

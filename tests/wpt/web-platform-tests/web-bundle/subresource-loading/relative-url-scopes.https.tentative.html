@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>Subresource loading using relative URLs in the 'scopes'</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+
+<script>
+  setup(() => {
+    assert_true(HTMLScriptElement.supports("webbundle"));
+  });
+</script>
+<body>
+  <script>
+    let script;
+
+    function cleanUp() {
+      if (script) {
+        script.remove();
+      }
+    }
+
+    function createScriptWebBundle(scope) {
+      return createWebBundleElement(
+        "../resources/wbn/relative-url.wbn",
+        /*resources=*/ [],
+        { scopes: [scope] }
+      );
+    }
+
+    async function assertResourceCanBeFetched() {
+      const response = await fetch(
+        "../resources/wbn/relative-url/subdirectory-path.js"
+      );
+      const text = await response.text();
+      assert_equals(text, "scriptLoaded('subdirectory-path.js');");
+    }
+
+    async function assertResourceNotFound() {
+      const response = await fetch(
+        "../resources/wbn/relative-url/subdirectory-path.js"
+      );
+      const status = await response.status;
+      assert_equals(status, 404);
+    }
+
+    promise_test(async (t) => {
+      t.add_cleanup(cleanUp);
+      script = createScriptWebBundle("relative-url");
+      document.body.append(script);
+      await assertResourceCanBeFetched();
+    }, "A relative URL, 'relative-url', should be resolved on the bundle's URL");
+
+    promise_test(async (t) => {
+      t.add_cleanup(cleanUp);
+      script = createScriptWebBundle("./relative-url");
+      document.body.append(script);
+      await assertResourceCanBeFetched();
+    }, "Use './relative-url', starting with dot");
+
+    promise_test(async (t) => {
+      t.add_cleanup(cleanUp);
+      script = createScriptWebBundle("../wbn/relative-url");
+      document.body.append(script);
+      await assertResourceCanBeFetched();
+    }, "Use '../wbn/relative-url', starting with two dots");
+
+    promise_test(async (t) => {
+      t.add_cleanup(cleanUp);
+      script = createScriptWebBundle("/web-bundle/resources/wbn/relative-url");
+      document.body.append(script);
+      await assertResourceCanBeFetched();
+    }, "Use '/web-bundle/resources/wbn/relative-url', starting with slash");
+
+    promise_test(async (t) => {
+      t.add_cleanup(cleanUp);
+      script = createScriptWebBundle("unrelated-scope");
+      document.body.append(script);
+      await assertResourceNotFound();
+    }, "A resource should not be found");
+  </script>
+</body>

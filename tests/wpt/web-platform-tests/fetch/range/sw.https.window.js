@@ -164,7 +164,7 @@ promise_test(async t => {
     const rangeId = Math.random() + '';
     const rangeBroadcast = awaitMessage(w.navigator.serviceWorker, rangeId);
 
-    // Create a bogus audo element to trick the browser into sending
+    // Create a bogus audio element to trick the browser into sending
     // cross-origin range requests that can be manipulated by the service worker.
     const sound_url = new URL('partial-text.py', w.location);
     sound_url.hostname = REMOTE_HOST;
@@ -173,6 +173,7 @@ promise_test(async t => {
     sound_url.searchParams.set('size', size);
     sound_url.searchParams.set('partial', partialResponseCode);
     sound_url.searchParams.set('id', rangeId);
+    sound_url.searchParams.set('type', 'audio/mp4');
     appendAudio(w.document, sound_url);
 
     // wait for the range requests to happen
@@ -184,6 +185,7 @@ promise_test(async t => {
     const url = new URL('partial-text.py', w.location);
     url.searchParams.set('action', 'use-media-range-request');
     url.searchParams.set('size', size);
+    url.searchParams.set('type', 'audio/mp4');
     counts['size' + size] = 0;
     for (let i = 0; i < count; i++) {
       await preloadImage(url, { doc: w.document });

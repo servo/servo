@@ -21,8 +21,8 @@
             "window.screen.availWidth >= 0 && window.screen.availWidth <= window.screen.width");
         test(function(){assert_true(window.screen.availHeight >= 0 && window.screen.availHeight <= window.screen.height);},
             "window.screen.availHeight >= 0 && window.screen.availHeight <= window.screen.height");
-        test(function(){assert_in_array(window.screen.colorDepth, [0, 16, 24, 32]);},
-            "window.screen.colorDepth == 0 || window.screen.colorDepth == 16 || window.screen.colorDepth == 24 || window.screen.colorDepth == 32");
+        test(function(){assert_in_array(window.screen.colorDepth, [0, 16, 24, 30, 32]);},
+            "window.screen.colorDepth == 0 || window.screen.colorDepth == 16 || window.screen.colorDepth == 24 || window.screen.colorDepth == 30 || window.screen.colorDepth == 32");
         test(function(){assert_equals(window.screen.pixelDepth, window.screen.colorDepth);},
             "window.screen.pixelDepth must return the value returned by window.screen.colorDepth");
         </script>

@@ -1,0 +1,49 @@
+name: Update Plugin List
+
+on:
+  schedule:
+    # At 00:00 on Sunday.
+    # https://crontab.guru
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+# Set permissions at the job level.
+permissions: {}
+
+jobs:
+  createPullRequest:
+    if: github.repository_owner == 'pytest-dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install packaging requests tabulate[widechars] tqdm
+
+      - name: Update Plugin List
+        run: python scripts/update-plugin-list.py
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@2455e1596942c2902952003bbb574afbbe2ab2e6
+        with:
+          commit-message: '[automated] Update plugin list'
+          author: 'pytest bot <pytestbot@users.noreply.github.com>'
+          branch: update-plugin-list/patch
+          delete-branch: true
+          branch-suffix: short-commit-hash
+          title: '[automated] Update plugin list'
+          body: '[automated] Update plugin list'

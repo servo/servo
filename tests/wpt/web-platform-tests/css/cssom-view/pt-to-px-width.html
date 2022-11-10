@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>10pt converted to offset/client/scroll width</title>
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#absolute-lengths">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+/* According to the CSS Values specification 10pt is abour 13.33px. */
+#target { width: 10pt; }
+</style>
+
+<div id="target"></div>
+
+<script>
+test(() => {
+  assert_equals(target.scrollWidth, 13, "scrollWidth");
+  assert_equals(target.offsetWidth, 13, "offsetWidth");
+  assert_equals(target.clientWidth, 13, "clientWidth");
+});
+</script>

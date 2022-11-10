@@ -1,0 +1,43 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="return-value/resources/helpers.js"></script>
+<iframe id="i" src="/common/blank.html?startI" sandbox="allow-same-origin"></iframe>
+<iframe id="i2" src="/common/blank.html?startI2" sandbox="allow-scripts allow-same-origin"></iframe>
+
+<script>
+// Intended setup:
+// Step 0:
+// - Parent: (current URL)
+// - i:      /common/blank.html?startI
+// - i2:     /common/blank.html?startI2
+// Step 1:
+// - Parent: (current URL)
+// - i:      /common/blank.html?startI
+// - i2:     resources/navigation-back.html
+// Step 2:
+// - Parent: (current URL)
+// - i:      /common/blank.html?endI
+// - i2:     resources/navigation-back.html
+//
+// Then, calling navigation.back() in i2 will take is from step 2 to step 0, which would navigate i.
+// That is not allowed, so the call to back() must reject.
+
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+
+  i2.contentWindow.location.href = new URL("resources/navigation-back.html", location.href);
+  await new Promise(resolve => i2.onload = resolve);
+
+  i.contentWindow.location.href = "/common/blank.html?endI";
+  await new Promise(resolve => i.onload = resolve);
+
+  i.contentWindow.navigation.onnavigate = t.unreached_func("navigate must not fire");
+  i.contentWindow.onbeforeunload = t.unreached_func("beforeunload must not fire");
+  i.contentWindow.onunload = t.unreached_func("unload must not fire");
+  i.contentWindow.onpagehide = t.unreached_func("pagehide must not fire");
+  i.contentWindow.onpopstate = t.unreached_func("popstate must not fire");
+
+  await assertBothRejectDOM(t, i2.contentWindow.doNavigationBack(), "SecurityError", i2.contentWindow);
+}, "A sandboxed iframe cannot navigate its sibling via its own navigation object by using back()");
+</script>

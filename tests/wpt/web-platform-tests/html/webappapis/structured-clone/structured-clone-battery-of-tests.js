@@ -254,6 +254,27 @@ check('Object RegExp object, RegExp empty', {'x':new RegExp('')}, compare_Object
 check('Object RegExp object, RegExp slash', {'x':new RegExp('/')}, compare_Object(enumerate_props(compare_RegExp('\\/'))));
 check('Object RegExp object, RegExp new line', {'x':new RegExp('\n')}, compare_Object(enumerate_props(compare_RegExp('\\n'))));
 
+function compare_Error(actual, input) {
+  assert_true(actual instanceof Error, "Checking instanceof");
+  assert_equals(actual.constructor, input.constructor, "Checking constructor");
+  assert_equals(actual.name, input.name, "Checking name");
+  assert_equals(actual.hasOwnProperty("message"), input.hasOwnProperty("message"), "Checking message existence");
+  assert_equals(actual.message, input.message, "Checking message");
+  assert_equals(actual.foo, undefined, "Checking for absence of custom property");
+}
+
+check('Empty Error object', new Error, compare_Error);
+
+const errorConstructors = [Error, EvalError, RangeError, ReferenceError,
+                           SyntaxError, TypeError, URIError];
+for (const constructor of errorConstructors) {
+  check(`${constructor.name} object`, () => {
+    let error = new constructor("Error message here");
+    error.foo = "testing";
+    return error;
+  }, compare_Error);
+}
+
 async function compare_Blob(actual, input, expect_File) {
   if (typeof actual === 'string')
     assert_unreached(actual);
@@ -480,6 +501,23 @@ check('Object with non-configurable property', function() {
   Object.defineProperty(rv, 'foo', {value:'bar', enumerable:true, writable:true, configurable:false});
   return rv;
 }, compare_Object(check_configurable_property('foo')));
+
+structuredCloneBatteryOfTests.push({
+  description: 'Object with a getter that throws',
+  async f(runner, t) {
+    const exception = new Error();
+    const testObject = {
+      get testProperty() {
+        throw exception;
+      }
+    };
+    await promise_rejects_exactly(
+      t,
+      exception,
+      runner.structuredClone(testObject)
+    );
+  }
+});
 
 /* The tests below are inspired by @zcorpan’s work but got some
 more substantial changed due to their previous async setup */

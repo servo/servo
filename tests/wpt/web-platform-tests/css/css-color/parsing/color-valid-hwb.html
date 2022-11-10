@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using valid HWB notation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#the-hwb-notation">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-sRGB-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-sRGB-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("color", "hwb(120 30% 50%)", "rgb(77, 128, 77)");
+test_valid_value("color", "hwb(120 30% 50% / 0.5)", "rgba(77, 128, 77, 0.5)");
+test_valid_value("color", "hwb(none none none)", "rgb(255, 0, 0)");
+test_valid_value("color", "hwb(0 0% 0%)", "rgb(255, 0, 0)");
+test_valid_value("color", "hwb(none none none / none)", "rgba(255, 0, 0, 0)");
+test_valid_value("color", "hwb(0 0% 0% / 0)", "rgba(255, 0, 0, 0)");
+test_valid_value("color", "hwb(120 none none)", "rgb(0, 255, 0)");
+test_valid_value("color", "hwb(120 0% 0%)", "rgb(0, 255, 0)");
+test_valid_value("color", "hwb(120 80% none)", "rgb(204, 255, 204)");
+test_valid_value("color", "hwb(120 80% 0%)", "rgb(204, 255, 204)");
+test_valid_value("color", "hwb(120 none 50%)", "rgb(0, 128, 0)");
+test_valid_value("color", "hwb(120 0% 50%)", "rgb(0, 128, 0)");
+test_valid_value("color", "hwb(120 30% 50% / none)", "rgba(77, 128, 77, 0)");
+test_valid_value("color", "hwb(120 30% 50% / 0)", "rgba(77, 128, 77, 0)");
+test_valid_value("color", "hwb(none 100% 50% / none)", "rgba(170, 170, 170, 0)");
+test_valid_value("color", "hwb(0 100% 50% / 0)", "rgba(170, 170, 170, 0)");
+</script>
+</body>
+</html>

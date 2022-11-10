@@ -1,20 +1,10 @@
 import json
 
 from tests.support.asserts import assert_success
-
+from . import execute_script
 
 _window_id = "window-fcc6-11e5-b4f8-330a88ab9d7f"
 _frame_id = "frame-075b-4da1-b6ba-e579c2d3230a"
-
-
-def execute_script(session, script, args=None):
-    if args is None:
-        args = []
-    body = {"script": script, "args": args}
-
-    return session.transport.send(
-        "POST", "/session/{session_id}/execute/sync".format(**vars(session)),
-        body)
 
 
 def test_initial_window(session):

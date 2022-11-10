@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using valid HSL notation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#the-hsl-notation">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-sRGB-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-sRGB-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("color", "hsl(120 30% 50%)", "rgb(89, 166, 89)");
+test_valid_value("color", "hsl(120 30% 50% / 0.5)", "rgba(89, 166, 89, 0.5)");
+test_valid_value("color", "hsl(none none none)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsl(0 0% 0%)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsl(none none none / none)", "rgba(0, 0, 0, 0)");
+test_valid_value("color", "hsl(0 0% 0% / 0)", "rgba(0, 0, 0, 0)");
+test_valid_value("color", "hsla(none none none)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsla(0 0% 0%)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsla(none none none / none)", "rgba(0, 0, 0, 0)");
+test_valid_value("color", "hsla(0 0% 0% / 0)", "rgba(0, 0, 0, 0)");
+test_valid_value("color", "hsl(120 none none)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsl(120 0% 0%)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsl(120 80% none)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsl(120 80% 0%)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsl(120 none 50%)", "rgb(128, 128, 128)");
+test_valid_value("color", "hsl(120 0% 50%)", "rgb(128, 128, 128)");
+test_valid_value("color", "hsl(120 100% 50% / none)", "rgba(0, 255, 0, 0)");
+test_valid_value("color", "hsl(120 100% 50% / 0)", "rgba(0, 255, 0, 0)");
+test_valid_value("color", "hsl(none 100% 50%)", "rgb(255, 0, 0)");
+test_valid_value("color", "hsl(0 100% 50%)", "rgb(255, 0, 0)");
+</script>
+</body>
+</html>

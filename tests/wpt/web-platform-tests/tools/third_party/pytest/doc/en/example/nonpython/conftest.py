@@ -2,9 +2,9 @@
 import pytest
 
 
-def pytest_collect_file(parent, path):
-    if path.ext == ".yaml" and path.basename.startswith("test"):
-        return YamlFile.from_parent(parent, fspath=path)
+def pytest_collect_file(parent, file_path):
+    if file_path.suffix == ".yaml" and file_path.name.startswith("test"):
+        return YamlFile.from_parent(parent, path=file_path)
 
 
 class YamlFile(pytest.File):
@@ -12,14 +12,14 @@ class YamlFile(pytest.File):
         # We need a yaml parser, e.g. PyYAML.
         import yaml
 
-        raw = yaml.safe_load(self.fspath.open())
+        raw = yaml.safe_load(self.path.open())
         for name, spec in sorted(raw.items()):
             yield YamlItem.from_parent(self, name=name, spec=spec)
 
 
 class YamlItem(pytest.Item):
-    def __init__(self, name, parent, spec):
-        super().__init__(name, parent)
+    def __init__(self, *, spec, **kwargs):
+        super().__init__(**kwargs)
         self.spec = spec
 
     def runtest(self):
@@ -40,7 +40,7 @@ class YamlItem(pytest.Item):
             )
 
     def reportinfo(self):
-        return self.fspath, 0, "usecase: {}".format(self.name)
+        return self.path, 0, f"usecase: {self.name}"
 
 
 class YamlException(Exception):

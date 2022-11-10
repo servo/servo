@@ -1,0 +1,1 @@
+logScript("Sync1");

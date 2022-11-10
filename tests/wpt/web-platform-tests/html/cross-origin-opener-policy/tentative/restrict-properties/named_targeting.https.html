@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+
+<script>
+
+async function createCoopRestrictPropertiesPopup(name) {
+  const popupToken = token();
+  const url = SAME_ORIGIN.origin + '/common/dispatcher/executor.html' +
+    `?uuid=${popupToken}` +
+    '&pipe=|header(Cross-Origin-Opener-Policy, restrict-properties)';
+  const popup = window.open(url, name);
+  add_completion_callback(() => popup.close());
+
+  // Wait for the popup to be loaded.
+  const replyToken = token();
+  send(popupToken, `send('${replyToken}', 'Done loading')`);
+  assert_equals(await receive(replyToken), 'Done loading');
+
+  return popup;
+}
+
+promise_test(async t => {
+  // Open two COOP: restrict-properties popups with the same name.
+  const name = token();
+  const popup1 = await createCoopRestrictPropertiesPopup(name);
+  const popup2 = await createCoopRestrictPropertiesPopup(name);
+
+  // Check that named targeting did not cross isolation boundaries. Two popups
+  // should have been created.
+  assert_not_equals(popup1, popup2,
+    'Named targeting resolved across isolation boundaries');
+}, 'Verify that named targeting does not work across isolation boundaries.');
+
+</script>

@@ -55,7 +55,7 @@ test(function() {
     var ctx = offscreenCanvas.getContext('2d', {alpha: false});
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, 10, 10);
-    _assertPixelApprox(offscreenCanvas, 5,5, 0,127,0,255, "5,5", "0,127,0,255", 2);
+    _assertPixelApprox(offscreenCanvas, 5,5, 0,127,0,255, 2);
 }, "Test that OffscreenCanvasRenderingContext2D with alpha disabled makes the OffscreenCanvas opaque");
 
 test(function() {
@@ -63,7 +63,7 @@ test(function() {
     var ctx = offscreenCanvas.getContext('2d', {alpha: true});
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, 10, 10);
-    _assertPixelApprox(offscreenCanvas, 5,5, 0,255,0,127, "5,5", "0,255,0,127", 2);
+    _assertPixelApprox(offscreenCanvas, 5,5, 0,255,0,127, 2);
 }, "Test that OffscreenCanvasRenderingContext2D with alpha enabled preserves the alpha");
 
 test(function() {
@@ -71,7 +71,7 @@ test(function() {
     var ctx = offscreenCanvas.getContext('2d');
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, 10, 10);
-    _assertPixelApprox(offscreenCanvas, 5,5, 0,255,0,127, "5,5", "0,255,0,127", 2);
+    _assertPixelApprox(offscreenCanvas, 5,5, 0,255,0,127, 2);
 }, "Test that 'alpha' context creation attribute is true by default");
 
 done();

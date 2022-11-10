@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<style>
+  /* These are children with negative block sizes. Absolute values are chosen
+     large enough compared to math layout constants. */
+  span { display: inline-block; }
+  mspace, span {
+    margin-inline-start: -10em;
+    margin-inline-end: -10em;
+  }
+  /* Override display: none; from UA style sheet for the following children. */
+  maction > :not(:first-child),
+  semantics > annotation,
+  semantics > annotation-xml {
+    display: math;
+  }
+</style>
+<math>
+  <mi><span></span></mi>
+  <mn><span></span></mn>
+  <mo><span></span></mo>
+  <ms><span></span></ms>
+  <mtext><span></span></mtext>
+</math>
+<math>
+  <semantics>
+    <mspace/>
+    <annotation><span></span></annotation>
+    <annotation-xml><span></span></annotation-xml>
+  </semantics>
+</math>
+<math>
+  <mtable>
+    <mtr>
+      <mtd><mspace/></mtd>
+      <mtd><mspace/></mtd>
+      <mtd><mspace/></mtd>
+    </mtr>
+    <mtr>
+      <mtd><mspace/></mtd>
+      <mtd><mspace/></mtd>
+      <mtd><mspace/></mtd>
+    </mtr>
+  </mtable>
+</math>
+<math>
+  <mspace/>
+  <mspace/>
+  <mspace/>
+  <mspace/>
+</math>
+<math>
+  <maction>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+  </maction>
+  <merror>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+  </merror>
+  <mpadded>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+  </mpadded>
+  <mphantom>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+  </mphantom>
+  <mstyle>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+  </mstyle>
+</math>
+<math>
+  <mfrac>
+    <mspace/>
+    <mspace/>
+  </mfrac>
+  <mfrac linethickness="0">
+    <mspace/>
+    <mspace/>
+  </mfrac>
+</math>
+<math>
+  <msqrt>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+  </msqrt>
+  <mroot>
+    <mspace/>
+    <mspace/>
+  </mroot>
+</math>
+<math>
+  <msup>
+    <mspace/>
+    <mspace/>
+  </msup>
+  <msub>
+    <mspace/>
+    <mspace/>
+  </msub>
+  <msubsup>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+  </msubsup>
+  <mmultiscripts>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+    <mprescripts/>
+    <mspace/>
+    <mspace/>
+  </mmultiscripts>
+</math>
+<math>
+  <mover>
+    <mspace/>
+    <mspace/>
+  </mover>
+  <munder>
+    <mspace/>
+    <mspace/>
+  </munder>
+  <munderover>
+    <mspace/>
+    <mspace/>
+    <mspace/>
+  </munderover>
+</math>

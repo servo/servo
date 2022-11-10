@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#synthesize-baseline">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; align-items: baseline; writing-mode: vertical-lr; background: red;">
+  <div style="height: 50px; width: 100px; background: green;"></div>
+  <div style="height: 50px; width: 100px; background: green; line-height: 0;">
+    <span style="width: 100px; height: 10px; display: inline-block;"></span>
+  </div>
+</div>

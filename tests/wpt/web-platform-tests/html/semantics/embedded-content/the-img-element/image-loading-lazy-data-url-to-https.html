@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>Lazy loaded Images with data url placeholders can be overwritten by a src change</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#update-the-image-data">
+  <link rel="match" href="image-loading-lazy-data-url-to-https-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+</head>
+
+<body>
+  <img id="image" loading="lazy" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 872 490' width='872' height='490' style='background: green' %3E%3C/svg%3E">
+
+<script>
+  const image = document.querySelector('#image');
+
+  window.onload = function() {
+    // trigger intersection observer through forced layout.
+    image.offsetWidth;
+    image.setAttribute("src", 'resources/image.png');
+    setTimeout(() => { takeScreenshot(); }, 100);
+  };
+</script>
+</body>
+</html>

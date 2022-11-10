@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler: () => Promise.reject(new Error("oh no!")) });
+  });
+
+  window.onunhandledrejection = t.unreached_func("unhandledrejection must not fire");
+
+  location.href = "?1";
+
+  // Make sure to trigger the getter to ensure the promise materializes!
+  navigation.transition.finished;
+
+  t.step_timeout(() => t.done(), 10);
+}, "navigation.transition.finished must not trigger unhandled rejections");
+</script>

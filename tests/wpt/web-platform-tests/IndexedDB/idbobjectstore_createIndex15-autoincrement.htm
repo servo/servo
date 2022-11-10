@@ -4,7 +4,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
   indexeddb_test(
     function(t, db, txn) {
@@ -16,7 +16,7 @@
       store.put({id: 1, num: 100});
     },
     function(t, db) {
-      var store = db.transaction("Store1", "readwrite").objectStore("Store1");
+      var store = db.transaction("Store1", "readwrite", {durability: 'relaxed'}).objectStore("Store1");
 
       store.openCursor().onsuccess = t.step_func(function(e) {
         var item = e.target.result.value;
@@ -39,7 +39,7 @@
       store.put({num: 100});
     },
     function(t, db) {
-      var store = db.transaction("Store2", "readwrite").objectStore("Store2");
+      var store = db.transaction("Store2", "readwrite", {durability: 'relaxed'}).objectStore("Store2");
       store.openCursor().onsuccess = t.step_func(function(e) {
         var item = e.target.result.value;
         store.index("CompoundKey").get([item.num, item.id]).onsuccess = t.step_func(function(e) {
@@ -81,7 +81,7 @@
       store.put({num: num++, other: [{}]});
     },
     function(t, db) {
-      var store = db.transaction("Store3", "readwrite").objectStore("Store3");
+      var store = db.transaction("Store3", "readwrite", {durability: 'relaxed'}).objectStore("Store3");
       const keys = [];
       let count;
       store.count().onsuccess = t.step_func(e => { count = e.target.result; });

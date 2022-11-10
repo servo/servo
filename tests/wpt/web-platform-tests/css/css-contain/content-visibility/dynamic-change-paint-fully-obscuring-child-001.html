@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<title>content-visibility:hidden elements painting with a fully-obscuring child</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1370776">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+
+div { width: 100px; height: 100px; }
+
+.small { height: 50px; }
+
+.hidden { content-visibility: hidden }
+
+.green { background: green; }
+.red { background: red; }
+
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!--
+  This example shows the bug because the child would fully obscure the
+  parent if the parent were not content-visibility: hidden.
+
+  If the child has class="small", then the bug is not present.
+
+-->
+<div class="green">
+  <div class="red"></div>
+</div>
+
+<script>
+
+document.documentElement.addEventListener("TestRendered", function(event) {
+  for (let elt of document.querySelectorAll("body > div")) {
+    elt.classList.add("hidden");
+  }
+  document.documentElement.classList.remove("reftest-wait");
+});
+
+</script>

@@ -340,4 +340,17 @@
     await waitForIceStateChange(pc2, ['connected', 'completed']);
   }, 'sRD(reoffer) with candidates and without trickle works');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('video');
+    const offer = await pc1.createOffer();
+    const srdPromise = pc2.setRemoteDescription(offer);
+    assert_equals(pc2.getTransceivers().length, 0);
+    await srdPromise;
+    assert_equals(pc2.getTransceivers().length, 1);
+  }, 'Transceivers added by sRD(offer) should not show up until sRD resolves');
+
 </script>

@@ -47,7 +47,9 @@ promise_test(async () => {
   async function clickOn(element) {
     const rect = element.getBoundingClientRect();
     const actions = new test_driver.Actions()
-      .pointerMove(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      .pointerMove(
+        Math.floor(rect.left + rect.width / 2),
+        Math.floor(rect.top + rect.height / 2))
       .pointerDown()
       .pointerUp()
       .pointerMove(0, 0);

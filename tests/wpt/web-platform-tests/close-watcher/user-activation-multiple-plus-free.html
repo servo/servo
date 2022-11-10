@@ -1,0 +1,32 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
+
+<div id="d" style="height: 100px; width: 100px;"></div>
+<script>
+
+// This test needs to be separate from user-activation.html since, unlike those,
+// it relies on there not being any lingering user activation from previous
+// tests hanging around. That is, we need to be sure freeWatcher is created with
+// no user activation, to ensure that activationWatcher1 and activationWatcher2
+// get grouped as expected.
+promise_test(async t => {
+  const events = [];
+  createRecordingCloseWatcher(t, events, "freeWatcher");
+
+  await test_driver.bless("create two more CloseWatchers", () => {
+    createRecordingCloseWatcher(t, events, "activationWatcher1");
+    createRecordingCloseWatcher(t, events, "activationWatcher2");
+  });
+
+  await sendCloseSignal();
+  assert_array_equals(events, ["activationWatcher2 close", "activationWatcher1 close"]);
+
+  await sendCloseSignal();
+  assert_array_equals(events, ["activationWatcher2 close", "activationWatcher1 close", "freeWatcher close"]);
+}, "Multiple CloseWatchers created from a single user activation close together, but original free CloseWatcher closes separately");
+</script>

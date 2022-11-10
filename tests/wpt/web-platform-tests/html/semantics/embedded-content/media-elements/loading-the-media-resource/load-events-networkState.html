@@ -5,6 +5,8 @@
 <script src="/common/media.js"></script>
 <div id=log></div>
 <script>
+// Load media resource
+// https://html.spec.whatwg.org/multipage/media.html#loading-the-media-resource
 function load_test(t, v) {
   assert_not_equals(v.networkState, v.NETWORK_EMPTY);
 
@@ -12,12 +14,17 @@ function load_test(t, v) {
   if (v.networkState == v.NETWORK_LOADING || v.networkState == v.NETWORK_IDLE) {
     expected_events.push('abort');
   }
+
   if (v.networkState != v.NETWORK_EMPTY) {
     expected_events.push('emptied');
   }
 
+  if (v.currentTime != 0.0) {
+    expected_events.push('timeupdate');
+  }
+
   var actual_events = [];
-  v.onabort = v.onemptied = t.step_func(function(e) {
+  v.onabort = v.onemptied = v.ontimeupdate = t.step_func(function(e) {
     actual_events.push(e.type);
   });
 
@@ -44,6 +51,21 @@ async_test(function(t) {
     load_test(t, v);
   });
 }, 'NETWORK_IDLE');
+
+// Test if media element receives `emptied` before `timeupdate`
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.src = getAudioURI('/media/sound_5');
+  v.onerror = t.unreached_func();
+  v.onloadeddata = t.step_func(function() {
+    v.onloadeddata = null;
+    assert_not_equals(v.networkState, v.NETWORK_EMPTY);
+    // Modify current time to ensure that loading would trigger `timeupdate` by
+    // resetting the current time.
+    v.currentTime = 1.0;
+    load_test(t, v);
+  });
+}, 'NETWORK_DISPATCH_EMPTIED_BEFORE_TIMEUPDATE');
 
 async_test(function(t) {
   var v = document.createElement('video');

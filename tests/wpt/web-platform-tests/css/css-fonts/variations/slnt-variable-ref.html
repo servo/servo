@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>CSS Test: Variable fonts with slant axis</title>
+<style>
+  @font-face {
+    font-family: "slnt test font";
+    src: url('resources/FontStyleTest-slnt-VF.woff2');
+    font-style: oblique 0deg 15deg;
+  }
+
+  .test {
+    font-family: "slnt test font";
+    font-size: 3em;
+  }
+
+  .slnt14 {
+    font-variation-settings: 'slnt' -14;
+  }
+
+</style>
+
+<p class="test slnt14">varfont</p>
+<p class="test slnt14">varfont</p>
+<p class="test">varfont</p>

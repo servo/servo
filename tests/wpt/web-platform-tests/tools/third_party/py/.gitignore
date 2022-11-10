@@ -2,6 +2,7 @@
 .cache/
 .tox/
 __pycache__/
+.mypy_cache/
 
 *.pyc
 *.pyo
@@ -10,3 +11,5 @@ __pycache__/
 .eggs/
 
 dist/*
+/py/_version.py
+.pytest_cache/

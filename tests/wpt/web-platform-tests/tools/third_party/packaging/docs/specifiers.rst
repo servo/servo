@@ -48,7 +48,7 @@ Usage
 Reference
 ---------
 
-.. class:: SpecifierSet(specifiers, prereleases=None)
+.. class:: SpecifierSet(specifiers="", prereleases=None)
 
     This class abstracts handling specifying the dependencies of a project. It
     can be passed a single specifier (``>=3.0``), a comma-separated list of

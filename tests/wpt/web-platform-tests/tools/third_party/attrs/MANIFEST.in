@@ -1,12 +1,14 @@
-include LICENSE *.rst *.toml .readthedocs.yml
+include LICENSE *.rst *.toml *.yml *.yaml *.ini
+graft .github
 
-# Don't package GitHub-specific files.
-exclude .github/*.md .travis.yml
+# Stubs
+recursive-include src *.pyi
+recursive-include src py.typed
 
 # Tests
-include tox.ini .coveragerc conftest.py
+include tox.ini conftest.py
 recursive-include tests *.py
-recursive-include .github *.rst
+recursive-include tests *.yml
 
 # Documentation
 include docs/Makefile docs/docutils.conf

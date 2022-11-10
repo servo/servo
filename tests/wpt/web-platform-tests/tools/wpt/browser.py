@@ -1,3 +1,4 @@
+# mypy: allow-untyped-defs
 import os
 import platform
 import re
@@ -8,11 +9,22 @@ import tempfile
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from distutils.spawn import find_executable
-
 from urllib.parse import urlsplit
-import requests
 
-from .utils import call, get, rmtree, untar, unzip, get_download_to_descriptor, sha256sum
+import html5lib
+import requests
+from packaging.specifiers import SpecifierSet
+
+from .utils import (
+    call,
+    get,
+    get_download_to_descriptor,
+    rmtree,
+    sha256sum,
+    untar,
+    unzip,
+)
+from .wpt import venv_dir
 
 uname = platform.uname()
 
@@ -38,6 +50,22 @@ def get_ext(filename):
     return ext
 
 
+def get_download_filename(resp, default=None):
+    """Get the filename from a requests.Response, or default"""
+    filename = None
+
+    content_disposition = resp.headers.get("content-disposition")
+    if content_disposition:
+        filenames = re.findall("filename=(.+)", content_disposition)
+        if filenames:
+            filename = filenames[0]
+
+    if not filename:
+        filename = urlsplit(resp.url).path.rsplit("/", 1)[1]
+
+    return filename or default
+
+
 def get_taskcluster_artifact(index, path):
     TC_INDEX_BASE = FIREFOX_CI_ROOT_URL + "/api/index/v1/"
 
@@ -47,16 +75,16 @@ def get_taskcluster_artifact(index, path):
     return resp
 
 
-class Browser(object):
+class Browser:
     __metaclass__ = ABCMeta
 
     def __init__(self, logger):
         self.logger = logger
 
-    def _get_dest(self, dest, channel):
+    def _get_browser_binary_dir(self, dest, channel):
         if dest is None:
             # os.getcwd() doesn't include the venv path
-            dest = os.path.join(os.getcwd(), "_venv")
+            dest = os.path.join(os.getcwd(), venv_dir())
 
         dest = os.path.join(dest, "browsers", channel)
 
@@ -153,6 +181,8 @@ class Firefox(Browser):
 
         if self.platform in ("linux", "win"):
             bits = "64" if uname[4] == "x86_64" else "32"
+        elif self.platform == "macos" and uname.machine == "arm64":
+            bits = "-aarch64"
         else:
             bits = ""
 
@@ -175,7 +205,7 @@ class Firefox(Browser):
         os_key = (self.platform, uname[4])
 
         if dest is None:
-            dest = self._get_dest(None, channel)
+            dest = self._get_browser_binary_dir(None, channel)
 
         if channel not in product:
             raise ValueError("Unrecognised release channel: %s" % channel)
@@ -188,19 +218,7 @@ class Firefox(Browser):
         self.logger.info("Downloading Firefox from %s" % url)
         resp = get(url)
 
-        filename = None
-
-        content_disposition = resp.headers.get('content-disposition')
-        if content_disposition:
-            filenames = re.findall("filename=(.+)", content_disposition)
-            if filenames:
-                filename = filenames[0]
-
-        if not filename:
-            filename = urlsplit(resp.url).path.rsplit("/", 1)[1]
-
-        if not filename:
-            filename = "firefox.tar.bz2"
+        filename = get_download_filename(resp, "firefox.tar.bz2")
 
         if rename:
             filename = "%s%s" % (rename, get_ext(filename))
@@ -216,7 +234,7 @@ class Firefox(Browser):
         """Install Firefox."""
         import mozinstall
 
-        dest = self._get_dest(dest, channel)
+        dest = self._get_browser_binary_dir(dest, channel)
 
         filename = os.path.basename(dest)
 
@@ -240,8 +258,7 @@ class Firefox(Browser):
         """Looks for the firefox binary in the virtual environment"""
 
         if path is None:
-            # os.getcwd() doesn't include the venv path
-            path = os.path.join(os.getcwd(), "_venv", "browsers", channel)
+            path = self._get_browser_binary_dir(None, channel)
 
         binary = None
 
@@ -261,10 +278,8 @@ class Firefox(Browser):
         return binary
 
     def find_binary(self, venv_path=None, channel="nightly"):
-        if venv_path is None:
-            venv_path = os.path.join(os.getcwd(), "_venv")
 
-        path = os.path.join(venv_path, "browsers", channel)
+        path = self._get_browser_binary_dir(venv_path, channel)
         binary = self.find_binary_path(path, channel)
 
         if not binary and self.platform == "win":
@@ -475,7 +490,7 @@ class FirefoxAndroid(Browser):
     requirements = "requirements_firefox.txt"
 
     def __init__(self, logger):
-        super(FirefoxAndroid, self).__init__(logger)
+        super().__init__(logger)
         self.apk_path = None
 
     def download(self, dest=None, channel=None, rename=None):
@@ -516,59 +531,150 @@ class FirefoxAndroid(Browser):
         return None
 
 
-class Chrome(Browser):
-    """Chrome-specific interface.
+class ChromeChromiumBase(Browser):
+    """
+    Chrome/Chromium base Browser class for shared functionality between Chrome and Chromium
 
-    Includes webdriver installation, and wptrunner setup methods.
+    For a detailed description on the installation and detection of these browser components,
+    see https://web-platform-tests.org/running-tests/chrome-chromium-installation-detection.html
     """
 
-    product = "chrome"
-    requirements = "requirements_chrome.txt"
-    platforms = {
+    requirements = "requirements_chromium.txt"
+    platform = {
         "Linux": "Linux",
         "Windows": "Win",
         "Darwin": "Mac",
-    }
+    }.get(uname[0])
 
-    def __init__(self, logger):
-        super(Chrome, self).__init__(logger)
-        self._last_change = None
+    def _build_snapshots_url(self, revision, filename):
+        return ("https://storage.googleapis.com/chromium-browser-snapshots/"
+                f"{self._chromium_platform_string}/{revision}/{filename}")
 
-    def download(self, dest=None, channel=None, rename=None):
-        if channel != "nightly":
-            raise NotImplementedError("We can only download Chrome Nightly (Chromium ToT) for you.")
-        if dest is None:
-            dest = self._get_dest(None, channel)
+    def _get_latest_chromium_revision(self):
+        """Returns latest Chromium revision available for download."""
+        # This is only used if the user explicitly passes "latest" for the revision flag.
+        # The pinned revision is used by default to avoid unexpected failures as versions update.
+        revision_url = ("https://storage.googleapis.com/chromium-browser-snapshots/"
+                        f"{self._chromium_platform_string}/LAST_CHANGE")
+        return get(revision_url).text.strip()
 
-        filename = self._chromium_package_name() + ".zip"
-        url = self._latest_chromium_snapshot_url() + filename
-        self.logger.info("Downloading Chrome from %s" % url)
-        resp = get(url)
-        installer_path = os.path.join(dest, filename)
-        with open(installer_path, "wb") as f:
-            f.write(resp.content)
-        return installer_path
+    def _get_pinned_chromium_revision(self):
+        """Returns the pinned Chromium revision number."""
+        return get("https://storage.googleapis.com/wpt-versions/pinned_chromium_revision").text.strip()
 
-    def install(self, dest=None, channel=None):
-        if channel != "nightly":
-            raise NotImplementedError("We can only install Chrome Nightly (Chromium ToT) for you.")
-        dest = self._get_dest(dest, channel)
+    def _get_chromium_revision(self, filename=None, version=None):
+        """Retrieve a valid Chromium revision to download a browser component."""
 
-        installer_path = self.download(dest, channel)
-        with open(installer_path, "rb") as f:
-            unzip(f, dest)
-        os.remove(installer_path)
-        return self.find_nightly_binary(dest)
+        # If a specific version is passed as an argument, we will use it.
+        if version is not None:
+            # Detect a revision number based on the version passed.
+            revision = self._get_base_revision_from_version(version)
+            if revision is not None:
+                # File name is needed to test if request is valid.
+                url = self._build_snapshots_url(revision, filename)
+                try:
+                    # Check the status without downloading the content (this is a streaming request).
+                    get(url)
+                    return revision
+                except requests.RequestException:
+                    self.logger.warning("404: Unsuccessful attempt to download file "
+                                        f"based on version. {url}")
+        # If no URL was used in a previous install
+        # and no version was passed, use the pinned Chromium revision.
+        revision = self._get_pinned_chromium_revision()
 
-    def install_mojojs(self, dest, channel, browser_binary):
-        if channel == "nightly" or channel == "canary":
-            url = self._latest_chromium_snapshot_url() + "mojojs.zip"
-        else:
-            chrome_version = self.version(binary=browser_binary)
-            assert chrome_version, "Cannot determine the version of Chrome"
-            # Remove channel suffixes (e.g. " dev").
-            chrome_version = chrome_version.split(' ')[0]
-            url = "https://storage.googleapis.com/chrome-wpt-mojom/%s/linux64/mojojs.zip" % chrome_version
+        # If the url is successfully used to download/install, it will be used again
+        # if another component is also installed during this run (browser/webdriver).
+        return revision
+
+    def _get_base_revision_from_version(self, version):
+        """Get a Chromium revision number that is associated with a given version."""
+        # This is not the single revision associated with the version,
+        #     but instead is where it branched from. Chromium revisions are just counting
+        #     commits on the master branch, there are no Chromium revisions for branches.
+
+        version = self._remove_version_suffix(version)
+
+        # Try to find the Chromium build with the same revision.
+        try:
+            omaha = get(f"https://omahaproxy.appspot.com/deps.json?version={version}").json()
+            detected_revision = omaha['chromium_base_position']
+            return detected_revision
+        except requests.RequestException:
+            self.logger.debug("Unsuccessful attempt to detect revision based on version")
+        return None
+
+    def _remove_existing_chromedriver_binary(self, path):
+        """Remove an existing ChromeDriver for this product if it exists
+        in the virtual environment.
+        """
+        # There may be an existing chromedriver binary from a previous install.
+        # To provide a clean install experience, remove the old binary - this
+        # avoids tricky issues like unzipping over a read-only file.
+        existing_chromedriver_path = find_executable("chromedriver", path)
+        if existing_chromedriver_path:
+            self.logger.info(f"Removing existing ChromeDriver binary: {existing_chromedriver_path}")
+            os.chmod(existing_chromedriver_path, stat.S_IWUSR)
+            os.remove(existing_chromedriver_path)
+
+    def _remove_version_suffix(self, version):
+        """Removes channel suffixes from Chrome/Chromium version string (e.g. " dev")."""
+        return version.split(' ')[0]
+
+    @property
+    def _chromedriver_platform_string(self):
+        """Returns a string that represents the suffix of the ChromeDriver
+        file name when downloaded from Chromium Snapshots.
+        """
+        if self.platform == "Linux":
+            bits = "64" if uname[4] == "x86_64" else "32"
+        elif self.platform == "Mac":
+            bits = "64"
+        elif self.platform == "Win":
+            bits = "32"
+        return f"{self.platform.lower()}{bits}"
+
+    @property
+    def _chromium_platform_string(self):
+        """Returns a string that is used for the platform directory in Chromium Snapshots"""
+        if (self.platform == "Linux" or self.platform == "Win") and uname[4] == "x86_64":
+            return f"{self.platform}_x64"
+        if self.platform == "Mac" and uname.machine == "arm64":
+            return "Mac_Arm"
+        return self.platform
+
+    def find_webdriver(self, venv_path=None, channel=None, browser_binary=None):
+        if venv_path:
+            venv_path = os.path.join(venv_path, self.product)
+        return find_executable("chromedriver", path=venv_path)
+
+    def install_mojojs(self, dest, browser_binary):
+        """Install MojoJS web framework."""
+        # MojoJS is platform agnostic, but the version number must be an
+        # exact match of the Chrome/Chromium version to be compatible.
+        chrome_version = self.version(binary=browser_binary)
+        if not chrome_version:
+            return None
+        chrome_version = self._remove_version_suffix(chrome_version)
+
+        try:
+            # MojoJS version url must match the browser binary version exactly.
+            url = ("https://storage.googleapis.com/chrome-wpt-mojom/"
+                   f"{chrome_version}/linux64/mojojs.zip")
+            # Check the status without downloading the content (this is a streaming request).
+            get(url)
+        except requests.RequestException:
+            # If a valid matching version cannot be found in the wpt archive,
+            # download from Chromium snapshots bucket. However,
+            # MojoJS is only bundled with Linux from Chromium snapshots.
+            if self.platform == "Linux":
+                filename = "mojojs.zip"
+                revision = self._get_chromium_revision(filename, chrome_version)
+                url = self._build_snapshots_url(revision, filename)
+            else:
+                self.logger.error("A valid MojoJS version cannot be found "
+                                  f"for browser binary version {chrome_version}.")
+                return None
 
         extracted = os.path.join(dest, "mojojs", "gen")
         last_url_file = os.path.join(extracted, "DOWNLOADED_FROM")
@@ -580,61 +686,260 @@ class Chrome(Browser):
                 return extracted
             rmtree(extracted)
 
-        self.logger.info("Downloading Mojo bindings from %s" % url)
+        try:
+            self.logger.info(f"Downloading Mojo bindings from {url}")
+            unzip(get(url).raw, dest)
+            with open(last_url_file, "wt") as f:
+                f.write(url)
+            return extracted
+        except Exception as e:
+            self.logger.error(f"Cannot enable MojoJS: {e}")
+            return None
+
+    def install_webdriver_by_version(self, version, dest, revision=None):
+        dest = os.path.join(dest, self.product)
+        self._remove_existing_chromedriver_binary(dest)
+        # _get_webdriver_url is implemented differently for Chrome and Chromium because
+        # they download their respective versions of ChromeDriver from different sources.
+        url = self._get_webdriver_url(version, revision)
+        self.logger.info(f"Downloading ChromeDriver from {url}")
         unzip(get(url).raw, dest)
-        with open(last_url_file, "wt") as f:
-            f.write(url)
-        return extracted
 
-    def _chromedriver_platform_string(self):
-        platform = self.platforms.get(uname[0])
+        # The two sources of ChromeDriver have different zip structures:
+        # * Chromium archives the binary inside a chromedriver_* directory;
+        # * Chrome archives the binary directly.
+        # We want to make sure the binary always ends up directly in bin/.
+        chromedriver_dir = os.path.join(dest,
+                                        f"chromedriver_{self._chromedriver_platform_string}")
+        chromedriver_path = find_executable("chromedriver", chromedriver_dir)
+        if chromedriver_path is not None:
+            shutil.move(chromedriver_path, dest)
+            rmtree(chromedriver_dir)
 
-        if platform is None:
-            raise ValueError("Unable to construct a valid Chrome package name for current platform")
-        platform = platform.lower()
+        chromedriver_path = find_executable("chromedriver", dest)
+        assert chromedriver_path is not None
+        return chromedriver_path
 
-        if platform == "linux":
-            bits = "64" if uname[4] == "x86_64" else "32"
-        elif platform == "mac":
-            bits = "64"
-        elif platform == "win":
-            bits = "32"
+    def version(self, binary=None, webdriver_binary=None):
+        if not binary:
+            self.logger.warning("No browser binary provided.")
+            return None
 
-        return "%s%s" % (platform, bits)
+        if uname[0] == "Windows":
+            return _get_fileversion(binary, self.logger)
 
-    def _chromium_platform_string(self):
-        platform = self.platforms.get(uname[0])
+        try:
+            version_string = call(binary, "--version").strip()
+        except (subprocess.CalledProcessError, OSError) as e:
+            self.logger.warning(f"Failed to call {binary}: {e}")
+            return None
+        m = re.match(r"(?:Google Chrome|Chromium) (.*)", version_string)
+        if not m:
+            self.logger.warning(f"Failed to extract version from: {version_string}")
+            return None
+        return m.group(1)
 
-        if platform is None:
-            raise ValueError("Unable to construct a valid Chromium package name for current platform")
+    def webdriver_version(self, webdriver_binary):
+        if webdriver_binary is None:
+            self.logger.warning("No valid webdriver supplied to detect version.")
+            return None
 
-        if (platform == "Linux" or platform == "Win") and uname[4] == "x86_64":
-            platform += "_x64"
+        try:
+            version_string = call(webdriver_binary, "--version").strip()
+        except (subprocess.CalledProcessError, OSError) as e:
+            self.logger.warning(f"Failed to call {webdriver_binary}: {e}")
+            return None
+        m = re.match(r"ChromeDriver ([0-9][0-9.]*)", version_string)
+        if not m:
+            self.logger.warning(f"Failed to extract version from: {version_string}")
+            return None
+        return m.group(1)
 
-        return platform
 
+class Chromium(ChromeChromiumBase):
+    """Chromium-specific interface.
+
+    Includes browser binary installation and detection.
+    Webdriver installation and wptrunner setup shared in base class with Chrome
+
+    For a detailed description on the installation and detection of these browser components,
+    see https://web-platform-tests.org/running-tests/chrome-chromium-installation-detection.html
+    """
+    product = "chromium"
+
+    @property
     def _chromium_package_name(self):
-        return "chrome-%s" % self.platforms.get(uname[0]).lower()
+        return f"chrome-{self.platform.lower()}"
 
-    def _latest_chromium_snapshot_url(self):
-        # Make sure we use the same revision in an invocation.
-        architecture = self._chromium_platform_string()
-        if self._last_change is None:
-            revision_url = "https://storage.googleapis.com/chromium-browser-snapshots/%s/LAST_CHANGE" % architecture
-            self._last_change = get(revision_url).text.strip()
-        return "https://storage.googleapis.com/chromium-browser-snapshots/%s/%s/" % (architecture, self._last_change)
+    def _get_existing_browser_revision(self, venv_path, channel):
+        revision = None
+        try:
+            # A file referencing the revision number is saved with the binary.
+            # Check if this revision number exists and use it if it does.
+            path = os.path.join(self._get_browser_binary_dir(None, channel), "revision")
+            with open(path) as f:
+                revision = f.read().strip()
+        except FileNotFoundError:
+            # If there is no information about the revision downloaded,
+            # use the pinned revision.
+            revision = self._get_pinned_chromium_revision()
+        return revision
 
-    def find_nightly_binary(self, dest):
+    def _find_binary_in_directory(self, directory):
+        """Search for Chromium browser binary in a given directory."""
         if uname[0] == "Darwin":
-            return find_executable("Chromium",
-                                   os.path.join(dest, self._chromium_package_name(), "Chromium.app", "Contents", "MacOS"))
+            return find_executable("Chromium", os.path.join(directory,
+                                                            self._chromium_package_name,
+                                                            "Chromium.app",
+                                                            "Contents",
+                                                            "MacOS"))
         # find_executable will add .exe on Windows automatically.
-        return find_executable("chrome", os.path.join(dest, self._chromium_package_name()))
+        return find_executable("chrome", os.path.join(directory, self._chromium_package_name))
+
+    def _get_webdriver_url(self, version, revision=None):
+        """Get Chromium Snapshots url to download Chromium ChromeDriver."""
+        filename = f"chromedriver_{self._chromedriver_platform_string}.zip"
+
+        # Make sure we use the same revision in an invocation.
+        # If we have a url that was last used successfully during this run,
+        # that url takes priority over trying to form another.
+        if hasattr(self, "last_revision_used") and self.last_revision_used is not None:
+            return self._build_snapshots_url(self.last_revision_used, filename)
+        if revision is None:
+            revision = self._get_chromium_revision(filename, version)
+        elif revision == "latest":
+            revision = self._get_latest_chromium_revision()
+        elif revision == "pinned":
+            revision = self._get_pinned_chromium_revision()
+
+        return self._build_snapshots_url(revision, filename)
+
+    def download(self, dest=None, channel=None, rename=None, version=None, revision=None):
+        if dest is None:
+            dest = self._get_browser_binary_dir(None, channel)
+
+        filename = f"{self._chromium_package_name}.zip"
+
+        if revision is None:
+            revision = self._get_chromium_revision(filename, version)
+        elif revision == "latest":
+            revision = self._get_latest_chromium_revision()
+        elif revision == "pinned":
+            revision = self._get_pinned_chromium_revision()
+
+        url = self._build_snapshots_url(revision, filename)
+        self.logger.info(f"Downloading Chromium from {url}")
+        resp = get(url)
+        installer_path = os.path.join(dest, filename)
+        with open(installer_path, "wb") as f:
+            f.write(resp.content)
+
+        # Revision successfully used. Keep this revision if another component install is needed.
+        self.last_revision_used = revision
+        with open(os.path.join(dest, "revision"), "w") as f:
+            f.write(revision)
+        return installer_path
 
     def find_binary(self, venv_path=None, channel=None):
-        if channel == "nightly":
-            return self.find_nightly_binary(self._get_dest(venv_path, channel))
+        return self._find_binary_in_directory(self._get_browser_binary_dir(venv_path, channel))
 
+    def install(self, dest=None, channel=None, version=None, revision=None):
+        dest = self._get_browser_binary_dir(dest, channel)
+        installer_path = self.download(dest, channel, version=version, revision=revision)
+        with open(installer_path, "rb") as f:
+            unzip(f, dest)
+        os.remove(installer_path)
+        return self._find_binary_in_directory(dest)
+
+    def install_webdriver(self, dest=None, channel=None, browser_binary=None, revision=None):
+        if dest is None:
+            dest = os.pwd
+
+        if revision is None:
+            # If a revision was not given, we will need to detect the browser version.
+            # The ChromeDriver that is installed will match this version.
+            revision = self._get_existing_browser_revision(dest, channel)
+
+        chromedriver_path = self.install_webdriver_by_version(None, dest, revision)
+
+        return chromedriver_path
+
+    def webdriver_supports_browser(self, webdriver_binary, browser_binary, browser_channel=None):
+        """Check that the browser binary and ChromeDriver versions are a valid match."""
+        browser_version = self.version(browser_binary)
+        chromedriver_version = self.webdriver_version(webdriver_binary)
+
+        if not chromedriver_version:
+            self.logger.warning("Unable to get version for ChromeDriver "
+                                f"{webdriver_binary}, rejecting it")
+            return False
+
+        if not browser_version:
+            # If we can't get the browser version,
+            # we just have to assume the ChromeDriver is good.
+            return True
+
+        # Because Chromium and its ChromeDriver should be pulled from the
+        # same revision number, their version numbers should match exactly.
+        if browser_version == chromedriver_version:
+            self.logger.debug("Browser and ChromeDriver versions match.")
+            return True
+        self.logger.warning(f"ChromeDriver version {chromedriver_version} does not match "
+                            f"Chromium version {browser_version}.")
+        return False
+
+
+class Chrome(ChromeChromiumBase):
+    """Chrome-specific interface.
+
+    Includes browser binary installation and detection.
+    Webdriver installation and wptrunner setup shared in base class with Chromium.
+
+    For a detailed description on the installation and detection of these browser components,
+    see https://web-platform-tests.org/running-tests/chrome-chromium-installation-detection.html
+    """
+
+    product = "chrome"
+
+    @property
+    def _chromedriver_api_platform_string(self):
+        """chromedriver.storage.googleapis.com has a different filename for M1 binary,
+        while the snapshot URL has a different directory but the same filename."""
+        if self.platform == "Mac" and uname.machine == "arm64":
+            return "mac_arm64"
+        return self._chromedriver_platform_string
+
+    def _get_webdriver_url(self, version, revision=None):
+        """Get a ChromeDriver API URL to download a version of ChromeDriver that matches
+        the browser binary version. Version selection is described here:
+        https://chromedriver.chromium.org/downloads/version-selection"""
+        filename = f"chromedriver_{self._chromedriver_api_platform_string}.zip"
+
+        version = self._remove_version_suffix(version)
+
+        parts = version.split(".")
+        assert len(parts) == 4
+        latest_url = ("https://chromedriver.storage.googleapis.com/LATEST_RELEASE_"
+                      f"{'.'.join(parts[:-1])}")
+        try:
+            latest = get(latest_url).text.strip()
+        except requests.RequestException:
+            latest_url = f"https://chromedriver.storage.googleapis.com/LATEST_RELEASE_{parts[0]}"
+            try:
+                latest = get(latest_url).text.strip()
+            except requests.RequestException:
+                # We currently use the latest Chromium revision to get a compatible Chromedriver
+                # version for Chrome Dev, since it is not available through the ChromeDriver API.
+                # If we've gotten to this point, it is assumed that this is Chrome Dev.
+                filename = f"chromedriver_{self._chromedriver_platform_string}.zip"
+                revision = self._get_chromium_revision(filename, version)
+                return self._build_snapshots_url(revision, filename)
+        return f"https://chromedriver.storage.googleapis.com/{latest}/{filename}"
+
+    def download(self, dest=None, channel=None, rename=None):
+        raise NotImplementedError("Downloading of Chrome browser binary not implemented.")
+
+    def find_binary(self, venv_path=None, channel=None):
         if uname[0] == "Linux":
             name = "google-chrome"
             if channel == "stable":
@@ -649,30 +954,62 @@ class Chrome(Browser):
             suffix = ""
             if channel in ("beta", "dev", "canary"):
                 suffix = " " + channel.capitalize()
-            return "/Applications/Google Chrome%s.app/Contents/MacOS/Google Chrome%s" % (suffix, suffix)
+            return f"/Applications/Google Chrome{suffix}.app/Contents/MacOS/Google Chrome{suffix}"
         if uname[0] == "Windows":
-            path = os.path.expandvars(r"$SYSTEMDRIVE\Program Files (x86)\Google\Chrome\Application\chrome.exe")
-            if not os.path.exists(path):
-                path = os.path.expandvars(r"$SYSTEMDRIVE\Program Files\Google\Chrome\Application\chrome.exe")
+            name = "Chrome"
+            if channel == "beta":
+                name += " Beta"
+            elif channel == "dev":
+                name += " Dev"
+            path = os.path.expandvars(fr"$PROGRAMFILES\Google\{name}\Application\chrome.exe")
+            if channel == "canary":
+                path = os.path.expandvars(r"$LOCALAPPDATA\Google\Chrome SxS\Application\chrome.exe")
             return path
         self.logger.warning("Unable to find the browser binary.")
         return None
 
-    def find_webdriver(self, venv_path=None, channel=None, browser_binary=None):
-        return find_executable("chromedriver")
+    def install(self, dest=None, channel=None):
+        raise NotImplementedError("Installing of Chrome browser binary not implemented.")
+
+    def install_webdriver(self, dest=None, channel=None, browser_binary=None, revision=None):
+        if dest is None:
+            dest = os.pwd
+
+        # Detect the browser version.
+        # The ChromeDriver that is installed will match this version.
+        if browser_binary is None:
+            # If a browser binary path was not given, detect a valid path.
+            browser_binary = self.find_binary(channel=channel)
+            # We need a browser to version match, so if a browser binary path
+            # was not given and cannot be detected, raise an error.
+            if browser_binary is None:
+                raise FileNotFoundError("No browser binary detected. "
+                                        "Cannot install ChromeDriver without a browser version.")
+
+        version = self.version(browser_binary)
+        if version is None:
+            raise ValueError(f"Unable to detect browser version from binary at {browser_binary}. "
+                             " Cannot install ChromeDriver without a valid version to match.")
+
+        chromedriver_path = self.install_webdriver_by_version(version, dest, revision)
+
+        return chromedriver_path
 
     def webdriver_supports_browser(self, webdriver_binary, browser_binary, browser_channel):
+        """Check that the browser binary and ChromeDriver versions are a valid match."""
+        # TODO(DanielRyanSmith): The procedure for matching the browser and ChromeDriver
+        #     versions here is too loose. More strict rules for version matching
+        #     should be in place. (#33231)
         chromedriver_version = self.webdriver_version(webdriver_binary)
         if not chromedriver_version:
-            self.logger.warning(
-                "Unable to get version for ChromeDriver %s, rejecting it" %
-                webdriver_binary)
+            self.logger.warning("Unable to get version for ChromeDriver "
+                                f"{webdriver_binary}, rejecting it")
             return False
 
         browser_version = self.version(browser_binary)
         if not browser_version:
-            # If we can't get the browser version, we just have to assume the
-            # ChromeDriver is good.
+            # If we can't get the browser version,
+            # we just have to assume the ChromeDriver is good.
             return True
 
         # Check that the ChromeDriver version matches the Chrome version.
@@ -683,132 +1020,42 @@ class Chrome(Browser):
             # it switches between beta and tip-of-tree, so we accept version+1
             # too for dev.
             if browser_channel == "dev" and chromedriver_major == (browser_major + 1):
-                self.logger.debug(
-                    "Accepting ChromeDriver %s for Chrome/Chromium Dev %s" %
-                    (chromedriver_version, browser_version))
+                self.logger.debug(f"Accepting ChromeDriver {chromedriver_version} "
+                                  f"for Chrome/Chromium Dev {browser_version}")
                 return True
-            self.logger.warning(
-                "ChromeDriver %s does not match Chrome/Chromium %s" %
-                (chromedriver_version, browser_version))
+            self.logger.warning(f"ChromeDriver {chromedriver_version} does not match "
+                                f"Chrome/Chromium {browser_version}")
             return False
         return True
 
-    def _official_chromedriver_url(self, chrome_version):
-        # http://chromedriver.chromium.org/downloads/version-selection
-        parts = chrome_version.split(".")
-        assert len(parts) == 4
-        latest_url = "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_%s.%s.%s" % tuple(parts[:-1])
-        try:
-            latest = get(latest_url).text.strip()
-        except requests.RequestException:
-            latest_url = "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_%s" % parts[0]
-            try:
-                latest = get(latest_url).text.strip()
-            except requests.RequestException:
-                return None
-        return "https://chromedriver.storage.googleapis.com/%s/chromedriver_%s.zip" % (
-            latest, self._chromedriver_platform_string())
 
-    def _chromium_chromedriver_url(self, chrome_version):
-        if chrome_version:
-            try:
-                # Try to find the Chromium build with the same revision.
-                omaha = get("https://omahaproxy.appspot.com/deps.json?version=" + chrome_version).json()
-                revision = omaha['chromium_base_position']
-                url = "https://storage.googleapis.com/chromium-browser-snapshots/%s/%s/chromedriver_%s.zip" % (
-                    self._chromium_platform_string(), revision, self._chromedriver_platform_string())
-                # Check the status without downloading the content (this is a streaming request).
-                get(url)
-                return url
-            except requests.RequestException:
-                pass
-        # Fall back to the tip-of-tree Chromium build.
-        return "%schromedriver_%s.zip" % (self._latest_chromium_snapshot_url(), self._chromedriver_platform_string())
+class ContentShell(Browser):
+    """Interface for the Chromium content shell.
+    """
 
-    def _latest_chromedriver_url(self, chrome_version):
-        # Remove channel suffixes (e.g. " dev").
-        chrome_version = chrome_version.split(' ')[0]
-        return (self._official_chromedriver_url(chrome_version) or
-                self._chromium_chromedriver_url(chrome_version))
+    product = "content_shell"
+    requirements = None
 
-    def install_webdriver_by_version(self, version, dest=None):
-        if dest is None:
-            dest = os.pwd
+    def download(self, dest=None, channel=None, rename=None):
+        raise NotImplementedError
 
-        # There may be an existing chromedriver binary from a previous install.
-        # To provide a clean install experience, remove the old binary - this
-        # avoids tricky issues like unzipping over a read-only file.
-        existing_binary_path = find_executable("chromedriver", dest)
-        if existing_binary_path:
-            self.logger.info("Removing existing ChromeDriver binary: %s" %
-                existing_binary_path)
-            os.chmod(existing_binary_path, stat.S_IWUSR)
-            os.remove(existing_binary_path)
-
-        url = self._latest_chromedriver_url(version) if version \
-            else self._chromium_chromedriver_url(None)
-        self.logger.info("Downloading ChromeDriver from %s" % url)
-        unzip(get(url).raw, dest)
-
-        # The two sources of ChromeDriver have different zip structures:
-        # * Chromium archives the binary inside a chromedriver_* directory;
-        # * Chrome archives the binary directly.
-        # We want to make sure the binary always ends up directly in bin/.
-        chromedriver_dir = os.path.join(
-            dest, 'chromedriver_%s' % self._chromedriver_platform_string())
-        binary_path = find_executable("chromedriver", chromedriver_dir)
-        if binary_path is not None:
-            shutil.move(binary_path, dest)
-            rmtree(chromedriver_dir)
-
-        binary_path = find_executable("chromedriver", dest)
-        assert binary_path is not None
-        return binary_path
+    def install(self, dest=None, channel=None):
+        raise NotImplementedError
 
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        if channel == "nightly":
-            # The "nightly" channel is not an official channel, so we simply download ToT.
-            return self.install_webdriver_by_version(None, dest)
+        raise NotImplementedError
 
-        if browser_binary is None:
-            browser_binary = self.find_binary(channel)
-        return self.install_webdriver_by_version(
-            self.version(browser_binary), dest)
+    def find_binary(self, venv_path=None, channel=None):
+        if uname[0] == "Darwin":
+            return find_executable("Content Shell.app/Contents/MacOS/Content Shell")
+        return find_executable("content_shell")  # .exe is added automatically for Windows
+
+    def find_webdriver(self, venv_path=None, channel=None):
+        return None
 
     def version(self, binary=None, webdriver_binary=None):
-        if not binary:
-            self.logger.warning("No browser binary provided.")
-            return None
-
-        if uname[0] == "Windows":
-            return _get_fileversion(binary, self.logger)
-
-        try:
-            version_string = call(binary, "--version").strip()
-        except (subprocess.CalledProcessError, OSError) as e:
-            self.logger.warning("Failed to call %s: %s" % (binary, e))
-            return None
-        m = re.match(r"(?:Google Chrome|Chromium) (.*)", version_string)
-        if not m:
-            self.logger.warning("Failed to extract version from: %s" % version_string)
-            return None
-        return m.group(1)
-
-    def webdriver_version(self, webdriver_binary):
-        if uname[0] == "Windows":
-            return _get_fileversion(webdriver_binary, self.logger)
-
-        try:
-            version_string = call(webdriver_binary, "--version").strip()
-        except (subprocess.CalledProcessError, OSError) as e:
-            self.logger.warning("Failed to call %s: %s" % (webdriver_binary, e))
-            return None
-        m = re.match(r"ChromeDriver ([0-9][0-9.]*)", version_string)
-        if not m:
-            self.logger.warning("Failed to extract version from: %s" % version_string)
-            return None
-        return m.group(1)
-
+        # content_shell does not return version information.
+        return "N/A"
 
 class ChromeAndroidBase(Browser):
     """A base class for ChromeAndroid and AndroidWebView.
@@ -821,8 +1068,9 @@ class ChromeAndroidBase(Browser):
     __metaclass__ = ABCMeta  # This is an abstract class.
 
     def __init__(self, logger):
-        super(ChromeAndroidBase, self).__init__(logger)
+        super().__init__(logger)
         self.device_serial = None
+        self.adb_binary = "adb"
 
     def download(self, dest=None, channel=None, rename=None):
         raise NotImplementedError
@@ -841,15 +1089,14 @@ class ChromeAndroidBase(Browser):
         if browser_binary is None:
             browser_binary = self.find_binary(channel)
         chrome = Chrome(self.logger)
-        return chrome.install_webdriver_by_version(
-            self.version(browser_binary), dest)
+        return chrome.install_webdriver_by_version(self.version(browser_binary), dest)
 
     def version(self, binary=None, webdriver_binary=None):
         if not binary:
             self.logger.warning("No package name provided.")
             return None
 
-        command = ['adb']
+        command = [self.adb_binary]
         if self.device_serial:
             # Assume we have same version of browser on all devices
             command.extend(['-s', self.device_serial[0]])
@@ -871,7 +1118,7 @@ class ChromeAndroid(ChromeAndroidBase):
     """
 
     product = "chrome_android"
-    requirements = "requirements_chrome_android.txt"
+    requirements = "requirements_chromium.txt"
 
     def find_binary(self, venv_path=None, channel=None):
         if channel in ("beta", "dev", "canary"):
@@ -887,7 +1134,7 @@ class AndroidWeblayer(ChromeAndroidBase):
 
     product = "android_weblayer"
     # TODO(aluo): replace this with weblayer version after tests are working.
-    requirements = "requirements_android_webview.txt"
+    requirements = "requirements_chromium.txt"
 
     def find_binary(self, venv_path=None, channel=None):
         return "org.chromium.weblayer.shell"
@@ -901,16 +1148,16 @@ class AndroidWebview(ChromeAndroidBase):
     """
 
     product = "android_webview"
-    requirements = "requirements_android_webview.txt"
+    requirements = "requirements_chromium.txt"
 
     def find_binary(self, venv_path=None, channel=None):
         # Just get the current package name of the WebView provider.
         # For WebView, it is not trivial to change the WebView provider, so
         # we will just grab whatever is available.
         # https://chromium.googlesource.com/chromium/src/+/HEAD/android_webview/docs/channels.md
-        command = ['adb']
+        command = [self.adb_binary]
         if self.device_serial:
-            command.extend(['-s', self.device_serial])
+            command.extend(['-s', self.device_serial[0]])
         command.extend(['shell', 'dumpsys', 'webviewupdate'])
         try:
             output = call(*command)
@@ -931,7 +1178,7 @@ class ChromeiOS(Browser):
     """
 
     product = "chrome_ios"
-    requirements = "requirements_chrome_ios.txt"
+    requirements = None
 
     def download(self, dest=None, channel=None, rename=None):
         raise NotImplementedError
@@ -1039,7 +1286,7 @@ class EdgeChromium(Browser):
     }.get(uname[0])
     product = "edgechromium"
     edgedriver_name = "msedgedriver"
-    requirements = "requirements_edge_chromium.txt"
+    requirements = "requirements_chromium.txt"
 
     def download(self, dest=None, channel=None, rename=None):
         raise NotImplementedError
@@ -1184,13 +1431,16 @@ class EdgeChromium(Browser):
         except (subprocess.CalledProcessError, OSError) as e:
             self.logger.warning(f"Failed to call {binary}: {e}")
             return None
-        m = re.match(r"Microsoft Edge (.*) ", version_string)
+        m = re.match(r"Microsoft Edge ([0-9][0-9.]*)", version_string)
         if not m:
             self.logger.warning(f"Failed to extract version from: {version_string}")
             return None
         return m.group(1)
 
     def webdriver_version(self, webdriver_binary):
+        if webdriver_binary is None:
+            self.logger.warning("No valid webdriver supplied to detect version.")
+            return None
         if self.platform == "win":
             return _get_fileversion(webdriver_binary, self.logger)
 
@@ -1199,7 +1449,7 @@ class EdgeChromium(Browser):
         except (subprocess.CalledProcessError, OSError) as e:
             self.logger.warning(f"Failed to call {webdriver_binary}: {e}")
             return None
-        m = re.match(r"MSEdgeDriver ([0-9][0-9.]*)", version_string)
+        m = re.match(r"Microsoft Edge WebDriver ([0-9][0-9.]*)", version_string)
         if not m:
             self.logger.warning(f"Failed to extract version from: {version_string}")
             return None
@@ -1274,10 +1524,200 @@ class Safari(Browser):
     product = "safari"
     requirements = "requirements_safari.txt"
 
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
+    def _find_downloads(self):
+        def text_content(e, __output=None):
+            # this doesn't use etree.tostring so that we can add spaces for p and br
+            if __output is None:
+                __output = []
+
+            if e.tag == "p":
+                __output.append("\n\n")
+
+            if e.tag == "br":
+                __output.append("\n")
+
+            if e.text is not None:
+                __output.append(e.text)
+
+            for child in e:
+                text_content(child, __output)
+                if child.tail is not None:
+                    __output.append(child.tail)
+
+            return "".join(__output)
+
+        self.logger.info("Finding STP download URLs")
+        resp = get("https://developer.apple.com/safari/download/")
+
+        doc = html5lib.parse(
+            resp.content,
+            "etree",
+            namespaceHTMLElements=False,
+            transport_encoding=resp.encoding,
+        )
+        ascii_ws = re.compile(r"[\x09\x0A\x0C\x0D\x20]+")
+
+        downloads = []
+        for candidate in doc.iterfind(".//li[@class]"):
+            class_names = set(ascii_ws.split(candidate.attrib["class"]))
+            if {"download", "dmg", "zip"} & class_names:
+                downloads.append(candidate)
+
+        # Note we use \s throughout for space as we don't care what form the whitespace takes
+        stp_link_text = re.compile(
+            r"^\s*Safari\s+Technology\s+Preview\s+(?:[0-9]+\s+)?for\s+macOS"
+        )
+        requirement = re.compile(
+            r"""(?x)  # (extended regexp syntax for comments)
+            ^\s*Requires\s+macOS\s+  # Starting with the magic string
+            ([0-9]+(?:\.[0-9]+)*)  # A macOS version number of numbers and dots
+            (?:\s+beta(?:\s+[0-9]+)?)?  # Optionally a beta, itself optionally with a number (no dots!)
+            (?:\s+or\s+later)?  # Optionally an 'or later'
+            \.?\s*$  # Optionally ending with a literal dot
+            """
+        )
+
+        stp_downloads = []
+        for download in downloads:
+            for link in download.iterfind(".//a[@href]"):
+                if stp_link_text.search(text_content(link)):
+                    break
+                else:
+                    self.logger.debug("non-matching anchor: " + text_content(link))
+            else:
+                continue
+
+            for el in download.iter():
+                # avoid assuming any given element here, just assume it is a single element
+                m = requirement.search(text_content(el))
+                if m:
+                    version = m.group(1)
+
+                    # This assumes the current macOS numbering, whereby X.Y is compatible
+                    # with X.(Y+1), e.g. 12.4 is compatible with 12.3, but 13.0 isn't
+                    # compatible with 12.3.
+                    if version.count(".") >= (2 if version.startswith("10.") else 1):
+                        spec = SpecifierSet(f"~={version}")
+                    else:
+                        spec = SpecifierSet(f"=={version}.*")
+
+                    stp_downloads.append((spec, link.attrib["href"].strip()))
+                    break
+            else:
+                self.logger.debug(
+                    "Found a link but no requirement: " + text_content(download)
+                )
+
+        if stp_downloads:
+            self.logger.info(
+                "Found STP URLs for macOS " +
+                ", ".join(str(dl[0]) for dl in stp_downloads)
+            )
+        else:
+            self.logger.warning("Did not find any STP URLs")
+
+        return stp_downloads
+
+    def _download_image(self, downloads, dest, system_version=None):
+        if system_version is None:
+            system_version, _, _ = platform.mac_ver()
+
+        chosen_url = None
+        for version_spec, url in downloads:
+            if system_version in version_spec:
+                self.logger.debug(f"Will download Safari for {version_spec}")
+                chosen_url = url
+                break
+
+        if chosen_url is None:
+            raise ValueError(f"no download for {system_version}")
+
+        self.logger.info(f"Downloading Safari from {chosen_url}")
+        resp = get(chosen_url)
+
+        filename = get_download_filename(resp, "SafariTechnologyPreview.dmg")
+        installer_path = os.path.join(dest, filename)
+        with open(installer_path, "wb") as f:
+            f.write(resp.content)
+
+        return installer_path
+
+    def _download_extract(self, image_path, dest, rename=None):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.logger.debug(f"Mounting {image_path}")
+            r = subprocess.run(
+                [
+                    "hdiutil",
+                    "attach",
+                    "-readonly",
+                    "-mountpoint",
+                    tmpdir,
+                    "-nobrowse",
+                    "-verify",
+                    "-noignorebadchecksums",
+                    "-autofsck",
+                    image_path,
+                ],
+                encoding="utf-8",
+                capture_output=True,
+                check=True,
+            )
+
+            mountpoint = None
+            for line in r.stdout.splitlines():
+                if not line.startswith("/dev/"):
+                    continue
+
+                _, _, mountpoint = line.split("\t", 2)
+                if mountpoint:
+                    break
+
+            if mountpoint is None:
+                raise ValueError("no volume mounted from image")
+
+            pkgs = [p for p in os.listdir(mountpoint) if p.endswith((".pkg", ".mpkg"))]
+            if len(pkgs) != 1:
+                raise ValueError(
+                    f"Expected a single .pkg/.mpkg, found {len(pkgs)}: {', '.join(pkgs)}"
+                )
+
+            source_path = os.path.join(mountpoint, pkgs[0])
+            dest_path = os.path.join(
+                dest, (rename + get_ext(pkgs[0])) if rename is not None else pkgs[0]
+            )
+
+            self.logger.debug(f"Copying {source_path} to {dest_path}")
+            shutil.copy2(
+                source_path,
+                dest_path,
+            )
+
+            self.logger.debug(f"Unmounting {mountpoint}")
+            subprocess.run(
+                ["hdiutil", "detach", mountpoint],
+                encoding="utf-8",
+                capture_output=True,
+                check=True,
+            )
+
+        return dest_path
+
+    def download(self, dest=None, channel="preview", rename=None, system_version=None):
+        if channel != "preview":
+            raise ValueError(f"can only install 'preview', not '{channel}'")
+
+        if dest is None:
+            dest = self._get_browser_binary_dir(None, channel)
+
+        stp_downloads = self._find_downloads()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = self._download_image(stp_downloads, tmpdir, system_version)
+            return self._download_extract(image_path, dest, rename)
 
     def install(self, dest=None, channel=None):
+        # We can't do this because stable/beta releases are system components and STP
+        # requires admin permissions to install.
         raise NotImplementedError
 
     def find_binary(self, venv_path=None, channel=None):
@@ -1316,7 +1756,7 @@ class Servo(Browser):
     """Servo-specific interface."""
 
     product = "servo"
-    requirements = "requirements_servo.txt"
+    requirements = None
 
     def platform_components(self):
         platform = {
@@ -1422,7 +1862,7 @@ class WebKit(Browser):
     """WebKit-specific interface."""
 
     product = "webkit"
-    requirements = "requirements_webkit.txt"
+    requirements = None
 
     def download(self, dest=None, channel=None, rename=None):
         raise NotImplementedError
@@ -1447,7 +1887,7 @@ class WebKitGTKMiniBrowser(WebKit):
 
 
     def _get_osidversion(self):
-        with open('/etc/os-release', 'r') as osrelease_handle:
+        with open('/etc/os-release') as osrelease_handle:
             for line in osrelease_handle.readlines():
                 if line.startswith('ID='):
                     os_id = line.split('=')[1].strip().strip('"')
@@ -1476,7 +1916,7 @@ class WebKitGTKMiniBrowser(WebKit):
         bundle_url = base_download_dir + bundle_filename
 
         if dest is None:
-            dest = self._get_dest(None, channel)
+            dest = self._get_browser_binary_dir(None, channel)
         bundle_file_path = os.path.join(dest, bundle_filename)
 
         self.logger.info("Downloading WebKitGTK MiniBrowser bundle from %s" % bundle_url)
@@ -1494,7 +1934,7 @@ class WebKitGTKMiniBrowser(WebKit):
         return bundle_file_path
 
     def install(self, dest=None, channel=None, prompt=True):
-        dest = self._get_dest(dest, channel)
+        dest = self._get_browser_binary_dir(dest, channel)
         bundle_path = self.download(dest, channel)
         bundle_uncompress_directory = os.path.join(dest, "webkitgtk_minibrowser")
 
@@ -1527,7 +1967,7 @@ class WebKitGTKMiniBrowser(WebKit):
 
     def _find_executable_in_channel_bundle(self, binary, venv_path=None, channel=None):
         if venv_path:
-            venv_base_path = self._get_dest(venv_path, channel)
+            venv_base_path = self._get_browser_binary_dir(venv_path, channel)
             bundle_dir = os.path.join(venv_base_path, "webkitgtk_minibrowser")
             install_ok_file = os.path.join(bundle_dir, ".installation-ok")
             if os.path.isfile(install_ok_file):
@@ -1580,7 +2020,7 @@ class Epiphany(Browser):
     """Epiphany-specific interface."""
 
     product = "epiphany"
-    requirements = "requirements_epiphany.txt"
+    requirements = None
 
     def download(self, dest=None, channel=None, rename=None):
         raise NotImplementedError

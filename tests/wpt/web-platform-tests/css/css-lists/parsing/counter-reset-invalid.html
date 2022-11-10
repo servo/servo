@@ -20,6 +20,12 @@ test_invalid_value('counter-reset', '99 imagenum');
 test_invalid_value('counter-reset', '99 reversed(imagenum)');
 test_invalid_value('counter-reset', 'section -1, imagenum 99');
 test_invalid_value('counter-reset', 'section 3.14');
+test_invalid_value('counter-reset', 'inherit 0');
+test_invalid_value('counter-reset', 'initial 0');
+test_invalid_value('counter-reset', 'unset 0');
+test_invalid_value('counter-reset', 'default 0');
+test_invalid_value('counter-reset', 'revert 0');
+test_invalid_value('counter-reset', 'revert-layer 0');
 </script>
 </body>
 </html>

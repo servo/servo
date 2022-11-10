@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Test flex item's transferred min & max sizes when preferred sizes are auto</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex;">
+  <div style="background: green; min-height: 50px; aspect-ratio: 2/1; min-width: 0px;"></div>
+</div>
+
+<div style="display: flex;">
+  <div style="background: green; max-height: 50px; aspect-ratio: 2/1;">
+    <div style="width: 200px;"></div>
+  </div>
+</div>

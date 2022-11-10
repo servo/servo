@@ -4,7 +4,7 @@
 <meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbtransaction-db">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 indexeddb_test(
@@ -14,7 +14,7 @@ indexeddb_test(
                   'Attribute should yield the same object each time');
   },
   (t, db) => {
-    const tx = db.transaction('store');
+    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
     assert_equals(tx.db, tx.db,
                   'Attribute should yield the same object each time');
     t.done();

@@ -5,39 +5,22 @@
 
 <script type="text/javascript" src="resources/matchmedia-utils.js"></script>
 <script>
-query_should_be_css_parseable("(prefers-contrast)");
-query_should_be_css_parseable("(prefers-contrast: no-preference)");
-query_should_be_css_parseable("(prefers-contrast: more)");
-query_should_be_css_parseable("(prefers-contrast: less)");
-query_should_be_css_parseable("(prefers-contrast: custom)");
+query_should_be_known("(prefers-contrast)");
+query_should_be_known("(prefers-contrast: no-preference)");
+query_should_be_known("(prefers-contrast: more)");
+query_should_be_known("(prefers-contrast: less)");
+query_should_be_known("(prefers-contrast: custom)");
 
-query_should_not_be_css_parseable("(prefers-contrast: increase)");
-query_should_not_be_css_parseable("(prefers-contrast: none)");
-query_should_not_be_css_parseable("(prefers-contrast: forced high)");
-query_should_not_be_css_parseable("(prefers-contrast: forced low)");
-query_should_not_be_css_parseable("(prefers-contrast > increase)");
-query_should_not_be_css_parseable("(prefers-increased-contrast)");
-query_should_not_be_css_parseable("(prefers-decreased-contrast)");
-query_should_not_be_css_parseable("(prefers-contrast: high)");
-query_should_not_be_css_parseable("(prefers-contrast: low)");
-query_should_not_be_css_parseable("(prefers-contrast: forced)");
-
-query_should_be_js_parseable("(prefers-contrast)");
-query_should_be_js_parseable("(prefers-contrast: no-preference)");
-query_should_be_js_parseable("(prefers-contrast: more)");
-query_should_be_js_parseable("(prefers-contrast: less)");
-query_should_be_js_parseable("(prefers-contrast: custom)");
-
-query_should_not_be_js_parseable("(prefers-contrast: increase)");
-query_should_not_be_js_parseable("(prefers-contrast: none)");
-query_should_not_be_js_parseable("(prefers-contrast: forced high)");
-query_should_not_be_js_parseable("(prefers-contrast: forced low)");
-query_should_not_be_js_parseable("(prefers-contrast > increase)");
-query_should_not_be_js_parseable("(prefers-increased-contrast)");
-query_should_not_be_js_parseable("(prefers-decreased-contrast)");
-query_should_not_be_js_parseable("(prefers-contrast: high)");
-query_should_not_be_js_parseable("(prefers-contrast: low)");
-query_should_not_be_js_parseable("(prefers-contrast: forced)");
+query_should_be_unknown("(prefers-contrast: increase)");
+query_should_be_unknown("(prefers-contrast: none)");
+query_should_be_unknown("(prefers-contrast: forced high)");
+query_should_be_unknown("(prefers-contrast: forced low)");
+query_should_be_unknown("(prefers-contrast > increase)");
+query_should_be_unknown("(prefers-increased-contrast)");
+query_should_be_unknown("(prefers-decreased-contrast)");
+query_should_be_unknown("(prefers-contrast: high)");
+query_should_be_unknown("(prefers-contrast: low)");
+query_should_be_unknown("(prefers-contrast: forced)");
 
 test(() => {
   // no-preference is the default and all other values evaluate to

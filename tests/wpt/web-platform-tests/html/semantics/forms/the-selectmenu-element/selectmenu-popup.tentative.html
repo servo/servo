@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>HTMLSelectMenuElement Test: popup</title>
+<title>HTMLSelectMenuElement Test: popover</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -15,14 +15,14 @@
 </selectmenu>
 
 <selectmenu id="selectMenu1">
-  <div slot="button" behavior="button" id="selectMenu1-button">
+  <div slot="button" behavior="button" class="button">
     Custom button
   </div>
-  <popup slot="listbox" behavior="listbox">
+  <div popover slot="listbox" behavior="listbox">
     <option>one</option>
-    <option id="selectMenu1-child2">two</option>
-    <option id="selectMenu1-child3">three</option>
-  </popup>
+    <option class="child2">two</option>
+    <option class="child3">three</option>
+  </div>
 </selectmenu>
 
 <selectmenu id="selectMenu2">
@@ -32,9 +32,9 @@
 
 <selectmenu id="selectMenu3">
   <div slot="listbox">
-    <popup behavior="listbox" id="selectMenu3-listbox">
+    <div popover behavior="listbox" id="selectMenu3-listbox">
       <option>one</option>
-    </popup>
+    </div>
   </div>
 </selectmenu>
 <script>
@@ -64,34 +64,36 @@
     await clickOn(selectMenu0Child3);
     assert_equals(selectMenu0.value, "two", "Clicking a non-option should not change the value");
     assert_equals(selectMenu0.open, true);
-  }, "Opening the popup and clicking an option should change the selectmenu's value");
+    await clickOn(selectMenu0Child2);
+    assert_equals(selectMenu0.open, false);
+  }, "Opening the popover and clicking an option should change the selectmenu's value");
 
   promise_test(async () => {
     const selectMenu1 = document.getElementById("selectMenu1");
-    const selectMenu1Button = document.getElementById("selectMenu1-button");
-    const selectMenu1Child2 = document.getElementById("selectMenu1-child2");
-    const selectMenu1Child3 = document.getElementById("selectMenu1-child3");
+    const button = selectMenu1.querySelector(".button");
+    const child2 = selectMenu1.querySelector(".child2");
+    const child3 = selectMenu1.querySelector(".child3");
     assert_equals(selectMenu1.value, "one");
     assert_equals(selectMenu1.open, false);
-    await clickOn(selectMenu1Button);
+    await clickOn(button);
     assert_equals(selectMenu1.open, true);
-    await clickOn(selectMenu1Child2);
+    await clickOn(child2);
     assert_equals(selectMenu1.value, "two", "Clicking an <option> should change the value");
     assert_equals(selectMenu1.open, false);
 
-    await clickOn(selectMenu1Button);
+    await clickOn(button);
     assert_equals(selectMenu1.open, true);
-    await clickOn(selectMenu1Child3);
+    await clickOn(child3);
     assert_equals(selectMenu1.value, "three", "Clicking a <div part='option'> should change the value");
     assert_equals(selectMenu1.open, false);
-  }, "With custom button and popup: opening the popup and clicking an option should change the selectmenu's value");
+  }, "With custom button and popover: opening the popover and clicking an option should change the selectmenu's value");
 
   promise_test(async () => {
     const selectMenu2 = document.getElementById("selectMenu2");
     await clickOn(selectMenu2);
     assert_equals(selectMenu2.value, "");
     assert_equals(selectMenu2.open, false);
-  }, "Clicking a popup with no listbox part does nothing");
+  }, "Clicking a popover with no listbox part does nothing");
 
   promise_test(async () => {
     const selectMenu3 = document.getElementById("selectMenu3");
@@ -101,5 +103,5 @@
     await clickOn(selectMenu3);
     assert_equals(selectMenu3.value, "");
     assert_equals(selectMenu3.open, false);
-  }, "Clicking a popup with a listbox that was removed does nothing");
+  }, "Clicking a popover with a listbox that was removed does nothing");
 </script>

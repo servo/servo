@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#determining">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.relpos {
+  position: relative;
+}
+.anchor1 {
+  anchor-name: --a1;
+  width: 10px;
+  height: 10px;
+  background: orange;
+}
+.target {
+  position: absolute;
+  width: anchor-size(--a1 width);
+  height: 10px;
+  background: lime;
+}
+</style>
+<body onload="checkLayout('.target')">
+  <!--
+    All targets should find the 10px anchor, because it's the first
+    one in the pre-order DFS from the `relpos`.
+  -->
+  <div class="relpos">
+    <div class="target" data-expected-width=10></div>
+    <div class="anchor1" style="width: 10px">
+      <div class="anchor1" style="width: 20px"></div>
+      <div class="target" data-expected-width=10></div>
+    </div>
+    <div class="anchor1" style="width: 30px"></div>
+    <div class="target" data-expected-width=10></div>
+  <div>
+</body>

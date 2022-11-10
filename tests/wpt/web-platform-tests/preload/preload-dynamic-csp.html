@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Makes sure that preload requests respect CSP directives that are added after the preload</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<link id="preload" rel=preload href="resources/square.png" as=image>
+<body>
+<script>
+    setup({single_test: true});
+
+    const preload = document.querySelector("#preload");
+    preload.addEventListener("load", async () => {
+        const meta = document.createElement("meta");
+        meta.httpEquiv = "Content-Security-Policy";
+        meta.content = "img-src 'none'";
+        document.head.appendChild(meta);
+        const img = document.createElement("img");
+        img.src = preload.href;
+        document.body.appendChild(img);
+        const load = new Promise(resolve => img.addEventListener("load", () => resolve('load')));
+        const error = new Promise(resolve => img.addEventListener("error", () => resolve('error')));
+        const result = await Promise.any([load, error]);
+        assert_equals(result, "error");
+        done();
+    });
+</script>
+

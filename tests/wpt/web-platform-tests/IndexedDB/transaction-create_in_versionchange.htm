@@ -4,7 +4,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 
 <script>
     var db, events = [],
@@ -17,14 +17,14 @@
             .add("versionchange1", 1)
             .addEventListener("success", log("versionchange_add.success"))
 
-        assert_throws_dom('InvalidStateError', function() { db.transaction("store") })
+        assert_throws_dom('InvalidStateError', function() { db.transaction("store", "readonly", {durability: 'relaxed'}) })
 
         e.target.transaction
             .objectStore("store")
             .count(2)
             .addEventListener("success", log("versionchange_count.success"))
 
-        assert_throws_dom('InvalidStateError', function() { db.transaction("store", "readwrite") })
+        assert_throws_dom('InvalidStateError', function() { db.transaction("store", "readwrite", {durability: 'relaxed'}) })
 
         open_rq.transaction
             .objectStore("store")
@@ -34,7 +34,7 @@
         open_rq.transaction.oncomplete = function(e) {
             log("versionchange_txn.complete")(e)
 
-            db.transaction("store")
+            db.transaction("store", "readonly", {durability: 'relaxed'})
                 .objectStore("store")
                 .count()
                 .addEventListener("success", log("complete_count.success"))
@@ -44,7 +44,7 @@
     open_rq.onsuccess = function(e) {
         log("open_rq.success")(e)
 
-        var txn = db.transaction("store", "readwrite")
+        var txn = db.transaction("store", "readwrite", {durability: 'relaxed'})
         txn.objectStore("store")
             .put("woo", 1)
             .addEventListener("success", log("complete2_get.success"))

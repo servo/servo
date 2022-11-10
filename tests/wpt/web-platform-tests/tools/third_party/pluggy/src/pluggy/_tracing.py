@@ -3,7 +3,7 @@ Tracing utils
 """
 
 
-class TagTracer(object):
+class TagTracer:
     def __init__(self):
         self._tags2proc = {}
         self._writer = None
@@ -22,10 +22,10 @@ class TagTracer(object):
         content = " ".join(map(str, args))
         indent = "  " * self.indent
 
-        lines = ["%s%s [%s]\n" % (indent, content, ":".join(tags))]
+        lines = ["{}{} [{}]\n".format(indent, content, ":".join(tags))]
 
         for name, value in extra.items():
-            lines.append("%s    %s: %s\n" % (indent, name, value))
+            lines.append(f"{indent}    {name}: {value}\n")
 
         return "".join(lines)
 
@@ -50,7 +50,7 @@ class TagTracer(object):
         self._tags2proc[tags] = processor
 
 
-class TagTracerSub(object):
+class TagTracerSub:
     def __init__(self, root, tags):
         self.root = root
         self.tags = tags

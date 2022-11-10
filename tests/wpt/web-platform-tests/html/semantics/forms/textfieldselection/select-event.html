@@ -59,12 +59,14 @@ const actions = [
   }
 ];
 
- function initialize(el, t) {
+function waitForRender() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+function initialize(el) {
   el.setRangeText("foobar", 0, el.value.length, "start");
   // Make sure to flush async dispatches
-  return new Promise(resolve => {
-    t.step_timeout(resolve, 200);
-  });
+  return waitForRender();
 }
 
 els.forEach((el) => {
@@ -74,7 +76,7 @@ els.forEach((el) => {
     // promise_test instead of async_test is important because these need to happen in sequence (to test that events
     // fire if and only if the selection changes).
     promise_test(async t => {
-      await initialize(el, t);
+      await initialize(el);
 
       const watcher = new EventWatcher(t, el, "select");
 
@@ -89,30 +91,25 @@ els.forEach((el) => {
       return promise;
     }, `${elLabel}: ${action.label}`);
 
-    promise_test(t => {
+    promise_test(async t => {
       el.onselect = t.unreached_func("the select event must not fire the second time");
 
       action.action(el);
 
-      return new Promise(resolve => {
-        t.step_timeout(() => {
-          el.onselect = null;
-          resolve();
-        }, 200);
-      });
+      await waitForRender();
+      el.onselect = null;
     }, `${elLabel}: ${action.label} a second time (must not fire select)`);
 
     promise_test(async t => {
       const element = el.cloneNode(true);
-
-      element.onselect = e => {
-        element.onselect = null;
-      };
+      let fired = false;
+      element.addEventListener('select', () => fired = true, { once: true });
 
       action.action(element);
 
-      // step_wait properly timeouts before the whole test collapses
-      await t.step_wait(() => !element.onselect, "event didn't fire", 200, 10);
+      await waitForRender();
+      assert_true(fired, "event didn't fire");
+
     }, `${elLabel}: ${action.label} disconnected node`);
 
     // Intentionally still using promise_test, as assert_unreachable does not
@@ -120,28 +117,26 @@ els.forEach((el) => {
     promise_test(async t => {
       const element = el.cloneNode(true);
       let fired = false;
+      element.addEventListener('select', () => fired = true, { once: true });
 
-      element.onselect = () => fired = true;
       action.action(element);
-      assert_false(fired, "the select event must not fire synchronously")
 
-      await t.step_wait(() => fired, "event didn't fire", 200, 10);
+      assert_false(fired, "the select event must not fire synchronously");
+      await waitForRender();
+      assert_true(fired, "event didn't fire");
     }, `${elLabel}: ${action.label} event queue`);
 
-    promise_test(t => {
+    promise_test(async t => {
       const element = el.cloneNode(true);
+      let selectCount = 0;
+      element.addEventListener('select', () => ++selectCount);
       assert_equals(element.selectionEnd, 0);
 
-      element.onselect = () => {
-        element.onselect = t.unreached_func("the select event must not fire twice");
-      };
-
       action.action(element);
       action.action(element);
 
-      return new Promise(resolve => {
-        t.step_timeout(resolve, 200);
-      });
+      await waitForRender();
+      assert_equals(selectCount, 1, "the select event must not fire twice");
     }, `${elLabel}: ${action.label} twice in disconnected node (must fire select only once)`);
   });
 });

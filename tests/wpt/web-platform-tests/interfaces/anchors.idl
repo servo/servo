@@ -7,11 +7,18 @@
 interface XRAnchor {
   readonly attribute XRSpace anchorSpace;
 
+  Promise<DOMString> requestPersistentHandle();
+
   undefined delete();
 };
 
 partial interface XRFrame {
   Promise<XRAnchor> createAnchor(XRRigidTransform pose, XRSpace space);
+};
+
+partial interface XRSession {
+  Promise<XRAnchor> restorePersistentAnchor(DOMString uuid);
+  Promise<undefined> deletePersistentAnchor(DOMString uuid);
 };
 
 partial interface XRHitTestResult {

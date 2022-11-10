@@ -132,6 +132,11 @@
           name: "Overwrite nameless cookie",
         },
         {
+          cookie: ["=__Secure-abc=123", "=__Host-abc=123", "=__SeCuRe-abc=123", "=__HoSt-abc=123", "__Secure-abc", "__Host-abc", "__SeCuRe-abc", "__HoSt-abc"],
+          expected: "",
+          name: "Ignore nameless cookies that impersonate cookie prefixes",
+        },
+        {
           cookie: "=",
           expected: "",
           name: "Ignore cookie with empty name and empty value",

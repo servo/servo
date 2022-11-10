@@ -5,7 +5,7 @@
 <link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbobjectstore-add">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 ['put', 'add'].forEach(method => {
@@ -34,7 +34,7 @@
       const store = db.createObjectStore('s');
     },
     (t, db) => {
-      const tx = db.transaction('s', 'readonly');
+      const tx = db.transaction('s', 'readonly', {durability: 'relaxed'});
       const store = tx.objectStore('s');
 
       setTimeout(t.step_func(() => {
@@ -55,7 +55,7 @@
       const store = db.createObjectStore('s');
     },
     (t, db) => {
-      const tx = db.transaction('s', 'readonly');
+      const tx = db.transaction('s', 'readonly', {durability: 'relaxed'});
       const store = tx.objectStore('s');
 
       assert_throws_dom(

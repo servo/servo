@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  window.addEventListener("message", async (event) => {
+    const {
+      data: { action, data },
+    } = event;
+    const response = {};
+    try {
+      switch (action) {
+        case "share":
+          await test_driver.bless("share");
+          await navigator.share(data);
+          response.result = "unreached";
+          break;
+        case "canShare":
+          response.result = navigator.canShare(data);
+          break;
+      }
+    } catch (error) {
+      response.result = "error";
+      response.error = error.name;
+    } finally {
+      event.source.postMessage({ ...response, action }, "*");
+    }
+  });
+
+  // send message to parent that we loaded
+  function sendLoadMessage() {
+    window.parent.postMessage({ action: "loaded" }, "*");
+  }
+</script>
+<body onload="sendLoadMessage()"></body>

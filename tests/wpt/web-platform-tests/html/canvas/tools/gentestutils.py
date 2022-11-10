@@ -15,8 +15,6 @@
 # * Modify the tests*.yaml files.
 # 'name' is an arbitrary hierarchical name to help categorise tests.
 # 'desc' is a rough description of what behaviour the test aims to test.
-# 'testing' is a list of references to spec.yaml, to show which spec sentences
-# this test case is primarily testing.
 # 'code' is JavaScript code to execute, with some special commands starting with '@'
 # 'expected' is what the final canvas output should be: a string 'green' or 'clear'
 # (100x50 images in both cases), or a string 'size 100 50' (or any other size)
@@ -53,9 +51,6 @@ except ImportError:
 def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOFFSCREENCANVAS):
 
     MISCOUTPUTDIR = './output'
-    SPECOUTPUTDIR = '../'
-
-    SPECOUTPUTPATH = './' # relative to TESTOUTPUTDIR
 
     def simpleEscapeJS(str):
         return str.replace('\\', '\\\\').replace('"', '\\"')
@@ -123,14 +118,6 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
     templates = yaml.safe_load(open(TEMPLATEFILE, "r").read())
     name_mapping = yaml.safe_load(open(NAME2DIRFILE, "r").read())
 
-    SPECFILE = 'spec.yaml'
-    spec_assertions = []
-    for s in yaml.safe_load(open(SPECFILE, "r").read())['assertions']:
-        if 'meta' in s:
-            eval(compile(s['meta'], '<meta spec assertion>', 'exec'), {}, {'assertions':spec_assertions})
-        else:
-            spec_assertions.append(s)
-
     tests = []
     test_yaml_directory = "yaml/element"
     if ISOFFSCREENCANVAS:
@@ -149,10 +136,6 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
     category_names = []
     category_contents_direct = {}
     category_contents_all = {}
-
-    spec_ids = {}
-    for t in spec_assertions: spec_ids[t['id']] = True
-    spec_refs = {}
 
     def backref_html(name):
         backrefs = []
@@ -200,15 +183,15 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
         code = re.sub(r'@nonfinite ([^(]+)\(([^)]+)\)(.*)', lambda m: expand_nonfinite(m.group(1), m.group(2), m.group(3)), code) # must come before '@assert throws'
 
         code = re.sub(r'@assert pixel (\d+,\d+) == (\d+,\d+,\d+,\d+);',
-                    r'_assertPixel(canvas, \1, \2, "\1", "\2");',
+                    r'_assertPixel(canvas, \1, \2);',
                     code)
 
         code = re.sub(r'@assert pixel (\d+,\d+) ==~ (\d+,\d+,\d+,\d+);',
-                    r'_assertPixelApprox(canvas, \1, \2, "\1", "\2", 2);',
+                    r'_assertPixelApprox(canvas, \1, \2, 2);',
                     code)
 
         code = re.sub(r'@assert pixel (\d+,\d+) ==~ (\d+,\d+,\d+,\d+) \+/- (\d+);',
-                    r'_assertPixelApprox(canvas, \1, \2, "\1", "\2", \3);',
+                    r'_assertPixelApprox(canvas, \1, \2, \3);',
                     code)
 
         code = re.sub(r'@assert throws (\S+_ERR) (.*);',
@@ -275,14 +258,6 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
             category_contents_all.setdefault(cat_total, []).append(name)
         category_contents_direct.setdefault(cat_total, []).append(name)
 
-        for ref in test.get('testing', []):
-            if ref not in spec_ids:
-                print("Test %s uses nonexistent spec point %s" % (name, ref))
-            spec_refs.setdefault(ref, []).append(name)
-
-        if not test.get('testing', []):
-            print("Test %s doesn't refer to any spec points" % name)
-
         if test.get('expected', '') == 'green' and re.search(r'@assert pixel .* 0,0,0,0;', test['code']):
             print("Probable incorrect pixel test in %s" % name)
 
@@ -321,8 +296,6 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
         next = tests[i+1]['name'] if i != len(tests)-1 else 'index'
 
         name_wrapped = name.replace('.', '.&#8203;')
-
-        refs = ''.join('<li><a href="%s/annotated-spec.html#testrefs.%s">%s</a>\n' % (SPECOUTPUTPATH, n,n) for n in test.get('testing', []))
 
         notes = '<p class="notes">%s' % test['notes'] if 'notes' in test else ''
 
@@ -382,7 +355,7 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
                 'name_wrapped':name_wrapped, 'backrefs':backref_html(name),
                 'mapped_name':mapped_name,
                 'desc':desc, 'escaped_desc':escaped_desc,
-                'prev':prev, 'next':next, 'refs':refs, 'notes':notes, 'images':images,
+                'prev':prev, 'next':next, 'notes':notes, 'images':images,
                 'fonts':fonts, 'fonthack':fonthack, 'timeout': timeout,
                 'canvas':canvas, 'expected':expectation_html, 'code':code,
                 'scripts':scripts + extra_script,

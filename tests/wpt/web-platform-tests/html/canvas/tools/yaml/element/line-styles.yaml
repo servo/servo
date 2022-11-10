@@ -1,9 +1,4 @@
 - name: 2d.line.defaults
-  testing:
-  - 2d.lineWidth.default
-  - 2d.lineCap.default
-  - 2d.lineJoin.default
-  - 2d.miterLimit.default
   code: |
     @assert ctx.lineWidth === 1;
     @assert ctx.lineCap === 'butt';
@@ -12,8 +7,6 @@
 
 - name: 2d.line.width.basic
   desc: lineWidth determines the width of line strokes
-  testing:
-  - 2d.lineWidth
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -56,8 +49,6 @@
 
 - name: 2d.line.width.transformed
   desc: Line stroke widths are affected by scale transformations
-  testing:
-  - 2d.lineWidth
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -106,8 +97,6 @@
 
 - name: 2d.line.width.scaledefault
   desc: Default lineWidth strokes are affected by scale transformations
-  testing:
-  - 2d.lineWidth
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -127,9 +116,6 @@
 
 - name: 2d.line.width.valid
   desc: Setting lineWidth to valid values works
-  testing:
-  - 2d.lineWidth.set
-  - 2d.lineWidth.get
   code: |
     ctx.lineWidth = 1.5;
     @assert ctx.lineWidth === 1.5;
@@ -145,8 +131,6 @@
 
 - name: 2d.line.width.invalid
   desc: Setting lineWidth to invalid values is ignored
-  testing:
-  - 2d.lineWidth.invalid
   code: |
     ctx.lineWidth = 1.5;
     @assert ctx.lineWidth === 1.5;
@@ -185,8 +169,6 @@
 
 - name: 2d.line.cap.butt
   desc: lineCap 'butt' is rendered correctly
-  testing:
-  - 2d.lineCap.butt
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -227,8 +209,6 @@
 
 - name: 2d.line.cap.round
   desc: lineCap 'round' is rendered correctly
-  testing:
-  - 2d.lineCap.round
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -285,8 +265,6 @@
 
 - name: 2d.line.cap.square
   desc: lineCap 'square' is rendered correctly
-  testing:
-  - 2d.lineCap.square
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -327,8 +305,6 @@
 
 - name: 2d.line.cap.open
   desc: Line caps are drawn at the corners of an unclosed rectangle
-  testing:
-  - 2d.lineCap.end
   code: |
     ctx.fillStyle = '#f00';
     ctx.strokeStyle = '#0f0';
@@ -354,8 +330,6 @@
 
 - name: 2d.line.cap.closed
   desc: Line caps are not drawn at the corners of an unclosed rectangle
-  testing:
-  - 2d.lineCap.end
   code: |
     ctx.fillStyle = '#0f0';
     ctx.strokeStyle = '#f00';
@@ -381,9 +355,6 @@
 
 - name: 2d.line.cap.valid
   desc: Setting lineCap to valid values works
-  testing:
-  - 2d.lineCap.set
-  - 2d.lineCap.get
   code: |
     ctx.lineCap = 'butt'
     @assert ctx.lineCap === 'butt';
@@ -396,8 +367,6 @@
 
 - name: 2d.line.cap.invalid
   desc: Setting lineCap to invalid values is ignored
-  testing:
-  - 2d.lineCap.invalid
   code: |
     ctx.lineCap = 'butt'
     @assert ctx.lineCap === 'butt';
@@ -428,9 +397,6 @@
 
 - name: 2d.line.join.bevel
   desc: lineJoin 'bevel' is rendered correctly
-  testing:
-  - 2d.lineJoin.common
-  - 2d.lineJoin.bevel
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -490,8 +456,6 @@
 
 - name: 2d.line.join.round
   desc: lineJoin 'round' is rendered correctly
-  testing:
-  - 2d.lineJoin.round
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -549,8 +513,6 @@
 
 - name: 2d.line.join.miter
   desc: lineJoin 'miter' is rendered correctly
-  testing:
-  - 2d.lineJoin.miter
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -601,8 +563,6 @@
 
 - name: 2d.line.join.open
   desc: Line joins are not drawn at the corner of an unclosed rectangle
-  testing:
-  - 2d.lineJoin.joins
   code: |
     ctx.fillStyle = '#0f0';
     ctx.strokeStyle = '#f00';
@@ -627,8 +587,6 @@
 
 - name: 2d.line.join.closed
   desc: Line joins are drawn at the corner of a closed rectangle
-  testing:
-  - 2d.lineJoin.joinclosed
   code: |
     ctx.fillStyle = '#f00';
     ctx.strokeStyle = '#0f0';
@@ -653,8 +611,6 @@
 
 - name: 2d.line.join.parallel
   desc: Line joins are drawn at 180-degree joins
-  testing:
-  - 2d.lineJoin.joins
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -676,9 +632,6 @@
 
 - name: 2d.line.join.valid
   desc: Setting lineJoin to valid values works
-  testing:
-  - 2d.lineJoin.set
-  - 2d.lineJoin.get
   code: |
     ctx.lineJoin = 'bevel'
     @assert ctx.lineJoin === 'bevel';
@@ -691,8 +644,6 @@
 
 - name: 2d.line.join.invalid
   desc: Setting lineJoin to invalid values is ignored
-  testing:
-  - 2d.lineJoin.invalid
   code: |
     ctx.lineJoin = 'bevel'
     @assert ctx.lineJoin === 'bevel';
@@ -723,9 +674,6 @@
 
 - name: 2d.line.miter.exceeded
   desc: Miter joins are not drawn when the miter limit is exceeded
-  testing:
-  - 2d.lineJoin.miterLimit
-  - 2d.lineJoin.miter
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -749,9 +697,6 @@
 
 - name: 2d.line.miter.acute
   desc: Miter joins are drawn correctly with acute angles
-  testing:
-  - 2d.lineJoin.miterLimit
-  - 2d.lineJoin.miter
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -783,9 +728,6 @@
 
 - name: 2d.line.miter.obtuse
   desc: Miter joins are drawn correctly with obtuse angles
-  testing:
-  - 2d.lineJoin.miterLimit
-  - 2d.lineJoin.miter
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -818,8 +760,6 @@
 - name: 2d.line.miter.rightangle
   desc: Miter joins are not drawn when the miter limit is exceeded, on exact right
     angles
-  testing:
-  - 2d.lineJoin.miter
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -844,8 +784,6 @@
 - name: 2d.line.miter.lineedge
   desc: Miter joins are not drawn when the miter limit is exceeded at the corners
     of a zero-height rectangle
-  testing:
-  - 2d.lineJoin.miter
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -866,8 +804,6 @@
 
 - name: 2d.line.miter.within
   desc: Miter joins are drawn when the miter limit is not quite exceeded
-  testing:
-  - 2d.lineJoin.miter
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -891,9 +827,6 @@
 
 - name: 2d.line.miter.valid
   desc: Setting miterLimit to valid values works
-  testing:
-  - 2d.miterLimit.set
-  - 2d.miterLimit.get
   code: |
     ctx.miterLimit = 1.5;
     @assert ctx.miterLimit === 1.5;
@@ -909,8 +842,6 @@
 
 - name: 2d.line.miter.invalid
   desc: Setting miterLimit to invalid values is ignored
-  testing:
-  - 2d.miterLimit.invalid
   code: |
     ctx.miterLimit = 1.5;
     @assert ctx.miterLimit === 1.5;
@@ -992,16 +923,8 @@
     @assert pixel 48,48 == 0,255,0,255;
   expected: green
 
-
-
-
-
-
-
 - name: 2d.line.invalid.strokestyle
   desc: Verify correct behavior of canvas on an invalid strokeStyle()
-  testing:
-  - 2d.strokestyle.invalid
   code: |
     ctx.strokeStyle = 'rgb(0, 255, 0)';
     ctx.strokeStyle = 'nonsense';
@@ -1014,4 +937,3 @@
     @assert imgdata[4] == 0;
     @assert imgdata[5] == 255;
     @assert imgdata[6] == 0;
-

@@ -27,10 +27,6 @@
       tag: "input",
       types: ["datetime-local"],
       testData: [
-        // Note that several of these datetime strings use a ' ' separator, which
-        // is questionably spec-compliant. See:
-        //   - crbug.com/521871
-        //   - https://github.com/whatwg/html/issues/2276
         {conditions: {required: false, value: ""}, expected: false, name: "[target] The required attribute is not set"},
         {conditions: {required: true, value: "2000-12-10T12:00:00"}, expected: false, name: "[target] Valid local date and time string(2000-12-10T12:00:00)"},
         {conditions: {required: true, value: "2000-12-10 12:00"}, expected: false, name: "[target] Valid local date and time string(2000-12-10 12:00)"},
@@ -56,36 +52,6 @@
         {conditions: {required: true, value: "9999-99-99"}, expected: true, expectedImmutable: false, name: "[target] Invalid date string(9999-99-99)"},
         {conditions: {required: true, value: "37/01/01"}, expected: true, expectedImmutable: false, name: "[target] Invalid date string(37-01-01)"},
         {conditions: {required: true, value: "2000/01/01"}, expected: true, expectedImmutable: false, name: "[target] Invalid date string(2000/01/01)"},
-        {conditions: {required: true, value: ""}, expected: true, expectedImmutable: false, name: "[target] The value attribute is empty string"}
-      ]
-    },
-    {
-      tag: "input",
-      types: ["month"],
-      testData: [
-        {conditions: {required: false, value: ""}, expected: false, name: "[target] The required attribute is not set"},
-        {conditions: {required: true, value: "2000-12"}, expected: false, name: "[target] Valid month string(2000-12)"},
-        {conditions: {required: true, value: "9999-01"}, expected: false, name: "[target] Valid month string(9999-01)"},
-        {conditions: {required: true, value: 1234567}, expected: true, expectedImmutable: false, name: "[target] The value attribute is a number(1234567)"},
-        {conditions: {required: true, value: new Date()}, expected: true, expectedImmutable: false, name: "[target] The value attribute is a Date object"},
-        {conditions: {required: true, value: "2000-99"}, expected: true, expectedImmutable: false, name: "[target] Invalid month string(2000-99)"},
-        {conditions: {required: true, value: "37-01"}, expected: true, expectedImmutable: false, name: "[target] Invalid month string(37-01)"},
-        {conditions: {required: true, value: "2000/01"}, expected: true, expectedImmutable: false, name: "[target] Invalid month string(2000/01)"},
-        {conditions: {required: true, value: ""}, expected: true, expectedImmutable: false, name: "[target] The value attribute is empty string"}
-      ]
-    },
-    {
-      tag: "input",
-      types: ["week"],
-      testData: [
-        {conditions: {required: false, value: ""}, expected: false, name: "[target] The required attribute is not set"},
-        {conditions: {required: true, value: "2000-W12"}, expected: false, name: "[target] Valid week string(2000-W12)"},
-        {conditions: {required: true, value: "9999-W01"}, expected: false, name: "[target] Valid week string(9999-W01)"},
-        {conditions: {required: true, value: 1234567}, expected: true, expectedImmutable: false, name: "[target] The value attribute is a number(1234567)"},
-        {conditions: {required: true, value: new Date()}, expected: true, expectedImmutable: false, name: "[target] The value attribute is a Date object"},
-        {conditions: {required: true, value: "2000-W99"}, expected: true, expectedImmutable: false, name: "[target] Invalid week string(2000-W99)"},
-        {conditions: {required: true, value: "2000-W00"}, expected: true, expectedImmutable: false, name: "[target] invalid week string(2000-W00)"},
-        {conditions: {required: true, value: "2000-w01"}, expected: true, expectedImmutable: false, name: "[target] invalid week string(2000-w01)"},
         {conditions: {required: true, value: ""}, expected: true, expectedImmutable: false, name: "[target] The value attribute is empty string"}
       ]
     },

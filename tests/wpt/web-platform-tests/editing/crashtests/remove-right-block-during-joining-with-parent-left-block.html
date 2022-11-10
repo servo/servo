@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test removing right block while joining it and parent left block</title>
+<script>
+addEventListener("load", () => {
+  const editingHosts = document.querySelectorAll("div[contenteditable]");
+  for (const editingHost of editingHosts) {
+    editingHost.focus();
+    const rightChildBlock = editingHost.querySelector("div > div > div");
+    getSelection().collapse(rightChildBlock.firstChild.firstChild, 0);
+    editingHost.addEventListener("DOMSubtreeModified", () => {
+      document.body.appendChild(rightChildBlock);
+    });
+    document.execCommand("delete");
+  }
+});
+</script>
+</head>
+<body>
+  <div contenteditable>
+    <div>parent<div><b>child</b></div>parent</div>
+  </div>
+  <div contenteditable>
+    <div>parent<div><b>child<br>2nd line</b></div>parent</div>
+  </div>
+  <div contenteditable style="white-space:pre">
+    <div>parent<div>child
+2nd line</div>parent</div>
+  </div>
+</body>
+</html>

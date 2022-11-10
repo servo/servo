@@ -56,31 +56,29 @@ layout changes on percentage-based scroll offset">
     [
       { transform: 'translateY(0)', opacity: 1 },
       { transform: 'translateY(200px)', opacity: 0 }
-    ], {
-      duration: 1000,
-    }
+    ]
   );
 
   const scroller = document.getElementById('scroller');
   const timeline = new ScrollTimeline({
-    source: scroller,
-    scrollOffsets: [CSS.percent(20), CSS.percent(80)]
+    source: scroller
   });
   const animation = new Animation(effect, timeline);
   animation.play();
+  animation.ready.then(_ => {
+    // Moves the scroller to the end point (240px).
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = maxScroll * 0.6;
 
-  // Moves the scroller to the end point (240px).
-  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-  scroller.scrollTop = maxScroll * 0.6;
-
-  // Makes sure that the animation runs on compositor with current scroll offset
-  waitForAnimationFrames(2).then(_ => {
-    // Adds 80px to scroll height which pushes scroll progress back to 50%.
-    const spacer = document.getElementById('spacer');
-    spacer.classList.remove('invisible');
-    // Makes sure that the change is propagated to the compositor.
+    // Makes sure that the animation runs on compositor with current scroll offset
     waitForAnimationFrames(2).then(_ => {
-      takeScreenshot();
+      // Adds 80px to scroll height which pushes scroll progress back to 50%.
+      const spacer = document.getElementById('spacer');
+      spacer.classList.remove('invisible');
+      // Makes sure that the change is propagated to the compositor.
+      waitForAnimationFrames(2).then(_ => {
+        takeScreenshot();
+      });
     });
   });
 </script>

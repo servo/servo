@@ -23,9 +23,9 @@
     {value: "2014-01-01 11:11:123", expected: "", testname: "invalid datetime-local input value 5"},
     {value: "2014-01-01 11:11:12.1234", expected: "", testname: "invalid datetime-local input value 6"},
     {value: "2014-01-01 11:12", attributes: { min: "2014-01-01 11:11" }, expected: "2014-01-01T11:12", testname: "Value >= min attribute"},
-    {value: "2014-01-01 11:10", attributes: { min: "2014-01-01 11:11" }, expected: "2014-01-01T11:11", testname: "Value < min attribute"},
+    {value: "2014-01-01 11:10", attributes: { min: "2014-01-01 11:11" }, expected: "2014-01-01T11:10", testname: "Value < min attribute"},
     {value: "2014-01-01 11:10", attributes: { max: "2014-01-01 11:11" }, expected: "2014-01-01T11:10", testname: "Value <= max attribute"},
-    {value: "2014-01-01 11:12", attributes: { max: "2014-01-01 11:11" }, expected: "2014-01-01T11:11", testname: "Value > max attribute"}
+    {value: "2014-01-01 11:12", attributes: { max: "2014-01-01 11:11" }, expected: "2014-01-01T11:12", testname: "Value > max attribute"}
   ];
   for (var i = 0; i < datetimeLocal.length; i++) {
     var w = datetimeLocal[i];

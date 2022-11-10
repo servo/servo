@@ -1,1 +1,2 @@
 Clear-Site-Data: "*"
+Access-Control-Allow-Origin: *

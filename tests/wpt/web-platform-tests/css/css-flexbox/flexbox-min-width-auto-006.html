@@ -2,18 +2,10 @@
 <title>CSS Flexible Box Test: Aspect ratio handling of images</title>
 <link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com" />
 <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto" />
+<link rel="help" href="https://github.com/web-platform-tests/wpt/issues/31609" />
 <link rel="match" href="reference/flexbox-min-width-auto-006-ref.html" />
-<meta name="assert" content="Test that min-width:auto does not incorrectly stretch items with aspect ratio" />
 
 <style>
-#reference-overlapped-red {
-    position: relative;
-    background-color: red;
-    width: 10px;
-    height: 10px;
-    top: 40px;
-    z-index: -1;
-}
 .constrained-width-flex {
     width: 100px;
     display: flex;
@@ -25,7 +17,7 @@
 }
 </style>
 
-<p>Test passes if there are a (vertically centered) 20x20 and a 60x100 green boxes enclosed on each 100x100 square.</p>
+<p>Test passes if there are two 100x100 green squares.</p>
 
 <div class="constrained-width-flex">
     <div class="constrained-height-flex">

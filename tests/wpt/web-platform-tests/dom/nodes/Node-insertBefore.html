@@ -29,11 +29,17 @@ function testLeafNode(nodeName, createNodeFunction) {
 }
 
 test(function() {
-  // WebIDL.
+  // WebIDL: first argument.
   assert_throws_js(TypeError, function() { document.body.insertBefore(null, null) })
   assert_throws_js(TypeError, function() { document.body.insertBefore(null, document.body.firstChild) })
   assert_throws_js(TypeError, function() { document.body.insertBefore({'a':'b'}, document.body.firstChild) })
 }, "Calling insertBefore with a non-Node first argument must throw TypeError.")
+
+test(function() {
+  // WebIDL: second argument.
+  assert_throws_js(TypeError, function() { document.body.insertBefore(document.createTextNode("child")) })
+  assert_throws_js(TypeError, function() { document.body.insertBefore(document.createTextNode("child"), {'a':'b'}) })
+}, "Calling insertBefore with second argument missing, or other than Node, null, or undefined, must throw TypeError.")
 
 testLeafNode("DocumentType", function () { return document.doctype; } )
 testLeafNode("Text", function () { return document.createTextNode("Foo") })

@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<!-- Test verifies that ORB allows an mislabeled cross-origin image after sniffing. -->
+<meta charset="utf-8">
+<!-- Reference page uses same-origin resources, which are not ORB-eligible. -->
+<link rel="match" href="img-png-mislabeled-as-html.sub-ref.html">
+<!-- www1 is cross-origin, so the HTTP response is ORB-eligible -->
+<img src="http://{{domains[www1]}}:{{ports[http][0]}}/fetch/orb/resources/png-mislabeled-as-html.png">

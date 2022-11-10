@@ -18,7 +18,7 @@
       assert_equals(typeof brandVersionPair.version, "string", "version should be a string");
     }
     assert_equals(typeof uaData.mobile, "boolean", "mobile should be a boolean");
-    const highEntropyData = await uaData.getHighEntropyValues(["platform", "platformVersion", "architecture", "model", "uaFullVersion", "fullVersionList"]);
+    const highEntropyData = await uaData.getHighEntropyValues(["platformVersion", "architecture", "model", "uaFullVersion", "fullVersionList"]);
     assert_equals(typeof highEntropyData["platform"], "string", "Platform brand should be a string");
     assert_equals(typeof highEntropyData["platformVersion"], "string", "Platform version should be a string");
     assert_equals(typeof highEntropyData["architecture"], "string", "Architecture should be a string");
@@ -30,7 +30,7 @@
       assert_equals(typeof brandVersionPair.version, "string", "version should be a string");
     }
     const highEntropyData2 = await uaData.getHighEntropyValues([]);
-    assert_false("platform" in highEntropyData2, "Platform brand should be an empty string");
+    assert_equals(typeof highEntropyData["platform"], "string", "Platform brand should be a string");
     assert_false("platformVersion" in highEntropyData2, "Platform version should be an empty string");
     assert_false("architecture" in highEntropyData2, "Architecture should be an empty string");
     assert_false("model" in highEntropyData2, "Model should be an empty string");

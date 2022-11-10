@@ -32,7 +32,7 @@ function _getPixel(canvas, x,y)
     return [ imgdata.data[0], imgdata.data[1], imgdata.data[2], imgdata.data[3] ];
 }
 
-function _assertPixel(canvas, x,y, r,g,b,a, pos, colour)
+function _assertPixel(canvas, x, y, r, g, b, a)
 {
     var c = _getPixel(canvas, x,y);
     assert_equals(c[0], r, 'Red channel of the pixel at (' + x + ', ' + y + ')');
@@ -41,7 +41,7 @@ function _assertPixel(canvas, x,y, r,g,b,a, pos, colour)
     assert_equals(c[3], a, 'Alpha channel of the pixel at (' + x + ', ' + y + ')');
 }
 
-function _assertPixelApprox(canvas, x,y, r,g,b,a, pos, colour, tolerance)
+function _assertPixelApprox(canvas, x, y, r, g, b, a, tolerance)
 {
     var c = _getPixel(canvas, x,y);
     assert_approx_equals(c[0], r, tolerance, 'Red channel of the pixel at (' + x + ', ' + y + ')');

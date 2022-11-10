@@ -1,0 +1,37 @@
+<!doctype html>
+<title>Defer Script Execution Order</title>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/helper.js"></script>
+</head>
+<body>
+  <script>
+  setup({single_test: true});
+  function finish() {
+    assert_array_equals(
+        window.result,
+        ["Inline1", "Sync1", "Inline2", "Sync2", "EndOfBody",
+         "Defer1", "Defer2", "DOMContentLoaded"],
+        "Execution order");
+    // Chromium's force defer order would be:
+    //  ["EndOfBody", "Inline1", "Sync1", "Inline2", "Sync2",
+    //   "Defer1", "Defer2", "DOMContentLoaded"]
+    done();
+  }
+  logScript("Inline1");
+  window.addEventListener("load", finish);
+  </script>
+
+  <script src="resources/sync-script-1.js"></script>
+  <script src="resources/defer-script-1.js" defer></script>
+  <script>
+  logScript("Inline2");
+  </script>
+  <script src="resources/defer-script-2.js" defer></script>
+  <script src="resources/sync-script-2.js"></script>
+  <pre id="bodyend">End</pre>
+</body>
+</html>

@@ -9,15 +9,14 @@ from typing import Generator
 from typing import List
 from typing import MutableMapping
 from typing import Optional
+from typing import overload
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
-import pytest
 from _pytest.compat import final
-from _pytest.compat import overload
 from _pytest.fixtures import fixture
-from _pytest.pathlib import Path
+from _pytest.warning_types import PytestWarning
 
 RE_IMPORT_ERROR_NAME = re.compile(r"^No module named (.*)$")
 
@@ -37,7 +36,7 @@ def monkeypatch() -> Generator["MonkeyPatch", None, None]:
         monkeypatch.delattr(obj, name, raising=True)
         monkeypatch.setitem(mapping, name, value)
         monkeypatch.delitem(obj, name, raising=True)
-        monkeypatch.setenv(name, value, prepend=False)
+        monkeypatch.setenv(name, value, prepend=None)
         monkeypatch.delenv(name, raising=True)
         monkeypatch.syspath_prepend(path)
         monkeypatch.chdir(path)
@@ -74,7 +73,7 @@ def resolve(name: str) -> object:
             if expected == used:
                 raise
             else:
-                raise ImportError("import error in {}: {}".format(used, ex)) from ex
+                raise ImportError(f"import error in {used}: {ex}") from ex
         found = annotated_getattr(found, part, used)
     return found
 
@@ -92,10 +91,8 @@ def annotated_getattr(obj: object, name: str, ann: str) -> object:
 
 
 def derive_importpath(import_path: str, raising: bool) -> Tuple[str, object]:
-    if not isinstance(import_path, str) or "." not in import_path:  # type: ignore[unreachable]
-        raise TypeError(
-            "must be absolute import path string, not {!r}".format(import_path)
-        )
+    if not isinstance(import_path, str) or "." not in import_path:
+        raise TypeError(f"must be absolute import path string, not {import_path!r}")
     module, attr = import_path.rsplit(".", 1)
     target = resolve(module)
     if raising:
@@ -113,19 +110,27 @@ notset = Notset()
 
 @final
 class MonkeyPatch:
-    """Object returned by the ``monkeypatch`` fixture keeping a record of
-    setattr/item/env/syspath changes."""
+    """Helper to conveniently monkeypatch attributes/items/environment
+    variables/syspath.
+
+    Returned by the :fixture:`monkeypatch` fixture.
+
+    :versionchanged:: 6.2
+        Can now also be used directly as `pytest.MonkeyPatch()`, for when
+        the fixture is not available. In this case, use
+        :meth:`with MonkeyPatch.context() as mp: <context>` or remember to call
+        :meth:`undo` explicitly.
+    """
 
     def __init__(self) -> None:
-        self._setattr = []  # type: List[Tuple[object, str, object]]
-        self._setitem = (
-            []
-        )  # type: List[Tuple[MutableMapping[Any, Any], object, object]]
-        self._cwd = None  # type: Optional[str]
-        self._savesyspath = None  # type: Optional[List[str]]
+        self._setattr: List[Tuple[object, str, object]] = []
+        self._setitem: List[Tuple[MutableMapping[Any, Any], object, object]] = []
+        self._cwd: Optional[str] = None
+        self._savesyspath: Optional[List[str]] = None
 
+    @classmethod
     @contextmanager
-    def context(self) -> Generator["MonkeyPatch", None, None]:
+    def context(cls) -> Generator["MonkeyPatch", None, None]:
         """Context manager that returns a new :class:`MonkeyPatch` object
         which undoes any patching done inside the ``with`` block upon exit.
 
@@ -142,9 +147,9 @@ class MonkeyPatch:
 
         Useful in situations where it is desired to undo some patches before the test ends,
         such as mocking ``stdlib`` functions that might break pytest itself if mocked (for examples
-        of this see `#3290 <https://github.com/pytest-dev/pytest/issues/3290>`_.
+        of this see :issue:`3290`).
         """
-        m = MonkeyPatch()
+        m = cls()
         try:
             yield m
         finally:
@@ -152,17 +157,25 @@ class MonkeyPatch:
 
     @overload
     def setattr(
-        self, target: str, name: object, value: Notset = ..., raising: bool = ...,
+        self,
+        target: str,
+        name: object,
+        value: Notset = ...,
+        raising: bool = ...,
     ) -> None:
         ...
 
-    @overload  # noqa: F811
-    def setattr(  # noqa: F811
-        self, target: object, name: str, value: object, raising: bool = ...,
+    @overload
+    def setattr(
+        self,
+        target: object,
+        name: str,
+        value: object,
+        raising: bool = ...,
     ) -> None:
         ...
 
-    def setattr(  # noqa: F811
+    def setattr(
         self,
         target: Union[str, object],
         name: Union[object, str],
@@ -202,7 +215,7 @@ class MonkeyPatch:
 
         oldval = getattr(target, name, notset)
         if raising and oldval is notset:
-            raise AttributeError("{!r} has no attribute {!r}".format(target, name))
+            raise AttributeError(f"{target!r} has no attribute {name!r}")
 
         # avoid class descriptors like staticmethod/classmethod
         if inspect.isclass(target):
@@ -275,7 +288,7 @@ class MonkeyPatch:
         """
         if not isinstance(value, str):
             warnings.warn(  # type: ignore[unreachable]
-                pytest.PytestWarning(
+                PytestWarning(
                     "Value of environment variable {name} type should be str, but got "
                     "{value!r} (type: {type}); converted to str implicitly".format(
                         name=name, value=value, type=type(value).__name__
@@ -294,19 +307,22 @@ class MonkeyPatch:
         Raises ``KeyError`` if it does not exist, unless ``raising`` is set to
         False.
         """
-        environ = os.environ  # type: MutableMapping[str, str]
+        environ: MutableMapping[str, str] = os.environ
         self.delitem(environ, name, raising=raising)
 
     def syspath_prepend(self, path) -> None:
         """Prepend ``path`` to ``sys.path`` list of import locations."""
-        from pkg_resources import fixup_namespace_packages
 
         if self._savesyspath is None:
             self._savesyspath = sys.path[:]
         sys.path.insert(0, str(path))
 
         # https://github.com/pypa/setuptools/blob/d8b901bc/docs/pkg_resources.txt#L162-L171
-        fixup_namespace_packages(str(path))
+        # this is only needed when pkg_resources was already loaded by the namespace package
+        if "pkg_resources" in sys.modules:
+            from pkg_resources import fixup_namespace_packages
+
+            fixup_namespace_packages(str(path))
 
         # A call to syspathinsert() usually means that the caller wants to
         # import some dynamically created files, thus with python3 we
@@ -319,20 +335,14 @@ class MonkeyPatch:
 
         invalidate_caches()
 
-    def chdir(self, path) -> None:
+    def chdir(self, path: Union[str, "os.PathLike[str]"]) -> None:
         """Change the current working directory to the specified path.
 
-        Path can be a string or a py.path.local object.
+        Path can be a string or a path object.
         """
         if self._cwd is None:
             self._cwd = os.getcwd()
-        if hasattr(path, "chdir"):
-            path.chdir()
-        elif isinstance(path, Path):
-            # Modern python uses the fspath protocol here LEGACY
-            os.chdir(str(path))
-        else:
-            os.chdir(path)
+        os.chdir(path)
 
     def undo(self) -> None:
         """Undo previous changes.

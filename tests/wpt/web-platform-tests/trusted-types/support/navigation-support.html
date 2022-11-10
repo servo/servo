@@ -5,7 +5,8 @@
 <p>Support page for trusted-types-navigation.*.html tests.</p>
 <a id="anchor" href="#">link</a>
 <script>
-  if (location.search == "?defaultpolicy") {
+  const params = new URLSearchParams(location.search);
+  if (!!params.get("defaultpolicy")) {
     trustedTypes.createPolicy("default", {
         createScript: s => s.replace("continue", "defaultpolicywashere"),
     });
@@ -35,8 +36,16 @@
 
   const anchor = document.getElementById("anchor");
   anchor.href = target;
+
+  if (!!params.get("frame")) {
+    const frame = document.createElement("iframe");
+    frame.src = "frame-without-trusted-types.html";
+    frames.name = "frame";
+    document.body.appendChild(frame);
+    anchor.target = "frame";
+  }
+
   if (!location.hash)
     document.addEventListener("DOMContentLoaded", _ => anchor.click());
 </script>
 </body>
-

@@ -1,0 +1,49 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Dropping image on horizontal scrollbar of a scrollable block element</title>
+<style type="text/css">
+div[ondragenter]
+  {width:3em;
+  height:3em;
+  margin-top:1em;
+  font-size:1.5em;
+  white-space:nowrap;
+  overflow-x:scroll;}
+p:first-child
+  {padding-left:1em;}
+img
+  {width:5px;
+  height:5px;}
+</style>
+<script type="application/ecmascript">
+function checkImage(event)
+  {document.querySelector('div').firstChild.nodeValue = (document.querySelector('img').getAttribute('src') == event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''))?'PASS':'FAIL';}
+</script>
+</head>
+<body>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==" alt="PNG green pixel" ondragstart="event.dataTransfer.effectAllowed = 'copy'"/></p>
+<p>Drag little square above and drop it on scrollbar below. You should see word PASS when you drop it on scrollbar.</p>
+<div ondragenter="event.preventDefault()" ondragover="return false">↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓</div>
+<script>
+async function test(){
+  await new Promise(loaded => window.addEventListener("load", loaded));
+  const img = document.querySelector('img');
+  const div = document.querySelector('div');
+  function onDropCallBack(event) {
+    checkImage(event);
+    assert_true(div.firstChild.nodeValue == 'PASS');
+    return true;
+  }
+
+  dragDropTest(img, div, onDropCallBack, 'Dragging the image to the horizontal scrollbar within a scrollable block element should copy it there');
+}
+test();
+</script>
+</body>
+</html>

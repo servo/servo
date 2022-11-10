@@ -1,0 +1,2 @@
+Cross-Origin-Embedder-Policy: credentialless
+Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline'; img-src 'self'

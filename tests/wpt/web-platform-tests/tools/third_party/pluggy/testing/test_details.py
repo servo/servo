@@ -15,15 +15,15 @@ def test_parse_hookimpl_override():
                     opts = {}
             return opts
 
-    class Plugin(object):
+    class Plugin:
         def x1meth(self):
             pass
 
         @hookimpl(hookwrapper=True, tryfirst=True)
         def x1meth2(self):
-            pass
+            yield  # pragma: no cover
 
-    class Spec(object):
+    class Spec:
         @hookspec
         def x1meth(self):
             pass
@@ -47,12 +47,12 @@ def test_parse_hookimpl_override():
 def test_warn_when_deprecated_specified(recwarn):
     warning = DeprecationWarning("foo is deprecated")
 
-    class Spec(object):
+    class Spec:
         @hookspec(warn_on_impl=warning)
         def foo(self):
             pass
 
-    class Plugin(object):
+    class Plugin:
         @hookimpl
         def foo(self):
             pass
@@ -73,11 +73,11 @@ def test_plugin_getattr_raises_errors():
     when getattr() gets called (#11).
     """
 
-    class DontTouchMe(object):
+    class DontTouchMe:
         def __getattr__(self, x):
             raise Exception("cant touch me")
 
-    class Module(object):
+    class Module:
         pass
 
     module = Module()
@@ -123,7 +123,7 @@ def test_warning_on_call_vs_hookspec_arg_mismatch():
 def test_repr():
     class Plugin:
         @hookimpl
-        def myhook():
+        def myhook(self):
             raise NotImplementedError()
 
     pm = PluginManager(hookspec.project_name)
@@ -131,5 +131,5 @@ def test_repr():
     plugin = Plugin()
     pname = pm.register(plugin)
     assert repr(pm.hook.myhook._nonwrappers[0]) == (
-        "<HookImpl plugin_name=%r, plugin=%r>" % (pname, plugin)
+        f"<HookImpl plugin_name={pname!r}, plugin={plugin!r}>"
     )

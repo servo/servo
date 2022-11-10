@@ -13,7 +13,7 @@ If this change fixes an issue, please:
 
 Unless your change is trivial or a small documentation fix (e.g., a typo or reword of a small section) please:
 
-- [ ] Create a new changelog file in the `changelog` folder, with a name like `<ISSUE NUMBER>.<TYPE>.rst`. See [changelog/README.rst](https://github.com/pytest-dev/pytest/blob/master/changelog/README.rst) for details.
+- [ ] Create a new changelog file in the `changelog` folder, with a name like `<ISSUE NUMBER>.<TYPE>.rst`. See [changelog/README.rst](https://github.com/pytest-dev/pytest/blob/main/changelog/README.rst) for details.
 
   Write sentences in the **past or present tense**, examples:
 

@@ -19,7 +19,7 @@ var ctx = canvas.getContext('2d');
 ctx.strokeStyle = '#0f0';
 ctx.lineWidth = 50;
 ctx.strokeRect(0, 25, 100, 0);
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

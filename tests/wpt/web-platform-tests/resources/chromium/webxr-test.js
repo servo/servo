@@ -59,6 +59,12 @@ function composeGFXTransform(fakeTransformInit) {
   return {matrix: getMatrixFromTransform(fakeTransformInit)};
 }
 
+// Value equality for camera image init objects - they must contain `width` &
+// `height` properties and may contain `pixels` property.
+function isSameCameraImageInit(rhs, lhs) {
+  return lhs.width === rhs.width && lhs.height === rhs.height && lhs.pixels === rhs.pixels;
+}
+
 class ChromeXRTest {
   constructor() {
     this.mockVRService_ = new MockVRService();
@@ -327,6 +333,7 @@ class MockRuntime {
     'anchors': vrMojom.XRSessionFeature.ANCHORS,
     'depth-sensing': vrMojom.XRSessionFeature.DEPTH,
     'secondary-views': vrMojom.XRSessionFeature.SECONDARY_VIEWS,
+    'camera-access': vrMojom.XRSessionFeature.CAMERA_ACCESS,
   };
 
   static _sessionModeToMojoMap = {
@@ -400,16 +407,7 @@ class MockRuntime {
     }
 
     this.supportedModes_ = this._convertModesToEnum(supportedModes);
-
-    // Initialize DisplayInfo first to set the defaults, then override with
-    // anything from the deviceInit
-    if (this.supportedModes_.includes(vrMojom.XRSessionMode.kImmersiveVr) ||
-        this.supportedModes_.includes(vrMojom.XRSessionMode.kImmersiveAr)) {
-      this.displayInfo_ = this._getImmersiveDisplayInfo();
-    } else if (this.supportedModes_.includes(vrMojom.XRSessionMode.kInline)) {
-      this.displayInfo_ = this._getNonImmersiveDisplayInfo();
-    } else {
-      // This should never happen!
+    if (this.supportedModes_.length == 0) {
       console.error("Device has empty supported modes array!");
       throw new InvalidStateError();
     }
@@ -445,26 +443,33 @@ class MockRuntime {
 
   // WebXR Test API
   setViews(primaryViews, secondaryViews) {
+    this.cameraImage_ = null;
     this.primaryViews_ = [];
     this.secondaryViews_ = [];
     let xOffset = 0;
     if (primaryViews) {
       this.primaryViews_ = [];
       xOffset = this._setViews(primaryViews, xOffset, this.primaryViews_);
+      const cameraImage = this._findCameraImage(primaryViews);
+
+      if (cameraImage) {
+        this.cameraImage_ = cameraImage;
+      }
     }
 
     if (secondaryViews) {
       this.secondaryViews_ = [];
       this._setViews(secondaryViews, xOffset, this.secondaryViews_);
-    }
+      const cameraImage = this._findCameraImage(secondaryViews);
 
-    // Do not include secondary views here because they are only exposed to
-    // WebXR if requested by the session. getFrameData() will send back the
-    // secondary views when enabled.
-    this.displayInfo_.views = this.primaryViews_;
+      if (cameraImage) {
+        if (!isSameCameraImageInit(this.cameraImage_, cameraImage)) {
+          throw new Error("If present, camera resolutions on each view must match each other!"
+                          + " Secondary views' camera doesn't match primary views.");
+        }
 
-    if (this.sessionClient_) {
-      this.sessionClient_.onChanged(this.displayInfo_);
+        this.cameraImage_ = cameraImage;
+      }
     }
   }
 
@@ -720,33 +725,35 @@ class MockRuntime {
     return xOffset;
   }
 
+  _findCameraImage(views) {
+    const viewWithCamera = views.find(view => view.cameraImageInit);
+    if (viewWithCamera) {
+      //If we have one view with a camera resolution, all views should have the same camera resolution.
+      const allViewsHaveSameCamera = views.every(
+        view => isSameCameraImageInit(view.cameraImageInit, viewWithCamera.cameraImageInit));
+
+      if (!allViewsHaveSameCamera) {
+        throw new Error("If present, camera resolutions on each view must match each other!");
+      }
+
+      return viewWithCamera.cameraImageInit;
+    }
+
+    return null;
+  }
+
   _onStageParametersUpdated() {
     // Indicate for the frame loop that the stage parameters have been updated.
     this.stageParametersId_++;
   }
 
-  _getNonImmersiveDisplayInfo() {
-    const displayInfo = this._getImmersiveDisplayInfo();
+  _getDefaultViews() {
+    if (this.primaryViews_) {
+      return this.primaryViews_;
+    }
 
-    displayInfo.capabilities.canPresent = false;
-    displayInfo.views = [];
-
-    return displayInfo;
-  }
-
-  // Function to generate some valid display information for the device.
-  _getImmersiveDisplayInfo() {
     const viewport_size = 20;
-    return {
-      displayName: 'FakeDevice',
-      capabilities: {
-        hasPosition: false,
-        hasExternalDisplay: false,
-        canPresent: true,
-        maxLayers: 1
-      },
-      stageParameters: null,
-      views: [{
+    return [{
         eye: vrMojom.XREye.kLeft,
         fieldOfView: {
           upDegrees: 48.316,
@@ -773,8 +780,7 @@ class MockRuntime {
           orientation: [0, 0, 0, 1]
         })),
         viewport: { x: viewport_size, y: 0, width: viewport_size, height: viewport_size }
-      }]
-    };
+      }];
   }
 
   // This function converts between the matrix provided by the WebXR test API
@@ -930,7 +936,10 @@ class MockRuntime {
           },
           frameId: this.next_frame_id_,
           bufferHolder: null,
-          bufferSize: {},
+          cameraImageSize: this.cameraImage_ ? {
+            width: this.cameraImage_.width,
+            height: this.cameraImage_.height
+          } : null,
           renderingTimeRatio: 0,
           stageParameters: this.stageParameters_,
           stageParametersId: this.stageParametersId_,
@@ -1199,7 +1208,6 @@ class MockRuntime {
             submitFrameSink: submit_frame_sink,
             dataProvider: dataProviderPtr,
             clientReceiver: clientReceiver,
-            displayInfo: this.displayInfo_,
             enabledFeatures: enabled_features,
             deviceConfig: {
               usesInputEventing: false,
@@ -1210,6 +1218,7 @@ class MockRuntime {
                   depthUsage: vrMojom.XRDepthUsage.kCPUOptimized,
                   depthDataFormat: vrMojom.XRDepthDataFormat.kLuminanceAlpha,
                 } : null,
+              views: this._getDefaultViews(),
             },
             enviromentBlendMode: this.enviromentBlendMode_,
             interactionMode: this.interactionMode_
@@ -2094,7 +2103,7 @@ class MockXRPresentationProvider {
     this.submitFrameClient_.onSubmitFrameRendered();
   }
 
-  submitFrameWithTextureHandle(frameId, texture) {}
+  submitFrameWithTextureHandle(frameId, texture, syncToken) {}
 
   submitFrameDrawnIntoTexture(frameId, syncToken, timeWaited) {}
 

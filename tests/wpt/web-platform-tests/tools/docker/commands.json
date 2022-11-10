@@ -18,9 +18,8 @@
     "parser": "parser_push",
     "help": "Build and push wpt docker image",
     "virtualenv": true,
-    "install": [
-      "requests",
-      "pyyaml"
+    "requirements": [
+      "requirements.txt"
     ]
   }
 }

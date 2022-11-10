@@ -4,10 +4,12 @@
   Async Clipboard write ([text/html ClipboardItem]) -> readHtml (and remove scripts) tests
 </title>
 <link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
 <script>
 'use strict';
 // This function removes extra spaces between tags in html. For example, the
@@ -36,8 +38,10 @@ promise_test(async t => {
   await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
   const blobInput = new Blob([html_with_script], {type: 'text/html'});
   const clipboardItem = new ClipboardItem({'text/html': blobInput});
+  await waitForUserActivation();
   await navigator.clipboard.write([clipboardItem]);
-  const clipboardItems = await navigator.clipboard.read({type: 'text/html'});
+  await waitForUserActivation();
+  const clipboardItems = await navigator.clipboard.read();
 
   const html = clipboardItems[0];
   assert_equals(html.types.length, 1);

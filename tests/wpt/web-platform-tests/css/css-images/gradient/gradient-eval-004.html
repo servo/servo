@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Gradient interpolation</title>
+  <meta name="fuzzy" content="maxDifference=1-2;totalPixels=0-10000">
+  <link rel="author" title="Mike Bremford" href="mailto:mike@bfo.com">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#missing">
+  <meta name="assert" content="Gradient evaluation when one of the components is none works as specified"/>
+  <link rel="match" href="gradient-eval-004-ref.html">
+  <style>
+   :root {
+       --start: rgb(0% 0% 50%);
+       --end: rgb(0% 100% none);
+       --t: 0.5;
+       --big: 131070000px;
+   }
+   .test {
+       width: 100px;
+       height: 100px;
+       background: linear-gradient(var(--start) calc(var(--big) * (0 - var(--t))), var(--end) calc(var(--big) * (1 - var(--t))));
+   }
+ </style>
+ </head>
+ <body>
+  <div class="test"></div>
+ </body>
+</html>

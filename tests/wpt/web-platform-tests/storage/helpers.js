@@ -14,14 +14,13 @@ function createDB(dbName, objectStoreName, t) {
     t.add_cleanup(() => {
       indexedDB.deleteDatabase(dbName);
     });
-
     openRequest.onerror = () => {
       reject(openRequest.error);
     };
     openRequest.onsuccess = () => {
       resolve(openRequest.result);
     };
-    openRequest.onupgradeneeded = event => {
+    openRequest.onupgradeneeded = (event) => {
       openRequest.result.createObjectStore(objectStoreName);
     };
   });
@@ -37,7 +36,11 @@ function createDB(dbName, objectStoreName, t) {
  */
 function transactionPromise(transaction) {
   return new Promise((resolve, reject) => {
-    transaction.onabort = () => { reject(transaction.error); };
-    transaction.oncomplete = () => { resolve(); };
+    transaction.onabort = () => {
+      reject(transaction.error);
+    };
+    transaction.oncomplete = () => {
+      resolve();
+    };
   });
 }

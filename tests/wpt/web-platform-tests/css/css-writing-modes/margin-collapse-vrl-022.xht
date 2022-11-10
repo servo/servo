@@ -24,14 +24,11 @@
   The margin collapsing rules apply exactly with the block-start margin substituted for the top margin and the block-end margin substituted for the bottom margin.
   "
   -->
+  <link rel="match" href="reference/margin-collapse-022-023-1.xht" />
+  <link rel="match" href="reference/margin-collapse-022-023-2.xht" />
 
   <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
   <style type="text/css"><![CDATA[
-  p
-    {
-      font: 16px/1.25 serif; /* computes to 16px/20px */
-    }
-
   div#test
     {
       border: teal solid 1em;
@@ -58,26 +55,8 @@
     {
       background-color: blue;
       position: absolute;
-      top: 77px;
-      /*
-      16px : p's margin-top
-    + 20px : p's line box height
-    + 16px : p's margin-bottom
-    + 25px : div#test's border-top
-   ==========
-      77px
-      */
+      top: 33px; /* body's margin + div#test's border-top */
       width: 1em;
-    }
-
-
-  div.ref
-    {
-      border: teal solid 1em;
-      font: 25px/1 Ahem;
-      height: 4em; /* computes to 100px */
-      margin-bottom: 0.2em;
-      width: 4em; /* and not 100px + 8px for #ref1 */
     }
   ]]></style>
 
@@ -85,19 +64,12 @@
 
  <body>
 
-  <p>Test passes if the top square has a layout identical to one of the squares below it.</p>
-
   <div id="test">
     <div id="wrapper">
       <div id="widthless-static"></div>
       <div id="abs-pos"></div>
     </div>
   </div>
-
-
-  <div class="ref" id="ref1"><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><!-- width is intentionally not 33 --><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /></div>
-
-  <div class="ref" id="ref2"><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" width="25" height="100" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" width="25" height="100" alt="Image download support must be enabled" /></div>
 
  </body>
 </html>

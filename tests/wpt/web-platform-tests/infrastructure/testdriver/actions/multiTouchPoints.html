@@ -6,6 +6,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="touchEvents.js"></script>
 
 <style>
 div#test1{
@@ -24,19 +25,13 @@ div#test1{
 </div>
 
 <script>
-let event_type = [];
-let event_id = [];
+promise_test(async t => {
+  const test1 = document.getElementById("test1");
 
-async_test(t => {
-  let test1 = document.getElementById("test1");
-  document.getElementById("test1").addEventListener("pointerdown",
-    e => {event_type.push(e.type); event_id.push(e.pointerId);});
-  document.getElementById("test1").addEventListener("pointerup",
-    e => {event_type.push(e.type); event_id.push(e.pointerId);});
-  document.getElementById("test1").addEventListener("pointermove",
-    e => {event_type.push(e.type); event_id.push(e.pointerId);});
+  const events = [];
+  addPointerEventListeners(t, test1, events);
 
-  let actions = new test_driver.Actions()
+  const actions = new test_driver.Actions()
       .addPointer("touchPointer1", "touch")
       .addPointer("touchPointer2", "touch")
       .pointerMove(0, 0, {origin: test1, sourceName: "touchPointer1"})
@@ -47,9 +42,27 @@ async_test(t => {
       .pointerUp({sourceName: "touchPointer1"})
       .pointerUp({sourceName: "touchPointer2"});
 
-  actions.send()
-    .then(t.step_func_done(() => {assert_array_equals(event_type, ["pointerdown", "pointerdown", "pointermove", "pointerup", "pointerup"]);
-      assert_array_equals(event_id, [2, 3, 2, 2, 3]);}))
-    .catch(e => t.step_func(() => assert_unreached("Actions sequence failed " + e)));
+  await actions.send()
+
+  eventEquals(events[0], {type: "pointerdown", pointerId: 2, clientX: 50, clientY: 50});
+  eventEquals(events[1], {type: "pointerdown", pointerId: 3, clientX: 60, clientY: 50});
+  // Allow one or two pointermove events
+  let index = 3;
+  const moveEvents = [events[2]];
+  if (events[3].type === "pointermove") {
+    index += 1;
+    moveEvents.push(events[3]);
+  }
+  for (const event of moveEvents) {
+    if (event.pointerId === 2) {
+      eventEquals(event, {type: "pointermove", clientX: 50, clientY: 60});
+    } else {
+      eventEquals(event, {type: "pointermove", pointerId: 3, clientX: 60, clientY: 50});
+    }
+  }
+  let remainingEvents = events.slice(index);
+  assert_equals(remainingEvents.length, 2);
+  eventEquals(remainingEvents[0], {type: "pointerup", pointerId: 2, clientX: 50, clientY: 60});
+  eventEquals(remainingEvents[1], {type: "pointerup", pointerId: 3, clientX: 60, clientY: 50});
 });
 </script>

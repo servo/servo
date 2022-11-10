@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6674">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-name">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<style>
+  #outer { scroll-timeline-name: foo; }
+  #target { scroll-timeline-name: bar; }
+</style>
+<div id="outer">
+  <div id="target"></div>
+</div>
+<script>
+test_computed_value('scroll-timeline-name', 'initial', 'none');
+test_computed_value('scroll-timeline-name', 'inherit', 'foo');
+test_computed_value('scroll-timeline-name', 'unset', 'none');
+test_computed_value('scroll-timeline-name', 'revert', 'none');
+test_computed_value('scroll-timeline-name', 'none');
+test_computed_value('scroll-timeline-name', 'test');
+test_computed_value('scroll-timeline-name', 'tEst');
+
+test(() => {
+  let style = getComputedStyle(document.getElementById('target'));
+  assert_not_equals(Array.from(style).indexOf('scroll-timeline-name'), -1);
+}, 'The scroll-timeline-name property shows up in CSSStyleDeclaration enumeration');
+
+test(() => {
+  let style = document.getElementById('target').style;
+  assert_not_equals(style.cssText.indexOf('scroll-timeline-name'), -1);
+}, 'The scroll-timeline-name property shows up in CSSStyleDeclaration.cssText');
+
+</script>

@@ -4,7 +4,7 @@
 <link rel=help href="https://w3c.github.io/IndexedDB/#inject-key-into-value">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 indexeddb_test(
@@ -12,7 +12,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     t.onabort = t.unreached_func('transaction should not abort');
 
     const store = tx.objectStore('store');
@@ -36,7 +36,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'a.b.id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     t.onabort = t.unreached_func('transaction should not abort');
 
     const store = tx.objectStore('store');
@@ -60,7 +60,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'a.b.id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     t.onabort = t.unreached_func('transaction should not abort');
 
     const store = tx.objectStore('store');
@@ -85,7 +85,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
 
     assert_throws_dom('DataError', () => {
@@ -101,7 +101,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'a.b.id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
 
     assert_throws_dom('DataError', () => {

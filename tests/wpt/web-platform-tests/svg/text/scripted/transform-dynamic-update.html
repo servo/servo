@@ -19,8 +19,8 @@ test(() => {
   text.style.transform = 'scale(10)';
 
   const box = text.getBBox();
-  assert_equals(box.y, referenceBox.y);
-  assert_equals(box.height, referenceBox.height);
+  assert_approx_equals(box.y, referenceBox.y, 0.8);
+  assert_approx_equals(box.height, referenceBox.height, 0.8);
 }, 'Dynamic update of transform CSS property');
 </script>
 </body>

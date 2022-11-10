@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Reference: Test a block element with box-decoration-break:clone in a zero height multi-column container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+<style>
+.multicol {
+  column-width: 100px;
+  inline-size: 300px;
+  block-size: 30px;
+}
+
+.child {
+  color: green;
+  inline-size: 100px;
+  block-size: 1px;
+  border: 5px solid green;
+}
+</style>
+
+<p>There shouldn't be a green strip in the third column.</p>
+<div class="multicol">
+  <div class="child"></div><div class="child"></div>
+</div>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-pseudo-element-ref.html">
+<style>
+  body {
+    padding:  0;
+    margin:  0;
+  }
+  .block, .block:after, .block:before {
+    width:  100px;
+    height:  100px;
+    padding:  0;
+    display:  inline-block;
+    /* Use a long transition that can be stalled at the midpoint. */
+    transition:  background 100000s cubic-bezier(0,1,1,0);
+  }
+
+  .block {
+    background:  rgb(0, 254, 0);
+    margin-left:  120px;
+    margin-top:  10px;
+    position: relative;
+  }
+
+  .block:after {
+    background:  rgb(0, 0, 254);
+    content:  "";
+    position:  absolute;
+    left:  110px;
+  }
+
+  .block:before {
+    background: rgb(254, 0, 0);
+    content: "";
+    position:  absolute;
+    left:  -110px;
+  }
+
+  .block.tweak, .block.tweak:before, .block.tweak:after {
+    background:  black;
+  }
+</style>
+<body>
+  <div class="block"></div>
+</body>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../web-animations/testcommon.js"></script>
+<script>
+  window.onload = async () => {
+    await waitForAnimationFrames(2);
+
+    const promises = [];
+    document.querySelector('.block').classList.add('tweak');
+    document.getAnimations().forEach(anim => {
+      anim.currentTime = anim.effect.getTiming().duration/2;
+      promises.push(anim.ready);
+    });
+
+    Promise.all(promises).then(() => {
+      waitForAnimationFrames(2).then(() => {
+        takeScreenshot();
+      });
+    });
+  };
+</script>
+</html>

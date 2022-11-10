@@ -29,7 +29,7 @@ ctx.fillRect(0, 0, 100, 50);
 ctx.globalCompositeOperation = 'copy'
 ctx.globalAlpha = 0.51;
 ctx.drawImage(offscreenCanvas2, 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,130, "50,25", "0,255,0,130", 2);
+_assertPixelApprox(canvas, 50,25, 0,255,0,130, 2);
 t.done();
 
 });

@@ -25,9 +25,26 @@ doesn't require the root CA to be trusted.
 
 ## Regenerating certificates
 
-If you wish to generate new certificates for any reason, it's possible to use
-OpenSSL when starting the server, or starting a test run, by providing the
-`--ssl-type=openssl` argument to the `wpt serve` or `wpt run` commands.
+The easiest way to regenerate the pregenerated certificates is to the
+the command
+
+```
+wpt regen-certs
+```
+
+By default this will not generate new certificates unless the existing
+ones are about to expire. In cases where the certificates need to be
+updated anyway (e.g. because the server configuration changed), this
+can be overridden with `--force`.
+
+Generating the certificates requires OpenSSL to be installed.
+
+### Implementation Details
+
+If you wish to manually generate new certificates for any reason, it's
+possible to use OpenSSL when starting the server, or starting a test
+run, by providing the `--ssl-type=openssl` argument to the `wpt serve`
+or `wpt run` commands.
 
 If you installed OpenSSL in such a way that running `openssl` at a
 command line doesn't work, you also need to adjust the path to the
@@ -38,10 +55,16 @@ like:
 "ssl": {"openssl": {"binary": "/path/to/openssl"}}
 ```
 
-On Windows using OpenSSL typically requires installing an OpenSSL distribution.
+### Windows-specific Instructions
+
+For Windows users, the easiest approach is likely to be using
+[WSL](https://docs.microsoft.com/en-us/windows/wsl/) and generate
+certificates in a Linux environment. However it is possible to install
+OpenSSL and generate the certificates without using WSL.
+
 [Shining Light](https://slproweb.com/products/Win32OpenSSL.html)
 provide a convenient installer that is known to work, but requires a
-little extra setup, i.e.:
+little extra setup:
 
 Run the installer for Win32_OpenSSL_v1.1.0b (30MB). During installation,
 change the default location for where to Copy OpenSSL Dlls from the
@@ -74,8 +97,3 @@ the path to the OpenSSL config file (typically this will be
   },
 }
 ```
-
-### Regenerating the pregenerated certificates
-
-From the root, run `./wpt serve --config tools/certs/config.json` and terminate
-it after it has started up.

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Delegate-CH" content="Sec-CH-Device-Memory; Device-Memory; Sec-CH-DPR; DPR; Sec-CH-Viewport-Width; Viewport-Width">
+<title>Delegate-CH meta-equiv iframe test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/client-hints/resources/export.js"></script>
+<script src="resources/feature-policy-navigation.js"></script>
+<script>
+(async () => {
+  await test_frame(
+    "HTTPS_ORIGIN",
+    meta_name_client_hints,
+    "",
+    "Client hints loaded on same-origin iframe include hints with a default permissions policy of self and *.");
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    expect_iframe_no_hints,
+    "",
+    "Client hints loaded on cross-origin iframe only include hints with a default permissions policy of *.");
+})();
+</script>
+</body>
+</html>

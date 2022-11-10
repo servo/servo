@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML: window.open `features`: condition for is popup</title>
+<meta name="variant" content="?single-1">
+<meta name="variant" content="?single-2">
+<meta name="variant" content="?position">
+<meta name="variant" content="?combination">
+<meta name=timeout content=long>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/window-object.html#window-open-steps">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var windowURL = 'resources/is-popup-barprop.html';
+
+var target = document.location.search.substring(1);
+
+// features, visible
+// NOTE: visible == !isPopup
+var tests = {
+  "single-1": [
+    // Empty feature results in non-popup.
+    [undefined, true],
+
+    // The explicit popup feature.
+    ["popup", false],
+    ["popup=1", false],
+    ["popup=true", false],
+    ["popup=0", true],
+
+    // Other feature alone results in popup.
+    ["location", false],
+    ["location=yes", false],
+    ["location=true", false],
+    ["location=no", false],
+
+    ["toolbar", false],
+    ["toolbar=yes", false],
+    ["toolbar=true", false],
+    ["toolbar=no", false],
+
+    ["menubar", false],
+    ["menubar=yes", false],
+    ["menubar=true", false],
+    ["menubar=no", false],
+
+    ["resizable", false],
+    ["resizable=yes", false],
+    ["resizable=true", false],
+    ["resizable=no", false],
+  ],
+  "single-2": [
+    ["scrollbars", false],
+    ["scrollbars=yes", false],
+    ["scrollbars=true", false],
+    ["scrollbars=no", false],
+
+    ["status", false],
+    ["status=yes", false],
+    ["status=true", false],
+    ["status=no", false],
+
+    ["titlebar", false],
+    ["titlebar=yes", false],
+    ["titlebar=true", false],
+    ["titlebar=no", false],
+
+    ["close", false],
+    ["close=yes", false],
+    ["close=true", false],
+    ["close=no", false],
+
+    ["minimizable", false],
+    ["minimizable=yes", false],
+    ["minimizable=true", false],
+    ["minimizable=no", false],
+
+    ["personalbar", false],
+    ["personalbar=yes", false],
+    ["personalbar=true", false],
+    ["personalbar=no", false],
+  ],
+  "position": [
+    ["left=500", false],
+    ["screenX=500", false],
+
+    ["top=500", false],
+    ["screenY=500", false],
+
+    ["width=500", false],
+    ["innerWidth=500", false],
+
+    ["outerWidth=500", false],
+
+    ["height=500", false],
+    ["innerHeight=500", false],
+
+    ["outerHeight=500", false],
+  ],
+  "combination": [
+    // The following combination results in non-popup.
+    ["location,toolbar,menubar,resizable,scrollbars,status", true],
+
+    // Either location or toolbar is required for non-popup.
+    ["location,menubar,resizable,scrollbars,status", true],
+    ["toolbar,menubar,resizable,scrollbars,status", true],
+
+    ["resizable,scrollbars,status", false],
+    ["location=no,menubar=no,resizable,scrollbars,status", false],
+
+    // menubar is required for non-popup.
+    ["location,toolbar,resizable,scrollbars,status", false],
+
+    // resizable is required for non-popup, but defaults to true
+    ["location,toolbar,menubar,scrollbars,status", true],
+    ["location,toolbar,menubar,resizable=no,scrollbars,status", false],
+
+    // scrollbars is required for non-popup.
+    ["location,toolbar,menubar,resizable,status", false],
+
+    // status is required for non-popup.
+    ["location,toolbar,menubar,resizable,scrollbars", false],
+
+    // The explicit popup feature has priority than others.
+    ["popup=1,location,toolbar,menubar,resizable,scrollbars,status", false],
+    ["popup=yes,location,toolbar,menubar,resizable,scrollbars,status", false],
+    ["popup=true,location,toolbar,menubar,resizable,scrollbars,status", false],
+    ["popup=0,location,toolbar,menubar,resizable,scrollbars", true],
+  ],
+};
+
+tests[target].forEach(([features, visible]) => {
+  async_test(t => {
+    var prefixedMessage = new PrefixedMessageTest();
+    prefixedMessage.onMessage(t.step_func_done((data, e) => {
+      e.source.close();
+      assert_equals(data.locationbar, visible, `window.locationbar.visible`);
+      assert_equals(data.menubar, visible, `window.menubar.visible`);
+      assert_equals(data.personalbar, visible, `window.personalbar.visible`);
+      assert_equals(data.scrollbars, visible, `window.scrollbars.visible`);
+      assert_equals(data.statusbar, visible, `window.statusbar.visible`);
+      assert_equals(data.toolbar, visible, `window.toolbar.visible`);
+    }));
+    var win = window.open(prefixedMessage.url(windowURL), '', features);
+  }, `${format_value(features)} should set BarProp visibility to ${visible}`);
+});
+
+</script>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src='/resources/testdriver-vendor.js'></script>
+    <script src='/bluetooth/resources/bluetooth-test.js'></script>
+  </head>
+  <body>
+    <script>
+
+function check_report_format([reports, observer]) {
+  const report = reports[0];
+  assert_equals(report.type, "permissions-policy-violation");
+  assert_equals(report.body.featureId, "bluetooth");
+  assert_equals(report.body.disposition, "report");
+};
+
+bluetooth_test(() => {
+  promise_test(async t => {
+    const report = new Promise(resolve => {
+      new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                            {types: ['permissions-policy-violation']}).observe();
+    });
+
+    await navigator.bluetooth.getAvailability();
+    check_report_format(await report);
+  }, 'getAvailability in bluetooth report only mode');
+
+  promise_test(async t => {
+    const report = new Promise(resolve => {
+      new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                            {types: ['permissions-policy-violation']}).observe();
+    });
+
+    await navigator.bluetooth.getDevices();
+    check_report_format(await report);
+  }, 'getDevices in bluetooth report only mode');
+
+  promise_test(async t => {
+    const report = new Promise(resolve => {
+      new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                            {types: ['permissions-policy-violation']}).observe();
+    });
+
+    await test_driver.bless('Activate document for bluetooth.requestDevice');
+    await promise_rejects_js(t, TypeError, navigator.bluetooth.requestDevice({filters: []}), 'requestDevice() call should fail when no filters are selected.')
+
+    check_report_format(await report);
+  }, 'requestDevice in bluetooth report only mode');
+
+  promise_test(async t => {
+    const report = new Promise(resolve => {
+      new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                            {types: ['permissions-policy-violation']}).observe();
+    });
+
+    await test_driver.bless('Activate document for bluetooth.requestLEScan');
+    await promise_rejects_js(t, TypeError, navigator.bluetooth.requestLEScan({filters: []}), 'requestLEScan() call should fail when no filters are selected.');
+
+    check_report_format(await report);
+  }, 'requestLEScan in bluetooth report only mode');
+});
+    </script>
+  </body>
+</html>

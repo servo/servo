@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Conditional Mediation tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=helpers.js></script>
+<body></body>
+<script>
+"use strict";
+
+// Test that a configuration that must support conditional mediation reports
+// supporting it.
+virtualAuthenticatorPromiseTest(async t => {
+  assert_own_property(window.PublicKeyCredential, "isConditionalMediationAvailable");
+  assert_true(await window.PublicKeyCredential.isConditionalMediationAvailable());
+}, {
+  protocol: "ctap2",
+  hasResidentKey: true,
+  hasUserVerification: true,
+  transport: "internal",
+}, "Conditional mediation supported");
+
+// Test that a configuration that cannot possibly support conditional mediation
+// does not report supporting it.
+virtualAuthenticatorPromiseTest(async t => {
+  assert_own_property(window.PublicKeyCredential, "isConditionalMediationAvailable");
+  assert_false(await window.PublicKeyCredential.isConditionalMediationAvailable());
+}, {
+  protocol: "ctap2",
+  hasResidentKey: false,
+  hasUserVerification: false,
+  transport: "nfc",
+}, "Conditional mediation not supported");
+
+</script>

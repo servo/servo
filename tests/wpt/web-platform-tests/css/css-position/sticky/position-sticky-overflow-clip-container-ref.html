@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<title>Sticky elements should not consider overflow: clip containers as possible scroll ancestor</title>
+<style>
+body {
+  margin: 0;
+  overflow: hidden; /* hide scrollbars */
+}
+
+#container {
+  height: 300px;
+  overflow-y: scroll;
+}
+
+#overflowClipContainer {
+  overflow: visible;
+  height: 600px;
+}
+
+#sticky {
+  position: sticky;
+  top: 0;
+  height: 50px;
+  background-color: yellow;
+}
+</style>
+<script>
+function doTest()
+{
+  container.scrollTo(0, 50);
+}
+window.addEventListener('load', doTest, false);
+</script>
+<div id="container">
+  <div id="overflowClipContainer">
+    <div id="sticky"></div>
+  </div>
+</div>

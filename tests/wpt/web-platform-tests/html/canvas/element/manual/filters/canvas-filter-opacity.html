@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="match" href="canvas-opacity-expected.html"/>
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-14000">
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.filter = 'opacity(75%)';
+  ctx.fillStyle = 'teal';
+  ctx.fillRect(10, 10, 50, 50);
+  ctx.filter = 'opacity(50%)';
+  ctx.fillStyle = 'magenta';
+  ctx.fillRect(70, 10, 50, 50);
+  ctx.filter = 'opacity(25%)';
+  ctx.fillStyle = 'orange';
+  ctx.fillRect(10, 70, 50, 50);
+  ctx.filter = 'opacity(0%)';
+  ctx.fillStyle = 'chocolate';
+  ctx.fillRect(70, 70, 50, 50);
+
+  ctx.filter = 'opacity(80%)';
+  ctx.fillStyle = 'cyan';
+  ctx.fillRect(10, 150, 50, 50);
+  ctx.filter = 'opacity(60%)';
+  ctx.fillStyle = 'red';
+  ctx.fillRect(20, 150, 50, 50);
+  ctx.filter = 'opacity(40%)';
+  ctx.fillStyle = 'yellow';
+  ctx.fillRect(30, 150, 50, 50);
+  ctx.filter = 'opacity(20%)';
+  ctx.fillStyle = 'green';
+  ctx.fillRect(40, 150, 50, 50);
+</script>

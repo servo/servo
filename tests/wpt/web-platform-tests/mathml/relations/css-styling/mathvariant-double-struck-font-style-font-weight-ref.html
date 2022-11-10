@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>mathvariant="double-struck" and font-style/font-weight (reference)</title>
+    <style>
+      @font-face {
+        font-family: TestFont;
+        src: url("/fonts/math/mathvariant-double-struck.woff");
+      }
+      .testfont {
+        font-family: TestFont;
+        font-size: 32px;
+      }
+      .italic { font-style: italic; }
+      .bold { font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if you see three lines with text <span class="testfont">&#x1EEA1;</span> respectively rendered with italic, bold and bold-italic style:</p>
+    <p><math class="testfont"><mtext class="italic">&#x1EEA1;</mtext></math></p>
+    <p><math class="testfont"><mtext class="bold">&#x1EEA1;</mtext></math></p>
+    <p><math class="testfont"><mtext class="bold italic">&#x1EEA1;</mtext></math></p>
+  </body>
+</html>

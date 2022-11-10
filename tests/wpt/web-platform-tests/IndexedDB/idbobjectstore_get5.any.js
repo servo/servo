@@ -1,5 +1,5 @@
 // META: title=IDBObjectStore.get() - returns the record with the first key in the range
-// META: script=support.js
+// META: script=resources/support.js
 // @author Microsoft <https://www.microsoft.com>
 
 "use strict";
@@ -18,7 +18,7 @@ open_rq.onupgradeneeded = event => {
 };
 
 open_rq.onsuccess = event => {
-  const rq = db.transaction("store")
+  const rq = db.transaction("store", "readonly", {durability: 'relaxed'})
     .objectStore("store")
     .get(IDBKeyRange.bound(3, 6));
 

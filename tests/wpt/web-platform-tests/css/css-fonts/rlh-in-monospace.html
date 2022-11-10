@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-size-prop">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=623842">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=246566">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="match" href="rlh-in-monospace-ref.html">
+
+<p>The following two lines should look exactly the same.</p>
+
+<div style="font-family: monospace; font-size: 1.5em">
+  <div style="font-family: sans-serif; font-size: 1rlh">
+    Text.
+  </div>
+</div>
+
+<div style="font-family: sans-serif; font-size: 1rlh">
+  Text.
+</div>

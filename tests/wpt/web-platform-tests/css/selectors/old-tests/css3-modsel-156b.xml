@@ -3,7 +3,7 @@
  <head>
   <title>Syntax and parsing</title>
   <style type="text/css"><![CDATA[
-  foo & address, p { background: red; }
+  foo % address, p { background: red; }
   p { background: lime; }
 ]]></style>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>

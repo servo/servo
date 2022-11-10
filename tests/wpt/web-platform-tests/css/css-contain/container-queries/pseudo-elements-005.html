@@ -1,0 +1,58 @@
+<!doctype html>
+<title>CSS Container Queries Test: Style container for pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#query-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #c1 {
+    --theme: green;
+  }
+  @container style(--theme: green) {
+    #c1::before {
+      content: "";
+      color: green;
+      display: block;
+      height: 100px;
+    }
+  }
+</style>
+<div id="c1"></div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    let style = getComputedStyle(c1, "::before");
+    assert_equals(style.color, "rgb(0, 128, 0)");
+    assert_equals(style.height, "100px");
+  }, "::before pseudo element querying style() of originating element");
+</script>
+
+<style>
+  #c2 {
+    --theme: red;
+  }
+  #c2::before { color: red }
+  #c2.green {
+    --theme: green;
+  }
+  @container style(--theme: green) {
+    #c2::before {
+      content: "";
+      color: green;
+    }
+  }
+</style>
+<div id="c2"></div>
+<script>
+  test(() => {
+    let style = getComputedStyle(c2, "::before");
+    assert_equals(style.color, "rgb(255, 0, 0)");
+  }, "::before pseudo element not matching style()");
+
+  test(() => {
+    c2.className = "green";
+    let style = getComputedStyle(c2, "::before");
+    assert_equals(style.color, "rgb(0, 128, 0)");
+  }, "::before pseudo element matching style() query after class change");
+</script>

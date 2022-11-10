@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-adapter.js"></script>
+<script src="resources/util.js"></script>
+<style>
+  #j {
+    position: relative;
+    width: 300px;
+    height: 100px;
+    background-color: purple;
+  }
+</style>
+<div id="j"></div>
+<script>
+function shiftFrame() {
+  document.getElementById('j').style.top = '60px';
+}
+function unshiftFrame() {
+  document.getElementById('j').style.top = '';
+}
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+  shiftFrame();
+
+  const expectedScore = computeExpectedScore(300 * (100 + 60), 60);
+
+  cls_expect(watcher, {score: 0});
+  await watcher.promise;
+  cls_expect(watcher, {score: expectedScore});
+
+  unshiftFrame();
+  await watcher.promise;
+  cls_expect(watcher, {score: expectedScore * 2});
+
+  window.parent.postMessage({
+    type: 'layout shift score',
+    score: watcher.score,
+    expectedScore: expectedScore * 2,
+  }, '*');
+}, 'We will see two layout shift with the same score in the subframe.');
+</script>
+</body>
+</html>

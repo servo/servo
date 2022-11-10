@@ -3,7 +3,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 <script>
     var db
     var open_rq = createdb(async_test())
@@ -17,7 +17,7 @@
     }
 
     open_rq.onsuccess = function (e) {
-        var os = db.transaction("store", "readwrite")
+        var os = db.transaction("store", "readwrite", {durability: 'relaxed'})
                    .objectStore("store")
 
         os.delete( IDBKeyRange.bound(3, 6) )

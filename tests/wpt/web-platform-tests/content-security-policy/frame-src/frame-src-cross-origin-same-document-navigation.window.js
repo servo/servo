@@ -12,9 +12,9 @@ promise_test(async test => {
   const child_token = token();
   const child = new RemoteContext(child_token);
   const iframe = document.createElement("iframe");
-  iframe.src = get_host_info().REMOTE_ORIGIN +
-      "/content-security-policy/frame-src/support/executor.html" +
-      `?uuid=${child_token}`;
+  iframe.src = remoteExecutorUrl(child_token, {
+    host: get_host_info().REMOTE_HOST
+  });
   document.body.appendChild(iframe);
 
   // Install a promise waiting for a same-document navigation to happen in the

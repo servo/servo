@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Prefetch attempts with an unacceptable referrer policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<script>
+"use strict";
+
+promise_test(async t => {
+  assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+
+  const agent = await spawnWindow(t);
+  await agent.setReferrerPolicy("unsafe-url");
+  const expectedReferrer = agent.getExecutorURL().href;
+
+  const nextURL = agent.getExecutorURL({ page: 2 });
+  // This prefetch attempt should be ignored.
+  await agent.forceSinglePrefetch(nextURL);
+  await agent.navigate(nextURL);
+
+  const headers = await agent.getRequestHeaders();
+  assert_not_prefetched(headers, "must not be prefetched");
+  assert_equals(headers.referer, expectedReferrer, "must send the full URL as the referrer");
+}, 'with "unsafe-url" referrer policy');
+
+</script>

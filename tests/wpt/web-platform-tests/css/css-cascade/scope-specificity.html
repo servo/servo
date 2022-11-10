@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>@scope - added specificty</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+  @scope (#a) {
+    .b { --x:first; }
+  }
+
+  @scope (.a) {
+    .b { --x:second; }
+  }
+
+  @scope (#a) {
+    @scope (*) {
+      .b { --y:first; }
+    }
+  }
+
+  div.b { --y:second; }
+
+</style>
+<div class=a id=a>
+  <div class=b id=target></div>
+</div>
+<script>
+
+test(() => {
+  assert_equals(getComputedStyle(target).getPropertyValue('--x'), 'first');
+}, '@scope adds to specificity of inner selector');
+
+test(() => {
+  assert_equals(getComputedStyle(target).getPropertyValue('--y'), 'first');
+}, 'Parent @scope adds to specificity of inner selector');
+
+</script>

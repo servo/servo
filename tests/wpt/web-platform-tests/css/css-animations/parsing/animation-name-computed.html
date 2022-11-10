@@ -20,8 +20,9 @@ test_computed_value("animation-name", 'ease-in');
 test_computed_value("animation-name", 'infinite');
 test_computed_value("animation-name", 'paused');
 test_computed_value("animation-name", 'first, second, third');
+test_computed_value("animation-name", '"something"', ["something", '"something"']);
 
-// TODO: Test strings, after https://github.com/w3c/csswg-drafts/issues/2435
+// TODO: Test more strings, after https://github.com/w3c/csswg-drafts/issues/2435
 // is resolved.
 // Examples that need testing either here or in animation-name-invalid.html :
 // '"Initial"', '"initial"', '"None"', '"Default"', '" x "', "1", '" "', '""',

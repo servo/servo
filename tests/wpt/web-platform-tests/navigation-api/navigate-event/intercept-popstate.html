@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  history.replaceState({ state: "foo"}, "", "#replace");
+
+  let onpopstate_fired = false;
+  let last_state;
+  window.onpopstate = e => {
+    onpopstate_fired = true;
+    last_state = e.state;
+  }
+  navigation.onnavigate = t.step_func(e => e.intercept());
+
+  await navigation.navigate("#").finished;
+  assert_true(navigation.canGoBack);
+
+  await navigation.back().finished;
+  assert_true(onpopstate_fired);
+  assert_not_equals(last_state, null);
+}, "event.intercept() should provide popstate with a valid state object");
+</script>

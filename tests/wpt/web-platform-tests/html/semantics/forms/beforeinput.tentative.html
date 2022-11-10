@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test the onbeforeinput attribute</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="container"></div>
+<script>
+  const container = document.getElementById("container");
+  const events = new Map();
+
+  function handleEvent(event) {
+    if (!events.has(event.target)) {
+      events.set(event.target, []);
+    }
+    events.get(event.target).push(event);
+  }
+
+  let onInputFired = null;
+
+  const onBeforeInput = handleEvent;
+  const onInput = (event) => {
+    handleEvent(event);
+    onInputFired()
+  }
+
+  let elems = [];
+  for (let type of ["text", "search", "tel", "url", "email", "password", "number"]) {
+    elems.push(`<input type=${type} onbeforeinput="onBeforeInput(event)" oninput="onInput(event)">
+<input type=${type}>
+`);
+  }
+  elems.push(`<textarea onbeforeinput="onBeforeInput(event)" oninput="onInput(event)"></textarea>
+<textarea></textarea>`)
+  container.innerHTML = elems.join("");
+
+for (const element of container.children) {
+  promise_test(async t => {
+    if (!element.hasAttribute("onbeforeinput")) {
+      element.onbeforeinput = e => onBeforeInput(e);
+      element.oninput = e => onInput(e);
+    };
+
+    let afterOnInput = new Promise(resolve => {onInputFired = resolve});
+    await test_driver.send_keys(element, "1"); // has to be a number so <input type=number> works
+    // Ensure we're in the post-update state
+    await afterOnInput;
+
+    assert_true(events.has(element), "Got events for element");
+    let elementEvents = events.get(element);
+
+    assert_array_equals(elementEvents.map(event => event.type), ["beforeinput", "input"], "Got expected events");
+  }, `${element.outerHTML}`);
+}
+</script>

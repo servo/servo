@@ -80,6 +80,7 @@ promise_test(async t => {
   const pc = createPeerConnectionWithCleanup(t);
   const [track, stream] = await createTrackAndStreamWithCleanup(t);
   const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  // `stopped` is non-standard. Move to external/wpt/webrtc/legacy/?
   assert_false(transceiver.stopped);
 }, 'addTrack: transceiver is not stopped');
 
@@ -200,6 +201,7 @@ promise_test(async t => {
   pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
   const pc2 = createPeerConnectionWithCleanup(t);
   const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  // `stopped` is non-standard. Move to external/wpt/webrtc/legacy/?
   assert_false(trackEvent.transceiver.stopped);
 }, 'setRemoteDescription(offer): transceiver.stopped is false');
 
@@ -389,6 +391,7 @@ promise_test(async t => {
   const pc = createPeerConnectionWithCleanup(t);
   const [track, stream] = await createTrackAndStreamWithCleanup(t);
   const transceiver = pc.addTransceiver('audio');
+  // `stopped` is non-standard. Move to external/wpt/webrtc/legacy/?
   assert_false(transceiver.stopped);
 }, 'addTransceiver(\'audio\'): transceiver.stopped is false');
 
@@ -447,9 +450,10 @@ promise_test(async t => {
   await exchangeOffer(pc1, pc2);
   await exchangeAnswer(pc1, pc2);
   assert_equals(transceiver.currentDirection, 'sendonly');
+  // `stopped` is non-standard. Move to external/wpt/webrtc/legacy/?
   assert_false(transceiver.stopped);
   pc1.close();
-  assert_equals(transceiver.currentDirection, null);
+  assert_equals(transceiver.currentDirection, 'stopped');
   assert_true(transceiver.stopped);
 }, 'Closing the PC stops the transceivers');
 

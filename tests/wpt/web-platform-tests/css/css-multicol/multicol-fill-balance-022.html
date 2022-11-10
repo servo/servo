@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cf">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1308024">
+<div id="outer" style="columns:2;">
+  <div id="inner" style="columns:2; border-top:solid 3px;">
+    <div style="height:97px; contain:size;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(outer.offsetHeight, 100);
+  }, "Nested balancing outer height");
+  test(()=> {
+    assert_equals(inner.offsetHeight, 100);
+  }, "Nested balancing inner height");
+</script>

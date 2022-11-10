@@ -5,7 +5,7 @@ window.onload = () => {
           Instructions
         </h2>
         <ol>
-          <li>Install <a href="id-member-manifest-update-manual.tentative.html ">id-member-manifest-update-manual.tentative.html </a> as a PWA</li>
+          <li>Install <a href="id-member-manifest-update-manual.html ">id-member-manifest-update-manual.html </a> as a PWA</li>
           <li>
             Launch the app from OS. The page should be launched to start_url v1.
           </li>

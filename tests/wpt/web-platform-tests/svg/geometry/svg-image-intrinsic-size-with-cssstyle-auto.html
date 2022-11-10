@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title><svg:image> 'auto' sizing </title>
+<title>&lt;svg:image> 'auto' sizing</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#geometry-Sizing"/>
@@ -47,7 +47,7 @@
   <image width="60" height="60" xlink:href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'></svg>" style='width:auto'/>
 </svg>
 <script>
-var expectedBoxes = [
+const expectedBoxes = [
   { dimensions: [64, 64], description: "256x256 png image, attributes width='64' height='64'"},
   { dimensions: [64, 64], description: "256x256 png image, attributes width='128' height='64' and CSS 'width:auto'"},
   { dimensions: [64, 64], description: "256x256 png image, attributes width='64' height='128' and CSS 'height:auto'"},
@@ -79,19 +79,20 @@ var expectedBoxes = [
   { dimensions: [60, 30], description: "200x100 svg image viewBox='0 0 400 100', attributes width='60' height='60' and CSS 'height:auto'"},
   { dimensions: [200, 100], description: "200x100 svg image viewBox='0 0 400 100', attributes width='60' height='60' and CSS 'width:auto; height:auto'"},
   { dimensions: [60, 150], description: "default sized svg image, attributes width='60' height='60' and CSS 'height:auto'"},
-  { dimensions: [300, 60], description: "default sized svg image, attributes width='60' height='60' and CSS 'width:auto'"}
+  { dimensions: [300, 60], description: "default sized svg image, attributes width='60' height='60' and CSS 'width:auto'"},
 ];
 
-var images = document.getElementsByTagName('image');
+const images = document.getElementsByTagName('image');
 for (var i = 0, length = images.length; i < length; ++i) {
-     async_test(function(t) {
-        var image = images[i];
-        image.expectedBox = expectedBoxes[i];
-        image.onload = t.step_func_done(function() {
-            var rectBBox = image.getBBox();
-            assert_equals(rectBBox.width, image.expectedBox.dimensions[0]);
-            assert_equals(rectBBox.height, image.expectedBox.dimensions[1]);
-        });
-     }, document.title + ' with ' + expectedBoxes[i].description);
+  async_test(t => {
+    const image = images[i];
+    const expected = expectedBoxes[i];
+    window.addEventListener('load', t.step_func_done(() => {
+      const [expectedWidth, expectedHeight] = expected.dimensions;
+      const bbox = image.getBBox();
+      assert_equals(bbox.width, expectedWidth, 'width');
+      assert_equals(bbox.height, expectedHeight, 'height');
+    }));
+  }, document.title + ' with ' + expectedBoxes[i].description);
 }
 </script>

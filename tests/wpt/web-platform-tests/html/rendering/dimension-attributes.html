@@ -102,6 +102,14 @@ function newImageInput() {
   }
 }
 
+function newImgSource() {
+  return () => {
+    var elem = newElem("source")();
+    elem.setAttribute("srcset", "/images/green-100x50.png");
+    return elem;
+  }
+}
+
 /*
  * Array of tests.  Each test consists of the following information:
  *
@@ -160,8 +168,11 @@ const tests = [
   [ newElem("marquee"), "hspace", "marginRight", true ],
   [ newElem("marquee"), "vspace", "marginTop", true ],
   [ newElem("marquee"), "vspace", "marginBottom", true ],
+  // <source width> is mapped to <img> width if both are in <picture>.
+  [ newImgSource(), "width", "width", true, newElem("img"), newElem("picture") ],
+  // <source height> is mapped to <img> height if both are in <picture>.
+  [ newImgSource(), "height", "height", true, newElem("img"), newElem("picture") ],
 ];
-
 
 function style(element) {
   return element.ownerDocument.defaultView.getComputedStyle(element);
@@ -169,7 +180,7 @@ function style(element) {
 
 const container = document.getElementById("container");
 
-for (let [ctor, attr, prop, zero_allowed] of tests) {
+for (let [ctor, attr, prop, zero_allowed, mappedElemCtor, containerCtor] of tests) {
   let valid, invalid;
   if (zero_allowed) {
     valid = valid_values_with_0;
@@ -178,31 +189,52 @@ for (let [ctor, attr, prop, zero_allowed] of tests) {
     valid = valid_values;
     invalid = invalid_values_with_0;
   }
-  for (let [value, result] of valid) {
-    let elem = ctor();
-    test(function() {
-      this.add_cleanup(() => elem.remove());
-      elem.setAttribute(attr, value);
-      assert_equals(elem.getAttribute(attr), value);
-      container.appendChild(elem);
-      assert_equals(style(elem)[prop], result);
-    }, `<${elem.localName} ${attr}="${value}"> mapping to ${prop}`);
+
+  let elemContainer = null;
+  if (!!containerCtor) {
+    elemContainer = containerCtor();
+    container.appendChild(elemContainer);
+  } else {
+    elemContainer = container;
   }
 
-  let default_elem = ctor();
-  container.appendChild(default_elem);
+  let runTest = (value, expected) => {
+    let elem = ctor();
+    let mappedElem = !!mappedElemCtor ? mappedElemCtor() : elem;
+    test(function() {
+      this.add_cleanup(() => {
+        elem.remove();
+        if (!!mappedElemCtor) {
+          mappedElem.remove();
+        }
+      });
+      elem.setAttribute(attr, value);
+      assert_equals(elem.getAttribute(attr), value);
+      elemContainer.appendChild(elem);
+      if (!!mappedElemCtor) {
+        elemContainer.appendChild(mappedElem);
+      }
+      assert_equals(style(mappedElem)[prop], expected);
+      }, `<${elem.localName} ${attr}="${value}"> mapping to ` +
+         `<${mappedElem.localName}> ${prop} property`);
+  }
+
+  for (let [value, result] of valid) {
+    runTest(value, result);
+  }
+
+  let default_elem = !!mappedElemCtor ? mappedElemCtor() : ctor();
+  elemContainer.appendChild(default_elem);
   let defaultVal = style(default_elem)[prop];
   default_elem.remove();
   for (let value of invalid) {
-    let elem = ctor();
-    test(function() {
-      this.add_cleanup(() => elem.remove());
-      elem.setAttribute(attr, value);
-      assert_equals(elem.getAttribute(attr), value);
-      container.appendChild(elem);
-      assert_equals(style(elem)[prop], defaultVal);
-    }, `<${elem.localName} ${attr}="${value}"> mapping to ${prop}`);
+    runTest(value, defaultVal);
+  }
+
+  if (!!containerCtor) {
+    elemContainer.remove();
   }
 }
+
 </script>
 </body>

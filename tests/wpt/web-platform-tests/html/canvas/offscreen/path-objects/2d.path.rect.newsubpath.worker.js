@@ -25,7 +25,7 @@ ctx.moveTo(-100, 25);
 ctx.lineTo(-50, 25);
 ctx.rect(200, 25, 1, 1);
 ctx.stroke();
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

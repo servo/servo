@@ -10,8 +10,9 @@
 <script>
 setup(() => assert_implements_container_queries());
 
-test_computed_value('container-type', 'initial', 'none');
-test_computed_value('container-type', 'unset', 'none');
+test_computed_value('container-type', 'initial', 'normal');
+test_computed_value('container-type', 'unset', 'normal');
 test_computed_value('container-type', 'inline-size');
 test_computed_value('container-type', 'size');
+test_computed_value('container-type', 'normal');
 </script>

@@ -19,4 +19,4 @@ def eggsample_prep_condiments(condiments):
     except KeyError:
         pass
     condiments["spam sauce"] = 42
-    return f"Now this is what I call a condiments tray!"
+    return "Now this is what I call a condiments tray!"

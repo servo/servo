@@ -14,9 +14,6 @@
   <body>
     <div id=log></div>
     <script>
-      // TODO: there is more to test here, these tests capture the old
-      // ported http-state tests. Feel free to delete this comment when more
-      // are added.
       const expiresTests = [
         {
           cookie: "test=1; Expires=Fri, 01 Jan 2038 00:00:00 GMT",
@@ -45,8 +42,14 @@
         },
       ];
 
+      // These tests evaluate setting cookies with expiration via HTTP headers.
       for (const test of expiresTests) {
-        httpCookieTest(test.cookie, test.expected, test.name);
+        httpCookieTest(test.cookie, test.expected, test.name + " via HTTP headers");
+      }
+
+      // These tests evaluate setting cookies with expiration via document.cookie.
+      for (const test of expiresTests) {
+        domCookieTest(test.cookie, test.expected, test.name + " via document.cookie");
       }
     </script>
   </body>

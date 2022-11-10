@@ -16,6 +16,8 @@ enum XRLayerLayout {
 
   attribute boolean blendTextureSourceAlpha;
   attribute boolean? chromaticAberrationCorrection;
+  attribute boolean forceMonoPresentation;
+  attribute float opacity;
   readonly attribute unsigned long mipLevels;
 
   readonly attribute boolean needsRedraw;
@@ -30,6 +32,7 @@ enum XRLayerLayout {
 
   readonly attribute boolean ignoreDepthValues;
   attribute float? fixedFoveation;
+  attribute XRRigidTransform? deltaPose;
 };
 
 [Exposed=Window] interface XRQuadLayer : XRCompositionLayer {
@@ -83,9 +86,15 @@ enum XRLayerLayout {
 [Exposed=Window] interface XRWebGLSubImage : XRSubImage {
   [SameObject] readonly attribute WebGLTexture colorTexture;
   [SameObject] readonly attribute WebGLTexture? depthStencilTexture;
+  [SameObject] readonly attribute WebGLTexture? motionVectorTexture;
+
   readonly attribute unsigned long? imageIndex;
-  readonly attribute unsigned long textureWidth;
-  readonly attribute unsigned long textureHeight;
+  readonly attribute unsigned long colorTextureWidth;
+  readonly attribute unsigned long colorTextureHeight;
+  readonly attribute unsigned long? depthStencilTextureWidth;
+  readonly attribute unsigned long? depthStencilTextureHeight;
+  readonly attribute unsigned long? motionVectorTextureWidth;
+  readonly attribute unsigned long? motionVectorTextureHeight;
 };
 
 enum XRTextureType {

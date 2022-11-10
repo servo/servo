@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Absolute/fixed-positioned boxes in LEGEND should be painted on the fieldset content</title>
+<link rel=match href=absolute-fixed-in-legend-ref.html>
+<style>
+.absolute-container {
+  position: relative;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.absolute-container .legend-content {
+  display: block;
+  font-size: 32px;
+  position: absolute;
+  left: 0px;
+  background: lime;
+  width: 10em;
+}
+
+.fixed-container {
+  contain: paint;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.fixed-container .legend-content {
+  display: block;
+  font-size: 32px;
+  position: fixed;
+  left: 0px;
+  background: lime;
+  width: 10em;
+}
+
+.fieldset-content {
+  background: red;
+  font-size: 32px;
+  width: 10em;
+}
+</style>
+
+<fieldset class="absolute-container">
+  <legend><span class="legend-content">legend</span></legend>
+  <div class="fieldset-content">content</div>
+</fieldset>
+
+<fieldset class="fixed-container">
+  <legend><span class="legend-content">legend</span></legend>
+  <div class="fieldset-content">content</div>
+</fieldset>

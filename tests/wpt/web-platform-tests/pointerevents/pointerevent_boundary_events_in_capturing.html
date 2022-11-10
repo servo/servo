@@ -12,101 +12,87 @@
         <script src="/resources/testdriver.js"></script>
         <script src="/resources/testdriver-actions.js"></script>
         <script src="/resources/testdriver-vendor.js"></script>
-        <!-- Additional helper script for common checks across event types -->
-        <script type="text/javascript" src="pointerevent_support.js"></script>
-        <script>
-            var inputSource = location.search.substring(1);
-            var detected_pointertypes = {};
-            var eventList = All_Pointer_Events;
-            PhaseEnum = {
-              WaitingForDown:       "down",
-              WaitingForFirstMove:  "firstMove",
-              WaitingForSecondMove: "secondMove",
-              WaitingForUp:         "up"
-            }
-            var phase = PhaseEnum.WaitingForDown;
-            var eventsRecieved = [];
-
-            function resetTestState() {
-                eventsRecieved = [];
-                phase = PhaseEnum.WaitingForDown;
-            }
-            function run() {
-                var test_pointerEvent = setup_pointerevent_test("pointerevent boundary events in capturing", [inputSource]);
-                var target = document.getElementById("target0");
-                var listener = document.getElementById("listener");
-                var actions_promise;
-
-                eventList.forEach(function(eventName) {
-                    on_event(target, eventName, function (event) {
-                        if (phase == PhaseEnum.WaitingForDown) {
-                            if (eventName == 'pointerdown') {
-                                listener.setPointerCapture(event.pointerId);
-                                phase = PhaseEnum.WaitingForFirstMove;
-                            }
-                        } else if (phase == PhaseEnum.WaitingForUp) {
-                            if (event.type == 'pointerup') {
-                                // Make sure the test finishes after all the input actions are completed.
-                                actions_promise.then( () => {
-                                    test_pointerEvent.done();
-                                });
-                            }
-                        } else {
-                            eventsRecieved.push(event.type + '@target');
-                            if (phase == PhaseEnum.WaitingForSecondMove && event.type == 'pointermove') {
-                                test(function () {
-                                    checkPointerEventType(event);
-                                    assert_array_equals(eventsRecieved, ['lostpointercapture@listener', 'pointerout@listener', 'pointerleave@listener', 'pointerover@target', 'pointerenter@target', 'pointermove@target'],
-                                        'lostpointercapture and pointerout/leave should be dispatched to the capturing target and pointerover/enter should be dispatched to the hit-test element before the first pointermove event after releasing pointer capture');
-                                }, expectedPointerType + " pointer events boundary events when releasing capture");
-                                phase = PhaseEnum.WaitingForUp;
-                            }
-                        }
-                    });
-                    on_event(listener, eventName, function (event) {
-                        if (phase == PhaseEnum.WaitingForDown)
-                          return;
-                        eventsRecieved.push(event.type + '@listener');
-                        if (phase == PhaseEnum.WaitingForFirstMove && eventName == 'pointermove') {
-                          test(function () {
-                              checkPointerEventType(event);
-                              assert_array_equals(eventsRecieved, ['pointerout@target', 'pointerleave@target', 'pointerover@listener', 'pointerenter@listener', 'gotpointercapture@listener', 'pointermove@listener'],
-                                 'pointerout/leave should be dispatched to the previous target and pointerover/enter and gotpointercapture should be dispatched to the capturing element before the first captured pointermove event');
-                          }, expectedPointerType + " pointer events boundary events when receiving capture");
-                          listener.releasePointerCapture(event.pointerId);
-                          eventsRecieved = [];
-                          phase = PhaseEnum.WaitingForSecondMove;
-                        }
-                    });
-                });
-
-                // Inject pointer inputs.
-                actions_promise = pointerDragInTarget(inputSource, target0, 'right');
-            }
-        </script>
+        <script src="pointerevent_support.js"></script>
     </head>
-    <body onload="run()">
+    <body>
         <h1>Pointer Events boundary events in capturing</h1>
         <h2 id="pointerTypeDescription"></h2>
-        <h4>
-            Test Description: This test checks the boundary events of pointer events while the capturing changes. If you are using hoverable pen don't leave the range of digitizer while doing the instructions.
-            <ol>
-                 <li>Move your pointer over the black square</li>
-                 <li>Press down the pointer (i.e. press left button with mouse or touch the screen with finger or pen).</li>
-                 <li>Drag the pointer within the black square.</li>
-                 <li>Release the pointer.</li>
-            </ol>
-
-            Test passes if the proper behavior of the events is observed.
+        <h4 id="desc">
+            This automated test checks the boundary events of pointer events while the capturing
+            changes. This test cannot be run manually.
         </h4>
-        <div id="target0" class="touchActionNone">
-        </div>
-        <div id="listener">Do not hover over or touch this element. </div>
-        <div id="complete-notice">
-            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
-            <p>Refresh the page to run the tests again with a different pointer type.</p>
-        </div>
+        <div id="target0" class="touchActionNone"></div>
+        <div id="capturer">Do not hover over or touch this element.</div>
         <div id="log"></div>
     </body>
-</html>
+    <script>
+      let input_source = location.search.substring(1);
 
+      let events_received = [];
+      let log_events = false;
+
+      // The events are handled as follows:
+      // - When "target0" receives a "pointerdown", the pointer is captured to "capturer" and event
+      //   logging starts.
+      // - During event logging, all boundary events and "got/lostpointercapture" events to both
+      //   "target0" and "capturer" are logged.
+      // - The first "pointermove" at "capturer" releases the pointer capture, so that subsequent
+      //   "pointermove"/"pointerup" events go to "target0".
+      // - Event logging ends when "target0" receives a "pointerup".
+
+      function logEvent(event, element) {
+          if (log_events)
+              events_received.push(event.type + "@" + element.id);
+      }
+
+      let target0 = document.getElementById("target0");
+      let capturer = document.getElementById("capturer");
+
+      target0.addEventListener("pointerdown", event => {
+          capturer.setPointerCapture(event.pointerId);
+      });
+
+      capturer.addEventListener("pointermove", event => {
+          if (capturer.hasPointerCapture(event.pointerId))
+              capturer.releasePointerCapture(event.pointerId);
+      });
+
+      let other_event_types = [ "pointercancel",
+                                "pointerover", "pointerout", "pointerenter", "pointerleave",
+                                "gotpointercapture", "lostpointercapture" ];
+      other_event_types.forEach(event_name => {
+          [target0, capturer].forEach(target => {
+              target.addEventListener(event_name, event => logEvent(event, target));
+          });
+      });
+
+      promise_test(async () => {
+          // Start logging events after the pointerdown in the drag.
+          getEvent("pointerdown", target0).then(() => {
+              log_events = true;
+          });
+
+          let pointerup_promise = getEvent("pointerup", target0);
+          pointerup_promise.then(() => {
+              log_events = false;
+          });
+
+          await pointerDragInTarget(input_source, target0, "right");
+
+          // Wait for all events in the drag to have been dispatched.
+          await pointerup_promise;
+
+          const expected_events = [
+              "pointerout@target0", "pointerleave@target0",
+              "pointerover@capturer", "pointerenter@capturer",
+              "gotpointercapture@capturer",
+              "lostpointercapture@capturer",
+              "pointerout@capturer", "pointerleave@capturer",
+              "pointerover@target0", "pointerenter@target0"
+          ];
+          assert_array_equals(events_received, expected_events);
+
+          updateDescriptionComplete();
+      }, "Boundary events around pointer capture and release");
+    </script>
+</html>

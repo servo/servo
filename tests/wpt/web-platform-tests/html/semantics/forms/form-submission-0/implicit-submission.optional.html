@@ -35,5 +35,13 @@ promise_test(async () => {
   assert_equals(event.submitter, null);
   assert_true(event instanceof SubmitEvent);
 }, 'Submit event with no submit button');
+
+promise_test(async (test) => {
+  let form = populateForm('<input name=text value=abc><input name=submitButton type=submit disabled>');
+  form.text.focus();
+  form.addEventListener('submit', test.unreached_func('submit event should not be dispatched'));
+  await test_driver.send_keys(form.text, ENTER);
+}, 'Submit event with disabled submit button');
+
 </script>
 </body>

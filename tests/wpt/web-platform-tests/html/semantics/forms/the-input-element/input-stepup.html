@@ -8,9 +8,7 @@
 <input type="number" id="number_input" max="100" step="1" value="200">
 <input type="date" id="date_input"  max="2009-02-10" step="1" value="2010-02-10">
 <input type="datetime-local" id="dtl_input" max="2009-02-10T20:13" step="1" value="2010-02-10T20:13">
-<input type="month" id="month_input" max="2009-02" step="1" value="2010-02">
 <input type="time" id="time_input" max="19:13" step="60" value="20:13">
-<input type="week" id="week_input" max="2009-W02" step="1" value="2010-W02">
 
 <script>
 
@@ -41,8 +39,6 @@
     testStepUpOverflow("number_input", "200", "number");
     testStepUpOverflow("date_input", "2010-02-10", "date");
     testStepUpOverflow("dtl_input", "2010-02-10T20:13", "datetime-local");
-    testStepUpOverflow("month_input", "2010-02", "month");
     testStepUpOverflow("time_input", "20:13", "time");
-    testStepUpOverflow("week_input", "2010-W02", "week");
 </script>
 </html>

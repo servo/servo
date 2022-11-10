@@ -5,7 +5,7 @@
 <meta name=timeout content=long>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 
 <script>
     var db, read_request_count = 0, read_success_count = 0;
@@ -27,7 +27,7 @@
         {
             read_request_count++;
 
-            db.transaction("s")
+            db.transaction("s", "readonly", {durability: 'relaxed'})
               .objectStore("s")
               .get(1)
               .onsuccess = this.step_func(function(e) {
@@ -41,7 +41,7 @@
         function loop() {
             read_request_count++;
 
-            db.transaction("s")
+            db.transaction("s", "readonly", {durability: 'relaxed'})
               .objectStore("s")
               .get(1)
               .onsuccess = this.step_func(function(e)
@@ -53,7 +53,7 @@
                 {
                     write_request_count++;
 
-                    db.transaction("s", "readwrite")
+                    db.transaction("s", "readwrite", {durability: 'relaxed'})
                       .objectStore("s")
                       .add("written", read_request_count)
                       .onsuccess = this.step_func(function(e)
@@ -69,7 +69,7 @@
                     {
                         read_request_count++;
 
-                        db.transaction("s")
+                        db.transaction("s", "readonly", {durability: 'relaxed'})
                           .objectStore("s")
                           .get(1)
                           .onsuccess = this.step_func(function(e)
@@ -84,7 +84,7 @@
                 step_timeout(this.step_func(loop), write_request_count ? 1000 : 100);
             else
                 // This is merely a "nice" hack to run finish after the last request is done
-                db.transaction("s")
+                db.transaction("s", "readonly", {durability: 'relaxed'})
                   .objectStore("s")
                   .count()
                   .onsuccess = this.step_func(function()

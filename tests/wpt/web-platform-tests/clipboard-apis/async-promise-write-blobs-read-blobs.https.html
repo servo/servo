@@ -4,10 +4,12 @@
   Async Clipboard write blobs -> read blobs with promise tests
 </title>
 <link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
 
 <script>
 async function loadBlob(fileName) {
@@ -26,8 +28,9 @@ promise_test(async t => {
 
   const clipboardItemInput = new ClipboardItem(
         {'text/plain' : blobText, 'image/png' : promise1});
-
+  await waitForUserActivation();
   await navigator.clipboard.write([clipboardItemInput]);
+  await waitForUserActivation();
   const clipboardItems = await navigator.clipboard.read();
 
   assert_equals(clipboardItems.length, 1);

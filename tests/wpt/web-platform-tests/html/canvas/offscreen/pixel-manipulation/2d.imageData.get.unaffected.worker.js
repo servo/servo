@@ -30,8 +30,8 @@ ctx.clip();
 var imgdata = ctx.getImageData(0, 0, 50, 50);
 ctx.restore();
 ctx.putImageData(imgdata, 50, 0);
-_assertPixelApprox(canvas, 25,25, 0,255,0,255, "25,25", "0,255,0,255", 2);
-_assertPixelApprox(canvas, 75,25, 0,255,0,255, "75,25", "0,255,0,255", 2);
+_assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
+_assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
 t.done();
 
 });

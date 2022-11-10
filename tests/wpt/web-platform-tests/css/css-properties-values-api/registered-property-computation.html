@@ -7,6 +7,7 @@
 <style>
 #divWithFontSizeSet, #parentDiv {
     font-size: 10px;
+    line-height: 20px;
 }
 </style>
 
@@ -107,6 +108,8 @@ test_computed_value('<length>', '25.4mm', '96px');
 test_computed_value('<length>', '6pc', '96px');
 test_computed_value('<length>', '72pt', '96px');
 
+test_computed_value('<length>', '10lh', '200px');
+
 test_computed_value('<length-percentage>', '17em', '170px');
 test_computed_value('<length-percentage>', '18%', '18%');
 test_computed_value('<length-percentage>', 'calc(19em - 2%)', 'calc(-2% + 190px)');
@@ -166,5 +169,7 @@ test_computed_value('*', '50dpi', '50dpi');
 test_computed_value('<resolution>', '1dppx', '1dppx');
 test_computed_value('<resolution>', '96dpi', '1dppx');
 test_computed_value('<resolution>', 'calc(1dppx + 96dpi)', '2dppx');
+
+test_computed_value('*', 'url(why)', 'url(why)');
 
 </script>

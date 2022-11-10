@@ -30,11 +30,10 @@ img.onload = t.step_func_done(function ()
 {
     ctx.drawImage(img, 0, 0);
     canvas.toDataURL(); // should be permitted
-    _assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+    _assertPixel(canvas, 50,25, 0,255,0,255);
 });
 img.src = data;
 
 
 });
 </script>
-

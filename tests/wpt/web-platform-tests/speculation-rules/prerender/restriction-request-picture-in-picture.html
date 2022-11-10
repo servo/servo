@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Prerendering cannot invoke
+       HTMLVideoElement.requestPictureInPicture</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('prerender-channel', uid);
+  t.add_cleanup(_ => bc.close());
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+
+  // Start prerendering a page that attempts to invoke
+  // HTMLVideoElement.requestPictureInPicture. This API needs
+  // transient activation. So it's expected to fail.
+  startPrerendering(`resources/request-picture-in-picture.html?uid=${uid}`);
+
+  const result = await gotMessage;
+  assert_equals(result, 'Metadata for the video element are not loaded yet');
+}, 'prerendering page cannot invoke' +
+   'HTMLVideoElement.requestPictureInPicture');
+</script>
+</body>

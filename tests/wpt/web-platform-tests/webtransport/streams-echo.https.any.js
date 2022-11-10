@@ -77,3 +77,77 @@ promise_test(async t => {
   // match.
   assert_equals(reply, 'Hello World');
 }, 'WebTransport server should be able to create, accept, and handle a unidirectional stream');
+
+promise_test(async t => {
+  // Establish a WebTransport session.
+  const wt = new WebTransport(webtransport_url('echo.py'));
+  await wt.ready;
+
+  // The echo handler creates a bidirectional stream when a WebTransport session
+  // is established. Accept the bidirectional stream.
+  const stream_reader = wt.incomingBidirectionalStreams.getReader();
+  const {value: bidi_stream} = await stream_reader.read();
+  stream_reader.releaseLock();
+
+  // Write data to the writable end, and close it.
+  const buffer_size = 256;
+  const data = new Uint8Array(buffer_size);
+  for (let i = 0; i < data.byteLength; ++i) {
+    data[i] = i;
+  }
+  const writer = bidi_stream.writable.getWriter();
+  writer.write(data);
+  await writer.close();
+
+  // Read the data on the readable end and check if it matches the writable end.
+  const reader = bidi_stream.readable.getReader({mode: 'byob'});
+  assert_true(reader instanceof ReadableStreamBYOBReader);
+  const half_buffer_size = buffer_size / 2;
+  for (let i = 0; i < 2; i++) {
+    let buffer = new ArrayBuffer(half_buffer_size);
+    buffer = await readInto(reader, buffer);
+    assert_array_equals(
+        new Uint8Array(buffer),
+        data.subarray(half_buffer_size * i, half_buffer_size * (i + 1)))
+  }
+  reader.releaseLock();
+}, 'Can read data from a bidirectional stream with BYOB reader');
+
+promise_test(async t => {
+  // Establish a WebTransport session.
+  const wt = new WebTransport(webtransport_url('echo.py'));
+  await wt.ready;
+
+  // Create a unidirectional stream.
+  const writable = await wt.createUnidirectionalStream();
+
+  // Write data to the writable end, and close it.
+  const buffer_size = 256;
+  const data = new Uint8Array(buffer_size);
+  for (let i = 0; i < data.byteLength; ++i) {
+    data[i] = i;
+  }
+  const writer = writable.getWriter();
+  writer.write(data);
+  await writer.close();
+
+  // The echo handler creates a new unidirectional stream to echo back data from
+  // the server to client. Accept the unidirectional stream.
+  const readable = wt.incomingUnidirectionalStreams;
+  const stream_reader = readable.getReader();
+  const {value: recv_stream} = await stream_reader.read();
+  stream_reader.releaseLock();
+
+  // Read the data on the readable end and check if it matches the writable end.
+  const reader = recv_stream.getReader({mode: 'byob'});
+  assert_true(reader instanceof ReadableStreamBYOBReader);
+  const half_buffer_size = buffer_size / 2;
+  let buffer = new ArrayBuffer(half_buffer_size);
+  for (let i = 0; i < 2; i++) {
+    buffer = await readInto(reader, buffer);
+    assert_array_equals(
+        new Uint8Array(buffer),
+        data.subarray(half_buffer_size * i, half_buffer_size * (i + 1)))
+  }
+  reader.releaseLock();
+}, 'Can read data from a unidirectional stream with BYOB reader');

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values and Units Test: lh depending on @font-face</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #lh {
+    font-family: customfont;
+    font-size: 20px;
+    width: 10lh;
+  }
+</style>
+<div id="lh">
+  X<br>
+  X<br>
+  X<br>
+  X<br>
+  X<br>
+  X<br>
+  X<br>
+  X<br>
+  X<br>
+  X
+</div>
+<script>
+  test(() => {
+    assert_equals(lh.offsetWidth, lh.offsetHeight);
+  }, "Line-height and lh before @font-face loads");
+
+  let original_size = lh.offsetHeight;
+
+  promise_test(async (t) => {
+    let custom_font = new FontFace("customfont", "url(/css/css-fonts/support/fonts/Rochester.otf)");
+    document.fonts.add(custom_font);
+    await document.fonts.load("20px customfont");
+    assert_not_equals(lh.offsetHeight, original_size,
+                      "Test is useless if normal line-height is the same for both the web font and the fallback font");
+    assert_equals(lh.offsetWidth, lh.offsetHeight,
+                  "lh and normal line-height both affected");
+  }, "Line-height and lh after @font-face loaded");
+</script>

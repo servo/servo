@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<title>CSS Color 4: System colors should compute to themselves</title>
+<title>CSS Color 4: System colors compute to absolute colors</title>
 <link rel="help" href="https://www.w3.org/TR/css-color-4/#resolving-color-values">
-<meta name="assert" content="Tests if system color keywords compute to themselves">
+<meta name="assert" content="Tests that system color keywords resolve to absolute colors at computed value time">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -57,12 +57,13 @@
 </div>
 
 <script>
-  // The premise behind this test is that if a system color keyword computes to
-  // itself, then child elements inheriting a system color value will inherit
-  // the keyword, not the color it resolves to. We can detect this by applying
-  // different color schemes to parent and child, then comparing the results we
-  // get between a child that inherited a system color versus a child that
-  // received the system color directly.
+  // The premise behind this test is that if a system color keyword were to
+  // compute to itself, then child elements inheriting a system color value
+  // will incorrectly inherit the keyword, not the color it resolves to. We can
+  // detect whether this is happening by applying different color schemes to
+  // parent and child, then comparing the results we get between a child that
+  // inherited a system color versus a child that received the system color
+  // directly.
 
   // As a precondition check, validate that the color-scheme property results
   // in a different resolved color.
@@ -99,13 +100,13 @@
         let inherited_value =
           getComputedStyle(document.getElementById("inherited"))
             .getPropertyValue(property);
-        assert_equals(inherited_value, specified_value);
-    }, "System color computes to itself on " + property);
+        assert_not_equals(inherited_value, specified_value);
+    }, "System color doesn't compute to itself on " + property);
     test(function() {
       let inherited_value =
         document.getElementById("inherited").computedStyleMap()
           .get(property);
-      assert_regexp_match(inherited_value, /menu/i);
+      assert_false(/menu/i.test(inherited_value));
     }, "Inherited system color keyword is observable on " + property);
   }
 </script>

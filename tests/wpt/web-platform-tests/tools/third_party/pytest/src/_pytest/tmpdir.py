@@ -1,58 +1,78 @@
 """Support for providing temporary directories to test functions."""
 import os
 import re
+import sys
 import tempfile
+from pathlib import Path
 from typing import Optional
 
 import attr
-import py
 
-import pytest
-from .pathlib import ensure_reset_dir
 from .pathlib import LOCK_TIMEOUT
 from .pathlib import make_numbered_dir
 from .pathlib import make_numbered_dir_with_cleanup
-from .pathlib import Path
+from .pathlib import rm_rf
 from _pytest.compat import final
 from _pytest.config import Config
+from _pytest.deprecated import check_ispytest
+from _pytest.fixtures import fixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
 
 
 @final
-@attr.s
+@attr.s(init=False)
 class TempPathFactory:
     """Factory for temporary directories under the common base temp directory.
 
     The base directory can be configured using the ``--basetemp`` option.
     """
 
-    _given_basetemp = attr.ib(
-        type=Optional[Path],
-        # Use os.path.abspath() to get absolute path instead of resolve() as it
-        # does not work the same in all platforms (see #4427).
-        # Path.absolute() exists, but it is not public (see https://bugs.python.org/issue25012).
-        # Ignore type because of https://github.com/python/mypy/issues/6172.
-        converter=attr.converters.optional(
-            lambda p: Path(os.path.abspath(str(p)))  # type: ignore
-        ),
-    )
+    _given_basetemp = attr.ib(type=Optional[Path])
     _trace = attr.ib()
-    _basetemp = attr.ib(type=Optional[Path], default=None)
+    _basetemp = attr.ib(type=Optional[Path])
+
+    def __init__(
+        self,
+        given_basetemp: Optional[Path],
+        trace,
+        basetemp: Optional[Path] = None,
+        *,
+        _ispytest: bool = False,
+    ) -> None:
+        check_ispytest(_ispytest)
+        if given_basetemp is None:
+            self._given_basetemp = None
+        else:
+            # Use os.path.abspath() to get absolute path instead of resolve() as it
+            # does not work the same in all platforms (see #4427).
+            # Path.absolute() exists, but it is not public (see https://bugs.python.org/issue25012).
+            self._given_basetemp = Path(os.path.abspath(str(given_basetemp)))
+        self._trace = trace
+        self._basetemp = basetemp
 
     @classmethod
-    def from_config(cls, config: Config) -> "TempPathFactory":
-        """Create a factory according to pytest configuration."""
+    def from_config(
+        cls,
+        config: Config,
+        *,
+        _ispytest: bool = False,
+    ) -> "TempPathFactory":
+        """Create a factory according to pytest configuration.
+
+        :meta private:
+        """
+        check_ispytest(_ispytest)
         return cls(
-            given_basetemp=config.option.basetemp, trace=config.trace.get("tmpdir")
+            given_basetemp=config.option.basetemp,
+            trace=config.trace.get("tmpdir"),
+            _ispytest=True,
         )
 
     def _ensure_relative_to_basetemp(self, basename: str) -> str:
         basename = os.path.normpath(basename)
         if (self.getbasetemp() / basename).resolve().parent != self.getbasetemp():
-            raise ValueError(
-                "{} is not a normalized and relative path".format(basename)
-            )
+            raise ValueError(f"{basename} is not a normalized and relative path")
         return basename
 
     def mktemp(self, basename: str, numbered: bool = True) -> Path:
@@ -73,20 +93,22 @@ class TempPathFactory:
         basename = self._ensure_relative_to_basetemp(basename)
         if not numbered:
             p = self.getbasetemp().joinpath(basename)
-            p.mkdir()
+            p.mkdir(mode=0o700)
         else:
-            p = make_numbered_dir(root=self.getbasetemp(), prefix=basename)
+            p = make_numbered_dir(root=self.getbasetemp(), prefix=basename, mode=0o700)
             self._trace("mktemp", p)
         return p
 
     def getbasetemp(self) -> Path:
-        """Return base temporary directory."""
+        """Return the base temporary directory, creating it if needed."""
         if self._basetemp is not None:
             return self._basetemp
 
         if self._given_basetemp is not None:
             basetemp = self._given_basetemp
-            ensure_reset_dir(basetemp)
+            if basetemp.exists():
+                rm_rf(basetemp)
+            basetemp.mkdir(mode=0o700)
             basetemp = basetemp.resolve()
         else:
             from_env = os.environ.get("PYTEST_DEBUG_TEMPROOT")
@@ -94,32 +116,43 @@ class TempPathFactory:
             user = get_user() or "unknown"
             # use a sub-directory in the temproot to speed-up
             # make_numbered_dir() call
-            rootdir = temproot.joinpath("pytest-of-{}".format(user))
-            rootdir.mkdir(exist_ok=True)
+            rootdir = temproot.joinpath(f"pytest-of-{user}")
+            try:
+                rootdir.mkdir(mode=0o700, exist_ok=True)
+            except OSError:
+                # getuser() likely returned illegal characters for the platform, use unknown back off mechanism
+                rootdir = temproot.joinpath("pytest-of-unknown")
+                rootdir.mkdir(mode=0o700, exist_ok=True)
+            # Because we use exist_ok=True with a predictable name, make sure
+            # we are the owners, to prevent any funny business (on unix, where
+            # temproot is usually shared).
+            # Also, to keep things private, fixup any world-readable temp
+            # rootdir's permissions. Historically 0o755 was used, so we can't
+            # just error out on this, at least for a while.
+            if sys.platform != "win32":
+                uid = os.getuid()
+                rootdir_stat = rootdir.stat()
+                # getuid shouldn't fail, but cpython defines such a case.
+                # Let's hope for the best.
+                if uid != -1:
+                    if rootdir_stat.st_uid != uid:
+                        raise OSError(
+                            f"The temporary directory {rootdir} is not owned by the current user. "
+                            "Fix this and try again."
+                        )
+                    if (rootdir_stat.st_mode & 0o077) != 0:
+                        os.chmod(rootdir, rootdir_stat.st_mode & ~0o077)
             basetemp = make_numbered_dir_with_cleanup(
-                prefix="pytest-", root=rootdir, keep=3, lock_timeout=LOCK_TIMEOUT
+                prefix="pytest-",
+                root=rootdir,
+                keep=3,
+                lock_timeout=LOCK_TIMEOUT,
+                mode=0o700,
             )
         assert basetemp is not None, basetemp
-        self._basetemp = t = basetemp
-        self._trace("new basetemp", t)
-        return t
-
-
-@final
-@attr.s
-class TempdirFactory:
-    """Backward comptibility wrapper that implements :class:``py.path.local``
-    for :class:``TempPathFactory``."""
-
-    _tmppath_factory = attr.ib(type=TempPathFactory)
-
-    def mktemp(self, basename: str, numbered: bool = True) -> py.path.local:
-        """Same as :meth:`TempPathFactory.mktemp`, but returns a ``py.path.local`` object."""
-        return py.path.local(self._tmppath_factory.mktemp(basename, numbered).resolve())
-
-    def getbasetemp(self) -> py.path.local:
-        """Backward compat wrapper for ``_tmppath_factory.getbasetemp``."""
-        return py.path.local(self._tmppath_factory.getbasetemp().resolve())
+        self._basetemp = basetemp
+        self._trace("new basetemp", basetemp)
+        return basetemp
 
 
 def get_user() -> Optional[str]:
@@ -134,30 +167,21 @@ def get_user() -> Optional[str]:
 
 
 def pytest_configure(config: Config) -> None:
-    """Create a TempdirFactory and attach it to the config object.
+    """Create a TempPathFactory and attach it to the config object.
 
     This is to comply with existing plugins which expect the handler to be
     available at pytest_configure time, but ideally should be moved entirely
-    to the tmpdir_factory session fixture.
+    to the tmp_path_factory session fixture.
     """
     mp = MonkeyPatch()
-    tmppath_handler = TempPathFactory.from_config(config)
-    t = TempdirFactory(tmppath_handler)
-    config._cleanup.append(mp.undo)
-    mp.setattr(config, "_tmp_path_factory", tmppath_handler, raising=False)
-    mp.setattr(config, "_tmpdirhandler", t, raising=False)
+    config.add_cleanup(mp.undo)
+    _tmp_path_factory = TempPathFactory.from_config(config, _ispytest=True)
+    mp.setattr(config, "_tmp_path_factory", _tmp_path_factory, raising=False)
 
 
-@pytest.fixture(scope="session")
-def tmpdir_factory(request: FixtureRequest) -> TempdirFactory:
-    """Return a :class:`_pytest.tmpdir.TempdirFactory` instance for the test session."""
-    # Set dynamically by pytest_configure() above.
-    return request.config._tmpdirhandler  # type: ignore
-
-
-@pytest.fixture(scope="session")
+@fixture(scope="session")
 def tmp_path_factory(request: FixtureRequest) -> TempPathFactory:
-    """Return a :class:`_pytest.tmpdir.TempPathFactory` instance for the test session."""
+    """Return a :class:`pytest.TempPathFactory` instance for the test session."""
     # Set dynamically by pytest_configure() above.
     return request.config._tmp_path_factory  # type: ignore
 
@@ -170,30 +194,18 @@ def _mk_tmp(request: FixtureRequest, factory: TempPathFactory) -> Path:
     return factory.mktemp(name, numbered=True)
 
 
-@pytest.fixture
-def tmpdir(tmp_path: Path) -> py.path.local:
-    """Return a temporary directory path object which is unique to each test
-    function invocation, created as a sub directory of the base temporary
-    directory.
-
-    The returned object is a `py.path.local`_ path object.
-
-    .. _`py.path.local`: https://py.readthedocs.io/en/latest/path.html
-    """
-    return py.path.local(tmp_path)
-
-
-@pytest.fixture
+@fixture
 def tmp_path(request: FixtureRequest, tmp_path_factory: TempPathFactory) -> Path:
     """Return a temporary directory path object which is unique to each test
     function invocation, created as a sub directory of the base temporary
     directory.
 
+    By default, a new base temporary directory is created each test session,
+    and old bases are removed after 3 sessions, to aid in debugging. If
+    ``--basetemp`` is used then it is cleared each session. See :ref:`base
+    temporary directory`.
+
     The returned object is a :class:`pathlib.Path` object.
-
-    .. note::
-
-        In python < 3.6 this is a pathlib2.Path.
     """
 
     return _mk_tmp(request, tmp_path_factory)

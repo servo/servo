@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: parsing invalid gradients with color interpolation methods</title>
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#gradients">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#color-interpolation-method">
+<meta name="assert" content="gradients supports the addition of color-interpolation-method to the grammar">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+
+function test_each_interpolation_method(gradientFunction) {
+    test_invalid_value(`background-image`, `${gradientFunction}(, red, blue)`)
+
+    for (const colorSpace of [ "lab", "oklab", "srgb", "srgb-linear", "xyz", "xyz-d50", "xyz-d65" ]) {
+        const colorInterpolationMethod = colorSpace
+
+        test_invalid_value(`background-image`, `${gradientFunction}(red, blue, ${colorInterpolationMethod})`) // interpolation method after color stops
+        test_invalid_value(`background-image`, `${gradientFunction}(${colorSpace} ${colorSpace}, red, blue)`) // duplicated color space
+        test_invalid_value(`background-image`, `${gradientFunction}(${colorSpace} shorter hue, red, blue)`) // invalid color space for hue modifier
+    }
+
+    for (const colorSpace of [ "hsl", "hwb", "lch", "oklch" ]) {
+        test_invalid_value(`background-image`, `${gradientFunction}(${colorSpace} foo hue, red, blue)`) // invalid hue method
+        test_invalid_value(`background-image`, `${gradientFunction}(${colorSpace} hue, red, blue)`) // missing interpolation method
+        test_invalid_value(`background-image`, `${gradientFunction}(${colorSpace} ${colorSpace}, red, blue)`) // duplicated color space
+
+        for (const hueInterpolationMethod of [ "shorter", "longer", "increasing", "decreasing", "specified" ]) {
+            test_invalid_value(`background-image`, `${gradientFunction}(${colorSpace} ${hueInterpolationMethod}, red, blue)`) // missing 'hue' keyword
+            test_invalid_value(`background-image`, `${gradientFunction}(${hueInterpolationMethod} hue ${colorSpace}, red, blue)`) // hue method before color space
+            test_invalid_value(`background-image`, `${gradientFunction}(red, blue, ${colorSpace} ${hueInterpolationMethod} hue)`) // interpolation method after color stops
+        }
+    }
+}
+
+test_each_interpolation_method("linear-gradient")
+test_each_interpolation_method("radial-gradient")
+test_each_interpolation_method("conic-gradient")
+</script>
+</body>
+</html>

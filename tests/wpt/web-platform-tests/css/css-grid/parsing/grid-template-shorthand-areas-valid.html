@@ -30,6 +30,9 @@ testValidGridTemplate("none / 1px",  "\"a\"");
 testValidGridTemplate("none / none", "\"a\"", "none");
 testValidGridTemplate("auto / 1px", "\"a a a\"", "\"a a a\" / 1px");
 testValidGridTemplate("auto / auto", "\"a a a\"", "\"a a a\" / auto");
+testValidGridTemplate("10px 20px 30px / 40px 50px 60px 70px",
+                      "\"a . b .\" \"c d . e\" \"f g h .\"",
+                      "\"a . b .\" 10px \"c d . e\" 20px \"f g h .\" 30px / 40px 50px 60px 70px");
 </script>
 </body>
 </html>

@@ -26,7 +26,7 @@ for (var i = 0; i < imgdata.data.length; i += 4) {
 ctx.fillStyle = '#f00';
 ctx.fillRect(0, 0, 100, 50)
 ctx.putImageData(imgdata, 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
+_assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
 t.done();
 
 });

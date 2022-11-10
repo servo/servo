@@ -1,94 +1,89 @@
-# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: MIT
 
-import codecs
-import os
-import re
-
-
-def read(*parts):
-    """
-    Build an absolute path from *parts* and and return the contents of the
-    resulting file.  Assume UTF-8 encoding.
-    """
-    here = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(here, *parts), "rb", "utf-8") as f:
-        return f.read()
-
-
-def find_version(*file_paths):
-    """
-    Build a path from *file_paths* and search for a ``__version__``
-    string inside.
-    """
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
+from importlib import metadata
 
 
 # -- General configuration ------------------------------------------------
+
+doctest_global_setup = """
+from attr import define, frozen, field, validators, Factory
+"""
+
+linkcheck_ignore = [
+    # We run into GitHub's rate limits.
+    r"https://github.com/.*/(issues|pull)/\d+",
+    # It never finds the anchor even though it's there.
+    "https://github.com/microsoft/pyright/blob/main/specs/"
+    "dataclass_transforms.md#attrs",
+]
+
+# In nitpick mode (-n), still ignore any of the following "broken" references
+# to non-types.
+nitpick_ignore = [
+    ("py:class", "Any value"),
+    ("py:class", "callable"),
+    ("py:class", "callables"),
+    ("py:class", "tuple of types"),
+]
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "notfound.extension",
 ]
 
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'attrs'
-copyright = u'2015, Hynek Schlawack'
+project = "attrs"
+author = "Hynek Schlawack"
+copyright = f"2015, {author}"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
-#
-# The short X.Y version.
-release = find_version("../src/attr/__init__.py")
-version = release.rsplit(u".", 1)[0]
+
 # The full version, including alpha/beta/rc tags.
+release = metadata.version("attrs")
+# The short X.Y version.
+version = release.rsplit(".", 1)[0]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ["_build"]
+
+# The reST default role (used for this markup: `text`) to use for all
+# documents.
+default_role = "any"
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
-
-# The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
 
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = "alabaster"
+html_theme = "furo"
 html_theme_options = {
-    "font_family": '"Avenir Next", Calibri, "PT Sans", sans-serif',
-    "head_font_family": '"Avenir Next", Calibri, "PT Sans", sans-serif',
-    "font_size": "18px",
-    "page_width": "980px",
+    "sidebar_hide_name": True,
+    "light_logo": "attrs_logo.svg",
+    "dark_logo": "attrs_logo_white.svg",
 }
 
-# The name of an image file (relative to this directory) to place at the top
-# of the sidebar.
-html_logo = "_static/attrs_logo.svg"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -98,7 +93,7 @@ html_logo = "_static/attrs_logo.svg"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # If false, no module index is generated.
 html_domain_indices = True
@@ -124,16 +119,13 @@ html_show_copyright = True
 # html_use_opensearch = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'attrsdoc'
+htmlhelp_basename = "attrsdoc"
 
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    ('index', 'attrs', u'attrs Documentation',
-     [u'Hynek Schlawack'], 1)
-]
+man_pages = [("index", "attrs", "attrs Documentation", ["Hynek Schlawack"], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -142,14 +134,22 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'attrs', u'attrs Documentation',
-     u'Hynek Schlawack', 'attrs', 'One line description of project.',
-     'Miscellaneous'),
+    (
+        "index",
+        "attrs",
+        "attrs Documentation",
+        "Hynek Schlawack",
+        "attrs",
+        "Python Clases Without Boilerplate",
+        "Miscellaneous",
+    )
 ]
+
+epub_description = "Python Clases Without Boilerplate"
 
 intersphinx_mapping = {
     "https://docs.python.org/3": None,
 }
 
 # Allow non-local URIs so we can have images in CHANGELOG etc.
-suppress_warnings = ['image.nonlocal_uri']
+suppress_warnings = ["image.nonlocal_uri"]

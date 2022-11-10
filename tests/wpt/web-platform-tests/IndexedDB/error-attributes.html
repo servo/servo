@@ -4,7 +4,7 @@
 <link rel="help" href="https://w3c.github.io/IndexedDB/#idbrequest">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 indexeddb_test(
@@ -12,7 +12,7 @@ indexeddb_test(
         db.createObjectStore('store');
     },
     function(t, db) {
-        var tx = db.transaction('store', 'readwrite');
+        var tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
         var store = tx.objectStore('store');
         var r1 = store.add('value', 'key');
         r1.onerror = t.unreached_func('first add should succeed');

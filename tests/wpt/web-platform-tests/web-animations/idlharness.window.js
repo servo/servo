@@ -6,7 +6,7 @@
 
 idl_test(
   ['web-animations', 'web-animations-2'],
-  ['dom', 'html'],
+  ['dom', 'html', 'scroll-animations'],
   idl_array => {
     idl_array.add_objects({
       Animation: ['new Animation()'],

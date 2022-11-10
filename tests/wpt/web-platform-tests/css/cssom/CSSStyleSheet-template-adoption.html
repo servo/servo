@@ -13,30 +13,41 @@
 <script>
 test(function() {
   let sheet = new CSSStyleSheet();
-  sheet.replaceSync("div { color: red }");
+  sheet.replaceSync("div { color: blue }");
 
   let host = document.getElementById("host");
   let root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `<div></div>`;
   root.adoptedStyleSheets = [sheet];
-  assert_equals(root.adoptedStyleSheets.length, 1);
-  assert_equals(root.adoptedStyleSheets[0], sheet);
+
+  function assertAdoptedStyleSheet() {
+    assert_equals(host.ownerDocument, root.firstChild.ownerDocument, "Shadow root was not adopted?");
+    assert_equals(root.adoptedStyleSheets.length, 1);
+    assert_equals(root.adoptedStyleSheets[0], sheet);
+    if (root.ownerDocument == document) {
+      assert_equals(getComputedStyle(root.firstChild).color, "rgb(0, 0, 255)", "Sheet should apply");
+    }
+  }
+
+  assertAdoptedStyleSheet();
 
   // adoptedStyleSheets is not cleared when adopted into a <template>.
   const template = document.getElementById("template");
   template.content.appendChild(host);
-  assert_equals(root.adoptedStyleSheets.length, 1);
-  assert_equals(root.adoptedStyleSheets[0], sheet);
+
+  assert_not_equals(host.ownerDocument, document, "Should've been adopted");
+  assertAdoptedStyleSheet();
 
   // adoptedStyleSheets is not cleared when adopted back in the main document.
   document.body.appendChild(host);
-  assert_equals(root.adoptedStyleSheets.length, 1);
-  assert_equals(root.adoptedStyleSheets[0], sheet);
+  assert_equals(host.ownerDocument, document, "Should've been re-adopted");
+  assertAdoptedStyleSheet();
 
   // adoptedStyleSheets is not cleared when adopted into a nested <template>.
   const nested_template = template.content.firstElementChild;
   nested_template.content.appendChild(host);
-  assert_equals(root.adoptedStyleSheets.length, 1);
-  assert_equals(root.adoptedStyleSheets[0], sheet);
+  assert_not_equals(host.ownerDocument, document, "Should've been adopted");
+  assertAdoptedStyleSheet();
 
   // adoptedStyleSheets is cleared when adopted into an <iframe>.
   const iframe = document.createElement("iframe");

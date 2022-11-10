@@ -12,12 +12,6 @@
         assert_equals("style-src-elem", e.violatedDirective);
       }));
     </script>
-    <style id="style1" nonce="not-nonceynonce"
-           onerror="styleError();">
-        #content {
-            margin-left: 2px;
-        }
-    </style>
 </head>
 <body>
     <div id='log'></div>
@@ -67,5 +61,11 @@
         }
     </script>
 
+    <style id="style1" nonce="not-nonceynonce"
+           onerror="styleError();">
+        #content {
+            margin-left: 2px;
+        }
+    </style>
 </body>
 </html>

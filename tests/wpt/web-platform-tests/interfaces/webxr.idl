@@ -23,8 +23,8 @@ enum XRSessionMode {
 };
 
 dictionary XRSessionInit {
-  sequence<any> requiredFeatures;
-  sequence<any> optionalFeatures;
+  sequence<DOMString> requiredFeatures;
+  sequence<DOMString> optionalFeatures;
 };
 
 enum XRVisibilityState {
@@ -40,6 +40,7 @@ enum XRVisibilityState {
   readonly attribute Float32Array? supportedFrameRates;
   [SameObject] readonly attribute XRRenderState renderState;
   [SameObject] readonly attribute XRInputSourceArray inputSources;
+  readonly attribute FrozenArray<DOMString> enabledFeatures;
 
   // Methods
   undefined updateRenderState(optional XRRenderStateInit state = {});
@@ -283,11 +284,11 @@ dictionary XRSessionSupportedPermissionDescriptor: PermissionDescriptor {
 
 dictionary XRPermissionDescriptor: PermissionDescriptor {
   XRSessionMode mode;
-  sequence<any> requiredFeatures;
-  sequence<any> optionalFeatures;
+  sequence<DOMString> requiredFeatures;
+  sequence<DOMString> optionalFeatures;
 };
 
 [Exposed=Window]
 interface XRPermissionStatus: PermissionStatus {
-  attribute FrozenArray<any> granted;
+  attribute FrozenArray<DOMString> granted;
 };

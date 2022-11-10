@@ -12,8 +12,6 @@ idl_test(
       WorkerLocation: ['self.location'],
       WorkerNavigator: ['self.navigator'],
       EventSource: ['new EventSource("http://invalid")'],
-      WebSocket: ['new WebSocket("ws://invalid")'],
-      CloseEvent: ['new CloseEvent("close")'],
       Worker: [],
       MessageEvent: ['new MessageEvent("message", { data: 5 })'],
       DedicatedWorkerGlobalScope: ['self'],

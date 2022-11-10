@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+
+    let agent = await spawnWindow(t);
+    let nextUrl = agent.getExecutorURL({ hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
+    await agent.forceSinglePrefetch(nextUrl, { requires: ["anonymous-client-ip-when-cross-origin"] });
+    await agent.navigate(nextUrl);
+
+    let requestHeaders = await agent.getRequestHeaders();
+    assert_in_array(requestHeaders.purpose, ["", "prefetch"], "The vendor-specific header Purpose, if present, must be 'prefetch'.");
+    assert_equals(requestHeaders.sec_purpose, "prefetch;anonymous-client-ip");
+  }, "test anonymous-client url prefetch for cross origin pages");
+</script>

@@ -37,14 +37,14 @@ function verifyPicture(picture) {
 
 promise_test(async () => {
   let src = makeRGBACanvas();
-  let frame = new VideoFrame(src, {alpha: 'keep'});
+  let frame = new VideoFrame(src, {alpha: 'keep', timestamp: 0});
   verifyPicture(frame);
   verifyPicture(await createImageBitmap(frame));
 }, 'OffscreenCanvas source preserves alpha');
 
 promise_test(async () => {
   let src = makeRGBACanvas().transferToImageBitmap();
-  let frame = new VideoFrame(src, {alpha: 'keep'});
+  let frame = new VideoFrame(src, {alpha: 'keep', timestamp: 0});
   verifyPicture(frame);
   verifyPicture(await createImageBitmap(frame));
 }, 'ImageBitmap source preserves alpha');

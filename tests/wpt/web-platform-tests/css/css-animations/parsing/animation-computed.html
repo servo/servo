@@ -16,6 +16,11 @@
 // <single-animation-iteration-count> || <single-animation-direction> ||
 // <single-animation-fill-mode> || <single-animation-play-state> ||
 // [ none | <keyframes-name> ]
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById('target')).animation, "0s ease 0s 1 normal none running none");
+}, "Default animation value");
+
 test_computed_value("animation", "1s", "1s ease 0s 1 normal none running none");
 test_computed_value("animation", "cubic-bezier(0, -2, 1, 3)", "0s cubic-bezier(0, -2, 1, 3) 0s 1 normal none running none");
 test_computed_value("animation", "1s -3s", "1s ease -3s 1 normal none running none");

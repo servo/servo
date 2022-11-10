@@ -9,7 +9,7 @@
 <link rel=assert title="Before this method returns, unless an exception was thrown, it sets the got value flag on the cursor to false.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -25,7 +25,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       if (!e.target.result) {
@@ -54,7 +54,7 @@ indexeddb_test(
 indexeddb_test(
   upgrade_func,
   function(t, db) {
-    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       var cursor = e.target.result;
@@ -85,7 +85,7 @@ indexeddb_test(
 indexeddb_test(
   upgrade_func,
   function(t, db) {
-    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       var cursor = e.target.result;
@@ -111,7 +111,7 @@ indexeddb_test(
 indexeddb_test(
   upgrade_func,
   function(t, db) {
-    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       var cursor = e.target.result;
@@ -129,7 +129,7 @@ indexeddb_test(
 indexeddb_test(
   upgrade_func,
   function(t, db) {
-    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       var cursor = e.target.result;
@@ -167,7 +167,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       var cursor = e.target.result;

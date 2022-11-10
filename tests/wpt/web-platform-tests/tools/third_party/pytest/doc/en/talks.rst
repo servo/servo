@@ -70,8 +70,8 @@ Talks and blog postings
 - `pytest introduction from Brian Okken (January 2013)
   <http://pythontesting.net/framework/pytest-introduction/>`_
 
-- pycon australia 2012 pytest talk from Brianna Laugher (`video <http://www.youtube.com/watch?v=DTNejE9EraI>`_, `slides <https://www.slideshare.net/pfctdayelise/funcargs-other-fun-with-pytest>`_, `code <https://gist.github.com/3386951>`_)
-- `pycon 2012 US talk video from Holger Krekel <http://www.youtube.com/watch?v=9LVqBQcFmyw>`_
+- pycon australia 2012 pytest talk from Brianna Laugher (`video <https://www.youtube.com/watch?v=DTNejE9EraI>`_, `slides <https://www.slideshare.net/pfctdayelise/funcargs-other-fun-with-pytest>`_, `code <https://gist.github.com/3386951>`_)
+- `pycon 2012 US talk video from Holger Krekel <https://www.youtube.com/watch?v=9LVqBQcFmyw>`_
 
 - `monkey patching done right`_ (blog post, consult `monkeypatch plugin`_ for up-to-date API)
 
@@ -101,9 +101,9 @@ Plugin specific examples:
 .. _`many examples in the docs for plugins`: plugins.html
 .. _`monkeypatch plugin`: monkeypatch.html
 .. _`application setup in test functions with fixtures`: fixture.html#interdependent-fixtures
-.. _`simultaneously test your code on all platforms`: http://tetamap.wordpress.com/2009/03/23/new-simultanously-test-your-code-on-all-platforms/
-.. _`monkey patching done right`: http://tetamap.wordpress.com/2009/03/03/monkeypatching-in-unit-tests-done-right/
-.. _`putting test-hooks into local or global plugins`: http://tetamap.wordpress.com/2009/05/14/putting-test-hooks-into-local-and-global-plugins/
-.. _`parametrizing tests, generalized`: http://tetamap.wordpress.com/2009/05/13/parametrizing-python-tests-generalized/
+.. _`simultaneously test your code on all platforms`: https://tetamap.wordpress.com//2009/03/23/new-simultanously-test-your-code-on-all-platforms/
+.. _`monkey patching done right`: https://tetamap.wordpress.com//2009/03/03/monkeypatching-in-unit-tests-done-right/
+.. _`putting test-hooks into local or global plugins`: https://tetamap.wordpress.com/2009/05/14/putting-test-hooks-into-local-and-global-plugins/
+.. _`parametrizing tests, generalized`: https://tetamap.wordpress.com/2009/05/13/parametrizing-python-tests-generalized/
 .. _`generating parametrized tests with fixtures`: parametrize.html#test-generators
 .. _`test generators and cached setup`: http://bruynooghe.blogspot.com/2010/06/pytest-test-generators-and-cached-setup.html

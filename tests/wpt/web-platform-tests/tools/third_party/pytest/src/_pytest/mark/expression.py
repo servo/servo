@@ -6,7 +6,7 @@ expression: expr? EOF
 expr:       and_expr ('or' and_expr)*
 and_expr:   not_expr ('and' not_expr)*
 not_expr:   'not' not_expr | '(' expr ')' | ident
-ident:      (\w|:|\+|-|\.|\[|\])+
+ident:      (\w|:|\+|-|\.|\[|\]|\\|/)+
 
 The semantics are:
 
@@ -23,10 +23,9 @@ from typing import Iterator
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
+from typing import TYPE_CHECKING
 
 import attr
-
-from _pytest.compat import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import NoReturn
@@ -48,11 +47,11 @@ class TokenType(enum.Enum):
     EOF = "end of input"
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(frozen=True, slots=True, auto_attribs=True)
 class Token:
-    type = attr.ib(type=TokenType)
-    value = attr.ib(type=str)
-    pos = attr.ib(type=int)
+    type: TokenType
+    value: str
+    pos: int
 
 
 class ParseError(Exception):
@@ -67,7 +66,7 @@ class ParseError(Exception):
         self.message = message
 
     def __str__(self) -> str:
-        return "at column {}: {}".format(self.column, self.message)
+        return f"at column {self.column}: {self.message}"
 
 
 class Scanner:
@@ -89,7 +88,7 @@ class Scanner:
                 yield Token(TokenType.RPAREN, ")", pos)
                 pos += 1
             else:
-                match = re.match(r"(:?\w|:|\+|-|\.|\[|\])+", input[pos:])
+                match = re.match(r"(:?\w|:|\+|-|\.|\[|\]|\\|/)+", input[pos:])
                 if match:
                     value = match.group(0)
                     if value == "or":
@@ -103,7 +102,8 @@ class Scanner:
                     pos += len(value)
                 else:
                     raise ParseError(
-                        pos + 1, 'unexpected character "{}"'.format(input[pos]),
+                        pos + 1,
+                        f'unexpected character "{input[pos]}"',
                     )
         yield Token(TokenType.EOF, "", pos)
 
@@ -121,7 +121,8 @@ class Scanner:
         raise ParseError(
             self.current.pos + 1,
             "expected {}; got {}".format(
-                " OR ".join(type.value for type in expected), self.current.type.value,
+                " OR ".join(type.value for type in expected),
+                self.current.type.value,
             ),
         )
 
@@ -134,7 +135,7 @@ IDENT_PREFIX = "$"
 
 def expression(s: Scanner) -> ast.Expression:
     if s.accept(TokenType.EOF):
-        ret = ast.NameConstant(False)  # type: ast.expr
+        ret: ast.expr = ast.NameConstant(False)
     else:
         ret = expr(s)
         s.accept(TokenType.EOF, reject=True)
@@ -189,7 +190,7 @@ class MatcherAdapter(Mapping[str, bool]):
 class Expression:
     """A compiled match expression as used by -k and -m.
 
-    The expression can be evaulated against different matchers.
+    The expression can be evaluated against different matchers.
     """
 
     __slots__ = ("code",)
@@ -204,9 +205,11 @@ class Expression:
         :param input: The input expression - one line.
         """
         astexpr = expression(Scanner(input))
-        code = compile(
-            astexpr, filename="<pytest match expression>", mode="eval",
-        )  # type: types.CodeType
+        code: types.CodeType = compile(
+            astexpr,
+            filename="<pytest match expression>",
+            mode="eval",
+        )
         return Expression(code)
 
     def evaluate(self, matcher: Callable[[str], bool]) -> bool:
@@ -218,7 +221,5 @@ class Expression:
 
         :returns: Whether the expression matches or not.
         """
-        ret = eval(
-            self.code, {"__builtins__": {}}, MatcherAdapter(matcher)
-        )  # type: bool
+        ret: bool = eval(self.code, {"__builtins__": {}}, MatcherAdapter(matcher))
         return ret

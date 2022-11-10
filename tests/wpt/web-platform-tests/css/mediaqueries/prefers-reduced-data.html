@@ -5,27 +5,16 @@
 
 <script type="text/javascript" src="resources/matchmedia-utils.js"></script>
 <script>
-query_should_be_css_parseable("(prefers-reduced-data)");
-query_should_be_css_parseable("(prefers-reduced-data: no-preference)");
-query_should_be_css_parseable("(prefers-reduced-data: reduce)");
+query_should_be_known("(prefers-reduced-data)");
+query_should_be_known("(prefers-reduced-data: no-preference)");
+query_should_be_known("(prefers-reduced-data: reduce)");
 
-query_should_not_be_css_parseable("(prefers-reduced-data: 0)");
-query_should_not_be_css_parseable("(prefers-reduced-data: none)");
-query_should_not_be_css_parseable("(prefers-reduced-data: 10px)");
-query_should_not_be_css_parseable("(prefers-reduced-data: no-preference reduce)");
-query_should_not_be_css_parseable("(prefers-reduced-data: reduced)");
-query_should_not_be_css_parseable("(prefers-reduced-data: no-preference/reduce)");
-
-query_should_be_js_parseable("(prefers-reduced-data)");
-query_should_be_js_parseable("(prefers-reduced-data: no-preference)");
-query_should_be_js_parseable("(prefers-reduced-data: reduce)");
-
-query_should_not_be_js_parseable("(prefers-reduced-data: 0)");
-query_should_not_be_js_parseable("(prefers-reduced-data: none)");
-query_should_not_be_js_parseable("(prefers-reduced-data: 10px)");
-query_should_not_be_js_parseable("(prefers-reduced-data: no-preference reduce)");
-query_should_not_be_js_parseable("(prefers-reduced-data: reduced)");
-query_should_not_be_js_parseable("(prefers-reduced-data: no-preference/reduce)");
+query_should_be_unknown("(prefers-reduced-data: 0)");
+query_should_be_unknown("(prefers-reduced-data: none)");
+query_should_be_unknown("(prefers-reduced-data: 10px)");
+query_should_be_unknown("(prefers-reduced-data: no-preference reduce)");
+query_should_be_unknown("(prefers-reduced-data: reduced)");
+query_should_be_unknown("(prefers-reduced-data: no-preference/reduce)");
 
 test(() => {
   // https://drafts.csswg.org/mediaqueries-5/#boolean-context

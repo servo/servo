@@ -1,5 +1,3 @@
-from wptserve.utils import isomorphic_encode
-
 def handle_headers(frame, request, response):
     response.status = 200
     response.headers.update([('Content-Type', 'text/plain')])

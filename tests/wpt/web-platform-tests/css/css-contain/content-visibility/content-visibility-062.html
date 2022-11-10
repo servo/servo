@@ -18,7 +18,7 @@
 #container {
   width: 150px;
   height: 150px;
-  background: lightblue;
+  background: red;
 }
 #target {
   display: none;
@@ -28,16 +28,16 @@
 
   width: 50px;
   height: 50px;
-  background: red;
+  background: pink;
 }
 .auto {
   content-visibility: auto;
 }
 </style>
 
-<div class=spacer></div>
+<div class=spacer>Test passes if there is no red.</div>
 <div id=container class=auto>
-  <div id=target></div>
+  <div id=target>FAIL</div>
 </div>
 
 <script>

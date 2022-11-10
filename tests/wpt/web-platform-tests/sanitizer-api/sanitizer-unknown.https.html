@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(t => {
+  d = document.createElement("div")
+  d.setHTML("<hello><world>",
+      { sanitizer: new Sanitizer({allowElements: ["hello", "world"]}) });
+  assert_equals(d.innerHTML, "");
+}, "Unknown element names get blocked without allowUnknownMarkup.");
+
+test(t => {
+  d = document.createElement("div")
+  d.setHTML("<hello><world>",
+      { sanitizer: new Sanitizer({allowUnknownMarkup: true,
+                                 allowElements: ["hello", "world"]}) });
+  assert_equals(d.innerHTML, "<hello><world></world></hello>");
+}, "Unknown element names pass with allowUnknownMarkup.");
+
+test(t => {
+  d = document.createElement("div")
+  d.setHTML("<b hello='1' world>", { sanitizer:
+      new Sanitizer({allowAttributes: {"hello": ["*"], "world": ["*"]}}) });
+  assert_equals(d.innerHTML, "<b></b>");
+}, "Unknown attributes names get blocked without allowUnknownMarkup.");
+
+test(t => {
+  d = document.createElement("div")
+  d.setHTML("<b hello='1' world>", { sanitizer:
+      new Sanitizer({allowUnknownMarkup: true,
+                     allowAttributes: {"hello": ["*"], "world": ["*"]}}) });
+  assert_equals(d.innerHTML, `<b hello="1" world=""></b>`);
+}, "Unknown attribute names pass with allowUnknownMarkup.");
+</script>
+</body>
+</html>

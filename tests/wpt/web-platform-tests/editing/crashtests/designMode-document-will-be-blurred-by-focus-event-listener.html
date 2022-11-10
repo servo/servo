@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  const parentDocument = document;
+  const iframe = parentDocument.querySelector("iframe");
+  iframe.contentDocument.designMode = "on";
+  iframe.contentWindow.addEventListener("focus", () => {
+    iframe.contentDocument.execCommand("insertText", false, "def");
+    iframe.parentElement.setAttribute("hidden", "hidden");
+    setTimeout(() => parentDocument.documentElement.removeAttribute("class"), 0);
+  });
+  iframe.contentWindow.focus();
+});
+</script>
+<div><iframe srcdoc="<div>abc</div>"></iframe></div>
+</html>

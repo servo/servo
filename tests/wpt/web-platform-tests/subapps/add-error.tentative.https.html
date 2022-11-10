@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<title>Sub Apps: Error cases for add()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/subapps-helpers.js"></script>
+
+<body></body>
+
+<script>
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+
+  const iframeNavigator = iframe.contentWindow.navigator;
+  const iframeDOMException = iframe.contentWindow.DOMException;
+
+  // Detach the frame.
+  iframe.remove();
+
+  const same_origin_url = document.location.origin + '/sub-app';
+  let subapp = {};
+  let install_options = {};
+  install_options["install_url"] = same_origin_url;
+  subapp[same_origin_url] = install_options;
+
+  // At this point the iframe is detached and unloaded, and its execution
+  // context is gone.
+  await promise_rejects_dom(t, 'NotFoundError', iframeDOMException, iframeNavigator.subApps.add(subapp));
+}, "The object is no longer associated to a document.");
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+
+  const iframeNavigator = iframe.contentWindow.navigator;
+  const iframeDOMException = iframe.contentWindow.DOMException;
+  t.add_cleanup(() => iframe.remove());
+
+  const same_origin_url = document.location.origin + '/sub-app';
+  let subapp = {};
+  let install_options = {};
+  install_options["install_url"] = same_origin_url;
+  subapp[same_origin_url] = install_options;
+
+  await promise_rejects_dom(t, 'InvalidStateError', iframeDOMException, iframeNavigator.subApps.add(subapp));
+}, "API is only supported in top-level browsing contexts.");
+
+promise_test(async t => {
+  const wrong_origin_url = 'https://some.other.origin/sub-app';
+  let subapp = {};
+  let install_options = {};
+  install_options["install_url"] = wrong_origin_url;
+  subapp[wrong_origin_url] = install_options;
+  await promise_rejects_dom(t, 'URLMismatchError', navigator.subApps.add(subapp));
+}, 'Wrong origin URL argument.');
+
+promise_test(async t => {
+  const same_origin_url = document.location.origin + '/sub-app';
+  let add_call_params = {};
+  let install_options = {};
+  install_options["install_url"] = same_origin_url;
+  add_call_params[same_origin_url] = install_options;
+
+  let mocked_response = [
+    { unhashedAppId: same_origin_url, resultCode: AddCallResultCode.EXPECTED_APP_ID_CHECK_FAILED }
+  ]
+  let expected_results = {};
+  expected_results[same_origin_url] = "expected-app-id-check-failed";
+
+  await subapps_add_expect_reject_with_result(t, add_call_params, mocked_response, expected_results);
+}, 'Service failed to add single sub-app.');
+
+promise_test(async t => {
+  let add_call_params = {};
+
+  const url_1 = document.location.origin + '/sub-app-1';
+  let install_options_1 = {};
+  install_options_1["install_url"] = url_1;
+  add_call_params[url_1] = install_options_1;
+
+  const url_2 = document.location.origin + '/sub-app-2';
+  let install_options_2 = {};
+  install_options_2["install_url"] = url_2;
+  add_call_params[url_2] = install_options_2;
+
+  let mocked_response = [
+    { unhashedAppId: url_1, resultCode: AddCallResultCode.EXPECTED_APP_ID_CHECK_FAILED },
+    { unhashedAppId: url_2, resultCode: AddCallResultCode.INSTALL_URL_INVALID }
+  ]
+  let expected_results = {};
+  expected_results[url_1] = "expected-app-id-check-failed";
+  expected_results[url_2] = "install-url-invalid";
+
+  await subapps_add_expect_reject_with_result(t, add_call_params, mocked_response, expected_results);
+}, 'Service failed to add two sub-apps.');
+
+promise_test(async t => {
+  let add_call_params = {};
+
+  const url_1 = document.location.origin + '/sub-app-1';
+  let install_options_1 = {};
+  install_options_1["install_url"] = url_1;
+  add_call_params[url_1] = install_options_1;
+
+  const url_2 = document.location.origin + '/sub-app-2';
+  let install_options_2 = {};
+  install_options_2["install_url"] = url_2;
+  add_call_params[url_2] = install_options_2;
+
+  let mocked_response = [
+    { unhashedAppId: url_1, resultCode: AddCallResultCode.SUCCESS_NEW_INSTALL },
+    { unhashedAppId: url_2, resultCode: AddCallResultCode.EXPECTED_APP_ID_CHECK_FAILED }
+  ]
+  let expected_results = {};
+  expected_results[url_1] = "success-new-install";
+  expected_results[url_2] = "expected-app-id-check-failed";
+
+  await subapps_add_expect_reject_with_result(t, add_call_params, mocked_response, expected_results);
+}, 'Service added one sub-app failed to add another sub-app.');
+</script>

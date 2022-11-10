@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<style>
+.contain {
+    float: right;
+    clear: both;
+}
+.reset { counter-reset: c;}
+.increment:before { content: counters(c, ""); }
+.increment { counter-increment: c; }
+</style>
+<body>
+<div>1</div>
+<div class="contain">
+    <div>1</div>
+    <div>1</div>
+</div>
+<div>2</div>
+<div class="contain">
+    <div>1</div>
+    <div>2</div>
+</div>
+<div>3</div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<head>
+  <script src="/common/utils.js"></script>
+  <script src="/common/dispatcher/dispatcher.js"></script>
+  <script>
+      const params = new URLSearchParams(window.location.search);
+      const uuid = params.get('uuid');
+      const discard_uuid = params.get('discard_uuid') || uuid;
+      const referrer_policy = params.get('referrer_policy');
+      if (referrer_policy) {
+        const meta = document.createElement('meta');
+        meta.name = 'referrer';
+        meta.content = referrer_policy;
+        document.head.append(meta);
+      }
+      new Executor(document.prerendering ? uuid : discard_uuid).execute();
+  </script>
+</head>

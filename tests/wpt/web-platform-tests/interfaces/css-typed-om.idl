@@ -199,6 +199,30 @@ partial namespace CSS {
     CSSUnitValue vb(double value);
     CSSUnitValue vmin(double value);
     CSSUnitValue vmax(double value);
+    CSSUnitValue svw(double value);
+    CSSUnitValue svh(double value);
+    CSSUnitValue svi(double value);
+    CSSUnitValue svb(double value);
+    CSSUnitValue svmin(double value);
+    CSSUnitValue svmax(double value);
+    CSSUnitValue lvw(double value);
+    CSSUnitValue lvh(double value);
+    CSSUnitValue lvi(double value);
+    CSSUnitValue lvb(double value);
+    CSSUnitValue lvmin(double value);
+    CSSUnitValue lvmax(double value);
+    CSSUnitValue dvw(double value);
+    CSSUnitValue dvh(double value);
+    CSSUnitValue dvi(double value);
+    CSSUnitValue dvb(double value);
+    CSSUnitValue dvmin(double value);
+    CSSUnitValue dvmax(double value);
+    CSSUnitValue cqw(double value);
+    CSSUnitValue cqh(double value);
+    CSSUnitValue cqi(double value);
+    CSSUnitValue cqb(double value);
+    CSSUnitValue cqmin(double value);
+    CSSUnitValue cqmax(double value);
     CSSUnitValue cm(double value);
     CSSUnitValue mm(double value);
     CSSUnitValue Q(double value);
@@ -321,27 +345,30 @@ interface CSSImageValue : CSSStyleValue {
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSColorValue : CSSStyleValue {
-    readonly attribute CSSKeywordValue colorSpace;
-    CSSColorValue to(CSSKeywordish colorSpace);
     [Exposed=Window] static (CSSColorValue or CSSStyleValue) parse(USVString cssText);
 };
 
+typedef (CSSNumberish or CSSKeywordish) CSSColorRGBComp;
+typedef (CSSNumberish or CSSKeywordish) CSSColorPercent;
+typedef (CSSNumberish or CSSKeywordish) CSSColorNumber;
+typedef (CSSNumberish or CSSKeywordish) CSSColorAngle;
+
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSRGB : CSSColorValue {
-    constructor(CSSNumberish r, CSSNumberish g, CSSNumberish b, optional CSSNumberish alpha = 1);
-    attribute CSSNumberish r;
-    attribute CSSNumberish g;
-    attribute CSSNumberish b;
-    attribute CSSNumberish alpha;
+    constructor(CSSColorRGBComp r, CSSColorRGBComp g, CSSColorRGBComp b, optional CSSColorPercent alpha = 1);
+    attribute CSSColorRGBComp r;
+    attribute CSSColorRGBComp g;
+    attribute CSSColorRGBComp b;
+    attribute CSSColorPercent alpha;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSHSL : CSSColorValue {
-    constructor(CSSNumericValue h, CSSNumberish s, CSSNumberish l, optional CSSNumberish alpha = 1);
-    attribute CSSNumericValue h;
-    attribute CSSNumberish s;
-    attribute CSSNumberish l;
-    attribute CSSNumberish alpha;
+    constructor(CSSColorAngle h, CSSColorPercent s, CSSColorPercent l, optional CSSColorPercent alpha = 1);
+    attribute CSSColorAngle h;
+    attribute CSSColorPercent s;
+    attribute CSSColorPercent l;
+    attribute CSSColorPercent alpha;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
@@ -354,36 +381,45 @@ interface CSSHWB : CSSColorValue {
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
-interface CSSLCH : CSSColorValue {
-    constructor(CSSNumberish l, CSSNumberish c, CSSNumericValue h, optional CSSNumberish alpha = 1);
-    attribute CSSNumberish l;
-    attribute CSSNumberish c;
-    attribute CSSNumericValue h;
-    attribute CSSNumberish alpha;
+interface CSSLab : CSSColorValue {
+    constructor(CSSColorPercent l, CSSColorNumber a, CSSColorNumber b, optional CSSColorPercent alpha = 1);
+    attribute CSSColorPercent l;
+    attribute CSSColorNumber a;
+    attribute CSSColorNumber b;
+    attribute CSSColorPercent alpha;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
-interface CSSLab : CSSColorValue {
-    constructor(CSSNumberish l, CSSNumberish a, CSSNumberish b, optional CSSNumberish alpha = 1);
-    attribute CSSNumberish l;
-    attribute CSSNumberish a;
-    attribute CSSNumberish b;
-    attribute CSSNumberish alpha;
+interface CSSLCH : CSSColorValue {
+    constructor(CSSColorPercent l, CSSColorPercent c, CSSColorAngle h, optional CSSColorPercent alpha = 1);
+    attribute CSSColorPercent l;
+    attribute CSSColorPercent c;
+    attribute CSSColorAngle h;
+    attribute CSSColorPercent alpha;
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSOKLab : CSSColorValue {
+    constructor(CSSColorPercent l, CSSColorNumber a, CSSColorNumber b, optional CSSColorPercent alpha = 1);
+    attribute CSSColorPercent l;
+    attribute CSSColorNumber a;
+    attribute CSSColorNumber b;
+    attribute CSSColorPercent alpha;
+};
+
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
+interface CSSOKLCH : CSSColorValue {
+    constructor(CSSColorPercent l, CSSColorPercent c, CSSColorAngle h, optional CSSColorPercent alpha = 1);
+    attribute CSSColorPercent l;
+    attribute CSSColorPercent c;
+    attribute CSSColorAngle h;
+    attribute CSSColorPercent alpha;
 };
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSColor : CSSColorValue {
-    constructor(sequence<(DOMString or CSSNumberish)> variant);
-    /* CSSColor(["foo", 0, 1, .5], ["bar", "yellow"], 1, fallbackColor) */
-    /* or just make the alpha and fallback successive optional args? */
-};
-
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
-interface CSSDeviceCMYK : CSSColorValue {
-    constructor(CSSNumberish c, CSSNumberish m, CSSNumberish y, CSSNumberish k, optional CSSNumberish alpha = 1);
-    attribute CSSNumberish c;
-    attribute CSSNumberish m;
-    attribute CSSNumberish y;
-    attribute CSSNumberish k;
+    constructor(CSSKeywordish colorSpace, sequence<CSSColorPercent> channels, optional CSSNumberish alpha = 1);
+    attribute CSSKeywordish colorSpace;
+    attribute ObservableArray<CSSColorPercent> channels;
     attribute CSSNumberish alpha;
 };

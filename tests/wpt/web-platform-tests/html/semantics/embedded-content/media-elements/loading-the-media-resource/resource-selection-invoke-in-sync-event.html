@@ -19,14 +19,12 @@ var t = async_test(function(t) {
   assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState after click()');
   v.removeAttribute('src');
 });
-</script>
-<script>
 t.step(function() {
   // now the sync section of resource selection should have run and should
   // have found no src="" or <source> thus networkState being set to NETWORK_EMPTY.
   // if the sync section was run when onclick returned, then networkState
   // would be either NETWORK_LOADING or NETWORK_NO_SOURCE.
-  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState in separate script');
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after src removed');
   t.done();
 });
 </script>

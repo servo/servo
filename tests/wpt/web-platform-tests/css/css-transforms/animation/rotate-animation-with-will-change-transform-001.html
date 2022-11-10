@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Test (Transforms): Transform and perspective with w negative</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=696374">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#individual-transforms">
+<link rel="match" href="rotate-animation-with-will-change-transform-001-ref.html">
+
+<!--
+
+This is a simplified version of one case within the Blink web test
+virtual/threaded-no-composited-antialiasing/animations/composited-animations-rotate-zero-degrees.html
+but with will-change: transform added, so that it fails with the bug
+that is introduced in the intermediate state of fixing
+https://bugs.chromium.org/p/chromium/issues/detail?id=696374
+
+-->
+
+<style>
+
+@keyframes a {
+  from { rotate: 0 1 0 44deg; }
+  to { rotate: 0 1 0 44deg; }
+}
+
+div {
+  width: 100px;
+  height: 100px;
+  animation: a linear 10s infinite;
+  /* rotate: 0 1 0 44deg; */
+  background: fuchsia;
+  transform-origin: 100px 0;
+  will-change: transform;
+}
+
+</style>
+
+<div></div>

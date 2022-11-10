@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Touch events with vertical-rl writing mode</title>
+  <meta name="viewport" content="width=device-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+
+  <script>
+    setup({explicit_done: true});
+
+    async function run() {
+      document.documentElement.addEventListener("touchstart", function onTouchStart(event) {
+        test(function() {
+          assert_equals(event.changedTouches[0].clientX, 10, "clientX");
+          assert_equals(event.changedTouches[0].clientY, 20, "clientY");
+        }, "touchstart client coordinates are correct in vertical-rl");
+      });
+
+      document.documentElement.addEventListener("click", function onClick(event) {
+        test(function() {
+          assert_equals(event.clientX, 10, "clientX");
+          assert_equals(event.clientY, 20, "clientY");
+        }, "click client coordinates are correct in vertical-rl");
+        done();
+      });
+
+      let actions = new test_driver.Actions()
+          .addPointer("touchPointer1", "touch")
+          .pointerMove(10, 20)
+          .pointerDown()
+          .pointerUp();
+      actions.send();
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      writing-mode: vertical-rl;
+    }
+    .forcescroll {
+      width: 5000px;
+      height: 20px;
+    }
+  </style>
+</head>
+<body onload="run()">
+  <div class="forcescroll"></div>
+</body>
+</html>

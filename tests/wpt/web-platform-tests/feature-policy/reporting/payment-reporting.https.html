@@ -27,7 +27,7 @@ new ReportingObserver(t.step_func_done(check_report_format),
 t.step_func(() => {
   assert_throws_dom('SecurityError',
   () => new PaymentRequest(
-    [{ supportedMethods: 'basic-card' }],
+    [{ supportedMethods: 'https://example.com/pay' }],
     { total: { label: 'Total', amount: { currency: 'USD', value: 0 }}},
     {}).show(),
   "PaymentRequest API should not be allowed in this document.");

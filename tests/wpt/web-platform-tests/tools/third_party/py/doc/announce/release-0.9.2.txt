@@ -16,7 +16,7 @@ Here is a quick summary of what the py lib provides:
 
 See here for more information:
 
-Pypi pages: http://pypi.python.org/pypi/py/
+Pypi pages: https://pypi.org/project/py/
 
 Download/Install:   http://codespeak.net/py/0.9.2/download.html
 

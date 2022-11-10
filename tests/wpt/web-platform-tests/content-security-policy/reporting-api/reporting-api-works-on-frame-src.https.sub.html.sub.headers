@@ -2,5 +2,5 @@ Expires: Mon, 26 Jul 1997 05:00:00 GMT
 Cache-Control: no-store, no-cache, must-revalidate
 Pragma: no-cache
 Set-Cookie: reporting-api-works-on-frame-src={{$id:uuid()}}; Path=/content-security-policy/reporting-api
-Report-To: { "group": "csp-group", "max_age": 10886400, "endpoints": [{ "url": "https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?op=put&reportID={{$id}}" }] }
+Reporting-Endpoints: csp-group="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?op=put&reportID={{$id}}"
 Content-Security-Policy: script-src 'self' 'unsafe-inline'; frame-src 'none'; report-to csp-group

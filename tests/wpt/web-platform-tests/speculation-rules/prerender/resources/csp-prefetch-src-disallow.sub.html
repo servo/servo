@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<head>
+<!-- Following CSP directive disallows this page from prefetching itself.
+     The test will try to make the page fetch itself. -->
+<meta
+  http-equiv="Content-Security-Policy"
+  content="prefetch-src https://another.test/allow.html">
+</head>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// Take a key used for storing a test result in the server.
+const key = params.get('key');
+
+// The main test page (restriction-csp-prefetch-src.html in the parent
+// directory) will load this page only with the "key" parameter. This page will
+// then try prerendering itself with the "run-test" parameter. When "run-test"
+// is in the URL we'll actually start the test process and record the results to
+// send back to the main test page. We do this because the main test page cannot
+// navigate itself but it also cannot open a popup to a prerendered browsing
+// context so the prerender triggering and activation must both happen in this
+// popup.
+const run_test = params.has('run-test');
+if (!run_test) {
+  const url = new URL(document.URL);
+  url.searchParams.append('run-test', '');
+
+  // Observe `securitypolicyviolation` event that will be triggered by
+  // startPrerendering().
+  document.addEventListener('securitypolicyviolation', e => {
+    if (e.effectiveDirective != 'prefetch-src') {
+      const message = 'unexpected effective directive: ' + e.effectiveDirective;
+      writeValueToServer(key, message).then(() => { window.close(); });
+    } else {
+      const message = 'blocked by prefetch-src';
+      writeValueToServer(key, message).then(() => { window.close(); });
+    }
+  });
+
+  startPrerendering(url.toString());
+} else {
+  writeValueToServer(key, 'unexpected prerendering');
+  window.close();
+}
+
+</script>

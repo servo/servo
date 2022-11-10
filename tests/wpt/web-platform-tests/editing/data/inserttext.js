@@ -1374,4 +1374,10 @@ var browserTests = [
     "<div style=\"white-space:pre-wrap\">a<br><span style=\"padding:1px\"></span><p>bc</p></div>",
     [true],
     {"inserttext":[false,false,"",false,false,""]}],
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1785801
+["<div>abc{</div><div>}efg</div>",
+    [["inserttext", "d"]],
+    "<div>abcdefg</div>",
+    [true],
+    {"inserttext":[false,false,"",false,false,""]}],
 ]

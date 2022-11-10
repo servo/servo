@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const w = window.open("about:blank#1");
+  w.navigation.oncurrententrychange = t.unreached_func("currententrychange should not fire");
+
+  assert_equals(w.location.href, "about:blank#1");
+  w.location.href = "about:blank#2";
+  assert_equals(w.location.href, "about:blank#2");
+
+  await new Promise(resolve => t.step_timeout(resolve, 10));
+}, "currententrychange does not fire when navigating away from the initial about:blank (popup window)");
+</script>

@@ -30,8 +30,14 @@ function testTexImage2DFromVideoFrame(
   argbData.fill(0xFF966432);  // 'rgb(50, 100, 150)';
   let frame = new VideoFrame(argbData, vfInit);
 
-  let gl_canvas = new OffscreenCanvas(width, height);
-  let gl = gl_canvas.getContext('webgl');
+  let canvas;
+  if (self.HTMLCanvasElement) {
+    canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+  } else
+    canvas = new OffscreenCanvas(width, height);
+  let gl = canvas.getContext('webgl');
 
   let program = WebGLTestUtils.setupTexturedQuad(gl);
   gl.clearColor(0, 0, 0, 1);
@@ -91,8 +97,14 @@ function testTexImageWithClosedVideoFrame(useTexSubImage2D) {
   argbData.fill(0xFF966432);  // 'rgb(50, 100, 150)';
   let frame = new VideoFrame(argbData, vfInit);
 
-  let gl_canvas = new OffscreenCanvas(width, height);
-  let gl = gl_canvas.getContext('webgl');
+  let canvas;
+  if (self.HTMLCanvasElement) {
+    canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+  } else
+    canvas = new OffscreenCanvas(width, height);
+  let gl = canvas.getContext('webgl');
 
   frame.close();
   if (useTexSubImage2D) {

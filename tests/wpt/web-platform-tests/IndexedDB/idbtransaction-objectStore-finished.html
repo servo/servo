@@ -4,7 +4,7 @@
 <link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbtransaction-objectstore">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 indexeddb_test(
@@ -12,7 +12,7 @@ indexeddb_test(
     db.createObjectStore('store');
   },
   (t, db) => {
-    const tx = db.transaction('store');
+    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
     tx.abort();
     assert_throws_dom('InvalidStateError', () => tx.objectStore('store'),
                       'objectStore() should throw if transaction is finished');

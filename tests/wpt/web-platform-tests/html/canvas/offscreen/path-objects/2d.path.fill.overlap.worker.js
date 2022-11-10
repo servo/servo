@@ -23,7 +23,7 @@ ctx.rect(0, 0, 100, 50);
 ctx.closePath();
 ctx.rect(10, 10, 80, 30);
 ctx.fill();
-_assertPixelApprox(canvas, 50,25, 0,127,0,255, "50,25", "0,127,0,255", 1);
+_assertPixelApprox(canvas, 50,25, 0,127,0,255, 1);
 t.done();
 
 });

@@ -1,7 +1,5 @@
 - name: 2d.clearRect.basic
   desc: clearRect clears to transparent black
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -11,8 +9,6 @@
 
 - name: 2d.clearRect.path
   desc: clearRect does not affect the current path
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#0f0';
     ctx.beginPath();
@@ -24,8 +20,6 @@
 
 - name: 2d.clearRect.zero
   desc: clearRect of zero pixels has no effect
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -37,8 +31,6 @@
 
 - name: 2d.clearRect.negative
   desc: clearRect of negative sizes works
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -54,8 +46,6 @@
 
 - name: 2d.clearRect.transform
   desc: clearRect is affected by transforms
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -67,8 +57,6 @@
 
 - name: 2d.clearRect.globalalpha
   desc: clearRect is not affected by globalAlpha
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -79,8 +67,6 @@
 
 - name: 2d.clearRect.globalcomposite
   desc: clearRect is not affected by globalCompositeOperation
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -91,8 +77,6 @@
 
 - name: 2d.clearRect.clip
   desc: clearRect is affected by clipping regions
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -107,8 +91,6 @@
 
 - name: 2d.clearRect.shadow
   desc: clearRect does not draw shadows
-  testing:
-  - 2d.clearRect
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -122,8 +104,6 @@
 
 - name: 2d.clearRect.nonfinite
   desc: clearRect() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -134,8 +114,6 @@
 
 - name: 2d.fillRect.basic
   desc: fillRect works
-  testing:
-  - 2d.fillRect
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -144,8 +122,6 @@
 
 - name: 2d.fillRect.path
   desc: fillRect does not affect the current path
-  testing:
-  - 2d.fillRect
   code: |
     ctx.beginPath();
     ctx.rect(0, 0, 100, 50);
@@ -158,8 +134,6 @@
 
 - name: 2d.fillRect.zero
   desc: fillRect of zero pixels has no effect
-  testing:
-  - 2d.fillRect
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -172,8 +146,6 @@
 
 - name: 2d.fillRect.negative
   desc: fillRect of negative sizes works
-  testing:
-  - 2d.fillRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -190,8 +162,6 @@
 
 - name: 2d.fillRect.transform
   desc: fillRect is affected by transforms
-  testing:
-  - 2d.fillRect
   code: |
     ctx.scale(10, 10);
     ctx.translate(0, 5);
@@ -204,8 +174,6 @@
 
 - name: 2d.fillRect.clip
   desc: fillRect is affected by clipping regions
-  testing:
-  - 2d.fillRect
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -221,8 +189,6 @@
 
 - name: 2d.fillRect.shadow
   desc: fillRect draws shadows
-  testing:
-  - 2d.fillRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -236,8 +202,6 @@
 
 - name: 2d.fillRect.nonfinite
   desc: fillRect() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -249,8 +213,6 @@
 
 - name: 2d.strokeRect.basic
   desc: strokeRect works
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.strokeStyle = '#0f0';
     ctx.lineWidth = 50;
@@ -260,8 +222,6 @@
 
 - name: 2d.strokeRect.path
   desc: strokeRect does not affect the current path
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.beginPath();
     ctx.rect(0, 0, 100, 50);
@@ -275,8 +235,6 @@
 
 - name: 2d.strokeRect.zero.1
   desc: strokeRect of 0x0 pixels draws nothing
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.strokeStyle = '#f00';
     ctx.lineWidth = 250;
@@ -286,8 +244,6 @@
 
 - name: 2d.strokeRect.zero.2
   desc: strokeRect of 0x0 pixels draws nothing, including caps and joins
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.strokeStyle = '#f00';
     ctx.lineWidth = 250;
@@ -299,8 +255,6 @@
 
 - name: 2d.strokeRect.zero.3
   desc: strokeRect of Nx0 pixels draws a straight line
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.strokeStyle = '#0f0';
     ctx.lineWidth = 50;
@@ -310,8 +264,6 @@
 
 - name: 2d.strokeRect.zero.4
   desc: strokeRect of Nx0 pixels draws a closed line with no caps
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.strokeStyle = '#f00';
     ctx.lineWidth = 250;
@@ -322,8 +274,6 @@
 
 - name: 2d.strokeRect.zero.5
   desc: strokeRect of Nx0 pixels draws a closed line with joins
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.strokeStyle = '#0f0';
     ctx.lineWidth = 250;
@@ -334,8 +284,6 @@
 
 - name: 2d.strokeRect.negative
   desc: strokeRect of negative sizes works
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -353,8 +301,6 @@
 
 - name: 2d.strokeRect.transform
   desc: fillRect is affected by transforms
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.scale(10, 10);
     ctx.translate(0, 5);
@@ -366,8 +312,6 @@
 
 - name: 2d.strokeRect.globalalpha
   desc: strokeRect is affected by globalAlpha
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.globalAlpha = 0;
     ctx.strokeStyle = '#f00';
@@ -378,8 +322,6 @@
 
 - name: 2d.strokeRect.globalcomposite
   desc: strokeRect is not affected by globalCompositeOperation
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.globalCompositeOperation = 'source-in';
     ctx.strokeStyle = '#f00';
@@ -390,8 +332,6 @@
 
 - name: 2d.strokeRect.clip
   desc: strokeRect is affected by clipping regions
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -408,8 +348,6 @@
 
 - name: 2d.strokeRect.shadow
   desc: strokeRect draws shadows
-  testing:
-  - 2d.strokeRect
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -426,8 +364,6 @@
 
 - name: 2d.strokeRect.nonfinite
   desc: strokeRect() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -439,8 +375,6 @@
 
 - name: 2d.fillStyle.colorObject
   desc: ctx.fillStyle works with color objects
-  testing:
-  - 2d.fillRect
   canvasType:
     ['HTMLCanvas']
   code: |
@@ -466,8 +400,6 @@
 
 - name: 2d.fillStyle.colorObject.transparency
   desc: ctx.fillStyle with color objects has transparency
-  testing:
-  - 2d.fillRect
   canvasType:
     ['HTMLCanvas']
   code: |
@@ -490,8 +422,6 @@
 
 - name: 2d.strokeStyle.colorObject
   desc: ctx.strokeStyle works with color objects
-  testing:
-  - 2d.strokeRect
   canvasType:
     ['HTMLCanvas']
   code: |
@@ -518,8 +448,6 @@
 
 - name: 2d.strokeStyle.colorObject.transparency
   desc: ctx.strokeStyle with color objects has transparency
-  testing:
-  - 2d.strokeRect
   canvasType:
     ['HTMLCanvas']
   code: |
@@ -539,5 +467,3 @@
     ctx.strokeRect(25, 24, 50, 2);
     @assert pixel 50,25 == 0,255,0,255;
   expected: green
-
-

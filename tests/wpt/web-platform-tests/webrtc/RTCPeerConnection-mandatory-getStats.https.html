@@ -23,18 +23,18 @@ const mandatory = {
     "packetsReceived",
     "packetsLost",
     "jitter",
-    "packetsDiscarded",
     "framesDropped"
   ],
   RTCInboundRtpStreamStats: [
-    "receiverId",
+    "trackIdentifier",
     "remoteId",
     "framesDecoded",
     "nackCount",
     "framesReceived",
     "bytesReceived",
     "totalAudioEnergy",
-    "totalSamplesDuration"
+    "totalSamplesDuration",
+    "packetsDiscarded"
   ],
   RTCRemoteInboundRtpStreamStats: [
     "localId",
@@ -45,7 +45,6 @@ const mandatory = {
     "bytesSent"
   ],
   RTCOutboundRtpStreamStats: [
-    "senderId",
     "remoteId",
     "framesEncoded",
     "nackCount",
@@ -81,17 +80,6 @@ const mandatory = {
     "width",
     "height",
     "framesPerSecond"
-  ],
-  RTCMediaHandlerStats: [
-    "trackIdentifier",
-  ],
-  RTCAudioHandlerStats: [
-  ],
-  RTCVideoHandlerStats: [
-  ],
-  RTCVideoSenderStats: [
-  ],
-  RTCVideoReceiverStats: [
   ],
   RTCCodecStats: [
     "payloadType",
@@ -179,16 +167,8 @@ const dictionaryNames = {
 // From https://w3c.github.io/webrtc-stats/webrtc-stats.html (webidl)
 
 const parents = {
-  RTCVideoHandlerStats: "RTCMediaHandlerStats",
-  RTCVideoSenderStats: "RTCVideoHandlerStats",
   RTCVideoSourceStats: "RTCMediaSourceStats",
-  RTCSenderVideoTrackAttachmentStats: "RTCVideoSenderStats",
-  RTCVideoReceiverStats: "RTCVideoHandlerStats",
-  RTCAudioHandlerStats: "RTCMediaHandlerStats",
-  RTCAudioSenderStats: "RTCAudioHandlerStats",
   RTCAudioSourceStats: "RTCMediaSourceStats",
-  RTCSenderAudioTrackAttachmentStats: "RTCAudioSenderStats",
-  RTCAudioReceiverStats: "RTCAudioHandlerStats",
   RTCReceivedRtpStreamStats: "RTCRtpStreamStats",
   RTCInboundRtpStreamStats: "RTCReceivedRtpStreamStats",
   RTCRemoteInboundRtpStreamStats: "RTCReceivedRtpStreamStats",
@@ -204,15 +184,30 @@ for (const dictName in remaining) {
 
 async function getAllStats(t, pc) {
   // Try to obtain as many stats as possible, waiting up to 20 seconds for
-  // roundTripTime which can take several RTCP messages to calculate.
+  // roundTripTime of RTCRemoteInboundRtpStreamStats and
+  // remoteTimestamp of RTCRemoteOutboundRtpStreamStats which can take
+  // several RTCP messages to calculate.
   let stats;
+  let remoteInboundFound = false;
+  let remoteOutboundFound = false;
   for (let i = 0; i < 20; i++) {
     stats = await pc.getStats();
     const values = [...stats.values()];
-    const [audio, video] = ["audio", "video"].map(kind =>
-      values.find(s => s.type == "remote-inbound-rtp" && s.kind == kind));
-    if (audio && "roundTripTime" in audio &&
-        video && "roundTripTime" in video) {
+    const [remoteInboundAudio, remoteInboundVideo] = ["audio", "video"].map(
+      kind => values.find(s =>
+        s.type == "remote-inbound-rtp" && s.kind == kind));
+    if (remoteInboundAudio && "roundTripTime" in remoteInboundAudio &&
+        remoteInboundVideo && "roundTripTime" in remoteInboundVideo) {
+      remoteInboundFound = true;
+    }
+    const [remoteOutboundAudio, remoteOutboundVideo] = ["audio", "video"].map(
+      kind => values.find(s =>
+        s.type == "remote-outbound-rtp" && s.kind == kind));
+    if (remoteOutboundAudio && "remoteTimestamp" in remoteOutboundAudio &&
+        remoteOutboundVideo && "remoteTimestamp" in remoteOutboundVideo) {
+      remoteOutboundFound = true;
+    }
+    if (remoteInboundFound && remoteOutboundFound) {
       return stats;
     }
     await new Promise(r => t.step_timeout(r, 1000));

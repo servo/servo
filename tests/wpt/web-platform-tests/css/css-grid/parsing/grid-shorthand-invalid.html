@@ -46,6 +46,7 @@ test_invalid_value("grid", 'auto-flow 100px');
 test_invalid_value("grid", 'auto-flow / auto-flow');
 test_invalid_value("grid", 'auto-flow 1fr / auto-flow 1fr');
 test_invalid_value("grid", 'dense auto-flow / dense auto-flow');
+test_invalid_value("grid", 'auto / auto-flow foo()');
 // FIXME: add more values to test full syntax
 
 </script>

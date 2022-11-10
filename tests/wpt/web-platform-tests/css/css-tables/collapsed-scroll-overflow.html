@@ -3,7 +3,7 @@
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
 <link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
-<link rel="help" href="https://crbug.com/711360">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6230">
 <style>
   main table {
     display: inline-table;
@@ -36,11 +36,8 @@
 test(_ => {
   let container = document.querySelector("#container");
   let table = container.querySelector("table")
-  assert_equals(container.offsetWidth, 500,
-    "container grows to max width");
-  assert_equals(table.offsetWidth, 500,
-    "table fills the container");
-  assert_equals(container.scrollWidth, 540,
-    "container scroll area includes collapsed border");
-}, "visual overflow is included in scroll area");
+  assert_equals(container.offsetWidth, 500, "The container grows to the max-width.");
+  assert_equals(table.offsetWidth, 500, "The table fills the container.");
+  assert_equals(container.scrollWidth, 500, "The collapsed border does not exceed the scroll container.");
+});
 </script>

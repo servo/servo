@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<script src="resources/focus-utils.js"></script>
+
+<p>This tests TAB focus navigation with delegatesFocus flag on shadow hosts</p>
+<pre id="console"></pre>
+<div id="sandbox"></div>
+<script>
+
+function prepareDOMTree(parent, mode, tabindex, delegatesFocus) {
+    parent.innerHTML = `
+      <div id="testform">
+        <input id="input-before">
+        <div id="host-div">
+          <input id="inner-input">
+        </div>
+        <input id="input-after">
+      </div>
+    `;
+    const hostDiv = document.getElementById('host-div');
+    const shadowRoot = hostDiv.attachShadow({ mode, delegatesFocus });
+
+    const inputBefore = document.getElementById('input-before');
+    const innerInput = document.getElementById('inner-input');
+    const inputAfter = document.getElementById('input-after');
+    shadowRoot.appendChild(innerInput);
+
+    if (tabindex !== null)
+      hostDiv.tabIndex = tabindex;
+
+    return {
+      hostDiv,
+      shadowRoot,
+      inputBefore,
+      innerInput,
+      inputAfter,
+    };
+
+}
+
+promise_test(async () => {
+  const { shadowRoot, hostDiv } = prepareDOMTree(sandbox, 'open', null, false);
+  assert_false(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, -1);
+
+  const elements = [
+    'input-before',
+    'host-div/inner-input',
+    'input-after',
+  ];
+
+  await assert_focus_navigation_forward(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements, false);
+}, 'Testing tab navigation order with mode open, no tabindex and delegatesFocus=false.');
+
+promise_test(async () => {
+  const { shadowRoot, hostDiv } = prepareDOMTree(sandbox, 'open', null, true);
+  assert_true(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, -1);
+
+  const elements = [
+    'input-before',
+    'host-div/inner-input',
+    'input-after',
+  ];
+
+  await assert_focus_navigation_forward(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements, false);
+}, 'Testing tab navigation order with mode open, no tabindex and delegatesFocus=true.');
+
+promise_test(async () => {
+  const { shadowRoot, hostDiv } = prepareDOMTree(sandbox, 'open', 0, false);
+  assert_false(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, 0);
+
+  const elements = [
+    'input-before',
+    'host-div',
+    'host-div/inner-input',
+    'input-after',
+  ];
+
+  await assert_focus_navigation_forward(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements, false);
+}, 'Testing tab navigation order with mode open, tabindex=0 and delegatesFocus=false.');
+
+promise_test(async () => {
+  const { shadowRoot, hostDiv } = prepareDOMTree(sandbox, 'open', 0, true);
+  assert_true(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, 0);
+
+  const elements = [
+    'input-before',
+    // 'host-div', // should skip host when delegatesFocus=true
+    'host-div/inner-input',
+    'input-after',
+  ];
+
+  await assert_focus_navigation_forward(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements, false);
+}, 'Testing tab navigation order with mode open, tabindex=0 and delegatesFocus=true.');
+
+promise_test(async () => {
+  const { shadowRoot, hostDiv } = prepareDOMTree(sandbox, 'open', -1, false);
+  assert_false(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, -1);
+
+  const elements = [
+    'input-before',
+    'input-after',
+  ];
+
+  await assert_focus_navigation_forward(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements, false);
+}, 'Testing tab navigation order with mode open, tabindex=-1 and delegatesFocus=false.');
+
+promise_test(async () => {
+  const { shadowRoot, hostDiv } = prepareDOMTree(sandbox, 'open', -1, true);
+  assert_true(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, -1);
+
+  const elements = [
+    'input-before',
+    // 'host-div/inner-input', // The whole shadow tree should be skipped
+    'input-after',
+  ];
+
+  await assert_focus_navigation_forward(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements, false);
+}, 'Testing tab navigation order with mode open, tabindex=-1 and delegatesFocus=true.');
+
+promise_test(async () => {
+  const { shadowRoot, hostDiv } = prepareDOMTree(sandbox, 'open', 1, false);
+  assert_false(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, 1);
+
+  const elements = [
+    'host-div',
+    'host-div/inner-input',
+    'input-before',
+    'input-after',
+  ];
+
+  await assert_focus_navigation_forward(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements, false);
+}, 'Testing tab navigation order with mode open, tabindex=1 and delegatesFocus=false.');
+
+promise_test(async () => {
+  const { shadowRoot, hostDiv } = prepareDOMTree(sandbox, 'open', 1, true);
+  assert_true(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, 1);
+
+  const elements = [
+    // 'host-div', // should skip host when delegatesFocus=true
+    'host-div/inner-input',
+    'input-before',
+    'input-after',
+  ];
+
+  await assert_focus_navigation_forward(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements, false);
+}, 'Testing tab navigation order with mode open, tabindex=1 and delegatesFocus=true.');
+
+
+promise_test(async () => {
+  const {
+    hostDiv,
+    shadowRoot,
+    inputBefore,
+    innerInput,
+    inputAfter,
+  } = prepareDOMTree(sandbox, 'closed', null, false);
+  assert_false(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, -1);
+
+  const elements = [
+    [inputBefore],
+    [innerInput, shadowRoot],
+    [inputAfter],
+  ];
+
+  await assert_focus_navigation_forward_with_shadow_root(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+}, 'Testing tab navigation order with mode closed, no tabindex and delegatesFocus=false.');
+
+promise_test(async () => {
+  const {
+    hostDiv,
+    shadowRoot,
+    inputBefore,
+    innerInput,
+    inputAfter,
+  } = prepareDOMTree(sandbox, 'closed', null, true);
+  assert_true(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, -1);
+
+  const elements = [
+    [inputBefore],
+    [innerInput, shadowRoot],
+    [inputAfter],
+  ];
+
+  await assert_focus_navigation_forward_with_shadow_root(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+}, 'Testing tab navigation order with mode closed, no tabindex and delegatesFocus=true.');
+
+promise_test(async () => {
+  const {
+    hostDiv,
+    shadowRoot,
+    inputBefore,
+    innerInput,
+    inputAfter,
+  } = prepareDOMTree(sandbox, 'closed', 0, false);
+  assert_false(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, 0);
+
+  const elements = [
+    [inputBefore],
+    [hostDiv],
+    [innerInput, shadowRoot],
+    [inputAfter],
+  ];
+
+  await assert_focus_navigation_forward_with_shadow_root(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+}, 'Testing tab navigation order with mode closed, tabindex=0 and delegatesFocus=false.');
+
+promise_test(async () => {
+  const {
+    hostDiv,
+    shadowRoot,
+    inputBefore,
+    innerInput,
+    inputAfter,
+  } = prepareDOMTree(sandbox, 'closed', 0, true);
+  assert_true(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, 0);
+
+  const elements = [
+    [inputBefore],
+    // [hostDiv], // should skip host when delegatesFocus=true
+    [innerInput, shadowRoot],
+    [inputAfter],
+  ];
+
+  await assert_focus_navigation_forward_with_shadow_root(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+}, 'Testing tab navigation order with mode closed, tabindex=0 and delegatesFocus=true.');
+
+promise_test(async () => {
+  const {
+    hostDiv,
+    shadowRoot,
+    inputBefore,
+    innerInput,
+    inputAfter,
+  } = prepareDOMTree(sandbox, 'closed', -1, false);
+  assert_false(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, -1);
+
+  const elements = [
+    [inputBefore],
+    [inputAfter],
+  ];
+
+  await assert_focus_navigation_forward_with_shadow_root(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+}, 'Testing tab navigation order with mode closed, tabindex=-1 and delegatesFocus=false.');
+
+promise_test(async () => {
+  const {
+    hostDiv,
+    shadowRoot,
+    inputBefore,
+    innerInput,
+    inputAfter,
+  } = prepareDOMTree(sandbox, 'closed', -1, true);
+  assert_true(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, -1);
+
+  const elements = [
+    [inputBefore],
+    // [innerInput, shadowRoot], // The whole shadow tree should be skipped
+    [inputAfter],
+  ];
+
+  await assert_focus_navigation_forward_with_shadow_root(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+}, 'Testing tab navigation order with mode closed, tabindex=-1 and delegatesFocus=true.');
+
+promise_test(async () => {
+  const {
+    hostDiv,
+    shadowRoot,
+    inputBefore,
+    innerInput,
+    inputAfter,
+  } = prepareDOMTree(sandbox, 'closed', 1, false);
+  assert_false(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, 1);
+
+  const elements = [
+    [hostDiv],
+    [innerInput, shadowRoot],
+    [inputBefore],
+    [inputAfter],
+  ];
+
+  await assert_focus_navigation_forward_with_shadow_root(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+}, 'Testing tab navigation order with mode closed, tabindex=1 and delegatesFocus=false.');
+
+promise_test(async () => {
+  const {
+    hostDiv,
+    shadowRoot,
+    inputBefore,
+    innerInput,
+    inputAfter,
+  } = prepareDOMTree(sandbox, 'closed', 1, true);
+  assert_true(shadowRoot.delegatesFocus);
+  assert_equals(hostDiv.tabIndex, 1);
+
+  const elements = [
+    // [hostDiv], // should skip host when delegatesFocus=true
+    [innerInput, shadowRoot],
+    [inputBefore],
+    [inputAfter],
+  ];
+
+  await assert_focus_navigation_forward_with_shadow_root(elements, false);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements, false);
+}, 'Testing tab navigation order with mode closed, tabindex=1 and delegatesFocus=true.');
+
+
+</script>

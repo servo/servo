@@ -25,6 +25,7 @@ exclude_lines =
     ^\s*raise NotImplementedError\b
     ^\s*return NotImplemented\b
     ^\s*assert False(,|$)
+    ^\s*assert_never\(
 
     ^\s*if TYPE_CHECKING:
     ^\s*@overload( |$)

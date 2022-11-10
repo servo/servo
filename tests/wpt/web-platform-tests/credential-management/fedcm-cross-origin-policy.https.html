@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Cross-Origin-Embedder-Policy tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script type="module">
+import {default_request_options,
+        fedcm_test} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const cred = await navigator.credentials.get(default_request_options());
+  assert_equals(cred.token, 'token');
+}, 'Test that COEP policy do not apply to FedCM requests');
+
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8" />
+<title>Popover=manual crash test</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<style>
+[popover] {top: 100px; bottom: auto;}
+[popover=""] {left: -200px}
+[popover=auto] {left: 0; }
+[popover=manual] {left: 200px; }
+</style>
+
+<p>This test passes if it does not crash.</p>
+<div popover>Auto1
+  <div popover=auto>Auto2</div>
+</div>
+<div popover=manual>Manual</div>
+<script>
+  document.querySelectorAll('[popover]').forEach(p => p.showPopover());
+  const manual = document.querySelector('[popover=manual]');
+  clickOn(manual)
+    .then(() => {
+      document.documentElement.classList.remove("reftest-wait");
+    });
+</script>

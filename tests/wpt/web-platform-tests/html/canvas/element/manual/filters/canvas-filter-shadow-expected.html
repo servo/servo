@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  /*
+  The expected behavior of filter-generated shadows is tested against
+  a drawing using only rectangles that draws the shadows manually.
+  */
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'red';
+  ctx.fillRect(20, 20, 50, 50);
+  ctx.fillStyle = 'black';
+  ctx.fillRect(10, 10, 50, 50);
+</script>

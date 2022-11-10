@@ -28,7 +28,7 @@ ctx.stroke();
 ctx.closePath();
 ctx.strokeStyle = '#0f0';
 ctx.stroke();
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

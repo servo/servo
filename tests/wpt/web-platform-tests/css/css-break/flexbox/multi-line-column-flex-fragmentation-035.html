@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation: nested column balancing.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 250px;
+  }
+  #flex > div {
+    width: 50%;
+    background: green;
+    flex: none;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns: 2; column-fill: auto; column-gap: 0; width: 100px; height: 100px; background: red;">
+  <div style="height: 50px; background: green;"></div>
+  <div style="columns: 2; column-fill: auto; column-gap: 0;">
+    <div id="flex">
+      <div style="height: 50px;"></div>
+      <div style="height: 200px; break-inside: avoid;"></div>
+      <div style="height: 50px; width: 150%;"></div>
+      <div style="height: 200px; break-inside: avoid;"></div>
+    </div>
+  </div>
+</div>

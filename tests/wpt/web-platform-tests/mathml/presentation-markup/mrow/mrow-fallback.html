@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test mrow fallback for some MathML elements</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#script-and-limit-schemata">
+<meta name="assert" content="Verify that invalid markup fallbacks to row layout.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
+<script src="/mathml/support/layout-comparison.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
+
+  function isValid(tagName, mspaceCount) {
+    switch (tagName) {
+      case "mfrac":
+      case "mroot":
+      case "munder":
+      case "mover":
+      case "msub":
+      case "msup":
+        return mspaceCount == 2;
+      case "munderover":
+      case "msubsup":
+        return mspaceCount == 3;
+      case "mmultiscripts":
+        return mspaceCount % 2 == 1;
+    }
+  }
+
+  function runTests() {
+    let container = document.getElementById("container");
+    const epsilon = 1;
+    ["mfrac", "mroot", "munder", "mover", "munderover", "msub", "msup", "msubsup", "mmultiscripts"].forEach(tag => {
+      let element = FragmentHelper.createElement(tag);
+      let reference = FragmentHelper.createElement("mrow");
+      container.appendChild(element);
+      container.appendChild(reference);
+      let maxCount = tag == "mmultiscripts" ? 10 : 5;
+      let mspaceCount = 0;
+      for (let count = 0; count <= maxCount; count++) {
+        if (!isValid(tag, mspaceCount)) {
+          test(function() {
+            compareLayout(element, reference, epsilon);
+          }, `Invalid <${element.tagName}> should lay out as an mrow (count == ${count})`);
+        }
+        if (tag == "mmultiscripts" && count == maxCount / 2) {
+          [element, reference].forEach(el => {
+            el.insertAdjacentHTML("beforeend", `<mprescripts/>`);
+          });
+        } else {
+          let width = (count + 1) * 10;
+          let height = (count + 1) * (count % 2 ? 15 : 5);
+          let depth = (count + 1) * (count % 2 ? 5 : 15);
+          [element, reference].forEach(el => {
+            el.insertAdjacentHTML("beforeend", `<mspace height="${height}px" depth="${depth}px" width="${width}px" style="background: black"/>`);
+          });
+          mspaceCount++;
+        }
+      }
+    });
+    done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="container"></div>
+</body>
+</html>

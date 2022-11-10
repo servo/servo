@@ -23,15 +23,15 @@ ctx.fillStyle = '#0f0';
 ctx.fill();
 
 // bottom-left corner
-_assertPixel(canvas, 20,48, 255,0,0,255, "20,48", "255,0,0,255");
-_assertPixel(canvas, 41,48, 0,255,0,255, "41,48", "0,255,0,255");
-_assertPixel(canvas, 1,39, 255,0,0,255, "1,39", "255,0,0,255");
-_assertPixel(canvas, 1,28, 0,255,0,255, "1,28", "0,255,0,255");
+_assertPixel(canvas, 20,48, 255,0,0,255);
+_assertPixel(canvas, 41,48, 0,255,0,255);
+_assertPixel(canvas, 1,39, 255,0,0,255);
+_assertPixel(canvas, 1,28, 0,255,0,255);
 
 // other corners
-_assertPixel(canvas, 1,1, 0,255,0,255, "1,1", "0,255,0,255");
-_assertPixel(canvas, 98,1, 0,255,0,255, "98,1", "0,255,0,255");
-_assertPixel(canvas, 98,48, 0,255,0,255, "98,48", "0,255,0,255");
+_assertPixel(canvas, 1,1, 0,255,0,255);
+_assertPixel(canvas, 98,1, 0,255,0,255);
+_assertPixel(canvas, 98,48, 0,255,0,255);
 t.done();
 
 });

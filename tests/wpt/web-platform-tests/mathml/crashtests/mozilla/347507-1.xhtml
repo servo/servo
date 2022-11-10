@@ -1,0 +1,29 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script>
+
+function foo()
+{
+  var div = document.getElementById("div");
+  div.appendChild(div.firstChild);
+
+  var td = document.getElementById("td");
+  td.setAttribute('rowspan', -2);
+}
+
+</script>
+
+</head>
+
+<body onload="foo()">
+
+
+<div id="div"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+
+    <mtable>      <mtr>         <mtd id="td"><mi>y</mi></mtd>      </mtr>    </mtable>
+
+</math></div>
+
+</body>
+
+</html>

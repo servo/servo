@@ -25,7 +25,7 @@ var vh = document.documentElement.clientHeight;
 
 var entries = [];
 
-runTestCycle(function() {
+promise_test(async function(t) {
   var target = document.getElementById("target");
   var root = document.getElementById("root");
   var observer = new IntersectionObserver(function(changes) {
@@ -34,22 +34,35 @@ runTestCycle(function() {
   observer.observe(target);
   entries = entries.concat(observer.takeRecords());
   assert_equals(entries.length, 0, "No initial notifications.");
-  runTestCycle(step0, "Intersecting notification after first rAF.");
-}, "IntersectionObserver should send a not-intersecting notification for a target that gets display:none.");
 
-function step0() {
-  runTestCycle(step1, "Not-intersecting notification after setting display:none on target.");
-  checkLastEntry(entries, 0, [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true]);
+  await waitForNotification();
+
+  checkLastEntry(
+    entries,
+    0,
+    [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true],
+    "IntersectionObserver notification after first rAF",
+  );
   target.style.display = "none";
-}
 
-function step1() {
-  runTestCycle(step2, "Intersecting notification after removing display:none on target.");
-  checkLastEntry(entries, 1, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false]);
+  await waitForNotification();
+
+  checkLastEntry(
+    entries,
+    1,
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false],
+    "IntersectionObserver should send a not-intersecting notification for a target that gets display:none.",
+  );
+
   target.style.display = "";
-}
 
-function step2() {
-  checkLastEntry(entries, 2, [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true]);
-}
+  await waitForNotification();
+
+  checkLastEntry(
+    entries,
+    2,
+    [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true],
+    "Intersecting notification after removing display:none on target.",
+  );
+});
 </script>

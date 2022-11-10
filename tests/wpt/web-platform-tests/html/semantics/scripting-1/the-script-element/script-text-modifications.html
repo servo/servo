@@ -27,17 +27,14 @@ prepare-a-script'ed, but before its evaluation. -->
 <script id="script0">
 t.step(() => {
     // When this is evaluated after the stylesheet is loaded,
-    // script0's innerText is modified by the async script above,
+    // script0's textContent is modified by the async script above,
     // but the evaluated script is still the original script here,
     // not what is overwritten, because "child text content" is taken in
     // #prepare-a-script and passed to "creating a classic script".
     var s = document.getElementById('script0');
-    assert_equals(s.innerText,
+    assert_equals(s.textContent,
                   't.unreached_func("This should not be evaluated")();',
-                  "<script>'s innerText should be already modified");
-    assert_equals(s.text,
-                  't.unreached_func("This should not be evaluated")();',
-                  "<script>'s text should be already modified");
+                  "<script>'s textContent should be already modified");
     t.done();
   });
 </script>

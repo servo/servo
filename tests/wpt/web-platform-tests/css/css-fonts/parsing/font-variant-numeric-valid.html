@@ -32,7 +32,8 @@ test_valid_value('font-variant-numeric', 'slashed-zero');
 test_valid_value('font-variant-numeric', 'oldstyle-nums tabular-nums diagonal-fractions');
 
 // Blink gives "slashed-zero ordinal stacked-fractions proportional-nums lining-nums".
-test_valid_value('font-variant-numeric', 'slashed-zero ordinal stacked-fractions proportional-nums lining-nums', 'lining-nums proportional-nums stacked-fractions ordinal slashed-zero');
+// Also accept specified order as correct serialization.
+test_valid_value('font-variant-numeric', 'slashed-zero ordinal stacked-fractions proportional-nums lining-nums', ['slashed-zero ordinal stacked-fractions proportional-nums lining-nums', 'lining-nums proportional-nums stacked-fractions ordinal slashed-zero']);
 </script>
 </body>
 </html>

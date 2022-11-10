@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<title>HTMLSelectMenuElement Test: popup position</title>
+<title>HTMLSelectMenuElement Test: popover position</title>
 <link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -35,36 +35,36 @@
 </style>
 
 <selectmenu id="selectMenu0">
-  <popup slot="listbox" behavior="listbox" id="selectMenu0-popup">
+  <div popover slot="listbox" behavior="listbox" id="selectMenu0-popover">
     <option>bottom left</option>
     <option>two</option>
     <option>three</option>
-  </popup>
+  </div>
 </selectmenu>
 <br>
 
 <selectmenu id="selectMenu1">
-  <popup slot="listbox" behavior="listbox" id="selectMenu1-popup">
+  <div popover slot="listbox" behavior="listbox" id="selectMenu1-popover">
     <option>top left</option>
     <option>two</option>
     <option>three</option>
-  </popup>
+  </div>
 </selectmenu>
 
 <selectmenu id="selectMenu2">
-  <popup slot="listbox" behavior="listbox" id="selectMenu2-popup">
+  <div popover slot="listbox" behavior="listbox" id="selectMenu2-popover">
     <option>bottom right</option>
     <option>two</option>
     <option>three</option>
-  </popup>
+  </div>
 </selectmenu>
 
 <selectmenu id="selectMenu3">
-  <popup slot="listbox" behavior="listbox" id="selectMenu3-popup">
+  <div popover slot="listbox" behavior="listbox" id="selectMenu3-popover">
     <option>top right</option>
     <option>two</option>
     <option>three</option>
-  </popup>
+  </div>
 </selectmenu>
 
 <script>
@@ -78,38 +78,38 @@
 
   promise_test(async () => {
     const selectMenu0 = document.getElementById("selectMenu0");
-    const selectMenu0Popup = document.getElementById("selectMenu0-popup");
+    const selectMenu0Popover = document.getElementById("selectMenu0-popover");
 
     await clickOn(selectMenu0);
-    assert_equals(Math.abs(Math.trunc(selectMenu0.getBoundingClientRect().bottom - selectMenu0Popup.getBoundingClientRect().top)), 0);
-    assert_equals(Math.abs(Math.trunc(selectMenu0.getBoundingClientRect().left - selectMenu0Popup.getBoundingClientRect().left)), 0);
-  }, "The popup should be bottom left positioned");
+    assert_equals(Math.abs(Math.trunc(selectMenu0.getBoundingClientRect().bottom - selectMenu0Popover.getBoundingClientRect().top)), 0);
+    assert_equals(Math.abs(Math.trunc(selectMenu0.getBoundingClientRect().left - selectMenu0Popover.getBoundingClientRect().left)), 0);
+  }, "The popover should be bottom left positioned");
 
   promise_test(async () => {
     const selectMenu1 = document.getElementById("selectMenu1");
-    const selectMenu1Popup = document.getElementById("selectMenu1-popup");
+    const selectMenu1Popover = document.getElementById("selectMenu1-popover");
 
     await clickOn(selectMenu1);
-    assert_equals(Math.abs(Math.trunc(selectMenu1.getBoundingClientRect().top - selectMenu1Popup.getBoundingClientRect().bottom)), 0);
-    assert_equals(Math.abs(Math.trunc(selectMenu1.getBoundingClientRect().left - selectMenu1Popup.getBoundingClientRect().left)), 0);
-  }, "The popup should be top left positioned");
+    assert_equals(Math.abs(Math.trunc(selectMenu1.getBoundingClientRect().top - selectMenu1Popover.getBoundingClientRect().bottom)), 0);
+    assert_equals(Math.abs(Math.trunc(selectMenu1.getBoundingClientRect().left - selectMenu1Popover.getBoundingClientRect().left)), 0);
+  }, "The popover should be top left positioned");
 
   promise_test(async () => {
     const selectMenu2 = document.getElementById("selectMenu2");
-    const selectMenu2Popup = document.getElementById("selectMenu2-popup");
+    const selectMenu2Popover = document.getElementById("selectMenu2-popover");
 
     await clickOn(selectMenu2);
-    assert_equals(Math.abs(Math.trunc(selectMenu2.getBoundingClientRect().bottom - selectMenu2Popup.getBoundingClientRect().top)), 0);
-    assert_equals(Math.abs(Math.trunc(selectMenu2.getBoundingClientRect().right - selectMenu2Popup.getBoundingClientRect().right)), 0);
-  }, "The popup should be bottom right positioned");
+    assert_equals(Math.abs(Math.trunc(selectMenu2.getBoundingClientRect().bottom - selectMenu2Popover.getBoundingClientRect().top)), 0);
+    assert_equals(Math.abs(Math.trunc(selectMenu2.getBoundingClientRect().right - selectMenu2Popover.getBoundingClientRect().right)), 0);
+  }, "The popover should be bottom right positioned");
 
   promise_test(async () => {
     const selectMenu3 = document.getElementById("selectMenu3");
-    const selectMenu3Popup = document.getElementById("selectMenu3-popup");
+    const selectMenu3Popover = document.getElementById("selectMenu3-popover");
 
     await clickOn(selectMenu3);
-    assert_equals(Math.abs(Math.trunc(selectMenu3.getBoundingClientRect().top - selectMenu3Popup.getBoundingClientRect().bottom)), 0);
-    assert_equals(Math.abs(Math.trunc(selectMenu3.getBoundingClientRect().right - selectMenu3Popup.getBoundingClientRect().right)), 0);
-  }, "The popup should be top right positioned");
+    assert_equals(Math.abs(Math.trunc(selectMenu3.getBoundingClientRect().top - selectMenu3Popover.getBoundingClientRect().bottom)), 0);
+    assert_equals(Math.abs(Math.trunc(selectMenu3.getBoundingClientRect().right - selectMenu3Popover.getBoundingClientRect().right)), 0);
+  }, "The popover should be top right positioned");
 
 </script>

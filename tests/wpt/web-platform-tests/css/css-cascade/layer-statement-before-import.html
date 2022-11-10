@@ -130,29 +130,6 @@ const testCases = [
       sheet.deleteRule(4);
     }
   },
-  {
-    title: 'replaceSync clears stale layer statements',
-    style: `
-      @layer second, first;
-      @layer second {
-        #target { color: green; }
-      }
-      @layer first {
-        #target { color: red; }
-      }
-    `,
-    operations: function(sheet) {
-      sheet.replaceSync(`
-        @layer first {
-          #target { color: red; }
-        }
-        @layer second {
-          #target { color: green; }
-        }
-      `);
-    },
-    constructedStyleSheet: true
-  }
 ];
 
 const target = document.getElementById('target');
@@ -160,30 +137,20 @@ const reference = document.getElementById('reference');
 
 for (let testCase of testCases) {
   promise_test(async t => {
-    let styleElement;
-    let sheet;
-    if (!testCase.constructedStyleSheet) {
-      styleElement = document.createElement('style');
-      styleElement.textContent = testCase.style;
-      await new Promise(resolve => {
-        styleElement.onload = resolve;
-        styleElement.onerror = resolve;
-        document.head.append(styleElement);
-      });
-      sheet = styleElement.sheet;
-    } else {
-      sheet = new CSSStyleSheet();
-      sheet.replaceSync(testCase.style);
-      document.adoptedStyleSheets = [sheet];
-    }
+    let styleElement = document.createElement('style');
+    styleElement.textContent = testCase.style;
+    await new Promise(resolve => {
+      styleElement.onload = resolve;
+      styleElement.onerror = resolve;
+      document.head.append(styleElement);
+    });
+    let sheet = styleElement.sheet;
 
     try {
       testCase.operations(sheet);
       assert_equals(getComputedStyle(target).color, getComputedStyle(reference).color);
     } finally {
-      if (styleElement)
-        styleElement.remove();
-      document.adoptedStyleSheets = [];
+      styleElement.remove();
     }
   }, testCase.title);
 }

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src='/resources/testdriver-vendor.js'></script>
+    <script src='/bluetooth/resources/bluetooth-test.js'></script>
+    <script src='../resources/permissions-policy-report-json.js'></script>
+  </head>
+  <body>
+    <script>
+
+function check_report_format([reports, observer]) {
+  const report = reports[0];
+  assert_equals(report.type, "permissions-policy-violation");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.featureId, "bluetooth");
+  assert_equals(report.body.sourceFile, document.location.href);
+  assert_equals(typeof report.body.lineNumber, "number");
+  assert_equals(typeof report.body.columnNumber, "number");
+  assert_equals(report.body.disposition, "enforce");
+  check_report_json(report);
+};
+
+bluetooth_test(() => {
+  promise_test(async t => {
+    const report = new Promise(resolve => {
+      new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                            {types: ['permissions-policy-violation']}).observe();
+    });
+
+    try {
+      await navigator.bluetooth.getAvailability().then(availability => {
+        assert_false(availability);
+      });
+    } catch(e) {
+      assert_unreached('getAvailability should return false when Bluetooth access is disallowed.');
+    }
+    check_report_format(await report);
+  }, 'getAvailability in bluetooth reporting mode');
+
+  promise_test(async t => {
+    const report = new Promise(resolve => {
+      new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                            {types: ['permissions-policy-violation']}).observe();
+    });
+
+    await promise_rejects_dom(
+        t, 'SecurityError', navigator.bluetooth.getDevices(),
+        'Bluetooth access should not be allowed in this document.');
+    check_report_format(await report);
+  }, 'getDevices in bluetooth reporting mode');
+
+  promise_test(async t => {
+    const report = new Promise(resolve => {
+      new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                            {types: ['permissions-policy-violation']}).observe();
+    });
+
+    await test_driver.bless('Activate document for bluetooth.requestDevice');
+    await promise_rejects_dom(
+        t, 'SecurityError', navigator.bluetooth.requestDevice(),
+        'Bluetooth access should not be allowed in this document.');
+    check_report_format(await report);
+  }, 'requestDevice in bluetooth reporting mode');
+
+  promise_test(async t => {
+    const report = new Promise(resolve => {
+      new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                            {types: ['permissions-policy-violation']}).observe();
+    });
+
+    await test_driver.bless('Activate document for bluetooth.requestLEScan');
+    await promise_rejects_dom(
+        t, 'SecurityError', navigator.bluetooth.requestLEScan(),
+        'Bluetooth access should not be allowed in this document.');
+    check_report_format(await report);
+  }, 'requestLEScan in bluetooth reporting mode');
+});
+    </script>
+  </body>
+</html>

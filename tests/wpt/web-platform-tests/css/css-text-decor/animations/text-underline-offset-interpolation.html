@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<link rel="help" href="https://www.w3.org/TR/css-text-decor-4/#underline-offset">
+<meta name="test" content="text-underline-offset supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.target {
+  font: 10px sans-serif;
+}
+</style>
+
+<body>
+  <template id="target-template">T</template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'text-underline-offset',
+  from: '15px',
+  to: '0px',
+}, [
+  {at: 0, expect: '15px'},
+  {at: 0.3, expect: '10.5px'},
+  {at: 0.6, expect: '6px'},
+  {at: 1, expect: '0px'},
+]);
+
+</script>

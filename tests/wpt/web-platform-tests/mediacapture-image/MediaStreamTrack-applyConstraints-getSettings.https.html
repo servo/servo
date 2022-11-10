@@ -102,13 +102,17 @@ image_capture_test(async t => {
   let videoTrack = stream.getVideoTracks()[0];
 
   const constraints = [{ pan: 8 }, { tilt: 9 }];
-  await Promise.all(constraints.map(async constraint =>
-    promise_rejects_dom(
-        t, 'NotSupportedError',
-        videoTrack.applyConstraints({ advanced: [constraint] }),
+  await Promise.all(constraints.map(async constraint => {
+    try {
+      await videoTrack.applyConstraints({ advanced: [constraint] });
+    } catch (error) {
+      assert_equals(error.name, 'OverconstrainedError');
+      return;
+    }
+    assert_unreached(
         "applyConstraints should throw a NotSupportedError for " +
-        JSON.stringify(constraint))
-  ));
+        JSON.stringify(constraint));
+  }));
 
 }, 'exercises an applyConstraints() with PTZ permission denied');
 

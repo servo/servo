@@ -77,3 +77,19 @@ async function query(token) {
     wt.close();
   }
 }
+
+async function readInto(reader, buffer) {
+  let offset = 0;
+
+  while (offset < buffer.byteLength) {
+    const {value: view, done} = await reader.read(
+        new Uint8Array(buffer, offset, buffer.byteLength - offset));
+    buffer = view.buffer;
+    if (done) {
+      break;
+    }
+    offset += view.byteLength;
+  }
+
+  return buffer;
+}

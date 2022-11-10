@@ -23,13 +23,13 @@
      beside #float2. It would at this point fit beside #float1, but that would
      cause the width to increase again, and the spec says layout always moves
      forward. */
-  @container size(width < 200px) {
+  @container (width < 200px) {
     #content1 { display: none }
   }
 
   /* Trying to fit #container beside #float3 causes the rest of the red content
      (#content2) to disappear. */
-  @container size(width < 150px) {
+  @container (width < 150px) {
     #content2 { display: none }
   }
 </style>

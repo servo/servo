@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover invoking attribute</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+const buttonLogic = (t,s,h) => {
+  // This mimics the expected logic for button invokers:
+  let expectedBehavior = t ? "toggle" : (s ? "show" : (h ? "hide" : "none"));
+  let expectedId = t || s || h || 1;
+  if (!t && s && h) {
+    // Special case - only use toggle if the show/hide idrefs match.
+    expectedBehavior = (s === h) ? "toggle" : "show";
+  }
+  return {expectedBehavior, expectedId};
+}
+const noActivationLogic = (t,s,h) => {
+  // This does not activate any popovers.
+  return {expectedBehavior: "none", expectedId: 1};
+}
+function makeElementWithType(element,type) {
+  return (test) => {
+    const el = Object.assign(document.createElement(element),{type});
+    document.body.appendChild(el);
+    test.add_cleanup(() => el.remove());
+    return el;
+  };
+}
+const supportedButtonTypes = ['button','reset','submit',''].map(type => {
+  return   {
+    name: `<button type="${type}">`,
+    makeElement: makeElementWithType('button',type),
+    invokeFn: el => {el.focus(); el.click()},
+    getExpectedLogic: buttonLogic,
+    supported: true,
+  };
+});
+const supportedInputButtonTypes = ['button','reset','submit','image'].map(type => {
+  return   {
+    name: `<input type="${type}">`,
+    makeElement: makeElementWithType('input',type),
+    invokeFn: el => {el.focus(); el.click()},
+    getExpectedLogic: buttonLogic,
+    supported: true,
+  };
+});
+const unsupportedTypes = ['text','email','password','search','tel','url','checkbox','radio','range','file','color','date','datetime-local','month','time','week','number'].map(type => {
+  return {
+    name: `<input type="${type}">`,
+    makeElement: makeElementWithType('input',type),
+    invokeFn: (el) => {el.focus();},
+    getExpectedLogic: noActivationLogic, // None of these support popover invocation
+    supported: false,
+  };
+});
+const invokers = [
+  ...supportedButtonTypes,
+  ...supportedInputButtonTypes,
+  ...unsupportedTypes,
+];
+window.addEventListener('load', () => {
+  ["auto","manual"].forEach(type => {
+    invokers.forEach(testcase => {
+      let t_set = [1], s_set = [1], h_set = [1];
+      if (testcase.supported) {
+        t_set = s_set = h_set = [0,1,2]; // Test all permutations
+      }
+      t_set.forEach(t => {
+        s_set.forEach(s => {
+          h_set.forEach(h => {
+            [false,true].forEach(use_idl => {
+              promise_test(async test => {
+                const popover1 = Object.assign(document.createElement('div'),{popover: type, id: 'popover-1'});
+                const popover2 = Object.assign(document.createElement('div'),{popover: type, id: 'popover-2'});
+                assert_equals(popover1.popover,type);
+                assert_equals(popover2.popover,type);
+                assert_not_equals(popover1.id,popover2.id);
+                const invoker = testcase.makeElement(test);
+                if (use_idl) {
+                  invoker.popoverToggleTarget = t===1 ? popover1.id : (t===2 ? popover2.id : null);
+                  invoker.popoverShowTarget = s===1 ? popover1.id : (s===2 ? popover2.id : null);
+                  invoker.popoverHideTarget = h===1 ? popover1.id : (h===2 ? popover2.id : null);
+                } else {
+                  if (t) invoker.setAttribute('popovertoggletarget',t===1 ? popover1.id : popover2.id);
+                  if (s) invoker.setAttribute('popovershowtarget',s===1 ? popover1.id : popover2.id);
+                  if (h) invoker.setAttribute('popoverhidetarget',h===1 ? popover1.id : popover2.id);
+                }
+                assert_true(!document.getElementById(popover1.id));
+                assert_true(!document.getElementById(popover2.id));
+                document.body.appendChild(popover1);
+                document.body.appendChild(popover2);
+                test.add_cleanup(() => {
+                  popover1.remove();
+                  popover2.remove();
+                });
+                const {expectedBehavior, expectedId} = testcase.getExpectedLogic(t,s,h);
+                const otherId = expectedId !== 1 ? 1 : 2;
+                function assertPopoverShowing(num,state,message) {
+                  assert_true(num>0,`Invalid expectedId ${num}`);
+                  assert_equals((num===1 ? popover1 : popover2).matches(':open'),state,message || "");
+                }
+                assertPopoverShowing(expectedId,false);
+                assertPopoverShowing(otherId,false);
+                await testcase.invokeFn(invoker);
+                assert_equals(document.activeElement,invoker,'Focus should end up on the invoker');
+                assertPopoverShowing(otherId,false,'The other popover should never change');
+                switch (expectedBehavior) {
+                  case "toggle":
+                  case "show":
+                    assertPopoverShowing(expectedId,true,'Toggle or show should show the popover');
+                    (expectedId===1 ? popover1 : popover2).hidePopover(); // Hide the popover
+                    break;
+                  case "hide":
+                  case "none":
+                    assertPopoverShowing(expectedId,false,'Hide or none should leave the popover hidden');
+                    break;
+                  default:
+                    assert_unreached();
+                }
+                if (expectedBehavior === "none") {
+                  // If no behavior is expected, then there is nothing left to test. Even re-focusing
+                  // a control that has no expected behavior may hide an open popover via light dismiss.
+                  return;
+                }
+                (expectedId===1 ? popover1 : popover2).showPopover(); // Show the popover directly
+                assert_equals(document.activeElement,invoker,'The popover should not shift focus');
+                assertPopoverShowing(expectedId,true);
+                assertPopoverShowing(otherId,false);
+                await testcase.invokeFn(invoker);
+                assertPopoverShowing(otherId,false,'The other popover should never change');
+                switch (expectedBehavior) {
+                  case "toggle":
+                  case "hide":
+                    assertPopoverShowing(expectedId,false,'Toggle or hide should hide the popover');
+                    break;
+                  case "show":
+                    assertPopoverShowing(expectedId,true,'Show should leave the popover showing');
+                    break;
+                  default:
+                    assert_unreached();
+                }
+              },`Test ${testcase.name}, t=${t}, s=${s}, h=${h}, ${use_idl ? "IDL" : "Content Attr"}, with popover=${type}`);
+            });
+          });
+        });
+      });
+    });
+  });
+});
+</script>
+
+
+
+<button popovertoggletarget=p1>Toggle Popover 1</button>
+<div popover id=p1 style="border: 5px solid red;top: 100px;left: 100px;">This is popover #1</div>
+
+<script>
+function clickOn(element) {
+  const actions = new test_driver.Actions();
+  return actions.pointerMove(0, 0, {origin: element})
+    .pointerDown({button: actions.ButtonType.LEFT})
+    .pointerUp({button: actions.ButtonType.LEFT})
+    .send();
+}
+
+const popover = document.querySelector('[popover]');
+const button = document.querySelector('button');
+let showCount = 0;
+let hideCount = 0;
+popover.addEventListener('popovershow',() => ++showCount);
+popover.addEventListener('popoverhide',() => ++hideCount);
+
+async function assertState(expectOpen,expectShow,expectHide) {
+  assert_equals(popover.matches(':open'),expectOpen,'Popover open state is incorrect');
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_equals(showCount,expectShow,'Show count is incorrect');
+  assert_equals(hideCount,expectHide,'Hide count is incorrect');
+}
+
+window.addEventListener('load', () => {
+  promise_test(async () => {
+    showCount = hideCount = 0;
+    await assertState(false,0,0);
+    await clickOn(button);
+    await assertState(true,1,0);
+    popover.hidePopover();
+    await assertState(false,1,1);
+    button.click();
+    await assertState(true,2,1);
+    popover.hidePopover();
+    await assertState(false,2,2);
+  }, "Clicking a popovertoggletarget button opens a closed popover (also check event counts)");
+
+  promise_test(async () => {
+    showCount = hideCount = 0;
+    await assertState(false,0,0);
+    await clickOn(button);
+    await assertState(true,1,0);
+    await clickOn(button);
+    await assertState(false,1,1);
+  }, "Clicking a popovertoggletarget button closes an open popover (also check event counts)");
+});
+</script>

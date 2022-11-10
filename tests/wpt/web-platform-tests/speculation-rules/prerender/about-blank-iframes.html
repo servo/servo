@@ -7,6 +7,7 @@ and prerenderingchange event.
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <script src="resources/utils.js"></script>
 <body>
 <script>
@@ -14,7 +15,8 @@ and prerenderingchange event.
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
-  const channel = new BroadcastChannel('test-channel');
+  const uid = token();
+  const channel = new PrerenderChannel('test-channel', uid);
 
   const gotMessage = new Promise(resolve => {
     channel.addEventListener('message', e => {
@@ -23,7 +25,7 @@ promise_test(async t => {
   });
 
   // Make the window to start the prerender.
-  const url = `resources/about-blank-iframes.html`;
+  const url = `resources/about-blank-iframes.html?uid=${uid}`;
   window.open(url, '_blank', 'noopener');
 
   const msg = await gotMessage;

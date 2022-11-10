@@ -3,7 +3,7 @@
 <title>IndexedDB: BigInt keys and values</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 // BigInt and BigInt objects are supported in serialization, per
@@ -24,7 +24,7 @@ function value_test(value, predicate, name) {
 
             e.target.onsuccess = t.step_func(e => {
                 e.target.result
-                        .transaction("store")
+                        .transaction("store", "readonly", {durability: "relaxed"})
                         .objectStore("store")
                         .get(1)
                         .onsuccess = t.step_func(e =>

@@ -27,23 +27,22 @@
 
 <script>
 async_test((t) => {
-  const tab = "\t";
-  async function step1() {
+  const tab = "\uE004";
+
+  async function runTest() {
     await test_driver.send_keys(document.body, tab);
     t.step(() => {
       assert_equals(document.activeElement, document.getElementById("one"));
     });
-    requestAnimationFrame(step2);
-  }
 
-  async function step2() {
     await test_driver.send_keys(document.body, tab);
     t.step(() => {
       assert_equals(document.activeElement, document.getElementById("five"));
     });
+
     t.done();
   }
 
-  window.onload = () => { requestAnimationFrame(step1); };
+  window.onload = () => { requestAnimationFrame(runTest); };
 }, "Tab order navigation skips hidden subtrees");
 </script>

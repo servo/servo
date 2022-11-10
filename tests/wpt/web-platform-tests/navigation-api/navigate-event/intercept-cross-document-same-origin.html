@@ -1,0 +1,21 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+async_test(t => {
+  let target_url = location.href + "?1";
+  navigation.onnavigate = t.step_func_done(e => {
+    assert_true(e.cancelable);
+    assert_true(e.canIntercept);
+    assert_false(e.userInitiated);
+    assert_false(e.hashChange);
+    e.intercept({ handler: async () => {
+      await Promise.resolve();
+      t.step_func_done(() => assert_equals(location.href, target_url));
+    }});
+  });
+
+  window.onload = t.step_func(() => location.href = target_url);
+}, "event.intercept() intercepts a same-origin cross-document navigation");
+</script>

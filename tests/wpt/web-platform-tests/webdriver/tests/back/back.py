@@ -33,6 +33,23 @@ def test_no_browsing_history(session):
     assert_success(response)
 
 
+def test_basic(session, inline):
+    url = inline("<div id=foo>")
+
+    session.url = url
+    session.url = inline("<div id=bar>")
+    element = session.find.css("#bar", all=False)
+
+    response = back(session)
+    assert_success(response)
+
+    with pytest.raises(error.StaleElementReferenceException):
+        element.property("id")
+
+    assert session.url == url
+    assert session.find.css("#foo", all=False)
+
+
 def test_data_urls(session, inline):
     test_pages = [
         inline("<p id=1>"),

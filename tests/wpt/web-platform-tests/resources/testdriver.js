@@ -78,8 +78,8 @@
          * Trigger user interaction in order to grant additional privileges to
          * a provided function.
          *
-         * See `triggered by user activation
-         * <https://html.spec.whatwg.org/#triggered-by-user-activation>`_.
+         * See `Tracking user activation
+         * <https://html.spec.whatwg.org/multipage/interaction.html#tracking-user-activation>`_.
          *
          * @example
          * var mediaElement = document.createElement('video');
@@ -182,6 +182,42 @@
          */
         delete_all_cookies: function(context=null) {
             return window.test_driver_internal.delete_all_cookies(context);
+        },
+
+        /**
+         * Get details for all cookies in the current context.
+         * See https://w3c.github.io/webdriver/#get-all-cookies
+         *
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Returns an array of cookies objects as defined in the spec:
+         *                    https://w3c.github.io/webdriver/#cookies
+         */
+        get_all_cookies: function(context=null) {
+            return window.test_driver_internal.get_all_cookies(context);
+        },
+
+        /**
+         * Get details for a cookie in the current context by name if it exists.
+         * See https://w3c.github.io/webdriver/#get-named-cookie
+         *
+         * @param {String} name - The name of the cookie to get.
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Returns the matching cookie as defined in the spec:
+         *                    https://w3c.github.io/webdriver/#cookies
+         *                    Rejected if no such cookie exists.
+         */
+         get_named_cookie: async function(name, context=null) {
+            let cookie = await window.test_driver_internal.get_named_cookie(name, context);
+            if (!cookie) {
+                throw new Error("no such cookie");
+            }
+            return cookie;
         },
 
         /**
@@ -634,6 +670,14 @@
         },
 
         delete_all_cookies: function(context=null) {
+            return Promise.reject(new Error("unimplemented"));
+        },
+
+        get_all_cookies: function(context=null) {
+            return Promise.reject(new Error("unimplemented"));
+        },
+
+        get_named_cookie: function(name, context=null) {
             return Promise.reject(new Error("unimplemented"));
         },
 

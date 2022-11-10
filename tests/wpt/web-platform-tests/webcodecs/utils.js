@@ -200,3 +200,9 @@ function makeDetachedArrayBuffer() {
   new MessageChannel().port1.postMessage(buffer, [buffer]);
   return view;
 }
+
+function isFrameClosed(frame) {
+  return frame.format == null && frame.codedWidth == 0 &&
+         frame.codedHeight == 0 && frame.displayWidth == 0 &&
+         frame.displayHeight == 0;
+}

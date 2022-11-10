@@ -15,6 +15,10 @@ function waitForEvent(target, event, checkFn) {
   });
 }
 
+function start(w) {
+  w.postMessage("start", "*");
+}
+
 function focusIframe(w) {
   w.postMessage("focus", "*");
 }
@@ -38,6 +42,7 @@ async function runTest(t, url, expectResult) {
   let w = window.open(url);
   t.add_cleanup(() => { w.close(); });
   await waitForEvent(window, "message", e => e.data === "ready");
+  start(w);
   focusIframe(w);
   assert_equals(await getLog(w), expectResult);
 }

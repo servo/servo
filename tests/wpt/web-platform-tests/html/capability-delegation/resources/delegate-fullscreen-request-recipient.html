@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Capability Delegation of Fullscreen Requests test recipient</title>
+<body>Capability Delegation of Fullscreen Requests test recipient body</body>
+
+<script>
+  const initiator = window.opener ? window.opener : window.top;
+  initiator.postMessage({"type": "recipient-loaded"}, "*");
+
+  function reportResult(msg) {
+      initiator.postMessage({"type": "result", "result": msg}, "*");
+  }
+
+  document.addEventListener('fullscreenchange', async () => {
+      if (document.fullscreenElement) {
+          await document.exitFullscreen();
+          reportResult("success");
+      }
+  });
+
+  document.addEventListener('fullscreenerror', () => {
+      reportResult("failure");
+  });
+
+  window.addEventListener("message", e => {
+      if (e.data.type == "make-fullscreen-request") {
+          document.body.requestFullscreen();
+      }
+  });
+</script>

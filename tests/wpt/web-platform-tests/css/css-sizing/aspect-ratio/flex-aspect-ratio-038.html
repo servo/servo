@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>aspect-ratio flex item</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item"
+  title="Part E">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert"
+  content="min-height is not reflected through the aspect ratio when calculating width:fit-content when laying out a column flex item for flex base size calculation.">
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id="reference-overlapped-red"></div>
+
+<div style="display: flex; flex-flow: column; align-items: start; height: 200px;">
+  <!-- flex base size for this item is 1px because case E specifies that the
+    flex base size is the height resulting from layout of this variant of the
+    element:
+  <div style="width: fit-content; aspect-ratio: 1/1; height: max-content;">
+    <div style="width: 1px;"></div>
+  </div>
+  'min-height' was removed because of this line from the spec:
+  """When determining the flex base size, the item’s min and max main sizes are
+  ignored"""
+  'width:fit-content' and 'height:max-content' are from part E in the spec
+  section linked to above.
+  The resulting height is 1px, so flex base size is 1px.
+  flex base size of the second item is obviously 1px.
+  The extra 198px should be distributed evenly to the two items, with each
+  item's final height being 100px.
+
+  Chrome 101 and Firefox 99 both get this wrong because they make the first
+  item's flex base size = 100px.
+  -->
+  <div style="aspect-ratio: 1/1; background: green; min-height: 100px; flex: 1 0 auto;">
+    <div style="width: 1px;"></div>
+  </div>
+  <div style="flex: 1 0 1px;"></div>
+</div>

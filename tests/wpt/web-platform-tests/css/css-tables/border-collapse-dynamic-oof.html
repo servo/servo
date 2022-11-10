@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1348154">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: red;">
+  <div style="display: table; border-collapse: collapse; border: solid green 50px; width: 0; height: 0;">
+    <div style="display: table-cell; position: relative;">
+      <div id="target" style="position: absolute;"></div>
+    </div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.top = '10px';
+</script>

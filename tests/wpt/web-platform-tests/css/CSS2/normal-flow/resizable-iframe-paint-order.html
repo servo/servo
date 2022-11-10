@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Resizable iframe paint order</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+<link rel="match" href="resizable-iframe-paint-order-ref.html">
+<!-- Ignore the resizer which may be visible or invisible depending on
+     in which paint phase the browser paint the resizer. -->
+<meta name="fuzzy" content="0-255;0-200">
+<style>
+  iframe {
+    display: block;
+    background: red;
+    width: 100px;
+    height: 100px;
+    padding: 30px;
+    border: none;
+    resize: both;
+    box-sizing: border-box;
+  }
+  #negative-margin {
+    width: 100px;
+    height: 100px;
+    background: green;
+    margin-top: -100px;
+  }
+</style>
+<iframe srcdoc="<style>html { background: lime; }</style>"></iframe>
+<!-- #negative-margin should paint on top of the background of the iframe
+    (but not the contents). -->
+<div id="negative-margin"></div>

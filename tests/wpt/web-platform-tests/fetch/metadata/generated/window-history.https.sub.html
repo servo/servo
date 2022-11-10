@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<!--
+This test was procedurally generated. Please do not modify it directly.
+Sources:
+- fetch/metadata/tools/fetch-metadata.conf.yml
+- fetch/metadata/tools/templates/window-history.sub.html
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for navigation via the HTML History API</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  const whenDone = (win) => {
+    return new Promise((resolve) => {
+      addEventListener('message', function handle(event) {
+        if (event.source === win) {
+          resolve();
+          removeEventListener('message', handle);
+        }
+      });
+    })
+  };
+
+  /**
+   * Prime the UA's session history such that the location of the request is
+   * immediately behind the current entry. Because the location may not be
+   * same-origin with the current browsing context, this must be done via a
+   * true navigation and not, e.g. the `history.pushState` API. The initial
+   * navigation will alter the WPT server's internal state; in order to avoid
+   * false positives, clear that state prior to initiating the second
+   * navigation via `history.back`.
+   */
+  function induceBackRequest(url, test, clear) {
+    const win = window.open(url);
+
+    test.add_cleanup(() => win.close());
+
+    return whenDone(win)
+      .then(clear)
+      .then(() => win.history.back())
+      .then(() => whenDone(win));
+  }
+
+  /**
+   * Prime the UA's session history such that the location of the request is
+   * immediately ahead of the current entry. Because the location may not be
+   * same-origin with the current browsing context, this must be done via a
+   * true navigation and not, e.g. the `history.pushState` API. The initial
+   * navigation will alter the WPT server's internal state; in order to avoid
+   * false positives, clear that state prior to initiating the second
+   * navigation via `history.forward`.
+   */
+  function induceForwardRequest(url, test, clear) {
+    const win = window.open(messageOpenerUrl);
+
+    test.add_cleanup(() => win.close());
+
+    return whenDone(win)
+      .then(() => win.location = url)
+      .then(() => whenDone(win))
+      .then(clear)
+      .then(() => win.history.go(-2))
+      .then(() => whenDone(win))
+      .then(() => win.history.forward())
+      .then(() => whenDone(win));
+  }
+
+  const messageOpenerUrl = new URL(
+    '/fetch/metadata/resources/message-opener.html', location
+  );
+  // For these tests to function, replacement must *not* be enabled during
+  // navigation. Assignment must therefore take place after the document has
+  // completely loaded [1]. This event is not directly observable, but it is
+  // scheduled as a task immediately following the global object's `load`
+  // event [2]. By queuing a task during the dispatch of the `load` event,
+  // navigation can be consistently triggered without replacement.
+  //
+  // [1] https://html.spec.whatwg.org/multipage/history.html#location-object-setter-navigate
+  // [2] https://html.spec.whatwg.org/multipage/parsing.html#the-end
+  const responseParams = {
+    mime: 'text/html',
+    body: `<script>
+      window.addEventListener('load', () => {
+        set`+`Timeout(() => location.assign('${messageOpenerUrl}'));
+      });
+    <`+`/script>`
+  };
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin'], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same origin - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin'], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same origin - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite'], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-site - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite'], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        });
+  }, 'sec-fetch-site - Cross-site - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite'], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same site - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite'], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        });
+  }, 'sec-fetch-site - Same site - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['navigate']);
+        });
+  }, 'sec-fetch-mode - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['navigate']);
+        });
+  }, 'sec-fetch-mode - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['document']);
+        });
+  }, 'sec-fetch-dest - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['document']);
+        });
+  }, 'sec-fetch-dest - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        });
+  }, 'sec-fetch-user - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, [], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        });
+  }, 'sec-fetch-user - history.forward');
+  </script>
+  </body>
+</html>

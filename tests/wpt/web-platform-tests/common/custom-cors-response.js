@@ -19,6 +19,10 @@ const custom_cors_response = (payload, base_url) => {
     payload.headers[acao] = '*';
   }
 
+  if (!("Content-Type" in payload.headers)) {
+    payload.headers["Content-Type"] = "text/javascript";
+  }
+
   let ret = new URL("/common/CustomCorsResponse.py", base_url);
   for (const key in payload) {
     ret.searchParams.append(key, JSON.stringify(payload[key]));

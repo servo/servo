@@ -38,6 +38,34 @@
         assert_true(linkSheet instanceof CSSStyleSheet);
     }, "sheet_property");
 
+    // The `disabled` IDL attribute setter has no effect before the underlying
+    // CSSStyleSheet is created.
+    test(function () {
+      const style = document.createElement("style");
+      style.disabled = true;
+      assert_false(style.disabled);
+      document.head.append(style);
+      const sheet1 = style.sheet;
+      assert_false(style.disabled);
+      assert_false(sheet1.disabled);
+
+      // The `disabled` attribute can be set after the sheet exists.
+      style.disabled = true;
+      assert_true(style.disabled);
+      assert_true(sheet1.disabled);
+
+      // Reset `disabled`.
+      style.disabled = false;
+      assert_false(style.disabled);
+      assert_false(style.disabled);
+
+      // Setting `disabled = true` on the CSSStyleSheet also carries over to the
+      // HTMLStyleElement.
+      sheet1.disabled = true;
+      assert_true(style.disabled);
+      assert_true(sheet1.disabled);
+    }, "disabled attribute getter/setter");
+
     // The sheet property on LinkStyle should always return the current associated style sheet.
     test(function () {
       var style = document.createElement("style");

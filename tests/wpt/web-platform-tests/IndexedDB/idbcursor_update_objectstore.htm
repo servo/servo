@@ -3,7 +3,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -28,7 +28,7 @@
 
 
     function CursorUpdateRecord(e) {
-        var txn = db.transaction("test", "readwrite"),
+        var txn = db.transaction("test", "readwrite", {durability: 'relaxed'}),
           cursor_rq = txn.objectStore("test")
                          .openCursor();
         cursor_rq.onsuccess = t.step_func(function(e) {
@@ -43,7 +43,7 @@
 
 
     function VerifyRecordWasUpdated(e) {
-        var cursor_rq = db.transaction("test")
+        var cursor_rq = db.transaction("test", "readonly", {durability: 'relaxed'})
                           .objectStore("test")
                           .openCursor();
 

@@ -7,6 +7,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="viewport_support.js"></script>
 <style>
   #target {
     width: 100px;
@@ -48,29 +49,13 @@ async function oneRaf() {
   });
 }
 
-function pinch_zoom_in() {
-  return new test_driver.Actions()
-      .setContext(window)
-      .addPointer("finger1", "touch")
-      .addPointer("finger2", "touch")
-      .pointerMove(400, 250, {origin: "viewport", sourceName: "finger1"})
-      .pointerMove(400, 350, {origin: "viewport", sourceName: "finger2"})
-      .pointerDown({sourceName: "finger1"})
-      .pointerDown({sourceName: "finger2"})
-      .pointerMove(400, 200, {origin: "viewport", sourceName: "finger1"})
-      .pointerMove(400, 400, {origin: "viewport", sourceName: "finger2"})
-      .pointerUp({sourceName: "finger1"})
-      .pointerUp({sourceName: "finger2"})
-      .send();
-}
-
 const scroller1 = document.getElementById('scroller1');
 const scroller2 = document.getElementById('scroller2');
 
 promise_test(async t => {
     // Pinch-zoom in so that the scrollIntoView call below causes scrolling in
     // both the layout and visual viewports within the same rAF.
-    await pinch_zoom_in();
+    await pinchZoomIn();
     assert_greater_than(window.visualViewport.scale, 1, 'Must have zoomed in');
 
     await oneRaf();

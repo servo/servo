@@ -1,6 +1,4 @@
 - name: 2d.path.initial
-  testing:
-  - 2d.path.initial
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -11,8 +9,6 @@
     t.done();
 
 - name: 2d.path.beginPath
-  testing:
-  - 2d.path.beginPath
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -24,8 +20,6 @@
     t.done();
 
 - name: 2d.path.moveTo.basic
-  testing:
-  - 2d.path.moveTo
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -40,8 +34,6 @@
     t.done();
 
 - name: 2d.path.moveTo.newsubpath
-  testing:
-  - 2d.path.moveTo
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -56,8 +48,6 @@
     t.done();
 
 - name: 2d.path.moveTo.multiple
-  testing:
-  - 2d.path.moveTo
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -73,8 +63,6 @@
 
 - name: 2d.path.moveTo.nonfinite
   desc: moveTo() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.moveTo(0, 0);
     ctx.lineTo(100, 0);
@@ -87,8 +75,6 @@
     t.done();
 
 - name: 2d.path.closePath.empty
-  testing:
-  - 2d.path.closePath.empty
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -99,8 +85,6 @@
     t.done();
 
 - name: 2d.path.closePath.newline
-  testing:
-  - 2d.path.closePath.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -116,8 +100,6 @@
     t.done();
 
 - name: 2d.path.closePath.nextpoint
-  testing:
-  - 2d.path.closePath.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -133,9 +115,6 @@
 
 - name: 2d.path.lineTo.ensuresubpath.1
   desc: If there is no subpath, the point is added and nothing is drawn
-  testing:
-  - 2d.path.lineTo.empty
-  - 2d.path.ensure
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -149,9 +128,6 @@
 
 - name: 2d.path.lineTo.ensuresubpath.2
   desc: If there is no subpath, the point is added and used for subsequent drawing
-  testing:
-  - 2d.path.lineTo.empty
-  - 2d.path.ensure
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -165,8 +141,6 @@
     t.done();
 
 - name: 2d.path.lineTo.basic
-  testing:
-  - 2d.path.lineTo.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -180,8 +154,6 @@
     t.done();
 
 - name: 2d.path.lineTo.nextpoint
-  testing:
-  - 2d.path.lineTo.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -197,8 +169,6 @@
 
 - name: 2d.path.lineTo.nonfinite
   desc: lineTo() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.moveTo(0, 0);
     ctx.lineTo(100, 0);
@@ -213,8 +183,6 @@
 
 - name: 2d.path.lineTo.nonfinite.details
   desc: lineTo() with Infinity/NaN for first arg still converts the second arg
-  testing:
-  - 2d.nonfinite
   code: |
     for (var arg1 of [Infinity, -Infinity, NaN]) {
       var converted = false;
@@ -226,9 +194,6 @@
 - name: 2d.path.quadraticCurveTo.ensuresubpath.1
   desc: If there is no subpath, the first control point is added (and nothing is drawn
     up to it)
-  testing:
-  - 2d.path.quadratic.empty
-  - 2d.path.ensure
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -243,9 +208,6 @@
 
 - name: 2d.path.quadraticCurveTo.ensuresubpath.2
   desc: If there is no subpath, the first control point is added
-  testing:
-  - 2d.path.quadratic.empty
-  - 2d.path.ensure
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -259,8 +221,6 @@
     t.done();
 
 - name: 2d.path.quadraticCurveTo.basic
-  testing:
-  - 2d.path.quadratic.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -274,8 +234,6 @@
     t.done();
 
 - name: 2d.path.quadraticCurveTo.shape
-  testing:
-  - 2d.path.quadratic.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -293,8 +251,6 @@
     t.done();
 
 - name: 2d.path.quadraticCurveTo.scaled
-  testing:
-  - 2d.path.quadratic.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -314,8 +270,6 @@
 
 - name: 2d.path.quadraticCurveTo.nonfinite
   desc: quadraticCurveTo() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.moveTo(0, 0);
     ctx.lineTo(100, 0);
@@ -331,9 +285,6 @@
 - name: 2d.path.bezierCurveTo.ensuresubpath.1
   desc: If there is no subpath, the first control point is added (and nothing is drawn
     up to it)
-  testing:
-  - 2d.path.bezier.empty
-  - 2d.path.ensure
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -348,9 +299,6 @@
 
 - name: 2d.path.bezierCurveTo.ensuresubpath.2
   desc: If there is no subpath, the first control point is added
-  testing:
-  - 2d.path.bezier.empty
-  - 2d.path.ensure
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -364,8 +312,6 @@
     t.done();
 
 - name: 2d.path.bezierCurveTo.basic
-  testing:
-  - 2d.path.bezier.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -379,8 +325,6 @@
     t.done();
 
 - name: 2d.path.bezierCurveTo.shape
-  testing:
-  - 2d.path.bezier.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -398,8 +342,6 @@
     t.done();
 
 - name: 2d.path.bezierCurveTo.scaled
-  testing:
-  - 2d.path.bezier.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -419,8 +361,6 @@
 
 - name: 2d.path.bezierCurveTo.nonfinite
   desc: bezierCurveTo() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.moveTo(0, 0);
     ctx.lineTo(100, 0);
@@ -436,9 +376,6 @@
 - name: 2d.path.arcTo.ensuresubpath.1
   desc: If there is no subpath, the first control point is added (and nothing is drawn
     up to it)
-  testing:
-  - 2d.path.arcTo.empty
-  - 2d.path.ensure
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -452,9 +389,6 @@
 
 - name: 2d.path.arcTo.ensuresubpath.2
   desc: If there is no subpath, the first control point is added
-  testing:
-  - 2d.path.arcTo.empty
-  - 2d.path.ensure
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -469,8 +403,6 @@
 
 - name: 2d.path.arcTo.coincide.1
   desc: arcTo() has no effect if P0 = P1
-  testing:
-  - 2d.path.arcTo.coincide.01
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -493,8 +425,6 @@
 
 - name: 2d.path.arcTo.coincide.2
   desc: arcTo() draws a straight line to P1 if P1 = P2
-  testing:
-  - 2d.path.arcTo.coincide.12
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -510,8 +440,6 @@
 - name: 2d.path.arcTo.collinear.1
   desc: arcTo() with all points on a line, and P1 between P0/P2, draws a straight
     line to P1
-  testing:
-  - 2d.path.arcTo.collinear
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -532,8 +460,6 @@
 - name: 2d.path.arcTo.collinear.2
   desc: arcTo() with all points on a line, and P2 between P0/P1, draws a straight
     line to P1
-  testing:
-  - 2d.path.arcTo.collinear
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -554,8 +480,6 @@
 - name: 2d.path.arcTo.collinear.3
   desc: arcTo() with all points on a line, and P0 between P1/P2, draws a straight
     line to P1
-  testing:
-  - 2d.path.arcTo.collinear
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -579,8 +503,6 @@
 
 - name: 2d.path.arcTo.shape.curve1
   desc: arcTo() curves in the right kind of shape
-  testing:
-  - 2d.path.arcTo.shape
   code: |
     var tol = 1.5; // tolerance to avoid antialiasing artifacts
     ctx.fillStyle = '#0f0';
@@ -616,8 +538,6 @@
 
 - name: 2d.path.arcTo.shape.curve2
   desc: arcTo() curves in the right kind of shape
-  testing:
-  - 2d.path.arcTo.shape
   code: |
     var tol = 1.5; // tolerance to avoid antialiasing artifacts
     ctx.fillStyle = '#0f0';
@@ -652,8 +572,6 @@
 
 - name: 2d.path.arcTo.shape.start
   desc: arcTo() draws a straight line from P0 to P1
-  testing:
-  - 2d.path.arcTo.shape
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -672,8 +590,6 @@
 
 - name: 2d.path.arcTo.shape.end
   desc: arcTo() does not draw anything from P1 to P2
-  testing:
-  - 2d.path.arcTo.shape
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -692,16 +608,12 @@
 
 - name: 2d.path.arcTo.negative
   desc: arcTo() with negative radius throws an exception
-  testing:
-  - 2d.path.arcTo.negative
   code: |
     @assert throws INDEX_SIZE_ERR ctx.arcTo(0, 0, 0, 0, -1);
     t.done();
 
 - name: 2d.path.arcTo.zero.1
   desc: arcTo() with zero radius draws a straight line from P0 to P1
-  testing:
-  - 2d.path.arcTo.zeroradius
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -722,8 +634,6 @@
 - name: 2d.path.arcTo.zero.2
   desc: arcTo() with zero radius draws a straight line from P0 to P1, even when all
     points are collinear
-  testing:
-  - 2d.path.arcTo.zeroradius
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -790,8 +700,6 @@
 
 - name: 2d.path.arcTo.nonfinite
   desc: arcTo() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.moveTo(0, 0);
     ctx.lineTo(100, 0);
@@ -807,8 +715,6 @@
 
 - name: 2d.path.arc.empty
   desc: arc() with an empty path does not draw a straight line to the start point
-  testing:
-  - 2d.path.arc.nonempty
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -822,8 +728,6 @@
 
 - name: 2d.path.arc.nonempty
   desc: arc() with a non-empty path does draw a straight line to the start point
-  testing:
-  - 2d.path.arc.nonempty
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -838,8 +742,6 @@
 
 - name: 2d.path.arc.end
   desc: arc() adds the end point of the arc to the subpath
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -855,8 +757,6 @@
 
 - name: 2d.path.arc.default
   desc: arc() with missing last argument defaults to clockwise
-  testing:
-  - 2d.path.arc.omitted
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -870,8 +770,6 @@
 
 - name: 2d.path.arc.angle.1
   desc: arc() draws pi/2 .. -pi anticlockwise correctly
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -885,8 +783,6 @@
 
 - name: 2d.path.arc.angle.2
   desc: arc() draws -3pi/2 .. -pi anticlockwise correctly
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -900,8 +796,6 @@
 
 - name: 2d.path.arc.angle.3
   desc: arc() wraps angles mod 2pi when anticlockwise and end > start+2pi
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -915,8 +809,6 @@
 
 - name: 2d.path.arc.angle.4
   desc: arc() draws a full circle when clockwise and end > start+2pi
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -933,8 +825,6 @@
 
 - name: 2d.path.arc.angle.5
   desc: arc() wraps angles mod 2pi when clockwise and start > end+2pi
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -948,8 +838,6 @@
 
 - name: 2d.path.arc.angle.6
   desc: arc() draws a full circle when anticlockwise and start > end+2pi
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -966,8 +854,6 @@
 
 - name: 2d.path.arc.zero.1
   desc: arc() draws nothing when startAngle = endAngle and anticlockwise
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -981,8 +867,6 @@
 
 - name: 2d.path.arc.zero.2
   desc: arc() draws nothing when startAngle = endAngle and clockwise
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -996,8 +880,6 @@
 
 - name: 2d.path.arc.twopie.1
   desc: arc() draws nothing when end = start + 2pi-e and anticlockwise
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1011,8 +893,6 @@
 
 - name: 2d.path.arc.twopie.2
   desc: arc() draws a full circle when end = start + 2pi-e and clockwise
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1026,8 +906,6 @@
 
 - name: 2d.path.arc.twopie.3
   desc: arc() draws a full circle when end = start + 2pi+e and anticlockwise
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1041,8 +919,6 @@
 
 - name: 2d.path.arc.twopie.4
   desc: arc() draws nothing when end = start + 2pi+e and clockwise
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1056,8 +932,6 @@
 
 - name: 2d.path.arc.shape.1
   desc: arc() from 0 to pi does not draw anything in the wrong half
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1076,8 +950,6 @@
 
 - name: 2d.path.arc.shape.2
   desc: arc() from 0 to pi draws stuff in the right half
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1096,8 +968,6 @@
 
 - name: 2d.path.arc.shape.3
   desc: arc() from 0 to -pi/2 does not draw anything in the wrong quadrant
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1115,8 +985,6 @@
 
 - name: 2d.path.arc.shape.4
   desc: arc() from 0 to -pi/2 draws stuff in the right quadrant
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1134,8 +1002,6 @@
 
 - name: 2d.path.arc.shape.5
   desc: arc() from 0 to 5pi does not draw crazy things
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1153,8 +1019,6 @@
 
 - name: 2d.path.arc.selfintersect.1
   desc: arc() with lineWidth > 2*radius is drawn sensibly
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1172,8 +1036,6 @@
 
 - name: 2d.path.arc.selfintersect.2
   desc: arc() with lineWidth > 2*radius is drawn sensibly
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1195,16 +1057,12 @@
 
 - name: 2d.path.arc.negative
   desc: arc() with negative radius throws INDEX_SIZE_ERR
-  testing:
-  - 2d.path.arc.negative
   code: |
     @assert throws INDEX_SIZE_ERR ctx.arc(0, 0, -1, 0, 0, true);
     t.done();
 
 - name: 2d.path.arc.zeroradius
   desc: arc() with zero radius draws a line to the start point
-  testing:
-  - 2d.path.arc.zero
   code: |
     ctx.fillStyle = '#f00'
     ctx.fillRect(0, 0, 100, 50);
@@ -1219,8 +1077,6 @@
 
 - name: 2d.path.arc.scale.1
   desc: Non-uniformly scaled arcs are the right shape
-  testing:
-  - 2d.path.transformation
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1253,8 +1109,6 @@
 
 - name: 2d.path.arc.scale.2
   desc: Highly scaled arcs are the right shape
-  testing:
-  - 2d.path.arc.draw
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1277,8 +1131,6 @@
 
 - name: 2d.path.arc.nonfinite
   desc: arc() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1295,8 +1147,6 @@
 
 
 - name: 2d.path.rect.basic
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1307,8 +1157,6 @@
     t.done();
 
 - name: 2d.path.rect.newsubpath
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1323,8 +1171,6 @@
     t.done();
 
 - name: 2d.path.rect.closed
-  testing:
-  - 2d.path.rect.closed
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1337,8 +1183,6 @@
     t.done();
 
 - name: 2d.path.rect.end.1
-  testing:
-  - 2d.path.rect.newsubpath
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1351,8 +1195,6 @@
     t.done();
 
 - name: 2d.path.rect.end.2
-  testing:
-  - 2d.path.rect.newsubpath
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1370,8 +1212,6 @@
     t.done();
 
 - name: 2d.path.rect.zero.1
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1384,8 +1224,6 @@
     t.done();
 
 - name: 2d.path.rect.zero.2
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1398,8 +1236,6 @@
     t.done();
 
 - name: 2d.path.rect.zero.3
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1412,8 +1248,6 @@
     t.done();
 
 - name: 2d.path.rect.zero.4
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1426,8 +1260,6 @@
     t.done();
 
 - name: 2d.path.rect.zero.5
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1440,8 +1272,6 @@
     t.done();
 
 - name: 2d.path.rect.zero.6
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1456,8 +1286,6 @@
     t.done();
 
 - name: 2d.path.rect.negative
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -1475,8 +1303,6 @@
     t.done();
 
 - name: 2d.path.rect.winding
-  testing:
-  - 2d.path.rect.subpath
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -1507,8 +1333,6 @@
 
 - name: 2d.path.rect.nonfinite
   desc: rect() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.moveTo(0, 0);
     ctx.lineTo(100, 0);
@@ -1747,8 +1571,6 @@
 
 - name: 2d.path.roundrect.nonfinite
   desc: roundRect() with Infinity/NaN is ignored
-  testing:
-  - 2d.nonfinite
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50)
@@ -2454,8 +2276,6 @@
     t.done();
 
 - name: 2d.path.fill.overlap
-  testing:
-  - 2d.path.fill.basic
   code: |
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 100, 50);
@@ -2468,8 +2288,6 @@
     t.done();
 
 - name: 2d.path.fill.winding.add
-  testing:
-  - 2d.path.fill.basic
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2488,8 +2306,6 @@
     t.done();
 
 - name: 2d.path.fill.winding.subtract.1
-  testing:
-  - 2d.path.fill.basic
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2508,8 +2324,6 @@
     t.done();
 
 - name: 2d.path.fill.winding.subtract.2
-  testing:
-  - 2d.path.fill.basic
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2527,8 +2341,6 @@
     t.done();
 
 - name: 2d.path.fill.winding.subtract.3
-  testing:
-  - 2d.path.fill.basic
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2552,8 +2364,6 @@
     t.done();
 
 - name: 2d.path.fill.closed.basic
-  testing:
-  - 2d.path.fill.closed
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2567,8 +2377,6 @@
     t.done();
 
 - name: 2d.path.fill.closed.unaffected
-  testing:
-  - 2d.path.fill.closed
   code: |
     ctx.fillStyle = '#00f';
     ctx.fillRect(0, 0, 100, 50);
@@ -2586,8 +2394,6 @@
 
 - name: 2d.path.stroke.overlap
   desc: Stroked subpaths are combined before being drawn
-  testing:
-  - 2d.path.stroke.basic
   code: |
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 100, 50);
@@ -2603,8 +2409,6 @@
 
 - name: 2d.path.stroke.union
   desc: Strokes in opposite directions are unioned, not subtracted
-  testing:
-  - 2d.path.stroke.basic
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2620,8 +2424,6 @@
 
 - name: 2d.path.stroke.unaffected
   desc: Stroking does not start a new path or subpath
-  testing:
-  - 2d.path.stroke.basic
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2640,8 +2442,6 @@
 
 - name: 2d.path.stroke.scale1
   desc: Stroke line widths are scaled by the current transformation matrix
-  testing:
-  - 2d.path.transformation
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2672,8 +2472,6 @@
 
 - name: 2d.path.stroke.scale2
   desc: Stroke line widths are scaled by the current transformation matrix
-  testing:
-  - 2d.path.transformation
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2706,8 +2504,6 @@
 
 - name: 2d.path.stroke.skew
   desc: Strokes lines are skewed by the current transformation matrix
-  testing:
-  - 2d.path.transformation
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2753,8 +2549,6 @@
 
 - name: 2d.path.stroke.empty
   desc: Empty subpaths are not stroked
-  testing:
-  - 2d.path.stroke.empty
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2771,8 +2565,6 @@
 
 - name: 2d.path.stroke.prune.line
   desc: Zero-length line segments from lineTo are removed before stroking
-  testing:
-  - 2d.path.stroke.prune
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2789,8 +2581,6 @@
 
 - name: 2d.path.stroke.prune.closed
   desc: Zero-length line segments from closed paths are removed before stroking
-  testing:
-  - 2d.path.stroke.prune
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2809,8 +2599,6 @@
 - name: 2d.path.stroke.prune.curve
   desc: Zero-length line segments from quadraticCurveTo and bezierCurveTo are removed
     before stroking
-  testing:
-  - 2d.path.stroke.prune
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2831,8 +2619,6 @@
 
 - name: 2d.path.stroke.prune.arc
   desc: Zero-length line segments from arcTo and arc are removed before stroking
-  testing:
-  - 2d.path.stroke.prune
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2853,8 +2639,6 @@
 
 - name: 2d.path.stroke.prune.rect
   desc: Zero-length line segments from rect and strokeRect are removed before stroking
-  testing:
-  - 2d.path.stroke.prune
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2871,8 +2655,6 @@
 
 - name: 2d.path.stroke.prune.corner
   desc: Zero-length line segments are removed before stroking with miters
-  testing:
-  - 2d.path.stroke.prune
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2891,8 +2673,6 @@
     t.done();
 
 - name: 2d.path.transformation.basic
-  testing:
-  - 2d.path.transformation
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2906,8 +2686,6 @@
 
 - name: 2d.path.transformation.multiple
   desc: Transformations are applied while building paths, not when drawing
-  testing:
-  - 2d.path.transformation
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2931,8 +2709,6 @@
 
 - name: 2d.path.transformation.changing
   desc: Transformations are applied while building paths, not when drawing
-  testing:
-  - 2d.path.transformation
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2952,8 +2728,6 @@
     t.done();
 
 - name: 2d.path.clip.empty
-  testing:
-  - 2d.path.clip.basic
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2965,8 +2739,6 @@
     t.done();
 
 - name: 2d.path.clip.basic.1
-  testing:
-  - 2d.path.clip.basic
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -2979,8 +2751,6 @@
     t.done();
 
 - name: 2d.path.clip.basic.2
-  testing:
-  - 2d.path.clip.basic
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -2993,8 +2763,6 @@
     t.done();
 
 - name: 2d.path.clip.intersect
-  testing:
-  - 2d.path.clip.basic
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -3010,8 +2778,6 @@
     t.done();
 
 - name: 2d.path.clip.winding.1
-  testing:
-  - 2d.path.clip.basic
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -3032,8 +2798,6 @@
     t.done();
 
 - name: 2d.path.clip.winding.2
-  testing:
-  - 2d.path.clip.basic
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -3057,8 +2821,6 @@
     t.done();
 
 - name: 2d.path.clip.unaffected
-  testing:
-  - 2d.path.clip.closed
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -3076,8 +2838,6 @@
 
 - name: 2d.path.isPointInPath.basic.1
   desc: isPointInPath() detects whether the point is inside the path
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.rect(0, 0, 20, 20);
     @assert ctx.isPointInPath(10, 10) === true;
@@ -3086,8 +2846,6 @@
 
 - name: 2d.path.isPointInPath.basic.2
   desc: isPointInPath() detects whether the point is inside the path
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.rect(20, 0, 20, 20);
     @assert ctx.isPointInPath(10, 10) === false;
@@ -3096,8 +2854,6 @@
 
 - name: 2d.path.isPointInPath.edge
   desc: isPointInPath() counts points on the path as being inside
-  testing:
-  - 2d.path.isPointInPath.edge
   code: |
     ctx.rect(0, 0, 20, 20);
     @assert ctx.isPointInPath(0, 0) === true;
@@ -3116,16 +2872,12 @@
 
 - name: 2d.path.isPointInPath.empty
   desc: isPointInPath() works when there is no path
-  testing:
-  - 2d.path.isPointInPath
   code: |
     @assert ctx.isPointInPath(0, 0) === false;
     t.done();
 
 - name: 2d.path.isPointInPath.subpath
   desc: isPointInPath() uses the current path, not just the subpath
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.rect(0, 0, 20, 20);
     ctx.beginPath();
@@ -3139,8 +2891,6 @@
 
 - name: 2d.path.isPointInPath.outside
   desc: isPointInPath() works on paths outside the canvas
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.rect(0, -100, 20, 20);
     ctx.rect(20, -10, 20, 20);
@@ -3154,8 +2904,6 @@
 
 - name: 2d.path.isPointInPath.unclosed
   desc: isPointInPath() works on unclosed subpaths
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.moveTo(0, 0);
     ctx.lineTo(20, 0);
@@ -3167,8 +2915,6 @@
 
 - name: 2d.path.isPointInPath.arc
   desc: isPointInPath() works on arcs
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.arc(50, 25, 10, 0, Math.PI, false);
     @assert ctx.isPointInPath(50, 10) === false;
@@ -3184,8 +2930,6 @@
 - name: 2d.path.isPointInPath.bigarc
   desc: isPointInPath() works on unclosed arcs larger than 2pi
   opera: {bug: 320937}
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.arc(50, 25, 10, 0, 7, false);
     @assert ctx.isPointInPath(50, 10) === false;
@@ -3200,8 +2944,6 @@
 
 - name: 2d.path.isPointInPath.bezier
   desc: isPointInPath() works on Bezier curves
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.moveTo(25, 25);
     ctx.bezierCurveTo(50, -50, 50, 100, 75, 25);
@@ -3229,8 +2971,6 @@
 
 - name: 2d.path.isPointInPath.winding
   desc: isPointInPath() uses the non-zero winding number rule
-  testing:
-  - 2d.path.isPointInPath
   code: |
     // Create a square ring, using opposite windings to make a hole in the centre
     ctx.moveTo(0, 0);
@@ -3256,8 +2996,6 @@
 
 - name: 2d.path.isPointInPath.transform.1
   desc: isPointInPath() handles transformations correctly
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.translate(50, 0);
     ctx.rect(0, 0, 20, 20);
@@ -3271,8 +3009,6 @@
 
 - name: 2d.path.isPointInPath.transform.2
   desc: isPointInPath() handles transformations correctly
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.rect(50, 0, 20, 20);
     ctx.translate(50, 0);
@@ -3286,8 +3022,6 @@
 
 - name: 2d.path.isPointInPath.transform.3
   desc: isPointInPath() handles transformations correctly
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.scale(-1, 1);
     ctx.rect(-70, 0, 20, 20);
@@ -3301,8 +3035,6 @@
 
 - name: 2d.path.isPointInPath.transform.4
   desc: isPointInPath() handles transformations correctly
-  testing:
-  - 2d.path.isPointInPath
   code: |
     ctx.translate(50, 0);
     ctx.rect(50, 0, 20, 20);
@@ -3314,8 +3046,6 @@
 
 - name: 2d.path.isPointInPath.nonfinite
   desc: isPointInPath() returns false for non-finite arguments
-  testing:
-  - 2d.path.isPointInPath.nonfinite
   code: |
     ctx.rect(-100, -50, 200, 100);
     @assert ctx.isPointInPath(Infinity, 0) === false;
@@ -3329,8 +3059,6 @@
 
 - name: 2d.path.isPointInStroke.basic
   desc: detects whether point is in the area contained by the stroke of the path
-  testing:
-  - 2d.path.isPointInStroke.basic
   code: |
     ctx.strokeStyle = '#0f0';
     ctx.beginPath();

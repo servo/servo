@@ -31,7 +31,7 @@ onload = () => {
       });
       ctx.drawImage(img, 0, 0);
       // canvas, pixelX, pixelY, r, g, b, alpha, ?, ?, tolerance
-      _assertPixelApprox(canvas, 40, 40, 0, 255, 0, 255, undefined, undefined, 4);
+      _assertPixelApprox(canvas, 40, 40, 0, 255, 0, 255, 4);
     }, img.dataset.desc);
   });
   done();

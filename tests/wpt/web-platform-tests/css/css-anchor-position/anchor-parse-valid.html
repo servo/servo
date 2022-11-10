@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Tests parsing of the anchor() function</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+const insetProperties = [
+  'left',
+  'right',
+  'top',
+  'bottom',
+  'inset-block-start',
+  'inset-block-end',
+  'inset-inline-start',
+  'inset-inline-end',
+];
+
+const anchorSides = [
+  'left',
+  'right',
+  'top',
+  'bottom',
+  'start',
+  'end',
+  'self-start',
+  'self-end',
+  'center',
+  '50%',
+];
+
+const fallbacks = [
+  null,
+  '1px',
+  '50%',
+  'calc(1px + 50%)',
+  'anchor(--bar left)',
+  'anchor(--bar left, anchor(--baz right))',
+];
+
+// Tests basic combinations
+for (let property of insetProperties) {
+  // Using a wrong anchor-side (e.g., `top: anchor(--foo left)`) doesn't cause a
+  // parse error, but triggers the fallback when resolved.
+  for (let side of anchorSides) {
+    for (let fallback of fallbacks) {
+      let value = `anchor(--foo ${side}${fallback ? ', ' + fallback : ''})`;
+      test_valid_value(property, value);
+    }
+  }
+}
+
+// Tests that anchor() can be used in a calc tree
+test_valid_value('top', 'calc((anchor(--foo top) + anchor(--bar bottom)) / 2)');
+test_valid_value('top', 'anchor(--foo top, calc(anchor(--bar bottom) * 0.5))');
+test_valid_value('top', 'min(100px, 10%, anchor(--foo top), anchor(--bar bottom))');
+</script>

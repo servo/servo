@@ -1,0 +1,9 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1797139">
+<link rel="match" href="datetime-dynamic-type-change-ref.html">
+<input type="date">
+<script>
+  onload = function() {
+    document.querySelector("input").type = "datetime-local";
+  }
+</script>

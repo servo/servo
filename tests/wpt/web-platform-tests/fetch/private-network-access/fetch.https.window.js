@@ -78,7 +78,7 @@ subsetTestByKey("baseline", promise_test, t => fetchTest(t, {
   },
   fetchOptions: { method: "PUT" },
   expected: FetchTestResult.SUCCESS,
-}), "local to public: PUT preflight success,");
+}), "local to public: PUT preflight success.");
 
 // Generates tests of preflight behavior for a single (source, target) pair.
 //

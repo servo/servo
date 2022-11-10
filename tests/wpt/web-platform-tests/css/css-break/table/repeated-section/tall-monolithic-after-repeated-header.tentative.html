@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1378576">
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#repeated-headers">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display:flow-root; width:100px; height:100px; background:red;">
+  <div style="columns:2; column-fill:auto; gap:0; margin-top:-20px; height:100px;">
+    <div style="display:table; width:100%;">
+      <div style="display:table-header-group; break-inside:avoid;">
+        <div style="width:20px; height:20px;"></div>
+      </div>
+      <div style="contain:size; height:100px; background:green;"></div>
+      <div style="contain:size; height:100px; background:green;"></div>
+    </div>
+  </div>
+</div>

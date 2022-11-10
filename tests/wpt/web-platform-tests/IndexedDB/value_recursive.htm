@@ -4,7 +4,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 function recursive_value(desc, value) {
@@ -16,7 +16,7 @@ function recursive_value(desc, value) {
           .add(value, 1);
 
         e.target.onsuccess = t.step_func(function(e) {
-            db.transaction('store')
+            db.transaction('store', 'readonly', {durability: 'relaxed'})
               .objectStore('store')
               .get(1)
               .onsuccess = t.step_func(function(e)

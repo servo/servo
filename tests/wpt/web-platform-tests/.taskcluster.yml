@@ -57,7 +57,7 @@ tasks:
             owner: ${owner}
             source: ${event.repository.clone_url}
           payload:
-            image: webplatformtests/wpt:0.48
+            image: webplatformtests/wpt:0.52
             maxRunTime: 7200
             artifacts:
               public/results:

@@ -1,10 +1,12 @@
+# mypy: allow-untyped-defs
+
 from typing import ClassVar, List, Type
 
 exit_unclean = object()
 exit_clean = object()
 
 
-class Step(object):
+class Step:
     provides = []  # type: ClassVar[List[str]]
 
     def __init__(self, logger):
@@ -35,18 +37,18 @@ class Step(object):
             assert set(self.provides).issubset(set(state.keys()))
             state.steps = state.steps + [name]
         else:
-            raise ValueError("Expected a %s step, got a %s step" % (name, stored_step))
+            raise ValueError(f"Expected a {name} step, got a {stored_step} step")
 
     def create(self, data):
         raise NotImplementedError
 
     def restore(self, state):
-        self.logger.debug("Step %s using stored state" % (self.__class__.__name__,))
+        self.logger.debug(f"Step {self.__class__.__name__} using stored state")
         for key in self.provides:
             assert key in state
 
 
-class StepRunner(object):
+class StepRunner:
     steps = []  # type: ClassVar[List[Type[Step]]]
 
     def __init__(self, logger, state):

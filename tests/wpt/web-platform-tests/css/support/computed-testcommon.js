@@ -25,7 +25,10 @@ function test_computed_value(property, specified, computed, titleExtra) {
     if (Array.isArray(computed)) {
       assert_in_array(readValue, computed);
     } else {
-      assert_equals(readValue, computed);
+      if (property == "color")
+        colorValuesAlmostEqual(readValue, computed, 0.0001);
+      else
+        assert_equals(readValue, computed);
     }
     if (readValue !== specified) {
       target.style[property] = '';
@@ -36,7 +39,32 @@ function test_computed_value(property, specified, computed, titleExtra) {
   }, `Property ${property} value '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
 }
 
-function test_computed_value_greater_or_lower_than(property, specified, expected, titleExtra) {
+function colorValuesAlmostEqual(color1, color2, epsilon) {
+  // Colors can be split by spaces, commas or the '(' character.
+  const colorElementDividers = /( |\(|,)/;
+  // Return the string stripped of numbers.
+  function getNonNumbers(color) {
+    return color.replace(/[0-9]/g, '');
+  }
+  // Return an array of all numbers in the color.
+  function getNumbers(color) {
+    const result = [];
+    // const entries = color.split(colorElementDividers);
+    color.split(colorElementDividers).forEach(element => {
+      const numberElement = parseFloat(element);
+      if (!isNaN(numberElement)) {
+        result.push(numberElement);
+      }
+    });
+    return result;
+  }
+
+  assert_array_approx_equals(getNumbers(color1), getNumbers(color2), epsilon, "Numeric parameters are approximately equal.");
+  // Assert that the text of the two colors are equal. i.e. colorSpace, colorFunction and format.
+  assert_equals(getNonNumbers(color1), getNonNumbers(color2), "Color format is correct.");
+}
+
+function testComputedValueGreaterOrLowerThan(property, specified, expected, titleExtra) {
     test(() => {
       const target = document.getElementById('target');
       assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
@@ -53,16 +81,16 @@ function test_computed_value_greater_or_lower_than(property, specified, expected
   }, `Property ${property} value '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
 }
 
-function compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)
+function testTransformValuesCloseTo(specified, epsilon, expectedValue, description)
 {
     if(!description) {
-        description = `Property ${calcValue} value expected same with ${expectedValue} in +/-${epsilon}`
+      description = `Property ${specified} value expected same with ${expectedValue} in +/-${epsilon}`
     }
 
     test(function()
     {
         var targetElement = document.getElementById("target");
-        targetElement.style.setProperty(property_name, "initial");
+        targetElement.style.setProperty('transform', "initial");
 
         /*
         Since we are running many consecutive tests on the same
@@ -70,9 +98,9 @@ function compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, d
         to an initial value before actually re-testing it.
         */
 
-        targetElement.style.setProperty(property_name, calcValue);
+        targetElement.style.setProperty('transform', specified);
 
-        var computedCalcValue = getComputedStyle(targetElement)[property_name];
+        var computedCalcValue = getComputedStyle(targetElement)['transform'];
 
         /*
         We first strip out the word "matrix" with the
@@ -107,9 +135,9 @@ function compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, d
         Now, we execute the same steps with the expectedValue
         */
 
-        targetElement.style.setProperty(property_name, expectedValue);
+        targetElement.style.setProperty('transform', expectedValue);
 
-        var computedExpectedValue = getComputedStyle(targetElement)[property_name];
+        var computedExpectedValue = getComputedStyle(targetElement)['transform'];
 
         /*
         We first strip out the word "matrix" with the
@@ -141,41 +169,9 @@ function compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, d
         tableSplitExpectedValue[5] = parseFloat(tableSplitExpectedValue[5]);
 
         assert_array_approx_equals(tableSplitCalcValue, tableSplitExpectedValue, epsilon);
-
-        /*
-        In this mega-test of 27 sub-tests, we intentionally
-        set the tolerance precision (epsilon) to a rather big
-        value (0.0001 === 100 millionths). The reason for this
-        is we want to verify if browsers and CSS-capable
-        applications do the right calculations. We do not want
-        to penalize browsers and CSS-capable applications that
-        have modest precision (not capable of a 1 millionth
-        level precision).
-        */
-
     } , description);
 
 }
-
-/*
-    deg
-    Degrees. There are 360 degrees in a full circle.
-
-    grad
-    Gradians, also known as "gons" or "grades". There are 400 gradians in a full circle.
-
-    rad
-    Radians. There are 2π radians in a full circle.
-
-    1rad == 57.295779513°
-    https://www.rapidtables.com/convert/number/radians-to-degrees.html
-
-    π == Math.PI == 3.141592653589793
-
-    turn
-    Turns. There is 1 turn in a full circle.
-*/
-    /* Addition of angle units */
 
 function test_pseudo_computed_value(pseudo, property, specified, computed, titleExtra) {
   if (!computed)

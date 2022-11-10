@@ -21,8 +21,8 @@ if MYPY:
 
 
 if MYPY:
-    TypeDataType = MutableMapping[Tuple[Text, ...], Set[item.ManifestItem]]
-    PathHashType = MutableMapping[Tuple[Text, ...], Text]
+    TypeDataType = MutableMapping[Tuple[str, ...], Set[item.ManifestItem]]
+    PathHashType = MutableMapping[Tuple[str, ...], str]
 else:
     TypeDataType = MutableMapping
     PathHashType = MutableMapping
@@ -128,7 +128,7 @@ class TypeData(TypeDataType):
         for i, pathseg in enumerate(key[:-1]):
             node = node.setdefault(pathseg, {})
             if not isinstance(node, dict):
-                raise KeyError("%r is a child of a test (%r)" % (key, key[:i+1]))
+                raise KeyError(f"{key!r} is a child of a test ({key[:i+1]!r})")
         node[key[-1]] = value
 
     def __delitem__(self, key):
@@ -146,8 +146,8 @@ class TypeData(TypeDataType):
     def __iter__(self):
         # type: () -> Iterator[Tuple[Text, ...]]
         """Iterator over keys in the TypeData in codepoint order"""
-        data_node = self._data  # type: Optional[Dict[Text, Any]]
-        json_node = self._json_data  # type: Optional[Dict[Text, Any]]
+        data_node = self._data  # type: Optional[Union[Dict[Text, Any], Set[item.ManifestItem]]]
+        json_node = self._json_data  # type: Optional[Union[Dict[Text, Any], List[Any]]]
         path = tuple()  # type: Tuple[Text, ...]
         stack = [(data_node, json_node, path)]
         while stack:
@@ -174,7 +174,7 @@ class TypeData(TypeDataType):
         # type: () -> int
         count = 0
 
-        stack = [self._data]
+        stack = [self._data]  # type: List[Union[Dict[Text, Any], Set[item.ManifestItem]]]
         while stack:
             v = stack.pop()
             if isinstance(v, set):
@@ -182,13 +182,13 @@ class TypeData(TypeDataType):
             else:
                 stack.extend(v.values())
 
-        stack = [self._json_data]
-        while stack:
-            v = stack.pop()
-            if isinstance(v, list):
+        json_stack = [self._json_data]  # type: List[Union[Dict[Text, Any], List[Any]]]
+        while json_stack:
+            json_v = json_stack.pop()
+            if isinstance(json_v, list):
                 count += 1
             else:
-                stack.extend(v.values())
+                json_stack.extend(json_v.values())
 
         return count
 

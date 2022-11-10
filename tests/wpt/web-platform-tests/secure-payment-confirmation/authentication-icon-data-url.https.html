@@ -34,6 +34,7 @@ promise_test(async t => {
       credentialIds: [credential.rawId],
       challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
       payeeOrigin,
+      rpId: window.location.hostname,
       timeout: 60000,
       instrument: {
         displayName,
@@ -42,6 +43,7 @@ promise_test(async t => {
     }
   }], PAYMENT_DETAILS);
 
+  await test_driver.bless('user activation');
   const responsePromise = request.show();
 
   const response = await responsePromise;

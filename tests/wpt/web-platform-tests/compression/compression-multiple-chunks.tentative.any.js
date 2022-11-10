@@ -57,4 +57,11 @@ for (let numberOfChunks = 2; numberOfChunks <= 16; ++numberOfChunks) {
     // decompress with pako, and check that we got the same result as our original string
     assert_array_equals(expectedValue, pako.inflate(compressedData), 'value should match');
   }, `compressing ${numberOfChunks} chunks with gzip should work`);
+
+  promise_test(async t => {
+    const compressedData = await compressMultipleChunks(hello, numberOfChunks, 'deflate-raw');
+    const expectedValue = makeExpectedChunk(hello, numberOfChunks);
+    // decompress with pako, and check that we got the same result as our original string
+    assert_array_equals(expectedValue, pako.inflateRaw(compressedData), 'value should match');
+  }, `compressing ${numberOfChunks} chunks with deflate-raw should work`);
 }

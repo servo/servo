@@ -1,0 +1,71 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/helper.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+// When a service worker is unregistered when a controlled page is in BFCache,
+// the page can be still restored from BFCache and remain controlled by the
+// service worker.
+promise_test(async t => {
+  // Register a service worker and make this page controlled.
+  const workerUrl =
+      'resources/service-worker.js?pipe=header(Service-Worker-Allowed,../)';
+  const registration =
+      await service_worker_unregister_and_register(t, workerUrl, './');
+  t.add_cleanup(_ => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+  const controllerChanged = new Promise(
+      resolve => navigator.serviceWorker.oncontrollerchange = resolve);
+  await claim(t, registration.active);
+  await controllerChanged;
+
+  const pageA = new RemoteContext(token());
+  const pageB = new RemoteContext(token());
+
+  const urlA = location.origin + executorPath + pageA.context_id;
+  const urlB = originCrossSite + executorPath + pageB.context_id;
+
+  // Open `urlA`.
+  window.open(urlA, '_blank', 'noopener');
+  await pageA.execute_script(waitForPageShow);
+
+  assert_true(
+    await pageA.execute_script(
+        () => (navigator.serviceWorker.controller !== null)),
+    'pageA should be controlled before navigation');
+
+  await storeClients(t, registration.active);
+
+  // Navigate to `urlB`.
+  await pageA.execute_script(
+    (url) => prepareNavigation(() => {
+      location.href = url;
+    }),
+    [urlB]);
+  await pageB.execute_script(waitForPageShow);
+
+  // Posting a message to a client should evict it from the bfcache.
+  await postMessageToStoredClients(t, registration.active);
+
+  // Back navigate and check whether the page is restored from BFCache.
+  await pageB.execute_script(
+    () => {
+      prepareNavigation(() => { history.back(); });
+    }
+  );
+  await pageA.execute_script(waitForPageShow);
+  await assert_not_bfcached(pageA);
+
+  await pageA.execute_script(() => navigator.serviceWorker.ready);
+
+  assert_true(
+    await pageA.execute_script(
+        () => (navigator.serviceWorker.controller !== null)),
+    'pageA should be controlled after history navigation');
+
+}, 'Client.postMessage while a controlled page is in BFCache');
+</script>

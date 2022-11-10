@@ -21,7 +21,7 @@ function import_csp_test(
           ? '?pipe=header(Content-Security-Policy, ' + cspHeader + ')'
           : ''}`;
   // Append CSP header to scriptURL for dynamic import tests since dynamic
-  // import scripts should obey Worker script's responce's CSP.
+  // import scripts should obey Worker script's response's CSP.
   const scriptURL = `${importType}-import-remote-origin-script-worker.sub.js` +
       `${importType === 'dynamic'
           ? '?pipe=header(Content-Security-Policy, ' + cspHeader + ')'

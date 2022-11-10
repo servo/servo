@@ -35,7 +35,7 @@ promise.then(function(response) {
         ctx.fillRect(0, 0, 100, 50);
         ctx.globalCompositeOperation = 'destination-atop';
         ctx.drawImage(offscreenCanvas2, 0, 0);
-        _assertPixelApprox(canvas, 50,25, 128,255,128,191, "50,25", "128,255,128,191", 5);
+        _assertPixelApprox(canvas, 50,25, 128,255,128,191, 5);
     }, t_fail);
 }).then(t_pass, t_fail);
 

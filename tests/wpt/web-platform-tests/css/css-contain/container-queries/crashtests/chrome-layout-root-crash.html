@@ -1,0 +1,17 @@
+<!doctype html>
+<html class="reftest-wait">
+<link rel="help" href="https://crbug.com/1371820">
+<style>
+  body, div, img { container-type: size; }
+</style>
+<p>Pass if no crash.</p>
+<div id="div"><img id="img" alt="a"></div>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    // Adds a layout root inside the div size container.
+    img.alt = img.src = "b";
+    // Marks div size container for layout which skips style recalc for the sub-tree.
+    div.style.width = "500px";
+    document.documentElement.classList.remove("reftest-wait");
+  }));
+</script>

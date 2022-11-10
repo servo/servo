@@ -1,0 +1,81 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Federated Credential Management API (https://fedidcg.github.io/FedCM/)
+
+dictionary IdentityProviderWellKnown {
+  required sequence<USVString> provider_urls;
+};
+
+dictionary IdentityProviderIcon {
+  required USVString url;
+  unsigned long size;
+};
+
+dictionary IdentityProviderBranding {
+  USVString background_color;
+  USVString color;
+  sequence<IdentityProviderIcon> icons;
+};
+
+dictionary IdentityProviderAPIConfig {
+  required USVString accounts_endpoint;
+  required USVString client_metadata_endpoint;
+  required USVString id_assertion_endpoint;
+  IdentityProviderBranding branding;
+};
+
+dictionary IdentityProviderAccount {
+  required USVString id;
+  required USVString name;
+  required USVString email;
+  USVString given_name;
+  sequence<USVString> approved_clients;
+};
+dictionary IdentityProviderAccountList {
+  sequence<IdentityProviderAccount> accounts;
+};
+
+dictionary IdentityProviderClientMetadata {
+  USVString privacy_policy_url;
+  USVString terms_of_service_url;
+};
+
+dictionary IdentityProviderToken {
+  required USVString token;
+};
+
+[Exposed=Window, SecureContext]
+interface IdentityCredential : Credential {
+  readonly attribute USVString? token;
+};
+
+partial dictionary CredentialRequestOptions {
+  IdentityCredentialRequestOptions identity;
+};
+
+dictionary IdentityCredentialRequestOptions {
+  sequence<IdentityProviderConfig> providers;
+};
+
+dictionary IdentityProviderConfig {
+  required USVString configURL;
+  required USVString clientId;
+  USVString nonce;
+};
+
+dictionary IdentityCredentialLogoutRPsRequest {
+  required USVString url;
+  required USVString accountId;
+};
+
+[Exposed=Window, SecureContext]
+partial interface IdentityCredential {
+  static Promise<undefined> logoutRPs(sequence<IdentityCredentialLogoutRPsRequest> logoutRequests);
+};
+
+[Exposed=Window, SecureContext]
+interface IdentityProvider {
+  static undefined login();
+  static undefined logout();
+};

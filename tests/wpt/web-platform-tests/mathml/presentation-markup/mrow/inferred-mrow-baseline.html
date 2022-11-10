@@ -20,7 +20,7 @@
   window.addEventListener("load", runTests);
   function runTests()
   {
-      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown"].forEach((tag) => {
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd"].forEach((tag) => {
           var x = document.getElementById("above" + tag).getBoundingClientRect();
           var y = document.getElementById("below" + tag).getBoundingClientRect();
           test(function() {
@@ -48,6 +48,8 @@
 ></mspace><mspace id="belowMpadded" width="10px" depth="30px" style="background: blue"></mspace></mpadded></math>
     <math><unknown><mspace id="aboveUnknown" width="10px" height="30px" style="background: purple"
 ></mspace><mspace id="belowUnknown" width="10px" depth="30px" style="background: blue"></mspace></unknown></math>
+    <math><mtable><mtr><mtd><mspace id="aboveMtd" width="10px" height="30px" style="background: purple"
+></mspace><mspace id="belowMtd" width="10px" depth="30px" style="background: blue"></mspace></mtd></mtr></mtable></math>
   </p>
 </body>
 </html>

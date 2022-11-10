@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Test CropTarget.fromElement()</title>
+  <meta name='assert' content='Test CropTarget.fromElement().' />
+</head>
+
+<body>
+  <h1 class="instructions">Description</h1>
+  <p class="instructions">
+    This test checks for the behavior of <code>CropTarget.fromElement()</code>.
+  </p>
+
+  <div id='test-div'></div>
+  <iframe id='test-iframe' src="about:blank"></iframe>
+  <img id='test-img' alt='Alt text' width="500" height="600">
+  <div id='log'></div>
+
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+
+  <script>
+    "use strict";
+
+    promise_test(async () => {
+      assert_true(!!CropTarget.fromElement);
+      const crop_target = await CropTarget.fromElement(
+        document.getElementById('test-iframe'));
+      assert_equals(crop_target.constructor.name, 'CropTarget');
+    }, "Produces a CropTarget for Elements of subtype iframe.");
+
+    promise_test(async () => {
+      assert_true(!!CropTarget.fromElement);
+      const crop_target = await CropTarget.fromElement(
+        document.getElementById('test-div'));
+      assert_equals(crop_target.constructor.name, 'CropTarget');
+    }, "Produces a CropTarget for Elements of subtype div.");
+
+    // TODO(crbug.com/1247761): Re-enable after rolling out the
+    // experiment to allow any Element.
+    // promise_test(function (t) {
+    //   assert_true(!!CropTarget.fromElement);
+    //
+    //   return promise_rejects_dom(t, "NotSupportedError",
+    //     CropTarget.fromElement(document.getElementById("test-img")));
+    // }, "Produces a CropTarget for Elements of subtype img.");
+
+    promise_test(t => {
+      assert_true(!!CropTarget.fromElement);
+      return promise_rejects_js(t, TypeError,
+        CropTarget.fromElement(undefined));
+    }, "Rejects undefined with a TypeError.");
+
+    promise_test(t => {
+      assert_true(!!CropTarget.fromElement);
+      return promise_rejects_js(t, TypeError, CropTarget.fromElement(123));
+    }, "Rejects a non-Element with a TypeError.");
+
+    promise_test(async () => {
+      assert_true(!!CropTarget.fromElement);
+
+      const div_crop_target = await CropTarget.fromElement(
+        document.getElementById('test-div'));
+      assert_equals(div_crop_target.constructor.name, 'CropTarget');
+
+      const iframe_crop_target = await CropTarget.fromElement(
+        document.getElementById('test-iframe'));
+      assert_equals(iframe_crop_target.constructor.name, 'CropTarget');
+
+      assert_not_equals(div_crop_target, iframe_crop_target);
+    }, "Distinct Elements produce distinct CropTargets.");
+
+    promise_test(async () => {
+      assert_true(!!CropTarget.fromElement);
+
+      const div = document.getElementById('test-div');
+      const div_crop_target = await CropTarget.fromElement(div);
+      assert_equals(div_crop_target.constructor.name, 'CropTarget');
+
+      const clone = div.cloneNode(true);
+      document.querySelector('body').appendChild(clone);
+      const clone_crop_target = await CropTarget.fromElement(clone);
+      assert_equals(clone_crop_target.constructor.name, 'CropTarget');
+
+      assert_not_equals(div_crop_target, clone_crop_target);
+    }, "Cloned Elements produce distinct CropTargets.");
+
+  </script>
+</body>
+
+</html>

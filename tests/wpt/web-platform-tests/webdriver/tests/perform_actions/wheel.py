@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.error import NoSuchWindowException
+from webdriver.error import InvalidArgumentException, NoSuchWindowException
 
 from tests.perform_actions.support.refine import get_events
 from tests.support.asserts import assert_move_to_coordinates
@@ -62,3 +62,14 @@ def test_wheel_scroll_iframe(session, test_actions_scroll_page, wheel_chain):
     assert events[0]["deltaY"] >= 10
     assert events[0]["deltaZ"] == 0
     assert events[0]["target"] == "iframeContent"
+
+
+@pytest.mark.parametrize("missing", ["x", "y", "deltaX", "deltaY"])
+def test_wheel_missing_prop(session, test_actions_scroll_page, wheel_chain, missing):
+    session.execute_script("document.scrollingElement.scrollTop = 0")
+
+    outer = session.find.css("#outer", all=False)
+    actions = wheel_chain.scroll(0, 0, 5, 10, origin=outer)
+    del actions._actions[-1][missing]
+    with pytest.raises(InvalidArgumentException):
+        actions.perform()

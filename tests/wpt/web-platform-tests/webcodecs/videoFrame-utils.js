@@ -107,3 +107,12 @@ async function testI420_4x2_copyTo(destination) {
   assert_layout_equals(layout, expectedLayout);
   assert_buffer_equals(destination, expectedData);
 }
+
+function verifyTimestampRequiredToConstructFrame(imageSource) {
+  assert_throws_js(
+      TypeError,
+      () => new VideoFrame(imageSource),
+      'timestamp required to construct VideoFrame from this source');
+  let validFrame = new VideoFrame(imageSource, {timestamp: 0});
+  validFrame.close();
+}

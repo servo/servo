@@ -3,13 +3,13 @@
 // (https://github.com/w3c/webref)
 // Source: Compression Streams (https://wicg.github.io/compression/)
 
-[Exposed=(Window,Worker)]
+[Exposed=*]
 interface CompressionStream {
   constructor(DOMString format);
 };
 CompressionStream includes GenericTransformStream;
 
-[Exposed=(Window,Worker)]
+[Exposed=*]
 interface DecompressionStream {
   constructor(DOMString format);
 };

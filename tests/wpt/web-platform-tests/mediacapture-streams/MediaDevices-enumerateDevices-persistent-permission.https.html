@@ -28,7 +28,7 @@
     const e = await msgWatcher.wait_for('message');
     const iframeDevices = e.data.devices;
     const kinds = iframeDevices.map(({kind}) => kind);
-    assert_equals(kinds.length == new Set(kinds).size, "At most one of a kind prior to capture");
+    assert_equals(kinds.length, new Set(kinds).size, "At most one of a kind prior to capture");
     for (const device of iframeDevices) {
       assert_equals(device.deviceId, "", "deviceId pre-capture is empty");
       assert_equals(device.label, "", "label pre-capture is empty");

@@ -1,9 +1,6 @@
 - name: 2d.text.draw.fill.basic
   desc: fillText draws filled text
   manual:
-  testing:
-  - 2d.text.draw
-  - 2d.text.draw.fill
   code: |
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 100, 50);
@@ -25,8 +22,6 @@
 
 - name: 2d.text.draw.fill.unaffected
   desc: fillText does not start a new path or subpath
-  testing:
-  - 2d.text.draw.fill
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -49,8 +44,6 @@
 - name: 2d.text.draw.fill.rtl
   desc: fillText respects Right-To-Left Override characters
   manual:
-  testing:
-  - 2d.text.draw
   code: |
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 100, 50);
@@ -62,8 +55,6 @@
 - name: 2d.text.draw.fill.maxWidth.large
   desc: fillText handles maxWidth correctly
   manual:
-  testing:
-  - 2d.text.draw.maxwidth
   code: |
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 100, 50);
@@ -73,8 +64,6 @@
   expected: *passfill
 - name: 2d.text.draw.fill.maxWidth.small
   desc: fillText handles maxWidth correctly
-  testing:
-  - 2d.text.draw.maxwidth
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -86,8 +75,6 @@
 
 - name: 2d.text.draw.fill.maxWidth.zero
   desc: fillText handles maxWidth correctly
-  testing:
-  - 2d.text.draw.maxwidth
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -99,8 +86,6 @@
 
 - name: 2d.text.draw.fill.maxWidth.negative
   desc: fillText handles maxWidth correctly
-  testing:
-  - 2d.text.draw.maxwidth
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -112,8 +97,6 @@
 
 - name: 2d.text.draw.fill.maxWidth.NaN
   desc: fillText handles maxWidth correctly
-  testing:
-  - 2d.text.draw.maxwidth
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -126,9 +109,6 @@
 - name: 2d.text.draw.stroke.basic
   desc: strokeText draws stroked text
   manual:
-  testing:
-  - 2d.text.draw
-  - 2d.text.draw.stroke
   code: |
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, 100, 50);
@@ -152,8 +132,6 @@
 
 - name: 2d.text.draw.stroke.unaffected
   desc: strokeText does not start a new path or subpath
-  testing:
-  - 2d.text.draw.stroke
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
@@ -177,8 +155,6 @@
 - name: 2d.text.draw.kern.consistent
   desc: Stroked and filled text should have exactly the same kerning so it overlaps
   manual:
-  testing:
-  - 2d.text.draw
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -212,8 +188,6 @@
 
 - name: 2d.text.draw.fill.maxWidth.fontface
   desc: fillText works on @font-face fonts
-  testing:
-  - 2d.text.draw.maxwidth
   fonts:
   - CanvasTest
   code: |
@@ -233,8 +207,6 @@
 
 - name: 2d.text.draw.fill.maxWidth.bound
   desc: fillText handles maxWidth based on line size, not bounding box size
-  testing:
-  - 2d.text.draw.maxwidth
   fonts:
   - CanvasTest
   code: |
@@ -253,8 +225,6 @@
   expected: green
 
 - name: 2d.text.draw.fontface
-  testing:
-  - 2d.text.font.fontface
   fonts:
   - CanvasTest
   code: |
@@ -275,8 +245,6 @@
 - name: 2d.text.draw.fontface.repeat
   desc: Draw with the font immediately, then wait a bit until and draw again. (This
     crashes some version of WebKit.)
-  testing:
-  - 2d.text.font.fontface
   fonts:
   - CanvasTest
   fonthack: 0
@@ -298,8 +266,6 @@
 
 - name: 2d.text.draw.fontface.notinpage
   desc: '@font-face fonts should work even if they are not used in the page'
-  testing:
-  - 2d.text.font.fontface
   fonts:
   - CanvasTest
   fonthack: 0
@@ -320,8 +286,6 @@
 
 - name: 2d.text.draw.align.left
   desc: textAlign left is the left of the first em square (not the bounding box)
-  testing:
-  - 2d.text.align.left
   fonts:
   - CanvasTest
   code: |
@@ -344,8 +308,6 @@
 
 - name: 2d.text.draw.align.right
   desc: textAlign right is the right of the last em square (not the bounding box)
-  testing:
-  - 2d.text.align.right
   fonts:
   - CanvasTest
   code: |
@@ -368,8 +330,6 @@
 
 - name: 2d.text.draw.align.start.ltr
   desc: textAlign start with ltr is the left edge
-  testing:
-  - 2d.text.align.left
   fonts:
   - CanvasTest
   canvas: width="100" height="50" dir="ltr"
@@ -393,9 +353,6 @@
 
 - name: 2d.text.draw.align.start.rtl
   desc: textAlign start with rtl is the right edge
-  testing:
-  - 2d.text.align.right
-  - 2d.text.draw.direction
   fonts:
   - CanvasTest
   canvas: width="100" height="50" dir="rtl"
@@ -419,8 +376,6 @@
 
 - name: 2d.text.draw.align.end.ltr
   desc: textAlign end with ltr is the right edge
-  testing:
-  - 2d.text.align.right
   fonts:
   - CanvasTest
   canvas: width="100" height="50" dir="ltr"
@@ -444,9 +399,6 @@
 
 - name: 2d.text.draw.align.end.rtl
   desc: textAlign end with rtl is the left edge
-  testing:
-  - 2d.text.align.left
-  - 2d.text.draw.direction
   fonts:
   - CanvasTest
   canvas: width="100" height="50" dir="rtl"
@@ -470,8 +422,6 @@
 
 - name: 2d.text.draw.align.center
   desc: textAlign center is the center of the em squares (not the bounding box)
-  testing:
-  - 2d.text.align.center
   fonts:
   - CanvasTest
   code: |
@@ -495,8 +445,6 @@
 
 - name: 2d.text.draw.space.basic
   desc: U+0020 is rendered the correct size (1em wide)
-  testing:
-  - 2d.text.draw.spaces
   fonts:
   - CanvasTest
   code: |
@@ -514,8 +462,6 @@
 
 - name: 2d.text.draw.space.collapse.nonspace
   desc: Non-space characters are not converted to U+0020 and collapsed
-  testing:
-  - 2d.text.draw.spaces
   fonts:
   - CanvasTest
   code: |
@@ -533,8 +479,6 @@
 
 - name: 2d.text.measure.width.basic
   desc: The width of character is same as font used
-  testing:
-  - 2d.text.measure
   fonts:
   - CanvasTest
   code: |
@@ -555,8 +499,6 @@
 
 - name: 2d.text.measure.width.empty
   desc: The empty string has zero width
-  testing:
-  - 2d.text.measure
   fonts:
   - CanvasTest
   code: |
@@ -572,8 +514,6 @@
 
 - name: 2d.text.measure.advances
   desc: Testing width advances
-  testing:
-  - 2d.text.measure.advances
   fonts:
   - CanvasTest
   code: |
@@ -604,8 +544,6 @@
 
 - name: 2d.text.measure.actualBoundingBox
   desc: Testing actualBoundingBox
-  testing:
-  - 2d.text.measure.actualBoundingBox
   fonts:
   - CanvasTest
   code: |
@@ -644,8 +582,6 @@
 
 - name: 2d.text.measure.fontBoundingBox
   desc: Testing fontBoundingBox
-  testing:
-  - 2d.text.measure.fontBoundingBox
   fonts:
   - CanvasTest
   code: |
@@ -667,8 +603,6 @@
 
 - name: 2d.text.measure.fontBoundingBox.ahem
   desc: Testing fontBoundingBox for font ahem
-  testing:
-  - 2d.text.measure.fontBoundingBox
   fonts:
   - Ahem
   code: |
@@ -690,8 +624,6 @@
 
 - name: 2d.text.measure.emHeights
   desc: Testing emHeights
-  testing:
-  - 2d.text.measure.emHeights
   fonts:
   - CanvasTest
   code: |
@@ -715,8 +647,6 @@
 
 - name: 2d.text.measure.baselines
   desc: Testing baselines
-  testing:
-  - 2d.text.measure.baselines
   fonts:
   - CanvasTest
   code: |
@@ -740,8 +670,6 @@
 
 - name: 2d.text.drawing.style.spacing
   desc: Testing letter spacing and word spacing
-  testing:
-  - 2d.text.drawing.style.spacing
   code: |
     @assert ctx.letterSpacing === '0px';
     @assert ctx.wordSpacing === '0px';
@@ -766,8 +694,6 @@
 
 - name: 2d.text.drawing.style.nonfinite.spacing
   desc: Testing letter spacing and word spacing with nonfinite inputs
-  testing:
-  - 2d.text.drawing.style.spacing
   code: |
     @assert ctx.letterSpacing === '0px';
     @assert ctx.wordSpacing === '0px';
@@ -782,8 +708,6 @@
 
 - name: 2d.text.drawing.style.invalid.spacing
   desc: Testing letter spacing and word spacing with invalid units
-  testing:
-  - 2d.text.drawing.style.spacing
   code: |
     @assert ctx.letterSpacing === '0px';
     @assert ctx.wordSpacing === '0px';
@@ -798,8 +722,6 @@
 
 - name: 2d.text.drawing.style.letterSpacing.measure
   desc: Testing letter spacing and word spacing
-  testing:
-  - 2d.text.drawing.style.spacing
   code: |
     @assert ctx.letterSpacing === '0px';
     @assert ctx.wordSpacing === '0px';
@@ -832,8 +754,6 @@
 
 - name: 2d.text.drawing.style.wordSpacing.measure
   desc: Testing if word spacing is working properly
-  testing:
-  - 2d.text.drawing.style.spacing
   code: |
     @assert ctx.letterSpacing === '0px';
     @assert ctx.wordSpacing === '0px';
@@ -866,8 +786,6 @@
 
 - name: 2d.text.drawing.style.letterSpacing.change.font
   desc: Set letter spacing and word spacing to font dependent value and verify it works after font change.
-  testing:
-  - 2d.text.drawing.style.spacing
   code: |
     @assert ctx.letterSpacing === '0px';
     @assert ctx.wordSpacing === '0px';
@@ -892,8 +810,6 @@
 
 - name: 2d.text.drawing.style.wordSpacing.change.font
   desc: Set word spacing and word spacing to font dependent value and verify it works after font change.
-  testing:
-  - 2d.text.drawing.style.spacing
   code: |
     @assert ctx.letterSpacing === '0px';
     @assert ctx.wordSpacing === '0px';
@@ -918,22 +834,18 @@
 
 - name: 2d.text.drawing.style.fontKerning
   desc: Testing basic functionalities of fontKerning for canvas
-  testing:
-  - 2d.text.drawing.style.fontKerning
   code: |
     @assert ctx.fontKerning === "auto";
-    ctx.fontKerning = "Normal";
+    ctx.fontKerning = "normal";
     @assert ctx.fontKerning === "normal";
     width_normal = ctx.measureText("TAWATAVA").width;
-    ctx.fontKerning = "None";
+    ctx.fontKerning = "none";
     @assert ctx.fontKerning === "none";
     width_none = ctx.measureText("TAWATAVA").width;
     @assert width_normal < width_none;
 
 - name: 2d.text.drawing.style.fontKerning.with.uppercase
   desc: Testing basic functionalities of fontKerning for canvas
-  testing:
-  - 2d.text.drawing.style.fontKerning
   code: |
     @assert ctx.fontKerning === "auto";
     ctx.fontKerning = "Normal";
@@ -968,8 +880,6 @@
 
 - name: 2d.text.drawing.style.fontVariant.settings
   desc: Testing basic functionalities of fontKerning for canvas
-  testing:
-  - 2d.text.drawing.style.fontVariantCaps
   code: |
     // Setting fontVariantCaps with lower cases
     @assert ctx.fontVariantCaps === "normal";
@@ -1023,8 +933,6 @@
 
 - name: 2d.text.drawing.style.textRendering.settings
   desc: Testing basic functionalities of textRendering in Canvas
-  testing:
-  - 2d.text.drawing.style.textRendering
   code: |
     // Setting textRendering with lower cases
     @assert ctx.textRendering === "auto";

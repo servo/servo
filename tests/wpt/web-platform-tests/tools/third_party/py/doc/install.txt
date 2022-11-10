@@ -1,13 +1,13 @@
 
 .. _`py`:
-.. _`index page`: http://pypi.python.org/pypi/py/
+.. _`index page`: https://pypi.org/project/py/
 
 installation info in a nutshell
 ===================================================
 
 **PyPI name**: py_
 
-**Pythons**: CPython 2.7, 3.4, 3.5, 3.6, PyPy-5.4
+**Pythons**: CPython 2.7, 3.5, 3.6, 3.7, PyPy-5.4
 
 **Operating systems**: Linux, Windows, OSX, Unix
 
@@ -15,7 +15,7 @@ installation info in a nutshell
 
 **Installers**: ``easy_install`` and ``pip``
 
-**hg repository**: https://bitbucket.org/hpk42/py
+**Code repository**: https://github.com/pytest-dev/py
 
 easy install or pip ``py``
 -----------------------------
@@ -39,16 +39,16 @@ Working from version control or a tarball
 -----------------------------------------------
 
 To follow development or start experiments, checkout the
-complete code and documentation source with mercurial_::
+complete code and documentation source::
 
-    hg clone https://bitbucket.org/hpk42/py
+    git clone https://github.com/pytest-dev/py
 
-Development takes place on the 'trunk' branch.
+Development takes place on the 'master' branch.
 
 You can also go to the python package index and
 download and unpack a TAR file::
 
-    http://pypi.python.org/pypi/py/
+   https://pypi.org/project/py/
 
 activating a checkout with setuptools
 --------------------------------------------
@@ -63,7 +63,7 @@ in order to work inline with the tools and the lib of your checkout.
 
 .. _`directly use a checkout`:
 
-.. _`setuptools`: http://pypi.python.org/pypi/setuptools
+.. _`setuptools`: https://pypi.org/project/setuptools/
 
 
 Mailing list and issue tracker
@@ -71,12 +71,15 @@ Mailing list and issue tracker
 
 - `py-dev developers list`_ and `commit mailing list`_.
 
-- #pylib on irc.freenode.net IRC channel for random questions.
+- ``#pytest`` `on irc.libera.chat <ircs://irc.libera.chat:6697/#pytest>`_ IRC
+  channel for random questions (using an IRC client, `via webchat
+  <https://web.libera.chat/#pytest>`_, or `via Matrix
+  <https://matrix.to/#/%23pytest:libera.chat>`_).
 
-- `bitbucket issue tracker`_ use this bitbucket issue tracker to report
+- `issue tracker`_ use the issue tracker to report
   bugs or request features.
 
-.. _`bitbucket issue tracker`: http://bitbucket.org/hpk42/py/issues/
+.. _`issue tracker`: https://github.com/pytest-dev/py/issues
 
 .. _codespeak: http://codespeak.net/
 .. _`py-dev`:

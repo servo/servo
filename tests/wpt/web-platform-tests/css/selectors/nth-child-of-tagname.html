@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<title>:nth-child with tagname selector list argument</title>
+<link rel="help" href="https://w3c.github.io/csswg-drafts/selectors-4/#child-index">
+<link rel="match" href="nth-child-of-tagname-ref.html">
+<style>
+:nth-child(odd of webkit, fast) {
+    background-color: lime;
+}
+</style>
+</head>
+<body>
+    <webkit></webkit>
+    <p>This test the styling of paragraphs with :nth-child(An+B of selector). If the test succeed, paragraphs that say "green" should have a green background.</p>
+    <p>White!</p>
+    <p>White!</p>
+    <fast>White!</fast>
+    <p>White!</p>
+    <p>White!</p>
+    <webkit>Green</webkit>
+    <p>White!</p>
+    <webkit>White!</webkit>
+    <p>White!</p>
+</body>
+</html>

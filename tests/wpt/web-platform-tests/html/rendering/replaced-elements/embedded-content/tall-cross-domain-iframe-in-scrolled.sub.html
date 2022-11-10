@@ -9,6 +9,12 @@
 <div style="height: 2000px"></div>
 <script>
   window.scrollTo(0, 700);
-  myframe.onload = () => document.documentElement.classList.remove('reftest-wait');
+  myframe.onload = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('reftest-wait');
+      });
+    });
+  }
 </script>
 </html>

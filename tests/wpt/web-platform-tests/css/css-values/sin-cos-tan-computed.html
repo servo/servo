@@ -3,6 +3,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
 <link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
 <link rel="author" title="Apple Inc">
+<link rel="author" title="Seokho Song" href="seokho@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../support/numeric-testcommon.js"></script>
@@ -22,7 +23,7 @@ test_math_used('calc(cos(e - 2.7182818284590452354) )', '1', {type:'number', app
 
 //Test units
 test_math_used('calc(sin(30deg + 1.0471967rad ) )', '1', {type:'number', approx:0.1});
-test_math_used('calc(cos(30deg - 0.523599rad ) )', '1'), {type:'number', approx:0.1};
+test_math_used('calc(cos(30deg - 0.523599rad ) )', '1', {type:'number', approx:0.1});
 test_math_used('calc(sin(3.14159 / 2 + 1 - 1) )', '1', {type:'number', approx:0.1});
 test_math_used('calc(sin(100grad) )', '1', {type:'number', approx:0.1});
 test_math_used('calc(cos(0 / 2 + 1 - 1) )', '1', {type:'number', approx:0.1});

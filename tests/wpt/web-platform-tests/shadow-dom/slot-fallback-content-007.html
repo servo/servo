@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8" >
+<meta name="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<meta name="assert" content="Basic slot fallback content, when dynamically created">
+<title>Shadow DOM: Slots and fallback contents</title>
+<link rel="match" href="slot-fallback-content-007-ref.html">
+
+<div id="host">FAIL
+  <slot id="slot1" name="slot1">FAIL</slot>
+  <slot id="slot2" name="slot2">SLOT2</slot>
+  <slot id="slot3" name="slot3"></slot>
+  <slot id="slot4" name="slot4"></slot>
+
+  <div id="A">FAIL</div>
+  <div id="B" slot="slot1">B</div>
+  <div id="C" slot="slot3">C</div>
+  <div id="D" slot="slot-DNE">FAIL</div>
+  <div id="E" slot="slot1">E</div>
+  <div id="F">FAIL</div>
+</div>
+
+<script>
+const shadowRoot = host.attachShadow({ mode: "open" });
+shadowRoot.appendChild(slot1);
+shadowRoot.appendChild(slot2);
+shadowRoot.appendChild(slot3);
+shadowRoot.appendChild(slot4);
+
+</script>

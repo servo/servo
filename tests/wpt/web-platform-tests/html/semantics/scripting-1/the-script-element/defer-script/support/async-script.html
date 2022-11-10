@@ -1,0 +1,44 @@
+<!doctype html>
+<title>Child Async Script Execution Order</title>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="../resources/helper.js"></script>
+</head>
+
+<body>
+  <script>
+    const reload_key = 'run-after-reload';
+    if (location.search == '?reload' && !window.localStorage.getItem(reload_key)) {
+      window.localStorage.setItem(reload_key, true);
+      location.reload();
+    } else {
+      window.localStorage.clear();
+      test();
+    }
+
+    function test() {
+      setup({ single_test: true });
+      function finish() {
+        assert_array_equals(
+          window.result,
+          ["Inline1", "Sync1", "EndOfBody", "DOMContentLoaded", "Async1"],
+          "Execution order");
+        // Chromium's force-defer order would be:
+        //  ["EndOfBody", "Inline1", "Sync1", "DOMContentLoaded", "Async1"]
+        done();
+      }
+      logScript("Inline1");
+      window.addEventListener("load", finish);
+    }
+  </script>
+  <script src="../resources/sync-script-1.js"></script>
+  <!-- Delays are added to make DOMContentLoaded be fired before
+       async script load completion -->
+  <script src="../resources/async-script-1.js?pipe=trickle(d1)" async></script>
+  <pre id="bodyend">End</pre>
+</body>
+
+</html>

@@ -9,7 +9,7 @@ function test_valid_length(value, expected) {
   test_valid_value('letter-spacing', value, expected);
 }
 
-test_valid_length('clamp(1px, 2px, 3px)', 'clamp(1px, 2px, 3px)');
-test_valid_length('clamp(1px, 2px, clamp(2px, 3px, 4px))', 'clamp(1px, 2px, clamp(2px, 3px, 4px))');
+test_valid_length('clamp(1px, 2px, 3px)', 'calc(2px)');
+test_valid_length('clamp(1px, 2px, clamp(2px, 3px, 4px))', 'calc(2px)');
 
 </script>

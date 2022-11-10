@@ -3,7 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: HTMLVideoElement.requestVideoFrameCallback() (https://wicg.github.io/video-rvfc/)
 
-dictionary VideoFrameMetadata {
+dictionary VideoFrameCallbackMetadata {
   required DOMHighResTimeStamp presentationTime;
   required DOMHighResTimeStamp expectedDisplayTime;
 
@@ -19,7 +19,7 @@ dictionary VideoFrameMetadata {
   unsigned long rtpTimestamp;
 };
 
-callback VideoFrameRequestCallback = undefined(DOMHighResTimeStamp now, VideoFrameMetadata metadata);
+callback VideoFrameRequestCallback = undefined(DOMHighResTimeStamp now, VideoFrameCallbackMetadata metadata);
 
 partial interface HTMLVideoElement {
     unsigned long requestVideoFrameCallback(VideoFrameRequestCallback callback);

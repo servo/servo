@@ -1,5 +1,7 @@
 steps:
-- script: ./wpt make-hosts-file | sudo tee -a /etc/hosts
+- script: |
+    set -eux -o pipefail
+    ./wpt make-hosts-file | sudo tee -a /etc/hosts
   displayName: 'Update hosts (macOS)'
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
 - powershell: |

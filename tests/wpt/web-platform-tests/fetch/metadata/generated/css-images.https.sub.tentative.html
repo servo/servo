@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<!--
+This test was procedurally generated. Please do not modify it directly.
+Sources:
+- fetch/metadata/tools/fetch-metadata.conf.yml
+- fetch/metadata/tools/templates/css-images.sub.html
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <title>HTTP headers on request for CSS image-accepting properties</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  /**
+   * The subtests in this file use an iframe to induce requests for CSS
+   * resources because an iframe's `onload` event is the most direct and
+   * generic mechanism to detect loading of CSS resources. As an optimization,
+   * the subtests share the same iframe and document.
+   */
+  const declarations = [];
+  const iframe = document.createElement('iframe');
+  const whenIframeReady = new Promise((resolve, reject) => {
+    iframe.onload = resolve;
+    iframe.onerror = reject;
+  });
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'same-origin');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'cross-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'same-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'cross-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same-Origin -> Cross-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'same-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same-Origin -> Same-Site -> Same-Origin redirect');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'cross-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Cross-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Cross-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Cross-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Cross-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsOrigin']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Cross-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'cross-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Cross-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Cross-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Cross-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Cross-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsSameSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Cross-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'cross-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Cross-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Cross-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Cross-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Cross-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite', 'httpsCrossSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Cross-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsOrigin']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'same-origin');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same-Origin -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsOrigin']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same-Origin -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsOrigin']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same-Origin -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsOrigin']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same-Origin -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsOrigin']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same-Origin -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'same-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same-Origin -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same-Origin -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same-Origin -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same-Origin -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsSameSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same-Origin -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'cross-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same-Origin -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same-Origin -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same-Origin -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same-Origin -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpsCrossSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same-Origin -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'same-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsOrigin']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same-Site -> Same Origin');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsSameSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'same-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsSameSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsSameSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsSameSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsSameSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same-Site -> Same-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'cross-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - Same-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - Same-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - Same-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - Same-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite', 'httpsCrossSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - Same-Site -> Cross-Site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_equals(headers['sec-fetch-site'], 'cross-site');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-site - HTTPS downgrade-upgrade');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-site - HTTPS downgrade-upgrade');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-site - HTTPS downgrade-upgrade');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-site - HTTPS downgrade-upgrade');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-site - HTTPS downgrade-upgrade');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_equals(headers['sec-fetch-mode'], 'no-cors');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-mode');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['no-cors']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-mode');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['no-cors']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-mode');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['no-cors']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-mode');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['no-cors']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-mode');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_equals(headers['sec-fetch-dest'], 'image');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-dest');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['image']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-dest');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['image']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-dest');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['image']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-dest');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['image']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-dest');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-user');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-user');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-user');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-user');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, []);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-user');
+
+  iframe.srcdoc = declarations.map((declaration, index) => `
+    <style>.el${index} { ${declaration} }</style><div class="el${index}"></div>`
+    ).join('');
+  document.body.appendChild(iframe);
+
+  </script>
+  </body>
+</html>

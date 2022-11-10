@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for Appcache manifest</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url) {
+    const iframe = document.createElement('iframe');
+    iframe.src =
+      '/fetch/metadata/resources/appcache-iframe.sub.html?manifest=' + encodeURIComponent(url);
+
+    return new Promise((resolve) => {
+        addEventListener('message', function onMessage(event) {
+          if (event.source !== iframe.contentWindow) {
+            return;
+          }
+          removeEventListener('message', onMessage);
+          resolve(event.data);
+        });
+
+        document.body.appendChild(iframe);
+      })
+      .then((message) => {
+        if (message !== 'okay') {
+          throw message;
+        }
+      })
+      .then(() => iframe.remove());
+  }
+
+  {%- for subtest in subtests %}
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    assert_implements_optional(
+      !!window.applicationCache, 'Application Cache supported.'
+    );
+
+    induceRequest(makeRequestURL(key, [% subtest.origins %]))
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+      })
+      .then(() => t.done(), t.step_func((error) => { throw error; }));
+  }, '[%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<svg viewBox="0 0 500 500">
+    <rect width="500" height="500" id="target" fill="red">
+</svg>
+
+<script>
+document.getElementById("target").addEventListener("click", () => {}, { once: true });
+
+test_driver.click(document.body);
+</script>

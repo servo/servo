@@ -5,17 +5,11 @@
 <div id=log></div>
 <script>
 var v;
-var t = async_test(function(t) {
+test(function() {
   v = document.createElement('video');
   document.body.appendChild(v);
   assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after appending v to document');
   v.parentNode.removeChild(v); // search for "When a media element is removed from a Document,"
   assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after removing v');
-});
-</script>
-<script>
-t.step(function() {
-  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState in separate script');
-  t.done();
 });
 </script>

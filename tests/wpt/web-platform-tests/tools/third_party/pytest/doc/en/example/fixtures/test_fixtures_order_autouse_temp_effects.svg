@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="862" height="502">
+    <style>
+        text {
+            font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+            dominant-baseline: middle;
+            text-anchor: middle;
+            fill: #062886;
+            font-size: medium;
+        }
+        ellipse.fixture, rect.test {
+            fill: #eeffcc;
+            stroke: #007020;
+            stroke-width: 2;
+        }
+        text.fixture {
+            color: #06287e;
+        }
+        circle.class {
+            fill: #c3e0ec;
+            stroke: #0e84b5;
+            stroke-width: 2;
+        }
+        text.class {
+            fill: #0e84b5;
+        }
+        line {
+            stroke: black;
+            stroke-width: 2;
+        }
+        rect.autouse {
+            fill: #ca7f3d;
+        }
+    </style>
+
+    <!-- TestWithAutouse -->
+    <circle class="class" r="250" cx="251" cy="251" />
+    <!-- scope name -->
+    <defs>
+        <path d="M11,251 A 240 240 0 0 1 491 251" id="testClassWith"/>
+    </defs>
+    <text class="class">
+        <textPath xlink:href="#testClassWith" startOffset="50%">TestWithAutouse</textPath>
+    </text>
+    <mask id="autouseScope">
+        <circle fill="white" r="249" cx="251" cy="251" />
+    </mask>
+
+    <!-- TestWithAutouse.test_req -->
+    <line x1="176" x2="176" y1="76" y2="426"/>
+    <ellipse class="fixture" rx="50" ry="25" cx="176" cy="76" />
+    <text x="176" y="76">order</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="176" cy="146" />
+    <text x="176" y="146">c2</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="176" cy="216" />
+    <text x="176" y="216">c3</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="176" cy="356" />
+    <text x="176" y="356">c1</text>
+    <rect class="test" width="100" height="50" x="126" y="401" />
+    <text x="176" y="426">test_req</text>
+
+    <!-- TestWithAutouse.test_no_req -->
+    <line x1="326" x2="326" y1="76" y2="346"/>
+    <ellipse class="fixture" rx="50" ry="25" cx="326" cy="76" />
+    <text x="326" y="76">order</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="326" cy="146" />
+    <text x="326" y="146">c2</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="326" cy="216" />
+    <text x="326" y="216">c3</text>
+    <rect class="test" width="120" height="50" x="266" y="331" />
+    <text x="326" y="356">test_no_req</text>
+
+    <rect class="autouse" width="500" height="40" x="1" y="266" mask="url(#autouseScope)"/>
+    <text x="261" y="286">autouse</text>
+
+    <!-- TestWithoutAutouse -->
+    <circle class="class" r="170" cx="691" cy="251" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 531,251 A 160 160 0 0 1 851 251" id="testClassWithout"/>
+    </defs>
+    <text class="class">
+        <textPath xlink:href="#testClassWithout" startOffset="50%">TestWithoutAutouse</textPath>
+    </text>
+
+    <!-- TestWithoutAutouse.test_req -->
+    <line x1="616" x2="616" y1="181" y2="321"/>
+    <ellipse class="fixture" rx="50" ry="25" cx="616" cy="181" />
+    <text x="616" y="181">order</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="616" cy="251" />
+    <text x="616" y="251">c1</text>
+    <rect class="test" width="100" height="50" x="566" y="296" />
+    <text x="616" y="321">test_req</text>
+
+    <!-- TestWithoutAutouse.test_no_req -->
+    <line x1="766" x2="766" y1="181" y2="251"/>
+    <ellipse class="fixture" rx="50" ry="25" cx="766" cy="181" />
+    <text x="766" y="181">order</text>
+    <rect class="test" width="120" height="50" x="706" y="226" />
+    <text x="766" y="251">test_no_req</text>
+</svg>

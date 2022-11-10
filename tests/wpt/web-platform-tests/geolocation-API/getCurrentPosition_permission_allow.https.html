@@ -1,34 +1,52 @@
-<!DOCTYPE HTML>
-<meta charset='utf-8'>
-<title>Geolocation Test: getCurrentPosition location access allowed</title>
-<link rel='help' href='http://www.w3.org/TR/geolocation-API/#get-current-position'>
-<script src='/resources/testharness.js'></script>
-<script src='/resources/testharnessreport.js'></script>
-<script src='support.js'></script>
-
-<p>Clear all Geolocation permissions before running this test. If prompted for permission, please allow.</p>
-<div id='log'></div>
-
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Geolocation Test: getCurrentPosition() location access</title>
+<link
+  rel="help"
+  href="https://www.w3.org/TR/geolocation/#getcurrentposition-method"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
-// Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00002
-var t = async_test('User allows access, check that success callback is called or error callback is called with correct code.'),
-    onSuccess, onError, hasMethodReturned = false;
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      return test_driver.set_permission({ name: "geolocation" }, "prompt");
+    });
+    await test_driver.set_permission({ name: "geolocation" }, "granted");
+    const position = await new Promise((resolve, reject) => {
+      let calledAsync = false;
+      navigator.geolocation.getCurrentPosition(
+        t.step_func((position) => {
+          assert_true(calledAsync, "Expected callback to be called asynchronously")
+          resolve(position);
+        }),
+        reject
+      );
+      calledAsync = true;
+    });
+    assert_true(
+      position instanceof GeolocationPosition,
+      "Expected GeolocationPosition"
+    );
+  }, "User allows access, check that success callback is called.");
 
-t.step(function() {
-  onSuccess = t.step_func_done(function(pos) {
-    // Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00031
-    assert_true(hasMethodReturned);
-  });
-
-  onError = t.step_func_done(function(err) {
-    // Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00031
-    assert_true(hasMethodReturned);
-    assert_false(isUsingPreemptivePermission);
-    assert_equals(err.code, err.POSITION_UNAVAILABLE, errorToString(err));
-  });
-
-  geo.getCurrentPosition(onSuccess, onError);
-  hasMethodReturned = true;
-});
-
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      return test_driver.set_permission({ name: "geolocation" }, "prompt");
+    });
+    await test_driver.set_permission({ name: "geolocation" }, "granted");
+    const position = await new Promise((resolve, reject) => {
+      try {
+        navigator.geolocation.getCurrentPosition(resolve, null);
+      } catch (err) {
+        reject(err);
+      }
+    });
+    assert_true(
+      position instanceof GeolocationPosition,
+      "Expected GeolocationPosition"
+    );
+  }, "Error callback is nullable for getCurrentPosition().");
 </script>

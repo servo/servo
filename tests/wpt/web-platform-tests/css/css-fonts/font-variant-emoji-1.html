@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Fonts: font-variant-emoji test</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-variant-emoji-prop"/>
+<link rel="mismatch" href="font-variant-emoji-1-notref.html"/>
+<meta name="assert" content="U+FE0E and U+FE0F variation selectors should result in different presentation of U+263A WHITE SMILING FACE"/>
+<style>
+div { font: 40px/2 serif; }
+</style>
+<body>
+<!-- To check that the two variation selectors give different results, the not-reference file has them swapped.
+     Note: this test assumes the system has both text and emoji glyphs available for U+263A. -->
+<div>&#x263A;&#xFE0E; &#x263A;&#xFE0F;</div>

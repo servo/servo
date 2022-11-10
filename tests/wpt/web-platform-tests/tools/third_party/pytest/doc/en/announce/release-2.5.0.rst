@@ -11,7 +11,7 @@ clear information about the circumstances and a simple example which
 reproduces the problem.
 
 The issue tracker is of course not empty now.  We have many remaining
-"enhacement" issues which we'll hopefully can tackle in 2014 with your
+"enhancement" issues which we'll hopefully can tackle in 2014 with your
 help.
 
 For those who use older Python versions, please note that pytest is not

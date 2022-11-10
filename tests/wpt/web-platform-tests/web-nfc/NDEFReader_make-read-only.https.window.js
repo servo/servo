@@ -1,5 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
 // META: script=resources/nfc-helpers.js
 
 // NDEFReader.makeReadOnly method

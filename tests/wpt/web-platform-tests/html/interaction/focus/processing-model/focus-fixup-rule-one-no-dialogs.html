@@ -31,7 +31,7 @@ test(() => {
   assert_not_equals(document.activeElement, button, "After disabling, the button must no longer be focused");
   assert_equals(document.activeElement, document.body, "After disabling, the body must be focused");
 
-}, "Disabling the active element (making it expressly inert)");
+}, "Disabling the active element (making it inert)");
 
 test(() => {
   const button = document.querySelector("#button2");

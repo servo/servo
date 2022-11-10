@@ -14,10 +14,13 @@
     promise_test(async t => {
       // Allow a third-party site embedded in this first-party site.
       await window.test_driver.set_storage_access("http://{{domains[www]}}:{{ports[http][0]}}/", "http://{{domains[]}}:{{ports[http][0]}}/", "allowed");
+      await window.test_driver.set_storage_access("https://{{domains[www]}}:{{ports[https][0]}}/", "https://{{domains[]}}:{{ports[https][0]}}/", "allowed");
       // Block a third-party site embedded in this first-party site.
       await window.test_driver.set_storage_access("http://{{domains[www1]}}:{{ports[http][0]}}/", "http://{{domains[]}}:{{ports[http][0]}}/", "blocked");
+      await window.test_driver.set_storage_access("https://{{domains[www1]}}:{{ports[https][0]}}/", "https://{{domains[]}}:{{ports[https][0]}}/", "blocked");
       // Block a third-party site on all first-party sites.
       await window.test_driver.set_storage_access("http://{{domains[www2]}}:{{ports[http][0]}}/", "*", "blocked");
+      await window.test_driver.set_storage_access("https://{{domains[www2]}}:{{ports[https][0]}}/", "*", "blocked");
     }, "Set up storage access rules");
 
     RunTestsInIFrame("http://{{domains[]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello0&value=world0&allowed=true&testcase=same-site");

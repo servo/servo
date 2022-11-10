@@ -49,7 +49,7 @@ test(() => {
   assert_equals(counter, 1);
 }, "If form's firing submission events is true, then return; 'invalid' event");
 
-async_test(t => {
+promise_test(async () => {
   let form = populateForm('<input type=submit name=n value=i><button type=submit name=n value=b>');
   let submitter1 = form.querySelector('input[type=submit]');
   let submitter2 = form.querySelector('button[type=submit]');
@@ -60,13 +60,8 @@ async_test(t => {
   };
   submitter1.click();
   // We actually submit the form in order to check which 'click()' submits it.
-  iframe.onload = t.step_func(() => {
-    // The initial about:blank load event can be fired before the form navigation occurs.
-    // See https://github.com/whatwg/html/issues/490 for more information.
-    if(iframe.contentWindow.location.href == "about:blank") { return; }
-    assert_not_equals(iframe.contentWindow.location.search.indexOf('n=i'), -1);
-    t.done();
-  });
+  await loadPromise(iframe);
+  assert_not_equals(iframe.contentWindow.location.search.indexOf('n=i'), -1);
 }, "If form's firing submission events is true, then return; 'submit' event");
 
 promise_test(async () => {
@@ -82,6 +77,20 @@ promise_test(async () => {
   assert_equals(event.submitter, submitter);
   assert_true(event instanceof SubmitEvent);
 }, 'firing an event named submit; clicking a submit button');
+
+promise_test(async () => {
+  let form = populateForm('<input type=image name=n1>');
+  let iframe = form.previousSibling;
+  let submitter = form.querySelector('input[type=image]');
+  let event;
+  form.addEventListener('submit', e => { event = e; });
+  submitter.click();
+  await loadPromise(iframe);
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_equals(event.submitter, submitter);
+  assert_true(event instanceof SubmitEvent);
+}, 'firing an event named submit; clicking an image button');
 
 promise_test(async () => {
   let form = populateForm('');
@@ -123,7 +132,7 @@ promise_test(async () => {
   assert_true(event instanceof SubmitEvent);
 }, 'firing an event named submit; form.requestSubmit(submitter)');
 
-async_test(t => {
+promise_test(async () => {
   let form = populateForm('<input name=n1 value=v1>');
   form.onformdata = (e) => { e.target.remove(); };
   let wasLoaded = false;
@@ -131,17 +140,17 @@ async_test(t => {
   // Request to load '/common/dummy.xhtml', and immediately submit the form to
   // the same frame. If the form submission is aborted, the first request
   // will be completed.
-  // This may be complicated by loads of the initial about:blank;
-  // we need to ignore them and only look at a load that isn't about:blank.
-  iframe.onload = t.step_func(() => {
-    if(iframe.contentWindow.location=="about:blank") { return; }
+  iframe.addEventListener("load", () => {
+    // This may be complicated by loads of the initial about:blank;
+    // we need to ignore them and only look at a load that isn't about:blank.
+    if (iframe.contentWindow.location == "about:blank") { return; }
     wasLoaded = true;
-    assert_true(iframe.contentWindow.location.search.indexOf('n1=v1') == -1);
-    t.done();
   });
   iframe.src = '/common/dummy.xhtml';
   assert_false(wasLoaded, 'Make sure the first loading is ongoing.');
   form.submit();
+  await loadPromise(iframe);
+  assert_true(iframe.contentWindow.location.search.indexOf('n1=v1') == -1);
 }, 'Cannot navigate (after constructing the entry list)');
 
 promise_test(async () => {

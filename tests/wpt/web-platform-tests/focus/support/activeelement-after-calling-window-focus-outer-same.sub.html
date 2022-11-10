@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus test outer document</title>
+<iframe src="https://{{hosts[][www]}}:{{ports[https][0]}}/focus/support/activeelement-after-calling-window-focus-middle.sub.html"></iframe>
+<script>
+let outerlog = "outerlog:";
+
+let iframe = document.querySelector("iframe");
+window.onmessage = function(e) {
+  if (e.data == "ready") {
+    opener.postMessage(e.data, "*");
+  } else if (e.data == "start") {
+    window.onfocus = function() {
+      outerlog += "windowfocus,";
+    };
+  } else if (e.data == "focusinnerinput" || e.data == "focusinner" || e.data == "focusmiddle" || e.data == "getlog") {
+    iframe.contentWindow.postMessage(e.data, "*");
+  } else if (e.data == "focusouter") {
+    window.focus();
+    outerlog += document.activeElement.tagName + ",";
+  } else {
+    opener.postMessage(outerlog + e.data, "*");
+  }
+};
+
+window.onblur = function() {
+  outerlog += "windowblur,";
+};
+</script>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>:nth-child and :nth-last-child with selector list argument chained together</title>
+<link rel="help" href="https://w3c.github.io/csswg-drafts/selectors-4/#child-index">
+<link rel="match" href="nth-child-and-nth-last-child-ref.html">
+<style>
+    target1 {
+        background-color: red;
+    }
+
+    :nth-child(1 of target1):nth-last-child(1 of target1) {
+        background-color: green;
+    }
+
+    .target {
+        background-color: red;
+    }
+
+    :nth-child(1 of .target):nth-last-child(1 of .target) {
+        background-color: green;
+    }
+
+    [data-target] {
+        background-color: red;
+    }
+
+    :nth-child(1 of [data-target]):nth-last-child(1 of [data-target]) {
+        background-color: green;
+    }
+</style>
+</head>
+<body>
+    <p>Test the matching of an element only if it is the only child matching the selector list. If the test succeed, every instance of the text "Success" should be on green background.</p>
+    <div>
+        <div></div>
+        <target1>Foo</target1>
+        <div></div>
+        <target1>Bar</target1>
+        <div></div>
+    </div>
+    <div>
+        <div></div>
+        <div></div>
+        <target1>Success</target1>
+        <div></div>
+    </div>
+    <div>
+        <div class="nottarget"></div>
+        <target class="target">Foo</target>
+        <div class="nottarget"></div>
+        <target class="target">Bar</target>
+        <div class="nottarget"></div>
+    </div>
+    <div>
+        <div class="nottarget"></div>
+        <div class="nottarget"></div>
+        <target class="target">Success</target>
+        <div class="nottarget"></div>
+    </div>
+    <div>
+        <div data-not-target></div>
+        <target data-target>Foo</target>
+        <div data-not-target></div>
+        <target data-target>Bar</target>
+        <div data-not-target></div>
+    </div>
+    <div>
+        <div data-not-target></div>
+        <div data-not-target></div>
+        <target data-target>Success</target>
+        <div data-not-target></div>
+    </div>
+</body>
+</html>

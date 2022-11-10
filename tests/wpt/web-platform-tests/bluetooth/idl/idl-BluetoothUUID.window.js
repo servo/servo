@@ -1,5 +1,5 @@
 // META: script=/resources/testdriver.js
-// META: script=/resources/testharnessreport.js
+// META: script=/resources/testdriver-vendor.js
 'use strict'
 
 var base_uuid = '00000000-0000-1000-8000-00805f9b34fb'

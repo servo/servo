@@ -10,7 +10,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../../../html/resources/common.js"></script>
-<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -24,7 +23,7 @@ function testIDAttribute(elementName) {
     assert_false('test-id' in window);
 }
 
-var idAttributeTestParameter = HTML5_ELEMENT_NAMES.map(function (elementName) {
+var idAttributeTestParameter = HTML5_ELEMENTS.map(function (elementName) {
     return [
         '"' + elementName + '" element with id attribute in a shadow tree ' +
         'should not be accessible from window object\'s named property.',

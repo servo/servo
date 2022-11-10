@@ -1,3 +1,18 @@
+function stashPutUrl(token) {
+  return `/preload/resources/stash-put.py?key=${token}`;
+}
+
+function encodedStashPutUrl(token) {
+  return encodeURIComponent(stashPutUrl(token));
+}
+
+async function hasArrivedAtServer(token) {
+  const res = await fetch(`/preload/resources/stash-take.py?key=${token}`);
+  assert_true(res.status === 200 || res.status === 404,
+              'status must be either 200 or 404');
+  return res.status === 200;
+}
+
 function verifyPreloadAndRTSupport()
 {
     var link = window.document.createElement("link");

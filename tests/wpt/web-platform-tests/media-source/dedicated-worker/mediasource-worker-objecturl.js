@@ -20,9 +20,7 @@ test(t => {
 test(t => {
   const ms = new MediaSource();
   const url = URL.createObjectURL(ms);
-  assert_true(url != null);
-  assert_true(url.match(/^blob:.+/) != null);
-}, "URL.createObjectURL(mediaSource) in DedicatedWorker returns a Blob URI");
+}, "URL.createObjectURL(mediaSource) in DedicatedWorker does not throw exception");
 
 test(t => {
   const ms = new MediaSource();

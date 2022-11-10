@@ -116,7 +116,7 @@ For additional information, please see the [GitHub docs][github-fork-docs].
 
 ## Configure your environment
 
-If all you intend to do is to load [manual tests](../writing-tests/manual) or [ref tests](../writing-tests/reftests) from your local file system,
+If all you intend to do is to load [manual tests](../writing-tests/manual) or [reftests](../writing-tests/reftests) from your local file system,
 the above setup should be sufficient.
 But many tests (and in particular, all [testharness.js tests](../writing-tests/testharness)) require a local web server.
 

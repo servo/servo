@@ -1,0 +1,344 @@
+<!doctype html>
+<html><head>
+<meta chareset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?designMode=off&white-space=normal">
+<meta name="variant" content="?designMode=off&white-space=pre">
+<meta name="variant" content="?designMode=off&white-space=pre-line">
+<meta name="variant" content="?designMode=off&white-space=pre-wrap">
+<meta name="variant" content="?designMode=on&white-space=normal">
+<meta name="variant" content="?designMode=on&white-space=pre">
+<meta name="variant" content="?designMode=on&white-space=pre-line">
+<meta name="variant" content="?designMode=on&white-space=pre-wrap">
+<title>Insert paragraph in a child of the html element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head><body>
+<iframe srcdoc=""></iframe>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const whiteSpace = searchParams.get("white-space");
+const testingDesignMode = searchParams.get("designMode") == "on";
+
+const isPreformatted =
+  whiteSpace == "pre" || whiteSpace == "pre-line" || whiteSpace == "pre-wrap";
+
+const iframe = document.querySelector("iframe");
+const minimumSrcDoc =
+  "<html>" +
+    "<head>" +
+      "<title>iframe</title>" +
+      "<script src='/resources/testdriver.js'></" + "script>" +
+      "<script src='/resources/testdriver-vendor.js'></" + "script>" +
+      "<script src='/resources/testdriver-actions.js'></" + "script>" +
+    "</head>" +
+    "<body><br></body>" +
+  "</html>";
+
+async function initializeAndWaitForLoad(iframeElement, srcDocValue) {
+  const waitForLoad =
+    new Promise(
+      resolve => iframeElement.addEventListener("load", resolve, {once: true})
+    );
+  iframeElement.srcdoc = srcDocValue;
+  await waitForLoad;
+  if (testingDesignMode) {
+    iframeElement.contentDocument.designMode = "on";
+  } else {
+    iframeElement.contentDocument.documentElement.setAttribute("contenteditable", "");
+  }
+  iframeElement.contentWindow.focus();
+  iframeElement.contentDocument.execCommand("defaultParagraphSeparator", false, "div");
+}
+
+function removeResourceScriptElements(node) {
+  node.querySelectorAll("script").forEach(
+    element => {
+      if (element.getAttribute("src")?.startsWith("/resources")) {
+        element.remove()
+      }
+    }
+  );
+}
+
+// DO NOT USE multi-line comment in this file, then, you can comment out
+// unnecessary tests when you need to attach the browser with a debugger.
+
+// For backward compatibility, <div> elements outside <body> should be split
+// by insertParagraph.  However, should not unwrap existing <div> in any case
+// to avoid its child to become children of the <html>.
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = childDoc.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.appendChild(div);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("{}");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  if (!isPreformatted) {
+    assert_equals(
+      childDoc.documentElement.innerHTML,
+      `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div>`,
+      "The <div> should be split"
+    );
+  } else {
+    assert_in_array(
+      childDoc.documentElement.innerHTML,
+      [
+        `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}">\n</div>`,
+        `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div>`,
+      ],
+      "The <div> should be split"
+    );
+  }
+}, `insertParagraph in empty <div style="white-space:${
+  whiteSpace
+}"> after <body> should split the <div>`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = childDoc.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.appendChild(div);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("{}<br>");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  if (!isPreformatted) {
+    assert_equals(
+      childDoc.documentElement.innerHTML,
+      `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div>`,
+      "The <div> should be split"
+    );
+  } else {
+    assert_in_array(
+      childDoc.documentElement.innerHTML,
+      [
+        `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}">\n</div>`,
+        `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}">\n</div>`,
+        `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}"><br></div>`,
+        `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div>`,
+      ],
+      "The <div> should be split"
+    );
+  }
+}, `insertParagraph in <div style="white-space:${
+  whiteSpace
+}"> (containing only a <br>) after <body> should split the <div>`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = childDoc.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.appendChild(div);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("ab[]cd");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  assert_in_array(
+    childDoc.documentElement.innerHTML,
+    [
+      `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}">ab</div><div style="white-space:${whiteSpace}">cd</div>`,
+      `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}">ab<br></div><div style="white-space:${whiteSpace}">cd</div>`,
+      `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}">ab</div><div style="white-space:${whiteSpace}">cd<br></div>`,
+      `<head><title>iframe</title></head><body><br></body><div style="white-space:${whiteSpace}">ab<br></div><div style="white-space:${whiteSpace}">cd<br></div>`,
+    ],
+    "The <div> should be split"
+  );
+}, `insertParagraph in <div style="white-space:${
+  whiteSpace
+}"> (containing text) after <body> should not create another <div> element`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = childDoc.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.insertBefore(div, childDoc.body);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("{}");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  if (!isPreformatted) {
+    assert_equals(
+      childDoc.documentElement.innerHTML,
+      `<head><title>iframe</title></head><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div><body><br></body>`,
+      "The <div> should be split"
+    );
+  } else {
+    assert_in_array(
+      childDoc.documentElement.innerHTML,
+      [
+        `<head><title>iframe</title></head><div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}">\n</div><body><br></body>`,
+        `<head><title>iframe</title></head><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div><body><br></body>`,
+      ],
+      "The <div> should be split"
+    );
+  }
+}, `insertParagraph in empty <div style="white-space:${
+  whiteSpace
+}"> before <body> should split the <div>`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = childDoc.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.insertBefore(div, childDoc.body);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("{}<br>");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  if (!isPreformatted) {
+    assert_equals(
+      childDoc.documentElement.innerHTML,
+      `<head><title>iframe</title></head><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div><body><br></body>`,
+      "The <div> should be split"
+    );
+  } else {
+    assert_in_array(
+      childDoc.documentElement.innerHTML,
+      [
+        `<head><title>iframe</title></head><div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}">\n</div><body><br></body>`,
+        `<head><title>iframe</title></head><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}">\n</div><body><br></body>`,
+        `<head><title>iframe</title></head><div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}"><br></div><body><br></body>`,
+        `<head><title>iframe</title></head><div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div><body><br></body>`,
+      ],
+      "The <div> should be split"
+    );
+  }
+}, `insertParagraph in <div style="white-space:${
+  whiteSpace
+}"> (containing only a <br>) before <body> should split the <div>`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = childDoc.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.insertBefore(div, childDoc.body);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("ab[]cd");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  assert_in_array(
+    childDoc.documentElement.innerHTML,
+    [
+      `<head><title>iframe</title></head><div style="white-space:${whiteSpace}">ab</div><div style="white-space:${whiteSpace}">cd</div><body><br></body>`,
+      `<head><title>iframe</title></head><div style="white-space:${whiteSpace}">ab<br></div><div style="white-space:${whiteSpace}">cd</div><body><br></body>`,
+      `<head><title>iframe</title></head><div style="white-space:${whiteSpace}">ab</div><div style="white-space:${whiteSpace}">cd<br></div><body><br></body>`,
+      `<head><title>iframe</title></head><div style="white-space:${whiteSpace}">ab<br></div><div style="white-space:${whiteSpace}">cd<br></div><body><br></body>`,
+    ],
+    "The <div> should be split"
+  );
+}, `insertParagraph in <div style="white-space:${
+  whiteSpace
+}"> (containing text) before <body> should split the <div>`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = document.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.insertBefore(div, childDoc.head);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("{}");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  if (!isPreformatted) {
+    assert_equals(
+      childDoc.documentElement.innerHTML,
+      `<div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div><head><title>iframe</title></head><body><br></body>`,
+      "The <div> should be split"
+    );
+  } else {
+    assert_in_array(
+      childDoc.documentElement.innerHTML,
+      [
+        `<div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}">\n</div><head><title>iframe</title></head><body><br></body>`,
+        `<div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div><head><title>iframe</title></head><body><br></body>`,
+      ],
+      "The <div> should be split"
+    );
+  }
+}, `insertParagraph in empty <div style="white-space:${
+  whiteSpace
+}"> before <head> should split the <div>`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = childDoc.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.insertBefore(div, childDoc.head);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("{}<br>");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  if (!isPreformatted) {
+    assert_equals(
+      childDoc.documentElement.innerHTML,
+      `<div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div><head><title>iframe</title></head><body><br></body>`,
+      "The <div> should be split"
+    );
+  } else {
+    assert_in_array(
+      childDoc.documentElement.innerHTML,
+      [
+        `<div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}">\n</div><head><title>iframe</title></head><body><br></body>`,
+        `<div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}">\n</div><head><title>iframe</title></head><body><br></body>`,
+        `<div style="white-space:${whiteSpace}">\n</div><div style="white-space:${whiteSpace}"><br></div><head><title>iframe</title></head><body><br></body>`,
+        `<div style="white-space:${whiteSpace}"><br></div><div style="white-space:${whiteSpace}"><br></div><head><title>iframe</title></head><body><br></body>`,
+      ],
+      "The <div> should be split"
+    );
+  }
+}, `insertParagraph in <div style="white-space:${
+  whiteSpace
+}"> (containing only a <br>) before <head> should split the <div>`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const div = childDoc.createElement("div");
+  div.setAttribute("style", `white-space:${whiteSpace}`);
+  childDoc.documentElement.insertBefore(div, childDoc.head);
+  const utils = new EditorTestUtils(div);
+  utils.setupEditingHost("ab[]cd");
+  await utils.sendEnterKey();
+  removeResourceScriptElements(childDoc);
+
+  assert_in_array(
+    childDoc.documentElement.innerHTML,
+    [
+      `<div style="white-space:${whiteSpace}">ab</div><div style="white-space:${whiteSpace}">cd</div><head><title>iframe</title></head><body><br></body>`,
+      `<div style="white-space:${whiteSpace}">ab<br></div><div style="white-space:${whiteSpace}">cd</div><head><title>iframe</title></head><body><br></body>`,
+      `<div style="white-space:${whiteSpace}">ab</div><div style="white-space:${whiteSpace}">cd<br></div><head><title>iframe</title></head><body><br></body>`,
+      `<div style="white-space:${whiteSpace}">ab<br></div><div style="white-space:${whiteSpace}">cd<br></div><head><title>iframe</title></head><body><br></body>`,
+    ],
+    "The <div> should be split"
+  );
+}, `insertParagraph in <div style="white-space:${
+  whiteSpace
+}"> (containing text) before <head> should split the <div>`);
+
+</script>
+</body></html>

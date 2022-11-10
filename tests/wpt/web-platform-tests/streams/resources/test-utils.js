@@ -47,8 +47,11 @@ self.constructorThrowsForAll = (constructor, firstArgs) => {
                                                  'constructor should throw a TypeError'));
 };
 
-self.garbageCollect = () => {
-  if (self.gc) {
+self.garbageCollect = async () => {
+  if (self.TestUtils?.gc) {
+    // https://testutils.spec.whatwg.org/#the-testutils-namespace
+    await TestUtils.gc();
+  } else if (self.gc) {
     // Use --expose_gc for V8 (and Node.js)
     // to pass this flag at chrome launch use: --js-flags="--expose-gc"
     // Exposed in SpiderMonkey shell as well
@@ -82,4 +85,10 @@ self.assert_typed_array_equals = (actual, expected, message) => {
   assert_equals(actual.buffer.byteLength, expected.buffer.byteLength, `${prefix}buffer.byteLength`);
   assert_array_equals([...actual], [...expected], `${prefix}contents`);
   assert_array_equals([...new Uint8Array(actual.buffer)], [...new Uint8Array(expected.buffer)], `${prefix}buffer contents`);
+};
+
+self.makePromiseAndResolveFunc = () => {
+  let resolve;
+  const promise = new Promise(r => { resolve = r; });
+  return [promise, resolve];
 };

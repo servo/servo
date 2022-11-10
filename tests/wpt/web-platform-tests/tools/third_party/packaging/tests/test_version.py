@@ -1,7 +1,6 @@
 # This file is dual licensed under the terms of the Apache License, Version
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
-from __future__ import absolute_import, division, print_function
 
 import itertools
 import operator
@@ -10,7 +9,7 @@ import warnings
 import pretend
 import pytest
 
-from packaging.version import Version, LegacyVersion, InvalidVersion, parse
+from packaging.version import InvalidVersion, LegacyVersion, Version, parse
 
 
 @pytest.mark.parametrize(
@@ -278,7 +277,7 @@ class TestVersion:
     )
     def test_version_str_repr(self, version, expected):
         assert str(Version(version)) == expected
-        assert repr(Version(version)) == "<Version({0})>".format(repr(expected))
+        assert repr(Version(version)) == f"<Version({expected!r})>"
 
     def test_version_rc_and_c_equals(self):
         assert Version("1.0rc1") == Version("1.0c1")
@@ -751,12 +750,12 @@ class TestVersion:
 
     @pytest.mark.parametrize("op", ["lt", "le", "eq", "ge", "gt", "ne"])
     def test_dunder_op_returns_notimplemented(self, op):
-        method = getattr(Version, "__{0}__".format(op))
+        method = getattr(Version, f"__{op}__")
         assert method(Version("1"), 1) is NotImplemented
 
     @pytest.mark.parametrize(("op", "expected"), [("eq", False), ("ne", True)])
     def test_compare_other(self, op, expected):
-        other = pretend.stub(**{"__{0}__".format(op): lambda other: NotImplemented})
+        other = pretend.stub(**{f"__{op}__": lambda other: NotImplemented})
 
         assert getattr(operator, op)(Version("1"), other) is expected
 
@@ -794,7 +793,7 @@ class TestLegacyVersion:
     @pytest.mark.parametrize("version", VERSIONS + LEGACY_VERSIONS)
     def test_legacy_version_str_repr(self, version):
         assert str(LegacyVersion(version)) == version
-        assert repr(LegacyVersion(version)) == "<LegacyVersion({0})>".format(
+        assert repr(LegacyVersion(version)) == "<LegacyVersion({})>".format(
             repr(version)
         )
 
@@ -895,11 +894,11 @@ class TestLegacyVersion:
 
     @pytest.mark.parametrize("op", ["lt", "le", "eq", "ge", "gt", "ne"])
     def test_dunder_op_returns_notimplemented(self, op):
-        method = getattr(LegacyVersion, "__{0}__".format(op))
+        method = getattr(LegacyVersion, f"__{op}__")
         assert method(LegacyVersion("1"), 1) is NotImplemented
 
     @pytest.mark.parametrize(("op", "expected"), [("eq", False), ("ne", True)])
     def test_compare_other(self, op, expected):
-        other = pretend.stub(**{"__{0}__".format(op): lambda other: NotImplemented})
+        other = pretend.stub(**{f"__{op}__": lambda other: NotImplemented})
 
         assert getattr(operator, op)(LegacyVersion("1"), other) is expected

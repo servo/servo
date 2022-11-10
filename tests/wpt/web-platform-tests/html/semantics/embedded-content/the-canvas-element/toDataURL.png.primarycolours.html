@@ -35,14 +35,13 @@ deferTest();
 img.onload = t.step_func_done(function ()
 {
     ctx.drawImage(img, 0, 0);
-    _assertPixel(canvas, 12,20, 255,255,0,255, "12,20", "255,255,0,255");
-    _assertPixel(canvas, 50,20, 0,255,255,255, "50,20", "0,255,255,255");
-    _assertPixel(canvas, 87,20, 0,0,255,255, "87,20", "0,0,255,255");
-    _assertPixel(canvas, 50,45, 255,255,255,255, "50,45", "255,255,255,255");
+    _assertPixel(canvas, 12,20, 255,255,0,255);
+    _assertPixel(canvas, 50,20, 0,255,255,255);
+    _assertPixel(canvas, 87,20, 0,0,255,255);
+    _assertPixel(canvas, 50,45, 255,255,255,255);
 });
 img.src = data;
 
 
 });
 </script>
-

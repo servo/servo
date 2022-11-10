@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+<body>
+<script src="helper.js"></script>
+<script>
+logScript("Inline1");
+window.addEventListener("load", () => logScript("WindowLoad"));
+</script>
+<script src="{{GET[script]}}?pipe=trickle(d1)"></script>
+<script src="async-script-1.js" async></script>
+<script src="sync-script-1.js?pipe=trickle(d2)"></script>
+<pre id="bodyend">End</pre>
+</body>
+</html>

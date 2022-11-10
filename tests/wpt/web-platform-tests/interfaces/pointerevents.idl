@@ -46,17 +46,17 @@ partial interface Element {
 };
 
 partial interface mixin GlobalEventHandlers {
-    attribute EventHandler ongotpointercapture;
-    attribute EventHandler onlostpointercapture;
+    attribute EventHandler onpointerover;
+    attribute EventHandler onpointerenter;
     attribute EventHandler onpointerdown;
     attribute EventHandler onpointermove;
     [SecureContext] attribute EventHandler onpointerrawupdate;
     attribute EventHandler onpointerup;
     attribute EventHandler onpointercancel;
-    attribute EventHandler onpointerover;
     attribute EventHandler onpointerout;
-    attribute EventHandler onpointerenter;
     attribute EventHandler onpointerleave;
+    attribute EventHandler ongotpointercapture;
+    attribute EventHandler onlostpointercapture;
 };
 
 partial interface Navigator {

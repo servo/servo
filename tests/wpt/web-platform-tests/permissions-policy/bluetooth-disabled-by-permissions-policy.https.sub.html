@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/bluetooth/resources/bluetooth-test.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script>
+    'use strict';
+    const same_origin_src = '/permissions-policy/resources/permissions-policy-bluetooth.html';
+    const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' + same_origin_src;
+    const header = 'permissions policy header "bluetooth=()"';
+
+    bluetooth_test(() => {
+      promise_test(() => {
+        return navigator.bluetooth.getDevices().then(() => {
+          assert_unreached('expected promise to reject with SecurityError.');
+        }, error => {
+          assert_equals(error.name, 'SecurityError');
+        });
+      }, header + ' disallows the top-level document.')
+
+      async_test(t => {
+        test_feature_availability('bluetooth.getDevices()', t, same_origin_src, expect_feature_unavailable_default);
+      }, header + ' disallows same-origin iframes.');
+
+      async_test(t => {
+        test_feature_availability('bluetooth.getDevices()', t, cross_origin_src, expect_feature_unavailable_default);
+      }, header + ' disallows cross-origin iframes.');
+
+      async_test(t => {
+        test_feature_availability('bluetooth.getDevices()', t, cross_origin_src, expect_feature_unavailable_default, 'bluetooth');
+      }, header + ' allow="bluetooth" has no effect on cross-origin iframes.');
+    });
+  </script>
+</body>

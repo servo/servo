@@ -15,6 +15,7 @@ async function fetchStreamRedirect(statusCode) {
     controller.enqueue(encoder.encode("Test"));
     controller.close();
   }});
+  requestInit.duplex = "half";
   return fetch(url, requestInit);
 }
 

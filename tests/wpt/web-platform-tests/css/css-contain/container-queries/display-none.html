@@ -15,10 +15,17 @@
     height: 30px;
     background: tomato;
   }
+  .small {
+    width: 10px;
+    height: 10px;
+  }
   .big {
     width: 50px;
     height: 50px;
     background: skyblue;
+  }
+  .auto {
+    width: auto;
   }
   .none {
     display: none;
@@ -31,11 +38,11 @@
     display: none;
   }
 
-  @container size(width: 30px) {
+  @container (width: 30px) {
     .target { --x:30; }
   }
 
-  @container size(width: 50px) {
+  @container (width: 50px) {
     .target { --x:50; }
   }
 
@@ -346,4 +353,25 @@
     }, 'getComputedStyle on ::before when container is display:none');
   </script>
 
+  <!-- Target in display:none with layout dirty outer element -->
+  <div class=small id="outer18">
+    <div class="container auto">
+      <div class="none">
+        <div>
+          <div class="target" id=target18></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    test(function() {
+      target18.offsetTop;
+      let s = getComputedStyle(target18);
+      assert_equals(s.getPropertyValue('--x'), '');
+
+      outer18.classList.remove('small');
+      outer18.classList.add('big');
+      assert_equals(s.getPropertyValue('--x'), '50');
+    }, 'getComputedStyle when in display:none with layout dirty outer element');
+  </script>
 </main>

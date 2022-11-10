@@ -4,6 +4,7 @@ function requestFromBody(body) {
     {
       method: "POST",
       body,
+      duplex: "half",
     },
   );
 }
@@ -82,6 +83,7 @@ function requestFromBodyWithOverrideMime(body) {
       method: "POST",
       body,
       headers: { "Content-Type": OVERRIDE_MIME },
+      duplex: "half",
     },
   );
 }

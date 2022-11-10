@@ -9,7 +9,7 @@ with these improvements:
 
   - new @pytest.mark.parametrize decorator to run tests with different arguments
   - new metafunc.parametrize() API for parametrizing arguments independently
-  - see examples at http://pytest.org/en/stable/example/parametrize.html
+  - see examples at http://pytest.org/en/stable/example/how-to/parametrize.html
   - NOTE that parametrize() related APIs are still a bit experimental
     and might change in future releases.
 
@@ -78,7 +78,7 @@ Changes between 2.1.3 and 2.2.0
   or through plugin hooks.  Also introduce a "--strict" option which
   will treat unregistered markers as errors
   allowing to avoid typos and maintain a well described set of markers
-  for your test suite.  See examples at http://pytest.org/en/stable/mark.html
+  for your test suite.  See examples at http://pytest.org/en/stable/how-to/mark.html
   and its links.
 - issue50: introduce "-m marker" option to select tests based on markers
   (this is a stricter and more predictable version of "-k" in that "-m"

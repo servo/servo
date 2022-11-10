@@ -17,6 +17,16 @@ test_invalid_value("transition-property", 'none, one');
 
 test_invalid_value("transition-property", 'initial, top');
 test_invalid_value("transition-property", 'top, initial');
+test_invalid_value("transition-property", 'inherit, top');
+test_invalid_value("transition-property", 'top, inherit');
+test_invalid_value("transition-property", 'unset, top');
+test_invalid_value("transition-property", 'top, unset');
+test_invalid_value("transition-property", 'default, top');
+test_invalid_value("transition-property", 'top, default');
+test_invalid_value("transition-property", 'revert, top');
+test_invalid_value("transition-property", 'top, revert');
+test_invalid_value("transition-property", 'revert-layer, top');
+test_invalid_value("transition-property", 'top, revert-layer');
 </script>
 </body>
 </html>

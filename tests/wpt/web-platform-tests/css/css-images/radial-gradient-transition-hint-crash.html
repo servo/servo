@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Color transition hint between values that are far apart</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#radial-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#color-transition-hint">
+<div style="width:400px;height:400px;"></div>
+<style>
+div {
+  background-image: radial-gradient(green -1540359700%, 0px, darkgrey 2%);
+}
+</style>
+PASS if no crash

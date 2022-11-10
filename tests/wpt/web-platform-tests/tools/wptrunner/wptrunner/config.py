@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 from configparser import ConfigParser
 import os
 import sys

@@ -29,7 +29,7 @@ async function main() {
   });
 
   // Ask to activate.
-  const prerenderChannel = new BroadcastChannel('prerender-channel');
+  const prerenderChannel = new PrerenderChannel('prerender-channel');
   prerenderChannel.postMessage('readyToActivate');
 
   // Check that document.prerendering is false in the iframe.
@@ -46,7 +46,7 @@ if (!isPrerendering) {
 } else {
   // For the prerendering page, run main() then message the test page with the
   // result.
-  const testChannel = new BroadcastChannel('test-channel');
+  const testChannel = new PrerenderChannel('test-channel');
   main().then(() => {
     testChannel.postMessage('PASS');
   }).catch((e) => {

@@ -32,7 +32,7 @@ var promise = new Promise(function(resolve, reject) {
 promise.then(function(response) {
     createImageBitmap(response).then(bitmap => {
         ctx.drawImage(bitmap, 0, 0);
-        _assertPixelApprox(canvas, 50,25, 191,255,64,128, "50,25", "191,255,64,128", 5);
+        _assertPixelApprox(canvas, 50,25, 191,255,64,128, 5);
     }, t_fail);
 }).then(t_pass, t_fail);
 

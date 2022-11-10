@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>Service Worker: 3P iframe for partitioned service workers</title>
-<script src="/test-helpers.sub.js"></script>
+<script src="./test-helpers.sub.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="./partitioned-utils.js"></script>
 
@@ -26,7 +26,7 @@
     // 3p mode will tell its SW to claim and then postMessage its results
     // automatically.
     async function onLoad3pMode() {
-      reg = await setup3pIframe();
+      reg = await setupServiceWorker();
 
       if(navigator.serviceWorker.controller != null){
         //This iframe is already under control of a service worker, testing for

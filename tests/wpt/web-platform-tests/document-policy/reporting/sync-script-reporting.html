@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script defer src='/resources/testharness.js'></script>
+    <script defer src='/resources/testharnessreport.js'></script>
+    <script defer src='../resources/document-policy-report-json.js'></script>
+    <script defer src="resources/sync-script.js"></script>
+  </head>
+  <body>
+    <!-- The presence of this script will violate the sync-script policy,
+      and will trigger a report. -->
+    <script>var newGlobal = true;</script>
+  </body>
+</html>

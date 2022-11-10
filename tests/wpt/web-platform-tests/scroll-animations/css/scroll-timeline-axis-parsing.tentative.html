@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6674">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-axis">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<div id="target"></div>
+
+<script>
+
+test_valid_value('scroll-timeline-axis', 'initial');
+test_valid_value('scroll-timeline-axis', 'inherit');
+test_valid_value('scroll-timeline-axis', 'unset');
+test_valid_value('scroll-timeline-axis', 'revert');
+
+test_valid_value('scroll-timeline-axis', 'block');
+test_valid_value('scroll-timeline-axis', 'inline');
+test_valid_value('scroll-timeline-axis', 'vertical');
+test_valid_value('scroll-timeline-axis', 'horizontal');
+
+test_invalid_value('scroll-timeline-axis', 'abc');
+test_invalid_value('scroll-timeline-axis', '10px');
+test_invalid_value('scroll-timeline-axis', 'auto');
+test_invalid_value('scroll-timeline-axis', 'none');
+
+</script>

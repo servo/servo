@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta name="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<meta name="assert" content="User code can create non-global CustomElementRegistry instances and add definitions">
+<link rel="help" href="https://wicg.github.io/webcomponents/proposals/Scoped-Custom-Element-Registries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  let registry = new CustomElementRegistry();
+  assert_not_equals(registry, window.customElements);
+
+  // Define an autonomous element with the new registry. It should not become a
+  // global definition.
+  class MyAutonomous extends HTMLElement {};
+  registry.define('my-autonomous', MyAutonomous);
+  assert_equals(registry.get('my-autonomous'), MyAutonomous);
+  assert_equals(window.customElements.get('my-autonomous'), undefined);
+  assert_false(document.createElement('my-autonomous') instanceof MyAutonomous);
+
+  // Do the same for a customized built-in element.
+  class MyCustomizedBuiltIn extends HTMLParagraphElement {};
+  registry.define('my-customized-builtin', MyCustomizedBuiltIn, {extends: 'p'});
+  assert_equals(registry.get('my-customized-builtin'), MyCustomizedBuiltIn);
+  assert_equals(window.customElements.get('my-customized-builtin'), undefined);
+  assert_false(document.createElement('p', {is: 'my-customized-builtin'}) instanceof MyCustomizedBuiltIn);
+}, 'Create non-global CustomElementRegistry and add definitions');
+</script>

@@ -40,6 +40,14 @@ async function proceedTest() {
       break;
     }
 
+    if (step === "sub") {
+      const url = new URL(window.location);
+      url.host = "{{hosts[][www]}}:{{ports[https][0]}}";
+      url.search = "?" + steps.join("|");
+      window.location = url.href;
+      break;
+    }
+
     if (step === "closeOpener") {
       if (window.opener) {
         window.opener.close();
@@ -78,6 +86,11 @@ async function proceedTest() {
 
     if (step.startsWith("set=")) {
       window.name = step.split("=")[1];
+      continue;
+    }
+
+    if (step.startsWith("setDomain=")) {
+      document.domain = step.split("=")[1];
       continue;
     }
 

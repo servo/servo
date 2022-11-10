@@ -3,39 +3,43 @@ import enum
 import functools
 import inspect
 import os
-import re
 import sys
 from contextlib import contextmanager
 from inspect import Parameter
 from inspect import signature
+from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Generic
 from typing import Optional
-from typing import overload as overload
 from typing import Tuple
+from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
 
 import attr
-
-from _pytest.outcomes import fail
-from _pytest.outcomes import TEST_OUTCOME
-
-if sys.version_info < (3, 5, 2):
-    TYPE_CHECKING = False  # type: bool
-else:
-    from typing import TYPE_CHECKING
-
+import py
 
 if TYPE_CHECKING:
     from typing import NoReturn
-    from typing import Type
     from typing_extensions import Final
 
 
 _T = TypeVar("_T")
 _S = TypeVar("_S")
+
+#: constant to prepare valuing pylib path replacements/lazy proxies later on
+#  intended for removal in pytest 8.0 or 9.0
+
+# fmt: off
+# intentional space to create a fake difference for the verification
+LEGACY_PATH = py.path. local
+# fmt: on
+
+
+def legacy_path(path: Union[str, "os.PathLike[str]"]) -> LEGACY_PATH:
+    """Internal wrapper to prepare lazy proxies for legacy_path instances"""
+    return LEGACY_PATH(path)
 
 
 # fmt: off
@@ -43,13 +47,8 @@ _S = TypeVar("_S")
 # https://www.python.org/dev/peps/pep-0484/#support-for-singleton-types-in-unions
 class NotSetType(enum.Enum):
     token = 0
-NOTSET = NotSetType.token  # type: Final # noqa: E305
+NOTSET: "Final" = NotSetType.token  # noqa: E305
 # fmt: on
-
-MODULE_NOT_FOUND_ERROR = (
-    "ModuleNotFoundError" if sys.version_info[:2] >= (3, 6) else "ImportError"
-)
-
 
 if sys.version_info >= (3, 8):
     from importlib import metadata as importlib_metadata
@@ -59,22 +58,6 @@ else:
 
 def _format_args(func: Callable[..., Any]) -> str:
     return str(signature(func))
-
-
-# The type of re.compile objects is not exposed in Python.
-REGEX_TYPE = type(re.compile(""))
-
-
-if sys.version_info < (3, 6):
-
-    def fspath(p):
-        """os.fspath replacement, useful to point out when we should replace it by the
-        real function once we drop py35."""
-        return str(p)
-
-
-else:
-    fspath = os.fspath
 
 
 def is_generator(func: object) -> bool:
@@ -97,14 +80,10 @@ def iscoroutinefunction(func: object) -> bool:
 def is_async_function(func: object) -> bool:
     """Return True if the given function seems to be an async function or
     an async generator."""
-    return iscoroutinefunction(func) or (
-        sys.version_info >= (3, 6) and inspect.isasyncgenfunction(func)
-    )
+    return iscoroutinefunction(func) or inspect.isasyncgenfunction(func)
 
 
 def getlocation(function, curdir: Optional[str] = None) -> str:
-    from _pytest.pathlib import Path
-
     function = get_real_func(function)
     fn = Path(inspect.getfile(function))
     lineno = function.__code__.co_firstlineno
@@ -142,7 +121,7 @@ def getfuncargnames(
     *,
     name: str = "",
     is_method: bool = False,
-    cls: Optional[type] = None
+    cls: Optional[type] = None,
 ) -> Tuple[str, ...]:
     """Return the names of a function's mandatory arguments.
 
@@ -170,8 +149,10 @@ def getfuncargnames(
     try:
         parameters = signature(function).parameters
     except (ValueError, TypeError) as e:
+        from _pytest.outcomes import fail
+
         fail(
-            "Could not determine arguments of {!r}: {}".format(function, e),
+            f"Could not determine arguments of {function!r}: {e}",
             pytrace=False,
         )
 
@@ -179,9 +160,8 @@ def getfuncargnames(
         p.name
         for p in parameters.values()
         if (
-            # TODO: Remove type ignore after https://github.com/python/typeshed/pull/4383
-            p.kind is Parameter.POSITIONAL_OR_KEYWORD  # type: ignore[unreachable]
-            or p.kind is Parameter.KEYWORD_ONLY  # type: ignore[unreachable]
+            p.kind is Parameter.POSITIONAL_OR_KEYWORD
+            or p.kind is Parameter.KEYWORD_ONLY
         )
         and p.default is Parameter.empty
     )
@@ -192,7 +172,12 @@ def getfuncargnames(
     # it's passed as an unbound method or function, remove the first
     # parameter name.
     if is_method or (
-        cls and not isinstance(cls.__dict__.get(name, None), staticmethod)
+        # Not using `getattr` because we don't want to resolve the staticmethod.
+        # Not using `cls.__dict__` because we want to check the entire MRO.
+        cls
+        and not isinstance(
+            inspect.getattr_static(cls, name, default=None), staticmethod
+        )
     ):
         arg_names = arg_names[1:]
     # Remove any names that will be replaced with mocks.
@@ -225,7 +210,7 @@ def get_default_arg_names(function: Callable[..., Any]) -> Tuple[str, ...]:
 
 
 _non_printable_ascii_translate_table = {
-    i: "\\x{:02x}".format(i) for i in range(128) if i not in range(32, 127)
+    i: f"\\x{i:02x}" for i in range(128) if i not in range(32, 127)
 }
 _non_printable_ascii_translate_table.update(
     {ord("\t"): "\\t", ord("\r"): "\\r", ord("\n"): "\\n"}
@@ -338,6 +323,8 @@ def safe_getattr(object: Any, name: str, default: Any) -> Any:
     are derived from BaseException instead of Exception (for more details
     check #2707).
     """
+    from _pytest.outcomes import TEST_OUTCOME
+
     try:
         return getattr(object, name, default)
     except TEST_OUTCOME:
@@ -352,12 +339,6 @@ def safe_isclass(obj: object) -> bool:
         return False
 
 
-if sys.version_info < (3, 5, 2):
-
-    def overload(f):  # noqa: F811
-        return f
-
-
 if TYPE_CHECKING:
     if sys.version_info >= (3, 8):
         from typing import final as final
@@ -367,19 +348,15 @@ elif sys.version_info >= (3, 8):
     from typing import final as final
 else:
 
-    def final(f):  # noqa: F811
+    def final(f):
         return f
-
-
-if getattr(attr, "__version_info__", ()) >= (19, 2):
-    ATTRS_EQ_FIELD = "eq"
-else:
-    ATTRS_EQ_FIELD = "cmp"
 
 
 if sys.version_info >= (3, 8):
     from functools import cached_property as cached_property
 else:
+    from typing import overload
+    from typing import Type
 
     class cached_property(Generic[_S, _T]):
         __slots__ = ("func", "__doc__")
@@ -390,33 +367,19 @@ else:
 
         @overload
         def __get__(
-            self, instance: None, owner: Optional["Type[_S]"] = ...
+            self, instance: None, owner: Optional[Type[_S]] = ...
         ) -> "cached_property[_S, _T]":
             ...
 
-        @overload  # noqa: F811
-        def __get__(  # noqa: F811
-            self, instance: _S, owner: Optional["Type[_S]"] = ...
-        ) -> _T:
+        @overload
+        def __get__(self, instance: _S, owner: Optional[Type[_S]] = ...) -> _T:
             ...
 
-        def __get__(self, instance, owner=None):  # noqa: F811
+        def __get__(self, instance, owner=None):
             if instance is None:
                 return self
             value = instance.__dict__[self.func.__name__] = self.func(instance)
             return value
-
-
-# Sometimes an algorithm needs a dict which yields items in the order in which
-# they were inserted when iterated. Since Python 3.7, `dict` preserves
-# insertion order. Since `dict` is faster and uses less memory than
-# `OrderedDict`, prefer to use it if possible.
-if sys.version_info >= (3, 7):
-    order_preserving_dict = dict
-else:
-    from collections import OrderedDict
-
-    order_preserving_dict = OrderedDict
 
 
 # Perform exhaustiveness checking.
@@ -451,4 +414,4 @@ else:
 #
 # This also work for Enums (if you use `is` to compare) and Literals.
 def assert_never(value: "NoReturn") -> "NoReturn":
-    assert False, "Unhandled value: {} ({})".format(value, type(value).__name__)
+    assert False, f"Unhandled value: {value} ({type(value).__name__})"

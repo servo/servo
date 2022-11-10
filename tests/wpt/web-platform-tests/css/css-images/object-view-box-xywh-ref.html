@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box on an element with xywh() : ref</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<style>
+.container {
+  width: 25px;
+  height: 50px;
+  overflow: hidden;
+}
+.default {
+  position: relative;
+  top: -50px;
+  left: -25px;
+}
+</style>
+<div class="container">
+ <img class="default" src="support/exif-orientation-6-ru.jpg"></img>
+</div>

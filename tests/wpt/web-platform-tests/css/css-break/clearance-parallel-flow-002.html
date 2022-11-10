@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1370969">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <div style="height:70px;">
+    <div style="height:70px; background:green;"></div>
+    <div style="float:left; width:100%; height:10px; background:green;"></div>
+    <div style="height:50px;"></div>
+    <div style="float:left; width:20px; height:20px; background:green;"></div>
+  </div>
+  <!-- We start layout of the flex container in the first column. We'll clear
+       past the first float, but the second float will end up in the second
+       column, in a parallel flow (due to overflow caused by the restricted
+       block-size of the container). When we resume the flex container in the
+       second container, we shouldn't apply any additional clearance, since
+       that's something that's placed *before* the block-start margin box, and
+       we're way past that in the second column. Being a well-behaved formatting
+       context root, though, means that the flex container shouldn't overlap
+       with the float in the second column. -->
+  <div style="display:flex; flex-flow:column; clear:left;">
+    <div style="height:20px; background:green;"></div>
+    <div style="margin-left:-20px; width:50px; height:20px; background:green;"></div>
+    <div style="width:30px; height:20px; background:green;"></div>
+    <div style="margin-left:-20px; width:50px; height:60px; background:green;"></div>
+  </div>
+</div>

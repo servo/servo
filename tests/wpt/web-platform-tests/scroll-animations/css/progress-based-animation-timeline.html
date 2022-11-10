@@ -5,16 +5,12 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
 <style>
-  #scrollers {
+  main > div {
     overflow: hidden;
-    height: 0px;
-  }
-  #scrollers > div {
-    overflow: scroll;
     width: 100px;
     height: 100px;
   }
-  #scrollers > div > div {
+  main > div > div {
     height: 200px;
   }
 
@@ -23,10 +19,8 @@
     to { top: 200px; }
   }
 
-  @scroll-timeline top_timeline {
-    source: selector(#scroller1);
-    start: 0px;
-    end: 100px;
+  #scroller1 {
+    scroll-timeline: top_timeline;
   }
 
   #element {
@@ -40,19 +34,19 @@
     #element { animation-play-state: paused; }
   }
 </style>
-<div id=scrollers>
+<main>
   <div id=scroller1><div></div></div>
-</div>
-<div id=element></div>
+  <div id=element></div>
+</main>
 <script>
-  // Force layout of scrollers.
-  scroller1.offsetTop;
-
-  scroller1.scrollTop = 20;
-
-  promise_test(async (t) => {
-    await waitForNextFrame();
-    assert_equals(getComputedStyle(element).top, '120px');
-  }, 'progress based animation timeline works');
-
+  window.onload = async () => {
+    promise_test(async (t) => {
+      await waitForNextFrame();
+      const anim = document.getAnimations()[0];
+      await anim.ready;
+      scroller1.scrollTop = 20;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(element).top, '120px');
+    }, 'progress based animation timeline works');
+  };
 </script>

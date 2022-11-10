@@ -31,6 +31,58 @@ self.RingBuffer = class {
   }
 };
 
+class DefaultSensorTraits {
+  // https://w3c.github.io/sensors/#threshold-check-algorithm
+  static isSignificantlyDifferent(reading1, reading2) {
+    return true;
+  }
+
+  // https://w3c.github.io/sensors/#reading-quantization-algorithm
+  static roundToMultiple(reading) {
+    return reading;
+  }
+
+  // https://w3c.github.io/ambient-light/#ambient-light-threshold-check-algorithm
+  static areReadingsEqual(reading1, reading2) {
+    return false;
+  }
+}
+
+class AmbientLightSensorTraits extends DefaultSensorTraits {
+  // https://w3c.github.io/ambient-light/#reduce-sensor-accuracy
+  static #ROUNDING_MULTIPLE = 50;
+  static #SIGNIFICANCE_THRESHOLD = 25;
+
+  // https://w3c.github.io/ambient-light/#ambient-light-threshold-check-algorithm
+  static isSignificantlyDifferent([illuminance1], [illuminance2]) {
+    return Math.abs(illuminance1 - illuminance2) >=
+        this.#SIGNIFICANCE_THRESHOLD;
+  }
+
+  // https://w3c.github.io/ambient-light/#ambient-light-reading-quantization-algorithm
+  static roundToMultiple(reading) {
+    const illuminance = reading[0];
+    const scaledValue =
+        illuminance / AmbientLightSensorTraits.#ROUNDING_MULTIPLE;
+    let roundedReading = reading.splice();
+
+    if (illuminance < 0.0) {
+      roundedReading[0] = -AmbientLightSensorTraits.#ROUNDING_MULTIPLE *
+          Math.floor(-scaledValue + 0.5);
+    } else {
+      roundedReading[0] = AmbientLightSensorTraits.#ROUNDING_MULTIPLE *
+          Math.floor(scaledValue + 0.5);
+    }
+
+    return roundedReading;
+  }
+
+  // https://w3c.github.io/ambient-light/#ambient-light-threshold-check-algorithm
+  static areReadingsEqual([illuminance1], [illuminance2]) {
+    return illuminance1 === illuminance2;
+  }
+}
+
 self.GenericSensorTest = (() => {
   // Default sensor frequency in default configurations.
   const DEFAULT_FREQUENCY = 5;
@@ -38,11 +90,15 @@ self.GenericSensorTest = (() => {
   // Class that mocks Sensor interface defined in
   // https://cs.chromium.org/chromium/src/services/device/public/mojom/sensor.mojom
   class MockSensor {
-    constructor(sensorRequest, handle, offset, size, reportingMode) {
+    static #BUFFER_OFFSET_TIMESTAMP = 1;
+    static #BUFFER_OFFSET_READINGS = 2;
+
+    constructor(sensorRequest, buffer, reportingMode, sensorType) {
       this.client_ = null;
       this.startShouldFail_ = false;
       this.notifyOnReadingChange_ = true;
       this.reportingMode_ = reportingMode;
+      this.sensorType_ = sensorType;
       this.sensorReadingTimerId_ = null;
       this.readingData_ = null;
       this.requestedFrequencies_ = [];
@@ -51,14 +107,31 @@ self.GenericSensorTest = (() => {
       // In this mock implementation we use a starting value
       // and an increment step value that resemble a platform timestamp reasonably enough.
       this.timestamp_ = window.performance.timeOrigin;
-      let rv = handle.mapBuffer(offset, size);
-      if (rv.result != Mojo.RESULT_OK) {
-        throw new Error("MockSensor(): Failed to map shared buffer");
-      }
-      this.buffer_ = new Float64Array(rv.buffer);
+      // |buffer| represents a SensorReadingSharedBuffer on the C++ side in
+      // Chromium. It consists, in this order, of a
+      // SensorReadingField<OneWriterSeqLock> (an 8-byte union that includes
+      // 32-bit integer used by the lock class), and a SensorReading consisting
+      // of an 8-byte timestamp and 4 8-byte reading fields.
+      //
+      // |this.buffer_[0]| is zeroed by default, which allows OneWriterSeqLock
+      // to work with our custom memory buffer that did not actually create a
+      // OneWriterSeqLock instance. It is never changed manually here.
+      //
+      // Use MockSensor.#BUFFER_OFFSET_TIMESTAMP and
+      // MockSensor.#BUFFER_OFFSET_READINGS to access the other positions in
+      // |this.buffer_| without having to hardcode magic numbers in the code.
+      this.buffer_ = buffer;
       this.buffer_.fill(0);
       this.receiver_ = new SensorReceiver(this);
       this.receiver_.$.bindHandle(sensorRequest.handle);
+      this.lastRawReading_ = null;
+      this.lastRoundedReading_ = null;
+
+      if (sensorType == SensorType.AMBIENT_LIGHT) {
+        this.sensorTraits = AmbientLightSensorTraits;
+      } else {
+        this.sensorTraits = DefaultSensorTraits;
+      }
     }
 
     // Returns default configuration.
@@ -119,12 +192,13 @@ self.GenericSensorTest = (() => {
       this.readingData_ = null;
       this.buffer_.fill(0);
       this.receiver_.$.close();
+      this.lastRawReading_ = null;
+      this.lastRoundedReading_ = null;
     }
 
     // Sets fake data that is used to deliver sensor reading updates.
-    async setSensorReading(readingData) {
+    setSensorReading(readingData) {
       this.readingData_ = new RingBuffer(readingData);
-      return this;
     }
 
     // This is a workaround to accommodate Blink's Device Orientation
@@ -134,8 +208,8 @@ self.GenericSensorTest = (() => {
       this.setSensorReading(readingData);
 
       const reading = this.readingData_.value();
-      this.buffer_.set(reading, 2);
-      this.buffer_[1] = this.timestamp_++;
+      this.buffer_.set(reading, MockSensor.#BUFFER_OFFSET_READINGS);
+      this.buffer_[MockSensor.#BUFFER_OFFSET_TIMESTAMP] = this.timestamp_++;
     }
 
     // Sets flag that forces sensor to fail when addConfiguration is invoked.
@@ -158,11 +232,34 @@ self.GenericSensorTest = (() => {
             throw new TypeError("startReading(): The readings passed to " +
               "setSensorReading() must be arrays");
           }
-          this.buffer_.set(reading, 2);
+
+          if (this.reportingMode_ == ReportingMode.ON_CHANGE &&
+              this.lastRawReading_ !== null &&
+              !this.sensorTraits.isSignificantlyDifferent(
+                  this.lastRawReading_, reading)) {
+            // In case new value is not significantly different compared to
+            // old value, new value is not sent.
+            return;
+          }
+
+          this.lastRawReading_ = reading.slice();
+          const roundedReading = this.sensorTraits.roundToMultiple(reading);
+
+          if (this.reportingMode_ == ReportingMode.ON_CHANGE &&
+              this.lastRoundedReading_ !== null &&
+              this.sensorTraits.areReadingsEqual(
+                roundedReading, this.lastRoundedReading_)) {
+            // In case new rounded value is not different compared to old
+            // value, new value is not sent.
+            return;
+          }
+          this.buffer_.set(roundedReading, MockSensor.#BUFFER_OFFSET_READINGS);
+          this.lastRoundedReading_ = roundedReading;
         }
+
         // For all tests sensor reading should have monotonically
         // increasing timestamp.
-        this.buffer_[1] = this.timestamp_++;
+        this.buffer_[MockSensor.#BUFFER_OFFSET_TIMESTAMP] = this.timestamp_++;
 
         if (this.reportingMode_ === ReportingMode.ON_CHANGE &&
             this.notifyOnReadingChange_) {
@@ -198,11 +295,22 @@ self.GenericSensorTest = (() => {
           Number(SensorInitParams_READ_BUFFER_SIZE_FOR_TESTS);
       this.sharedBufferSizeInBytes_ =
           this.readingSizeInBytes_ * (SensorType.MAX_VALUE + 1);
-      const rv = Mojo.createSharedBuffer(this.sharedBufferSizeInBytes_);
+      let rv = Mojo.createSharedBuffer(this.sharedBufferSizeInBytes_);
+      if (rv.result != Mojo.RESULT_OK) {
+        throw new Error('MockSensorProvider: Failed to create shared buffer');
+      }
+      const handle = rv.handle;
+      rv = handle.mapBuffer(0, this.sharedBufferSizeInBytes_);
       if (rv.result != Mojo.RESULT_OK) {
         throw new Error("MockSensorProvider: Failed to map shared buffer");
       }
-      this.sharedBufferHandle_ = rv.handle;
+      this.shmemArrayBuffer_ = rv.buffer;
+      rv = handle.duplicateBufferHandle({readOnly: true});
+      if (rv.result != Mojo.RESULT_OK) {
+        throw new Error(
+            'MockSensorProvider: failed to duplicate shared buffer');
+      }
+      this.readOnlySharedBufferHandle_ = rv.handle;
       this.activeSensors_ = new Map();
       this.resolveFuncs_ = new Map();
       this.getSensorShouldFail_ = new Map();
@@ -252,16 +360,20 @@ self.GenericSensorTest = (() => {
 
       const sensor = new SensorRemote();
       if (!this.activeSensors_.has(type)) {
+        const shmemView = new Float64Array(
+            this.shmemArrayBuffer_, offset,
+            this.readingSizeInBytes_ / Float64Array.BYTES_PER_ELEMENT);
         const mockSensor = new MockSensor(
-            sensor.$.bindNewPipeAndPassReceiver(), this.sharedBufferHandle_,
-            offset, this.readingSizeInBytes_, reportingMode);
+            sensor.$.bindNewPipeAndPassReceiver(), shmemView, reportingMode,
+            type);
         this.activeSensors_.set(type, mockSensor);
         this.activeSensors_.get(type).client_ = new SensorClientRemote();
       }
 
-      const rv = this.sharedBufferHandle_.duplicateBufferHandle();
+      const rv = this.readOnlySharedBufferHandle_.duplicateBufferHandle(
+          {readOnly: true});
       if (rv.result != Mojo.RESULT_OK) {
-        throw new Error("getSensor(): failed to duplicate Mojo buffer handler");
+        throw new Error('getSensor(): failed to duplicate shared buffer');
       }
 
       const defaultConfig = { frequency: DEFAULT_FREQUENCY };
@@ -271,24 +383,11 @@ self.GenericSensorTest = (() => {
         this.maxFrequency_ = Math.min(10, this.maxFrequency_);
       }
 
-      // Chromium applies some rounding and other privacy-related measures that
-      // can cause ALS not to report a reading when it has not changed beyond a
-      // certain threshold compared to the previous illuminance value. Make
-      // each reading return a different value that is significantly different
-      // from the previous one when setSensorReading() is not called by client
-      // code (e.g. run_generic_sensor_iframe_tests()).
-      if (type == SensorType.AMBIENT_LIGHT) {
-        this.activeSensors_.get(type).setSensorReading([
-          [window.performance.now() * 100],
-          [(window.performance.now() + 50) * 100]
-        ]);
-      }
-
       const client = this.activeSensors_.get(type).client_;
       const initParams = {
         sensor,
         clientReceiver: client.$.bindNewPipeAndPassReceiver(),
-        memory: rv.handle,
+        memory: {buffer: rv.handle},
         bufferOffset: BigInt(offset),
         mode: reportingMode,
         defaultConfiguration: defaultConfig,

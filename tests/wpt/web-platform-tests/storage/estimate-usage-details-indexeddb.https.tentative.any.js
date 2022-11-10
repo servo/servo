@@ -1,6 +1,6 @@
 // META: title=StorageManager: estimate() usage details for indexeddb
 // META: script=helpers.js
-// META: script=../IndexedDB/support-promises.js
+// META: script=../IndexedDB/resources/support-promises.js
 
 promise_test(async t => {
   const estimate = await navigator.storage.estimate()

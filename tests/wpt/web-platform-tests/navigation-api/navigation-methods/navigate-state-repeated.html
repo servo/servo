@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  navigation.onnavigate = e => e.intercept();
+
+  let result1 = navigation.navigate('/foo', {state: {foo: 1}});
+  assert_equals(navigation.currentEntry.getState().foo, 1);
+
+  // Don't let the harness fail because of the "AbortError" DOMException that is caused by interrupting the navigation.
+  result1.finished.catch(() => {});
+
+  let result2 = navigation.navigate('/foo', {state: {foo: 2}});
+  assert_equals(navigation.currentEntry.getState().foo, 2);
+
+  await result1.committed;
+  await result2.committed;
+}, "navigate() with state should work correctly when called repeatedly");
+</script>

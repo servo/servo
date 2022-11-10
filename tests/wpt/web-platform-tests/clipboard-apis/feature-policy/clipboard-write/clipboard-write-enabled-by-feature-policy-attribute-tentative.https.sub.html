@@ -1,17 +1,19 @@
 <!doctype html>
-<body>
+<body>Body needed for test_driver.click()</body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/feature-policy/resources/featurepolicy.js"></script>
+<script src="../../resources/user-activation.js"></script>
 <script>
 'use strict';
 
 const same_origin_src =
   '/feature-policy/resources/feature-policy-clipboard-write.html';
 
-async_test(t => {
+promise_test(async t => {
+  await waitForUserActivation();
   test_feature_availability(
     'navigator.clipboard.writeText("test text")',
     t,
@@ -21,4 +23,3 @@ async_test(t => {
   );
 }, 'Feature policy "clipboard-write" can be enabled in same-origin iframe using allow="clipboard-write" attribute');
 </script>
-</body>

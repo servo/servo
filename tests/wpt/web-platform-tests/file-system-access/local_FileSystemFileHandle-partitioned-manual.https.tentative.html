@@ -1,0 +1,125 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/cross-origin-embedder-policy/credentialless/resources/common.js"></script>
+<script src="/html/anonymous-iframe/resources/common.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/test-helpers.js"></script>
+<script src="resources/local-fs-test-helpers.js"></script>
+<body>
+<script>
+
+const setUpChildFrame = (done) => `
+  const importScript = ${importScript};
+  await importScript("/resources/testharness.js");
+  await importScript("/resources/testdriver.js");
+  await importScript("/resources/testdriver-vendor.js");
+  await importScript("/file-system-access/resources/local-fs-test-helpers.js");
+  await importScript("/file-system-access/resources/test-helpers.js");
+  await window.test_driver.bless(
+      'show a file picker.<br />Please select an empty directory');
+  await send("${done}", "done");
+`;
+
+const createTestFile = (name, contents) => (done) => `
+  self.showDirectoryPicker().then(async (dir) => {
+    const handle = await dir.getFileHandle("${name}", {create: true});
+    const writer = await handle.createWritable();
+    await writer.write(new Blob(["${contents}"]));
+    await writer.close();
+    return send("${done}", "done");
+  });
+`;
+
+const removeTestFile = (name) => (done) => `
+  self.showDirectoryPicker().then(async (dir) => {
+    await dir.removeEntry("${name}");
+    return send("${done}", "done");
+  });
+`;
+
+const assertNumEntries = (numFiles) => (done) => `
+  self.showDirectoryPicker().then(async (dir) => {
+    assert_equals(${numFiles}, await getDirectoryEntryCount(dir));
+    return send("${done}", "done");
+  });
+`;
+
+const assertFileContents = (file, contents) => (done) => `
+  self.showDirectoryPicker().then(async (dir) => {
+    const handle = await dir.getFileHandle("${file}");
+    assert_equals("${contents}", await getFileContents(handle));
+    return send("${done}", "done");
+  });
+`;
+
+const assertNoAccess = (done) => `
+  try {
+    await self.showDirectoryPicker();
+    await send("${done}", "unexpected");
+  } catch (e) {
+    await send("${done}", "done");
+  }
+`;
+
+// To be resilient against tests not cleaning up properly, cleanup before
+// every test.
+function clearDirectories() {
+  const directory = await directory_promise;
+  for await (let entry of directory.values()) {
+    await directory.removeEntry(
+        entry.name, {recursive: entry.kind === 'directory'});
+  }
+}
+
+// The following tests make use of helper framed_test to define promise tests
+// that send assertion scripts to multiple executor subframes.
+
+framed_test(async (t, sendTo) => {
+  clearDirectories();
+  // Ensure we have directory picker access in all child contexts.
+  await sendTo(childContexts, setUpChildFrame);
+  await sendTo(sameSiteContexts, assertNumEntries(0));
+
+  // Create file in first-party context.
+  await sendTo([FRAME_CONTEXT.firstParty], createTestFile("test.txt", "abc"));
+  // Assert file contents from all same-site contexts.
+  await sendTo(sameSiteContexts, assertNumEntries(1));
+  await sendTo(sameSiteContexts, assertFileContents("test.txt", "abc"));
+}, 'getFileHandle can access handles across same-site contexts.');
+
+framed_test(async (t, sendTo) => {
+  clearDirectories();
+  // Ensure we have directory picker access in all child frames.
+  await sendTo(childContexts, setUpChildFrame);
+  await sendTo(sameSiteContexts, assertNumEntries(0));
+
+  // Create file in third-party same-site context.
+  await sendTo([FRAME_CONTEXT.thirdPartySameSite], createTestFile("file", "b"));
+  await sendTo([FRAME_CONTEXT.thirdPartySameSite], assertNumEntries(1));
+
+  // Remove file from an anonymous same-site context.
+  await sendTo([FRAME_CONTEXT.anonymousFrameSameSite], removeTestFile("file"));
+  // Assert third-party same-site context can no longer access file.
+  await sendTo([FRAME_CONTEXT.thirdPartySameSite], assertNumEntries(0));
+}, 'File handles can be removed from other same-site contexts.');
+
+framed_test(async (t, sendTo) => {
+  clearDirectories();
+  // Ensure we have directory picker access in all child contexts.
+  await sendTo(childContexts, setUpChildFrame);
+  // Assert that an error is raised when attempting to access getFileHandle.
+  await sendTo(crossSiteContexts, assertNoAccess);
+}, 'Cross-site sub-frames cannot access getFileHandle.');
+
+// TODO(crbug.com/1322897): Add tests for ancestor bit frames.
+// TODO(crbug.com/1099413): Add tests for non-default buckets.
+
+</script>
+</body>

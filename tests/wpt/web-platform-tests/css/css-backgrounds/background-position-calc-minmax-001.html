@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Background and Borders Test: background-position with min and max percentages</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-position">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#comp-func">
+
+  <!--
+
+  Issue 4227: [css-values-4] min/max(%, %) should explicitly evaluate
+  against the % value, not the resolved value
+  https://github.com/w3c/csswg-drafts/issues/4227
+
+  Bug 1689244: Don't eagerly resolve min() expressions that have a
+  percent value (at least not if the percent value could be resolved
+  against a negative percent basis)
+  https://bugzilla.mozilla.org/show_bug.cgi?id=1689244
+
+  -->
+
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+  <meta content="" name="flags">
+  <meta content="This test checks that when the background positioning area is smaller than the width of background image, then the 'background-position' percentage value will resolve as a negative offset." name="assert">
+
+  <style>
+  div
+    {
+      height: 25px;
+      width: 100px;
+    }
+
+  div#first-sub-test
+    {
+      background-image: url("support/pattern-rg-rr-200x200.png");
+      background-position: min(0%, 100%) max(0%, 100%);
+
+    /*
+
+    the first value represents the horizontal position (or offset) and (...)
+    the second value represents the vertical position (or offset). The
+    <length-percentage> values represent an offset of the top left
+    corner of the background image from the top left corner of the
+    background positioning area.
+
+    A percentage for the horizontal offset is relative to
+    (width of background positioning area - width of background image).
+    A percentage for the vertical offset is relative to
+    (height of background positioning area - height of background image),
+    where the size of the image is the size given by background-size.
+
+    */
+    }
+
+  div#second-sub-test
+    {
+      background-image: url("support/pattern-rr-rg-200x200.png");
+      background-position: min(0%, 100%) min(0%, 100%);
+    }
+
+  div#third-sub-test
+    {
+      background-image: url("support/pattern-rr-gr-200x200.png");
+      background-position: max(0%, 100%) min(0%, 100%);
+    }
+
+  div#fourth-sub-test
+    {
+      background-image: url("support/pattern-gr-rr-200x200.png");
+      background-position: max(0%, 100%) max(0%, 100%);
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="first-sub-test"></div>
+
+  <div id="second-sub-test"></div>
+
+  <div id="third-sub-test"></div>
+
+  <div id="fourth-sub-test"></div>

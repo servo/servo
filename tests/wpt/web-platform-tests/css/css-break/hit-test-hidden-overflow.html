@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1330515">
+<style>
+  body { margin: 0; }
+</style>
+<div id="first" style="margin-top:20px; height:20px;">
+  <div style="overflow:hidden; width:500px; margin-left:-100px; height:0;">
+    <div style="columns:2; gap:0; width:200%;">
+      <div style="position:relative; margin-left:-100%; height:800px;"></div>
+    </div>
+  </div>
+</div>
+<div id="second" style="height:20px;"></div>
+<div id="log" style="margin-top:200px;"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> { assert_equals(document.elementFromPoint(50, 10), document.documentElement); }, "above first block");
+  test(()=> { assert_equals(document.elementFromPoint(50, 30), first); }, "first block");
+  test(()=> { assert_equals(document.elementFromPoint(50, 50), second); }, "second block");
+  test(()=> { assert_equals(document.elementFromPoint(50, 70), document.documentElement); }, "below first block");
+</script>

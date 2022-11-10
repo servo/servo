@@ -74,3 +74,20 @@ async_test(t => {
 
   t.done();
 }, 'Verify posting closed AudioData throws.');
+
+async_test(t => {
+  let localData = createDefaultAudioData();
+
+  let channel = new MessageChannel();
+  let localPort = channel.port1;
+  let externalPort = channel.port2;
+
+  externalPort.onmessage = t.step_func_done((e) => {
+    let externalData = e.data;
+    assert_equals(externalData.numberOfFrames, defaultInit.frames);
+    externalData.close();
+  })
+
+  localPort.postMessage(localData, [localData]);
+  assert_not_equals(localData.numberOfFrames, defaultInit.frames);
+}, 'Verify transferring audio data closes them.');

@@ -8,11 +8,11 @@ import pytest
 from _pytest.config import Config
 from _pytest.config import create_terminal_writer
 from _pytest.config.argparsing import Parser
-from _pytest.store import StoreKey
+from _pytest.stash import StashKey
 from _pytest.terminal import TerminalReporter
 
 
-pastebinfile_key = StoreKey[IO[bytes]]()
+pastebinfile_key = StashKey[IO[bytes]]()
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -37,26 +37,26 @@ def pytest_configure(config: Config) -> None:
         # when using pytest-xdist, for example.
         if tr is not None:
             # pastebin file will be UTF-8 encoded binary file.
-            config._store[pastebinfile_key] = tempfile.TemporaryFile("w+b")
+            config.stash[pastebinfile_key] = tempfile.TemporaryFile("w+b")
             oldwrite = tr._tw.write
 
             def tee_write(s, **kwargs):
                 oldwrite(s, **kwargs)
                 if isinstance(s, str):
                     s = s.encode("utf-8")
-                config._store[pastebinfile_key].write(s)
+                config.stash[pastebinfile_key].write(s)
 
             tr._tw.write = tee_write
 
 
 def pytest_unconfigure(config: Config) -> None:
-    if pastebinfile_key in config._store:
-        pastebinfile = config._store[pastebinfile_key]
+    if pastebinfile_key in config.stash:
+        pastebinfile = config.stash[pastebinfile_key]
         # Get terminal contents and delete file.
         pastebinfile.seek(0)
         sessionlog = pastebinfile.read()
         pastebinfile.close()
-        del config._store[pastebinfile_key]
+        del config.stash[pastebinfile_key]
         # Undo our patching in the terminal reporter.
         tr = config.pluginmanager.getplugin("terminalreporter")
         del tr._tw.__dict__["write"]
@@ -77,16 +77,16 @@ def create_new_paste(contents: Union[str, bytes]) -> str:
     from urllib.parse import urlencode
 
     params = {"code": contents, "lexer": "text", "expiry": "1week"}
-    url = "https://bpaste.net"
+    url = "https://bpa.st"
     try:
-        response = (
+        response: str = (
             urlopen(url, data=urlencode(params).encode("ascii")).read().decode("utf-8")
-        )  # type: str
+        )
     except OSError as exc_info:  # urllib errors
         return "bad response: %s" % exc_info
     m = re.search(r'href="/raw/(\w+)"', response)
     if m:
-        return "{}/show/{}".format(url, m.group(1))
+        return f"{url}/show/{m.group(1)}"
     else:
         return "bad response: invalid format ('" + response + "')"
 
@@ -107,4 +107,4 @@ def pytest_terminal_summary(terminalreporter: TerminalReporter) -> None:
             s = file.getvalue()
             assert len(s)
             pastebinurl = create_new_paste(s)
-            terminalreporter.write_line("{} --> {}".format(msg, pastebinurl))
+            terminalreporter.write_line(f"{msg} --> {pastebinurl}")

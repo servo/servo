@@ -5,14 +5,34 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
+<iframe src="support/MediaRecorder-iframe.html" id="subFrame-start" name="subFrameStart"></iframe>
 <iframe src="support/MediaRecorder-iframe.html" id="subFrame-stop" name="subFrameStop"></iframe>
 <iframe src="support/MediaRecorder-iframe.html" id="subFrame-allTrackEnded" name="subFrameAllTrackEnded"></iframe>
+<iframe src="support/MediaRecorder-iframe.html" id="subFrame-audioBitrateMode" name="subFrameAudioBitrateMode"></iframe>
 <script>
+    var iframeForCallingStart = document.getElementById('subFrame-start');
     var iframeForCallingStop = document.getElementById('subFrame-stop');
     var iframeForAllTrackEnded = document.getElementById('subFrame-allTrackEnded');
+    var iframeForAudioBitrateMode = document.getElementById('subFrame-audioBitrateMode');
 
+    var testForCallingStart = async_test('MediaRecorder will throw when start() is called and the script execution context is going away');
     var testForCallingStop = async_test('MediaRecorder will not fire the stop event when stop() is called and the script execution context is going away');
     var testForAllTrackEnded = async_test('MediaRecorder will not fire the stop event when all tracks are ended and the script execution context is going away');
+    var testForAudioBitrateMode = async_test('MediaRecorder will not crash on accessing audioBitrateMode when the script execution context is going away');
+
+
+    iframeForCallingStart.onload = function(e) {
+      let testWindow = subFrameStart.window;
+      testWindow.prepareForTest(testForCallingStart);
+      let exceptionCtor = testWindow.DOMException;
+      const recorder = subFrameStart.window.recorder;
+      iframeForCallingStart.remove();
+      testForCallingStart.step(function() {
+        assert_throws_dom('NotSupportedError', exceptionCtor, () => recorder.start(),
+                         "MediaRecorder.start() should throw");
+      });;
+      testForCallingStart.done();
+    };
 
     iframeForCallingStop.onload = function(e) {
         subFrameStop.window.prepareForTest(testForCallingStop);
@@ -23,7 +43,9 @@
         });
         recorder.onstop = testForCallingStop.unreached_func('Unexpected stop event');
         recorder.start();
-        assert_equals(recorder.state, 'recording', 'MediaRecorder has been started successfully');
+        testForCallingStop.step(function() {
+          assert_equals(recorder.state, 'recording', 'MediaRecorder has been started successfully');
+        });
         subFrameStop.window.control.addVideoFrame();
         recorder.stop();
     };
@@ -37,10 +59,20 @@
         });
         recorder.onstop = testForAllTrackEnded.unreached_func('Unexpected stop event');
         recorder.start();
-        assert_equals(recorder.state, 'recording', 'MediaRecorder has been started successfully');
+        testForAllTrackEnded.step(function() {
+          assert_equals(recorder.state, 'recording', 'MediaRecorder has been started successfully');
+        });
         subFrameAllTrackEnded.window.control.addVideoFrame();
         subFrameAllTrackEnded.window.video.getVideoTracks()[0].stop();
     };
+
+    iframeForAudioBitrateMode.onload = testForAudioBitrateMode.step_func(function(e) {
+        subFrameAudioBitrateMode.window.prepareForTest(testForAudioBitrateMode);
+        const recorder = subFrameAudioBitrateMode.window.recorder;
+        iframeForAudioBitrateMode.remove();
+        recorder.audioBitrateMode;
+        testForAudioBitrateMode.done();
+    });
 
 </script>
 </body>

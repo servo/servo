@@ -1,8 +1,8 @@
 [build-system]
 requires = [
   # sync with setup.py until we discard non-pep-517/518
-  "setuptools>=42.0",
-  "setuptools-scm[toml]>=3.4",
+  "setuptools>=45.0",
+  "setuptools-scm[toml]>=6.2.3",
   "wheel",
 ]
 build-backend = "setuptools.build_meta"
@@ -23,13 +23,16 @@ xfail_strict = true
 filterwarnings = [
     "error",
     "default:Using or importing the ABCs:DeprecationWarning:unittest2.*",
+    # produced by older pyparsing<=2.2.0.
+    "default:Using or importing the ABCs:DeprecationWarning:pyparsing.*",
     "default:the imp module is deprecated in favour of importlib:DeprecationWarning:nose.*",
-    "ignore:Module already imported so cannot be rewritten:pytest.PytestWarning",
+    # distutils is deprecated in 3.10, scheduled for removal in 3.12
+    "ignore:The distutils package is deprecated:DeprecationWarning",
     # produced by python3.6/site.py itself (3.6.7 on Travis, could not trigger it with 3.6.8)."
     "ignore:.*U.*mode is deprecated:DeprecationWarning:(?!(pytest|_pytest))",
     # produced by pytest-xdist
     "ignore:.*type argument to addoption.*:DeprecationWarning",
-    # produced by python >=3.5 on execnet (pytest-xdist)
+    # produced on execnet (pytest-xdist)
     "ignore:.*inspect.getargspec.*deprecated, use inspect.signature.*:DeprecationWarning",
     # pytest's own futurewarnings
     "ignore::pytest.PytestExperimentalApiWarning",
@@ -39,6 +42,14 @@ filterwarnings = [
     "default:invalid escape sequence:DeprecationWarning",
     # ignore use of unregistered marks, because we use many to test the implementation
     "ignore::_pytest.warning_types.PytestUnknownMarkWarning",
+    # https://github.com/benjaminp/six/issues/341
+    "ignore:_SixMetaPathImporter\\.exec_module\\(\\) not found; falling back to load_module\\(\\):ImportWarning",
+    # https://github.com/benjaminp/six/pull/352
+    "ignore:_SixMetaPathImporter\\.find_spec\\(\\) not found; falling back to find_module\\(\\):ImportWarning",
+    # https://github.com/pypa/setuptools/pull/2517
+    "ignore:VendorImporter\\.find_spec\\(\\) not found; falling back to find_module\\(\\):ImportWarning",
+    # https://github.com/pytest-dev/execnet/pull/127
+    "ignore:isSet\\(\\) is deprecated, use is_set\\(\\) instead:DeprecationWarning",
 ]
 pytester_example_dir = "testing/example_scripts"
 markers = [
@@ -102,4 +113,4 @@ template = "changelog/_template.rst"
   showcontent = true
 
 [tool.black]
-target-version = ['py35']
+target-version = ['py36']

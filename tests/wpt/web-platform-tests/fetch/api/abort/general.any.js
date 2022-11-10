@@ -6,6 +6,9 @@
 
 const BODY_METHODS = ['arrayBuffer', 'blob', 'formData', 'json', 'text'];
 
+const error1 = new Error('error1');
+error1.name = 'error1';
+
 // This is used to close connections that weren't correctly closed during the tests,
 // otherwise you can end up running out of HTTP connections.
 let requestAbortKeys = [];
@@ -30,6 +33,16 @@ promise_test(async t => {
 
   await promise_rejects_dom(t, "AbortError", fetchPromise);
 }, "Aborting rejects with AbortError");
+
+promise_test(async t => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  controller.abort(error1);
+
+  const fetchPromise = fetch('../resources/data.json', { signal });
+
+  await promise_rejects_exactly(t, error1, fetchPromise, 'fetch() should reject with abort reason');
+}, "Aborting rejects with abort reason");
 
 promise_test(async t => {
   const controller = new AbortController();
@@ -90,6 +103,22 @@ promise_test(async t => {
 
   await promise_rejects_dom(t, "AbortError", fetchPromise);
 }, "Signal on request object");
+
+promise_test(async t => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  controller.abort(error1);
+
+  const request = new Request('../resources/data.json', { signal });
+
+  assert_not_equals(request.signal, signal, 'Request has a new signal, not a reference');
+  assert_true(request.signal.aborted, `Request's signal has aborted`);
+  assert_equals(request.signal.reason, error1, `Request's signal's abort reason is error1`);
+
+  const fetchPromise = fetch(request);
+
+  await promise_rejects_exactly(t, error1, fetchPromise, "fetch() should reject with abort reason");
+}, "Signal on request object should also have abort reason");
 
 promise_test(async t => {
   const controller = new AbortController();

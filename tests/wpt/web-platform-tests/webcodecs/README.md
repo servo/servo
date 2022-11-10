@@ -79,7 +79,10 @@ exiftool -Orientation=1 -n four-colors.jpg
 
 ### four-colors-limited-range-420-8bpc.jpg
 Used [Sqoosh.app](https://squoosh.app/) with MozJPEG compression and YUV
-channels.
+channels. exiftool was then used to add an orientation marker.
+```
+exiftool -Orientation=1 -n four-colors-limited-range-420-8bpc.jpg
+```
 
 ### four-colors.mp4
 Used a [custom tool](https://storage.googleapis.com/dalecurtis/avif2mp4.html) to convert four-colors.avif into a .mp4 file.

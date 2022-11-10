@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import os
 from unittest import mock
 
@@ -22,7 +24,7 @@ def test_forbidden_path_length():
 
     for idx in range(5, 10):
         filename = basename + idx * "a"
-        message = "/%s longer than maximum path length (%s > 150)" % (filename, 146 + idx)
+        message = f"/{filename} longer than maximum path length ({146 + idx} > 150)"
 
         errors = check_path("/foo/", filename)
         check_errors(errors)
@@ -46,7 +48,7 @@ def test_forbidden_path_endings(path_ending, generated):
 def test_file_type():
     path = "test/test"
 
-    message = "/%s is an unsupported file type (symlink)" % (path,)
+    message = f"/{path} is an unsupported file type (symlink)"
 
     with mock.patch("os.path.islink", returnvalue=True):
         errors = check_path("/foo/", path)

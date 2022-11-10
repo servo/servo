@@ -2,22 +2,12 @@
 <meta charset="utf-8">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src="support/utils.js"></script>
 
 <link rel=stylesheet href=stylesheet.py>
 <link rel=stylesheet media="screen and (max-width:10px)" href=stylesheet.py?stylesNotMatchingEnvironment&delay=2>
 <h1>Dominic Farolino</h1>
 <script>
-  function styleExists(styleText) {
-    for (let styleRule of document.styleSheets) {
-      let currentStyleText = styleRule.cssRules["0"].cssText;
-      if (currentStyleText == styleText) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   test(() => {
     const h1 = document.querySelector('h1');
     const computedColor = getComputedStyle(h1).color;

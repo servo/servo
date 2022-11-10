@@ -4,7 +4,7 @@
 <meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbrequest-source">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 [
@@ -26,7 +26,7 @@
     db.createObjectStore('store', {autoIncrement: true});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite');
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     const store = tx.objectStore('store');
 
     assert_equals(func(store).source, store,

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Inheritance of CSS Fonts Level 3 properties</title>
+<title>Inheritance of CSS Fonts Level 3 & 4 properties</title>
 <link rel="help" href="https://www.w3.org/TR/css-fonts-3/#property-index">
 <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#property-index">
 <meta name="assert" content="Properties inherit according to the spec.">
@@ -40,6 +40,7 @@ assert_inherited('font-variant', 'normal', 'none');
 assert_inherited('font-variant-alternates', 'normal', 'historical-forms');
 assert_inherited('font-variant-caps', 'normal', 'small-caps');
 assert_inherited('font-variant-east-asian', 'normal', 'ruby');
+assert_inherited('font-variant-emoji', 'normal', 'text');
 assert_inherited('font-variant-ligatures', 'normal', 'none');
 assert_inherited('font-variant-numeric', 'normal', 'ordinal');
 assert_inherited('font-variant-position', 'normal', 'super');

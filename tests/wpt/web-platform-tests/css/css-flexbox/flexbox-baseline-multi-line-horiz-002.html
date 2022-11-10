@@ -33,8 +33,8 @@
 
     /* We'll make the second flex line not paint anything, so that the
        reference case doesn't need to bother matching it. */
-    .flexContainer > *:nth-child(3),
-    .flexContainer > *:nth-child(4) {
+    .flexContainer > *:nth-child(1),
+    .flexContainer > *:nth-child(2) {
       visibility: hidden;
     }
 
@@ -65,17 +65,8 @@
   <div class="flexContainer">
     <div class="bigFont">f</div
     ><div class="smallFont">g</div
-    ><div class="medFont">h</div
-    ><div class="bigFont">i</div>
-  </div>
-
-  <!-- Flex container with second line baseline-aligned
-       (shouldn't make a difference) -->
-  <div class="flexContainer">
-    <div class="smallFont">j</div
-    ><div class="bigFont">k</div
-    ><div class="bigFont" style="align-self: baseline">l</div
-    ><div class="medFont" style="align-self: baseline">m</div>
+    ><div class="bigFont">h</div
+    ><div class="medFont">i</div>
   </div>
   n
 

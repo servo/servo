@@ -13,22 +13,23 @@
 <style>
 div {
   background: blue;
+  color: white;
 }
 .hidden {
   content-visibility: hidden;
 }
 </style>
 
-<div>lorem ipsum</div>
+<div>Test passes if the word “FAIL” does not appear below and if there is no red.</div>
 <iframe id="frame" width=400 height=200 srcdoc='
   <style>
   div {
-    background: lightgreen;
+    background: red;
   }
   </style>
-  <div>dolor sit amet</div>
+  <div>FAIL</div>
 '></iframe>
-<div>consectetur adipiscing elit</div>
+<div>Test passes if the word “FAIL” does not appear above and if there is no red.</div>
 
 <script>
 async function runTest() {

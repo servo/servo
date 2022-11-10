@@ -3,7 +3,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -16,7 +16,7 @@ open_rq.onupgradeneeded = function(e) {
     db.createObjectStore('readonly');
 };
 open_rq.onsuccess = function(e) {
-    var txn = db.transaction('readonly');
+    var txn = db.transaction('readonly', 'readonly', {durability: 'relaxed'});
     assert_equals(txn.mode, "readonly", 'txn.mode');
 
     t.done();

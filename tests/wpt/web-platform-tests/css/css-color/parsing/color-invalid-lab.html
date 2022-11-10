@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using invalid Lab notation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#lab-colors">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-lab-lch-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-oklab-oklch-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-lab-lch">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-oklab-oklch">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+for (const colorSpace of [ "lab", "oklab" ]) {
+    test_invalid_value("color", `${colorSpace}(0% 0 0 1)`);
+    test_invalid_value("color", `${colorSpace}(0% 0 0 10%)`);
+    test_invalid_value("color", `${colorSpace}(0% 0 0deg)`);
+    test_invalid_value("color", `${colorSpace}(0% 0% 0deg)`);
+    test_invalid_value("color", `${colorSpace}(40% 0 0deg)`);
+    test_invalid_value("color", `color(${colorSpace} 20% 0 10 / 50%)`);
+}
+
+for (const colorSpace of [ "lch", "oklch" ]) {
+    test_invalid_value("color", `${colorSpace}(20% 10 10deg 10)`);
+    test_invalid_value("color", `${colorSpace}(20% 10 10deg 10 / 0.5)`);
+    test_invalid_value("color", `color(${colorSpace} 20% 0 10 / 50%)`);
+}
+</script>
+</body>
+</html>

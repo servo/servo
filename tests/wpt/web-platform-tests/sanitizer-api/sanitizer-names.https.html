@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  // Like assert_array_equals, but disregard element order.
+  function assert_array_same(actual, expected) {
+    assert_array_equals(actual.sort(), expected.sort());
+  }
+
+  // Element names:
+  const elems_valid = [
+    "p", "template", "span", "custom-elements", "potato",
+
+    // Arguments will be stringified, so anything that stringifies to a valid
+    // name is also valid. (E.g. null => "null")
+    null, undefined, 123
+  ];
+  const elems_invalid = [
+    "", [], ["*"], ["p"]
+  ];
+
+  // Attribute names:
+  const attrs_valid = [
+    "href", "span",
+  ];
+  const attrs_invalid = [
+  ];
+
+  const all_elems = elems_valid.concat(elems_invalid);
+  const all_attrs = attrs_valid.concat(attrs_invalid);
+  for (const item of ["allowElements", "dropElements", "blockElements"]) {
+    test(t => {
+      const sanitizer = new Sanitizer({[item]: all_elems});
+      assert_array_same(sanitizer.getConfiguration()[item],
+                          elems_valid.map(x => "" + x));
+    }, `Element names in config item: ${item}`);
+  }
+  for (const item of ["allowAttributes", "dropAttributes"]) {
+    test(t => {
+      const sanitizer = new Sanitizer(
+          {[item]: Object.fromEntries(all_attrs.map(x => [x, ["*"]]))});
+      assert_array_same(Object.keys(sanitizer.getConfiguration()[item]),
+                        attrs_valid.map(x => "" + x));
+    }, `Attribute names in config item: ${item}`);
+  }
+</script>
+</body>
+</html>

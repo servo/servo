@@ -12,21 +12,20 @@
     <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com"/>
     <style>
       .container {
-        display: flex;
         border: 1px dashed blue;
         font: 14px sans-serif;
         height: 50px;
       }
 
-      .ortho  { writing-mode: vertical-rl;
-                width: 17px;
-                height: 40px;
-                float: left; }
-      .offset { margin-top: 10px;
-                margin-bottom: 3px; }
+      .container > div {
+        display: inline-block;
+      }
 
-      .start  { align-self: flex-start; }
-      .end    { align-self: flex-end; }
+      .ortho  {
+        writing-mode: vertical-rl;
+        width: 17px;
+        height: 40px;
+      }
 
       .lime   { background: lime;   }
       .yellow { background: yellow; }
@@ -36,16 +35,16 @@
   </head>
   <body>
     <div class="container">
-      <div class="lime ortho start">ortho</div
-      ><div class="yellow offset start">one line</div
-      ><div class="orange offset start">two<br/>lines</div
-      ><div class="pink offset start">offset</div>
+      <div class="lime ortho">ortho</div
+      ><div class="yellow">one line</div
+      ><div class="orange" style="display: inline-flex;">two<br/>lines</div
+      ><div class="pink">offset</div>
     </div>
     <div class="container">
-      <div class="lime ortho end">ortho</div
-      ><div class="yellow offset end">one line</div
-      ><div class="orange offset end">two<br/>lines</div
-      ><div class="pink offset end">offset</div>
+      <div class="lime ortho" style="margin-top: 4px;">ortho</div
+      ><div class="yellow">one line</div
+      ><div class="orange">two<br/>lines</div
+      ><div class="pink">offset</div>
     </div>
   </body>
 </html>

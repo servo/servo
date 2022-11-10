@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Sub Apps: Valid calls for remove()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/subapps-helpers.js"></script>
+<script>
+
+subapps_test(async (t, mockSubAppsService) => {
+  await navigator.subApps.remove('/sub/app/id');
+}, 'Remove API call works.');
+
+</script>

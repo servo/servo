@@ -23,8 +23,6 @@
         <input type="date" value="2011-12-01" min="2011-12-01" max="2011-12-31" step="5" />
         <input type="time" value= "12:00" min="11:30" max="14:00" step="600" />
         <input type="datetime-local" value="2011-12-01T12:00" min="2011-12-01T12:00" max="2011-12-31T22:00" step="7200" />
-        <input type="month" value="2011-01" min="2011-01" max="2011-12" step="2" />
-        <input type="week" value="2011-W40" min="2011-W20" max="2011-W50" step="2" />
     </div>
 
     <div id="log">
@@ -54,22 +52,6 @@
     test(function() {assert_equals(document.getElementsByTagName("input")[2].step, "7200")}, "[datetime-local] The step attribute must be expressed in seconds");
     test(function() {assert_true(typeof(document.getElementsByTagName("input")[2].stepUp) == "function")}, "[datetime-local] stepUp method support on input 'datetime-local' element");
     test(function() {assert_true(typeof(document.getElementsByTagName("input")[2].stepDown) == "function")}, "[datetime-local] stepDown method support on input 'datetime-local' element");
-
-    test(function() {assert_equals(document.getElementsByTagName("input")[3].type, "month")}, "month type support on input element");
-    test(function() {assert_equals(document.getElementsByTagName("input")[3].value, "2011-01")}, "[month] The value must be a value that is a valid global date and time string");
-    test(function() {assert_equals(document.getElementsByTagName("input")[3].min, "2011-01")}, "[month] The min attribute must have a value that is a valid global date and time string");
-    test(function() {assert_equals(document.getElementsByTagName("input")[3].max, "2011-12")}, "[month] The max attribute must have a value that is a valid global date and time string");
-    test(function() {assert_equals(document.getElementsByTagName("input")[3].step, "2")}, "[month] The step attribute must be expressed in seconds");
-    test(function() {assert_true(typeof(document.getElementsByTagName("input")[3].stepUp) == "function")}, "[month] stepUp method support on input 'month' element");
-    test(function() {assert_true(typeof(document.getElementsByTagName("input")[3].stepDown) == "function")}, "[month] stepDown method support on input 'month' element");
-
-    test(function() {assert_equals(document.getElementsByTagName("input")[4].type, "week")}, "week type support on input element");
-    test(function() {assert_equals(document.getElementsByTagName("input")[4].value, "2011-W40")}, "[week] The value must be a value that is a valid global date and time string");
-    test(function() {assert_equals(document.getElementsByTagName("input")[4].min, "2011-W20")}, "[week] The min attribute must have a value that is a valid global date and time string");
-    test(function() {assert_equals(document.getElementsByTagName("input")[4].max, "2011-W50")}, "[week] The max attribute must have a value that is a valid global date and time string");
-    test(function() {assert_equals(document.getElementsByTagName("input")[4].step, "2")}, "[week] The step attribute must be expressed in seconds");
-    test(function() {assert_true(typeof(document.getElementsByTagName("input")[4].stepUp) == "function")}, "[week] stepUp method support on input 'week' element");
-    test(function() {assert_true(typeof(document.getElementsByTagName("input")[4].stepDown) == "function")}, "[week] stepDown method support on input 'week' element");
 
   </script>
 

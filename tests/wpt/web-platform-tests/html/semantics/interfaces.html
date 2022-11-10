@@ -17,6 +17,8 @@ function do_test(local_name, iface, variant) {
     if (variant === "useNS") {
       // Use createElementNS here to preserve the case of local_name.
       e = document.createElementNS("http://www.w3.org/1999/xhtml", local_name);
+    } else if (variant === "useParser") {
+      e = new DOMParser().parseFromString("<" + local_name + ">", "text/html").querySelector(local_name);
     } else {
       e = document.createElement(local_name);
     }
@@ -31,17 +33,42 @@ function do_test(local_name, iface, variant) {
                 "Element " + local_name + " should implement Element.");
     assert_true(e instanceof Node,
                 "Element " + local_name + " should implement Node.");
-  }, "Interfaces for " + local_name);
+  }, "Interfaces for " + local_name + ": " + variant);
+}
+
+// Some elements have weird parser behavior / insertion modes and would be
+// skipped by the parser, so skip those.
+function should_do_parser_test(local_name) {
+  return ![
+    "foo-BAR",
+    "tbody",
+    "td",
+    "tfoot",
+    "th",
+    "thead",
+    "tr",
+    "å-bar",
+    "caption",
+    "col",
+    "colgroup",
+    "frame",
+    "image",
+    "frameset",
+  ].includes(local_name)
 }
 
 elements.forEach(function(a) {
   do_test(a[0], a[1], "useNS");
 
+  if (should_do_parser_test(a[0])) {
+    do_test(a[0], a[1], "useParser");
+  }
+
   // Only run the createElement variant if the input is all-lowercase, because createElement
   // case-folds to lowercase. Custom elements are required to use all-lowercase to implement
   // HTMLElement, otherwise they use HTMLUnknownElement per spec. Example: "foo-BAR".
   if (a[0] === a[0].toLowerCase()) {
-    do_test(a[0].toUpperCase(), a[1]);
+    do_test(a[0].toUpperCase(), a[1], "createElement");
   }
 })
 </script>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>background-clip:text with display:flex</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-flex-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.clip {
+  font-size: 80px;
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+}
+.flex {
+    display: flex;
+}
+.inline-flex {
+    display: inline-flex;
+}
+</style>
+<div class="clip flex">flex</div>
+<div class="clip inline-flex">inline-flex</div>

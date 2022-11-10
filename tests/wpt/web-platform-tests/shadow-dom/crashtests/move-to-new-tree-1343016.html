@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<title>Shadow DOM: Move to new tree without crashing</title>
+<meta name="author" title="Frank Liberato" href="mailto:liberato@google.com">
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+</head>
+
+<body>
+<video controls id="video"></video>
+
+<script>
+
+async function crash() {
+  await test_driver.bless('open popup window', () => {
+    let w = window.open("", "", "popup");
+    w.document.body.appendChild(document.getElementById("video"));
+  });
+  document.documentElement.removeAttribute("class");
+}
+
+crash();
+
+</script>
+</body>
+</html>

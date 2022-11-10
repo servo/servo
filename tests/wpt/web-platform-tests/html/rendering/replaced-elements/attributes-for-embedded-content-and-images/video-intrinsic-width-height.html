@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>video element intrinsic width/height</title>
+        <link rel="author" title="Sammy Gill" href="sammy.gill@apple.com" />
+        <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7524" />
+        <link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#replaced-elements" />
+        <link rel="help" href="https://w3c.github.io/csswg-drafts/css-sizing-4/#aspect-ratio" />
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <video title="no width/height attributes"
+               data-expected-width="300" data-expected-height="150"></video>
+        <video title="only width attribute"
+               data-expected-width="100" data-expected-height="50"
+               width="100"></video>
+        <video title="only height attribute"
+               data-expected-width="200" data-expected-height="100"
+               height="100"></video>
+        <video title="both width/height attributes"
+               data-expected-width="100" data-expected-height="100"
+               width="100" height="100"></video>
+        <!-- A width:height ratio other than 2:1 and overriding the specified style must be used to
+             verify that width/height does not influence intrinsic ratio -->
+        <video title="both width/height attributes and style"
+               data-expected-width="300" data-expected-height="300"
+               width="100" height="100" style="width: auto; height: auto"></video>
+        <script>
+            Array.prototype.forEach.call(document.querySelectorAll('video'), function(video)
+            {
+                test(function()
+                {
+                    assert_equals(video.clientWidth, parseInt(video.dataset.expectedWidth), "width");
+                    assert_equals(video.clientHeight, parseInt(video.dataset.expectedHeight), "height");
+                }, video.title);
+            });
+        </script>
+    </body>
+</html>

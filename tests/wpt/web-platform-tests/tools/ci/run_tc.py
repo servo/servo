@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# mypy: allow-untyped-defs
 
 """Wrapper script for running jobs in Taskcluster
 
@@ -255,10 +256,7 @@ def setup_environment(args):
 
     if "chrome" in args.browser:
         assert args.channel is not None
-        # Chrome Nightly will be installed via `wpt run --install-browser`
-        # later in taskcluster-run.py.
-        if args.channel != "nightly":
-            install_chrome(args.channel)
+        install_chrome(args.channel)
 
     if args.xvfb:
         start_xvfb()

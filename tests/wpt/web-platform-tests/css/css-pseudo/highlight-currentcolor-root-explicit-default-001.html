@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Pseudo-Elements Test: Custom Highlights currentcolor, initial, inherit, unset painting</title>
+<meta name="assert" content="Checks the painting for highlight pseudos (using ::highlight), when ‘color’ is explicitly defaulted in a universal rule. ‘inherit’ (and ‘unset’, due to highlight inheritance) should equal the originating element ‘color’, because ‘color’ inherits through ancestor highlight pseudos up to the root, where the inherited value is defined as ‘currentColor’ for highlights. ‘initial’ should equal the initial value of ‘color’, which is ‘CanvasText’.">
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-text">
+<link rel="match" href="highlight-currentcolor-root-explicit-default-001-ref.html">
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+div {
+  color: lime;
+  background: green;
+  margin: 10px;
+}
+::highlight(empty) {
+}
+::highlight(color-currentcolor) {
+  color: currentcolor;
+}
+::highlight(color-initial) {
+  color: initial;
+}
+::highlight(color-inherit) {
+  color: inherit;
+}
+::highlight(color-unset) {
+  color: unset;
+}
+::highlight(color-cyan) {
+  color: cyan;
+}
+::highlight(backgroundcolor-currentcolor) {
+  background-color: currentcolor;
+}
+::highlight(color-currentcolor-backgroundcolor-currentcolor) {
+  color: currentcolor;
+  background-color: currentcolor;
+}
+::highlight(color-initial-backgroundcolor-currentcolor) {
+  color: initial;
+  background-color: currentcolor;
+}
+::highlight(color-inherit-backgroundcolor-currentcolor) {
+  color: inherit;
+  background-color: currentcolor;
+}
+::highlight(color-unset-backgroundcolor-currentcolor) {
+  color: unset;
+  background-color: currentcolor;
+}
+::highlight(color-cyan-backgroundcolor-currentcolor) {
+  color: cyan;
+  background-color: currentcolor;
+}
+::highlight(backgroundcolor-blue) {
+  background-color: blue;
+}
+::highlight(color-currentcolor-backgroundcolor-blue) {
+  color: currentcolor;
+  background-color: blue;
+}
+::highlight(color-initial-backgroundcolor-blue) {
+  color: initial;
+  background-color: blue;
+}
+::highlight(color-inherit-backgroundcolor-blue) {
+  color: inherit;
+  background-color: blue;
+}
+::highlight(color-unset-backgroundcolor-blue) {
+  color: unset;
+  background-color: blue;
+}
+</style>
+<div id="empty" class="highlight_reftest">example - empty</div>
+<div id="color-currentcolor" class="highlight_reftest">example - color-currentcolor</div>
+<div id="color-initial" class="highlight_reftest">example - color-initial</div>
+<div id="color-inherit" class="highlight_reftest">example - color-inherit</div>
+<div id="color-unset" class="highlight_reftest">example - color-unset</div>
+<div id="color-cyan" class="highlight_reftest">example - color-cyan</div>
+<div id="backgroundcolor-currentcolor" class="highlight_reftest">example - backgroundcolor-currentcolor</div>
+<div id="color-currentcolor-backgroundcolor-currentcolor" class="highlight_reftest">example - color-currentcolor-backgroundcolor-currentcolor</div>
+<div id="color-initial-backgroundcolor-currentcolor" class="highlight_reftest">example - color-initial-backgroundcolor-currentcolor</div>
+<div id="color-inherit-backgroundcolor-currentcolor" class="highlight_reftest">example - color-inherit-backgroundcolor-currentcolor</div>
+<div id="color-unset-backgroundcolor-currentcolor" class="highlight_reftest">example - color-inset-backgroundcolor-currentcolor</div>
+<div id="color-cyan-backgroundcolor-currentcolor" class="highlight_reftest">example - color-cyan-backgroundcolor-currentcolor</div>
+<div id="backgroundcolor-blue" class="highlight_reftest">example - backgroundcolor-blue</div>
+<div id="color-currentcolor-backgroundcolor-blue" class="highlight_reftest">example - color-currentcolor-backgroundcolor-blue</div>
+<div id="color-initial-backgroundcolor-blue" class="highlight_reftest">example - color-initial-backgroundcolor-blue</div>
+<div id="color-inherit-backgroundcolor-blue" class="highlight_reftest">example - color-inherit-backgroundcolor-blue</div>
+<div id="color-unset-backgroundcolor-blue" class="highlight_reftest">example - color-inset-backgroundcolor-blue</div>
+
+<script>
+  function range(node, start, end) {
+    let range = new Range();
+    range.setStart(node, start);
+    range.setEnd(node, end);
+    return range;
+  }
+
+  const divs = document.getElementsByTagName("div");
+  for (let div of divs) {
+    CSS.highlights.set(div.id, new Highlight(range(div.firstChild, 0, 7)));
+  }
+</script>

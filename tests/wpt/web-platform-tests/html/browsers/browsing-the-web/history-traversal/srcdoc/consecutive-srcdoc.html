@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>changing srcdoc to a different srcdoc</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/6809#issuecomment-905677979">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/helpers.js"></script>
+
+<script>
+"use strict";
+
+// Note: bfcache won't mess with any windows with openers, so it doesn't
+// interfere with these tests.
+
+promise_test(async t => {
+  // Set up a window whose iframe contains [normal page, srcdoc] entries.
+  const w = await openWindow("../../resources/has-iframe.html", t);
+  const iframe = w.document.querySelector("iframe");
+
+  await waitToAvoidReplace(t);
+  iframe.srcdoc = srcdocThatPostsParentOpener("srcdoc1");
+  await waitForMessage(iframe.contentWindow);
+
+  assert_equals(w.history.length, 2);
+
+  // Now navigate to a different srcdoc
+  iframe.srcdoc = srcdocThatPostsParentOpener("srcdoc2");
+
+  // Test that it's a replace.
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(w.history.length, 2,
+    "history.length must not change since it was a replace");
+  assert_equals(
+    iframe.contentDocument.querySelector("p").textContent,
+    "srcdoc2",
+    "Sanity check: the srcdoc document did indeed update"
+  );
+}, "changing srcdoc does a replace navigation since the URL is still " +
+   "about:srcdoc");
+
+promise_test(async t => {
+  // Set up a window whose iframe contains [normal page, srcdoc] entries.
+  const w = await openWindow("../../resources/has-iframe.html", t);
+  const iframe = w.document.querySelector("iframe");
+
+  await waitToAvoidReplace(t);
+  iframe.srcdoc = srcdocThatPostsParentOpener("srcdoc1");
+  await waitForMessage(iframe.contentWindow);
+
+  assert_equals(w.history.length, 2);
+
+  // Now navigate to about:srcdoc#yo
+  iframe.contentWindow.location.href = "about:srcdoc#yo";
+  assert_equals(iframe.contentWindow.location.href, "about:srcdoc#yo");
+  assert_equals(w.history.length, 3);
+
+  // Now navigate to a different srcdoc
+  iframe.srcdoc = srcdocThatPostsParentOpener("srcdoc2");
+
+  // Test that it's a push back to about:srcdoc.
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(
+    w.history.length,
+    4,
+    "history.length must increase since it was a push"
+  );
+  assert_equals(iframe.contentWindow.location.href, "about:srcdoc");
+  assert_equals(
+    iframe.contentDocument.querySelector("p").textContent,
+    "srcdoc2",
+    "Sanity check: the srcdoc document did indeed update"
+  );
+
+  // Test that we can go back to about:srcdoc#yo.
+  w.history.back();
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(iframe.contentWindow.location.href, "about:srcdoc#yo");
+  assert_equals(
+    iframe.contentDocument.querySelector("p").textContent,
+    "srcdoc1",
+    "srcdoc content must be restored from history"
+  );
+}, "changing srcdoc to about:srcdoc#yo then another srcdoc does two push " +
+   "navigations and we can navigate back");
+</script>

@@ -2,7 +2,7 @@
 <title>IDBObjectStore.openKeyCursor()</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 function store_test(func, name) {
   indexeddb_test(
@@ -13,7 +13,7 @@ function store_test(func, name) {
       }
     },
     function(t, db) {
-      var tx = db.transaction("store");
+      var tx = db.transaction("store", "readonly", {durability: 'relaxed'});
       var store = tx.objectStore("store");
       func(t, db, tx, store);
     }, name);

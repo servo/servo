@@ -1,13 +1,11 @@
 # This file is dual licensed under the terms of the Apache License, Version
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
-from __future__ import absolute_import, division, print_function
 
 import pytest
 
 from packaging.markers import Marker
-from packaging.requirements import InvalidRequirement, Requirement, URL
-from packaging.requirements import URL_AND_MARKER
+from packaging.requirements import URL, URL_AND_MARKER, InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
 
 
@@ -142,7 +140,7 @@ class TestRequirements:
         marker = 'python_version < "2.7" and platform_version == "2"'
         self._assert_requirement(req, "name", extras=["strange", "quux"], marker=marker)
 
-    def test_multiple_comparsion_markers(self):
+    def test_multiple_comparison_markers(self):
         req = Requirement("name; os_name=='a' and os_name=='b' or os_name=='c'")
         marker = 'os_name == "a" and os_name == "b" or os_name == "c"'
         self._assert_requirement(req, "name", marker=marker)
@@ -194,4 +192,6 @@ class TestRequirements:
     def test_parseexception_error_msg(self):
         with pytest.raises(InvalidRequirement) as e:
             Requirement("toto 42")
-        assert "Expected stringEnd" in str(e.value)
+        assert "Expected stringEnd" in str(e.value) or (
+            "Expected string_end" in str(e.value)  # pyparsing>=3.0.0
+        )

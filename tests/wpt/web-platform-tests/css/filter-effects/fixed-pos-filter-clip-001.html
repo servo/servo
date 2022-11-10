@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>filter + fixed pos clipping</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://bugzil.la/1661147">
+<link rel="match"  href="/css/reference/blank.html">
+<body style="margin:0">
+<div style="background:red; width: 200px; height: 200px;"></div>
+<div style="position: fixed; left: 0px; top: 0px;">
+  <div style="position: relative; background: white; filter: blur(10px); width: 400px; height: 400px; left: -50px; top: -50px;"></div>
+</div>

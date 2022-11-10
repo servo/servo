@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  // Wait for after the load event so that we're definitely testing intentional,
+  // navigate()-caused replacement and not the replacement that happens
+  // automatically before the load event completes.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  const entriesBefore = navigation.entries();
+  const currentBefore = navigation.currentEntry;
+
+  let disposeCalled = false;
+  navigation.currentEntry.ondispose = t.step_func(e => {
+    disposeCalled = true;
+
+    assert_equals(e.constructor, Event);
+    assert_equals(e.bubbles, false);
+    assert_equals(e.cancelable, false);
+    assert_equals(e.composed, false);
+
+    assert_not_equals(navigation.currentEntry, currentBefore);
+    assert_array_equals(navigation.entries(), [navigation.currentEntry]);
+    assert_equals((new URL(navigation.currentEntry.url)).search, "?replacement");
+    assert_equals(navigation.transition.navigationType, "replace");
+    assert_equals(navigation.transition.from, entriesBefore[0]);
+    assert_equals(location.search, "?replacement");
+  });
+
+  navigation.addEventListener("navigate", e => e.intercept());
+
+  navigation.navigate("?replacement", { history: "replace" });
+  assert_true(disposeCalled);
+}, "dispose events when doing a same-document replace using navigation.navigate() and intercept()");
+</script>

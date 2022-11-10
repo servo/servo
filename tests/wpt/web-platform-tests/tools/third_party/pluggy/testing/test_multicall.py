@@ -1,7 +1,7 @@
 import pytest
 from pluggy import HookCallError, HookspecMarker, HookimplMarker
-from pluggy.hooks import HookImpl
-from pluggy.callers import _multicall, _legacymulticall
+from pluggy._hooks import HookImpl
+from pluggy._callers import _multicall
 
 
 hookspec = HookspecMarker("example")
@@ -14,32 +14,7 @@ def MC(methods, kwargs, firstresult=False):
     for method in methods:
         f = HookImpl(None, "<temp>", method, method.example_impl)
         hookfuncs.append(f)
-        if "__multicall__" in f.argnames:
-            caller = _legacymulticall
-    return caller(hookfuncs, kwargs, firstresult=firstresult)
-
-
-def test_call_passing():
-    class P1(object):
-        @hookimpl
-        def m(self, __multicall__, x):
-            assert len(__multicall__.results) == 1
-            assert not __multicall__.hook_impls
-            return 17
-
-    class P2(object):
-        @hookimpl
-        def m(self, __multicall__, x):
-            assert __multicall__.results == []
-            assert __multicall__.hook_impls
-            return 23
-
-    p1 = P1()
-    p2 = P2()
-    reslist = MC([p1.m, p2.m], {"x": 23})
-    assert len(reslist) == 2
-    # ensure reversed order
-    assert reslist == [23, 17]
+    return caller("foo", hookfuncs, kwargs, firstresult)
 
 
 def test_keyword_args():
@@ -47,7 +22,7 @@ def test_keyword_args():
     def f(x):
         return x + 1
 
-    class A(object):
+    class A:
         @hookimpl
         def f(self, x, y):
             return x + y
@@ -72,20 +47,6 @@ def test_tags_call_error():
 
     with pytest.raises(HookCallError):
         MC([f], {})
-
-
-def test_call_subexecute():
-    @hookimpl
-    def m(__multicall__):
-        subresult = __multicall__.execute()
-        return subresult + 1
-
-    @hookimpl
-    def n():
-        return 1
-
-    res = MC([n, m], {}, firstresult=True)
-    assert res == 2
 
 
 def test_call_none_is_no_result():

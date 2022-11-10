@@ -24,7 +24,7 @@ ctx.beginPath();
 ctx.moveTo(0, 25);
 ctx.arcTo(100, 25, 100, 25, 1);
 ctx.stroke();
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
 t.done();
 
 });

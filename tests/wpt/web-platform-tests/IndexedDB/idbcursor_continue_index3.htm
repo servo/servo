@@ -5,7 +5,7 @@
 <link rel=assert title="The parameter is less than or equal to this cursor's position and this cursor's direction is 'next' or 'nextunique'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -27,7 +27,7 @@
 
     open_rq.onsuccess = function(e) {
         var count = 0;
-        var cursor_rq = db.transaction("test")
+        var cursor_rq = db.transaction("test", "readonly", {durability: 'relaxed'})
                           .objectStore("test")
                           .index("index")
                           .openCursor(undefined, "next"); // XXX: Fx has issue with "undefined"

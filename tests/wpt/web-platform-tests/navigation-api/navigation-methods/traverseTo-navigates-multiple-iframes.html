@@ -1,0 +1,45 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="i1" src="/common/blank.html"></iframe>
+<iframe id="i2" src="resources/slow-no-store.py"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  i1.src = "/common/blank.html?navigated";
+  await new Promise(resolve => i1.onload = resolve);
+  i2.src = "/common/blank.html?navigated";
+  await new Promise(resolve => i2.onload = resolve);
+  assert_equals(navigation.entries().length, 1);
+  assert_equals(i1.contentWindow.navigation.entries().length, 2);
+  assert_equals(i2.contentWindow.navigation.entries().length, 2);
+  assert_equals(i1.contentWindow.navigation.currentEntry.index, 1);
+  assert_equals(i2.contentWindow.navigation.currentEntry.index, 1);
+
+  function collectKeysAndIds(win) {
+    return win.navigation.entries().map(e => [e.key, e.id]).flat();
+  }
+  let i1_keys_and_ids_before_back = collectKeysAndIds(i1.contentWindow);
+  let i2_keys_and_ids_before_back = collectKeysAndIds(i2.contentWindow);
+
+  // Go back to a point that requires both frames to navigate. Because i2 is
+  // going back to a slow, un-cached document, i1 will likely complete before
+  // the server sends the response for i2. This combination of a slow and fast
+  // traversal is less common than the case where multiple iframes navigate at
+  // similar speeds, and caused a bug in chromium.
+  i1.contentWindow.navigation.traverseTo(i1.contentWindow.navigation.entries()[0].key);
+  await Promise.all(
+      [ new Promise(resolve => i1.onload = resolve),
+        new Promise(resolve => i2.onload = resolve) ]);
+  assert_equals(i1.contentWindow.navigation.currentEntry.index, 0);
+  assert_equals(i2.contentWindow.navigation.currentEntry.index, 0);
+
+  assert_array_equals(i1_keys_and_ids_before_back, collectKeysAndIds(i1.contentWindow));
+  assert_array_equals(i2_keys_and_ids_before_back, collectKeysAndIds(i2.contentWindow));
+}, "entries() should be correct after a traversal that navigates multiple browsing contexts");
+</script>
+</body>

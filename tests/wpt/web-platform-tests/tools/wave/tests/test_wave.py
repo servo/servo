@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import errno
 import os
 import socket
@@ -13,7 +15,7 @@ def is_port_8080_in_use():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.bind(("127.0.0.1", 8080))
-    except socket.error as e:
+    except OSError as e:
         if e.errno == errno.EADDRINUSE:
             return True
         else:

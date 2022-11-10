@@ -3,6 +3,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <script src="resources/utils.js"></script>
 <body>
 <script>
@@ -38,7 +39,8 @@ async function selectQuery() {
 }
 
 promise_test(async t => {
-  const bc = new BroadcastChannel('prerender-channel');
+  const uid = token();
+  const bc = new PrerenderChannel('prerender-channel', uid);
 
   const gotMessage = new Promise(resolve => {
     bc.addEventListener('message', e => {
@@ -53,7 +55,7 @@ promise_test(async t => {
         'primary page should be able to execute statements from Web Database.');
 
   // Start prerendering a page that attempts to access Web Database.
-  startPrerendering('resources/web-database-access.html');
+  startPrerendering(`resources/web-database-access.html?uid=${uid}`);
   const result = await gotMessage;
 
   assert_equals(

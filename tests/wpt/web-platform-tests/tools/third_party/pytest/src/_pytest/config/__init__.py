@@ -12,9 +12,12 @@ import sys
 import types
 import warnings
 from functools import lru_cache
+from pathlib import Path
+from textwrap import dedent
 from types import TracebackType
 from typing import Any
 from typing import Callable
+from typing import cast
 from typing import Dict
 from typing import Generator
 from typing import IO
@@ -26,10 +29,11 @@ from typing import Sequence
 from typing import Set
 from typing import TextIO
 from typing import Tuple
+from typing import Type
+from typing import TYPE_CHECKING
 from typing import Union
 
 import attr
-import py
 from pluggy import HookimplMarker
 from pluggy import HookspecMarker
 from pluggy import PluginManager
@@ -45,18 +49,17 @@ from _pytest._code import filter_traceback
 from _pytest._io import TerminalWriter
 from _pytest.compat import final
 from _pytest.compat import importlib_metadata
-from _pytest.compat import TYPE_CHECKING
 from _pytest.outcomes import fail
 from _pytest.outcomes import Skipped
+from _pytest.pathlib import absolutepath
 from _pytest.pathlib import bestrelpath
 from _pytest.pathlib import import_path
 from _pytest.pathlib import ImportMode
-from _pytest.pathlib import Path
-from _pytest.store import Store
+from _pytest.pathlib import resolve_package_path
+from _pytest.stash import Stash
 from _pytest.warning_types import PytestConfigWarning
 
 if TYPE_CHECKING:
-    from typing import Type
 
     from _pytest._code.code import _TracebackStyle
     from _pytest.terminal import TerminalReporter
@@ -103,8 +106,8 @@ class ExitCode(enum.IntEnum):
 class ConftestImportFailure(Exception):
     def __init__(
         self,
-        path: py.path.local,
-        excinfo: Tuple["Type[Exception]", Exception, TracebackType],
+        path: Path,
+        excinfo: Tuple[Type[Exception], Exception, TracebackType],
     ) -> None:
         super().__init__(path, excinfo)
         self.path = path
@@ -128,7 +131,7 @@ def filter_traceback_for_conftest_import_failure(
 
 
 def main(
-    args: Optional[Union[List[str], py.path.local]] = None,
+    args: Optional[Union[List[str], "os.PathLike[str]"]] = None,
     plugins: Optional[Sequence[Union[str, _PluggyPlugin]]] = None,
 ) -> Union[int, ExitCode]:
     """Perform an in-process test run.
@@ -142,11 +145,9 @@ def main(
         try:
             config = _prepareconfig(args, plugins)
         except ConftestImportFailure as e:
-            exc_info = ExceptionInfo(e.excinfo)
+            exc_info = ExceptionInfo.from_exc_info(e.excinfo)
             tw = TerminalWriter(sys.stderr)
-            tw.line(
-                "ImportError while loading conftest '{e.path}'.".format(e=e), red=True
-            )
+            tw.line(f"ImportError while loading conftest '{e.path}'.", red=True)
             exc_info.traceback = exc_info.traceback.filter(
                 filter_traceback_for_conftest_import_failure
             )
@@ -161,9 +162,9 @@ def main(
             return ExitCode.USAGE_ERROR
         else:
             try:
-                ret = config.hook.pytest_cmdline_main(
+                ret: Union[ExitCode, int] = config.hook.pytest_cmdline_main(
                     config=config
-                )  # type: Union[ExitCode, int]
+                )
                 try:
                     return ExitCode(ret)
                 except ValueError:
@@ -173,7 +174,7 @@ def main(
     except UsageError as e:
         tw = TerminalWriter(sys.stderr)
         for msg in e.args:
-            tw.line("ERROR: {}\n".format(msg), red=True)
+            tw.line(f"ERROR: {msg}\n", red=True)
         return ExitCode.USAGE_ERROR
 
 
@@ -206,7 +207,7 @@ def filename_arg(path: str, optname: str) -> str:
     :optname: Name of the option.
     """
     if os.path.isdir(path):
-        raise UsageError("{} must be a filename, given: {}".format(optname, path))
+        raise UsageError(f"{optname} must be a filename, given: {path}")
     return path
 
 
@@ -217,7 +218,7 @@ def directory_arg(path: str, optname: str) -> str:
     :optname: Name of the option.
     """
     if not os.path.isdir(path):
-        raise UsageError("{} must be a directory, given: {}".format(optname, path))
+        raise UsageError(f"{optname} must be a directory, given: {path}")
     return path
 
 
@@ -237,6 +238,7 @@ default_plugins = essential_plugins + (
     "unittest",
     "capture",
     "skipping",
+    "legacypath",
     "tmpdir",
     "monkeypatch",
     "recwarn",
@@ -253,11 +255,14 @@ default_plugins = essential_plugins + (
     "warnings",
     "logging",
     "reports",
+    "python_path",
+    *(["unraisableexception", "threadexception"] if sys.version_info >= (3, 8) else []),
     "faulthandler",
 )
 
 builtin_plugins = set(default_plugins)
 builtin_plugins.add("pytester")
+builtin_plugins.add("pytester_assertions")
 
 
 def get_config(
@@ -269,7 +274,9 @@ def get_config(
     config = Config(
         pluginmanager,
         invocation_params=Config.InvocationParams(
-            args=args or (), plugins=plugins, dir=Path.cwd(),
+            args=args or (),
+            plugins=plugins,
+            dir=Path.cwd(),
         ),
     )
 
@@ -285,7 +292,7 @@ def get_config(
 
 def get_plugin_manager() -> "PytestPluginManager":
     """Obtain a new instance of the
-    :py:class:`_pytest.config.PytestPluginManager`, with default plugins
+    :py:class:`pytest.PytestPluginManager`, with default plugins
     already loaded.
 
     This function can be used by integration with other tools, like hooking
@@ -295,13 +302,13 @@ def get_plugin_manager() -> "PytestPluginManager":
 
 
 def _prepareconfig(
-    args: Optional[Union[py.path.local, List[str]]] = None,
+    args: Optional[Union[List[str], "os.PathLike[str]"]] = None,
     plugins: Optional[Sequence[Union[str, _PluggyPlugin]]] = None,
 ) -> "Config":
     if args is None:
         args = sys.argv[1:]
-    elif isinstance(args, py.path.local):
-        args = [str(args)]
+    elif isinstance(args, os.PathLike):
+        args = [os.fspath(args)]
     elif not isinstance(args, list):
         msg = "`args` parameter expected to be a list of strings, got: {!r} (type: {})"
         raise TypeError(msg.format(args, type(args)))
@@ -324,6 +331,14 @@ def _prepareconfig(
         raise
 
 
+def _get_directory(path: Path) -> Path:
+    """Get the directory of a path - itself if already a directory."""
+    if path.is_file():
+        return path.parent
+    else:
+        return path
+
+
 @final
 class PytestPluginManager(PluginManager):
     """A :py:class:`pluggy.PluginManager <pluggy.PluginManager>` with
@@ -339,30 +354,39 @@ class PytestPluginManager(PluginManager):
 
         super().__init__("pytest")
         # The objects are module objects, only used generically.
-        self._conftest_plugins = set()  # type: Set[types.ModuleType]
+        self._conftest_plugins: Set[types.ModuleType] = set()
 
         # State related to local conftest plugins.
-        self._dirpath2confmods = {}  # type: Dict[py.path.local, List[types.ModuleType]]
-        self._conftestpath2mod = {}  # type: Dict[Path, types.ModuleType]
-        self._confcutdir = None  # type: Optional[py.path.local]
+        self._dirpath2confmods: Dict[Path, List[types.ModuleType]] = {}
+        self._conftestpath2mod: Dict[Path, types.ModuleType] = {}
+        self._confcutdir: Optional[Path] = None
         self._noconftest = False
-        self._duplicatepaths = set()  # type: Set[py.path.local]
+
+        # _getconftestmodules()'s call to _get_directory() causes a stat
+        # storm when it's called potentially thousands of times in a test
+        # session (#9478), often with the same path, so cache it.
+        self._get_directory = lru_cache(256)(_get_directory)
+
+        self._duplicatepaths: Set[Path] = set()
 
         # plugins that were explicitly skipped with pytest.skip
         # list of (module name, skip reason)
         # previously we would issue a warning when a plugin was skipped, but
         # since we refactored warnings as first citizens of Config, they are
         # just stored here to be used later.
-        self.skipped_plugins = []  # type: List[Tuple[str, str]]
+        self.skipped_plugins: List[Tuple[str, str]] = []
 
         self.add_hookspecs(_pytest.hookspec)
         self.register(self)
         if os.environ.get("PYTEST_DEBUG"):
-            err = sys.stderr  # type: IO[str]
-            encoding = getattr(err, "encoding", "utf8")  # type: str
+            err: IO[str] = sys.stderr
+            encoding: str = getattr(err, "encoding", "utf8")
             try:
                 err = open(
-                    os.dup(err.fileno()), mode=err.mode, buffering=1, encoding=encoding,
+                    os.dup(err.fileno()),
+                    mode=err.mode,
+                    buffering=1,
+                    encoding=encoding,
                 )
             except Exception:
                 pass
@@ -433,7 +457,7 @@ class PytestPluginManager(PluginManager):
                 )
             )
             return None
-        ret = super().register(plugin, name)  # type: Optional[str]
+        ret: Optional[str] = super().register(plugin, name)
         if ret:
             self.hook.pytest_plugin_registered.call_historic(
                 kwargs=dict(plugin=plugin, manager=self)
@@ -445,7 +469,7 @@ class PytestPluginManager(PluginManager):
 
     def getplugin(self, name: str):
         # Support deprecated naming because plugins (xdist e.g.) use it.
-        plugin = self.get_plugin(name)  # type: Optional[_PluggyPlugin]
+        plugin: Optional[_PluggyPlugin] = self.get_plugin(name)
         return plugin
 
     def hasplugin(self, name: str) -> bool:
@@ -471,7 +495,9 @@ class PytestPluginManager(PluginManager):
     #
     # Internal API for local conftest plugin handling.
     #
-    def _set_initial_conftests(self, namespace: argparse.Namespace) -> None:
+    def _set_initial_conftests(
+        self, namespace: argparse.Namespace, rootpath: Path
+    ) -> None:
         """Load initial conftest files given a preparsed "namespace".
 
         As conftest files may add their own command line options which have
@@ -479,9 +505,9 @@ class PytestPluginManager(PluginManager):
         All builtin and 3rd party plugins will have been loaded, however, so
         common options will not confuse our logic here.
         """
-        current = py.path.local()
+        current = Path.cwd()
         self._confcutdir = (
-            current.join(namespace.confcutdir, abs=True)
+            absolutepath(current / namespace.confcutdir)
             if namespace.confcutdir
             else None
         )
@@ -495,53 +521,60 @@ class PytestPluginManager(PluginManager):
             i = path.find("::")
             if i != -1:
                 path = path[:i]
-            anchor = current.join(path, abs=1)
+            anchor = absolutepath(current / path)
             if anchor.exists():  # we found some file object
-                self._try_load_conftest(anchor, namespace.importmode)
+                self._try_load_conftest(anchor, namespace.importmode, rootpath)
                 foundanchor = True
         if not foundanchor:
-            self._try_load_conftest(current, namespace.importmode)
+            self._try_load_conftest(current, namespace.importmode, rootpath)
 
     def _try_load_conftest(
-        self, anchor: py.path.local, importmode: Union[str, ImportMode]
+        self, anchor: Path, importmode: Union[str, ImportMode], rootpath: Path
     ) -> None:
-        self._getconftestmodules(anchor, importmode)
+        self._getconftestmodules(anchor, importmode, rootpath)
         # let's also consider test* subdirs
-        if anchor.check(dir=1):
-            for x in anchor.listdir("test*"):
-                if x.check(dir=1):
-                    self._getconftestmodules(x, importmode)
+        if anchor.is_dir():
+            for x in anchor.glob("test*"):
+                if x.is_dir():
+                    self._getconftestmodules(x, importmode, rootpath)
 
-    @lru_cache(maxsize=128)
     def _getconftestmodules(
-        self, path: py.path.local, importmode: Union[str, ImportMode],
+        self, path: Path, importmode: Union[str, ImportMode], rootpath: Path
     ) -> List[types.ModuleType]:
         if self._noconftest:
             return []
 
-        if path.isfile():
-            directory = path.dirpath()
-        else:
-            directory = path
+        directory = self._get_directory(path)
+
+        # Optimization: avoid repeated searches in the same directory.
+        # Assumes always called with same importmode and rootpath.
+        existing_clist = self._dirpath2confmods.get(directory)
+        if existing_clist is not None:
+            return existing_clist
 
         # XXX these days we may rather want to use config.rootpath
         # and allow users to opt into looking into the rootdir parent
         # directories instead of requiring to specify confcutdir.
         clist = []
-        for parent in directory.parts():
-            if self._confcutdir and self._confcutdir.relto(parent):
+        confcutdir_parents = self._confcutdir.parents if self._confcutdir else []
+        for parent in reversed((directory, *directory.parents)):
+            if parent in confcutdir_parents:
                 continue
-            conftestpath = parent.join("conftest.py")
-            if conftestpath.isfile():
-                mod = self._importconftest(conftestpath, importmode)
+            conftestpath = parent / "conftest.py"
+            if conftestpath.is_file():
+                mod = self._importconftest(conftestpath, importmode, rootpath)
                 clist.append(mod)
         self._dirpath2confmods[directory] = clist
         return clist
 
     def _rget_with_confmod(
-        self, name: str, path: py.path.local, importmode: Union[str, ImportMode],
+        self,
+        name: str,
+        path: Path,
+        importmode: Union[str, ImportMode],
+        rootpath: Path,
     ) -> Tuple[types.ModuleType, Any]:
-        modules = self._getconftestmodules(path, importmode)
+        modules = self._getconftestmodules(path, importmode, rootpath=rootpath)
         for mod in reversed(modules):
             try:
                 return mod, getattr(mod, name)
@@ -550,24 +583,24 @@ class PytestPluginManager(PluginManager):
         raise KeyError(name)
 
     def _importconftest(
-        self, conftestpath: py.path.local, importmode: Union[str, ImportMode],
+        self, conftestpath: Path, importmode: Union[str, ImportMode], rootpath: Path
     ) -> types.ModuleType:
         # Use a resolved Path object as key to avoid loading the same conftest
         # twice with build systems that create build directories containing
         # symlinks to actual files.
         # Using Path().resolve() is better than py.path.realpath because
         # it resolves to the correct path/drive in case-insensitive file systems (#5792)
-        key = Path(str(conftestpath)).resolve()
+        key = conftestpath.resolve()
 
         with contextlib.suppress(KeyError):
             return self._conftestpath2mod[key]
 
-        pkgpath = conftestpath.pypkgpath()
+        pkgpath = resolve_package_path(conftestpath)
         if pkgpath is None:
-            _ensure_removed_sysmodule(conftestpath.purebasename)
+            _ensure_removed_sysmodule(conftestpath.stem)
 
         try:
-            mod = import_path(conftestpath, mode=importmode)
+            mod = import_path(conftestpath, mode=importmode, root=rootpath)
         except Exception as e:
             assert e.__traceback__ is not None
             exc_info = (type(e), e, e.__traceback__)
@@ -577,18 +610,20 @@ class PytestPluginManager(PluginManager):
 
         self._conftest_plugins.add(mod)
         self._conftestpath2mod[key] = mod
-        dirpath = conftestpath.dirpath()
+        dirpath = conftestpath.parent
         if dirpath in self._dirpath2confmods:
             for path, mods in self._dirpath2confmods.items():
-                if path and path.relto(dirpath) or path == dirpath:
+                if path and dirpath in path.parents or path == dirpath:
                     assert mod not in mods
                     mods.append(mod)
-        self.trace("loading conftestmodule {!r}".format(mod))
+        self.trace(f"loading conftestmodule {mod!r}")
         self.consider_conftest(mod)
         return mod
 
     def _check_non_top_pytest_plugins(
-        self, mod: types.ModuleType, conftestpath: py.path.local,
+        self,
+        mod: types.ModuleType,
+        conftestpath: Path,
     ) -> None:
         if (
             hasattr(mod, "pytest_plugins")
@@ -614,6 +649,7 @@ class PytestPluginManager(PluginManager):
     def consider_preparse(
         self, args: Sequence[str], *, exclude_only: bool = False
     ) -> None:
+        """:meta private:"""
         i = 0
         n = len(args)
         while i < n:
@@ -635,6 +671,7 @@ class PytestPluginManager(PluginManager):
                 self.consider_pluginarg(parg)
 
     def consider_pluginarg(self, arg: str) -> None:
+        """:meta private:"""
         if arg.startswith("no:"):
             name = arg[3:]
             if name in essential_plugins:
@@ -660,12 +697,15 @@ class PytestPluginManager(PluginManager):
             self.import_plugin(arg, consider_entry_points=True)
 
     def consider_conftest(self, conftestmodule: types.ModuleType) -> None:
+        """:meta private:"""
         self.register(conftestmodule, name=conftestmodule.__file__)
 
     def consider_env(self) -> None:
+        """:meta private:"""
         self._import_plugin_specs(os.environ.get("PYTEST_PLUGINS"))
 
     def consider_module(self, mod: types.ModuleType) -> None:
+        """:meta private:"""
         self._import_plugin_specs(getattr(mod, "pytest_plugins", []))
 
     def _import_plugin_specs(
@@ -703,7 +743,7 @@ class PytestPluginManager(PluginManager):
             __import__(importspec)
         except ImportError as e:
             raise ImportError(
-                'Error importing plugin "{}": {}'.format(modname, str(e.args[0]))
+                f'Error importing plugin "{modname}": {e.args[0]}'
             ).with_traceback(e.__traceback__) from e
 
         except Skipped as e:
@@ -823,6 +863,7 @@ class Config:
     """Access to configuration values, pluginmanager and plugin hooks.
 
     :param PytestPluginManager pluginmanager:
+        A pytest PluginManager.
 
     :param InvocationParams invocation_params:
         Object containing parameters regarding the :func:`pytest.main`
@@ -830,7 +871,7 @@ class Config:
     """
 
     @final
-    @attr.s(frozen=True)
+    @attr.s(frozen=True, auto_attribs=True)
     class InvocationParams:
         """Holds parameters passed during :func:`pytest.main`.
 
@@ -846,27 +887,18 @@ class Config:
             Plugins accessing ``InvocationParams`` must be aware of that.
         """
 
-        args = attr.ib(type=Tuple[str, ...], converter=_args_converter)
-        """The command-line arguments as passed to :func:`pytest.main`.
-
-        :type: Tuple[str, ...]
-        """
-        plugins = attr.ib(type=Optional[Sequence[Union[str, _PluggyPlugin]]])
-        """Extra plugins, might be `None`.
-
-        :type: Optional[Sequence[Union[str, plugin]]]
-        """
-        dir = attr.ib(type=Path)
-        """The directory from which :func:`pytest.main` was invoked.
-
-        :type: pathlib.Path
-        """
+        args: Tuple[str, ...] = attr.ib(converter=_args_converter)
+        """The command-line arguments as passed to :func:`pytest.main`."""
+        plugins: Optional[Sequence[Union[str, _PluggyPlugin]]]
+        """Extra plugins, might be `None`."""
+        dir: Path
+        """The directory from which :func:`pytest.main` was invoked."""
 
     def __init__(
         self,
         pluginmanager: PytestPluginManager,
         *,
-        invocation_params: Optional[InvocationParams] = None
+        invocation_params: Optional[InvocationParams] = None,
     ) -> None:
         from .argparsing import Parser, FILE_OR_DIR
 
@@ -889,8 +921,9 @@ class Config:
 
         _a = FILE_OR_DIR
         self._parser = Parser(
-            usage="%(prog)s [options] [{}] [{}] [...]".format(_a, _a),
+            usage=f"%(prog)s [options] [{_a}] [{_a}] [...]",
             processopt=self._processopt,
+            _ispytest=True,
         )
         self.pluginmanager = pluginmanager
         """The plugin manager handles plugin registration and hook invocation.
@@ -898,15 +931,23 @@ class Config:
         :type: PytestPluginManager
         """
 
+        self.stash = Stash()
+        """A place where plugins can store information on the config for their
+        own use.
+
+        :type: Stash
+        """
+        # Deprecated alias. Was never public. Can be removed in a few releases.
+        self._store = self.stash
+
+        from .compat import PathAwareHookProxy
+
         self.trace = self.pluginmanager.trace.root.get("config")
-        self.hook = self.pluginmanager.hook
-        self._inicache = {}  # type: Dict[str, Any]
-        self._override_ini = ()  # type: Sequence[str]
-        self._opt2dest = {}  # type: Dict[str, str]
-        self._cleanup = []  # type: List[Callable[[], None]]
-        # A place where plugins can store information on the config for their
-        # own use. Currently only intended for internal plugins.
-        self._store = Store()
+        self.hook = PathAwareHookProxy(self.pluginmanager.hook)
+        self._inicache: Dict[str, Any] = {}
+        self._override_ini: Sequence[str] = ()
+        self._opt2dest: Dict[str, str] = {}
+        self._cleanup: List[Callable[[], None]] = []
         self.pluginmanager.register(self, "pytestconfig")
         self._configured = False
         self.hook.pytest_addoption.call_historic(
@@ -916,18 +957,7 @@ class Config:
         if TYPE_CHECKING:
             from _pytest.cacheprovider import Cache
 
-            self.cache = None  # type: Optional[Cache]
-
-    @property
-    def invocation_dir(self) -> py.path.local:
-        """The directory from which pytest was invoked.
-
-        Prefer to use :attr:`invocation_params.dir <InvocationParams.dir>`,
-        which is a :class:`pathlib.Path`.
-
-        :type: py.path.local
-        """
-        return py.path.local(str(self.invocation_params.dir))
+            self.cache: Optional[Cache] = None
 
     @property
     def rootpath(self) -> Path:
@@ -940,16 +970,6 @@ class Config:
         return self._rootpath
 
     @property
-    def rootdir(self) -> py.path.local:
-        """The path to the :ref:`rootdir <rootdir>`.
-
-        Prefer to use :attr:`rootpath`, which is a :class:`pathlib.Path`.
-
-        :type: py.path.local
-        """
-        return py.path.local(str(self.rootpath))
-
-    @property
     def inipath(self) -> Optional[Path]:
         """The path to the :ref:`configfile <configfiles>`.
 
@@ -959,19 +979,9 @@ class Config:
         """
         return self._inipath
 
-    @property
-    def inifile(self) -> Optional[py.path.local]:
-        """The path to the :ref:`configfile <configfiles>`.
-
-        Prefer to use :attr:`inipath`, which is a :class:`pathlib.Path`.
-
-        :type: Optional[py.path.local]
-        """
-        return py.path.local(str(self.inipath)) if self.inipath else None
-
     def add_cleanup(self, func: Callable[[], None]) -> None:
         """Add a function to be called when the config object gets out of
-        use (usually coninciding with pytest_unconfigure)."""
+        use (usually coinciding with pytest_unconfigure)."""
         self._cleanup.append(func)
 
     def _do_configure(self) -> None:
@@ -991,9 +1001,9 @@ class Config:
             fin()
 
     def get_terminal_writer(self) -> TerminalWriter:
-        terminalreporter = self.pluginmanager.get_plugin(
+        terminalreporter: TerminalReporter = self.pluginmanager.get_plugin(
             "terminalreporter"
-        )  # type: TerminalReporter
+        )
         return terminalreporter._tw
 
     def pytest_cmdline_parse(
@@ -1028,7 +1038,7 @@ class Config:
         option: Optional[argparse.Namespace] = None,
     ) -> None:
         if option and getattr(option, "fulltrace", False):
-            style = "long"  # type: _TracebackStyle
+            style: _TracebackStyle = "long"
         else:
             style = "native"
         excrepr = excinfo.getrepr(
@@ -1067,7 +1077,9 @@ class Config:
 
     @hookimpl(trylast=True)
     def pytest_load_initial_conftests(self, early_config: "Config") -> None:
-        self.pluginmanager._set_initial_conftests(early_config.known_args_namespace)
+        self.pluginmanager._set_initial_conftests(
+            early_config.known_args_namespace, rootpath=early_config.rootpath
+        )
 
     def _initini(self, args: Sequence[str]) -> None:
         ns, unknown_args = self._parser.parse_known_and_unknown_args(
@@ -1179,6 +1191,11 @@ class Config:
         self._validate_plugins()
         self._warn_about_skipped_plugins()
 
+        if self.known_args_namespace.strict:
+            self.issue_config_time_warning(
+                _pytest.deprecated.STRICT_OPTION, stacklevel=2
+            )
+
         if self.known_args_namespace.confcutdir is None and self.inipath is not None:
             confcutdir = str(self.inipath.parent)
             self.known_args_namespace.confcutdir = confcutdir
@@ -1191,9 +1208,7 @@ class Config:
                 # we don't want to prevent --help/--version to work
                 # so just let is pass and print a warning at the end
                 self.issue_config_time_warning(
-                    PytestConfigWarning(
-                        "could not load initial conftests: {}".format(e.path)
-                    ),
+                    PytestConfigWarning(f"could not load initial conftests: {e.path}"),
                     stacklevel=2,
                 )
             else:
@@ -1201,8 +1216,8 @@ class Config:
 
     @hookimpl(hookwrapper=True)
     def pytest_collection(self) -> Generator[None, None, None]:
-        """Validate invalid ini keys after collection is done so we take in account
-        options added by late-loading conftest files."""
+        # Validate invalid ini keys after collection is done so we take in account
+        # options added by late-loading conftest files.
         yield
         self._validate_config_options()
 
@@ -1222,12 +1237,16 @@ class Config:
             if Version(minver) > Version(pytest.__version__):
                 raise pytest.UsageError(
                     "%s: 'minversion' requires pytest-%s, actual pytest-%s'"
-                    % (self.inipath, minver, pytest.__version__,)
+                    % (
+                        self.inipath,
+                        minver,
+                        pytest.__version__,
+                    )
                 )
 
     def _validate_config_options(self) -> None:
         for key in sorted(self._get_unknown_ini_keys()):
-            self._warn_or_fail_if_strict("Unknown config option: {}\n".format(key))
+            self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
 
     def _validate_plugins(self) -> None:
         required_plugins = sorted(self.getini("required_plugins"))
@@ -1244,14 +1263,16 @@ class Config:
         missing_plugins = []
         for required_plugin in required_plugins:
             try:
-                spec = Requirement(required_plugin)
+                req = Requirement(required_plugin)
             except InvalidRequirement:
                 missing_plugins.append(required_plugin)
                 continue
 
-            if spec.name not in plugin_dist_info:
+            if req.name not in plugin_dist_info:
                 missing_plugins.append(required_plugin)
-            elif Version(plugin_dist_info[spec.name]) not in spec.specifier:
+            elif not req.specifier.contains(
+                Version(plugin_dist_info[req.name]), prereleases=True
+            ):
                 missing_plugins.append(required_plugin)
 
         if missing_plugins:
@@ -1349,8 +1370,8 @@ class Config:
         """Return configuration value from an :ref:`ini file <configfiles>`.
 
         If the specified name hasn't been registered through a prior
-        :py:func:`parser.addini <_pytest.config.argparsing.Parser.addini>`
-        call (usually from a plugin), a ValueError is raised.
+        :func:`parser.addini <pytest.Parser.addini>` call (usually from a
+        plugin), a ValueError is raised.
         """
         try:
             return self._inicache[name]
@@ -1358,11 +1379,17 @@ class Config:
             self._inicache[name] = val = self._getini(name)
             return val
 
+    # Meant for easy monkeypatching by legacypath plugin.
+    # Can be inlined back (with no cover removed) once legacypath is gone.
+    def _getini_unknown_type(self, name: str, type: str, value: Union[str, List[str]]):
+        msg = f"unknown configuration type: {type}"
+        raise ValueError(msg, value)  # pragma: no cover
+
     def _getini(self, name: str):
         try:
             description, type, default = self._parser._inidict[name]
         except KeyError as e:
-            raise ValueError("unknown configuration value: {!r}".format(name)) from e
+            raise ValueError(f"unknown configuration value: {name!r}") from e
         override_value = self._get_override_ini_value(name)
         if override_value is None:
             try:
@@ -1390,12 +1417,12 @@ class Config:
         #     a_line_list = ["tests", "acceptance"]
         #   in this case, we already have a list ready to use.
         #
-        if type == "pathlist":
+        if type == "paths":
             # TODO: This assert is probably not valid in all cases.
             assert self.inipath is not None
             dp = self.inipath.parent
             input_values = shlex.split(value) if isinstance(value, str) else value
-            return [py.path.local(str(dp / x)) for x in input_values]
+            return [dp / x for x in input_values]
         elif type == "args":
             return shlex.split(value) if isinstance(value, str) else value
         elif type == "linelist":
@@ -1405,25 +1432,30 @@ class Config:
                 return value
         elif type == "bool":
             return _strtobool(str(value).strip())
-        else:
-            assert type is None
+        elif type == "string":
             return value
+        elif type is None:
+            return value
+        else:
+            return self._getini_unknown_type(name, type, value)
 
     def _getconftest_pathlist(
-        self, name: str, path: py.path.local
-    ) -> Optional[List[py.path.local]]:
+        self, name: str, path: Path, rootpath: Path
+    ) -> Optional[List[Path]]:
         try:
             mod, relroots = self.pluginmanager._rget_with_confmod(
-                name, path, self.getoption("importmode")
+                name, path, self.getoption("importmode"), rootpath
             )
         except KeyError:
             return None
-        modpath = py.path.local(mod.__file__).dirpath()
-        values = []  # type: List[py.path.local]
+        modpath = Path(mod.__file__).parent
+        values: List[Path] = []
         for relroot in relroots:
-            if not isinstance(relroot, py.path.local):
+            if isinstance(relroot, os.PathLike):
+                relroot = Path(relroot)
+            else:
                 relroot = relroot.replace("/", os.sep)
-                relroot = modpath.join(relroot, abs=True)
+                relroot = absolutepath(modpath / relroot)
             values.append(relroot)
         return values
 
@@ -1467,8 +1499,8 @@ class Config:
             if skip:
                 import pytest
 
-                pytest.skip("no {!r} option found".format(name))
-            raise ValueError("no option named {!r}".format(name)) from e
+                pytest.skip(f"no {name!r} option found")
+            raise ValueError(f"no option named {name!r}") from e
 
     def getvalue(self, name: str, path=None):
         """Deprecated, use getoption() instead."""
@@ -1495,13 +1527,14 @@ class Config:
                     "(are you using python -O?)\n"
                 )
             self.issue_config_time_warning(
-                PytestConfigWarning(warning_text), stacklevel=3,
+                PytestConfigWarning(warning_text),
+                stacklevel=3,
             )
 
     def _warn_about_skipped_plugins(self) -> None:
         for module_name, msg in self.pluginmanager.skipped_plugins:
             self.issue_config_time_warning(
-                PytestConfigWarning("skipped plugin {!r}: {}".format(module_name, msg)),
+                PytestConfigWarning(f"skipped plugin {module_name!r}: {msg}"),
                 stacklevel=2,
             )
 
@@ -1554,28 +1587,63 @@ def _strtobool(val: str) -> bool:
     elif val in ("n", "no", "f", "false", "off", "0"):
         return False
     else:
-        raise ValueError("invalid truth value {!r}".format(val))
+        raise ValueError(f"invalid truth value {val!r}")
 
 
 @lru_cache(maxsize=50)
 def parse_warning_filter(
     arg: str, *, escape: bool
-) -> "Tuple[str, str, Type[Warning], str, int]":
+) -> Tuple[str, str, Type[Warning], str, int]:
     """Parse a warnings filter string.
 
-    This is copied from warnings._setoption, but does not apply the filter,
-    only parses it, and makes the escaping optional.
+    This is copied from warnings._setoption with the following changes:
+
+    * Does not apply the filter.
+    * Escaping is optional.
+    * Raises UsageError so we get nice error messages on failure.
     """
+    __tracebackhide__ = True
+    error_template = dedent(
+        f"""\
+        while parsing the following warning configuration:
+
+          {arg}
+
+        This error occurred:
+
+        {{error}}
+        """
+    )
+
     parts = arg.split(":")
     if len(parts) > 5:
-        raise warnings._OptionError("too many fields (max 5): {!r}".format(arg))
+        doc_url = (
+            "https://docs.python.org/3/library/warnings.html#describing-warning-filters"
+        )
+        error = dedent(
+            f"""\
+            Too many fields ({len(parts)}), expected at most 5 separated by colons:
+
+              action:message:category:module:line
+
+            For more information please consult: {doc_url}
+            """
+        )
+        raise UsageError(error_template.format(error=error))
+
     while len(parts) < 5:
         parts.append("")
-    action_, message, category_, module, lineno_ = [s.strip() for s in parts]
-    action = warnings._getaction(action_)  # type: str # type: ignore[attr-defined]
-    category = warnings._getcategory(
-        category_
-    )  # type: Type[Warning] # type: ignore[attr-defined]
+    action_, message, category_, module, lineno_ = (s.strip() for s in parts)
+    try:
+        action: str = warnings._getaction(action_)  # type: ignore[attr-defined]
+    except warnings._OptionError as e:
+        raise UsageError(error_template.format(error=str(e)))
+    try:
+        category: Type[Warning] = _resolve_warning_category(category_)
+    except Exception:
+        exc_info = ExceptionInfo.from_current()
+        exception_text = exc_info.getrepr(style="native")
+        raise UsageError(error_template.format(error=exception_text))
     if message and escape:
         message = re.escape(message)
     if module and escape:
@@ -1584,12 +1652,36 @@ def parse_warning_filter(
         try:
             lineno = int(lineno_)
             if lineno < 0:
-                raise ValueError
-        except (ValueError, OverflowError) as e:
-            raise warnings._OptionError("invalid lineno {!r}".format(lineno_)) from e
+                raise ValueError("number is negative")
+        except ValueError as e:
+            raise UsageError(
+                error_template.format(error=f"invalid lineno {lineno_!r}: {e}")
+            )
     else:
         lineno = 0
     return action, message, category, module, lineno
+
+
+def _resolve_warning_category(category: str) -> Type[Warning]:
+    """
+    Copied from warnings._getcategory, but changed so it lets exceptions (specially ImportErrors)
+    propagate so we can get access to their tracebacks (#9218).
+    """
+    __tracebackhide__ = True
+    if not category:
+        return Warning
+
+    if "." not in category:
+        import builtins as m
+
+        klass = category
+    else:
+        module, _, klass = category.rpartition(".")
+        m = __import__(module, None, None, [klass])
+    cat = getattr(m, klass)
+    if not issubclass(cat, Warning):
+        raise UsageError(f"{cat} is not a Warning subclass")
+    return cast(Type[Warning], cat)
 
 
 def apply_warning_filters(

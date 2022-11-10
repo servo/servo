@@ -138,5 +138,34 @@ promise_test(async t => {
 }, 'Updating the playback rate to zero on a finished animation maintains'
    + ' the current time');
 
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  // Get the animation in a state where it has an unresolved current time,
+  // a resolved start time (so it is not 'idle') and but no pending play task.
+  animation.timeline = null;
+  animation.startTime = 0;
+  assert_equals(animation.currentTime, null);
+  assert_equals(animation.playState, 'running');
+
+  // Make the effect end infinite.
+  animation.effect.updateTiming({ endDelay: 1e38 });
+
+  // Now we want to check that when we go to set a negative playback rate we
+  // don't end up throwing an InvalidStateError (which would happen if we ended
+  // up applying the auto-rewind behavior).
+  animation.updatePlaybackRate(-1);
+
+  // Furthermore, we should apply the playback rate immediately since the
+  // current time is unresolved.
+  assert_equals(animation.playbackRate, -1,
+    'We apply the pending playback rate immediately if the current time is ' +
+    'unresolved');
+  assert_false(animation.pending);
+}, 'Updating the negative playback rate with the unresolved current time and'
+   + ' a positive infinite associated effect end should not throw an'
+   + ' exception');
+
 </script>
 </body>

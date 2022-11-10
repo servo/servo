@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<style></style>
+<!--
+  Web-font styled text that gets resized after an interaction stops LCP
+  observation should not make a new LCP emission.
+-->
+<textarea id='input'></textarea>
+<div class="test">LCP: Web Font Styled Text Resize</div>
+<script>
+  function addCSSRules() {
+    styleSheet = document.styleSheets[0];
+    fontRuleSet = "@font-face {\
+      font-family: 'ADTestFaceInteraction';\
+      src: url('/fonts/AD.woff');\
+      font-display: swap;\
+    }";
+    fontAtRule = ".test {\
+      font-family: 'ADTestFaceInteraction';\
+    } ";
+    styleSheet.insertRule(fontRuleSet);
+    styleSheet.insertRule(fontAtRule);
+  }
+
+  function LCPEntryList(t) {
+    return new Promise(resolve => {
+      let = lcpEntries = [];
+      new PerformanceObserver((entryList, observer) => {
+        lcpEntries = lcpEntries.concat(entryList.getEntries());
+        if (lcpEntries) {
+          // Adding timeout to wait a bit more so that if there are more than
+          // expected LCP entries emitted, they can be observed.
+          t.step_timeout(() => {
+            resolve(lcpEntries);
+            observer.disconnect();
+          }, 200);
+        }
+      }).observe({ type: 'largest-contentful-paint', buffered: true });
+    });
+  }
+
+  promise_test(async t => {
+    await document.fonts.ready;
+    let system_font_size = document.getElementsByClassName('test')[0].offsetHeight;
+
+    // Verify an LCP entry is emitted.
+    let entryList = await LCPEntryList(t);
+    assert_equals(entryList.length, 1, 'Text with system font should make a LCP emission.');
+
+    let lcpEntryBeforeInteraction = entryList[0];
+
+    // Add event listener so that CSS rule would be added after there's an
+    // input.
+    let inputElement = document.getElementById('input');
+    inputElement.addEventListener('keydown', addCSSRules);
+
+    // Send key as input.
+    await test_driver.send_keys(inputElement, 'k');
+
+    // Wait for web font to load.
+    await document.fonts.ready;
+
+    // Verify web font is downloaded.
+    assert_own_property(window, 'PerformanceResourceTiming', "ResourceTiming not supported");
+    let url = '/fonts/AD.woff';
+    var absoluteURL = new URL(url, location.href).href;
+    assert_equals(performance.getEntriesByName(absoluteURL).length, 1, 'Web font should be downloaded.');
+
+    // Verify web font is available.
+    assert_true(document.fonts.check('16px ADTestFaceInteraction'), 'Font should be the web font added');
+
+    // Verify web font is applied.
+    let web_font_size = document.getElementsByClassName('test')[0].offsetHeight;
+    assert_not_equals(web_font_size, system_font_size, 'Web font swap should happen');
+
+    // Assert there is only 1 LCP entry, which verifies the added web font does
+    // not make a new LCP entry after an input.
+    entryList = await LCPEntryList(t);
+    assert_equals(entryList.length, 1, 'Text with system font should not make a LCP emission.');
+
+    // Verify the LCP entry is the same one emitted before interaction by
+    // asserting the size is the same.
+    assert_equals(lcpEntryBeforeInteraction.size, entryList[0].size, 'There should be only 1 LCP entry emitted.');
+
+  }, "LCP should be not updated if the web font styled text resize occurs after an interaction happens");
+</script>

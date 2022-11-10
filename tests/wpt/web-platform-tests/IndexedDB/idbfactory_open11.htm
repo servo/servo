@@ -3,7 +3,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 
 <script>
     var db;
@@ -29,7 +29,7 @@
         store.add("data2", 2);
     };
     open_rq.onsuccess = function(e) {
-        var store = db.transaction("store").objectStore("store");
+        var store = db.transaction("store", "readonly", {durability: 'relaxed'}).objectStore("store");
         assert_equals(store.name, "store", "store.name");
         store.count().onsuccess = this.step_func(function(e) {
             assert_equals(e.target.result, 2, "count()");

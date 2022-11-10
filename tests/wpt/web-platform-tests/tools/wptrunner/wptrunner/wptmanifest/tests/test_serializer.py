@@ -1,9 +1,12 @@
+# mypy: allow-untyped-defs
+
+import textwrap
 import unittest
 
 from .. import parser, serializer
 
 
-class TokenizerTest(unittest.TestCase):
+class SerializerTest(unittest.TestCase):
     def setUp(self):
         self.serializer = serializer.ManifestSerializer()
         self.parser = parser.Parser()
@@ -144,6 +147,15 @@ class TokenizerTest(unittest.TestCase):
         """, """key: ]
 """)
 
+    def test_atom_as_default(self):
+        self.compare(
+            textwrap.dedent(
+                """\
+                key:
+                  if a == 1: @True
+                  @False
+                """).encode())
+
     def test_escape_0(self):
         self.compare(br"""k\t\:y: \a\b\f\n\r\t\v""",
                      r"""k\t\:y: \x07\x08\x0c\n\r\t\x0b
@@ -156,27 +168,27 @@ class TokenizerTest(unittest.TestCase):
 
     def test_escape_2(self):
         self.compare(br"""k\u0045y: \u1234A\uABc6""",
-                     u"""kEy: \u1234A\uabc6
+                     """kEy: \u1234A\uabc6
 """)
 
     def test_escape_3(self):
         self.compare(br"""k\u0045y: \u1234A\uABc6""",
-                     u"""kEy: \u1234A\uabc6
+                     """kEy: \u1234A\uabc6
 """)
 
     def test_escape_4(self):
         self.compare(br"""key: '\u1234A\uABc6'""",
-                     u"""key: \u1234A\uabc6
+                     """key: \u1234A\uabc6
 """)
 
     def test_escape_5(self):
         self.compare(br"""key: [\u1234A\uABc6]""",
-                     u"""key: [\u1234A\uabc6]
+                     """key: [\u1234A\uabc6]
 """)
 
     def test_escape_6(self):
         self.compare(br"""key: [\u1234A\uABc6\,]""",
-                     u"""key: ["\u1234A\uabc6,"]
+                     """key: ["\u1234A\uabc6,"]
 """)
 
     def test_escape_7(self):
@@ -191,12 +203,12 @@ class TokenizerTest(unittest.TestCase):
 
     def test_escape_9(self):
         self.compare(br"""key: \U10FFFFabc""",
-                     u"""key: \U0010FFFFabc
+                     """key: \U0010FFFFabc
 """)
 
     def test_escape_10(self):
         self.compare(br"""key: \u10FFab""",
-                     u"""key: \u10FFab
+                     """key: \u10FFab
 """)
 
     def test_escape_11(self):
@@ -231,3 +243,114 @@ class TokenizerTest(unittest.TestCase):
     def test_non_ascii_1(self):
         self.compare(b"""[\xf0\x9f\x99\x84]
 """)
+
+    def test_comments_preceding_kv_pair(self):
+        self.compare(
+            textwrap.dedent(
+                """\
+                # These two comments should be attached
+                # to the first key-value pair.
+                key1: value
+                # Attached to the second pair.
+                key2: value
+                """).encode())
+
+    def test_comments_preceding_headings(self):
+        self.compare(
+            textwrap.dedent(
+                """\
+                # Attached to the first heading.
+                [test1.html]
+
+                # Attached to the second heading.
+                [test2.html]
+                # Attached to subheading.
+                    # Also attached to subheading.
+                  [subheading]  # Also attached to subheading (inline).
+                """).encode(),
+            textwrap.dedent(
+                """\
+                # Attached to the first heading.
+                [test1.html]
+
+                # Attached to the second heading.
+                [test2.html]
+                  # Attached to subheading.
+                  # Also attached to subheading.
+                  [subheading]  # Also attached to subheading (inline).
+                """))
+
+    def test_comments_inline(self):
+        self.compare(
+            textwrap.dedent(
+                """\
+                key1:           # inline after key
+                  value         # inline after string value
+                key2:
+                  [value]       # inline after list in group
+                [test.html]     # inline after heading
+                  key1: @True   # inline after atom
+                  key2: [       # inline after list start
+                    @False,     # inline after atom in list
+                    value1,     # inline after value in list
+                    value2]     # inline after list end
+                """).encode(),
+            textwrap.dedent(
+                """\
+                # inline after key
+                key1: value  # inline after string value
+                key2: [value]  # inline after list in group
+                [test.html]  # inline after heading
+                  key1: @True  # inline after atom
+                  # inline after atom in list
+                  # inline after value in list
+                  # inline after list end
+                  key2: [@False, value1, value2]  # inline after list start
+                """))
+
+    def test_comments_conditions(self):
+        self.compare(
+            textwrap.dedent(
+                """\
+                key1:
+                # cond 1
+                  if cond == 1: value
+                  # cond 2
+                  if cond == 2: value  # cond 2
+                # cond 3
+                    # cond 3
+                  if cond == 3: value
+                  # default 0
+                  default  # default 1
+                  # default 2
+                  # default 3
+                key2:
+                  if cond == 1: value
+                  [value]
+                  # list default
+                key3:
+                  if cond == 1: value
+                  # no default
+                """).encode(),
+            textwrap.dedent(
+                """\
+                key1:
+                  # cond 1
+                  if cond == 1: value
+                  # cond 2
+                  if cond == 2: value  # cond 2
+                  # cond 3
+                  # cond 3
+                  if cond == 3: value
+                  # default 0
+                  # default 2
+                  # default 3
+                  default  # default 1
+                key2:
+                  if cond == 1: value
+                  # list default
+                  [value]
+                # no default
+                key3:
+                  if cond == 1: value
+                """))

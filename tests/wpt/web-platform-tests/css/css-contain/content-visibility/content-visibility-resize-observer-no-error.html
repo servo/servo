@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf8">
+<title>Content Visibility: resize observer interaction</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-resize-observer-no-error-ref.html">
+<meta name="assert" content="the test doesn't cause resize observer to produce an error">
+
+<script>
+addEventListener('error', () => {
+  document.documentElement.style.background = "red";
+});
+</script>
+
+<style>
+div {
+  contain-intrinsic-size: auto 200px;
+  content-visibility: auto;
+  min-height: 50px;
+  background: blue;
+}
+</style>
+
+<span>There should be no red color on this page.</span>
+<span><div></div></span>
+<div></div>
+
+<script>
+new ResizeObserver(() => {});
+</script>

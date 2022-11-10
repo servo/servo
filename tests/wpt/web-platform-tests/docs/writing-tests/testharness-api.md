@@ -237,7 +237,7 @@ promise_test(() => {
 }, "DOMContentLoaded");
 ```
 
-**Note:** Unlike asynchronous tests, teatharness.js queues promise
+**Note:** Unlike asynchronous tests, testharness.js queues promise
 tests so the next test won't start running until after the previous
 promise test finishes. [When mixing promise-based logic and async
 steps](https://github.com/web-platform-tests/wpt/pull/17924), the next
@@ -627,7 +627,7 @@ harness will assume there are no more results to come when:
  1. There are no `Test` objects that have been created but not completed
  2. The load event on the document has fired
 
-For single page tests, or when the `explict_done` property has been
+For single page tests, or when the `explicit_done` property has been
 set in the [setup](#setup), the [`done`](#done) function must be used.
 
 ```eval_rst

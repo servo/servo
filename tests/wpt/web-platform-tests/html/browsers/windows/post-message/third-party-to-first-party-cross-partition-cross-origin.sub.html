@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>postMessage: Third-Party to First-Party, Cross-Partition, Cross-Origin</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Here's the set-up for this test:
+// Step 1. (Site 1 Window) set up listener and open Site 2 Frame.
+// Step 2. (Site 2 Frame) set up listener and open Site 3 Window.
+// Step 3. (Site 3 Window) send "Site 3 Window" message to Site 2 Frame.
+// Step 4. (Site 2 Frame) receive "Site 3 Window" message and send "Site 2 Frame" message to Site 1 Window.
+// Step 5. (Site 1 Window) receive "Site 2 Frame" message and exit.
+
+async_test(t => {
+  // Step 5
+  const listener = t.step_func(e => {
+    if (e.data === "Site 2 Frame") {
+      t.done();
+    }
+  });
+  // Step 1
+  window.addEventListener("message", listener);
+  const site2Frame = document.createElement("iframe");
+  site2Frame.src = "http://{{hosts[alt][]}}:{{ports[http][0]}}/html/browsers/windows/post-message/resources/third-party-to-first-party-cross-partition-cross-origin-iframe.sub.html";
+  document.body.appendChild(site2Frame);
+}, "postMessage: Third-Party to First-Party, Cross-Partition, Cross-Origin");
+</script>
+</body>

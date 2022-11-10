@@ -1,0 +1,131 @@
+<!doctype html>
+<link rel="match" href="devicepixel2-ref.html">
+<meta name="assert" content="Resize Observer's reported device pixel content box size should be consistent with the actual pixel-snapped painted box size">
+<style>
+  html, body {
+    margin: 0;
+  }
+  .line {
+    width: 100px;
+    display: flex;
+  }
+  .line>* {
+    flex: 1;
+    height: 20px;
+  }
+</style>
+<body>
+  <div></div>
+  <script type="module">
+import createPatternDataURL from './create-pattern-data-url.js';
+
+const {patternSize, dataURL} = createPatternDataURL();
+
+/**
+ * Set the pattern's size on this element so that it draws where
+ * 1 pixel in the pattern maps to 1 devicePixel and then set
+ * its position so it's aligned to the pattern of the body element.
+ */
+function setPattern(elem, x, y) {
+  const oneDevicePixel = 1 / devicePixelRatio;
+  const patternPixels = oneDevicePixel * patternSize;
+  elem.style.backgroundImage = `url("${dataURL}")`;
+  elem.style.backgroundSize = `${patternPixels}px ${patternPixels}px`;
+  elem.style.backgroundPosition = `${-x * oneDevicePixel}px ${-y * oneDevicePixel}px`;
+}
+
+/*
+This test creates elements like this
+
+  <body>
+    <div>
+      <div class="line"><div></div><div></div></div>
+      <div class="line"><div></div><div></div><div></div></div>
+      <div class="line"><div></div><div></div><div></div><div></div></div>
+      ...
+    </div>
+  </body>
+
+It has the first `<div>` starting at the top left corner of the page, the
+same as the body so they should both have a devicePixel position of 0,0
+
+The devicePixelContentBoxSize of all the elements is queried with
+a ResizeObserver.
+
+It then sets a repeating background-image, background-size and
+background-position on the all of the innermost children elements so
+they have a 4x4 checkerboard image at a size that should draw each pixel
+of the 4x4 checkerboard pattern in single devicePixels and so they should
+all align with the same pattern applied in a similar manner to the body.
+
+In other words
+
+  <div class="line">
+    <div></div><div></div><div></div>
+  </div>
+
+The first child will be displayed at left = 0 so its background-position is
+set to 0px 0px. The second child should be displayed at
+
+secondChildLeft = entry(firstChild).devicePixelContentBoxSize[0].inlineSize.
+
+The 3rd child should be displayed at
+
+thirdChildLeft = entry(firstChild).devicePixelContentBoxSize[0].inlineSize +
+                 entry(secondChild).devicePixelContentBoxSize[0].inlineSize
+
+Using the children's device-pixel positions (determined as described above),
+we then set each child's background-position to the negated version of the
+position that we computed for that child. This effectively makes its pattern's
+origin match the document origin.
+
+If what devicePixelContentBox reports is correct the children's patterns
+will align with the pattern in the body and the children will be invisible.
+If what devicePixelContentBox reports is incorrect the patterns will not
+align and it should be clearly visible.
+*/
+
+const wrapperElem = document.querySelector('div');
+
+const elemToDevicePixelSize = new Map();
+
+function setPatternsUsingSizeInfo(entries) {
+  setPattern(document.body, 0, 0);
+
+  for (const entry of entries) {
+    elemToDevicePixelSize.set(entry.target, {
+      inlineSize: entry.devicePixelContentBoxSize[0].inlineSize,
+      blockSize: entry.devicePixelContentBoxSize[0].blockSize,
+    });
+  }
+
+  let devicePixelY = 0;
+  for (const lineElem of wrapperElem.children) {
+    let devicePixelX = 0;
+    for (const childElem of lineElem.children) {
+      setPattern(childElem, devicePixelX, devicePixelY);
+      const devicePixelSize = elemToDevicePixelSize.get(childElem);
+      devicePixelX += devicePixelSize.inlineSize;
+    }
+
+    const lineEntry = elemToDevicePixelSize.get(lineElem);
+    const lineHeight = lineEntry.blockSize;
+    devicePixelY += lineHeight;
+  }
+}
+
+const observer = new ResizeObserver(setPatternsUsingSizeInfo);
+observer.observe(document.body);
+for (let numFlexItems = 2; numFlexItems < 15; ++numFlexItems) {
+  const lineElem = document.createElement('div');
+  lineElem.className = 'line';
+  observer.observe(lineElem, {box:"device-pixel-content-box"});
+  for (let j = 0; j < numFlexItems; ++j) {
+    const inner = document.createElement('div');
+    lineElem.appendChild(inner);
+    observer.observe(inner, {box:"device-pixel-content-box"});
+  }
+  wrapperElem.appendChild(lineElem);
+}
+  </script>
+</body>

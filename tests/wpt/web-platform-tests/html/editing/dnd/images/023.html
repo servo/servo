@@ -1,0 +1,47 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Dropping image on horizontal object scrollbar</title>
+<style type="text/css">
+p:first-child
+  {padding-left:1em;}
+object
+  {height:3em;
+  width:4em;}
+img
+  {width:5px;
+  height:5px;}
+</style>
+<script type="application/ecmascript">
+function dragImage()
+  {event.dataTransfer.effectAllowed = 'copy';}
+function dropImage(event)
+  {document.querySelector('p + p').firstChild.nodeValue = 'PASS';}
+</script>
+</head>
+<body ondragenter="event.preventDefault()" ondragover="return false">
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==" alt="PNG green pixel" ondragstart="dragImage()"/></p>
+<p>Drag little square above and drop it on horizontal scrollbar. Word PASS should appear once you drop it.</p>
+<object type="application/xhtml+xml" data="helper-drop-horizontal-scrollbar.xhtml">XHTML document</object>
+<script>
+async function test(){
+  await new Promise(loaded => window.addEventListener("load", loaded));
+  const img = document.querySelector('img');
+  const object = document.querySelector('object');
+  function onDropCallBack(event) {
+    dropImage(event);
+    assert_equals('PASS', document.querySelector('p + p').firstChild.nodeValue);
+    return true;
+  }
+
+  dragDropTest(img, object, onDropCallBack, 'Dragging the image to the horizontal object scrollbar should copy it there');
+}
+test();
+</script>
+</body>
+</html>

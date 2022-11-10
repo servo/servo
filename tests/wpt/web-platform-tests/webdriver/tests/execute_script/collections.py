@@ -1,16 +1,9 @@
 import os
 
+from webdriver.client import ShadowRoot
+
 from tests.support.asserts import assert_same_element, assert_success
-
-
-def execute_script(session, script, args=None):
-    if args is None:
-        args = []
-    body = {"script": script, "args": args}
-
-    return session.transport.send(
-        "POST", "/session/{session_id}/execute/sync".format(**vars(session)),
-        body)
+from . import execute_script
 
 
 def test_arguments(session):
@@ -161,6 +154,5 @@ def test_shadow_root(session, inline):
     response = execute_script(session,
         "return document.querySelector('custom-checkbox-element').shadowRoot")
     value = assert_success(response)
-    assert isinstance(value, dict)
-    assert "shadow-6066-11e4-a52e-4f735466cecf" in value
-    assert value["shadow-6066-11e4-a52e-4f735466cecf"] == expected.id
+    assert isinstance(value, ShadowRoot)
+    assert value.id == expected.id

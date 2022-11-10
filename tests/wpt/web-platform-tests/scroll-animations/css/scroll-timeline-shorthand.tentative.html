@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6674">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-axis">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<div id="target"></div>
+<script>
+test_valid_value('scroll-timeline', 'block none', 'block');
+test_valid_value('scroll-timeline', 'none inline', 'inline');
+test_valid_value('scroll-timeline', 'horizontal abc');
+test_valid_value('scroll-timeline', 'inline abc');
+test_valid_value('scroll-timeline', 'inline aBc');
+test_valid_value('scroll-timeline', 'vertical none', 'vertical');
+test_valid_value('scroll-timeline', 'inline inline');
+test_valid_value('scroll-timeline', 'abc');
+test_valid_value('scroll-timeline', 'inline');
+
+test_invalid_value('scroll-timeline', '');
+test_invalid_value('scroll-timeline', 'abc abc');
+
+test_computed_value('scroll-timeline', 'block none', 'block');
+test_computed_value('scroll-timeline', 'abc inline', 'inline abc');
+test_computed_value('scroll-timeline', 'none vertical', 'vertical');
+test_computed_value('scroll-timeline', 'horizontal abc');
+test_computed_value('scroll-timeline', 'vertical vertical');
+test_computed_value('scroll-timeline', 'abc');
+
+test_shorthand_value('scroll-timeline', 'vertical abc',
+{
+  'scroll-timeline-axis': 'vertical',
+  'scroll-timeline-name': 'abc',
+});
+test_shorthand_value('scroll-timeline', 'horizontal inline',
+{
+  'scroll-timeline-axis': 'horizontal',
+  'scroll-timeline-name': 'inline',
+});
+</script>

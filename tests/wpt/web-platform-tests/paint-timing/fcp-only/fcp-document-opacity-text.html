@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="hide">
+<head>
+<title>Performance Paint Timing Test: Text FCP due to the documentElement's opacity</title>
+<style>
+    html {
+      will-change: opacity;
+    }
+    .hide {
+        opacity: 0;
+    }
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="main">This is content that is extremely contentful.</div>
+<script>
+const change_opacity = () => {
+  document.documentElement.className = "";
+}
+
+promise_test(async t => {
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+  await assertNoFirstContentfulPaint(t);
+  change_opacity();
+  await waitForAnimationFrames(3);
+  const fcp_entries = performance.getEntriesByName('first-contentful-paint');
+  assert_equals(fcp_entries.length, 1, "Got an FCP entry");
+  const lcp_entries = await new Promise(resolve => {new PerformanceObserver((list) => resolve(list.getEntries())).observe({type: 'largest-contentful-paint', buffered: true})});
+  assert_equals(lcp_entries.length, 1, "Got an LCP entry");
+  assert_less_than_equal(fcp_entries[0].startTime, lcp_entries[0].startTime, "LCP is not smaller than FCP");
+}, "Test that FCP after opacity change is not a larger value than LCP");
+</script>
+</body>
+</html>
+
+

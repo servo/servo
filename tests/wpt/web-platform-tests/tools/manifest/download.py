@@ -143,13 +143,13 @@ def download_manifest(
             try:
                 dctx = zstandard.ZstdDecompressor()
                 decompressed = dctx.decompress(resp.read())
-            except IOError:
+            except OSError:
                 logger.warning("Failed to decompress downloaded file")
                 continue
         elif url.endswith(".bz2"):
             try:
                 decompressed = bz2.decompress(resp.read())
-            except IOError:
+            except OSError:
                 logger.warning("Failed to decompress downloaded file")
                 continue
         elif url.endswith(".gz"):
@@ -158,7 +158,7 @@ def download_manifest(
                 with gzip.GzipFile(fileobj=fileobj) as gzf:
                     data = gzf.read()
                     decompressed = data
-            except IOError:
+            except OSError:
                 logger.warning("Failed to decompress downloaded file")
                 continue
         else:

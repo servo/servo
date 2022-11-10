@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timelines">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#avoiding-cycles">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #contents {
+    height: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  #element {
+    width: 0px;
+    animation: expand 10s linear paused;
+    animation-timeline: timeline;
+  }
+</style>
+<div id="container">
+  <div id=element></div>
+</div>
+<script>
+
+promise_test(async (t) => {
+  let div = document.createElement('div');
+  div.setAttribute('id', 'scroller');
+  div.style.scrollTimeline = 'timeline';
+  div.innerHTML = '<div id=contents></div>';
+  try {
+    container.insertBefore(div, element);
+
+    // The source has no layout box at the time the scroll timeline is created.
+    assert_equals(getComputedStyle(element).width, '0px');
+    scroller.offsetTop; // Ensure a layout box for the scroller.
+    // Wait for an update to the timeline state:
+    await waitForNextFrame();
+    // The timeline should now be active, and the animation should apply:
+    assert_equals(getComputedStyle(element).width, '100px');
+  } finally {
+    div.remove();
+  }
+}, 'Animation does not apply when timeline is initially inactive');
+
+</script>

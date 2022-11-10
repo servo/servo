@@ -3,7 +3,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     var db, store,
@@ -26,7 +26,7 @@
         stages.push("success");
 
         // Making a totally new transaction to check
-        db.transaction('store').objectStore('store').count().onsuccess = t.step_func(function(e) {
+        db.transaction('store', 'readonly', {durability: 'relaxed'}).objectStore('store').count().onsuccess = t.step_func(function(e) {
             assert_array_equals(stages, [ "upgradeneeded",
                                           "complete",
                                           "success" ]);

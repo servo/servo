@@ -64,7 +64,7 @@ test(_ => {
   let ctx = canvas.getContext('2d');
 
   let init = {alpha: 'discard', timestamp: 33090};
-  let frame = new VideoFrame(canvas);
+  let frame = new VideoFrame(canvas, {timestamp: 0});
   let frame2 = new VideoFrame(frame, init);
   let frame3 = new VideoFrame(frame2, init);
 

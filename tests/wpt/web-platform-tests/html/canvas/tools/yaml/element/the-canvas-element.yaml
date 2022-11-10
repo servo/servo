@@ -1,14 +1,10 @@
 - name: 2d.getcontext.exists
   desc: The 2D context is implemented
-  testing:
-  - context.2d
   code: |
     @assert canvas.getContext('2d') !== null;
 
 - name: 2d.getcontext.invalid.args
   desc: Calling getContext with invalid arguments.
-  testing:
-  - context.2d
   code: |
     @assert canvas.getContext('') === null;
     @assert canvas.getContext('2d#') === null;
@@ -22,8 +18,6 @@
 
 - name: 2d.getcontext.extraargs.create
   desc: The 2D context doesn't throw with extra getContext arguments (new context)
-  testing:
-  - context.2d.extraargs
   code: |
     @assert document.createElement("canvas").getContext('2d', false, {}, [], 1, "2") !== null;
     @assert document.createElement("canvas").getContext('2d', 123) !== null;
@@ -34,8 +28,6 @@
 
 - name: 2d.getcontext.extraargs.cache
   desc: The 2D context doesn't throw with extra getContext arguments (cached)
-  testing:
-  - context.2d.extraargs
   code: |
     @assert canvas.getContext('2d', false, {}, [], 1, "2") !== null;
     @assert canvas.getContext('2d', 123) !== null;
@@ -47,8 +39,6 @@
 - name: 2d.type.exists
   desc: The 2D context interface is a property of 'window'
   notes: &bindings Defined in "Web IDL" (draft)
-  testing:
-  - context.2d.type
   code: |
     @assert window.CanvasRenderingContext2D;
 
@@ -56,8 +46,6 @@
   desc: window.CanvasRenderingContext2D.prototype are not [[Writable]] and not [[Configurable]],
     and its methods are [[Configurable]].
   notes: *bindings
-  testing:
-  - context.2d.type
   code: |
     @assert window.CanvasRenderingContext2D.prototype;
     @assert window.CanvasRenderingContext2D.prototype.fill;
@@ -73,8 +61,6 @@
 - name: 2d.type.replace
   desc: Interface methods can be overridden
   notes: *bindings
-  testing:
-  - context.2d.type
   code: |
     var fillRect = window.CanvasRenderingContext2D.prototype.fillRect;
     window.CanvasRenderingContext2D.prototype.fillRect = function (x, y, w, h)
@@ -90,8 +76,6 @@
 - name: 2d.type.extend
   desc: Interface methods can be added
   notes: *bindings
-  testing:
-  - context.2d.type
   code: |
     window.CanvasRenderingContext2D.prototype.fillRectGreen = function (x, y, w, h)
     {
@@ -105,15 +89,11 @@
 
 - name: 2d.getcontext.unique
   desc: getContext('2d') returns the same object
-  testing:
-  - context.unique
   code: |
     @assert canvas.getContext('2d') === canvas.getContext('2d');
 
 - name: 2d.getcontext.shared
   desc: getContext('2d') returns objects which share canvas state
-  testing:
-  - context.unique
   code: |
     var ctx2 = canvas.getContext('2d');
     ctx.fillStyle = '#f00';
@@ -142,15 +122,11 @@
 
 - name: 2d.canvas.reference
   desc: CanvasRenderingContext2D.canvas refers back to its canvas
-  testing:
-  - 2d.canvas
   code: |
     @assert ctx.canvas === canvas;
 
 - name: 2d.canvas.readonly
   desc: CanvasRenderingContext2D.canvas is readonly
-  testing:
-  - 2d.canvas.attribute
   code: |
     var c = document.createElement('canvas');
     var d = ctx.canvas;
@@ -160,10 +136,7 @@
 
 - name: 2d.canvas.context
   desc: checks CanvasRenderingContext2D prototype
-  testing:
-  - 2d.path.contexttypexxx.basic
   code: |
     @assert Object.getPrototypeOf(CanvasRenderingContext2D.prototype) === Object.prototype;
     @assert Object.getPrototypeOf(ctx) === CanvasRenderingContext2D.prototype;
     t.done();
-

@@ -119,7 +119,15 @@ function domCookieTest(cookie, expectedValue, name) {
     await test_driver.delete_all_cookies();
     t.add_cleanup(test_driver.delete_all_cookies);
 
-    document.cookie = cookie;
+    if (typeof cookie === "string") {
+      document.cookie = cookie;
+    } else if (Array.isArray(cookie)) {
+      for (const singlecookie of cookie) {
+        document.cookie = singlecookie;
+      }
+    } else {
+      throw new Error('Unexpected type passed into domCookieTest as cookie: ' + typeof cookie);
+    }
     let cookies = document.cookie;
     assert_equals(cookies, expectedValue, Boolean(expectedValue) ?
                                           'The cookie was set as expected.' :
@@ -142,4 +150,16 @@ function getCtlCharacters() {
 // Note: Cookie length checking should ignore the "=".
 function cookieStringWithNameAndValueLengths(nameLength, valueLength) {
   return `${"t".repeat(nameLength)}=${"1".repeat(valueLength)}`;
+}
+
+// Finds the root window.top.opener and directs test_driver commands to it.
+//
+// If you see a message like: "Error: Tried to run in a non-testharness window
+// without a call to set_test_context." then you probably need to call this.
+function setTestContextUsingRootWindow() {
+  let test_window = window.top;
+  while (test_window.opener && !test_window.opener.closed) {
+    test_window = test_window.opener.top;
+  }
+  test_driver.set_test_context(test_window);
 }

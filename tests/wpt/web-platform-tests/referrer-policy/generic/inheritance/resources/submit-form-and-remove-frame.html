@@ -1,0 +1,10 @@
+<!doctype html>
+<meta name='referrer' content='no-referrer'>
+<body onload='start()'>
+<script>
+  function start() {
+    myform.submit();
+    parent.removeIframe();
+  }
+</script>
+<form id='myform' action='about:blank' target='does-not-exist'>

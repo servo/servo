@@ -31,31 +31,12 @@
   }, "Scroll based animation effect fill mode should return 'auto' for" +
      " getTiming() and should return 'none' for getComputedTiming().")
 
-  // Test cases are included where effect delay causes the effect iteration to
-  // overlap with the timeline start time and also the timeline end time.
-  //                  Timeline
-  //   BEFORE   +-----------------+     AFTER
-  //   time:    0                 timeline.duration
-  //   1)       +-----------------+
-  //   2)            +------------+
-  //   3)   +---------------------+
-  //   4)       +---------------------+
-  //   5)       +-------------+
-  //   6)           +---------+
-  //   7)           +-----------------+
-  //   8)   +-----------------+
-  //   9)   +-------------------------+
-
-  // Note: effects are scaled to fill the timeline so that the start of the
-  // effect is after the start offset of the timeline, and that the end of the
-  // effect is at the beginning of the end offset of the timeline.
-
   /* All interesting transitions:
-      before timeline start
-      at timeline start
-      in timeline range
-      at timeline end
-      after timeline end
+      before start delay
+      at start delay
+      within active phase
+      at effect end
+      after effect end
 
       test_case data structure:
       fill_mode: {
@@ -64,33 +45,19 @@
   */
   const test_cases = {
     "none": {
-      0.10: ["before timeline start", 1],
-      0.25: ["at timeline start", 0.3],
-      0.50: ["in timeline range", 0.5],
-      0.75: ["at timeline end", 1],
-      0.90: ["after timeline end", 1]
+      0.10: ["before start delay", 1],
+      0.25: ["at start delay", 0.3],
+      0.50: ["at midpoint", 0.5],
+      0.75: ["at effect end", 1],
+      0.90: ["after effect end", 1]
     },
     "backwards": {
-      0.10: ["before timeline start", 0.3],
-      0.25: ["at timeline start", 0.3],
-      0.50: ["in timeline range", 0.5],
-      0.75: ["at timeline end", 1],
-      0.90: ["after timeline end", 1]
+      0.10: ["before start delay", 0.3],
+      0.25: ["at start delay", 0.3],
+      0.50: ["at midpoint", 0.5],
+      0.75: ["at effect end", 1],
+      0.90: ["after effect end", 1]
     },
-    /*
-      There is an asymmetry between these 2 mirrored scenarios:
-        1. fillmode: forwards + "at timeline end"
-        2. fillmode: backwards + "at timeline start"
-
-      In scenario 1, effect is not applied
-      In scenario 2, effect is applied
-
-      The difference is accounted for by the equality at the end versus strict
-      inequality at the start when computing the timeline phase.
-
-      This is currently in line with spec expectations but is an issue that
-      should be addressed.
-    */
     "forwards": {
       0.10: ["before timeline start", 1],
       0.25: ["at timeline start", 0.3],
@@ -105,8 +72,6 @@
       0.75: ["at timeline end", 0.7],
       0.90: ["after timeline end", 0.7]
     },
-    // "auto" behaves differently for different effect delay values. These
-    // cases are handled in scroll-animation-effect-phases.tentative.html
     "auto": {
       0.10: ["before timeline start", 1],
       0.25: ["at timeline start", 0.3],
@@ -138,17 +103,18 @@
     return async t => {
       const target = createDiv(t);
 
-      const timeline =
-          createScrollTimelineWithOffsets(t, CSS.percent(25), CSS.percent(75));
-      const effect = new KeyframeEffect(
-        target,
-        {
-          opacity: [0.3, 0.7]
-        },
-        {
-          fill: fill_mode
-        }
-      );
+      const timeline = createScrollTimeline(t);
+      const effect =
+          new KeyframeEffect(target,
+                             { opacity: [0.3, 0.7] },
+                             {
+                               fill: fill_mode,
+                               /* Animation times normalized to fill scroll
+                                  range */
+                               duration: 2000,
+                               delay: 1000,
+                               endDelay: 1000
+                             });
       const animation = new Animation(effect, timeline);
       const scroller = timeline.source;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
@@ -163,10 +129,9 @@
       // new current time.
       await waitForNextFrame();
 
-      assert_equals(
-        parseFloat(window.getComputedStyle(target).opacity),
-        expected,
-        "animation effect applied property value");
+      assert_equals(parseFloat(window.getComputedStyle(target).opacity),
+                    expected,
+                    "animation effect applied property value");
     }
   }
 </script>

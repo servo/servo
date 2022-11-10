@@ -1,16 +1,14 @@
 # Data-driven import maps tests
 
 In this directory, test inputs and expectations are expressed as JSON files.
-This is in order to share the same JSON files between WPT tests and Jest-based
-tests for the reference JavaScript implementation at [WICG repository](https://github.com/WICG/import-maps/tree/master/reference-implementation).
+This is in order to share the same JSON files between WPT tests and other
+implementations that might not run the full WPT suite, e.g. server-side
+JavaScript runtimes or the [JavaScript reference implementation](https://github.com/WICG/import-maps/tree/master/reference-implementation).
 
 ## Basics
 
 A **test object** describes a set of parameters (import maps and base URLs) and test expectations.
-Test expectations can be:
-
-- Expected resulting URLs for specifiers (resolution tests), or
-- Expected parsed import maps (parsing tests).
+Test expectations consist of the expected resulting URLs for specifiers.
 
 Each JSON file under [resources/](resources/) directory consists of a test object.
 A minimum test object would be:
@@ -38,11 +36,10 @@ Required fields:
     - In WPT tests, this is used for the test name of `promise_test()` together with specifier to be resolved, like `"Main test name: a"`.
 - `importMap` (object or string): the import map to be attached.
 - `importMapBaseURL` (string): the base URL used for [parsing the import map](https://wicg.github.io/import-maps/#parse-an-import-map-string).
-- (resolution tests only) `expectedResults` (object; string to (string or null)): resolution test cases.
+- `expectedResults` (object; string to (string or null)): resolution test cases.
     - The keys are specifiers to be resolved.
     - The values are expected resolved URLs. If `null`, resolution should fail.
-- (resolution tests only) `baseURL` (string): the base URL used in [resolving a specifier](https://wicg.github.io/import-maps/#resolve-a-module-specifier) for each specifiers.
-- (parsing tests only) `expectedParsedImportMap` (object): the expected parsed import map for parsing test cases.
+- `baseURL` (string): the base URL used in [resolving a specifier](https://wicg.github.io/import-maps/#resolve-a-module-specifier) for each specifiers.
 
 Optional fields:
 
@@ -83,3 +80,8 @@ The top-level test object contains two sub test objects, named as `Subtest1` and
 
 Child test objects inherit fields from their parent test object.
 In the example above, the child test objects specifies `baseURL` fields, while they inherits other fields (e.g. `importMapBaseURL`) from the top-level test object.
+
+## TODO
+
+The `parsing-*.json` files are not currently used by the WPT harness. We should
+convert them to resolution tests.

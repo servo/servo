@@ -1,4 +1,4 @@
-// META: script=support.js
+// META: script=resources/support.js
 
 indexeddb_test(
   (t, db) => {
@@ -7,10 +7,10 @@ indexeddb_test(
   },
 
   (t, db) => {
-    const transaction1 = db.transaction('store', 'readwrite');
+    const transaction1 = db.transaction('store', 'readwrite', {durability: 'relaxed'});
     transaction1.onabort = t.unreached_func('transaction1 should not abort');
 
-    const transaction2 = db.transaction('store', 'readonly');
+    const transaction2 = db.transaction('store', 'readonly', {durability: 'relaxed'});
     transaction2.onabort = t.unreached_func('transaction2 should not abort');
 
     const request = transaction1.objectStore('store').put('new value', 'key');

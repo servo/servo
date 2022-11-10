@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>postMessage: First-Party to First-Party, Same-Partition</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Here's the set-up for this test:
+// Step 1. (Site 1 Window A) set up listener and open Site 1 Window B.
+// Step 2. (Site 1 Window B) send "Site 1 Window B" message to Site 1 Window A.
+// Step 3. (Site 1 Window A) receive "Site 1 Window B" message and exit.
+
+async_test(t => {
+  // Step 3
+  const listener = t.step_func(e => {
+    if (e.data === "Site 1 Window B") {
+      t.done();
+    }
+  });
+  // Step 1
+  window.addEventListener("message", listener);
+  const site1WindowB = window.open("/html/browsers/windows/post-message/resources/first-party-to-first-party-same-partition-window.html", "", "noopener=false");
+  t.add_cleanup(() => site1WindowB.close());
+}, "postMessage: First-Party to First-Party, Same-Partition");
+</script>
+</body>

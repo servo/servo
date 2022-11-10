@@ -90,12 +90,12 @@
             name: `Cookie with %x${ctl.code.toString(16)} in HttpOnly attribute is handled correctly.`,
           },
           {
-            cookie: `test${ctl.code}samesite=t; SameSite=No${ctl.chr}ne; SameSite=None;`,
+            cookie: `test${ctl.code}samesite=t; SameSite=La${ctl.chr}x; SameSite=Lax;`,
             expected: `test${ctl.code}samesite=t`,
             name: `Cookie with %x${ctl.code.toString(16)} in SameSite attribute value is handled correctly.`,
           },
           {
-            cookie: `test${ctl.code}samesite2=t; SameSite=None${ctl.chr};`,
+            cookie: `test${ctl.code}samesite2=t; SameSite=Lax${ctl.chr};`,
             expected: `test${ctl.code}samesite2=t`,
             name: `Cookie with %x${ctl.code.toString(16)} after SameSite attribute value is handled correctly.`,
           },

@@ -18,6 +18,31 @@ def frameset(inline, *docs):
     return "<frameset rows='{}'>\n{}</frameset>".format(len(frames) * "*,", "\n".join(frames))
 
 
+def test_frame_id_webelement_no_such_element(session, iframe, inline):
+    session.url = inline(iframe("<p>foo"))
+    frame = session.find.css("iframe", all=False)
+    frame.id = "bar"
+
+    response = switch_to_frame(session, frame)
+    assert_error(response, "no such element")
+
+
+@pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
+def test_frame_id_webelement_stale_element_reference(session, iframe, stale_element, as_frame):
+    frame = stale_element(iframe("<div>"), "iframe", as_frame=as_frame)
+
+    result = switch_to_frame(session, frame)
+    assert_error(result, "stale element reference")
+
+
+def test_frame_id_webelement_no_frame_element(session, inline):
+    session.url = inline("<p>foo")
+    no_frame = session.find.css("p", all=False)
+
+    response = switch_to_frame(session, no_frame)
+    assert_error(response, "no such frame")
+
+
 @pytest.mark.parametrize("index, value", [[0, "foo"], [1, "bar"]])
 def test_frame_id_webelement_frame(session, inline, index, value):
     session.url = inline(frameset(inline, "<p>foo", "<p>bar"))
@@ -55,33 +80,6 @@ def test_frame_id_webelement_nested(session, inline, iframe):
 
         element = session.find.css("p", all=False)
         assert element.text == expected_text[i]
-
-
-def test_frame_id_webelement_no_element_reference(session, inline, iframe):
-    session.url = inline(iframe("<p>foo"))
-    frame = session.find.css("iframe", all=False)
-    frame.id = "bar"
-
-    response = switch_to_frame(session, frame)
-    assert_error(response, "no such element")
-
-
-def test_frame_id_webelement_stale_reference(session, inline, iframe):
-    session.url = inline(iframe("<p>foo"))
-    frame = session.find.css("iframe", all=False)
-
-    session.refresh()
-
-    response = switch_to_frame(session, frame)
-    assert_error(response, "stale element reference")
-
-
-def test_frame_id_webelement_no_frame_element(session, inline):
-    session.url = inline("<p>foo")
-    no_frame = session.find.css("p", all=False)
-
-    response = switch_to_frame(session, no_frame)
-    assert_error(response, "no such frame")
 
 
 def test_frame_id_webelement_cloned_into_iframe(session, inline, iframe):

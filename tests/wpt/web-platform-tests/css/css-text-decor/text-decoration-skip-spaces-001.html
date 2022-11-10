@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Decoration skipping spaces: spacers</title>
+<meta name="assert" content="underlining of spacers get skipped at the start/end of the line.">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#line-decoration">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="match" href="reference/text-decoration-skip-spaces-001-ref.html">
+<style>
+div {
+    /* Use separate longhands
+       as Safari does not support the full syntax of the text-decoration shorthand
+       at the time of writing,
+       but that's not what we're testing here.
+     */
+    text-decoration: underline;
+    text-decoration-color: blue;
+
+    text-decoration-skip-spaces: start end; /* Theoretically not needed, as that's the default behavior per L3 */
+    color: orange;
+    font-size: 2em;
+}
+</style>
+
+<p>
+    Test passes if there is an blue underline below orange letters A through F below, <em>but no further</em>.<br>
+    (Note: a small orange line to the left of A and the right of “F” is OK.)
+
+<div>&#x2000;&#x2001;&#x2002;&#x2003;&#x2004;&#x2005;&#x2006;&#x2007;&#x2008;&#x2009;&#x200a;&#x205f;&#x3000;&#x1680;&nbsp; ABCDEF &nbsp;&#x1680;&#x2000;&#x2001;&#x2002;&#x2003;&#x2004;&#x2005;&#x2006;&#x2007;&#x2008;&#x2009;&#x200a;&#x205f;&#x3000;</div>

@@ -1,21 +1,35 @@
 const load = {
-  _cache_bust_value: Math.random().toString().substr(2),
 
   cache_bust: path => {
     let url = new URL(path, location.origin);
     url.href += (url.href.includes("?")) ? '&' : '?';
-    url.href += "unique=" + load._cache_bust_value++
+    // The `Number` type in Javascript, when interpreted as an integer, can only
+    // safely represent [-2^53 + 1, 2^53 - 1] without the loss of precision [1].
+    // We do not generate a global value and increment from it, as the increment
+    // might not have enough precision to be reflected.
+    //
+    // [1]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number
+    url.href += "unique=" + Math.random().toString().substring(2);
     return url.href;
+  },
+
+  image_with_attrs: async (path, attribute_map) => {
+    return new Promise(resolve => {
+      const img = new Image();
+      if (attribute_map instanceof Object) {
+        for (const [key, value] of Object.entries(attribute_map)) {
+          img[key] = value;
+        }
+      }
+      img.onload = img.onerror = resolve;
+      img.src = load.cache_bust(path);
+    });
   },
 
   // Returns a promise that settles once the given path has been fetched as an
   // image resource.
   image: path => {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = img.onerror = resolve;
-      img.src = load.cache_bust(path);
-    });
+    return load.image_with_attrs(path, undefined);
   },
 
   // Returns a promise that settles once the given path has been fetched as a
@@ -37,10 +51,13 @@ const load = {
     });
   },
 
-  // Returns a promise that settles once the given path has been fetched as a
-  // stylesheet resource.
-  stylesheet: async path => {
+  stylesheet_with_attrs: async (path, attribute_map) => {
     const link = document.createElement("link");
+    if (attribute_map instanceof Object) {
+      for (const [key, value] of Object.entries(attribute_map)) {
+        link[key] = value;
+      }
+    }
     link.rel = "stylesheet";
     link.type = "text/css";
     link.href = load.cache_bust(path);
@@ -52,6 +69,12 @@ const load = {
     document.head.appendChild(link);
     await loaded;
     document.head.removeChild(link);
+  },
+
+  // Returns a promise that settles once the given path has been fetched as a
+  // stylesheet resource.
+  stylesheet: async path => {
+    return load.stylesheet_with_attrs(path, undefined);
   },
 
   iframe_with_attrs: async (path, attribute_map, validator) => {
@@ -79,10 +102,13 @@ const load = {
     return load.iframe_with_attrs(path, undefined, validator);
   },
 
-  // Returns a promise that settles once the given path has been fetched as a
-  // script.
-  script: async path => {
+  script_with_attrs: async (path, attribute_map) => {
     const script = document.createElement("script");
+    if (attribute_map instanceof Object) {
+      for (const [key, value] of Object.entries(attribute_map)) {
+        script[key] = value;
+      }
+    }
     const loaded = new Promise(resolve => {
       script.onload = script.onerror = resolve;
     });
@@ -90,6 +116,12 @@ const load = {
     document.body.appendChild(script);
     await loaded;
     document.body.removeChild(script);
+  },
+
+  // Returns a promise that settles once the given path has been fetched as a
+  // script.
+  script: async path => {
+    return load.script_with_attrs(path, undefined);
   },
 
   // Returns a promise that settles once the given path has been fetched as an

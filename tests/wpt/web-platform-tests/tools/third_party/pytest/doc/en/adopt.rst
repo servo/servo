@@ -10,10 +10,9 @@ Are you an enthusiastic pytest user, the local testing guru in your workplace? O
 
 We will pair experienced pytest users with open source projects, for a month's effort of getting new development teams started with pytest.
 
-In 2015 we are trying this for the first time. In February and March 2015 we will gather volunteers on both sides, in April we will do the work, and in May we will evaluate how it went. This effort is being coordinated by Brianna Laugher. If you have any questions or comments, you can raise them on the `@pytestdotorg twitter account <https://twitter.com/pytestdotorg>`_ the `issue tracker`_ or the `pytest-dev mailing list`_.
+In 2015 we are trying this for the first time. In February and March 2015 we will gather volunteers on both sides, in April we will do the work, and in May we will evaluate how it went. This effort is being coordinated by Brianna Laugher. If you have any questions or comments, you can raise them on the `@pytestdotorg twitter account <https://twitter.com/pytestdotorg>`_\, the :issue:`issue tracker <676>` or the `pytest-dev mailing list`_.
 
 
-.. _`issue tracker`: https://github.com/pytest-dev/pytest/issues/676
 .. _`pytest-dev mailing list`: https://mail.python.org/mailman/listinfo/pytest-dev
 
 

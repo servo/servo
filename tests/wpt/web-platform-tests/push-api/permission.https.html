@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test push is a powerful feature via Permissions API</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<script>
+promise_test(async (test) => {
+  const status = await navigator.permissions.query({ name: "push" });
+  assert_true(status instanceof PermissionStatus);
+  assert_equals(status.name, "push", `permission's name must be "push"`);
+  assert_equals(status.state, "prompt", `permission's state must be "prompt" by default`);
+}, `Query "push" powerful feature`);
+</script>

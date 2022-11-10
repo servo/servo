@@ -67,6 +67,12 @@ test_invalid_angle('atan2(1deg / )');
 test_invalid_angle('atan2(1deg 2deg)');
 test_invalid_angle('atan2(1deg, , 2deg)');
 test_invalid_angle('atan2(90px)');
+
+// atan2() has to resolve to the same dimension.
+test_invalid_angle('atan2(90px, 90vw)');
+test_invalid_angle('atan2(90px, 90em)');
+test_invalid_angle('atan2(90px, 100%)');
+
 test_invalid_angle('atan2(30deg + 1.0471967rad, 0)');
 test_invalid_angle('atan2( 0 ,)');
 test_invalid_angle('atan2( () 30deg - 0.523599rad )');

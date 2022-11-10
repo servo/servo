@@ -3,6 +3,7 @@ Content-Security-Policy: sandbox allow-scripts
                                  allow-popups
                                  allow-popups-to-escape-sandbox
 -->
+<!DOCTYPE html>
 <html>
 <head>
   <script src="/resources/testharness.js"></script>
@@ -38,27 +39,51 @@ test(test => {
   assert_equals(window.origin, 'null');
 }, "Document is sandboxed via its CSP.");
 
-test(test => {
+promise_test(async test => {
     // The navigation will be canceled (204 no content). As a result, the
     // document in the popup must still be the initial empty document.
-    const w = window.open("common/blank.html?pipe=status(204)")
+    const w = window.open("/common/blank.html?pipe=status(204)");
 
-    // The about:blank document is sandboxed, because it inherited CSP from its
-    // opener. However this is impossible to verify. There are cross-origin
+    // The initial empty document is sandboxed, because it inherited CSP from
+    // its opener. However this is impossible to verify. There are cross-origin
     // access restrictions and an about:blank document can't do much on its own.
-    assert_throws_dom("SecurityError", () => { w.origin });
+    // We try to identify that the document is sandboxed by accessing a
+    // cross-origin restricted API.
+    assert_throws_dom(
+      "SecurityError", () => { w.origin },
+      "Access before timeout throws");
 
+    // Test after a 500ms timeout, delay after which we expect asynchronous
+    // navigations to be canceled.
+    await new Promise(r => setTimeout(r, 500) );
+
+    // The about:blank must still be sandboxed.
+    assert_throws_dom(
+      "SecurityError", () => { w.origin },
+      "Access after timeout throws");
 }, "The initial empty document inherit sandbox via CSP.");
 
 // Regression test for https://crbug.com/1190065
-test(test => {
+promise_test(async test => {
     const w = window.open("about:blank");
 
     // The about:blank document is sandboxed, because it inherited CSP from its
     // opener. However this is impossible to verify. There are cross-origin
     // access restrictions and an about:blank document can't do much on its own.
-    assert_throws_dom("SecurityError", () => { w.origin });
+    // We try to identify that the document is sandboxed by accessing a
+    // cross-origin restricted API.
+    assert_throws_dom(
+      "SecurityError", () => { w.origin },
+      "Access before timeout throws");
 
+    // Test after a 500ms timeout, delay after which we expect asynchronous
+    // about:blank navigation to be completed.
+    await new Promise(r => setTimeout(r, 500) );
+
+    // The about:blank must still be sandboxed.
+    assert_throws_dom(
+      "SecurityError", () => { w.origin },
+      "Access after timeout throws");
 }, "The synchronous re-navigation to about:blank inherits sandbox via CSP");
 
 async_test(test => {

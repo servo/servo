@@ -1,0 +1,24 @@
+<!doctype html>
+<title>ResizeObserver and IntersectionObserver ordering</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(function(t) {
+    let sawResize = false;
+    let sawIo = false;
+    let resizeObserver = new ResizeObserver(t.step_func(function() {
+      assert_false(sawIo, "ResizeObserver notification should be delivered before IntersectionObserver notification");
+      sawResize = true;
+      resizeObserver.disconnect();
+    }));
+
+    let io = new IntersectionObserver(t.step_func_done(function() {
+      assert_true(sawResize, "IntersectionObserver notification should be delivered after ResizeObserver notification");
+      sawIo = true;
+      io.disconnect();
+    }));
+
+    resizeObserver.observe(document.documentElement);
+    io.observe(document.documentElement);
+  });
+</script>

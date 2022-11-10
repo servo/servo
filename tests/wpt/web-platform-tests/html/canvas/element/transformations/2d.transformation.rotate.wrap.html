@@ -28,9 +28,9 @@ ctx.rotate(Math.PI * (1 + 4096)); // == pi (mod 2*pi)
 // be safe enough on reasonable implementations
 ctx.fillStyle = '#0f0';
 ctx.fillRect(-100, -50, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255");
-_assertPixel(canvas, 98,2, 0,255,0,255, "98,2", "0,255,0,255");
-_assertPixel(canvas, 98,47, 0,255,0,255, "98,47", "0,255,0,255");
+_assertPixel(canvas, 50,25, 0,255,0,255);
+_assertPixel(canvas, 98,2, 0,255,0,255);
+_assertPixel(canvas, 98,47, 0,255,0,255);
 
 
 });

@@ -23,14 +23,13 @@ a full list of details.  A few feature highlights:
   called if the corresponding setup method succeeded.
 
 - integrate tab-completion on command line options if you
-  have `argcomplete <https://pypi.org/project/argcomplete/>`_
-  configured.
+  have :pypi:`argcomplete` configured.
 
 - allow boolean expression directly with skipif/xfail
   if a "reason" is also specified.
 
 - a new hook ``pytest_load_initial_conftests`` allows plugins like
-  `pytest-django <https://pypi.org/project/pytest-django/>`_ to
+  :pypi:`pytest-django` to
   influence the environment before conftest files import ``django``.
 
 - reporting: color the last line red or green depending if

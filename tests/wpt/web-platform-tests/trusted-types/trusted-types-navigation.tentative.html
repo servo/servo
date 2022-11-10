@@ -38,10 +38,10 @@
   }, "Navigate a window with javascript:-urls in enforcing mode.");
 
   promise_test(t => {
-    openWindow(t, "support/navigation-support.html?defaultpolicy");
+    openWindow(t, "support/navigation-support.html?defaultpolicy=1");
     return Promise.all([
-      expectLoadedAsMessage("navigation-support.html?defaultpolicy"),
-      expectLoadedAsMessage("navigation-support.html?defaultpolicy&defaultpolicywashere"),
+      expectLoadedAsMessage("navigation-support.html?defaultpolicy=1"),
+      expectLoadedAsMessage("navigation-support.html?defaultpolicy=1&defaultpolicywashere"),
     ]);
   }, "Navigate a window with javascript:-urls w/ default policy in enforcing mode.");
 
@@ -55,12 +55,46 @@
   }, "Navigate a window with javascript:-urls in report-only mode.");
 
   promise_test(t => {
-    const page = "navigation-report-only-support.html?defaultpolicy";
+    const page = "navigation-report-only-support.html?defaultpolicy=1";
     openWindow(t, `support/${page}`);
     return Promise.all([
       expectLoadedAsMessage(page),
-      expectLoadedAsMessage("navigation-support.html?defaultpolicy#defaultpolicywashere"),
+      expectLoadedAsMessage("navigation-support.html?defaultpolicy=1#defaultpolicywashere"),
     ]);
   }, "Navigate a window with javascript:-urls w/ default policy in report-only mode.");
+
+  promise_test(t => {
+    openWindow(t, "support/navigation-support.html?frame=1");
+    return Promise.all([
+      expectLoadedAsMessage("navigation-support.html?frame=1"),
+      expectViolationAsMessage("Location href"),
+    ]);
+  }, "Navigate a frame with javascript:-urls in enforcing mode.");
+
+  promise_test(t => {
+    openWindow(t, "support/navigation-support.html?defaultpolicy=1&frame=1");
+    return Promise.all([
+      expectLoadedAsMessage("navigation-support.html?defaultpolicy=1&frame=1"),
+      expectLoadedAsMessage("navigation-support.html?defaultpolicy=1&frame=1&defaultpolicywashere"),
+    ]);
+  }, "Navigate a frame with javascript:-urls w/ default policy in enforcing mode.");
+
+  promise_test(t => {
+    const page = "navigation-report-only-support.html?frame=1"
+    openWindow(t, `support/${page}`);
+    return Promise.all([
+      expectLoadedAsMessage(page),
+      expectLoadedAsMessage("navigation-support.html?frame=1#continue"),
+    ]);
+  }, "Navigate a frame with javascript:-urls in report-only mode.");
+
+  promise_test(t => {
+    const page = "navigation-report-only-support.html?defaultpolicy=1&frame=1";
+    openWindow(t, `support/${page}`);
+    return Promise.all([
+      expectLoadedAsMessage(page),
+      expectLoadedAsMessage("navigation-support.html?defaultpolicy=1&frame=1#defaultpolicywashere"),
+    ]);
+  }, "Navigate a frame with javascript:-urls w/ default policy in report-only mode.");
 </script>
 </body>

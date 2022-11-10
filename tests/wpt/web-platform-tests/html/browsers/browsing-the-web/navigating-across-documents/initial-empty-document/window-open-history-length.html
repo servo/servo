@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>history.length value on window.open()-ed window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<body></body>
+<script>
+/*
+  When a new window is opened through window.open() it will contain the initial
+  empty document, and the history.length value should be 1.
+*/
+
+promise_test(async t => {
+  const openedWindow = windowOpenNoURL(t);
+  assert_equals(openedWindow.history.length, 1,
+    "history.length should start at 1 for newly opened window");
+}, "Starting history.length for window.open()");
+
+promise_test(async t => {
+  const openedWindow = windowOpenAboutBlank(t);
+  assert_equals(openedWindow.history.length, 1,
+    "history.length should start at 1 for newly opened window");
+}, "Starting history.length for window.open(about:blank)");
+
+promise_test(async t => {
+  const openedWindow = windowOpen204(t);
+  assert_equals(openedWindow.history.length, 1,
+    "history.length should start at 1 for newly opened window");
+}, "Starting history.length for window.open(url-with-204-response)");
+</script>

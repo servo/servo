@@ -12,7 +12,7 @@
 <link rel=assert title="records is always sorted in ascending key order. In the case of source being an index, records is secondarily sorted in ascending value order.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 var records = [ 1337, "Alice", "Bob", "Bob", "Greg", "Åke", ["Anne"] ];
@@ -37,7 +37,7 @@ cases.forEach(function(testcase) {
     },
     function(t, db) {
       var count = 0;
-      var rq = db.transaction("test").objectStore("test").index("idx").openCursor(IDBKeyRange.bound("AA", "ZZ"), dir);
+      var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("idx").openCursor(IDBKeyRange.bound("AA", "ZZ"), dir);
       rq.onsuccess = t.step_func(function(e) {
         var cursor = e.target.result;
         if (!cursor) {

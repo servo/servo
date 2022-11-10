@@ -1,5 +1,5 @@
 // META: script=/resources/testdriver.js
-// META: script=/resources/testharnessreport.js
+// META: script=/resources/testdriver-vendor.js
 'use strict';
 
 test(() => {

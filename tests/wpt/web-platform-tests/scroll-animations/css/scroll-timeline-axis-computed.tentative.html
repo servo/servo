@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6674">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-axis">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<style>
+  #outer { scroll-timeline-axis: inline; }
+  #target { scroll-timeline-axis: vertical; }
+</style>
+<div id="outer">
+  <div id="target"></div>
+</div>
+<script>
+test_computed_value('scroll-timeline-axis', 'initial', 'block');
+test_computed_value('scroll-timeline-axis', 'inherit', 'inline');
+test_computed_value('scroll-timeline-axis', 'unset', 'block');
+test_computed_value('scroll-timeline-axis', 'revert', 'block');
+test_computed_value('scroll-timeline-axis', 'block');
+test_computed_value('scroll-timeline-axis', 'inline');
+test_computed_value('scroll-timeline-axis', 'vertical');
+test_computed_value('scroll-timeline-axis', 'horizontal');
+
+test(() => {
+  let style = getComputedStyle(document.getElementById('target'));
+  assert_not_equals(Array.from(style).indexOf('scroll-timeline-axis'), -1);
+}, 'The scroll-timeline-axis property shows up in CSSStyleDeclaration enumeration');
+
+test(() => {
+  let style = document.getElementById('target').style;
+  assert_not_equals(style.cssText.indexOf('scroll-timeline-axis'), -1);
+}, 'The scroll-timeline-axis property shows up in CSSStyleDeclaration.cssText');
+
+</script>

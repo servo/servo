@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<div id="multicol" style="position:relative; columns:5; column-gap:0; column-gap:0; width:500px; height:1px;">
+  <div style="contain:size; height:100px; background:hotpink;"></div>
+  <div style="contain:size; height:100px; background:hotpink;"></div>
+  <div style="contain:size; height:100px; background:hotpink;"></div>
+  <div style="contain:size; height:100px; background:hotpink;"></div>
+  <div style="contain:size; height:100px; background:hotpink;"></div>
+</div>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  await waitForAnimationFrames(2);
+
+  multicol.style.top = '100px';
+  const expectedScore = computeExpectedScore(500 * (100 + 100), 100);
+
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'Move multicol container with overflow');
+
+</script>

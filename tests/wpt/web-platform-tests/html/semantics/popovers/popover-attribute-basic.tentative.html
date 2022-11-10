@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+<script src="../../resources/common.js"></script>
+
+<div id=popovers>
+  <div popover id=boolean>Pop up</div>
+  <div popover="">Pop up</div>
+  <div popover=auto>Pop up</div>
+  <div popover=manual>Pop up</div>
+  <article popover>Different element type</article>
+  <header popover>Different element type</header>
+  <nav popover>Different element type</nav>
+  <input type=text popover value="Different element type">
+  <dialog popover>Dialog with popover attribute</dialog>
+  <dialog popover="manual">Dialog with popover=manual</dialog>
+  <div popover=true>Invalid popover value - defaults to popover=manual</div>
+  <div popover=popover>Invalid popover value - defaults to popover=manual</div>
+  <div popover=invalid>Invalid popover value - defaults to popover=manual</div>
+</div>
+
+<div id=nonpopovers>
+  <div>Not a popover</div>
+  <dialog open>Dialog without popover attribute</dialog>
+</div>
+
+<div popover class=animated>Animated popover</div>
+<div id=outside></div>
+<style>
+[popover].animated {
+  opacity: 0;
+  transition: opacity 10s;
+}
+[popover].animated:open {
+  opacity: 1;
+}
+[popover] {
+  inset:auto;
+  top:0;
+  left:0;
+}
+#outside {
+  position:fixed;
+  top:200px;
+  left:200px;
+  height:10px;
+  width:10px;
+}
+</style>
+
+<script>
+window.onload = () => {
+  const outsideElement = document.getElementById('outside');
+  function assertPopoverVisibility(popover, isPopover, expectedVisibility, message) {
+    const isVisible = isElementVisible(popover);
+    assert_equals(isVisible, expectedVisibility,`${message}: Expected this element to be ${expectedVisibility ? "visible" : "not visible"}`);
+    // Check other things related to being visible or not:
+    if (isVisible) {
+      assert_not_equals(window.getComputedStyle(popover).display,'none');
+      assert_equals(popover.matches(':open'),isPopover,`${message}: Visible popovers should match :open`);
+      assert_false(popover.matches(':closed'),`${message}: Visible popovers and *all* non-popovers should *not* match :closed`);
+    } else {
+      assert_equals(window.getComputedStyle(popover).display,'none',`${message}: Non-showing popovers should have display:none`);
+      assert_false(popover.matches(':open'),`${message}: Non-showing popovers should *not* match :open`);
+      assert_true(popover.matches(':closed'),`${message}: Non-showing popovers should match :closed`);
+    }
+  }
+  function assertIsFunctionalPopover(popover) {
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/false, 'A popover should start out hidden');
+    popover.showPopover();
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/true, 'After showPopover(), a popover should be visible');
+    assert_throws_dom("InvalidStateError",() => popover.showPopover(),'Calling showPopover on a showing popover should throw InvalidStateError');
+    popover.hidePopover();
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/false, 'After hidePopover(), a popover should be hidden');
+    assert_throws_dom("InvalidStateError",() => popover.hidePopover(),'Calling hidePopover on a hidden popover should throw InvalidStateError');
+    popover.togglePopover();
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/true, 'After togglePopover() on hidden popover, it should be visible');
+    popover.togglePopover();
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/false, 'After togglePopover() on visible popover, it should be hidden');
+    const parent = popover.parentElement;
+    popover.remove();
+    assert_throws_dom("InvalidStateError",() => popover.showPopover(),'Calling showPopover on a disconnected popover should throw InvalidStateError');
+    assert_throws_dom("InvalidStateError",() => popover.hidePopover(),'Calling hidePopover on a disconnected popover should throw InvalidStateError');
+    assert_throws_dom("InvalidStateError",() => popover.togglePopover(),'Calling hidePopover on a disconnected popover should throw InvalidStateError');
+    parent.appendChild(popover);
+  }
+  function assertNotAPopover(nonPopover) {
+    // If the non-popover element nonetheless has a 'popover' attribute, it should
+    // be invisible. Otherwise, it should be visible.
+    const expectVisible = !nonPopover.hasAttribute('popover');
+    assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'A non-popover should start out visible');
+    assert_throws_dom("NotSupportedError",() => nonPopover.showPopover(),'Calling showPopover on a non-popover should throw NotSupportedError');
+    assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'Calling showPopover on a non-popover should leave it visible');
+    assert_throws_dom("NotSupportedError",() => nonPopover.hidePopover(),'Calling hidePopover on a non-popover should throw NotSupportedError');
+    assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'Calling hidePopover on a non-popover should leave it visible');
+    assert_throws_dom("NotSupportedError",() => nonPopover.togglePopover(),'Calling togglePopover on a non-popover should throw NotSupportedError');
+    assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'Calling togglePopover on a non-popover should leave it visible');
+  }
+
+  // Start with the provided examples:
+  Array.from(document.getElementById('popovers').children).forEach(popover => {
+    test((t) => {
+      assertIsFunctionalPopover(popover);
+    }, `The element ${popover.outerHTML} should behave as a popover.`);
+  });
+  Array.from(document.getElementById('nonpopovers').children).forEach(nonPopover => {
+    test((t) => {
+      assertNotAPopover(nonPopover);
+    }, `The element ${nonPopover.outerHTML} should *not* behave as a popover.`);
+  });
+
+  // Then loop through all HTML5 elements that render a box by default:
+  let elementsThatDontRender = ['audio','base','br','datalist','dialog','embed','head','link','meta','noscript','param','rp','script','slot','style','template','title','wbr'];
+  const elements = HTML5_ELEMENTS.filter(el => !elementsThatDontRender.includes(el));
+  elements.forEach(tag => {
+    test((t) => {
+      const element = document.createElement(tag);
+      element.setAttribute('popover','auto');
+      document.body.appendChild(element);
+      t.add_cleanup(() => element.remove());
+      assertIsFunctionalPopover(element);
+    }, `A <${tag} popover> element should behave as a popover.`);
+    test((t) => {
+      const element = document.createElement(tag);
+      document.body.appendChild(element);
+      t.add_cleanup(() => element.remove());
+      assertNotAPopover(element);
+    }, `A <${tag}> element should *not* behave as a popover.`);
+  });
+
+  function createPopover(t) {
+    const popover = document.createElement('div');
+    document.body.appendChild(popover);
+    t.add_cleanup(() => popover.remove());
+    popover.setAttribute('popover','auto');
+    return popover;
+  }
+
+  test((t) => {
+    // You can set the `popover` attribute to anything.
+    // Setting the `popover` IDL to a string sets the content attribute to exactly that, always.
+    // Getting the `popover` IDL value only retrieves valid values.
+    const popover = createPopover(t);
+    assert_equals(popover.popover,'auto');
+    popover.setAttribute('popover','auto');
+    assert_equals(popover.popover,'auto');
+    popover.setAttribute('popover','AuTo');
+    assert_equals(popover.popover,'auto','Case is normalized in IDL');
+    assert_equals(popover.getAttribute('popover'),'AuTo','Case is *not* normalized/changed in the content attribute');
+    popover.popover='aUtO';
+    assert_equals(popover.popover,'auto','Case is normalized in IDL');
+    assert_equals(popover.getAttribute('popover'),'aUtO','Value set from IDL is propagated exactly to the content attribute');
+    popover.setAttribute('popover','invalid');
+    assert_equals(popover.popover,'manual','Invalid values should reflect as "manual"');
+    popover.removeAttribute('popover');
+    assert_equals(popover.popover,null,'No value should reflect as null');
+    popover.popover='auto';
+    assert_equals(popover.getAttribute('popover'),'auto');
+    popover.popover='';
+    assert_equals(popover.getAttribute('popover'),'');
+    assert_equals(popover.popover,'auto');
+    popover.popover='AuTo';
+    assert_equals(popover.getAttribute('popover'),'AuTo');
+    assert_equals(popover.popover,'auto');
+    popover.popover='invalid';
+    assert_equals(popover.getAttribute('popover'),'invalid','IDL setter allows any value');
+    assert_equals(popover.popover,'manual','but IDL getter reflects "manual"');
+    popover.popover='';
+    assert_equals(popover.getAttribute('popover'),'','IDL setter propagates exactly');
+    assert_equals(popover.popover,'auto','Empty should map to auto in IDL');
+    popover.popover='auto';
+    popover.popover=null;
+    assert_equals(popover.getAttribute('popover'),null,'Setting null for the IDL property should remove the content attribute');
+    assert_equals(popover.popover,null,'Null returns null');
+    popover.popover='auto';
+    popover.popover=undefined;
+    assert_equals(popover.getAttribute('popover'),null,'Setting undefined for the IDL property should remove the content attribute');
+    assert_equals(popover.popover,null,'undefined returns null');
+  },'IDL attribute reflection');
+
+  test((t) => {
+    const popover = createPopover(t);
+    assertIsFunctionalPopover(popover);
+    popover.removeAttribute('popover');
+    assertNotAPopover(popover);
+    popover.setAttribute('popover','AuTo');
+    assertIsFunctionalPopover(popover);
+    popover.removeAttribute('popover');
+    popover.setAttribute('PoPoVeR','AuTo');
+    assertIsFunctionalPopover(popover);
+    // Via IDL also
+    popover.popover = 'auto';
+    assertIsFunctionalPopover(popover);
+    popover.popover = 'aUtO';
+    assertIsFunctionalPopover(popover);
+    popover.popover = 'invalid'; // treated as "manual"
+    assertIsFunctionalPopover(popover);
+  },'Popover attribute value should be case insensitive');
+
+  test((t) => {
+    const popover = createPopover(t);
+    assertIsFunctionalPopover(popover);
+    popover.setAttribute('popover','manual'); // Change popover type
+    assertIsFunctionalPopover(popover);
+    popover.setAttribute('popover','invalid'); // Change popover type to something invalid
+    assertIsFunctionalPopover(popover);
+    popover.popover = 'manual'; // Change popover type via IDL
+    assertIsFunctionalPopover(popover);
+    popover.popover = 'invalid'; // Make invalid via IDL (treated as "manual")
+    assertIsFunctionalPopover(popover);
+  },'Changing attribute values for popover should work');
+
+  test((t) => {
+    const popover = createPopover(t);
+    popover.showPopover();
+    assert_true(popover.matches(':open'));
+    popover.setAttribute('popover','manual'); // Change popover type
+    assert_false(popover.matches(':open'));
+    popover.showPopover();
+    assert_true(popover.matches(':open'));
+    popover.setAttribute('popover','invalid');
+    assert_true(popover.matches(':open'),'From "manual" to "invalid" (which is interpreted as "manual") should not close the popover');
+    popover.setAttribute('popover','auto');
+    assert_false(popover.matches(':open'),'From "invalid" ("manual") to "auto" should hide the popover');
+    popover.showPopover();
+    assert_true(popover.matches(':open'));
+    popover.setAttribute('popover','invalid');
+    assert_false(popover.matches(':open'),'From "auto" to "invalid" (which is interpreted as "manual") should close the popover');
+  },'Changing attribute values should close open popovers');
+
+  function modalPseudoSupported() {
+    try {
+      document.createElement('dialog').matches(':modal');
+      return true; // No exception means :modal is supported.
+    } catch(e) {
+      return false;
+    }
+  }
+
+  const validTypes = ["auto","manual"];
+  validTypes.forEach(type => {
+    test((t) => {
+      const popover = createPopover(t);
+      popover.setAttribute('popover',type);
+      popover.showPopover();
+      assert_true(popover.matches(':open'));
+      popover.remove();
+      assert_false(popover.matches(':open'));
+      document.body.appendChild(popover);
+      assert_false(popover.matches(':open'));
+    },`Removing a visible popover=${type} element from the document should close the popover`);
+
+    if (modalPseudoSupported()) {
+      test((t) => {
+        const popover = createPopover(t);
+        popover.setAttribute('popover',type);
+        popover.showPopover();
+        assert_true(popover.matches(':open'));
+        assert_false(popover.matches(':modal'));
+        popover.hidePopover();
+      },`A showing popover=${type} does not match :modal`);
+    }
+  });
+
+  test((t) => {
+    const other_popover = createPopover(t);
+    other_popover.setAttribute('popover','auto');
+    other_popover.showPopover();
+    const popover = createPopover(t);
+    popover.setAttribute('popover','auto');
+    other_popover.addEventListener('popoverhide',() => {
+      popover.setAttribute('popover','manual');
+    },{once: true});
+    assert_true(other_popover.matches(':open'));
+    assert_false(popover.matches(':open'));
+    popover.showPopover();
+    assert_false(other_popover.matches(':open'),'unrelated popover is hidden');
+    assert_false(popover.matches(':open'),'popover is not shown if its type changed during show');
+  },`Changing the popover type in a "popoverhide" event handler should not cause problems (during showPopover())`);
+
+  test((t) => {
+    const popover = createPopover(t);
+    popover.setAttribute('popover','auto');
+    const other_popover = createPopover(t);
+    other_popover.setAttribute('popover','auto');
+    popover.appendChild(other_popover);
+    popover.showPopover();
+    other_popover.showPopover();
+    let nested_popover_hidden=false;
+    other_popover.addEventListener('popoverhide',() => {
+      nested_popover_hidden = true;
+      popover.setAttribute('popover','manual');
+    },{once: true});
+    popover.addEventListener('popoverhide',() => {
+      assert_true(nested_popover_hidden,'The nested popover should be hidden first');
+    },{once: true});
+    assert_true(popover.matches(':open'));
+    assert_true(other_popover.matches(':open'));
+    popover.hidePopover();
+    assert_false(other_popover.matches(':open'),'unrelated popover is hidden');
+    assert_false(popover.matches(':open'),'popover is still hidden if its type changed during hide event');
+    assert_throws_dom("InvalidStateError",() => other_popover.hidePopover(),'Nested popover should already be hidden');
+  },`Changing the popover type in a "popoverhide" event handler should not cause problems (during hidePopover())`);
+
+  function interpretedType(typeString,method) {
+    if (validTypes.includes(typeString))
+      return typeString;
+    if (typeString === undefined)
+      return "invalid-value-undefined";
+    if (method === "idl" && typeString === null)
+      return "invalid-value-idl-null";
+    return "manual"; // Invalid types default to "manual"
+  }
+  function setPopoverValue(popover,type,method) {
+    switch (method) {
+      case "attr":
+        if (type === undefined) {
+          popover.removeAttribute('popover');
+        } else {
+          popover.setAttribute('popover',type);
+        }
+        break;
+      case "idl":
+        popover.popover = type;
+        break;
+      default:
+        assert_notreached();
+    }
+  }
+  ["attr","idl"].forEach(method => {
+    validTypes.forEach(type => {
+      [...validTypes,"invalid",null,undefined].forEach(newType => {
+        [...validTypes,"invalid",null,undefined].forEach(inEventType => {
+          promise_test(async (t) => {
+            const popover = createPopover(t);
+            setPopoverValue(popover,type,method);
+            popover.showPopover();
+            assert_true(popover.matches(':open'));
+            let gotEvent = false;
+            popover.addEventListener('popoverhide',() => {
+              gotEvent = true;
+              setPopoverValue(popover,inEventType,method);
+            },{once:true});
+            setPopoverValue(popover,newType,method);
+            if (type===interpretedType(newType,method)) {
+              // Keeping the type the same should not hide it or fire events.
+              assert_true(popover.matches(':open'),'popover should remain open when not changing the type');
+              assert_false(gotEvent);
+              popover.hidePopover(); // Cleanup
+            } else {
+              // Changing the type at all should hide the popover. The hide event
+              // handler should run, set a new type, and that type should end up
+              // as the final result.
+              assert_false(popover.matches(':open'));
+              if (inEventType === undefined || (method ==="idl" && inEventType === null)) {
+                assert_throws_dom("NotSupportedError",() => popover.showPopover(),'We should have removed the popover attribute, so showPopover should throw');
+              } else {
+                // Make sure the attribute is correct.
+                assert_equals(popover.getAttribute('popover'),String(inEventType),'Content attribute');
+                assert_equals(popover.popover, interpretedType(inEventType,method),'IDL attribute');
+                // Make sure the type is really correct, via behavior.
+                popover.showPopover(); // Show it
+                assert_true(popover.matches(':open'),'Popover should function');
+                await clickOn(outsideElement); // Try to light dismiss
+                switch (interpretedType(inEventType,method)) {
+                  case 'manual':
+                    assert_true(popover.matches(':open'),'A popover=manual should not light-dismiss');
+                    popover.hidePopover();
+                    break;
+                  case 'auto':
+                    assert_false(popover.matches(':open'),'A popover=auto should light-dismiss');
+                    break;
+                }
+              }
+            }
+          },`Changing a popover from ${type} to ${newType} (via ${method}), and then ${inEventType} during 'popoverhide' works`);
+        });
+      });
+    });
+  });
+
+  promise_test(async () => {
+    const popover = document.querySelector('[popover].animated');
+    assert_true(!!popover);
+    assert_false(isElementVisible(popover));
+    popover.showPopover();
+    assert_true(popover.matches(':open'));
+    assert_false(popover.matches(':closed'));
+    assert_true(getComputedStyle(popover).opacity < 0.1,'Animations should start on show');
+    assert_throws_dom("InvalidStateError",() => popover.showPopover(),'Calling showPopover on a popover that is in the process of animating show should throw InvalidStateError');
+    await finishAnimations(popover);
+    assert_true(getComputedStyle(popover).opacity > 0.9);
+    assert_true(isElementVisible(popover));
+    popover.hidePopover();
+    assert_false(popover.matches(':open'));
+    assert_false(popover.matches(':closed'),'Not :closed until animations finish');
+    assert_true(getComputedStyle(popover).opacity > 0.9,'Animations should start on hide');
+    assert_throws_dom("InvalidStateError",() => popover.hidePopover(),'Calling hidePopover on a popover that is in the process of animating hide should throw InvalidStateError');
+    popover.showPopover(); // But showPopover should still be ok.
+    popover.hidePopover(); // Clean up
+    await finishAnimations(popover);
+    assert_true(popover.matches(':closed'),':closed should match once animations finish');
+  },'Exceptions are thrown even when show/hide are animated');
+};
+</script>

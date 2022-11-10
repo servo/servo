@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>window.requestIdleCallback max idle period deadline (dynamic timoeout).</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/ric-utils.js"></script>
+<script>
+
+promise_test(async () => {
+  for (let i = 0; i < getRICRetryCount(); ++i) {
+    for (const timeout of [10, 20, 30]) {
+      const {before, after} = await new Promise(resolve => requestIdleCallback(async deadline => {
+        const before = deadline.timeRemaining();
+        const timerPromise = new Promise(resolve => step_timeout(resolve, timeout));
+        const after = deadline.timeRemaining();
+        await timerPromise;
+        resolve({before, after})
+      }))
+
+      assert_less_than_equal(after, before)
+      assert_less_than_equal(after, timeout)
+    }
+  }
+
+}, 'Check that the deadline is changed if there is a new timeout from within requestIdleCallback.');
+</script>
+<h1>Test of requestIdleCallback deadline behavior</h1>
+<p>The test can pass accidentally as idle deadlines have a maximum but they can always be shorter.
+It runs multiple times to expose potential failures.</p>
+<div id="log"></div>

@@ -1,7 +1,10 @@
+# mypy: allow-untyped-defs
+
 import argparse
 import base64
 import logging
 import subprocess
+import sys
 
 
 logger = logging.getLogger(__name__)
@@ -51,7 +54,7 @@ def check_cert(certificate, checkend_seconds):
 def regen_certs():
     """Regenerate the wpt openssl certificates, by delegating to wptserve."""
     cmd = [
-        "python", "wpt", "serve",
+        sys.executable, "wpt", "serve",
         "--config", "tools/certs/config.json",
         "--exit-after-start",
     ]
@@ -76,7 +79,7 @@ def calculate_spki(cert_path):
     """Calculate the SPKI fingerprint for a given x509 certificate."""
     # We use shell=True as we control the input |cert_path|, and piping
     # correctly across processes is non-trivial in Python.
-    cmd = ("openssl x509 -noout -pubkey -in {cert_path} | ".format(cert_path=cert_path) +
+    cmd = (f"openssl x509 -noout -pubkey -in {cert_path} | " +
            "openssl pkey -pubin -outform der | " +
            "openssl dgst -sha256 -binary")
     dgst_output = subprocess.check_output(cmd, shell=True)

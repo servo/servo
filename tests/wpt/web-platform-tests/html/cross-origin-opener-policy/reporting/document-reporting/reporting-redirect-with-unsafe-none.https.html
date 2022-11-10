@@ -20,11 +20,6 @@ const cross_origin = {
   name: "Cross origin"
 };
 
-function reportToken() {
-  // Report endpoint name must start with lower case alphabet.
-  return token().replace(/./, 'a');
-}
-
 // Repeated call receive() to fetch all reports received within 1 second.
 async function fetchReportsByID(uuid){
   let timeStart = new Date().getTime();

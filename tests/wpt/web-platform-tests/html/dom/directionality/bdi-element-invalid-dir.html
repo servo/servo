@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#the-directionality">
+<link rel="match" href="bdi-element-invalid-dir-ref.html">
+<style>
+div { position: relative; width: 100px; height: 100px; background: red; }
+bdi { width: 100px; height: 100px; display: block; }
+span { display: inline-block; width: 50px; height: 100px; background: green; color: green; }
+#left { background: green; position: absolute; left: 0px; top: 0px; }
+</style>
+</head>
+<body>
+<div><bdi dir="foo"><span id="left"></span><span>&#x05EA;</span></bdi></div>
+</body>
+</html>

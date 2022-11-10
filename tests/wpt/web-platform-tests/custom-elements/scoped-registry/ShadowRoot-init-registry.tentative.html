@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta name="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<meta name="assert" content="User code can attach CustomElementRegistry to ShadowRoot">
+<link rel="help" href="https://wicg.github.io/webcomponents/proposals/Scoped-Custom-Element-Registries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function createShadowHost(testObject) {
+  let element = document.createElement('div');
+  testObject.add_cleanup(() => element.remove());
+  document.body.appendChild(element);
+  return element;
+}
+
+test(function() {
+  let host = createShadowHost(this);
+  let shadow = host.attachShadow({mode: 'open'});
+  assert_equals(shadow.registry, null);
+}, 'ShadowRoot.registry is null if not explicitly specified');
+
+test(function() {
+  let host = createShadowHost(this);
+  let shadow = host.attachShadow({mode: 'open', registry: window.customElements});
+  assert_equals(shadow.registry, window.customElements);
+}, 'Attach the global registry to a shadow root');
+
+test(function() {
+  let host = createShadowHost(this);
+  let registry = new CustomElementRegistry();
+  let shadow = host.attachShadow({mode: 'open', registry});
+  assert_equals(shadow.registry, registry);
+}, 'Attach a non-global registry to a shadow root');
+
+test(function() {
+  let registry = new CustomElementRegistry();
+  let host1 = createShadowHost(this);
+  let shadow1 = host1.attachShadow({mode: 'open', registry});
+  let host2 = createShadowHost(this);
+  let shadow2 = host2.attachShadow({mode: 'open', registry});
+  assert_equals(shadow1.registry, registry);
+  assert_equals(shadow2.registry, registry);
+}, 'Attach the same registry to multiple shadow roots');
+
+test(function() {
+  let host = createShadowHost(this);
+  let shadow = host.attachShadow({mode: 'open'});
+  shadow.registry = new CustomElementRegistry();
+  assert_equals(shadow.registry, null);
+}, 'Attaching registry to shadow root can only be done during initialization');
+</script>
+</body>

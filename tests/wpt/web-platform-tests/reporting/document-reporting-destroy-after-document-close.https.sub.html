@@ -21,14 +21,12 @@
       // Load a document that generates report into iframe. Server should return
       // Reporting-Endpoints header.
       const w = window.open(document_url, "test");
-      await wait(1000);
       let reports = await pollReports(endpoint, report_id);
       // Verify that reporting is configured on the document.
       assert_equals(reports.length, 1);
       // reload opened window. This time server will not return
       // Reporting-Endpoints header.
       w.location.reload();
-      await wait(1000);
       reports = await pollReports(endpoint, report_id);
       // Verify no reports are sent this time.
       assert_equals(reports.length, 0);

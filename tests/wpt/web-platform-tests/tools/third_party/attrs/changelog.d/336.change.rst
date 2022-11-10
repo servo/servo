@@ -1,1 +1,0 @@
-The overhead of instantiating frozen dict classes is virtually eliminated.

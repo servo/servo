@@ -1,5 +1,7 @@
+# SPDX-License-Identifier: MIT
+
 """
-Commonly useful filters for :func:`attr.asdict`.
+Commonly useful filters for `attr.asdict`.
 """
 
 from __future__ import absolute_import, division, print_function
@@ -20,12 +22,12 @@ def _split_what(what):
 
 def include(*what):
     """
-    Whitelist *what*.
+    Include *what*.
 
-    :param what: What to whitelist.
-    :type what: :class:`list` of :class:`type` or :class:`attr.Attribute`\\ s
+    :param what: What to include.
+    :type what: `list` of `type` or `attrs.Attribute`\\ s
 
-    :rtype: :class:`callable`
+    :rtype: `callable`
     """
     cls, attrs = _split_what(what)
 
@@ -37,12 +39,12 @@ def include(*what):
 
 def exclude(*what):
     """
-    Blacklist *what*.
+    Exclude *what*.
 
-    :param what: What to blacklist.
-    :type what: :class:`list` of classes or :class:`attr.Attribute`\\ s.
+    :param what: What to exclude.
+    :type what: `list` of classes or `attrs.Attribute`\\ s.
 
-    :rtype: :class:`callable`
+    :rtype: `callable`
     """
     cls, attrs = _split_what(what)
 

@@ -99,11 +99,11 @@ function tests(storageName) {
 
 }
 
+iframe.src = "resources/event_basic.html";
 iframe.onload = () => {
   tests('sessionStorage');
   tests('localStorage');
 };
-iframe.src = 'about:blank';
 document.body.appendChild(iframe);
 </script>
 </body>

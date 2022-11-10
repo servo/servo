@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import subprocess
 import os
 import ntpath

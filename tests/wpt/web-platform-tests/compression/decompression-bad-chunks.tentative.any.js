@@ -49,24 +49,37 @@ const badChunks = [
   },
 ];
 
-for (const chunk of badChunks) {
-  promise_test(async t => {
-    const ds = new DecompressionStream('gzip');
+// Test Case Design
+// We need to wait until after we close the writable stream to check if the decoded stream is valid.
+// We can end up in a state where all reads/writes are valid, but upon closing the writable stream an error is detected.
+// (Example: A zlib encoded chunk w/o the checksum).
+
+async function decompress(chunk, format, t)
+{
+    const ds = new DecompressionStream(format);
     const reader = ds.readable.getReader();
     const writer = ds.writable.getWriter();
-    const writePromise = writer.write(chunk.value);
-    const readPromise = reader.read();
-    await promise_rejects_js(t, TypeError, writePromise, 'write should reject');
-    await promise_rejects_js(t, TypeError, readPromise, 'read should reject');
+
+    writer.write(chunk.value).then(() => {}, () => {});
+    reader.read().then(() => {}, () => {});
+
+    await promise_rejects_js(t, TypeError, writer.close(), 'writer.close() should reject');
+    await promise_rejects_js(t, TypeError, writer.closed, 'write.closed should reject');
+
+    await promise_rejects_js(t, TypeError, reader.read(), 'reader.read() should reject');
+    await promise_rejects_js(t, TypeError, reader.closed, 'read.closed should reject');
+}
+
+for (const chunk of badChunks) {
+  promise_test(async t => {
+    await decompress(chunk, 'gzip', t);
   }, `chunk of type ${chunk.name} should error the stream for gzip`);
 
   promise_test(async t => {
-    const ds = new DecompressionStream('deflate');
-    const reader = ds.readable.getReader();
-    const writer = ds.writable.getWriter();
-    const writePromise = writer.write(chunk.value);
-    const readPromise = reader.read();
-    await promise_rejects_js(t, TypeError, writePromise, 'write should reject');
-    await promise_rejects_js(t, TypeError, readPromise, 'read should reject');
+    await decompress(chunk, 'deflate', t);
   }, `chunk of type ${chunk.name} should error the stream for deflate`);
+
+  promise_test(async t => {
+    await decompress(chunk, 'deflate-raw', t);
+  }, `chunk of type ${chunk.name} should error the stream for deflate-raw`);
 }

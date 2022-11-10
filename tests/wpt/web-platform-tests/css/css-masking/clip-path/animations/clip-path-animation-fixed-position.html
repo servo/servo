@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta name=fuzzy content="0-10;0-150">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-fixed-position-ref.html">
+<!--
+  Test that clip paths on elements with position: fixed draw correctly,
+  including clipping children that are out of bounds.
+-->
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    position: fixed;
+    top: 100px;
+    left: 100px;
+    background-color: green;
+    /* Use a long animation that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animation in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated property value. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animation is ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+    animation: clippath 1000000s cubic-bezier(0, 1, 1, 0) -500000s;
+  }
+
+  .big {
+    position: absolute;
+    top: 100px;
+    width: 500px;
+    height: 500px;
+    background-color: blue;
+  }
+
+  @keyframes clippath {
+    0% {
+      clip-path: circle(50% at 50% 50%);
+    }
+
+    100% {
+      clip-path: circle(350% at 20% 20%);
+    }
+  }
+
+</style>
+<script src="/common/reftest-wait.js"></script>
+
+<body>
+  <div class="container">
+    <div class="big"></div>
+  </div>
+
+  <script>
+    document.getAnimations()[0].ready.then(takeScreenshot);
+  </script>
+</body>
+
+</html>

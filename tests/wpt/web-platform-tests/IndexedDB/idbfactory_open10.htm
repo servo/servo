@@ -3,7 +3,7 @@
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=support.js></script>
+<script src=resources/support.js></script>
 
 <script>
     var db, db2;
@@ -57,7 +57,7 @@
                 assert_true(db3.objectStoreNames.contains("store"), "third objectStoreNames contains store");
                 assert_false(db3.objectStoreNames.contains("store2"), "third objectStoreNames contains store2");
 
-                var st = db3.transaction("store").objectStore("store");
+                var st = db3.transaction("store", "readonly", {durability: 'relaxed'}).objectStore("store");
 
                 assert_equals(db3.version, 9, "db3.version");
 

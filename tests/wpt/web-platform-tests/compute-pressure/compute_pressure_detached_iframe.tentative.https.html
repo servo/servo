@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>PressureObserver on DOMWindow of detached iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+'use strict';
+
+test(() => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  const frame_window = iframe.contentWindow;
+
+  iframe.remove();
+  assert_equals(undefined, frame_window.PressureObserver);
+}, 'PressureObserver constructor does not exist in detached iframes');
+
+test(() => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  const frame_window = iframe.contentWindow;
+
+  const observer = new frame_window.PressureObserver(
+      () => {},
+      {sampleRate: 1});
+  const iframe_DOMException = frame_window.DOMException;
+
+  iframe.remove();
+
+  // Calling observe() from a detached iframe should fail but not crash.
+  assert_throws_dom('NotSupportedError', iframe_DOMException, () => {observer.observe('cpu');})
+}, 'PressureObserver.observe() on detached frame throws error.');
+
+test(() => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  const frame_window = iframe.contentWindow;
+
+  const observer = new frame_window.PressureObserver(
+      () => {},
+      {sampleRate: 1});
+
+  observer.observe('cpu');
+
+  iframe.remove();
+
+  // Calling disconnect() from a detached iframe should not crash.
+  observer.disconnect();
+}, 'PressureObserver.disconnect() on detached frame returns');
+
+promise_test(t => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  const frame_window = iframe.contentWindow;
+  const observer = new frame_window.PressureObserver(() => {
+    assert_unreached('The observer callback should not be called');
+  }, {sampleRate: 1});
+
+  observer.observe('cpu');
+
+  iframe.remove();
+
+  return new Promise(resolve => t.step_timeout(resolve, 1000));
+}, 'PressureObserver on detached frame returns with no callback');
+
+</script>
+</body>

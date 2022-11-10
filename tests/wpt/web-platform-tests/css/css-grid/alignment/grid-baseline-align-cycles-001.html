@@ -4,13 +4,11 @@
   CSS Grid Layout Test: Grid Item (First) Baseline Alignment Row Cyclic Sizing Exclusions
 </title>
 <meta name="assert" content="
-  A grid item whose size is input
-  to the size of the track
-  on which its size depends
-  cannot participate in baseline alignment, unless
-  the grid algorithm requires
-  another pass, where the track
-  sizing can be resovled.
+  If baseline alignment is specified on a grid item whose size in that axis
+  depends on the size of an intrinsically-sized track (whose size is therefore
+  dependent on both the item’s size and baseline alignment, creating a cyclic
+  dependency), that item does not participate in baseline alignment, and
+  instead uses its fallback alignment as if that were originally specified.
 ">
 <link rel="help" href="https://www.w3.org/TR/css-grid-1/#row-align">
 <link rel="match" href="references/grid-baseline-align-cycles-001-ref.html">
@@ -35,6 +33,7 @@
     height: 20%;
   }
   .orthogonal {
+    height: 20%;
     writing-mode: vertical-rl;
   }
 

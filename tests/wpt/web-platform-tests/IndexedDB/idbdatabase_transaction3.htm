@@ -3,7 +3,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     var db,
@@ -19,7 +19,7 @@
         db.close();
 
         assert_throws_dom('InvalidStateError',
-            function() { db.transaction('test'); });
+            function() { db.transaction('test', 'readonly', {durability: 'relaxed'}); });
 
         t.done();
     };

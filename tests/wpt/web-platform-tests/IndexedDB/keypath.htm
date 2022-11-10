@@ -6,7 +6,7 @@
 <link rel=assert title="A key path is a DOMString that defines how to extract a key from a value. A valid key path is either the empty string, a JavaScript identifier, or multiple Javascript identifiers separated by periods (ASCII character code 46) [ECMA-262].">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
 
@@ -134,6 +134,10 @@
     keypath(['name', 'type.name'],
         [ { name: "orange", type: { name: "fruit" }}, { name: "orange", type: { name: "telecom" }} ],
         [ ["orange", "fruit"], ["orange", "telecom" ] ]);
+
+    keypath(['type'],
+        [ { name: "orange", type: "fruit" }, { name: "cucumber", type: "vegetable" } ],
+        [ ["fruit"], ["vegetable"] ], "list with 1 field");
 
     loop_array = [];
     loop_array.push(loop_array);

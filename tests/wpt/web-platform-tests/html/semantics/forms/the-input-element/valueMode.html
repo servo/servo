@@ -221,34 +221,6 @@ test(function() {
 
 test(function () {
   var input = document.createElement("input");
-  input.type = "month";
-  input.value = "foo\r\r\n\n\0";
-  assert_equals(input.value, "");
-}, "value IDL attribute of input type month without value attribute");
-test(function() {
-  var input = document.createElement("input");
-  input.type = "month";
-  input.setAttribute("value", "bar");
-  input.value = "foo\r\r\n\n\0";
-  assert_equals(input.value, "");
-}, "value IDL attribute of input type month with value attribute");
-
-test(function () {
-  var input = document.createElement("input");
-  input.type = "week";
-  input.value = "foo\r\r\n\n\0";
-  assert_equals(input.value, "");
-}, "value IDL attribute of input type week without value attribute");
-test(function() {
-  var input = document.createElement("input");
-  input.type = "week";
-  input.setAttribute("value", "bar");
-  input.value = "foo\r\r\n\n\0";
-  assert_equals(input.value, "");
-}, "value IDL attribute of input type week with value attribute");
-
-test(function () {
-  var input = document.createElement("input");
   input.type = "time";
   input.value = "foo\r\r\n\n\0";
   assert_equals(input.value, "");

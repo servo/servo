@@ -1,0 +1,16 @@
+<!doctype html>
+<link rel="help" href="https://crbug.com/1338779">
+<table id="table">
+  <td>
+    <span id="span1"></span>
+    <div id="div">
+      <span id="span2"></span>
+    </div>
+  </td>
+</table>
+<script>
+  document.body.offsetLeft;
+  div.style.color = "green";
+  table.style.display = "table-column";
+  span2.replaceWith(span1);
+</script>

@@ -3,7 +3,7 @@ const accept = "/client-hints/accept-ch-stickiness/resources/accept-ch.html";
 const accept_blank = "/client-hints/accept-ch-stickiness/resources/accept-ch-blank.html";
 const no_accept = "/client-hints/accept-ch-stickiness/resources/no-accept-ch.html";
 const httpequiv_accept = "/client-hints/accept-ch-stickiness/resources/http-equiv-accept-ch.html";
-const metaname_accept = "/client-hints/accept-ch-stickiness/resources/meta-name-accept-ch.html";
+const metaequiv_delegate = "/client-hints/accept-ch-stickiness/resources/meta-equiv-delegate-ch.html";
 const expect = "/client-hints/accept-ch-stickiness/resources/expect-client-hints-headers.html"
 const do_not_expect = "/client-hints/accept-ch-stickiness/resources/do-not-expect-client-hints-headers.html"
 

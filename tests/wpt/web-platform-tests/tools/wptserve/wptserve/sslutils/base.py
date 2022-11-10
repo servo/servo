@@ -1,4 +1,6 @@
-class NoSSLEnvironment(object):
+# mypy: allow-untyped-defs
+
+class NoSSLEnvironment:
     ssl_enabled = False
 
     def __init__(self, *args, **kwargs):

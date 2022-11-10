@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using valid Lab notation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#lab-colors">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-lab-lch-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-oklab-oklch-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-lab-lch">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-oklab-oklch">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+for (const colorSpace of [ "lab", "oklab" ]) {
+    test_valid_value("color", `${colorSpace}(0 0 0)`, `${colorSpace}(0 0 0)`);
+    test_valid_value("color", `${colorSpace}(0 0 0 / 1)`, `${colorSpace}(0 0 0)`);
+    test_valid_value("color", `${colorSpace}(0 0 0 / 0.5)`, `${colorSpace}(0 0 0 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(20 0 10/0.5)`, `${colorSpace}(20 0 10 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(20 0 10/50%)`, `${colorSpace}(20 0 10 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(400 0 10/50%)`, `${colorSpace}(400 0 10 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(50 -160 160)`, `${colorSpace}(50 -160 160)`);
+    test_valid_value("color", `${colorSpace}(50 -200 200)`, `${colorSpace}(50 -200 200)`);
+    test_valid_value("color", `${colorSpace}(0 0 0 / -10%)`, `${colorSpace}(0 0 0 / 0)`);
+    test_valid_value("color", `${colorSpace}(0 0 0 / 110%)`, `${colorSpace}(0 0 0)`);
+    test_valid_value("color", `${colorSpace}(0 0 0 / 300%)`, `${colorSpace}(0 0 0)`);
+    test_valid_value("color", `${colorSpace}(-40 0 0)`, `${colorSpace}(0 0 0)`);
+    test_valid_value("color", `${colorSpace}(50 -20 0)`, `${colorSpace}(50 -20 0)`);
+    test_valid_value("color", `${colorSpace}(50 0 -20)`, `${colorSpace}(50 0 -20)`);
+    test_valid_value("color", `${colorSpace}(calc(50 * 3) calc(0.5 - 1) calc(1.5) / calc(-0.5 + 1))`, `${colorSpace}(150 -0.5 1.5 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(calc(-50 * 3) calc(0.5 + 1) calc(-1.5) / calc(-0.5 * 2))`, `${colorSpace}(0 1.5 -1.5 / 0)`);
+
+    test_valid_value("color", `${colorSpace}(none none none / none)`, `${colorSpace}(none none none / none)`);
+    test_valid_value("color", `${colorSpace}(none none none)`, `${colorSpace}(none none none)`);
+    test_valid_value("color", `${colorSpace}(20 none none / none)`, `${colorSpace}(20 none none / none)`);
+    test_valid_value("color", `${colorSpace}(none none none / 0.5)`, `${colorSpace}(none none none / 0.5)`);
+    test_valid_value("color", `${colorSpace}(0 0 0 / none)`, `${colorSpace}(0 0 0 / none)`);
+}
+
+for (const colorSpace of [ "lch", "oklch" ]) {
+    test_valid_value("color", `${colorSpace}(0 0 0deg)`, `${colorSpace}(0 0 0)`);
+    test_valid_value("color", `${colorSpace}(0 0 0deg / 1)`, `${colorSpace}(0 0 0)`);
+    test_valid_value("color", `${colorSpace}(0 0 0deg / 0.5)`, `${colorSpace}(0 0 0 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(100 230 0deg / 0.5)`, `${colorSpace}(100 230 0 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(20 50 20deg/0.5)`, `${colorSpace}(20 50 20 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(20 50 20deg/50%)`, `${colorSpace}(20 50 20 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(10 20 20deg / -10%)`, `${colorSpace}(10 20 20 / 0)`);
+    test_valid_value("color", `${colorSpace}(10 20 20deg / 110%)`, `${colorSpace}(10 20 20)`);
+    test_valid_value("color", `${colorSpace}(10 20 1.28rad)`, `${colorSpace}(10 20 73.3386)`);
+    test_valid_value("color", `${colorSpace}(10 20 380deg)`, `${colorSpace}(10 20 20)`);
+    test_valid_value("color", `${colorSpace}(10 20 -340deg)`, `${colorSpace}(10 20 20)`);
+    test_valid_value("color", `${colorSpace}(10 20 740deg)`, `${colorSpace}(10 20 20)`);
+    test_valid_value("color", `${colorSpace}(10 20 -700deg)`, `${colorSpace}(10 20 20)`);
+    test_valid_value("color", `${colorSpace}(-40 0 0)`, `${colorSpace}(0 0 0)`);
+    test_valid_value("color", `${colorSpace}(20 -20 0)`, `${colorSpace}(20 0 0)`);
+    test_valid_value("color", `${colorSpace}(0 0 0 / 0.5)`, `${colorSpace}(0 0 0 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(10 20 20 / 110%)`, `${colorSpace}(10 20 20)`);
+    test_valid_value("color", `${colorSpace}(10 20 -700)`, `${colorSpace}(10 20 20)`);
+    test_valid_value("color", `${colorSpace}(calc(50 * 3) calc(0.5 - 1) calc(20deg * 2) / calc(-0.5 + 1))`, `${colorSpace}(150 0 40 / 0.5)`);
+    test_valid_value("color", `${colorSpace}(calc(-50 * 3) calc(0.5 + 1) calc(-20deg * 2) / calc(-0.5 * 2))`, `${colorSpace}(0 1.5 320 / 0)`);
+
+    test_valid_value("color", `${colorSpace}(none none none / none)`, `${colorSpace}(none none none / none)`);
+    test_valid_value("color", `${colorSpace}(none none none)`, `${colorSpace}(none none none)`);
+    test_valid_value("color", `${colorSpace}(20 none none / none)`, `${colorSpace}(20 none none / none)`);
+    test_valid_value("color", `${colorSpace}(none none none / 0.5)`, `${colorSpace}(none none none / 0.5)`);
+    test_valid_value("color", `${colorSpace}(0 0 0 / none)`, `${colorSpace}(0 0 0 / none)`);
+}
+</script>
+</body>
+</html>

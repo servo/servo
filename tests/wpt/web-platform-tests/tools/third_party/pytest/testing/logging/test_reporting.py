@@ -6,12 +6,13 @@ from typing import cast
 import pytest
 from _pytest.capture import CaptureManager
 from _pytest.config import ExitCode
-from _pytest.pytester import Testdir
+from _pytest.fixtures import FixtureRequest
+from _pytest.pytester import Pytester
 from _pytest.terminal import TerminalReporter
 
 
-def test_nothing_logged(testdir):
-    testdir.makepyfile(
+def test_nothing_logged(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import sys
 
@@ -21,7 +22,7 @@ def test_nothing_logged(testdir):
             assert False
         """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     assert result.ret == 1
     result.stdout.fnmatch_lines(["*- Captured stdout call -*", "text going to stdout"])
     result.stdout.fnmatch_lines(["*- Captured stderr call -*", "text going to stderr"])
@@ -29,8 +30,8 @@ def test_nothing_logged(testdir):
         result.stdout.fnmatch_lines(["*- Captured *log call -*"])
 
 
-def test_messages_logged(testdir):
-    testdir.makepyfile(
+def test_messages_logged(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import sys
         import logging
@@ -44,15 +45,15 @@ def test_messages_logged(testdir):
             assert False
         """
     )
-    result = testdir.runpytest("--log-level=INFO")
+    result = pytester.runpytest("--log-level=INFO")
     assert result.ret == 1
     result.stdout.fnmatch_lines(["*- Captured *log call -*", "*text going to logger*"])
     result.stdout.fnmatch_lines(["*- Captured stdout call -*", "text going to stdout"])
     result.stdout.fnmatch_lines(["*- Captured stderr call -*", "text going to stderr"])
 
 
-def test_root_logger_affected(testdir):
-    testdir.makepyfile(
+def test_root_logger_affected(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import logging
         logger = logging.getLogger()
@@ -65,8 +66,8 @@ def test_root_logger_affected(testdir):
             assert 0
     """
     )
-    log_file = testdir.tmpdir.join("pytest.log").strpath
-    result = testdir.runpytest("--log-level=ERROR", "--log-file=pytest.log")
+    log_file = str(pytester.path.joinpath("pytest.log"))
+    result = pytester.runpytest("--log-level=ERROR", "--log-file=pytest.log")
     assert result.ret == 1
 
     # The capture log calls in the stdout section only contain the
@@ -87,8 +88,8 @@ def test_root_logger_affected(testdir):
         assert "error text going to logger" in contents
 
 
-def test_log_cli_level_log_level_interaction(testdir):
-    testdir.makepyfile(
+def test_log_cli_level_log_level_interaction(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import logging
         logger = logging.getLogger()
@@ -102,7 +103,7 @@ def test_log_cli_level_log_level_interaction(testdir):
     """
     )
 
-    result = testdir.runpytest("--log-cli-level=INFO", "--log-level=ERROR")
+    result = pytester.runpytest("--log-cli-level=INFO", "--log-level=ERROR")
     assert result.ret == 1
 
     result.stdout.fnmatch_lines(
@@ -117,8 +118,8 @@ def test_log_cli_level_log_level_interaction(testdir):
     result.stdout.no_re_match_line("DEBUG")
 
 
-def test_setup_logging(testdir):
-    testdir.makepyfile(
+def test_setup_logging(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import logging
 
@@ -132,7 +133,7 @@ def test_setup_logging(testdir):
             assert False
     """
     )
-    result = testdir.runpytest("--log-level=INFO")
+    result = pytester.runpytest("--log-level=INFO")
     assert result.ret == 1
     result.stdout.fnmatch_lines(
         [
@@ -144,8 +145,8 @@ def test_setup_logging(testdir):
     )
 
 
-def test_teardown_logging(testdir):
-    testdir.makepyfile(
+def test_teardown_logging(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import logging
 
@@ -159,7 +160,7 @@ def test_teardown_logging(testdir):
             assert False
         """
     )
-    result = testdir.runpytest("--log-level=INFO")
+    result = pytester.runpytest("--log-level=INFO")
     assert result.ret == 1
     result.stdout.fnmatch_lines(
         [
@@ -172,9 +173,9 @@ def test_teardown_logging(testdir):
 
 
 @pytest.mark.parametrize("enabled", [True, False])
-def test_log_cli_enabled_disabled(testdir, enabled):
+def test_log_cli_enabled_disabled(pytester: Pytester, enabled: bool) -> None:
     msg = "critical message logged by test"
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
         def test_log_cli():
@@ -184,13 +185,13 @@ def test_log_cli_enabled_disabled(testdir, enabled):
         )
     )
     if enabled:
-        testdir.makeini(
+        pytester.makeini(
             """
             [pytest]
             log_cli=true
         """
         )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     if enabled:
         result.stdout.fnmatch_lines(
             [
@@ -204,9 +205,9 @@ def test_log_cli_enabled_disabled(testdir, enabled):
         assert msg not in result.stdout.str()
 
 
-def test_log_cli_default_level(testdir):
+def test_log_cli_default_level(pytester: Pytester) -> None:
     # Default log file level
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -217,14 +218,14 @@ def test_log_cli_default_level(testdir):
             logging.getLogger('catchlog').warning("WARNING message will be shown")
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_cli=true
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(
@@ -234,14 +235,16 @@ def test_log_cli_default_level(testdir):
         ]
     )
     result.stdout.no_fnmatch_line("*INFO message won't be shown*")
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
-def test_log_cli_default_level_multiple_tests(testdir, request):
+def test_log_cli_default_level_multiple_tests(
+    pytester: Pytester, request: FixtureRequest
+) -> None:
     """Ensure we reset the first newline added by the live logger between tests"""
     filename = request.node.name + ".py"
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -252,20 +255,20 @@ def test_log_cli_default_level_multiple_tests(testdir, request):
             logging.warning("log message from test_log_2")
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_cli=true
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(
         [
-            "{}::test_log_1 ".format(filename),
+            f"{filename}::test_log_1 ",
             "*WARNING*log message from test_log_1*",
             "PASSED *50%*",
-            "{}::test_log_2 ".format(filename),
+            f"{filename}::test_log_2 ",
             "*WARNING*log message from test_log_2*",
             "PASSED *100%*",
             "=* 2 passed in *=",
@@ -273,11 +276,13 @@ def test_log_cli_default_level_multiple_tests(testdir, request):
     )
 
 
-def test_log_cli_default_level_sections(testdir, request):
+def test_log_cli_default_level_sections(
+    pytester: Pytester, request: FixtureRequest
+) -> None:
     """Check that with live logging enable we are printing the correct headers during
     start/setup/call/teardown/finish."""
     filename = request.node.name + ".py"
-    testdir.makeconftest(
+    pytester.makeconftest(
         """
         import pytest
         import logging
@@ -290,7 +295,7 @@ def test_log_cli_default_level_sections(testdir, request):
     """
     )
 
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -308,17 +313,17 @@ def test_log_cli_default_level_sections(testdir, request):
             logging.warning("log message from test_log_2")
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_cli=true
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(
         [
-            "{}::test_log_1 ".format(filename),
+            f"{filename}::test_log_1 ",
             "*-- live log start --*",
             "*WARNING* >>>>> START >>>>>*",
             "*-- live log setup --*",
@@ -330,7 +335,7 @@ def test_log_cli_default_level_sections(testdir, request):
             "*WARNING*log message from teardown of test_log_1*",
             "*-- live log finish --*",
             "*WARNING* <<<<< END <<<<<<<*",
-            "{}::test_log_2 ".format(filename),
+            f"{filename}::test_log_2 ",
             "*-- live log start --*",
             "*WARNING* >>>>> START >>>>>*",
             "*-- live log setup --*",
@@ -347,11 +352,13 @@ def test_log_cli_default_level_sections(testdir, request):
     )
 
 
-def test_live_logs_unknown_sections(testdir, request):
+def test_live_logs_unknown_sections(
+    pytester: Pytester, request: FixtureRequest
+) -> None:
     """Check that with live logging enable we are printing the correct headers during
     start/setup/call/teardown/finish."""
     filename = request.node.name + ".py"
-    testdir.makeconftest(
+    pytester.makeconftest(
         """
         import pytest
         import logging
@@ -367,7 +374,7 @@ def test_live_logs_unknown_sections(testdir, request):
     """
     )
 
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -383,18 +390,18 @@ def test_live_logs_unknown_sections(testdir, request):
 
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_cli=true
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(
         [
             "*WARNING*Unknown Section*",
-            "{}::test_log_1 ".format(filename),
+            f"{filename}::test_log_1 ",
             "*WARNING* >>>>> START >>>>>*",
             "*-- live log setup --*",
             "*WARNING*log message from setup of test_log_1*",
@@ -409,11 +416,13 @@ def test_live_logs_unknown_sections(testdir, request):
     )
 
 
-def test_sections_single_new_line_after_test_outcome(testdir, request):
+def test_sections_single_new_line_after_test_outcome(
+    pytester: Pytester, request: FixtureRequest
+) -> None:
     """Check that only a single new line is written between log messages during
     teardown/finish."""
     filename = request.node.name + ".py"
-    testdir.makeconftest(
+    pytester.makeconftest(
         """
         import pytest
         import logging
@@ -427,7 +436,7 @@ def test_sections_single_new_line_after_test_outcome(testdir, request):
     """
     )
 
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -443,17 +452,17 @@ def test_sections_single_new_line_after_test_outcome(testdir, request):
             logging.warning("log message from test_log_1")
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_cli=true
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(
         [
-            "{}::test_log_1 ".format(filename),
+            f"{filename}::test_log_1 ",
             "*-- live log start --*",
             "*WARNING* >>>>> START >>>>>*",
             "*-- live log setup --*",
@@ -487,9 +496,9 @@ def test_sections_single_new_line_after_test_outcome(testdir, request):
     )
 
 
-def test_log_cli_level(testdir):
+def test_log_cli_level(pytester: Pytester) -> None:
     # Default log file level
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -501,14 +510,14 @@ def test_log_cli_level(testdir):
             print('PASSED')
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_cli=true
     """
     )
 
-    result = testdir.runpytest("-s", "--log-cli-level=INFO")
+    result = pytester.runpytest("-s", "--log-cli-level=INFO")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(
@@ -519,10 +528,10 @@ def test_log_cli_level(testdir):
     )
     result.stdout.no_fnmatch_line("*This log message won't be shown*")
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
-    result = testdir.runpytest("-s", "--log-level=INFO")
+    result = pytester.runpytest("-s", "--log-level=INFO")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(
@@ -533,19 +542,19 @@ def test_log_cli_level(testdir):
     )
     result.stdout.no_fnmatch_line("*This log message won't be shown*")
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
-def test_log_cli_ini_level(testdir):
-    testdir.makeini(
+def test_log_cli_ini_level(pytester: Pytester) -> None:
+    pytester.makeini(
         """
         [pytest]
         log_cli=true
         log_cli_level = INFO
         """
     )
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -558,7 +567,7 @@ def test_log_cli_ini_level(testdir):
     """
     )
 
-    result = testdir.runpytest("-s")
+    result = pytester.runpytest("-s")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(
@@ -569,7 +578,7 @@ def test_log_cli_ini_level(testdir):
     )
     result.stdout.no_fnmatch_line("*This log message won't be shown*")
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
@@ -577,11 +586,11 @@ def test_log_cli_ini_level(testdir):
     "cli_args",
     ["", "--log-level=WARNING", "--log-file-level=WARNING", "--log-cli-level=WARNING"],
 )
-def test_log_cli_auto_enable(testdir, cli_args):
+def test_log_cli_auto_enable(pytester: Pytester, cli_args: str) -> None:
     """Check that live logs are enabled if --log-level or --log-cli-level is passed on the CLI.
     It should not be auto enabled if the same configs are set on the INI file.
     """
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -591,7 +600,7 @@ def test_log_cli_auto_enable(testdir, cli_args):
 
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_level=INFO
@@ -599,7 +608,7 @@ def test_log_cli_auto_enable(testdir, cli_args):
     """
     )
 
-    result = testdir.runpytest(cli_args)
+    result = pytester.runpytest(cli_args)
     stdout = result.stdout.str()
     if cli_args == "--log-cli-level=WARNING":
         result.stdout.fnmatch_lines(
@@ -620,9 +629,9 @@ def test_log_cli_auto_enable(testdir, cli_args):
         assert "WARNING" not in stdout
 
 
-def test_log_file_cli(testdir):
+def test_log_file_cli(pytester: Pytester) -> None:
     # Default log file level
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -635,16 +644,16 @@ def test_log_file_cli(testdir):
     """
     )
 
-    log_file = testdir.tmpdir.join("pytest.log").strpath
+    log_file = str(pytester.path.joinpath("pytest.log"))
 
-    result = testdir.runpytest(
-        "-s", "--log-file={}".format(log_file), "--log-file-level=WARNING"
+    result = pytester.runpytest(
+        "-s", f"--log-file={log_file}", "--log-file-level=WARNING"
     )
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["test_log_file_cli.py PASSED"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
     assert os.path.isfile(log_file)
     with open(log_file) as rfh:
@@ -653,9 +662,9 @@ def test_log_file_cli(testdir):
         assert "This log message won't be shown" not in contents
 
 
-def test_log_file_cli_level(testdir):
+def test_log_file_cli_level(pytester: Pytester) -> None:
     # Default log file level
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -668,16 +677,14 @@ def test_log_file_cli_level(testdir):
     """
     )
 
-    log_file = testdir.tmpdir.join("pytest.log").strpath
+    log_file = str(pytester.path.joinpath("pytest.log"))
 
-    result = testdir.runpytest(
-        "-s", "--log-file={}".format(log_file), "--log-file-level=INFO"
-    )
+    result = pytester.runpytest("-s", f"--log-file={log_file}", "--log-file-level=INFO")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["test_log_file_cli_level.py PASSED"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
     assert os.path.isfile(log_file)
     with open(log_file) as rfh:
@@ -686,22 +693,22 @@ def test_log_file_cli_level(testdir):
         assert "This log message won't be shown" not in contents
 
 
-def test_log_level_not_changed_by_default(testdir):
-    testdir.makepyfile(
+def test_log_level_not_changed_by_default(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import logging
         def test_log_file():
             assert logging.getLogger().level == logging.WARNING
     """
     )
-    result = testdir.runpytest("-s")
+    result = pytester.runpytest("-s")
     result.stdout.fnmatch_lines(["* 1 passed in *"])
 
 
-def test_log_file_ini(testdir):
-    log_file = testdir.tmpdir.join("pytest.log").strpath
+def test_log_file_ini(pytester: Pytester) -> None:
+    log_file = str(pytester.path.joinpath("pytest.log"))
 
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_file={}
@@ -710,7 +717,7 @@ def test_log_file_ini(testdir):
             log_file
         )
     )
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -723,12 +730,12 @@ def test_log_file_ini(testdir):
     """
     )
 
-    result = testdir.runpytest("-s")
+    result = pytester.runpytest("-s")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["test_log_file_ini.py PASSED"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
     assert os.path.isfile(log_file)
     with open(log_file) as rfh:
@@ -737,10 +744,10 @@ def test_log_file_ini(testdir):
         assert "This log message won't be shown" not in contents
 
 
-def test_log_file_ini_level(testdir):
-    log_file = testdir.tmpdir.join("pytest.log").strpath
+def test_log_file_ini_level(pytester: Pytester) -> None:
+    log_file = str(pytester.path.joinpath("pytest.log"))
 
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_file={}
@@ -749,7 +756,7 @@ def test_log_file_ini_level(testdir):
             log_file
         )
     )
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -762,12 +769,12 @@ def test_log_file_ini_level(testdir):
     """
     )
 
-    result = testdir.runpytest("-s")
+    result = pytester.runpytest("-s")
 
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(["test_log_file_ini_level.py PASSED"])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
     assert os.path.isfile(log_file)
     with open(log_file) as rfh:
@@ -776,10 +783,10 @@ def test_log_file_ini_level(testdir):
         assert "This log message won't be shown" not in contents
 
 
-def test_log_file_unicode(testdir):
-    log_file = testdir.tmpdir.join("pytest.log").strpath
+def test_log_file_unicode(pytester: Pytester) -> None:
+    log_file = str(pytester.path.joinpath("pytest.log"))
 
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_file={}
@@ -788,7 +795,7 @@ def test_log_file_unicode(testdir):
             log_file
         )
     )
-    testdir.makepyfile(
+    pytester.makepyfile(
         """\
         import logging
 
@@ -799,9 +806,9 @@ def test_log_file_unicode(testdir):
         """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
     assert os.path.isfile(log_file)
     with open(log_file, encoding="utf-8") as rfh:
@@ -812,11 +819,13 @@ def test_log_file_unicode(testdir):
 
 
 @pytest.mark.parametrize("has_capture_manager", [True, False])
-def test_live_logging_suspends_capture(has_capture_manager: bool, request) -> None:
+def test_live_logging_suspends_capture(
+    has_capture_manager: bool, request: FixtureRequest
+) -> None:
     """Test that capture manager is suspended when we emitting messages for live logging.
 
     This tests the implementation calls instead of behavior because it is difficult/impossible to do it using
-    ``testdir`` facilities because they do their own capturing.
+    ``pytester`` facilities because they do their own capturing.
 
     We parametrize the test to also make sure _LiveLoggingStreamHandler works correctly if no capture manager plugin
     is installed.
@@ -858,8 +867,8 @@ def test_live_logging_suspends_capture(has_capture_manager: bool, request) -> No
     assert cast(io.StringIO, out_file).getvalue() == "\nsome message\n"
 
 
-def test_collection_live_logging(testdir):
-    testdir.makepyfile(
+def test_collection_live_logging(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import logging
 
@@ -867,22 +876,22 @@ def test_collection_live_logging(testdir):
     """
     )
 
-    result = testdir.runpytest("--log-cli-level=INFO")
+    result = pytester.runpytest("--log-cli-level=INFO")
     result.stdout.fnmatch_lines(
         ["*--- live log collection ---*", "*Normal message*", "collected 0 items"]
     )
 
 
 @pytest.mark.parametrize("verbose", ["", "-q", "-qq"])
-def test_collection_collect_only_live_logging(testdir, verbose):
-    testdir.makepyfile(
+def test_collection_collect_only_live_logging(pytester: Pytester, verbose: str) -> None:
+    pytester.makepyfile(
         """
         def test_simple():
             pass
     """
     )
 
-    result = testdir.runpytest("--collect-only", "--log-cli-level=INFO", verbose)
+    result = pytester.runpytest("--collect-only", "--log-cli-level=INFO", verbose)
 
     expected_lines = []
 
@@ -891,7 +900,7 @@ def test_collection_collect_only_live_logging(testdir, verbose):
             [
                 "*collected 1 item*",
                 "*<Module test_collection_collect_only_live_logging.py>*",
-                "*no tests ran*",
+                "*1 test collected*",
             ]
         )
     elif verbose == "-q":
@@ -899,7 +908,7 @@ def test_collection_collect_only_live_logging(testdir, verbose):
         expected_lines.extend(
             [
                 "*test_collection_collect_only_live_logging.py::test_simple*",
-                "no tests ran in [0-9].[0-9][0-9]s",
+                "1 test collected in [0-9].[0-9][0-9]s",
             ]
         )
     elif verbose == "-qq":
@@ -909,10 +918,10 @@ def test_collection_collect_only_live_logging(testdir, verbose):
     result.stdout.fnmatch_lines(expected_lines)
 
 
-def test_collection_logging_to_file(testdir):
-    log_file = testdir.tmpdir.join("pytest.log").strpath
+def test_collection_logging_to_file(pytester: Pytester) -> None:
+    log_file = str(pytester.path.joinpath("pytest.log"))
 
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_file={}
@@ -922,7 +931,7 @@ def test_collection_logging_to_file(testdir):
         )
     )
 
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -934,7 +943,7 @@ def test_collection_logging_to_file(testdir):
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
 
     result.stdout.no_fnmatch_line("*--- live log collection ---*")
 
@@ -947,10 +956,10 @@ def test_collection_logging_to_file(testdir):
         assert "info message in test_simple" in contents
 
 
-def test_log_in_hooks(testdir):
-    log_file = testdir.tmpdir.join("pytest.log").strpath
+def test_log_in_hooks(pytester: Pytester) -> None:
+    log_file = str(pytester.path.joinpath("pytest.log"))
 
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_file={}
@@ -960,7 +969,7 @@ def test_log_in_hooks(testdir):
             log_file
         )
     )
-    testdir.makeconftest(
+    pytester.makeconftest(
         """
         import logging
 
@@ -974,7 +983,7 @@ def test_log_in_hooks(testdir):
             logging.info('sessionfinish')
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*sessionstart*", "*runtestloop*", "*sessionfinish*"])
     with open(log_file) as rfh:
         contents = rfh.read()
@@ -983,10 +992,10 @@ def test_log_in_hooks(testdir):
         assert "sessionfinish" in contents
 
 
-def test_log_in_runtest_logreport(testdir):
-    log_file = testdir.tmpdir.join("pytest.log").strpath
+def test_log_in_runtest_logreport(pytester: Pytester) -> None:
+    log_file = str(pytester.path.joinpath("pytest.log"))
 
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_file={}
@@ -996,7 +1005,7 @@ def test_log_in_runtest_logreport(testdir):
             log_file
         )
     )
-    testdir.makeconftest(
+    pytester.makeconftest(
         """
         import logging
         logger = logging.getLogger(__name__)
@@ -1005,29 +1014,29 @@ def test_log_in_runtest_logreport(testdir):
             logger.info("logreport")
     """
     )
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
             def test_first():
                 assert True
         """
     )
-    testdir.runpytest()
+    pytester.runpytest()
     with open(log_file) as rfh:
         contents = rfh.read()
         assert contents.count("logreport") == 3
 
 
-def test_log_set_path(testdir):
-    report_dir_base = testdir.tmpdir.strpath
+def test_log_set_path(pytester: Pytester) -> None:
+    report_dir_base = str(pytester.path)
 
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_file_level = DEBUG
         log_cli=true
         """
     )
-    testdir.makeconftest(
+    pytester.makeconftest(
         """
             import os
             import pytest
@@ -1042,7 +1051,7 @@ def test_log_set_path(testdir):
             repr(report_dir_base)
         )
     )
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
             import logging
             logger = logging.getLogger("testcase-logger")
@@ -1055,7 +1064,7 @@ def test_log_set_path(testdir):
                 assert True
         """
     )
-    testdir.runpytest()
+    pytester.runpytest()
     with open(os.path.join(report_dir_base, "test_first")) as rfh:
         content = rfh.read()
         assert "message from test 1" in content
@@ -1065,10 +1074,10 @@ def test_log_set_path(testdir):
         assert "message from test 2" in content
 
 
-def test_colored_captured_log(testdir):
+def test_colored_captured_log(pytester: Pytester) -> None:
     """Test that the level names of captured log messages of a failing test
     are colored."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -1079,7 +1088,7 @@ def test_colored_captured_log(testdir):
             assert False
         """
     )
-    result = testdir.runpytest("--log-level=INFO", "--color=yes")
+    result = pytester.runpytest("--log-level=INFO", "--color=yes")
     assert result.ret == 1
     result.stdout.fnmatch_lines(
         [
@@ -1089,9 +1098,9 @@ def test_colored_captured_log(testdir):
     )
 
 
-def test_colored_ansi_esc_caplogtext(testdir):
+def test_colored_ansi_esc_caplogtext(pytester: Pytester) -> None:
     """Make sure that caplog.text does not contain ANSI escape sequences."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -1102,11 +1111,11 @@ def test_colored_ansi_esc_caplogtext(testdir):
             assert '\x1b' not in caplog.text
         """
     )
-    result = testdir.runpytest("--log-level=INFO", "--color=yes")
+    result = pytester.runpytest("--log-level=INFO", "--color=yes")
     assert result.ret == 0
 
 
-def test_logging_emit_error(testdir: Testdir) -> None:
+def test_logging_emit_error(pytester: Pytester) -> None:
     """An exception raised during emit() should fail the test.
 
     The default behavior of logging is to print "Logging error"
@@ -1114,7 +1123,7 @@ def test_logging_emit_error(testdir: Testdir) -> None:
 
     pytest overrides this behavior to propagate the exception.
     """
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -1122,7 +1131,7 @@ def test_logging_emit_error(testdir: Testdir) -> None:
             logging.warning('oops', 'first', 2)
         """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.assert_outcomes(failed=1)
     result.stdout.fnmatch_lines(
         [
@@ -1132,10 +1141,10 @@ def test_logging_emit_error(testdir: Testdir) -> None:
     )
 
 
-def test_logging_emit_error_supressed(testdir: Testdir) -> None:
+def test_logging_emit_error_supressed(pytester: Pytester) -> None:
     """If logging is configured to silently ignore errors, pytest
     doesn't propagate errors either."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -1144,13 +1153,15 @@ def test_logging_emit_error_supressed(testdir: Testdir) -> None:
             logging.warning('oops', 'first', 2)
         """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.assert_outcomes(passed=1)
 
 
-def test_log_file_cli_subdirectories_are_successfully_created(testdir):
-    path = testdir.makepyfile(""" def test_logger(): pass """)
+def test_log_file_cli_subdirectories_are_successfully_created(
+    pytester: Pytester,
+) -> None:
+    path = pytester.makepyfile(""" def test_logger(): pass """)
     expected = os.path.join(os.path.dirname(str(path)), "foo", "bar")
-    result = testdir.runpytest("--log-file=foo/bar/logf.log")
+    result = pytester.runpytest("--log-file=foo/bar/logf.log")
     assert "logf.log" in os.listdir(expected)
     assert result.ret == ExitCode.OK

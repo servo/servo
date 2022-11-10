@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 from .base import NoSSLEnvironment
 from .openssl import OpenSSLEnvironment
 from .pregenerated import PregeneratedSSLEnvironment

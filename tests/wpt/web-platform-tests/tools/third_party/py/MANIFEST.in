@@ -1,10 +1,11 @@
-include CHANGELOG
+include CHANGELOG.rst
 include AUTHORS
 include README.rst
 include setup.py
 include LICENSE
 include conftest.py
 include tox.ini
+recursive-include py *.pyi
 graft doc
 graft testing
 global-exclude *.pyc

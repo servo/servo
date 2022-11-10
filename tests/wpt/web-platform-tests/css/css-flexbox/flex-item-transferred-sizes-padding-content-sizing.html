@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com" />
+    <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers" />
+    <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-width" />
+    <link rel="help" href="https://drafts.csswg.org/css-sizing/#box-sizing" />
+    <link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=243887" />
+    <link rel="match" href="../reference/ref-filled-green-100px-square-only.html" />
+  </head>
+  <!-- Item div should be a 100px x 100px square. Content width will be 90px,
+       which comes from the min-height constraint being transferred to the
+       min-width. 5px padding on all sides will give the box a resulting
+       size of 100x x 100px. -->
+  <style>
+    .flexContainer {
+      display: flex;
+      flex-direction: column;
+      float: left;
+    }
+    .item {
+      background: green;
+      padding: 5px 5px 5px 5px;
+    }
+  </style>
+  <body>
+    <p>Test passes if there is a filled green square.</p>
+    <div class="flexContainer">
+      <div class="item" style="min-height:90px; aspect-ratio: 1/1;"></div>
+    </div>
+  </body>
+</html>
+

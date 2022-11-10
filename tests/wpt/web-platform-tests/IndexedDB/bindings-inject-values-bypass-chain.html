@@ -5,7 +5,7 @@
 href="https://w3c.github.io/IndexedDB/#inject-key-into-value-values-bypass-chain">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support-promises.js"></script>
+<script src="resources/support-promises.js"></script>
 <script>
 
 promise_test(async t => {
@@ -16,7 +16,7 @@ promise_test(async t => {
   Object.prototype.a = {b: {c: 'on proto'}};
   t.add_cleanup(() => { delete Object.prototype.a; });
 
-  const tx = db.transaction('store', 'readwrite');
+  const tx = db.transaction('store', 'readwrite', {durability: "relaxed"});
   tx.objectStore('store').put({});
   const result = await promiseForRequest(t, tx.objectStore('store').get(1));
 

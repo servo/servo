@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Navigation Timing Transfert Size of Prefetched Page</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+  <script src="/common/dispatcher/dispatcher.js"></script>
+</head>
+<!--
+  This test uses RemoteContext and Executor to execute JavaScript in another
+  page opened by this test page. This is because we need to simulate
+  navigating away from current page in this test. It will cause all Javascript
+  code on the test page to be lost if we do it in the test page. We can't do it
+  in an iframe because currently the prefetch behaves differently in an iframe
+  in this particular test case. For detailed information about RemoteContext and
+  Executor, see /common/dispatcher/README.md.
+-->
+<body>
+  <script>
+    const addLink = (url) => {
+      return new Promise(resolve => {
+        const link = document.createElement('link');
+        link.onload = function () { resolve(); };
+        link.rel = 'prefetch';
+        link.as = 'document';
+        link.href = url;
+        document.body.appendChild(link);
+      });
+    }
+
+    const navigateToPrefetchedUrl = (url) => {
+      document.location.href = url;
+    }
+
+    const getTransferSize = () => window.performance.getEntriesByType('navigation')[0].transferSize;
+
+    promise_test(async t => {
+      const testPage = new RemoteContext(token());
+
+      // Function remoteExecutorUrl is defined in /common/dispatcher/dispatcher.js
+      const url = remoteExecutorUrl(testPage.context_id);
+      const handler = window.open(url);
+      t.add_cleanup(() => handler.close());
+
+      const prefetchedPage = new RemoteContext(token());
+
+      const url_to_prefetch = '/navigation-timing/resources/blank_page_prefetch.html?uuid='
+        + prefetchedPage.context_id;
+
+      // Prefetch link.
+      await testPage.execute_script(addLink, [url_to_prefetch]);
+
+      // Navigate to the prefetched link.
+      await testPage.execute_script(navigateToPrefetchedUrl, [url_to_prefetch]);
+
+      // Get navigation timing transfer size.
+      const size = await prefetchedPage.execute_script(getTransferSize);
+
+      assert_equals(0, size);
+    }, "Navigation timing transfer size for a prefetched navigation should be 0.");
+  </script>
+</body>
+
+</html>

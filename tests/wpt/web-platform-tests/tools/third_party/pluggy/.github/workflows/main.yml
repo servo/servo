@@ -1,0 +1,148 @@
+name: main
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [
+          "windows-py36",
+          "windows-py39",
+          "windows-pypy3",
+
+          "ubuntu-py36",
+          "ubuntu-py36-pytestmain",
+          "ubuntu-py37",
+          "ubuntu-py38",
+          "ubuntu-py39",
+          "ubuntu-pypy3",
+          "ubuntu-benchmark",
+
+          "linting",
+          "docs",
+        ]
+
+        include:
+          - name: "windows-py36"
+            python: "3.6"
+            os: windows-latest
+            tox_env: "py36"
+          - name: "windows-py39"
+            python: "3.9"
+            os: windows-latest
+            tox_env: "py39"
+          - name: "windows-pypy3"
+            python: "pypy3"
+            os: windows-latest
+            tox_env: "pypy3"
+          - name: "ubuntu-py36"
+            python: "3.6"
+            os: ubuntu-latest
+            tox_env: "py36"
+            use_coverage: true
+          - name: "ubuntu-py36-pytestmain"
+            python: "3.6"
+            os: ubuntu-latest
+            tox_env: "py36-pytestmain"
+            use_coverage: true
+          - name: "ubuntu-py37"
+            python: "3.7"
+            os: ubuntu-latest
+            tox_env: "py37"
+            use_coverage: true
+          - name: "ubuntu-py38"
+            python: "3.8"
+            os: ubuntu-latest
+            tox_env: "py38"
+            use_coverage: true
+          - name: "ubuntu-py39"
+            python: "3.9"
+            os: ubuntu-latest
+            tox_env: "py39"
+            use_coverage: true
+          - name: "ubuntu-pypy3"
+            python: "pypy3"
+            os: ubuntu-latest
+            tox_env: "pypy3"
+            use_coverage: true
+          - name: "ubuntu-benchmark"
+            python: "3.8"
+            os: ubuntu-latest
+            tox_env: "benchmark"
+          - name: "linting"
+            python: "3.8"
+            os: ubuntu-latest
+            tox_env: "linting"
+          - name: "docs"
+            python: "3.8"
+            os: ubuntu-latest
+            tox_env: "docs"
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        python -m pip install tox coverage
+
+    - name: Test without coverage
+      if: "! matrix.use_coverage"
+      run: "tox -e ${{ matrix.tox_env }}"
+
+    - name: Test with coverage
+      if: "matrix.use_coverage"
+      run: "tox -e ${{ matrix.tox_env }}-coverage"
+
+    - name: Upload coverage
+      if: matrix.use_coverage && github.repository == 'pytest-dev/pluggy'
+      env:
+        CODECOV_NAME: ${{ matrix.name }}
+      run: bash scripts/upload-coverage.sh -F GHA,${{ runner.os }}
+
+  deploy:
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && github.repository == 'pytest-dev/pluggy'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade wheel setuptools setuptools_scm
+
+      - name: Build package
+        run: python setup.py sdist bdist_wheel
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@v1.4.1
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_token }}

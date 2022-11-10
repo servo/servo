@@ -11,19 +11,22 @@ def perform_actions(session, actions):
 
 
 @pytest.mark.parametrize("action_type", ["none", "key", "pointer"])
-def test_pause_positive_integer(session, action_type):
-    for valid_duration in [0.0, 1]:
+def test_pause_duration_invalid_type(session, action_type):
+    for invalid_type in [0.1, None, "foo", True, [], {}]:
         actions = [{
             "type": action_type,
             "id": "foobar",
             "actions": [{
                 "type": "pause",
-                "duration": valid_duration
+                "duration": invalid_type
             }]
         }]
         response = perform_actions(session, actions)
-        assert_success(response)
+        assert_error(response, "invalid argument")
 
+
+@pytest.mark.parametrize("action_type", ["none", "key", "pointer"])
+def test_pause_duration_invalid_value(session, action_type):
     actions = [{
         "type": action_type,
         "id": "foobar",
@@ -37,18 +40,18 @@ def test_pause_positive_integer(session, action_type):
 
 
 @pytest.mark.parametrize("action_type", ["none", "key", "pointer"])
-def test_pause_invalid_types(session, action_type):
-    for invalid_type in [0.1, None, "foo", True, [], {}]:
+def test_pause_duration_valid(session, action_type):
+    for valid_duration in [0, 1]:
         actions = [{
             "type": action_type,
             "id": "foobar",
             "actions": [{
                 "type": "pause",
-                "duration": invalid_type
+                "duration": valid_duration
             }]
         }]
         response = perform_actions(session, actions)
-        assert_error(response, "invalid argument")
+        assert_success(response)
 
 
 @pytest.mark.parametrize("action_type", ["none", "key", "pointer"])

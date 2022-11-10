@@ -4,7 +4,7 @@
 <meta name="help" href="https://w3c.github.io/IndexedDB/#extract-key-from-value">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 <script>
 
 [
@@ -46,7 +46,7 @@
     },
     (t, db) => {
       const key = testcase.instance[testcase.property];
-      const tx = db.transaction('store', 'readwrite');
+      const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
       tx.objectStore('store').put(testcase.instance);
       const request = tx.objectStore('store').get(key);
       request.onerror = t.unreached_func('request should not fail');

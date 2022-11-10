@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Tests parsing of @fallback-position rule</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-rule">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_rule('@position-fallback --foo {\n}');
+test_valid_rule(`@position-fallback --foo {
+  @try { }
+}`);
+
+// @position-fallback needs exactly one <dashed-ident> as its name
+test_invalid_rule('@position-fallback {\n}');
+test_invalid_rule('@position-fallback foo {\n}');
+test_invalid_rule('@position-fallback --foo --bar {\n}');
+test_invalid_rule('@position-fallback --foo, --bar {\n}');
+
+// @position-fallback accepts only @try blocks as its child rules. Other
+// contents should be ignored.
+test_valid_rule('@position-fallback --foo { top: 1px; }',
+                '@position-fallback --foo {\n}');
+test_valid_rule('@position-fallback --foo { --bar: 1px; }',
+                '@position-fallback --foo {\n}');
+test_valid_rule('@position-fallback --foo { @keyframes bar {} }',
+                '@position-fallback --foo {\n}');
+test_valid_rule('@position-fallback --foo { @font-face {} }',
+                '@position-fallback --foo {\n}');
+test_valid_rule('@position-fallback --foo { arbitrary garbage }',
+                '@position-fallback --foo {\n}');
+
+// @try accepts only regular style declarations. Other contents should be
+// ignored.
+test_valid_rule('@position-fallback --foo { @try { @keyframes bar { } } }',
+                '@position-fallback --foo {\n  @try { }\n}');
+test_valid_rule('@position-fallback --foo { @try { @font-face { } } }',
+                '@position-fallback --foo {\n  @try { }\n}');
+</script>

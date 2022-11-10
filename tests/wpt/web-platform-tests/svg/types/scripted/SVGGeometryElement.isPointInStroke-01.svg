@@ -40,16 +40,6 @@
   <script><![CDATA[
     'use strict';
 
-    setup(function() {
-      window.myPoint = document.documentElement.createSVGPoint();
-    });
-
-    function adaptPoint(point) {
-      myPoint.x = point.x;
-      myPoint.y = point.y;
-      return myPoint;
-    }
-
     const pointsToTest = [
       { x: 275, y: 250 },  // outer stroke
       { x: 300, y: 200 },  // inner stroke
@@ -60,13 +50,13 @@
     function testPoints(element) {
       const expected = [true, true, false, false, false];
       pointsToTest.forEach(function(point, index) {
-        assert_equals(element.isPointInStroke(adaptPoint(point)),
+        assert_equals(element.isPointInStroke(point),
                       expected[index], "point at " + point.x + ", " + point.y);
       });
     }
     function testResultVector(element) {
       return pointsToTest.map(function(point) {
-        return element.isPointInStroke(adaptPoint(point));
+        return element.isPointInStroke(point);
       });
     }
 
@@ -79,12 +69,12 @@
 
     test(function() {
       let strokeAtOrigin = document.getElementById("circle-with-stroke-intersecting-origin");
-      assert_false(strokeAtOrigin.isPointInStroke(adaptPoint({ x: NaN, y: 0 }))), "x is NaN";
-      assert_false(strokeAtOrigin.isPointInStroke(adaptPoint({ x: Infinity, y: 0 })), "x is Infinity");
-      assert_false(strokeAtOrigin.isPointInStroke(adaptPoint({ x: -Infinity, y: 0 })), "x is -Infinity");
-      assert_false(strokeAtOrigin.isPointInStroke(adaptPoint({ x: 0, y: NaN })), "y is NaN");
-      assert_false(strokeAtOrigin.isPointInStroke(adaptPoint({ x: 0, y: Infinity })), "y is Infinity");
-      assert_false(strokeAtOrigin.isPointInStroke(adaptPoint({ x: 0, y: -Infinity })), "y is -Infinity");
+      assert_false(strokeAtOrigin.isPointInStroke({ x: NaN, y: 0 })), "x is NaN";
+      assert_false(strokeAtOrigin.isPointInStroke({ x: Infinity, y: 0 }), "x is Infinity");
+      assert_false(strokeAtOrigin.isPointInStroke({ x: -Infinity, y: 0 }), "x is -Infinity");
+      assert_false(strokeAtOrigin.isPointInStroke({ x: 0, y: NaN }), "y is NaN");
+      assert_false(strokeAtOrigin.isPointInStroke({ x: 0, y: Infinity }), "y is Infinity");
+      assert_false(strokeAtOrigin.isPointInStroke({ x: 0, y: -Infinity }), "y is -Infinity");
     }, document.title + ", non-finite argument.");
 
     test(function() {
@@ -93,45 +83,45 @@
 
     test(function() {
       let rectWithDashes = document.getElementById("rect-with-dash-array");
-      assert_true(rectWithDashes.isPointInStroke(adaptPoint({ x: 250, y: 48 })));
-      assert_false(rectWithDashes.isPointInStroke(adaptPoint({ x: 302, y: 100 })));
+      assert_true(rectWithDashes.isPointInStroke({ x: 250, y: 48 }));
+      assert_false(rectWithDashes.isPointInStroke({ x: 302, y: 100 }));
     }, document.title + ", 'stroke-dasharray'.");
 
     test(function() {
       let rectWithOffsetDashes = document.getElementById("rect-with-dash-offset");
-      assert_false(rectWithOffsetDashes.isPointInStroke(adaptPoint({ x: 250, y: 178 })));
-      assert_true(rectWithOffsetDashes.isPointInStroke(adaptPoint({ x: 302, y: 230 })));
+      assert_false(rectWithOffsetDashes.isPointInStroke({ x: 250, y: 178 }));
+      assert_true(rectWithOffsetDashes.isPointInStroke({ x: 302, y: 230 }));
     }, document.title + ", 'stroke-dashoffset'.");
 
     test(function() {
       let polyWithMiter = document.getElementById("poly-with-miter");
-      assert_true(polyWithMiter.isPointInStroke(adaptPoint({ x: 110, y: 320 })));
-      assert_false(polyWithMiter.isPointInStroke(adaptPoint({ x: 113, y: 320 })));
+      assert_true(polyWithMiter.isPointInStroke({ x: 110, y: 320 }));
+      assert_false(polyWithMiter.isPointInStroke({ x: 113, y: 320 }));
       let polyWithMiterLimit10 = document.getElementById("poly-with-miter-limit-10");
-      assert_true(polyWithMiterLimit10.isPointInStroke(adaptPoint({ x: 223, y: 320 })));
+      assert_true(polyWithMiterLimit10.isPointInStroke({ x: 223, y: 320 }));
     }, document.title + ", 'stroke-miterlimit'.");
 
     test(function() {
       let polyWithRoundJoin = document.getElementById("poly-with-linejoin-round");
-      assert_true(polyWithRoundJoin.isPointInStroke(adaptPoint({ x: 334, y: 320 })));
-      assert_false(polyWithRoundJoin.isPointInStroke(adaptPoint({ x: 336, y: 320 })));
+      assert_true(polyWithRoundJoin.isPointInStroke({ x: 334, y: 320 }));
+      assert_false(polyWithRoundJoin.isPointInStroke({ x: 336, y: 320 }));
     }, document.title + ", 'stroke-linejoin'.");
 
     test(function() {
       let lineWithRoundCap = document.getElementById("line-with-round-linecap");
-      assert_true(lineWithRoundCap.isPointInStroke(adaptPoint({ x: 25, y: 300 })));
+      assert_true(lineWithRoundCap.isPointInStroke({ x: 25, y: 300 }));
     }, document.title + ", 'stroke-linecap'.");
 
     test(function() {
       let rectWithPathLength = document.getElementById("rect-with-path-length");
-      assert_true(rectWithPathLength.isPointInStroke(adaptPoint({ x: 250, y: 308 })));
-      assert_false(rectWithPathLength.isPointInStroke(adaptPoint({ x: 250, y: 412 })));
+      assert_true(rectWithPathLength.isPointInStroke({ x: 250, y: 308 }));
+      assert_false(rectWithPathLength.isPointInStroke({ x: 250, y: 412 }));
     }, document.title + ", 'pathLength'.");
 
     test(function() {
       let circleWithNSS = document.getElementById("circle-with-non-scaling-stroke");
-      assert_true(circleWithNSS.isPointInStroke(adaptPoint({ x: 9.975, y: 20 })));
-      assert_false(circleWithNSS.isPointInStroke(adaptPoint({ x: 9.9, y: 20 })));
+      assert_true(circleWithNSS.isPointInStroke({ x: 9.975, y: 20 }));
+      assert_false(circleWithNSS.isPointInStroke({ x: 9.9, y: 20 }));
     }, document.title + ", 'vector-effect'.");
 
     test(function() {

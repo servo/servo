@@ -1,0 +1,31 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    i.contentWindow.navigation.updateCurrentEntry({ state: { data: "value" } });
+    assert_equals(i.contentWindow.navigation.entries().length, 1);
+    assert_equals(i.contentWindow.navigation.currentEntry.getState().data, "value");
+
+    let navigated_back = false;
+    i.contentWindow.navigation.navigate("?1");
+    i.onload = t.step_func(() => {
+      if (navigated_back) {
+        let back_entry = i.contentWindow.navigation.currentEntry;
+        assert_equals(i.contentWindow.navigation.entries().length, 2);
+        assert_equals(back_entry.index, 0);
+        assert_equals(back_entry.getState().data, "value");
+        t.done();
+      } else {
+        assert_equals(i.contentWindow.navigation.entries().length, 2);
+        assert_equals(i.contentWindow.navigation.currentEntry, i.contentWindow.navigation.entries()[1]);
+        assert_equals(i.contentWindow.navigation.currentEntry.getState(), undefined);
+        history.back();
+        navigated_back = true;
+      }
+    });
+  });
+}, "entry.getState() behavior after navigating away and back");
+</script>

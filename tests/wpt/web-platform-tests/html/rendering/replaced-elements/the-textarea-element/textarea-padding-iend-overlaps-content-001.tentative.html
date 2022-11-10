@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test: padding-inline-end on a textarea creates space that content can render into</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-textarea-element-2">
+<link rel="match" href="textarea-padding-iend-overlaps-content-001-ref.html">
+
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+textarea {
+  font: 10px/1 Ahem;
+
+  /* Zero out the content-box, leaving the padding area as the only
+     place where the contents might get rendered. */
+  inline-size: 0;
+  block-size: 10em;
+
+  padding-inline-end: 8em;
+}
+.rtl { direction: rtl; }
+.vlr { writing-mode: vertical-lr; }
+.vrl { writing-mode: vertical-rl; }
+.slr { writing-mode: sideways-lr; }
+.srl { writing-mode: sideways-rl; }
+</style>
+
+<textarea>X</textarea>
+<textarea class="rtl">X</textarea>
+<br>
+<textarea class="vlr">X</textarea>
+<textarea class="vrl">X</textarea>
+<textarea class="slr">X</textarea>
+<textarea class="srl">X</textarea>
+<br>
+<textarea class="vlr rtl">X</textarea>
+<textarea class="vrl rtl">X</textarea>
+<textarea class="slr rtl">X</textarea>
+<textarea class="srl rtl">X</textarea>

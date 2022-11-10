@@ -1,0 +1,69 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import { testFocusWasReset, testFocusWasNotReset } from "./resources/helpers.mjs";
+
+testFocusWasReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "after-transition" });
+  }, { once: true });
+}, "(not provided) + after-transition");
+
+testFocusWasNotReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "manual" });
+  }, { once: true });
+}, "(not provided) + manual");
+
+testFocusWasNotReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "after-transition" });
+  }, { once: true });
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "manual" });
+  }, { once: true });
+}, "after-transition + manual");
+
+testFocusWasReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "after-transition" });
+  }, { once: true });
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+}, "after-transition + (not provided)");
+
+testFocusWasReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "manual" });
+  }, { once: true });
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "after-transition" });
+  }, { once: true });
+}, "manual + after-transition");
+
+testFocusWasNotReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "manual" });
+  }, { once: true });
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+}, "manual + (not provided)");
+</script>

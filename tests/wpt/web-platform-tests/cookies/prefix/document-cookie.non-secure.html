@@ -26,13 +26,17 @@
   // `__Secure-` Prefix
   ["", "domain="+document.location.hostname, "MaxAge=10", "HttpOnly"].forEach(params => {
     create_test("__Secure-", "Path=/;" + params, false, false, "__Secure: Non-secure origin: 'Path=/;" + params + "'");
+    create_test("__SeCuRe-", "Path=/;" + params, false, false, "__SeCuRe: Non-secure origin: 'Path=/;" + params + "'");
     create_test("__Secure-", "Secure; Path=/;" + params, false, false, "__Secure: Non-secure origin: 'Secure; Path=/;" + params + "'");
+    create_test("__SeCuRe-", "Secure; Path=/;" + params, false, false, "__SeCuRe: Non-secure origin: 'Secure; Path=/;" + params + "'");
   });
 
   // `__Host-` Prefix
   ["", "domain="+document.location.hostname, "MaxAge=10", "HttpOnly"].forEach(params => {
-    create_test("__Secure-", "Path=/;" + params, false, false, "__Host: Non-secure origin: 'Path=/; " + params + "'");
-    create_test("__Secure-", "Secure; Path=/;" + params, false, false, "__Host: Non-secure origin: 'Secure; Path=/; " + params + "'");
+    create_test("__Host-", "Path=/;" + params, false, false, "__Host: Non-secure origin: 'Path=/; " + params + "'");
+    create_test("__HoSt-", "Path=/;" + params, false, false, "__HoSt: Non-secure origin: 'Path=/; " + params + "'");
+    create_test("__Host-", "Secure; Path=/;" + params, false, false, "__Host: Non-secure origin: 'Secure; Path=/; " + params + "'");
+    create_test("__HoSt-", "Secure; Path=/;" + params, false, false, "__HoSt: Non-secure origin: 'Secure; Path=/; " + params + "'");
   });
   create_test("__Secure-", "Path=/cookies/resources/list.py;Secure", false, false, "__Host: Non-secure origin: 'Path=/cookies/resources/list.py;Secure'");
 </script>

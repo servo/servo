@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Referrer Policy: popup src="about:blank"</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1370425">
+<link rel="help" href="https://html.spec.whatwg.org/#creating-a-new-browsing-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<iframe src="resources/submit-form-and-remove-frame.html"></iframe>
+<script>
+async_test(t => {
+  // Called by the child frame once it has submitted its form that creates a new
+  // `about:blank` window in our browsing context group (therefore, the window
+  // is reachable by us).
+  window.removeIframe = t.step_func(() => {
+    const iframe = document.querySelector('iframe');
+    const expected_referrer = iframe.contentWindow.location.href;
+    iframe.remove();
+
+    // The child frame is removed, but its form submission navigation is still
+    // queued on the opened window's global. Wait until it is run and then
+    // evaluate script.
+    t.step_timeout(t.step_func_done(() => {
+      const window_opened_from_form = window.open("", "does-not-exist");
+      assert_equals(document.referrer, expected_referrer);
+    }));
+  });
+}, "A new frame's document.referrer is correct even if its initiator frame is gone");
+</script>

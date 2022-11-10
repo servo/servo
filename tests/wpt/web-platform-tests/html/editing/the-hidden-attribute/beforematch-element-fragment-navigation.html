@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://github.com/WICG/display-locking">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=parentid>
+  <div id=hiddenid>
+    <div id=childid>hello</div>
+  </div>
+</div>
+
+<div id=spacer style="height:4000px">spacer</div>
+
+<script>
+test(() => {
+  window.location.hash = '';
+  hiddenid.hidden = 'until-found';
+  window.location.hash = '#hiddenid';
+  assert_false(hiddenid.hasAttribute('hidden'));
+}, 'Verifies that fragment navigation reveals hidden=until-found elements.');
+
+test(() => {
+  window.location.hash = '';
+  parentid.hidden = 'until-found';
+  hiddenid.hidden = 'until-found';
+  childid.hidden = 'until-found';
+  window.location.hash = 'childid';
+  assert_false(parentid.hasAttribute('hidden'), 'parentid should not have the hidden attribute.');
+  assert_false(hiddenid.hasAttribute('hidden'), 'hiddenid should not have the hidden attribute.');
+  assert_false(childid.hasAttribute('hidden'), 'childid should not have the hidden attribute.');
+}, 'Verifies that fragment navigation reveals all parent hidden=until-found elements.');
+
+test(() => {
+  window.location.hash = '';
+  hiddenid.hidden = 'until-found';
+  let beforematchFiredOnParent = false;
+  let beforematchFiredOnHidden = false;
+  let beforematchFiredOnChild = false;
+  parentid.onbeforematch = () => beforematchFiredOnParent = true;
+  hiddenid.onbeforematch = () => beforematchFiredOnHidden = true;
+  childid.onbeforematch = () => beforematchFiredOnChild = true;
+
+  window.location.hash = '#childid';
+  assert_true(beforematchFiredOnParent, 'beforematch should have been fired on parentid.');
+  assert_true(beforematchFiredOnHidden, 'beforematch should have been fired on hiddenid.');
+  assert_false(beforematchFiredOnChild, 'beforematch should not have been fired on childid.');
+}, 'Verifies that the beforematch event is fired synchronously and bubbles after fragment navigation.');
+
+test(t => {
+  window.location.hash = '';
+  window.scrollTo(0, 0);
+  assert_true(window.pageYOffset === 0, 'Scroll should reset at the beginning of the test.');
+
+  const target = document.createElement('div');
+  target.textContent = 'target';
+  target.id = 'target';
+  target.hidden = 'until-found';
+  document.body.appendChild(target);
+  const spacer = document.createElement('div');
+  spacer.style.height = '4000px';
+  t.add_cleanup(() => {
+    target.remove();
+    spacer.remove();
+  });
+
+  let beforematchCalled = false;
+  target.onbeforematch = () => {
+    assert_equals(window.pageYOffset, 0, 'scrolling should happen after beforematch is fired.');
+    beforematchCalled = true;
+    // Move the target down the page.
+    document.body.appendChild(spacer);
+    target.remove();
+    document.body.appendChild(target);
+  };
+
+  window.location.hash = '#target';
+  assert_true(beforematchCalled, 'The beforematch event should have been fired.');
+
+  const offsetAfterMatch = window.pageYOffset;
+  assert_not_equals(offsetAfterMatch, 0, 'Fragment navigation should have scrolled down the page to the target element.');
+  target.scrollIntoView();
+  assert_equals(offsetAfterMatch, window.pageYOffset, `The scroll after beforematch should be the same as scrolling directly to the element's final destination.`);
+}, 'Verifies that when a beforematch event handler moves a matching element, we scroll to its final location.');
+
+test(t => {
+  window.location.hash = '';
+  const foo = document.createElement('div');
+  foo.textContent = 'foo';
+  foo.id = 'foo';
+  foo.hidden = 'until-found';
+  document.body.appendChild(foo);
+
+  const bar = document.createElement('div');
+  bar.textContent = 'bar';
+  bar.id = 'bar';
+  bar.hidden = 'until-found';
+  document.body.appendChild(bar);
+
+  t.add_cleanup(() => {
+    foo.remove();
+    bar.remove();
+  });
+
+  let beforematchFiredOnFoo = false;
+  foo.onbeforematch = () => beforematchFiredOnFoo = true;
+  let beforematchFiredOnBar = false;
+  bar.onbeforematch = () => beforematchFiredOnBar = true;
+
+  window.location.hash = '#bar';
+
+  assert_false(beforematchFiredOnFoo, 'foo was not navigated to, so it should not get the beforematch event.');
+  assert_true(beforematchFiredOnBar, 'bar was navigated to, so it should get the beforematch event.');
+  assert_true(window.pageYOffset > 0, 'the page should be scrolled down to bar.');
+}, 'Verifies that the beforematch event is fired on the right element when there are multiple hidden=until-found elements.');
+
+test(t => {
+  window.location.hash = '';
+  window.scrollTo(0, 0);
+  assert_true(window.pageYOffset === 0, 'Scroll should reset at the beginning of the test.');
+
+  const div = document.createElement('div');
+  div.textContent = 'detach';
+  div.id = 'detach';
+  div.hidden = 'until-found';
+  document.body.appendChild(div);
+  t.add_cleanup(() => div.remove());
+
+  let beforematchCalled = false;
+  div.onbeforematch = () => {
+    div.remove();
+    beforematchCalled = true;
+  };
+
+  window.location.hash = '#detach';
+
+  assert_true(beforematchCalled, 'beforematch should be called when window.location.hash is set to #detach.');
+  assert_true(window.pageYOffset === 0, 'The page should not be scrolled down to where #detach used to be.');
+}, 'Verifies that no scrolling occurs when an element selected by the fragment identifier is detached by the beforematch event handler.');
+
+test(t => {
+  window.location.hash = '';
+  window.scrollTo(0, 0);
+  assert_true(window.pageYOffset === 0, 'Scroll should reset at the beginning of the test.');
+
+  const div = document.createElement('div');
+  div.textContent = 'displaynone';
+  div.id = 'displaynone';
+  div.hidden = 'until-found';
+  document.body.appendChild(div);
+  t.add_cleanup(() => div.remove());
+
+  let beforematchCalled = false;
+  div.addEventListener('beforematch', () => {
+    div.style = 'display: none';
+    beforematchCalled = true;
+  });
+
+  window.location.hash = '#displaynone';
+
+  assert_true(beforematchCalled, 'beforematch should be called when window.location.hash is set to #displaynone.');
+  assert_true(window.pageYOffset === 0, 'The page should not be scrolled down to where #displaynone used to be.');
+}, `No scrolling should occur when the beforematch event handler sets the target element's style to display: none.`);
+
+test(t => {
+  window.location.hash = '';
+  window.scrollTo(0, 0);
+  assert_true(window.pageYOffset === 0, 'Scroll should reset at the beginning of the test.');
+
+  const div = document.createElement('div');
+  div.textContent = 'visibilityhidden';
+  div.id = 'visibilityhidden';
+  div.hidden = 'until-found';
+  document.body.appendChild(div);
+  t.add_cleanup(() => div.remove());
+
+  let beforematchCalled = false;
+  div.addEventListener('beforematch', () => {
+    div.style = 'visibility: hidden';
+    beforematchCalled = true;
+  });
+
+  window.location.hash = '#visibilityhidden';
+
+  assert_true(beforematchCalled, 'beforematch should be called when window.location.hash is set to #visibilityhidden.');
+  assert_true(window.pageYOffset !== 0, 'The page should be scrolled down to where #visibilityhidden is.');
+}, `Scrolling should still occur when beforematch sets visiblity:hidden on the target element.`);
+
+test(t => {
+  window.location.hash = '';
+  const div = document.createElement('div');
+  div.id = 'target';
+  div.textContent = 'target';
+  document.body.appendChild(div);
+  t.add_cleanup(() => div.remove());
+  div.addEventListener('beforematch', t.unreached_func('beforematch should not be fired without hidden=until-found.'));
+  window.location.hash = '#target';
+}, 'Verifies that the beforematch event is not fired on elements without hidden=until-found.');
+</script>

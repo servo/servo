@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# mypy: allow-untyped-defs
 
 import argparse
 import gzip
@@ -18,7 +19,7 @@ def get_browser_args(product, channel):
         return ["--install-browser", "--install-webdriver"]
     if product == "servo":
         return ["--install-browser", "--processes=12"]
-    if product == "chrome":
+    if product == "chrome" or product == "chromium":
         # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
         args = ["--enable-swiftshader"]
         if channel == "nightly":

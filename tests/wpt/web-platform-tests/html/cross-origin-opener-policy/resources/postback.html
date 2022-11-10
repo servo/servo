@@ -1,19 +1,45 @@
 <!doctype html>
 <meta charset=utf-8>
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script>
-const channelName = new URL(location).searchParams.get("channel");
-const bc = new BroadcastChannel(channelName);
+const params = new URL(location).searchParams;
+const channelName = params.get("channel");
+const responseToken = params.get("responseToken");
+const iframeToken = params.get("iframeToken");
 
-// Handle the close message from the test-cleanup, forwarding it to the
-// top level document, as this iframe and the opening document might not
-// be able to close the popup.
-bc.onmessage = event => {
-  if (event.data == "close") {
-    top.postMessage("close", "*");
+// If the channel parameter is set, use the BroadcastChannel-based communication
+// method. Otherwise, use the dispatcher (useful in cases where this is embedded
+// in a third-party iframe that doesn't share a partition with the top-level
+// site).
+if (channelName != "null") {
+  const bc = new BroadcastChannel(channelName);
+  // Handle the close message from the test-cleanup, forwarding it to the
+  // top level document, as this iframe and the opening document might not
+  // be able to close the popup.
+  bc.onmessage = event => {
+    if (event.data == "close") {
+       top.postMessage("close", "*");
+     }
+  };
+
+  window.addEventListener("message", event => {
+    bc.postMessage(event.data);
+  });
+
+} else {
+  window.addEventListener("message", event => {
+    send(responseToken, JSON.stringify(event.data));
+  });
+
+  async function waitToClose() {
+    response = await receive(iframeToken);
+    // Handle the close message from the test-cleanup, forwarding it to the
+    // top level document, as this iframe and the opening document might not
+    // be able to close the popup.
+    if (response == "close") {
+      top.postMessage("close", "*");
+    }
   }
-};
-
-window.addEventListener("message", event => {
-  bc.postMessage(event.data);
-});
+  waitToClose();
+}
 </script>

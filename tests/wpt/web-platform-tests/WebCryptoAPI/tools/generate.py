@@ -64,7 +64,8 @@ run_test([%s]);
 done();"""
 
 names = ["AES-CTR", "AES-CBC", "AES-GCM", "AES-KW", "HMAC", "RSASSA-PKCS1-v1_5",
-         "RSA-PSS", "RSA-OAEP", "ECDSA", "ECDH"]
+         "RSA-PSS", "RSA-OAEP", "ECDSA", "ECDH", "Ed25519", "Ed448", "X25519",
+         "X448"]
 
 for filename_pattern, template in [("test_successes_%s.https.html", successes_html),
                                    ("test_failures_%s.https.html", failures_html),

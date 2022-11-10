@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+
+<div popover id=p1>This is popover 1<div id=anchor2></div></div>
+<div popover id=p2 anchor=anchor2>This is popover 2<div id=anchor3></div></div>
+<div popover id=p3 anchor=anchor3>This is popover 3</div>
+
+<style>
+  #p2 {
+    top: 100px;
+  }
+  #p3 {
+    top:200px;
+  }
+</style>
+
+<script>
+  document.querySelector('#p1').showPopover();
+  document.querySelector('#p2').showPopover();
+  document.querySelector('#p3').showPopover();
+</script>

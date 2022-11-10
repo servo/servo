@@ -1,21 +1,99 @@
 <!DOCTYPE html>
-<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
-<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos">
-<p>Test passes if there is a filled green square, and no scrollbars</p>
-<div id="container" style="overflow:auto; width:100px; height:100px; background:red;">
-  <div style="position:sticky; top:0; height:100px; background:green;"></div>
-  <div id="bigItem" style="height:600px;"></div>
-</div>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script>
-  container.scrollTop = 600;
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      bigItem.style.display = "none";
-      test(()=> {
-        assert_equals(container.scrollHeight, 100);
-      }, "Sticky position and its overflow contribution");
-    });
-  });
-</script>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Positioned Layout Test: element with 'position: sticky' and removing a sibling in the vertical axis and in the horizontal axis</title>
+
+  <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos">
+
+  <meta name="flags" content="">
+
+  <style>
+  div#scrollingContainerVert
+    {
+      background-color: red;
+      height: 100px;
+      overflow: auto;
+      width: 200px;
+    }
+
+  div#scrollingContainerHoriz
+    {
+      background-color: red;
+      height: 100px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      width: 200px;
+    }
+
+  div#elemStickyVert
+    {
+      background-color: green;
+      height: 100px;
+      position: sticky;
+      top: 0px;
+    }
+
+  div#scrollingContainerHoriz > div
+    {
+      display: inline-block;
+      height: 100%;
+    }
+
+  div#elemStickyHoriz
+    {
+      background-color: green;
+      left: 0px;
+      position: sticky;
+      width: 200px;
+    }
+
+  div#tallItem
+    {
+      height: 600px;
+    }
+
+  div#wideItem
+    {
+      width: 600px;
+    }
+  </style>
+
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <p>Test passes if there is a filled green square and <strong>no scrollbar</strong>.
+
+  <div id="scrollingContainerVert">
+
+    <div id="elemStickyVert"></div>
+
+    <div id="tallItem"></div>
+
+  </div>
+
+
+  <div id="scrollingContainerHoriz">
+
+    <div id="elemStickyHoriz"></div><div id="wideItem"></div>
+
+  </div>
+
+
+  <script>
+  test(()=> {
+  scrollingContainerVert.scrollTop = 600;
+  tallItem.style.display = "none";
+  assert_equals(scrollingContainerVert.scrollHeight, 100);
+  }, "Sticky position and its overflow contribution in the vertical axis");
+
+  test(()=> {
+  scrollingContainerHoriz.scrollLeft = 600;
+  wideItem.style.display = "none";
+  assert_equals(scrollingContainerHoriz.scrollWidth, 200);
+  }, "Sticky position and its overflow contribution in the horizontal axis");
+  </script>

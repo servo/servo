@@ -14,7 +14,6 @@ let util = new MediaSourceWorkerUtil();
 let sentStartedBufferingMessage = false;
 
 util.mediaSource.addEventListener("sourceopen", () => {
-  URL.revokeObjectURL(util.mediaSourceObjectUrl);
   let sourceBuffer;
   try {
     sourceBuffer = util.mediaSource.addSourceBuffer(util.mediaMetadata.type);
@@ -33,7 +32,9 @@ util.mediaSource.addEventListener("sourceopen", () => {
                              err => { postMessage({ subject: messageSubject.ERROR, info: err }) } );
 }, { once : true });
 
-postMessage({ subject: messageSubject.OBJECT_URL, info: util.mediaSourceObjectUrl} );
+let handle = util.mediaSource.handle;
+
+postMessage({ subject: messageSubject.HANDLE, info: handle }, { transfer: [handle] } );
 
 // Append increasingly large pieces at a time, starting/continuing at |position|.
 // This allows buffering the test media without timeout, but also with enough

@@ -74,7 +74,9 @@
       return transform;
     }
     function clear(id) {
-    	document.getElementById(id).style.display = 'none';
+        const element = document.getElementById(id);
+        element.style.display = 'none';
+        assert_equals(window.getComputedStyle(element).getPropertyValue("transform"), "none", "Computed style for an element with 'display: none' should be 'transform: none'");
     }
 
     test(function() {

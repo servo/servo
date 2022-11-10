@@ -1,22 +1,23 @@
+# mypy: allow-untyped-defs
+
 from .base import (NullBrowser,  # noqa: F401
                    certificate_domain_list,
                    get_timeout_multiplier,  # noqa: F401
                    maybe_add_args)
 from .webkit import WebKitBrowser
 from ..executors import executor_kwargs as base_executor_kwargs
+from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor,  # noqa: F401
                                            WebDriverCrashtestExecutor)  # noqa: F401
-from ..executors.executorwebkit import WebKitDriverWdspecExecutor  # noqa: F401
 
 __wptrunner__ = {"product": "webkitgtk_minibrowser",
                  "check_args": "check_args",
-                 "browser": {None: "WebKitGTKMiniBrowser",
-                             "wdspec": "NullBrowser"},
+                 "browser": "WebKitGTKMiniBrowser",
                  "browser_kwargs": "browser_kwargs",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
-                              "wdspec": "WebKitDriverWdspecExecutor",
+                              "wdspec": "WdspecExecutor",
                               "crashtest": "WebDriverCrashtestExecutor"},
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -40,13 +41,13 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
 
 def capabilities(server_config, **kwargs):
     browser_required_args = ["--automation",
-                            "--javascript-can-open-windows-automatically=true",
-                            "--enable-xss-auditor=false",
-                            "--enable-media-capabilities=true",
-                            "--enable-encrypted-media=true",
-                            "--enable-media-stream=true",
-                            "--enable-mock-capture-devices=true",
-                            "--enable-webaudio=true"]
+                             "--javascript-can-open-windows-automatically=true",
+                             "--enable-xss-auditor=false",
+                             "--enable-media-capabilities=true",
+                             "--enable-encrypted-media=true",
+                             "--enable-media-stream=true",
+                             "--enable-mock-capture-devices=true",
+                             "--enable-webaudio=true"]
     args = kwargs.get("binary_args", [])
     args = maybe_add_args(browser_required_args, args)
     return {
@@ -78,7 +79,4 @@ def run_info_extras(**kwargs):
 
 
 class WebKitGTKMiniBrowser(WebKitBrowser):
-    def __init__(self, logger, binary=None, webdriver_binary=None,
-                 webdriver_args=None, **kwargs):
-        WebKitBrowser.__init__(self, logger, binary, webdriver_binary,
-                               webdriver_args)
+    pass

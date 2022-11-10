@@ -2,56 +2,58 @@ import inspect
 import os
 import sys
 import types
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Tuple
+from typing import Type
 
-import py
-
-import _pytest._code
 import pytest
 from _pytest import outcomes
 from _pytest import reports
 from _pytest import runner
-from _pytest.compat import TYPE_CHECKING
+from _pytest._code import ExceptionInfo
+from _pytest._code.code import ExceptionChainRepr
 from _pytest.config import ExitCode
+from _pytest.monkeypatch import MonkeyPatch
 from _pytest.outcomes import OutcomeException
-
-if TYPE_CHECKING:
-    from typing import Type
+from _pytest.pytester import Pytester
 
 
 class TestSetupState:
-    def test_setup(self, testdir) -> None:
-        ss = runner.SetupState()
-        item = testdir.getitem("def test_func(): pass")
+    def test_setup(self, pytester: Pytester) -> None:
+        item = pytester.getitem("def test_func(): pass")
+        ss = item.session._setupstate
         values = [1]
-        ss.prepare(item)
-        ss.addfinalizer(values.pop, colitem=item)
+        ss.setup(item)
+        ss.addfinalizer(values.pop, item)
         assert values
-        ss._pop_and_teardown()
+        ss.teardown_exact(None)
         assert not values
 
-    def test_teardown_exact_stack_empty(self, testdir) -> None:
-        item = testdir.getitem("def test_func(): pass")
-        ss = runner.SetupState()
-        ss.teardown_exact(item, None)
-        ss.teardown_exact(item, None)
-        ss.teardown_exact(item, None)
+    def test_teardown_exact_stack_empty(self, pytester: Pytester) -> None:
+        item = pytester.getitem("def test_func(): pass")
+        ss = item.session._setupstate
+        ss.setup(item)
+        ss.teardown_exact(None)
+        ss.teardown_exact(None)
+        ss.teardown_exact(None)
 
-    def test_setup_fails_and_failure_is_cached(self, testdir) -> None:
-        item = testdir.getitem(
+    def test_setup_fails_and_failure_is_cached(self, pytester: Pytester) -> None:
+        item = pytester.getitem(
             """
             def setup_module(mod):
                 raise ValueError(42)
             def test_func(): pass
         """
         )
-        ss = runner.SetupState()
-        pytest.raises(ValueError, lambda: ss.prepare(item))
-        pytest.raises(ValueError, lambda: ss.prepare(item))
+        ss = item.session._setupstate
+        with pytest.raises(ValueError):
+            ss.setup(item)
+        with pytest.raises(ValueError):
+            ss.setup(item)
 
-    def test_teardown_multiple_one_fails(self, testdir) -> None:
+    def test_teardown_multiple_one_fails(self, pytester: Pytester) -> None:
         r = []
 
         def fin1():
@@ -63,17 +65,18 @@ class TestSetupState:
         def fin3():
             r.append("fin3")
 
-        item = testdir.getitem("def test_func(): pass")
-        ss = runner.SetupState()
+        item = pytester.getitem("def test_func(): pass")
+        ss = item.session._setupstate
+        ss.setup(item)
         ss.addfinalizer(fin1, item)
         ss.addfinalizer(fin2, item)
         ss.addfinalizer(fin3, item)
         with pytest.raises(Exception) as err:
-            ss._callfinalizers(item)
+            ss.teardown_exact(None)
         assert err.value.args == ("oops",)
         assert r == ["fin3", "fin1"]
 
-    def test_teardown_multiple_fail(self, testdir) -> None:
+    def test_teardown_multiple_fail(self, pytester: Pytester) -> None:
         # Ensure the first exception is the one which is re-raised.
         # Ideally both would be reported however.
         def fin1():
@@ -82,15 +85,16 @@ class TestSetupState:
         def fin2():
             raise Exception("oops2")
 
-        item = testdir.getitem("def test_func(): pass")
-        ss = runner.SetupState()
+        item = pytester.getitem("def test_func(): pass")
+        ss = item.session._setupstate
+        ss.setup(item)
         ss.addfinalizer(fin1, item)
         ss.addfinalizer(fin2, item)
         with pytest.raises(Exception) as err:
-            ss._callfinalizers(item)
+            ss.teardown_exact(None)
         assert err.value.args == ("oops2",)
 
-    def test_teardown_multiple_scopes_one_fails(self, testdir) -> None:
+    def test_teardown_multiple_scopes_one_fails(self, pytester: Pytester) -> None:
         module_teardown = []
 
         def fin_func():
@@ -99,19 +103,20 @@ class TestSetupState:
         def fin_module():
             module_teardown.append("fin_module")
 
-        item = testdir.getitem("def test_func(): pass")
-        ss = runner.SetupState()
-        ss.addfinalizer(fin_module, item.listchain()[-2])
+        item = pytester.getitem("def test_func(): pass")
+        mod = item.listchain()[-2]
+        ss = item.session._setupstate
+        ss.setup(item)
+        ss.addfinalizer(fin_module, mod)
         ss.addfinalizer(fin_func, item)
-        ss.prepare(item)
         with pytest.raises(Exception, match="oops1"):
-            ss.teardown_exact(item, None)
-        assert module_teardown
+            ss.teardown_exact(None)
+        assert module_teardown == ["fin_module"]
 
 
 class BaseFunctionalTests:
-    def test_passfunction(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_passfunction(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             def test_func():
                 pass
@@ -123,8 +128,8 @@ class BaseFunctionalTests:
         assert rep.outcome == "passed"
         assert not rep.longrepr
 
-    def test_failfunction(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_failfunction(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             def test_func():
                 assert 0
@@ -138,8 +143,8 @@ class BaseFunctionalTests:
         assert rep.outcome == "failed"
         # assert isinstance(rep.longrepr, ReprExceptionInfo)
 
-    def test_skipfunction(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_skipfunction(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             import pytest
             def test_func():
@@ -158,8 +163,8 @@ class BaseFunctionalTests:
         # assert rep.skipped.location.path
         # assert not rep.skipped.failurerepr
 
-    def test_skip_in_setup_function(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_skip_in_setup_function(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             import pytest
             def setup_function(func):
@@ -179,8 +184,8 @@ class BaseFunctionalTests:
         assert len(reports) == 2
         assert reports[1].passed  # teardown
 
-    def test_failure_in_setup_function(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_failure_in_setup_function(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             import pytest
             def setup_function(func):
@@ -196,8 +201,8 @@ class BaseFunctionalTests:
         assert rep.when == "setup"
         assert len(reports) == 2
 
-    def test_failure_in_teardown_function(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_failure_in_teardown_function(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             import pytest
             def teardown_function(func):
@@ -216,8 +221,8 @@ class BaseFunctionalTests:
         # assert rep.longrepr.reprcrash.lineno == 3
         # assert rep.longrepr.reprtraceback.reprentries
 
-    def test_custom_failure_repr(self, testdir) -> None:
-        testdir.makepyfile(
+    def test_custom_failure_repr(self, pytester: Pytester) -> None:
+        pytester.makepyfile(
             conftest="""
             import pytest
             class Function(pytest.Function):
@@ -225,7 +230,7 @@ class BaseFunctionalTests:
                     return "hello"
         """
         )
-        reports = testdir.runitem(
+        reports = pytester.runitem(
             """
             import pytest
             def test_func():
@@ -241,8 +246,8 @@ class BaseFunctionalTests:
         # assert rep.failed.where.path.basename == "test_func.py"
         # assert rep.failed.failurerepr == "hello"
 
-    def test_teardown_final_returncode(self, testdir) -> None:
-        rec = testdir.inline_runsource(
+    def test_teardown_final_returncode(self, pytester: Pytester) -> None:
+        rec = pytester.inline_runsource(
             """
             def test_func():
                 pass
@@ -252,8 +257,8 @@ class BaseFunctionalTests:
         )
         assert rec.ret == 1
 
-    def test_logstart_logfinish_hooks(self, testdir) -> None:
-        rec = testdir.inline_runsource(
+    def test_logstart_logfinish_hooks(self, pytester: Pytester) -> None:
+        rec = pytester.inline_runsource(
             """
             import pytest
             def test_func():
@@ -269,8 +274,8 @@ class BaseFunctionalTests:
             assert rep.nodeid == "test_logstart_logfinish_hooks.py::test_func"
             assert rep.location == ("test_logstart_logfinish_hooks.py", 1, "test_func")
 
-    def test_exact_teardown_issue90(self, testdir) -> None:
-        rec = testdir.inline_runsource(
+    def test_exact_teardown_issue90(self, pytester: Pytester) -> None:
+        rec = pytester.inline_runsource(
             """
             import pytest
 
@@ -282,7 +287,7 @@ class BaseFunctionalTests:
 
             def test_func():
                 import sys
-                # on python2 exc_info is keept till a function exits
+                # on python2 exc_info is kept till a function exits
                 # so we would end up calling test functions while
                 # sys.exc_info would return the indexerror
                 # from guessing the lastitem
@@ -309,9 +314,9 @@ class BaseFunctionalTests:
         assert reps[5].nodeid.endswith("test_func")
         assert reps[5].failed
 
-    def test_exact_teardown_issue1206(self, testdir) -> None:
+    def test_exact_teardown_issue1206(self, pytester: Pytester) -> None:
         """Issue shadowing error with wrong number of arguments on teardown_method."""
-        rec = testdir.inline_runsource(
+        rec = pytester.inline_runsource(
             """
             import pytest
 
@@ -338,15 +343,19 @@ class BaseFunctionalTests:
         assert reps[2].nodeid.endswith("test_method")
         assert reps[2].failed
         assert reps[2].when == "teardown"
-        assert reps[2].longrepr.reprcrash.message in (
-            # python3 error
+        longrepr = reps[2].longrepr
+        assert isinstance(longrepr, ExceptionChainRepr)
+        assert longrepr.reprcrash
+        assert longrepr.reprcrash.message in (
             "TypeError: teardown_method() missing 2 required positional arguments: 'y' and 'z'",
-            # python2 error
-            "TypeError: teardown_method() takes exactly 4 arguments (2 given)",
+            # Python >= 3.10
+            "TypeError: TestClass.teardown_method() missing 2 required positional arguments: 'y' and 'z'",
         )
 
-    def test_failure_in_setup_function_ignores_custom_repr(self, testdir) -> None:
-        testdir.makepyfile(
+    def test_failure_in_setup_function_ignores_custom_repr(
+        self, pytester: Pytester
+    ) -> None:
+        pytester.makepyfile(
             conftest="""
             import pytest
             class Function(pytest.Function):
@@ -354,7 +363,7 @@ class BaseFunctionalTests:
                     assert 0
         """
         )
-        reports = testdir.runitem(
+        reports = pytester.runitem(
             """
             def setup_function(func):
                 raise ValueError(42)
@@ -373,9 +382,9 @@ class BaseFunctionalTests:
         # assert rep.outcome.where.path.basename == "test_func.py"
         # assert instanace(rep.failed.failurerepr, PythonFailureRepr)
 
-    def test_systemexit_does_not_bail_out(self, testdir) -> None:
+    def test_systemexit_does_not_bail_out(self, pytester: Pytester) -> None:
         try:
-            reports = testdir.runitem(
+            reports = pytester.runitem(
                 """
                 def test_func():
                     raise SystemExit(42)
@@ -387,9 +396,9 @@ class BaseFunctionalTests:
         assert rep.failed
         assert rep.when == "call"
 
-    def test_exit_propagates(self, testdir) -> None:
+    def test_exit_propagates(self, pytester: Pytester) -> None:
         try:
-            testdir.runitem(
+            pytester.runitem(
                 """
                 import pytest
                 def test_func():
@@ -409,9 +418,9 @@ class TestExecutionNonForked(BaseFunctionalTests):
 
         return f
 
-    def test_keyboardinterrupt_propagates(self, testdir) -> None:
+    def test_keyboardinterrupt_propagates(self, pytester: Pytester) -> None:
         try:
-            testdir.runitem(
+            pytester.runitem(
                 """
                 def test_func():
                     raise KeyboardInterrupt("fake")
@@ -424,8 +433,8 @@ class TestExecutionNonForked(BaseFunctionalTests):
 
 
 class TestSessionReports:
-    def test_collect_result(self, testdir) -> None:
-        col = testdir.getmodulecol(
+    def test_collect_result(self, pytester: Pytester) -> None:
+        col = pytester.getmodulecol(
             """
             def test_func1():
                 pass
@@ -438,28 +447,28 @@ class TestSessionReports:
         assert not rep.skipped
         assert rep.passed
         locinfo = rep.location
-        assert locinfo[0] == col.fspath.basename
+        assert locinfo[0] == col.path.name
         assert not locinfo[1]
-        assert locinfo[2] == col.fspath.basename
+        assert locinfo[2] == col.path.name
         res = rep.result
         assert len(res) == 2
         assert res[0].name == "test_func1"
         assert res[1].name == "TestClass"
 
 
-reporttypes = [
+reporttypes: List[Type[reports.BaseReport]] = [
     reports.BaseReport,
     reports.TestReport,
     reports.CollectReport,
-]  # type: List[Type[reports.BaseReport]]
+]
 
 
 @pytest.mark.parametrize(
     "reporttype", reporttypes, ids=[x.__name__ for x in reporttypes]
 )
-def test_report_extra_parameters(reporttype: "Type[reports.BaseReport]") -> None:
+def test_report_extra_parameters(reporttype: Type[reports.BaseReport]) -> None:
     args = list(inspect.signature(reporttype.__init__).parameters.keys())[1:]
-    basekw = dict.fromkeys(args, [])  # type: Dict[str, List[object]]
+    basekw: Dict[str, List[object]] = dict.fromkeys(args, [])
     report = reporttype(newthing=1, **basekw)
     assert report.newthing == 1
 
@@ -475,7 +484,7 @@ def test_callinfo() -> None:
     ci2 = runner.CallInfo.from_call(lambda: 0 / 0, "collect")
     assert ci2.when == "collect"
     assert not hasattr(ci2, "result")
-    assert repr(ci2) == "<CallInfo when='collect' excinfo={!r}>".format(ci2.excinfo)
+    assert repr(ci2) == f"<CallInfo when='collect' excinfo={ci2.excinfo!r}>"
     assert str(ci2) == repr(ci2)
     assert ci2.excinfo
 
@@ -484,7 +493,7 @@ def test_callinfo() -> None:
         assert 0, "assert_msg"
 
     ci3 = runner.CallInfo.from_call(raise_assertion, "call")
-    assert repr(ci3) == "<CallInfo when='call' excinfo={!r}>".format(ci3.excinfo)
+    assert repr(ci3) == f"<CallInfo when='call' excinfo={ci3.excinfo!r}>"
     assert "\n" not in repr(ci3)
 
 
@@ -493,8 +502,8 @@ def test_callinfo() -> None:
 
 
 @pytest.mark.xfail
-def test_runtest_in_module_ordering(testdir) -> None:
-    p1 = testdir.makepyfile(
+def test_runtest_in_module_ordering(pytester: Pytester) -> None:
+    p1 = pytester.makepyfile(
         """
         import pytest
         def pytest_runtest_setup(item): # runs after class-level!
@@ -521,7 +530,7 @@ def test_runtest_in_module_ordering(testdir) -> None:
             del item.function.mylist
     """
     )
-    result = testdir.runpytest(p1)
+    result = pytester.runpytest(p1)
     result.stdout.fnmatch_lines(["*2 passed*"])
 
 
@@ -551,8 +560,8 @@ def test_pytest_fail() -> None:
     assert s.startswith("Failed")
 
 
-def test_pytest_exit_msg(testdir) -> None:
-    testdir.makeconftest(
+def test_pytest_exit_msg(pytester: Pytester) -> None:
+    pytester.makeconftest(
         """
     import pytest
 
@@ -560,7 +569,7 @@ def test_pytest_exit_msg(testdir) -> None:
         pytest.exit('oh noes')
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stderr.fnmatch_lines(["Exit: oh noes"])
 
 
@@ -574,22 +583,22 @@ def _strip_resource_warnings(lines):
     ]
 
 
-def test_pytest_exit_returncode(testdir) -> None:
-    testdir.makepyfile(
+def test_pytest_exit_returncode(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """\
         import pytest
         def test_foo():
             pytest.exit("some exit msg", 99)
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*! *Exit: some exit msg !*"])
 
     assert _strip_resource_warnings(result.stderr.lines) == []
     assert result.ret == 99
 
     # It prints to stderr also in case of exit during pytest_sessionstart.
-    testdir.makeconftest(
+    pytester.makeconftest(
         """\
         import pytest
 
@@ -597,7 +606,7 @@ def test_pytest_exit_returncode(testdir) -> None:
             pytest.exit("during_sessionstart", 98)
         """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*! *Exit: during_sessionstart !*"])
     assert _strip_resource_warnings(result.stderr.lines) == [
         "Exit: during_sessionstart"
@@ -605,9 +614,9 @@ def test_pytest_exit_returncode(testdir) -> None:
     assert result.ret == 98
 
 
-def test_pytest_fail_notrace_runtest(testdir) -> None:
+def test_pytest_fail_notrace_runtest(pytester: Pytester) -> None:
     """Test pytest.fail(..., pytrace=False) does not show tracebacks during test run."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         def test_hello():
@@ -616,14 +625,14 @@ def test_pytest_fail_notrace_runtest(testdir) -> None:
             pytest.fail("world", pytrace=False)
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["world", "hello"])
     result.stdout.no_fnmatch_line("*def teardown_function*")
 
 
-def test_pytest_fail_notrace_collection(testdir) -> None:
+def test_pytest_fail_notrace_collection(pytester: Pytester) -> None:
     """Test pytest.fail(..., pytrace=False) does not show tracebacks during collection."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         def some_internal_function():
@@ -631,17 +640,17 @@ def test_pytest_fail_notrace_collection(testdir) -> None:
         some_internal_function()
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["hello"])
     result.stdout.no_fnmatch_line("*def some_internal_function()*")
 
 
-def test_pytest_fail_notrace_non_ascii(testdir) -> None:
+def test_pytest_fail_notrace_non_ascii(pytester: Pytester) -> None:
     """Fix pytest.fail with pytrace=False with non-ascii characters (#1178).
 
     This tests with native and unicode strings containing non-ascii chars.
     """
-    testdir.makepyfile(
+    pytester.makepyfile(
         """\
         import pytest
 
@@ -649,28 +658,28 @@ def test_pytest_fail_notrace_non_ascii(testdir) -> None:
             pytest.fail('oh oh: ☺', pytrace=False)
         """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*test_hello*", "oh oh: ☺"])
     result.stdout.no_fnmatch_line("*def test_hello*")
 
 
-def test_pytest_no_tests_collected_exit_status(testdir) -> None:
-    result = testdir.runpytest()
+def test_pytest_no_tests_collected_exit_status(pytester: Pytester) -> None:
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*collected 0 items*"])
     assert result.ret == ExitCode.NO_TESTS_COLLECTED
 
-    testdir.makepyfile(
+    pytester.makepyfile(
         test_foo="""
         def test_foo():
             assert 1
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*collected 1 item*"])
     result.stdout.fnmatch_lines(["*1 passed*"])
     assert result.ret == ExitCode.OK
 
-    result = testdir.runpytest("-k nonmatch")
+    result = pytester.runpytest("-k nonmatch")
     result.stdout.fnmatch_lines(["*collected 1 item*"])
     result.stdout.fnmatch_lines(["*1 deselected*"])
     assert result.ret == ExitCode.NO_TESTS_COLLECTED
@@ -681,7 +690,7 @@ def test_exception_printing_skip() -> None:
     try:
         pytest.skip("hello")
     except pytest.skip.Exception:
-        excinfo = _pytest._code.ExceptionInfo.from_current()
+        excinfo = ExceptionInfo.from_current()
         s = excinfo.exconly(tryshort=True)
         assert s.startswith("Skipped")
 
@@ -702,10 +711,10 @@ def test_importorskip(monkeypatch) -> None:
         excrepr = excinfo.getrepr()
         assert excrepr is not None
         assert excrepr.reprcrash is not None
-        path = py.path.local(excrepr.reprcrash.path)
+        path = Path(excrepr.reprcrash.path)
         # check that importorskip reports the actual call
         # in this test the test_runner.py file
-        assert path.purebasename == "test_runner"
+        assert path.stem == "test_runner"
         pytest.raises(SyntaxError, pytest.importorskip, "x y z")
         pytest.raises(SyntaxError, pytest.importorskip, "x=y")
         mod = types.ModuleType("hello123")
@@ -716,9 +725,7 @@ def test_importorskip(monkeypatch) -> None:
         mod2 = pytest.importorskip("hello123", minversion="1.3")
         assert mod2 == mod
     except pytest.skip.Exception:  # pragma: no cover
-        assert False, "spurious skip: {}".format(
-            _pytest._code.ExceptionInfo.from_current()
-        )
+        assert False, f"spurious skip: {ExceptionInfo.from_current()}"
 
 
 def test_importorskip_imports_last_module_part() -> None:
@@ -736,14 +743,12 @@ def test_importorskip_dev_module(monkeypatch) -> None:
         with pytest.raises(pytest.skip.Exception):
             pytest.importorskip("mockmodule1", minversion="0.14.0")
     except pytest.skip.Exception:  # pragma: no cover
-        assert False, "spurious skip: {}".format(
-            _pytest._code.ExceptionInfo.from_current()
-        )
+        assert False, f"spurious skip: {ExceptionInfo.from_current()}"
 
 
-def test_importorskip_module_level(testdir) -> None:
+def test_importorskip_module_level(pytester: Pytester) -> None:
     """`importorskip` must be able to skip entire modules when used at module level."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         foobarbaz = pytest.importorskip("foobarbaz")
@@ -752,13 +757,13 @@ def test_importorskip_module_level(testdir) -> None:
             pass
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*collected 0 items / 1 skipped*"])
 
 
-def test_importorskip_custom_reason(testdir) -> None:
+def test_importorskip_custom_reason(pytester: Pytester) -> None:
     """Make sure custom reasons are used."""
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         foobarbaz = pytest.importorskip("foobarbaz2", reason="just because")
@@ -767,13 +772,13 @@ def test_importorskip_custom_reason(testdir) -> None:
             pass
     """
     )
-    result = testdir.runpytest("-ra")
+    result = pytester.runpytest("-ra")
     result.stdout.fnmatch_lines(["*just because*"])
     result.stdout.fnmatch_lines(["*collected 0 items / 1 skipped*"])
 
 
-def test_pytest_cmdline_main(testdir) -> None:
-    p = testdir.makepyfile(
+def test_pytest_cmdline_main(pytester: Pytester) -> None:
+    p = pytester.makepyfile(
         """
         import pytest
         def test_hello():
@@ -790,8 +795,8 @@ def test_pytest_cmdline_main(testdir) -> None:
     assert ret == 0
 
 
-def test_unicode_in_longrepr(testdir) -> None:
-    testdir.makeconftest(
+def test_unicode_in_longrepr(pytester: Pytester) -> None:
+    pytester.makeconftest(
         """\
         import pytest
         @pytest.hookimpl(hookwrapper=True)
@@ -802,19 +807,19 @@ def test_unicode_in_longrepr(testdir) -> None:
                 rep.longrepr = 'ä'
         """
     )
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         def test_out():
             assert 0
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     assert result.ret == 1
     assert "UnicodeEncodeError" not in result.stderr.str()
 
 
-def test_failure_in_setup(testdir) -> None:
-    testdir.makepyfile(
+def test_failure_in_setup(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         def setup_module():
             0/0
@@ -822,24 +827,26 @@ def test_failure_in_setup(testdir) -> None:
             pass
     """
     )
-    result = testdir.runpytest("--tb=line")
+    result = pytester.runpytest("--tb=line")
     result.stdout.no_fnmatch_line("*def setup_module*")
 
 
-def test_makereport_getsource(testdir) -> None:
-    testdir.makepyfile(
+def test_makereport_getsource(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         def test_foo():
             if False: pass
             else: assert False
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.no_fnmatch_line("*INTERNALERROR*")
     result.stdout.fnmatch_lines(["*else: assert False*"])
 
 
-def test_makereport_getsource_dynamic_code(testdir, monkeypatch) -> None:
+def test_makereport_getsource_dynamic_code(
+    pytester: Pytester, monkeypatch: MonkeyPatch
+) -> None:
     """Test that exception in dynamically generated code doesn't break getting the source line."""
     import inspect
 
@@ -853,7 +860,7 @@ def test_makereport_getsource_dynamic_code(testdir, monkeypatch) -> None:
 
     monkeypatch.setattr(inspect, "findsource", findsource)
 
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
 
@@ -865,7 +872,7 @@ def test_makereport_getsource_dynamic_code(testdir, monkeypatch) -> None:
             assert False
     """
     )
-    result = testdir.runpytest("-vv")
+    result = pytester.runpytest("-vv")
     result.stdout.no_fnmatch_line("*INTERNALERROR*")
     result.stdout.fnmatch_lines(["*test_fix*", "*fixture*'missing'*not found*"])
 
@@ -900,12 +907,12 @@ def test_store_except_info_on_error() -> None:
     assert not hasattr(sys, "last_traceback")
 
 
-def test_current_test_env_var(testdir, monkeypatch) -> None:
-    pytest_current_test_vars = []  # type: List[Tuple[str, str]]
+def test_current_test_env_var(pytester: Pytester, monkeypatch: MonkeyPatch) -> None:
+    pytest_current_test_vars: List[Tuple[str, str]] = []
     monkeypatch.setattr(
         sys, "pytest_current_test_vars", pytest_current_test_vars, raising=False
     )
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import sys
@@ -921,7 +928,7 @@ def test_current_test_env_var(testdir, monkeypatch) -> None:
             sys.pytest_current_test_vars.append(('call', os.environ['PYTEST_CURRENT_TEST']))
     """
     )
-    result = testdir.runpytest_inprocess()
+    result = pytester.runpytest_inprocess()
     assert result.ret == 0
     test_id = "test_current_test_env_var.py::test"
     assert pytest_current_test_vars == [
@@ -938,8 +945,8 @@ class TestReportContents:
     def getrunner(self):
         return lambda item: runner.runtestprotocol(item, log=False)
 
-    def test_longreprtext_pass(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_longreprtext_pass(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             def test_func():
                 pass
@@ -948,9 +955,9 @@ class TestReportContents:
         rep = reports[1]
         assert rep.longreprtext == ""
 
-    def test_longreprtext_skip(self, testdir) -> None:
+    def test_longreprtext_skip(self, pytester: Pytester) -> None:
         """TestReport.longreprtext can handle non-str ``longrepr`` attributes (#7559)"""
-        reports = testdir.runitem(
+        reports = pytester.runitem(
             """
             import pytest
             def test_func():
@@ -961,22 +968,22 @@ class TestReportContents:
         assert isinstance(call_rep.longrepr, tuple)
         assert "Skipped" in call_rep.longreprtext
 
-    def test_longreprtext_collect_skip(self, testdir) -> None:
+    def test_longreprtext_collect_skip(self, pytester: Pytester) -> None:
         """CollectReport.longreprtext can handle non-str ``longrepr`` attributes (#7559)"""
-        testdir.makepyfile(
+        pytester.makepyfile(
             """
             import pytest
             pytest.skip(allow_module_level=True)
             """
         )
-        rec = testdir.inline_run()
+        rec = pytester.inline_run()
         calls = rec.getcalls("pytest_collectreport")
         _, call = calls
         assert isinstance(call.report.longrepr, tuple)
         assert "Skipped" in call.report.longreprtext
 
-    def test_longreprtext_failure(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_longreprtext_failure(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             def test_func():
                 x = 1
@@ -986,8 +993,8 @@ class TestReportContents:
         rep = reports[1]
         assert "assert 1 == 4" in rep.longreprtext
 
-    def test_captured_text(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_captured_text(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             import pytest
             import sys
@@ -1016,8 +1023,8 @@ class TestReportContents:
         assert call.capstderr == "setup: stderr\ncall: stderr\n"
         assert teardown.capstderr == "setup: stderr\ncall: stderr\nteardown: stderr\n"
 
-    def test_no_captured_text(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_no_captured_text(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             def test_func():
                 pass
@@ -1027,8 +1034,8 @@ class TestReportContents:
         assert rep.capstdout == ""
         assert rep.capstderr == ""
 
-    def test_longrepr_type(self, testdir) -> None:
-        reports = testdir.runitem(
+    def test_longrepr_type(self, pytester: Pytester) -> None:
+        reports = pytester.runitem(
             """
             import pytest
             def test_func():
@@ -1036,7 +1043,7 @@ class TestReportContents:
         """
         )
         rep = reports[1]
-        assert isinstance(rep.longrepr, _pytest._code.code.ExceptionRepr)
+        assert isinstance(rep.longrepr, ExceptionChainRepr)
 
 
 def test_outcome_exception_bad_msg() -> None:

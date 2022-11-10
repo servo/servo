@@ -45,17 +45,17 @@ body { margin: 0; }
 <body onload="document.fonts.ready.then(() => { runTests(); })">
 
 <p>Vertical LR 4x1 grid with parallel and orthogonal items.</p>
-<div id="grid1" class="grid verticalLR contentStart itemsBaseline" data-expected-height="92">
-    <div class="item"                                 data-offset-x="12"  data-offset-y="10"  data-expected-width="40" data-expected-height="38">É</div>
-    <div class="item horizontalTB"                    data-offset-x="70"  data-offset-y="34"  data-expected-width="50" data-expected-height="48">É</div>
+<div id="grid1" class="grid verticalLR contentStart itemsBaseline" data-expected-height="104">
+    <div class="item"                                 data-offset-x="12"  data-offset-y="40"  data-expected-width="40" data-expected-height="38">É</div>
+    <div class="item horizontalTB"                    data-offset-x="70"  data-offset-y="46"  data-expected-width="50" data-expected-height="48">É</div>
     <div class="item"                                 data-offset-x="138" data-offset-y="10"  data-expected-width="70" data-expected-height="68">É</div>
-    <div class="item horizontalTB"                    data-offset-x="226" data-offset-y="10"  data-expected-width="80" data-expected-height="78">É</div>
+    <div class="item horizontalTB"                    data-offset-x="226" data-offset-y="22"  data-expected-width="80" data-expected-height="78">É</div>
 </div>
-<div id="grid2" class="grid verticalLR contentStart itemsBaseline" data-expected-height="129">
+<div id="grid2" class="grid verticalLR contentStart itemsBaseline" data-expected-height="155">
     <div class="item extraTopPadding"                 data-offset-x="12"  data-offset-y="10"  data-expected-width="40" data-expected-height="82">É</div>
-    <div class="item horizontalTB extraBottomPadding" data-offset-x="70"  data-offset-y="34"  data-expected-width="50" data-expected-height="91">É</div>
-    <div class="item"                                 data-offset-x="138" data-offset-y="10"  data-expected-width="70" data-expected-height="68">É</div>
-    <div class="item horizontalTB"                    data-offset-x="226" data-offset-y="10"  data-expected-width="80" data-expected-height="78">É</div>
+    <div class="item horizontalTB extraBottomPadding" data-offset-x="70"  data-offset-y="60"  data-expected-width="50" data-expected-height="91">É</div>
+    <div class="item"                                 data-offset-x="138" data-offset-y="24"  data-expected-width="70" data-expected-height="68">É</div>
+    <div class="item horizontalTB"                    data-offset-x="226" data-offset-y="36"  data-expected-width="80" data-expected-height="78">É</div>
 </div>
 
 <br clear="all">

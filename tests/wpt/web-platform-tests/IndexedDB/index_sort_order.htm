@@ -4,7 +4,7 @@
 <link rel="author" title="Microsoft" href="http://www.microsoft.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     var db,
@@ -28,7 +28,7 @@
 
     open_rq.onsuccess = function(e) {
         var actual_keys = [],
-          rq = db.transaction("store")
+          rq = db.transaction("store", "readonly", {durability: 'relaxed'})
                  .objectStore("store")
                  .index("index")
                  .openCursor();

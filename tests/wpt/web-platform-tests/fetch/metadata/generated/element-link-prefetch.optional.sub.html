@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<!--
+This test was procedurally generated. Please do not modify it directly.
+Sources:
+- fetch/metadata/tools/fetch-metadata.conf.yml
+- fetch/metadata/tools/templates/element-link-prefetch.optional.sub.html
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <title>HTTP headers on request for HTML "link" element with rel="prefetch"</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  /**
+   * The `link` element supports a `load` event. That event would reliably
+   * indicate that the browser had received the request. Multiple major
+   * browsers do not implement the event, however, so in order to promote the
+   * visibility of this test, a less efficient polling-based detection
+   * mechanism is used.
+   *
+   * https://bugzilla.mozilla.org/show_bug.cgi?id=1638188
+   * https://bugs.chromium.org/p/chromium/issues/detail?id=1083034
+   */
+  function induceRequest(t, url, attributes) {
+    const link = document.createElement('link');
+    link.setAttribute('rel', 'prefetch');
+    link.setAttribute('href', url);
+
+    for (const [ name, value ] of Object.entries(attributes)) {
+      link.setAttribute(name, value);
+    }
+
+    document.head.appendChild(link);
+    t.add_cleanup(() => link.remove());
+  }
+
+  setup(() => {
+    assert_implements_optional(document.createElement('link').relList.supports('prefetch'));
+  });
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-site');
+      });
+  }, 'sec-fetch-site - Not sent to non-trustworthy same-origin destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-site');
+      });
+  }, 'sec-fetch-site - Not sent to non-trustworthy same-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-site');
+      });
+  }, 'sec-fetch-site - Not sent to non-trustworthy cross-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-mode');
+      });
+  }, 'sec-fetch-mode - Not sent to non-trustworthy same-origin destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-mode');
+      });
+  }, 'sec-fetch-mode - Not sent to non-trustworthy same-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-mode');
+      });
+  }, 'sec-fetch-mode - Not sent to non-trustworthy cross-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-dest');
+      });
+  }, 'sec-fetch-dest - Not sent to non-trustworthy same-origin destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-dest');
+      });
+  }, 'sec-fetch-dest - Not sent to non-trustworthy same-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-dest');
+      });
+  }, 'sec-fetch-dest - Not sent to non-trustworthy cross-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+      });
+  }, 'sec-fetch-user - Not sent to non-trustworthy same-origin destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+      });
+  }, 'sec-fetch-user - Not sent to non-trustworthy same-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+      });
+  }, 'sec-fetch-user - Not sent to non-trustworthy cross-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsOrigin', 'httpOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-site');
+      });
+  }, 'sec-fetch-site - HTTPS downgrade (header not sent) no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpOrigin', 'httpsOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - HTTPS upgrade no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['cross-site']);
+      });
+  }, 'sec-fetch-site - HTTPS downgrade-upgrade no attributes');
+  </script>
+  </body>
+</html>
+

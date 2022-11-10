@@ -35,6 +35,7 @@ for (let property of properties) {
     target.style[property] = '1234';
     assert_not_equals(target.style[property], '1234');
     assert_not_equals(target.style[property], '1234px');
+    assert_not_equals(target.style[property], '1234px auto');
   }, 'Property ' + property + ' does not support quirky length');
 }
 </script>

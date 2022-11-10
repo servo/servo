@@ -45,6 +45,7 @@
   test_valid_selector(':focus-visible');
 
   async_test((t) => {
+    host.focus();
     window.requestAnimationFrame(t.step_func_done(() => {
       assert_not_equals(getComputedStyle(host).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${host.tagName}#${host.id} should NOT be red`);
 

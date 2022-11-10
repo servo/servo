@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Seeking the time container to a large value does not cause a crash (or hang)</title>
+<svg>
+  <rect height="100" width="100" fill="blue">
+    <animateTransform begin="18446744073709551557" dur="2" repeatCount="indefinite"
+                      attributeName="transform" type="rotate" from="0,15,15" to="360,15,15"/>
+  </rect>
+</svg>
+<script>
+  let svg = document.querySelector("svg");
+  svg.setCurrentTime(9000000000000000);
+  let html = document.documentElement;
+  html.addEventListener("TestRendered", () => html.classList.remove("reftest-wait"));
+</script>

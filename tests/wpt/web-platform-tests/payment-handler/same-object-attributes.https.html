@@ -9,7 +9,7 @@
 
 promise_test(async t => {
   const registration = await service_worker_unregister_and_register(
-      t, 'basic-card.js', 'payment-app/');
+      t, 'app-simple.js', 'payment-app/');
   await wait_for_state(t, registration.installing, 'activated');
 
   assert_equals(registration.paymentManager, registration.paymentManager);

@@ -5,10 +5,12 @@ async function clickOnElementAndDelay(id, delay, callback) {
   const element = document.getElementById(id);
   const clickHandler = () => {
     mainThreadBusy(delay);
-    if (callback)
+    if (callback) {
       callback();
+    }
     element.removeEventListener("pointerdown", clickHandler);
   };
+
   element.addEventListener("pointerdown", clickHandler);
   await test_driver.click(element);
 }
@@ -81,17 +83,15 @@ function waitForTick() {
   // attempt to check that the duration is appropriately checked by:
   // * Asserting that entries received have a duration which is the smallest multiple of 8
   //   that is greater than or equal to |dur|.
-  // * Issuing |numEntries| entries that are fast, of duration |slowDur|.
-  // * Issuing |numEntries| entries that are slow, of duration |fastDur|.
-  // * Asserting that at least |numEntries| entries are received (at least the slow ones).
+  // * Issuing |numEntries| entries that has duration greater than |slowDur|.
+  // * Asserting that exactly |numEntries| entries are received.
   // Parameters:
   // |t|          - the test harness.
   // |dur|        - the durationThreshold for the PerformanceObserver.
   // |id|         - the ID of the element to be clicked.
-  // |numEntries| - the number of slow and number of fast entries.
+  // |numEntries| - the number of entries.
   // |slowDur|    - the min duration of a slow entry.
-  // |fastDur|    - the min duration of a fast entry.
-async function testDuration(t, id, numEntries, dur, fastDur, slowDur) {
+async function testDuration(t, id, numEntries, dur, slowDur) {
   assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
   const observerPromise = new Promise(async resolve => {
     let minDuration = Math.ceil(dur / 8) * 8;
@@ -106,28 +106,61 @@ async function testDuration(t, id, numEntries, dur, fastDur, slowDur) {
         });
       });
       numEntriesReceived += pointerDowns.length;
-      // Note that we may receive more entries if the 'fast' click events turn out slower
-      // than expected.
-      if (numEntriesReceived >= numEntries)
+      // All the entries should be received since the slowDur is higher
+      // than the duration threshold.
+      if (numEntriesReceived === numEntries)
         resolve();
     }).observe({type: "event", durationThreshold: dur});
   });
   const clicksPromise = new Promise(async resolve => {
     for (let index = 0; index < numEntries; index++) {
-      // Add some fast click events.
+      // Add some click events that has at least slowDur for duration.
       await clickOnElementAndDelay(id, slowDur);
-      // Add some slow click events.
-      if (fastDur > 0) {
-        await clickOnElementAndDelay(id, fastDur);
-      } else {
-        // We can just directly call test_driver when |fastDur| is 0.
-        await test_driver.click(document.getElementById(id));
-      }
     }
     resolve();
   });
   return Promise.all([observerPromise, clicksPromise]);
 }
+
+  // Add a PerformanceObserver and observe with a durationThreshold of |durThreshold|. This test will
+  // attempt to check that the duration is appropriately checked by:
+  // * Asserting that entries received have a duration which is the smallest multiple of 8
+  //   that is greater than or equal to |durThreshold|.
+  // * Issuing |numEntries| entries that have at least |processingDelay| as duration.
+  // * Asserting that the entries we receive has duration greater than or equals to the
+  //   duration threshold we setup
+  // Parameters:
+  // |t|                     - the test harness.
+  // |id|                    - the ID of the element to be clicked.
+  // |durThreshold|          - the durationThreshold for the PerformanceObserver.
+  // |numEntries|            - the number of slow and number of fast entries.
+  // |processingDelay|       - the event duration we add on each event.
+  async function testDurationWithDurationThreshold(t, id, numEntries, durThreshold, processingDelay) {
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    const observerPromise = new Promise(async resolve => {
+      let minDuration = Math.ceil(durThreshold / 8) * 8;
+      // Exposed events must always have a minimum duration of 16.
+      minDuration = Math.max(minDuration, 16);
+      new PerformanceObserver(t.step_func(list => {
+        const pointerDowns = list.getEntriesByName('pointerdown');
+        pointerDowns.forEach(p => {
+        assert_greater_than_equal(p.duration, minDuration,
+          "The entry's duration should be greater than or equal to " + minDuration + " ms.");
+        });
+        resolve();
+      })).observe({type: "event", durationThreshold: durThreshold});
+    });
+    for (let index = 0; index < numEntries; index++) {
+      // These clicks are expected to be ignored, unless the test has some extra delays.
+      // In that case, the test will verify the event duration to ensure the event duration is
+      // greater than the duration threshold
+      await clickOnElementAndDelay(id, processingDelay);
+    }
+    // Send click with event duration equals to or greater than |durThreshold|, so the
+    // observer promise can be resolved
+    await clickOnElementAndDelay(id, durThreshold);
+    return observerPromise;
+  }
 
 // Apply events that trigger an event of the given |eventType| to be dispatched to the
 // |target|. Some of these assume that the target is not on the top left corner of the
@@ -168,6 +201,13 @@ function applyAction(eventType, target) {
       || eventType === 'pointerleave' || eventType === 'pointerout') {
     actions.pointerMove(0, 0, {origin: target})
     .pointerMove(0, 0);
+  } else if (eventType === 'keyup' || eventType === 'keydown') {
+    // Any key here as an input should work.
+    // TODO: Switch this to use test_driver.Actions.key{up,down}
+    // when test driver supports it.
+    // Please check crbug.com/893480.
+    const key = 'k';
+    return test_driver.send_keys(target, key);
   } else {
     assert_unreached('The event type ' + eventType + ' is not supported.');
   }
@@ -182,7 +222,9 @@ function requiresListener(eventType) {
           'pointerleave',
           'pointerout',
           'pointerover',
-          'pointerup'
+          'pointerup',
+          'keyup',
+          'keydown'
         ].includes(eventType);
 }
 
@@ -274,4 +316,82 @@ async function testEventType(t, eventType, looseCount=false) {
   await waitForTick();
 
   await observerPromise;
+}
+
+function addListeners(element, events) {
+  const clickHandler = (e) => {
+    mainThreadBusy(200);
+  };
+  events.forEach(e => { element.addEventListener(e, clickHandler); });
+}
+
+// The testdriver.js, testdriver-vendor.js and testdriver-actions.js need to be
+// included to use this function.
+function tap(element) {
+  return new test_driver.Actions()
+    .addPointer("touchPointer", "touch")
+    .pointerMove(0, 0, { origin: element })
+    .pointerDown()
+    .pointerUp()
+    .send();
+}
+
+// The testdriver.js, testdriver-vendor.js need to be included to use this
+// function.
+async function pressKey(element, key) {
+  await test_driver.send_keys(element, key);
+}
+
+// The testdriver.js, testdriver-vendor.js need to be included to use this
+// function.
+async function addListenersAndPress(element, key, events) {
+  addListeners(element, events);
+  return pressKey(element, key);
+}
+
+// The testdriver.js, testdriver-vendor.js need to be included to use this
+// function.
+function addListenersAndClick(element) {
+  addListeners(element, ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click']);
+  return test_driver.click(element);
+}
+
+function filterAndAddToMap(events, map) {
+  return function (entry) {
+    if (events.includes(entry.name)) {
+      map.set(entry.name, entry.interactionId);
+      return true;
+    }
+    return false;
+  }
+}
+
+function createPerformanceObserverPromise(observeTypes, callback, readyToResolve) {
+  return new Promise(resolve => {
+    new PerformanceObserver(entryList => {
+      callback(entryList);
+
+      if (readyToResolve())
+        resolve();
+    }).observe({ entryTypes: observeTypes });
+  });
+}
+
+// The testdriver.js, testdriver-vendor.js need to be included to use this
+// function.
+function interactAndObserve(interactionType, element, observerPromise) {
+  let interactionPromise;
+  switch (interactionType) {
+    case 'tap': {
+      addListeners(element, ['pointerdown', 'pointerup']);
+      interactionPromise = tap(element);
+      break;
+    }
+    case 'click': {
+      addListeners(element, ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click']);
+      interactionPromise = test_driver.click(element);
+      break;
+    }
+  }
+  return Promise.all([interactionPromise, observerPromise]);
 }

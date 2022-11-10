@@ -39,7 +39,7 @@ def _fixname(key):
 _undefined_entity_code = expat.errors.codes[expat.errors.XML_ERROR_UNDEFINED_ENTITY]  # type: int
 
 
-class XMLParser(object):
+class XMLParser:
     """
     An XML parser with support for XHTML DTDs and all Python-supported encodings
 

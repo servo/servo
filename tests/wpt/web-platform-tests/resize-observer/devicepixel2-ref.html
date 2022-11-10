@@ -1,0 +1,21 @@
+<!doctype html>
+<body>
+<script type="module">
+import createPatternDataURL from './create-pattern-data-url.js';
+
+const { patternSize, dataURL } = createPatternDataURL();
+document.body.style.backgroundImage = `url("${dataURL}")`;
+
+function setBackgroundPatternTo1DevicePixel() {
+  const oneDevicePixel = 1 / devicePixelRatio;
+  const patternPixels = oneDevicePixel * patternSize;
+  document.body.style.backgroundSize = `${patternPixels}px ${patternPixels}px`;
+}
+setBackgroundPatternTo1DevicePixel();
+
+// If we're viewed interactively and the user activates
+// full-page-zoom, changes the page zoom level, or resizes
+// the window, update the rendering to account for that:
+window.addEventListener('resize', setBackgroundPatternTo1DevicePixel);
+</script>
+</body>

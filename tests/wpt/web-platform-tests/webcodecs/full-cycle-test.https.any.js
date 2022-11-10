@@ -40,7 +40,7 @@ promise_test(async t => {
     output(frame) {
       assert_equals(frame.visibleRect.width, w, "visibleRect.width");
       assert_equals(frame.visibleRect.height, h, "visibleRect.height");
-      assert_equals(frame.timestamp, next_ts++, "timestamp");
+      assert_equals(frame.timestamp, next_ts++, "decode timestamp");
       frames_decoded++;
       assert_true(validateBlackDots(frame, frame.timestamp),
         "frame doesn't match. ts: " + frame.timestamp);
@@ -51,6 +51,7 @@ promise_test(async t => {
     }
   });
 
+  let next_encode_ts = 0;
   const encoder_init = {
     output(chunk, metadata) {
       let config = metadata.decoderConfig;
@@ -60,6 +61,7 @@ promise_test(async t => {
       }
       decoder.decode(chunk);
       frames_encoded++;
+      assert_equals(chunk.timestamp, next_encode_ts++, "encode timestamp");
     },
     error(e) {
       assert_unreached(e.message);
@@ -79,7 +81,7 @@ promise_test(async t => {
   await decoder.flush();
   encoder.close();
   decoder.close();
-  assert_equals(frames_encoded, frames_to_encode);
-  assert_equals(frames_decoded, frames_to_encode);
+  assert_equals(frames_encoded, frames_to_encode, "frames_encoded");
+  assert_equals(frames_decoded, frames_to_encode, "frames_decoded");
 }, 'Encoding and decoding cycle');
 

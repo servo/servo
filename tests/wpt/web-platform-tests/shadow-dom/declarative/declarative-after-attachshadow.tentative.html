@@ -25,9 +25,11 @@ assert_false(gotHost, 'No mutations yet');
 </script>
 
 <div id=host>
-  <script></script> <!-- Make sure MutationObserver gets to run -->
+  <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
+  <script> // some content, which shouldn't be necessary </script>
   <template shadowroot=open>
-    <slot></slot>
+    Content
+    <slot>Fallback</slot>
   </template>
 </div>
 

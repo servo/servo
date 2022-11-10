@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#determining">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.relpos {
+  position: relative;
+}
+.abspos {
+  position: absolute;
+}
+.anchor1 {
+  anchor-name: --a1;
+  width: 10px;
+  height: 10px;
+  background: orange;
+}
+.target {
+  position: absolute;
+  width: anchor-size(--a1 width);
+  height: 10px;
+  background: lime;
+}
+</style>
+<body onload="checkLayout('.target')">
+  <div class="relpos">
+    <div>
+      <div class="relpos">
+        <div class="abspos">
+          <div class="relpos">
+            <div class="anchor1" style="position: absolute"></div>
+            <!-- This target should not find the anchor, because the anchor is
+              positioned. -->
+            <div class="target" data-expected-width=0></div>
+          </div>
+          <!-- This target should find the anchor, because the last containing
+            block has `position: relative`. -->
+          <div class="target" data-expected-width=10></div>
+        </div>
+        <!-- This target should not find the anchor, because the last containing
+          block has `position: absolute`. -->
+        <div class="target" data-expected-width=0></div>
+      </div>
+    </div>
+    <!-- This target should find the anchor, because the last containing block
+      is statically positioned. -->
+    <div class="target" data-expected-width=10></div>
+  </div>
+</body>

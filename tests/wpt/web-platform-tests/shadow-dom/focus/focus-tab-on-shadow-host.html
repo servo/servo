@@ -25,5 +25,7 @@ promise_test(async function() {
   assert_equals(document.activeElement, host);
   assert_equals(shadowRoot.activeElement, input);
   assert_true(host.matches(':focus'));
-}, ":focus should be applied to the host when the focus is moved by <tab>");
+  assert_true(input.matches(':focus'));
+  assert_true(input.matches(':focus-visible'));
+}, ":focus should be applied to the host and :focus-visible should be applied to the child node when the focus is moved by <tab>");
 </script>

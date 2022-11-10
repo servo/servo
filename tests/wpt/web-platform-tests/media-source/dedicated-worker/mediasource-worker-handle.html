@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<title>Test MediaSource object and handle creation, with MediaSource in dedicated worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-message-util.js"></script>
+<script>
+
+async_test(t => {
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
+  assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
+  assert_true(window.hasOwnProperty("MediaSourceHandle"), "window must have MediaSourceHandle visibility");
+
+  let worker = new Worker("mediasource-worker-play.js");
+  worker.onmessage = t.step_func(e => {
+    let subject = e.data.subject;
+    assert_true(subject != undefined, "message must have a subject field");
+    switch (subject) {
+      case messageSubject.ERROR:
+        assert_unreached("Worker error: " + e.data.info);
+        break;
+      case messageSubject.HANDLE:
+        const handle = e.data.info;
+        assert_not_equals(handle, null, "must have a non-null MediaSourceHandle");
+        assert_true(handle instanceof MediaSourceHandle, "must be a MediaSourceHandle");
+        t.done();
+        break;
+      default:
+        assert_unreached("Unexpected message subject: " + subject);
+
+    }
+  });
+}, "Test main context receipt of postMessage'd MediaSourceHandle from DedicatedWorker MediaSource");
+
+test(t => {
+  assert_true(window.hasOwnProperty("MediaSourceHandle"), "window must have MediaSourceHandle");
+}, "Test main-thread has MediaSourceHandle defined");
+
+test(t => {
+  // Note, MSE spec may eventually describe how a main-thread MediaSource can
+  // attach to an HTMLMediaElement using a MediaSourceHandle. For now, we
+  // ensure that the implementation of this is not available per current spec.
+  assert_false(
+      "handle" in MediaSource.prototype,
+      "window MediaSource must not have handle in prototype");
+}, "Test main-thread MediaSource does not have handle getter");
+
+if (MediaSource.hasOwnProperty("canConstructInDedicatedWorker") && MediaSource.canConstructInDedicatedWorker === true) {
+  // If implementation claims support for MSE-in-Workers, then fetch and run
+  // some tests directly in another dedicated worker and get their results
+  // merged into those from this page.
+  fetch_tests_from_worker(new Worker("mediasource-worker-handle.js"));
+} else {
+  // Otherwise, fetch and run a test that verifies lack of support of
+  // MediaSource construction in another dedicated worker.
+  fetch_tests_from_worker(new Worker("mediasource-worker-must-fail-if-unsupported.js"));
+}
+
+</script>
+</html>

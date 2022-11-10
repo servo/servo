@@ -5,7 +5,6 @@
 
 partial interface Navigator {
   [SecureContext] Promise<undefined> share(optional ShareData data = {});
-
   [SecureContext] boolean canShare(optional ShareData data = {});
 };
 

@@ -4,10 +4,12 @@
   Async Clipboard write ([image/svg+xml ClipboardItem]) -> readSvg (and remove scripts) tests
 </title>
 <link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
 <script>
 'use strict';
 // This function removes extra spaces between tags in svg. For example, the
@@ -36,7 +38,9 @@ promise_test(async t => {
   await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
   const blobInput = new Blob([svg_with_script], {type: 'image/svg+xml'});
   const clipboardItem = new ClipboardItem({'image/svg+xml': blobInput});
+  await waitForUserActivation();
   await navigator.clipboard.write([clipboardItem]);
+  await waitForUserActivation();
   const clipboardItems =
       await navigator.clipboard.read({type: 'image/svg+xml'});
 

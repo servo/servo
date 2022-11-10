@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1209217">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<script src="resources/focus-utils.js"></script>
+
+<slot>
+  <input id=input1>
+</slot>
+<slot>
+  <input id=input2>
+</slot>
+
+<script>
+promise_test(async () => {
+  input1.focus();
+  assert_equals(document.activeElement, input1);
+
+  await navigateFocusForward();
+  assert_equals(document.activeElement, input2);
+}, `Verifies that focusing forwards from an input inside a slot which has no shadow root goes to the next focusable element in light DOM.`);
+</script>

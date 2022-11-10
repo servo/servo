@@ -1,5 +1,5 @@
 // META: title=IDBObjectStore.get() - throw TransactionInactiveError on aborted transaction
-// META: script=support.js
+// META: script=resources/support.js
 // @author YuichiNukiyama <https://github.com/YuichiNukiyama>
 
 "use strict";
@@ -14,7 +14,7 @@ open_rq.onupgradeneeded = event => {
 };
 
 open_rq.onsuccess = event => {
-  const store = db.transaction("store")
+  const store = db.transaction("store", "readonly", {durability: 'relaxed'})
     .objectStore("store");
   store.transaction.abort();
   assert_throws_dom("TransactionInactiveError", function () {

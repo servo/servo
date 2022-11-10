@@ -25,10 +25,10 @@ Line 4
 Line 5</div>
 <p>Following content.</p>
 <script>
-window.onload = function() {
+requestAnimationFrame(() => requestAnimationFrame(() => {
   document.querySelector(".clamp").textContent = `Line 1
 Line 2
 Line 3`;
   document.documentElement.className = "";
-};
+}));
 </script>

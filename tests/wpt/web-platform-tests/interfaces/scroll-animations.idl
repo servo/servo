@@ -3,44 +3,40 @@
 // (https://github.com/w3c/webref)
 // Source: Scroll-linked Animations (https://drafts.csswg.org/scroll-animations-1/)
 
-enum ScrollDirection {
+enum ScrollAxis {
   "block",
   "inline",
   "horizontal",
   "vertical"
 };
 
-enum ScrollTimelineAutoKeyword { "auto" };
-
-typedef (CSSNumericValue or CSSKeywordish) ContainerBasedOffset;
-typedef (ContainerBasedOffset or ElementBasedOffset) ScrollTimelineOffset;
-
 dictionary ScrollTimelineOptions {
   Element? source;
-  ScrollDirection orientation = "block";
-  sequence<ScrollTimelineOffset> scrollOffsets = [];
+  ScrollAxis axis = "block";
 };
 
 [Exposed=Window]
 interface ScrollTimeline : AnimationTimeline {
   constructor(optional ScrollTimelineOptions options = {});
   readonly attribute Element? source;
-  readonly attribute ScrollDirection orientation;
-  readonly attribute FrozenArray<ScrollTimelineOffset> scrollOffsets;
+  readonly attribute ScrollAxis axis;
 };
 
-enum Edge { "start", "end" };
-
-dictionary ElementBasedOffset {
-  Element target;
-  Edge edge = "start";
-  double threshold = 0.0;
+dictionary ViewTimelineOptions {
+  Element subject;
+  ScrollAxis axis = "block";
 };
 
 [Exposed=Window]
-interface CSSScrollTimelineRule : CSSRule {
-  readonly attribute CSSOMString name;
-  readonly attribute CSSOMString source;
-  readonly attribute CSSOMString orientation;
-  readonly attribute CSSOMString scrollOffsets;
+interface ViewTimeline : ScrollTimeline {
+  constructor(optional ViewTimelineOptions options = {});
+  readonly attribute Element subject;
+  readonly attribute CSSNumericValue startOffset;
+  readonly attribute CSSNumericValue endOffset;
+};
+
+[Exposed=Window]
+interface AnimationTimeline {
+  readonly attribute CSSNumberish? currentTime;
+  CSSNumericValue? getCurrentTime(optional CSSOMString rangeName);
 };

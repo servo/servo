@@ -160,7 +160,7 @@ the following:
 
 - an issue tracker for bug reports and enhancement requests.
 
-- a `changelog <http://keepachangelog.com/>`_.
+- a `changelog <https://keepachangelog.com/>`_.
 
 If no contributor strongly objects and two agree, the repository can then be
 transferred to the ``pytest-dev`` organisation.
@@ -234,9 +234,9 @@ Here is a simple overview, with pytest-specific bits:
 
     $ git clone git@github.com:YOUR_GITHUB_USERNAME/pytest.git
     $ cd pytest
-    # now, create your own branch off "master":
+    # now, create your own branch off "main":
 
-        $ git checkout -b your-bugfix-branch-name master
+        $ git checkout -b your-bugfix-branch-name main
 
    Given we have "major.minor.micro" version numbers, bug fixes will usually
    be released in micro releases whereas features will be released in
@@ -259,7 +259,7 @@ Here is a simple overview, with pytest-specific bits:
 
    Tox is used to run all the tests and will automatically setup virtualenvs
    to run the tests in.
-   (will implicitly use http://www.virtualenv.org/en/latest/)::
+   (will implicitly use https://virtualenv.pypa.io/en/latest/)::
 
     $ pip install tox
 
@@ -299,12 +299,6 @@ Here is a simple overview, with pytest-specific bits:
 
        $ pytest testing/test_config.py
 
-
-#. Commit and push once your tests pass and you are happy with your change(s)::
-
-    $ git commit -a -m "<commit message>"
-    $ git push -u
-
 #. Create a new changelog entry in ``changelog``. The file should be named ``<issueid>.<type>.rst``,
    where *issueid* is the number of the issue related to the change and *type* is one of
    ``feature``, ``improvement``, ``bugfix``, ``doc``, ``deprecation``, ``breaking``, ``vendor``
@@ -313,32 +307,37 @@ Here is a simple overview, with pytest-specific bits:
 
 #. Add yourself to ``AUTHORS`` file if not there yet, in alphabetical order.
 
+#. Commit and push once your tests pass and you are happy with your change(s)::
+
+    $ git commit -a -m "<commit message>"
+    $ git push -u
+
 #. Finally, submit a pull request through the GitHub website using this data::
 
     head-fork: YOUR_GITHUB_USERNAME/pytest
     compare: your-branch-name
 
     base-fork: pytest-dev/pytest
-    base: master
+    base: main
 
 
 Writing Tests
 ~~~~~~~~~~~~~
 
-Writing tests for plugins or for pytest itself is often done using the `testdir fixture <https://docs.pytest.org/en/stable/reference.html#testdir>`_, as a "black-box" test.
+Writing tests for plugins or for pytest itself is often done using the `pytester fixture <https://docs.pytest.org/en/stable/reference/reference.html#pytester>`_, as a "black-box" test.
 
 For example, to ensure a simple test passes you can write:
 
 .. code-block:: python
 
-    def test_true_assertion(testdir):
-        testdir.makepyfile(
+    def test_true_assertion(pytester):
+        pytester.makepyfile(
             """
             def test_foo():
                 assert True
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.assert_outcomes(failed=0, passed=1)
 
 
@@ -347,14 +346,14 @@ Alternatively, it is possible to make checks based on the actual output of the t
 
 .. code-block:: python
 
-    def test_true_assertion(testdir):
-        testdir.makepyfile(
+    def test_true_assertion(pytester):
+        pytester.makepyfile(
             """
             def test_foo():
                 assert False
         """
         )
-        result = testdir.runpytest()
+        result = pytester.runpytest()
         result.stdout.fnmatch_lines(["*assert False*", "*1 failed*"])
 
 When choosing a file where to write a new test, take a look at the existing files and see if there's
@@ -388,15 +387,15 @@ Suppose for example that the latest release was 1.2.3, and you want to include
 a bug fix in 1.2.4 (check https://github.com/pytest-dev/pytest/releases for the
 actual latest release). The procedure for this is:
 
-#. First, make sure the bug is fixed the ``master`` branch, with a regular pull
+#. First, make sure the bug is fixed the ``main`` branch, with a regular pull
    request, as described above. An exception to this is if the bug fix is not
-   applicable to ``master`` anymore.
+   applicable to ``main`` anymore.
 
-#. ``git checkout origin/1.2.x -b backport-XXXX`` # use the master PR number here
+#. ``git checkout origin/1.2.x -b backport-XXXX`` # use the main PR number here
 
 #. Locate the merge commit on the PR, in the *merged* message, for example:
 
-    nicoddemus merged commit 0f8b462 into pytest-dev:master
+    nicoddemus merged commit 0f8b462 into pytest-dev:main
 
 #. ``git cherry-pick -x -m1 REVISION`` # use the revision you found above (``0f8b462``).
 
@@ -409,8 +408,8 @@ actual latest release). The procedure for this is:
 Who does the backporting
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-As mentioned above, bugs should first be fixed on ``master`` (except in rare occasions
-that a bug only happens in a previous release). So who should do the backport procedure described
+As mentioned above, bugs should first be fixed on ``main`` (except in rare occasions
+that a bug only happens in a previous release). So, who should do the backport procedure described
 above?
 
 1. If the bug was fixed by a core developer, it is the main responsibility of that core developer
@@ -418,8 +417,8 @@ above?
 2. However, often the merge is done by another maintainer, in which case it is nice of them to
    do the backport procedure if they have the time.
 3. For bugs submitted by non-maintainers, it is expected that a core developer will to do
-   the backport, normally the one that merged the PR on ``master``.
-4. If a non-maintainers notices a bug which is fixed on ``master`` but has not been backported
+   the backport, normally the one that merged the PR on ``main``.
+4. If a non-maintainers notices a bug which is fixed on ``main`` but has not been backported
    (due to maintainers forgetting to apply the *needs backport* label, or just plain missing it),
    they are also welcome to open a PR with the backport. The procedure is simple and really
    helps with the maintenance of the project.
@@ -448,7 +447,7 @@ can always reopen the issue/pull request in their own time later if it makes sen
 When to close
 ~~~~~~~~~~~~~
 
-Here are a few general rules the maintainers use to decide when to close issues/PRs because
+Here are a few general rules the maintainers use deciding when to close issues/PRs because
 of lack of inactivity:
 
 * Issues labeled ``question`` or ``needs information``: closed after 14 days inactive.
@@ -460,15 +459,15 @@ The above are **not hard rules**, but merely **guidelines**, and can be (and oft
 Closing pull requests
 ~~~~~~~~~~~~~~~~~~~~~
 
-When closing a Pull Request, it needs to be acknowledge the time, effort, and interest demonstrated by the person which submitted it. As mentioned previously, it is not the intent of the team to dismiss stalled pull request entirely but to merely to clear up our queue, so a message like the one below is warranted when closing a pull request that went stale:
+When closing a Pull Request, it needs to be acknowledging the time, effort, and interest demonstrated by the person which submitted it. As mentioned previously, it is not the intent of the team to dismiss a stalled pull request entirely but to merely to clear up our queue, so a message like the one below is warranted when closing a pull request that went stale:
 
     Hi <contributor>,
 
-    First of all we would like to thank you for your time and effort on working on this, the pytest team deeply appreciates it.
+    First of all, we would like to thank you for your time and effort on working on this, the pytest team deeply appreciates it.
 
     We noticed it has been awhile since you have updated this PR, however. pytest is a high activity project, with many issues/PRs being opened daily, so it is hard for us maintainers to track which PRs are ready for merging, for review, or need more attention.
 
-    So for those reasons we think it is best to close the PR for now, but with the only intention to cleanup our queue, it is by no means a rejection of your changes. We still encourage you to re-open this PR (it is just a click of a button away) when you are ready to get back to it.
+    So for those reasons we, think it is best to close the PR for now, but with the only intention to clean up our queue, it is by no means a rejection of your changes. We still encourage you to re-open this PR (it is just a click of a button away) when you are ready to get back to it.
 
     Again we appreciate your time for working on this, and hope you might get back to this at a later time!
 

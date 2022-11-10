@@ -1,7 +1,9 @@
+# mypy: allow-untyped-defs
+
 from six import ensure_text
 
 from .node import NodeVisitor, ValueNode, ListNode, BinaryExpressionNode
-from .parser import atoms, precedence
+from .parser import atoms, precedence, token_types
 
 atom_names = {v: "@%s" % k for (k,v) in atoms.items()}
 
@@ -38,6 +40,19 @@ class ManifestSerializer(NodeVisitor):
             rv = rv + "\n"
         return rv
 
+    def visit(self, node):
+        lines = super().visit(node)
+        comments = [f"#{comment}" for _, comment in node.comments]
+        # Simply checking if the first line contains '#' is less than ideal; the
+        # character might be escaped or within a string.
+        if lines and "#" not in lines[0]:
+            for i, (token_type, comment) in enumerate(node.comments):
+                if token_type == token_types.inline_comment:
+                    lines[0] += f"  #{comment}"
+                    comments.pop(i)
+                    break
+        return comments + lines
+
     def visit_DataNode(self, node):
         rv = []
         if not self.skip_empty_data or node.children:
@@ -63,7 +78,7 @@ class ManifestSerializer(NodeVisitor):
             rv[0] += " %s" % self.visit(node.children[0])[0]
         else:
             for child in node.children:
-                rv.append(indent + self.visit(child)[0])
+                rv.extend(indent + line for line in self.visit(child))
 
         return rv
 

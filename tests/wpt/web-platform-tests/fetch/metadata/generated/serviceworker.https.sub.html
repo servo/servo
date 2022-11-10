@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<!--
+This test was procedurally generated. Please do not modify it directly.
+Sources:
+- fetch/metadata/tools/fetch-metadata.conf.yml
+- fetch/metadata/tools/templates/serviceworker.https.sub.html
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for Service Workers</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(t, url, options, event, clear) {
+    // Register a service worker and check the request header.
+    return navigator.serviceWorker.register(url, options)
+      .then((registration) => {
+        t.add_cleanup(() => registration.unregister());
+        if (event === 'register') {
+          return;
+        }
+        return clear().then(() => registration.update());
+      });
+  }
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsOrigin'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {}, 'register')
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same origin, no options - registration');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsOrigin'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {}, 'update', () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-site');
+          assert_array_equals(headers['sec-fetch-site'], ['same-origin']);
+        });
+  }, 'sec-fetch-site - Same origin, no options - updating');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {"type": "classic"}, 'register')
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['same-origin']);
+        });
+  }, 'sec-fetch-mode - options: type=classic - registration');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {"type": "classic"}, 'update', () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['same-origin']);
+        });
+  }, 'sec-fetch-mode - options: type=classic - updating');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {}, 'register')
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['same-origin']);
+        });
+  }, 'sec-fetch-mode - no options - registration');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {}, 'update', () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-mode');
+          assert_array_equals(headers['sec-fetch-mode'], ['same-origin']);
+        });
+  }, 'sec-fetch-mode - no options - updating');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {}, 'register')
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['serviceworker']);
+        });
+  }, 'sec-fetch-dest - no options - registration');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {}, 'update', () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-dest');
+          assert_array_equals(headers['sec-fetch-dest'], ['serviceworker']);
+        });
+  }, 'sec-fetch-dest - no options - updating');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {}, 'register')
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        });
+  }, 'sec-fetch-user - no options - registration');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, {}, 'update', () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-user');
+        });
+  }, 'sec-fetch-user - no options - updating');
+  </script>
+</body>
+</html>

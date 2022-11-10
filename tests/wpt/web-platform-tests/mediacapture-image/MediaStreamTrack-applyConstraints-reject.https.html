@@ -26,7 +26,7 @@ var makePromiseTest = function(getConstraint) {
       await videoTrack.applyConstraints(constraints);
       assert_unreached('expected applyConstraints to reject');
     } catch (error) {
-      assert_equals(error.name, 'NotSupportedError');
+      assert_equals(error.name, 'OverconstrainedError');
     }
   });
 };

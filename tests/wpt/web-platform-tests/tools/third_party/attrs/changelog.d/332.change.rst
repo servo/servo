@@ -1,1 +1,0 @@
-The hash of ``attr.NOTHING`` is now vegan and faster on 32bit Python builds.

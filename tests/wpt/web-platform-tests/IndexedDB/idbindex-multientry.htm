@@ -6,7 +6,7 @@
 <link rel=assert title="XXX">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     var db,
@@ -27,7 +27,7 @@
     };
     open_rq.onsuccess = function(e) {
         var gotten_keys = [];
-        var idx = db.transaction('store').objectStore('store').index('actors');
+        var idx = db.transaction('store', 'readonly', {durability: 'relaxed'}).objectStore('store').index('actors');
 
         idx.getKey('Odin').onsuccess = this.step_func(function(e) {
             gotten_keys.push(e.target.result)

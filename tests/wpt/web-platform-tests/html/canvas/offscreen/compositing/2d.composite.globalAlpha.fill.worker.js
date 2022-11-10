@@ -21,7 +21,7 @@ ctx.fillRect(0, 0, 100, 50);
 ctx.globalAlpha = 0.01; // avoid any potential alpha=0 optimisations
 ctx.fillStyle = '#f00';
 ctx.fillRect(0, 0, 100, 50);
-_assertPixelApprox(canvas, 50,25, 2,253,0,255, "50,25", "2,253,0,255", 2);
+_assertPixelApprox(canvas, 50,25, 2,253,0,255, 2);
 t.done();
 
 });

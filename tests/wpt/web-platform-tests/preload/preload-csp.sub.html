@@ -1,55 +1,35 @@
 <!DOCTYPE html>
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; font-src 'none'; style-src 'none'; img-src 'none'; media-src 'none'; connect-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; font-src 'none'; style-src 'none'; img-src 'none'; media-src 'none';">
 <title>Makes sure that preload requests respect CSP</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
-<link rel=preload href="{{host}}:{{ports[http][1]}}/preload/resources/dummy.js" as=style>
-<link rel=preload href="resources/dummy.css" as=style>
-<link rel=preload href="resources/square.png" as=image>
-<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin>
-<link rel=preload href="resources/white.mp4" as=video>
-<link rel=preload href="resources/sound_5.oga" as=audio>
-<link rel=preload href="resources/foo.vtt" as=track>
-<link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing>
-<link rel=preload href="resources/dummy.xml">
+<link rel=preload href="http://{{host}}:{{ports[http][1]}}/preload/resources/stash-put.py?key={{uuid()}}" as=style>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=style>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=image>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=font crossorigin>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=video>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=audio>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=track>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=foobarxmlthing>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}">
 <body>
 <script>
-    setup({single_test: true});
-
-    var iterations = 0;
-
-    function check_finished() {
-        if (numberOfResourceTimingEntries("{{host}}:{{ports[http][1]}}/preload/resources/dummy.js") == 0 &&
-            numberOfResourceTimingEntries("resources/dummy.css") == 0 &&
-            numberOfResourceTimingEntries("resources/square.png") == 0 &&
-            numberOfResourceTimingEntries("/fonts/CanvasTest.ttf") == 0 &&
-            numberOfResourceTimingEntries("resources/white.mp4") == 0 &&
-            numberOfResourceTimingEntries("resources/sound_5.oga") == 0 &&
-            numberOfResourceTimingEntries("resources/foo.vtt") == 0 &&
-            numberOfResourceTimingEntries("resources/dummy.xml") == 0) {
-            done();
-        }
-        iterations++;
-        if (iterations == 10) {
-            // At least one is expected to fail, but this should give details to the exact failure(s).
-            verifyNumberOfResourceTimingEntries("{{host}}:{{ports[http][1]}}/preload/resources/dummy.js", 0);
-            verifyNumberOfResourceTimingEntries("resources/dummy.css", 0);
-            verifyNumberOfResourceTimingEntries("resources/square.png", 0);
-            verifyNumberOfResourceTimingEntries("/fonts/CanvasTest.ttf", 0);
-            verifyNumberOfResourceTimingEntries("resources/white.mp4", 0);
-            verifyNumberOfResourceTimingEntries("resources/sound_5.oga", 0);
-            verifyNumberOfResourceTimingEntries("resources/foo.vtt", 0);
-            verifyNumberOfResourceTimingEntries("resources/dummy.xml", 0);
-            done();
-        } else {
-            step_timeout(check_finished, 500);
-        }
+promise_test(async (t) => {
+  verifyPreloadAndRTSupport();
+  const keys = [];
+  const links = document.querySelectorAll('link');
+  for (const link of links) {
+    if (link.rel === 'preload') {
+      const r = /\?key=([a-zA-Z0-9\-]+)$/;
+      keys.push(link.href.match(r)[1]);
     }
+  }
+  await new Promise((resolve) => step_timeout(resolve, 3000));
 
-    window.addEventListener("load", function() {
-        verifyPreloadAndRTSupport();
-        step_timeout(check_finished, 500);
-    });
+  for (const key of keys) {
+    assert_false(await hasArrivedAtServer(key));
+  }
+}, 'Preload requests are blocked by CSP.');
 </script>
-

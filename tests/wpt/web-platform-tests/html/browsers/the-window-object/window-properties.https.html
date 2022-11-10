@@ -15,6 +15,8 @@
 <link rel="help" href="https://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#dom-window-getselection">
 <link rel="help" href="http://dev.w3.org/csswg/cssom/#widl-def-Window">
 <link rel="help" href="http://dev.w3.org/csswg/cssom-view/#widl-def-Window">
+<iframe id="iframe" style="visibility: hidden" src="/resources/blank.html"></iframe>
+<iframe id="detachedIframe" style="visibility: hidden" src="/resources/blank.html"></iframe>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
@@ -323,4 +325,34 @@ test(function() {
   assert_data_propdesc(Object.getOwnPropertyDescriptor(Window.prototype, "constructor"),
                        true, false, true);
 }, "constructor");
+var selfReferentialAccessors = ['window', 'self', 'frames'];
+// Test a variety of access methods
+var detached = window.detachedIframe;
+var detachedWindow = detached.contentWindow;
+detachedIframe.remove();
+selfReferentialAccessors.forEach(function(id) {
+  test(function() {
+    assert_equals(eval(`window.${id}`), window);
+    assert_equals(window[id], window);
+    assert_equals(Object.getOwnPropertyDescriptor(window, id).get.call(window), window);
+    assert_equals(Reflect.get(window, id), window);
+  }, "Window readonly getter: " + id);
+
+  test(function() {
+    var globalObject = iframe.contentWindow;
+    var _eval = globalObject.eval;
+    assert_equals(globalObject.eval(`window.${id}`), globalObject);
+    assert_equals(globalObject[id], globalObject);
+    assert_equals(_eval(`Object.getOwnPropertyDescriptor(window, "${id}").get.call(window)`), globalObject);
+    assert_equals(_eval(`Reflect.get(window, "${id}")`), globalObject);
+  }, "Window readonly getter in iframe: " + id);
+  test(function() {
+    var globalObject = detachedWindow;
+    var _eval = globalObject.eval;
+    assert_equals(_eval(`window.${id}`), globalObject);
+    assert_equals(globalObject[id], globalObject);
+    assert_equals(_eval(`Object.getOwnPropertyDescriptor(window, "${id}").get.call(window)`), globalObject);
+    assert_equals(_eval(`Reflect.get(window, "${id}")`), globalObject);
+  }, "Window readonly getter in detached iframe: " + id);
+});
 </script>

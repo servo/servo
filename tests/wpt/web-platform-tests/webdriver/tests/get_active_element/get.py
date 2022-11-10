@@ -20,6 +20,19 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
+def test_no_such_element(session, inline):
+    session.url = inline("<body></body>")
+    session.execute_script("""
+        if (document.body.remove) {
+          document.body.remove();
+        } else {
+          document.body.removeNode(true);
+        }""")
+
+    response = get_active_element(session)
+    assert_error(response, "no such element")
+
+
 def test_success_document(session, inline):
     session.url = inline("""
         <body>
@@ -117,16 +130,3 @@ def test_success_iframe_content(session, inline):
     response = get_active_element(session)
     element = assert_success(response)
     assert_is_active_element(session, element)
-
-
-def test_missing_document_element(session, inline):
-    session.url = inline("<body></body>")
-    session.execute_script("""
-        if (document.body.remove) {
-          document.body.remove();
-        } else {
-          document.body.removeNode(true);
-        }""")
-
-    response = get_active_element(session)
-    assert_error(response, "no such element")

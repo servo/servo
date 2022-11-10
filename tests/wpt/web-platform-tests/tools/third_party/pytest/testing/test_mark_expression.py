@@ -66,11 +66,29 @@ def test_syntax_oddeties(expr: str, expected: bool) -> None:
     assert evaluate(expr, matcher) is expected
 
 
+def test_backslash_not_treated_specially() -> None:
+    r"""When generating nodeids, if the source name contains special characters
+    like a newline, they are escaped into two characters like \n. Therefore, a
+    user will never need to insert a literal newline, only \n (two chars). So
+    mark expressions themselves do not support escaping, instead they treat
+    backslashes as regular identifier characters."""
+    matcher = {r"\nfoo\n"}.__contains__
+
+    assert evaluate(r"\nfoo\n", matcher)
+    assert not evaluate(r"foo", matcher)
+    with pytest.raises(ParseError):
+        evaluate("\nfoo\n", matcher)
+
+
 @pytest.mark.parametrize(
     ("expr", "column", "message"),
     (
         ("(", 2, "expected not OR left parenthesis OR identifier; got end of input"),
-        (" (", 3, "expected not OR left parenthesis OR identifier; got end of input",),
+        (
+            " (",
+            3,
+            "expected not OR left parenthesis OR identifier; got end of input",
+        ),
         (
             ")",
             1,
@@ -81,7 +99,11 @@ def test_syntax_oddeties(expr: str, expected: bool) -> None:
             1,
             "expected not OR left parenthesis OR identifier; got right parenthesis",
         ),
-        ("not", 4, "expected not OR left parenthesis OR identifier; got end of input",),
+        (
+            "not",
+            4,
+            "expected not OR left parenthesis OR identifier; got end of input",
+        ),
         (
             "not not",
             8,
@@ -98,7 +120,11 @@ def test_syntax_oddeties(expr: str, expected: bool) -> None:
             10,
             "expected not OR left parenthesis OR identifier; got end of input",
         ),
-        ("ident and or", 11, "expected not OR left parenthesis OR identifier; got or",),
+        (
+            "ident and or",
+            11,
+            "expected not OR left parenthesis OR identifier; got or",
+        ),
         ("ident ident", 7, "expected end of input; got identifier"),
     ),
 )
@@ -117,6 +143,8 @@ def test_syntax_errors(expr: str, column: int, message: str) -> None:
         ":::",
         "a:::c",
         "a+-b",
+        r"\nhe\\l\lo\n\t\rbye",
+        "a/b",
         "אבגד",
         "aaאבגדcc",
         "a[bcd]",
@@ -143,8 +171,6 @@ def test_valid_idents(ident: str) -> None:
 @pytest.mark.parametrize(
     "ident",
     (
-        "/",
-        "\\",
         "^",
         "*",
         "=",

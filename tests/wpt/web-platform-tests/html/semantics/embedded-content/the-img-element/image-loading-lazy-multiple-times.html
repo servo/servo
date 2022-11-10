@@ -37,19 +37,24 @@
   function changeImageSourceAndScrollToTop() {
     top_div.scrollIntoView();
 
-    // Lazily load a "different" image.
-    image.src = 'resources/image.png?image-loading-lazy-multiple-times-second';
-    image.onload =
-      t.unreached_func("The loading=lazy below-viewport image should lazily " +
-                       "load its second image, and not load it eagerly when " +
-                       "the `src` attribute is changed");
-
-    // In 1s, scroll the image *back* into view, and record that it loads
-    // successfully.
+    // Allow some time for scroll back to top, since we don't
+    // want the image to still be in the viewport and trigger a
+    // load due to the scroll being slow.
     t.step_timeout(() => {
-      image.onload = t.step_func_done();
-      image.scrollIntoView();
-    }, 1000);
+      // Lazily load a "different" image.
+      image.src = 'resources/image.png?image-loading-lazy-multiple-times-second';
+      image.onload =
+        t.unreached_func("The loading=lazy below-viewport image should lazily " +
+                         "load its second image, and not load it eagerly when " +
+                         "the `src` attribute is changed");
+
+      // In 1s, scroll the image *back* into view, and record that it loads
+      // successfully.
+      t.step_timeout(() => {
+        image.onload = t.step_func_done();
+        image.scrollIntoView();
+      }, 1000);
+    }, 500);
   }
 </script>
 </body>

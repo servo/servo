@@ -1,7 +1,7 @@
 {
   "name": "id member test",
   "id": "testId",
-  "start_url": "id-member-manifest-update-manual-v2.tentative.html",
+  "start_url": "id-member-manifest-update-manual-v2.html",
   "icons": [
     {
       "src": "icon.png",

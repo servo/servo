@@ -2,14 +2,14 @@ import logging
 
 import pytest
 from _pytest.logging import caplog_records_key
-from _pytest.pytester import Testdir
+from _pytest.pytester import Pytester
 
 logger = logging.getLogger(__name__)
 sublogger = logging.getLogger(__name__ + ".baz")
 
 
-def test_fixture_help(testdir):
-    result = testdir.runpytest("--fixtures")
+def test_fixture_help(pytester: Pytester) -> None:
+    result = pytester.runpytest("--fixtures")
     result.stdout.fnmatch_lines(["*caplog*"])
 
 
@@ -28,12 +28,12 @@ def test_change_level(caplog):
     assert "CRITICAL" in caplog.text
 
 
-def test_change_level_undo(testdir: Testdir) -> None:
+def test_change_level_undo(pytester: Pytester) -> None:
     """Ensure that 'set_level' is undone after the end of the test.
 
     Tests the logging output themselves (affacted both by logger and handler levels).
     """
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -49,17 +49,17 @@ def test_change_level_undo(testdir: Testdir) -> None:
             assert 0
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*log from test1*", "*2 failed in *"])
     result.stdout.no_fnmatch_line("*log from test2*")
 
 
-def test_change_level_undos_handler_level(testdir: Testdir) -> None:
+def test_change_level_undos_handler_level(pytester: Pytester) -> None:
     """Ensure that 'set_level' is undone after the end of the test (handler).
 
     Issue #7569. Tests the handler level specifically.
     """
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import logging
 
@@ -78,7 +78,7 @@ def test_change_level_undos_handler_level(testdir: Testdir) -> None:
             assert caplog.handler.level == 43
     """
     )
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.assert_outcomes(passed=3)
 
 
@@ -169,11 +169,11 @@ def test_caplog_captures_for_all_stages(caplog, logging_during_setup_and_teardow
     assert [x.message for x in caplog.get_records("setup")] == ["a_setup_log"]
 
     # This reaches into private API, don't use this type of thing in real tests!
-    assert set(caplog._item._store[caplog_records_key]) == {"setup", "call"}
+    assert set(caplog._item.stash[caplog_records_key]) == {"setup", "call"}
 
 
-def test_ini_controls_global_log_level(testdir):
-    testdir.makepyfile(
+def test_ini_controls_global_log_level(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -187,20 +187,20 @@ def test_ini_controls_global_log_level(testdir):
             assert 'ERROR' in caplog.text
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_level=ERROR
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
-def test_caplog_can_override_global_log_level(testdir):
-    testdir.makepyfile(
+def test_caplog_can_override_global_log_level(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -227,19 +227,19 @@ def test_caplog_can_override_global_log_level(testdir):
             assert "message won't be shown" not in caplog.text
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_level=WARNING
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     assert result.ret == 0
 
 
-def test_caplog_captures_despite_exception(testdir):
-    testdir.makepyfile(
+def test_caplog_captures_despite_exception(pytester: Pytester) -> None:
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -255,26 +255,28 @@ def test_caplog_captures_despite_exception(testdir):
                 raise Exception()
     """
     )
-    testdir.makeini(
+    pytester.makeini(
         """
         [pytest]
         log_level=WARNING
     """
     )
 
-    result = testdir.runpytest()
+    result = pytester.runpytest()
     result.stdout.fnmatch_lines(["*ERROR message will be shown*"])
     result.stdout.no_fnmatch_line("*DEBUG message won't be shown*")
     assert result.ret == 1
 
 
-def test_log_report_captures_according_to_config_option_upon_failure(testdir):
+def test_log_report_captures_according_to_config_option_upon_failure(
+    pytester: Pytester,
+) -> None:
     """Test that upon failure:
     (1) `caplog` succeeded to capture the DEBUG message and assert on it => No `Exception` is raised.
     (2) The `DEBUG` message does NOT appear in the `Captured log call` report.
     (3) The stdout, `INFO`, and `WARNING` messages DO appear in the test reports due to `--log-level=INFO`.
     """
-    testdir.makepyfile(
+    pytester.makepyfile(
         """
         import pytest
         import logging
@@ -299,7 +301,7 @@ def test_log_report_captures_according_to_config_option_upon_failure(testdir):
     """
     )
 
-    result = testdir.runpytest("--log-level=INFO")
+    result = pytester.runpytest("--log-level=INFO")
     result.stdout.no_fnmatch_line("*Exception: caplog failed to capture DEBUG*")
     result.stdout.no_fnmatch_line("*DEBUG log message*")
     result.stdout.fnmatch_lines(

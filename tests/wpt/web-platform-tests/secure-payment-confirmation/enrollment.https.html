@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>Test for registering a PublicKeyCredential with "payment" extension"</title>
+<title>Test for registering a PublicKeyCredential with "payment" extension</title>
 <link rel="help" href="https://w3c.github.io/secure-payment-confirmation/#client-extension-processing-registration">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -29,18 +29,31 @@ class CreatePaymentCredentialsTest extends CreateCredentialsTest {
 standardSetup(function() {
   // good creates
   new CreatePaymentCredentialsTest().runTest('Payment credential is created successfully.');
+  new CreatePaymentCredentialsTest({residentKey: 'preferred'})
+      .runTest('Payment credential allows residentKey to be "preferred".');
 
   // bad creates
   new CreatePaymentCredentialsTest({userVerification: 'preferred'})
       .runTest('Payment credential requires userVerification to be "required", not "preferred".', "NotSupportedError");
   new CreatePaymentCredentialsTest({userVerification: 'discouraged'})
       .runTest('Payment credential requires userVerification to be "required", not "discouraged".', "NotSupportedError");
-  new CreatePaymentCredentialsTest({residentKey: 'preferred'})
-      .runTest('Payment credential requires residentKey to be "required", not "preferred".', "NotSupportedError");
   new CreatePaymentCredentialsTest({residentKey: 'discouraged'})
-      .runTest('Payment credential requires residentKey to be "required", not "discouraged".', "NotSupportedError");
+      .runTest('Payment credential does not allow residentKey to be "discouraged".', "NotSupportedError");
   new CreatePaymentCredentialsTest({authenticatorAttachment: 'cross-platform'})
       .runTest('Payment credential requires authenticatorAttachment to be "platform", not "cross-platform".', "NotSupportedError");
+
+  // abort creates
+  let abortController = new AbortController();
+  abortController.abort();
+  new CreatePaymentCredentialsTest()
+      .modify("options.signal", abortController.signal)
+      .runTest("Payment credential abort without reason", "AbortError");
+
+  abortController = new AbortController();
+  abortController.abort(new Error('error'));
+  new CreatePaymentCredentialsTest()
+      .modify("options.signal", abortController.signal)
+      .runTest("Payment credential abort reason with Error", Error);
 }, {
   protocol: 'ctap2_1',
   transport: 'internal',

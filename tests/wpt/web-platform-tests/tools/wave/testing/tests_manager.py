@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import re
 from threading import Timer
 
@@ -7,7 +9,7 @@ from ..data.exceptions.not_found_exception import NotFoundException
 from ..data.session import COMPLETED, ABORTED
 
 
-class TestsManager(object):
+class TestsManager:
     def initialize(
         self,
         test_loader,
@@ -120,7 +122,7 @@ class TestsManager(object):
             for test in tests[api]:
                 sorted_tests.append(test)
 
-        class compare(object):
+        class compare:
             def __init__(self, tests_manager, test):
                 self.test = test
                 self.tests_manager = tests_manager

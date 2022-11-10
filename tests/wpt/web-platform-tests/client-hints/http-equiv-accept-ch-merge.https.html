@@ -2,6 +2,7 @@
 <head>
 <meta http-equiv="Accept-CH" content="sec-ch-viewport-width, viewport-width, rtt">
 <meta http-equiv="Accept-CH" content="downlink, ect, sec-ch-prefers-color-scheme">
+<meta http-equiv="Accept-CH" content="sec-ch-prefers-reduced-motion">
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -38,6 +39,7 @@ promise_test(t => {
     assert_in_array(r.headers.get("ect-received"), ["slow-2g", "2g",
           "3g", "4g"], 'ect-received is unexpected');
     assert_true(r.headers.has("prefers-color-scheme-received"), "prefers-color-scheme-received");
+    assert_true(r.headers.has("prefers-reduced-motion-received"), "prefers-reduced-motion-received");
   });
 }, "Accept-CH header test");
 

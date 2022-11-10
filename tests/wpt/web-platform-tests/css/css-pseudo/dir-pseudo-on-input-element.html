@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#the-directionality">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+test(() => {
+    const input = document.createElement('input');
+    input.type = 'tel';
+    assert_true(input.matches(':dir(ltr)'));
+    assert_false(input.matches(':dir(rtl)'));
+
+    input.setAttribute('dir', 'foo');
+    assert_true(input.matches(':dir(ltr)'));
+    assert_false(input.matches(':dir(rtl)'));
+
+    input.setAttribute('dir', 'rtl');
+    assert_false(input.matches(':dir(ltr)'));
+    assert_true(input.matches(':dir(rtl)'));
+
+    input.setAttribute('dir', 'RTL');
+    assert_false(input.matches(':dir(ltr)'));
+    assert_true(input.matches(':dir(rtl)'));
+
+    input.setAttribute('dir', 'ltr');
+    assert_true(input.matches(':dir(ltr)'));
+    assert_false(input.matches(':dir(rtl)'));
+
+    input.setAttribute('dir', 'LTR');
+    assert_true(input.matches(':dir(ltr)'));
+    assert_false(input.matches(':dir(rtl)'));
+
+    input.setAttribute('dir', 'auto');
+    assert_true(input.matches(':dir(ltr)'));
+    assert_false(input.matches(':dir(rtl)'));
+
+    input.value = '\u05EA';
+    assert_false(input.matches(':dir(ltr)'));
+    assert_true(input.matches(':dir(rtl)'));
+
+    input.setAttribute('dir', 'AUTO');
+    assert_false(input.matches(':dir(ltr)'));
+    assert_true(input.matches(':dir(rtl)'));
+
+    input.removeAttribute('dir');
+    assert_true(input.matches(':dir(ltr)'));
+    assert_false(input.matches(':dir(rtl)'));
+}, 'input element whose type attribute is in the telephone state');
+
+test(() => {
+    const input = document.createElement('input');
+    input.type = 'tel';
+
+    const container = document.createElement('div');
+    container.setAttribute('dir', 'rtl');
+    container.appendChild(input);
+
+    assert_true(input.matches(':dir(ltr)'));
+    assert_false(input.matches(':dir(rtl)'));
+}, 'input element whose type attribute is in the telephone state in a RTL block');
+
+for (let type of ['text', 'search', 'url', 'email']) {
+    test(() => {
+        const input = document.createElement('input');
+        input.type = type;
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'foo');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'rtl');
+        assert_false(input.matches(':dir(ltr)'));
+        assert_true(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'RTL');
+        assert_false(input.matches(':dir(ltr)'));
+        assert_true(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'ltr');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'LTR');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'auto');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.value = '\u05EA';
+        assert_false(input.matches(':dir(ltr)'));
+        assert_true(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'AUTO');
+        assert_false(input.matches(':dir(ltr)'));
+        assert_true(input.matches(':dir(rtl)'))
+
+        input.removeAttribute('dir');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+    }, `input element whose type attribute is in the ${type} state`);
+}
+
+for (let type of ['password', 'date', 'time', 'number', 'range', 'color',
+    'checkbox', 'radio', 'submit', 'image', 'reset', 'button']) {
+    test(() => {
+        const input = document.createElement('input');
+        input.type = type;
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'foo');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'rtl');
+        assert_false(input.matches(':dir(ltr)'));
+        assert_true(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'RTL');
+        assert_false(input.matches(':dir(ltr)'));
+        assert_true(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'ltr');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'LTR');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'auto');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.value = '\u05EA';
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+
+        input.setAttribute('dir', 'AUTO');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'))
+
+        input.removeAttribute('dir');
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+    }, `input element whose type attribute is in the ${type} state`);
+}
+
+</script>
+</body>
+</html>

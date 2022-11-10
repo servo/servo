@@ -72,3 +72,9 @@ async_test(t => {
 async_test(t => {
   runTest(t, 'video');
 }, 'Verify EncodedVideoChunk is serializable.');
+
+test(() => {
+  const chunk = createDefaultChunk("video", defaultVideoInit);
+  if (window.history)
+      assert_throws_dom("DataCloneError", () => history.pushState({ chunk }, null));
+}, "Verify EncodedVideoChunk cannot be stored");

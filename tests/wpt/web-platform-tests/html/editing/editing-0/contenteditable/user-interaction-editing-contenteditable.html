@@ -12,217 +12,47 @@
     <div id="log"></div>
   </head>
   <body>
-    <script type="text/javascript">
-      test(function() {
-        const testElement = document.createElement("testElement");
+    <script>
+      function testContentEditable(variationFunc, title, expectIsContentEditable, expectContentEditable) {
+        test(() => {
+          const div = document.createElement("div");
+          variationFunc(div);
+          assert_equals(div.isContentEditable, expectIsContentEditable, 'isContentEditable');
+          assert_equals(div.contentEditable, expectContentEditable, 'contentEditable');
+        }, title);
+      }
 
-        assert_equals(
-          testElement.contentEditable,
-          "inherit",
-          "check for testElement.contentEditable value"
-        );
-      }, "no contentEditable attribute");
+      testContentEditable(el => {
+      }, "no contenteditable attribute", false, "inherit");
 
-      test(function() {
-        const testElement = document.createElement("testElement");
-        testElement.setAttribute("contentEditable", "");
+      testContentEditable(el => {
+        el.setAttribute("contenteditable", "");
+      }, "empty contentEditable attribute", true, "true");
 
-        assert_true(
-          testElement.isContentEditable,
-          "check for testElement.isContentEditable value"
-        );
+      testContentEditable(el => {
+        el.contentEditable = "true";
+      }, 'set contentEditable = "true"', true, "true");
 
-        assert_equals(
-          testElement.contentEditable,
-          "true",
-          "check for testElement.contentEditable value"
-        );
-      }, "empty contentEditable attribute");
+      testContentEditable(el => {
+        el.contentEditable = "false";
+      }, 'set contentEditable = "false"', false, "false");
 
-      test(function() {
-        const testElement = document.createElement("testElement");
-        testElement.contentEditable = "true";
+      testContentEditable(el => {
+        const parent = document.createElement("div");
+        parent.appendChild(el);
+        parent.contentEditable = "true";
+      }, 'set parent element contentEditable = "true"', true, "inherit");
 
-        assert_true(
-          testElement.isContentEditable,
-          "check for testElement.isContentEditable value"
-        );
+      testContentEditable(el => {
+        const parent = document.createElement("div");
+        parent.appendChild(el);
+        parent.contentEditable = "false";
+      }, 'set parent element contentEditable = "false"', false, "inherit");
 
-        assert_equals(
-          testElement.contentEditable,
-          "true",
-          "check for testElement.contentEditable value"
-        );
-      }, 'set contentEditable = "true"');
-
-      test(function() {
-        const testElement = document.createElement("testElement");
-        testElement.contentEditable = "false";
-
-        assert_false(
-          testElement.isContentEditable,
-          "check for testElement.isContentEditable value"
-        );
-
-        assert_equals(
-          testElement.contentEditable,
-          "false",
-          "check for testElement.contentEditable value"
-        );
-      }, 'set contentEditable = "false"');
-
-      test(function() {
-        const testElement = document.createElement("testElement");
-        testElement.contentEditable = "inherit";
-
-        assert_equals(
-          testElement.contentEditable,
-          "inherit",
-          "check for testElement.contentEditable value"
-        );
-      }, 'set contentEditable = "inherit"');
-
-      test(function() {
-        const testElement = document.createElement("testElement");
-        const childElement = document.createElement("childElement");
-        testElement.appendChild(childElement);
-        testElement.contentEditable = "true";
-
-        assert_true(
-          testElement.isContentEditable,
-          "check for testElement.isContentEditable value"
-        );
-
-        assert_equals(
-          testElement.contentEditable,
-          "true",
-          "check for testElement.contentEditable value"
-        );
-
-        assert_true(
-          childElement.isContentEditable,
-          "check for childElement.isContentEditable value"
-        );
-
-        assert_equals(
-          childElement.contentEditable,
-          "inherit",
-          "check for childElement.contentEditable value"
-        );
-      }, 'set parent element contentEditable = "true"');
-
-      test(function() {
-        const testElement = document.createElement("testElement");
-        const childElement = document.createElement("childElement");
-        testElement.appendChild(childElement);
-        testElement.contentEditable = "false";
-
-        assert_false(
-          testElement.isContentEditable,
-          "check for testElement.isContentEditable value"
-        );
-
-        assert_equals(
-          testElement.contentEditable,
-          "false",
-          "check for testElement.contentEditable value"
-        );
-
-        assert_false(
-          childElement.isContentEditable,
-          "check for childElement.isContentEditable value"
-        );
-
-        assert_equals(
-          childElement.contentEditable,
-          "inherit",
-          "check for childElement.contentEditable value"
-        );
-      }, 'set parent element contentEditable = "false"');
-
-      test(function() {
-        var testElement = document.createElement("testElement");
-
-        assert_equals(
-          testElement.contentEditable,
-          "inherit",
-          "no contentEditable attribute, so inherit"
-        );
-        testElement.setAttribute("contentEditable", "");
-
-        assert_true(
-          testElement.isContentEditable,
-          "check for testElement.isContentEditable value"
-        );
-        assert_equals(
-          testElement.contentEditable,
-          "true",
-          "empty contentEditable attribute is 'true'"
-        );
-
-        testElement.contentEditable = "true";
-        assert_true(
-          testElement.isContentEditable,
-          "check for testElement.isContentEditable value"
-        );
-        assert_equals(
-          testElement.contentEditable,
-          "true",
-          "contentEditable='true' is 'true'"
-        );
-
-        testElement.contentEditable = "false";
-        assert_false(
-          testElement.isContentEditable,
-          "check for testElement.isContentEditable value"
-        );
-        assert_equals(
-          testElement.contentEditable,
-          "false",
-          "contentEditable = 'false' is 'false'"
-        );
-
-        testElement.contentEditable = "inherit";
-        assert_equals(
-          testElement.contentEditable,
-          "inherit",
-          "contentEditable='inherit' is 'inherit'"
-        );
-
-        var childElement = document.createElement("childElement");
-        testElement.appendChild(childElement);
-        testElement.contentEditable = "true";
-        assert_true(
-          testElement.isContentEditable,
-          'parent element contentEditable = "true"'
-        );
-        assert_equals(testElement.contentEditable, "true");
-        assert_true(
-          childElement.isContentEditable,
-          'parent element contentEditable = "true", so childElement must be editable'
-        );
-        assert_equals(
-          childElement.contentEditable,
-          "inherit",
-          'parent element contentEditable = "true", so child inherits'
-        );
-
-        testElement.contentEditable = "false";
-        assert_false(
-          testElement.isContentEditable,
-          'parent element contentEditable = "false"'
-        );
-        assert_equals(testElement.contentEditable, "false");
-        assert_false(
-          childElement.isContentEditable,
-          'parent element contentEditable = "false"'
-        );
-        assert_equals(
-          childElement.contentEditable,
-          "inherit",
-          'parent element contentEditable = "false"'
-        );
-      }, "Dynamically changing contentEditable values");
+      testContentEditable(el => {
+        el.contentEditable = "true";
+        el.removeAttribute("contenteditable");
+      }, 'set contentEditable = "true" and then remove contenteditable attribute', false, "inherit");
     </script>
   </body>
 </html>

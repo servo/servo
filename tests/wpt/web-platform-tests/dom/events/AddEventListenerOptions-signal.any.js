@@ -136,3 +136,8 @@ test(function() {
   const et = new EventTarget();
   assert_throws_js(TypeError, () => { et.addEventListener("foo", () => {}, { signal: null }); });
 }, "Passing null as the signal should throw");
+
+test(function() {
+  const et = new EventTarget();
+  assert_throws_js(TypeError, () => { et.addEventListener("foo", null, { signal: null }); });
+}, "Passing null as the signal should throw (listener is also null)");

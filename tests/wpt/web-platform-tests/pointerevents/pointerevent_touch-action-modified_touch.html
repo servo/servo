@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Deleting touch-action elem after pointerdown has no effect</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+          div.box {
+              margin: 10px;
+              height: 25vh;
+              border: 1px solid black;
+          }
+          #target {
+              background-color: lightgreen;
+              touch-action:none;
+          }
+        </style>
+    </head>
+    <body>
+        <h1>Deleting touch-action elem after pointerdown has no effect</h1>
+        <h4 id="desc">
+          Try to scroll up/down starting at the green element.  Expectation: the
+          green element would vanish immediately and the content won't scroll.
+        </h4>
+        <p>Note: this test is for touch-devices only</p>
+        <div class="box"></div>
+        <div class="box"></div>
+        <div class="box" id="target">Drag up or down from here</div>
+        <div class="box"></div>
+        <div class="box"></div>
+    </body>
+    <script>
+      let target = document.getElementById("target");
+      let pointercancel_received = false;
+
+      document.body.addEventListener("pointerdown", () => target.parentElement.removeChild(target));
+      document.body.addEventListener("pointercancel", () => pointercancel_received = true);
+
+      let detected_pointertypes = {};
+      add_completion_callback(showPointerTypes);
+
+      promise_test(async () => {
+          let pointerup_event = getEvent("pointerup", document.body);
+
+          await touchScrollInTarget(target, "down");
+          await pointerup_event;
+
+          assert_false(pointercancel_received,
+                       "a pointercancel event is unexpected because there should be no scrolling");
+
+          updateDescriptionComplete();
+      }, "Deleting touch-action elem after pointerdown");
+    </script>
+</html>

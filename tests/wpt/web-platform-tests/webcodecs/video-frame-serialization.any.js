@@ -37,8 +37,11 @@ test(t => {
 
   frame.close();
 
-  assert_not_equals(copy.timestamp, defaultInit.timestamp);
+  assert_equals(copy.timestamp, defaultInit.timestamp);
+  assert_equals(copy.duration, defaultInit.duration);
+  assert_true(isFrameClosed(copy));
   assert_equals(clone.timestamp, defaultInit.timestamp);
+  assert_false(isFrameClosed(clone));
 
   clone.close();
 }, 'Verify closing a frame doesn\'t affect its clones.');
@@ -88,7 +91,7 @@ async_test(t => {
   })
 
   localPort.postMessage(localFrame, [localFrame]);
-  assert_not_equals(localFrame.timestamp, defaultInit.timestamp);
+  assert_true(isFrameClosed(localFrame));
 }, 'Verify transferring frames closes them.');
 
 async_test(t => {

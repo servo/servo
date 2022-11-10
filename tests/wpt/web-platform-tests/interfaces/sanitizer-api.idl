@@ -19,6 +19,7 @@
 dictionary SetHTMLOptions {
   Sanitizer sanitizer;
 };
+[SecureContext]
 partial interface Element {
   undefined setHTML(DOMString input, optional SetHTMLOptions options = {});
 };
@@ -30,6 +31,7 @@ dictionary SanitizerConfig {
   AttributeMatchList allowAttributes;
   AttributeMatchList dropAttributes;
   boolean allowCustomElements;
+  boolean allowUnknownMarkup;
   boolean allowComments;
 };
 

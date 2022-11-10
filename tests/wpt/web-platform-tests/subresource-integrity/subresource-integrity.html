@@ -59,6 +59,47 @@
         "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
     ).execute();
 
+    // Scripts with integrity attribute changed after #prepare-a-script.
+    new SRIScriptTest(
+        false,
+        "Same-origin with incorrect integrity => cleared after prepare.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead",
+        undefined,
+        undefined,
+        null
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "Same-origin with incorrect integrity => set to correct hash after prepare.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead",
+        undefined,
+        undefined,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with empty integrity => set to incorrect hash after prepare.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "",
+        undefined,
+        undefined,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with correct integrity => set to incorrect hash after prepare.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA=",
+        undefined,
+        undefined,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ).execute();
+
     new SRIScriptTest(
         true,
         "Same-origin with multiple sha256 hashes, including correct.",

@@ -1,54 +1,5 @@
 "use strict";
 
-// custom element is also allowed.
-var ATTACHSHADOW_SAFELISTED_ELEMENTS = [
-    'article',
-    'aside',
-    'blockquote',
-    'body',
-    'div',
-    'footer',
-    'h1',
-    'h2',
-    'h3',
-    'h4',
-    'h5',
-    'h6',
-    'header',
-    'nav',
-    'p',
-    'section',
-    'span'
-];
-
-var HTML5_ELEMENT_NAMES = [
-    'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
-    'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button',
-    'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'command',
-    'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt',
-    'em', 'embed',
-    'fieldset', 'figcaption', 'figure', 'footer', 'form',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr',
-    'html',
-    'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen',
-    'label', 'legend', 'li', 'link',
-    'map', 'mark', 'menu', 'meta', 'meter',
-    'nav', 'noscript',
-    'object', 'ol', 'optgroup', 'option', 'output',
-    'p', 'param', 'pre', 'progress',
-    'q',
-    'rp', 'rt', 'ruby',
-    's', 'samp', 'script', 'section', 'select', 'small', 'source', 'span',
-    'strong', 'style', 'sub',
-    'table', 'tbody', 'td', 'textarea', 'tfoot', 'th', 'thead', 'time',
-    'title', 'tr', 'track',
-    'u', 'ul',
-    'var', 'video',
-    'wbr'
-];
-
-var ATTACHSHADOW_DISALLOWED_ELEMENTS = HTML5_ELEMENT_NAMES.filter(el => !ATTACHSHADOW_SAFELISTED_ELEMENTS.includes(el));
-
 function unit(f) {
     return function () {
         var ctx = newContext();

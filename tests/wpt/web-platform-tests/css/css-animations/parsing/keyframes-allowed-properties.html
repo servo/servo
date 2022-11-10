@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Tests which properties are allowed in @keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/#typedef-keyframe-block">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id=sheet>
+@keyframes foo {
+  from {
+    /* Non-animation properties are allowed */
+    margin-top: 10px;
+    /* animation-timing-function is specially allowed */
+    animation-timing-function: ease;
+    /* All other animation properties are not allowed */
+    animation-name: none;
+    animation-duration: 1s;
+    animation-iteration-count: 1;
+    animation-direction: normal;
+    animation-play-state: running;
+    animation-delay: 0s;
+    animation-fill-mode: none;
+    /* The animation shorthand is also not allowed */
+    animation: bar 1s infinite;
+  }
+}
+</style>
+<script>
+test(() => {
+  const keyframe = sheet.sheet.cssRules[0].cssRules[0];
+  const style = keyframe.style;
+  assert_equals(style.length, 2);
+  assert_equals(style.marginTop, '10px');
+  assert_equals(style.animationTimingFunction, 'ease');
+}, '@keyframes allows all non-animation properties and animation-timing-function');
+</script>

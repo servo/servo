@@ -7,7 +7,7 @@
 <link rel=assert title="XXX">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support.js"></script>
+<script src="resources/support.js"></script>
 
 <script>
     var db,
@@ -28,7 +28,7 @@
           .createIndex('index', 'idxkeys', { multiEntry: true });
     };
     open_rq.onsuccess = function(e) {
-        var tx = db.transaction('store', 'readwrite');
+        var tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
         tx.objectStore('store')
           .put(obj, 1)
           .onsuccess = t_add.step_func(function(e)
@@ -38,7 +38,7 @@
         });
 
         tx.oncomplete = t_get.step_func(function() {
-            var idx = db.transaction('store').objectStore('store').index('index')
+            var idx = db.transaction('store', 'readonly', {durability: 'relaxed'}).objectStore('store').index('index')
 
             for (var i = 0; i < 1000; i++)
             {

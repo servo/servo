@@ -29,7 +29,7 @@
    *    .keyDown("p")
    *    .keyUp("p");
    *
-   * actions.send();
+   * await actions.send();
    *
    * @param {number} [defaultTickDuration] - The default duration of a
    * tick. Be default this is set ot 16ms, which is one frame time

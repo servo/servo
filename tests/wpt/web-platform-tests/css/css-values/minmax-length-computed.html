@@ -110,5 +110,5 @@ test_length_equals('calc(max(1em, 19px) - 10px)', '10px');
 test_length_equals('calc(max(1em, 19px) * 2', '40px');
 test_length_equals('calc(max(1em, 19px) / 2', '10px');
 test_length_equals('calc(min(1em, 21px) + max(0.9em, 20px))', '40px');
-test_length_equals('calc(min(1em, 21px) - max(0.9em, 20px))', '0px');
+test_length_equals('calc(min(1em + 1px, 22px) - max(0.9em, 20px))', '1px');
 </script>

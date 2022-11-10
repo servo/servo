@@ -14,11 +14,13 @@ async_test(function(t) {
 
   // Without CORB, the html document would cause a syntax error when parsed as
   // JavaScript, but with CORB there should be no errors (because CORB will
-  // replace the response body with an empty body).
-  script.onload = t.step_func_done(function(){})
+  // replace the response body with an empty body). With ORB, the script loading
+  // itself will error out.
+  script.onload = t.step_func_done();
+  script.onerror = t.step_func_done();
   addEventListener("error",function(e) {
     t.step(function() {
-      assert_unreached("Empty body of a CORS-blocked response shouldn't trigger syntax errors.");
+      assert_unreached("Empty body of a CORB-blocked response shouldn't trigger syntax errors.");
       t.done();
     })
   });

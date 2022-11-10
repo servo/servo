@@ -7,55 +7,45 @@
 <script>
 promise_test(function() {
     var imgData = new ImageData(20, 20);
-    return new Promise(function(resolve, reject) {
-        createImageBitmap(imgData, 4294967400, 10, 10, 10).then(resolve, reject);
-    });
+    return createImageBitmap(imgData, 4294967400, 10, 10, 10);
 }, "createImageBitmap does not crash or reject the promise when passing very large sx");
 
 promise_test(function() {
     var imgData = new ImageData(20, 20);
-    return new Promise(function(resolve, reject) {
-        createImageBitmap(imgData, 10, 4294967400, 10, 10).then(resolve, reject);
-    });
+    return createImageBitmap(imgData, 10, 4294967400, 10, 10);
 }, "createImageBitmap does not crash or reject the promise when passing very large sy");
 
 promise_test(function() {
     var imgData = new ImageData(20, 20);
-    return new Promise(function(resolve, reject) {
-        createImageBitmap(imgData, 10, 10, 4294967400, 10).then(resolve, reject);
-    });
+    return createImageBitmap(imgData, 10, 10, 4294967400, 10);
 }, "createImageBitmap does not crash or reject the promise when passing very large sw");
 
 promise_test(function() {
     var imgData = new ImageData(20, 20);
-    return new Promise(function(resolve, reject) {
-        createImageBitmap(imgData, 10, 10, 10, 4294967400).then(resolve, reject);
-    });
+    return createImageBitmap(imgData, 10, 10, 10, 4294967400);
 }, "createImageBitmap does not crash or reject the promise when passing very large sh");
 
 promise_test(function() {
     var imgData = new ImageData(20, 20);
-    return new Promise(function(resolve, reject) {
-        createImageBitmap(imgData, 4294967400, 4294967400, 4294967400, 4294967400).then(resolve, reject);
-    });
+    return createImageBitmap(imgData, 4294967400, 4294967400, 4294967400, 4294967400);
 }, "createImageBitmap does not crash or reject the promise when passing very large sx, sy, sw and sh");
 
-async_test(function(t) {
+promise_test(function(t) {
     var imgData = new ImageData(20, 20);
     var imageBitmapOptions = {imageOrientation:'none', premultiplyAlpha:'default',
                               colorSpaceConversion:'none', resizeHeight:2122252543, resizeQuality:'high'};
-    createImageBitmap(imgData, 0, 0, 4294967295, 64).then(function(imageBitmap){
-        assert_throws_dom("InvalidStateError", function() {createImageBitmap(imageBitmap, imageBitmapOptions);});});
-    t.done();
+    return createImageBitmap(imgData, 0, 0, 4294967295, 64)
+        .then(imageBitmap => promise_rejects_dom(t, "InvalidStateError",
+            createImageBitmap(imageBitmap, imageBitmapOptions)));
 }, "createImageBitmap throws an InvalidStateError error with big imageBitmap scaled up in big height");
 
-async_test(function(t) {
+promise_test(function(t) {
     var imgData = new ImageData(20, 20);
     var imageBitmapOptions = {imageOrientation:'none', premultiplyAlpha:'default',
                               colorSpaceConversion:'none', resizeWidth:2122252543, resizeQuality:'high'};
-    createImageBitmap(imgData, 0, 0, 4294967295, 64).then(function(imageBitmap){
-        assert_throws_dom("InvalidStateError", function() {createImageBitmap(imageBitmap, imageBitmapOptions);});});
-    t.done();
+    return createImageBitmap(imgData, 0, 0, 4294967295, 64)
+        .then(imageBitmap => promise_rejects_dom(t, "InvalidStateError",
+            createImageBitmap(imageBitmap, imageBitmapOptions)));
 }, "createImageBitmap throws an InvalidStateError error with big imageBitmap scaled up in big width");
 </script>
 </body>

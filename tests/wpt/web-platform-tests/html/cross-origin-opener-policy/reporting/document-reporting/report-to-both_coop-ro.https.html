@@ -17,11 +17,6 @@ const directory = "/html/cross-origin-opener-policy";
 const origin_opener = get_host_info().HTTPS_ORIGIN;
 const origin_openee = get_host_info().HTTPS_REMOTE_ORIGIN;
 
-function reportToken() {
-  // Report endpoint name must start with lower case alphabet.
-  return token().replace(/./, 'a');
-}
-
 let escapeComma = url => url.replace(/,/g, '\\,');
 
 let genericSetup = async function(test) {

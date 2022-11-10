@@ -1,0 +1,61 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="variant" content="">
+<meta name="variant" content="?currententrychange">
+
+<script type="module">
+import { Recorder, hasVariant } from "./resources/helpers.mjs";
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const fromStart = navigation.currentEntry;
+  let fromHash1;
+
+  const recorder = new Recorder({
+    skipCurrentChange: !hasVariant("currententrychange"),
+    finalExpectedEvent: "transition.finished fulfilled"
+  });
+
+  recorder.setUpNavigationAPIListeners();
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler() {
+      recorder.record("handler run");
+      return new Promise(r => t.step_timeout(r, 1));
+    }});
+
+    if (location.hash === "#1") {
+      fromHash1 = navigation.currentEntry;
+    }
+  });
+
+  location.href = "/common/blank.html#1";
+  location.href = "/common/blank.html#2";
+
+  Promise.resolve().then(() => recorder.record("promise microtask"));
+
+  await recorder.readyToAssert;
+
+  recorder.assert([
+    /* event name, location.hash value, navigation.transition properties */
+    ["navigate", "", null],
+    ["currententrychange", "#1", { from: fromStart, navigationType: "push" }],
+    ["handler run", "#1", { from: fromStart, navigationType: "push" }],
+    ["AbortSignal abort", "#1", { from: fromStart, navigationType: "push" }],
+    ["navigateerror", "#1", { from: fromStart, navigationType: "push" }],
+
+    ["navigate", "#1", null],
+    ["currententrychange", "#2", { from: fromHash1, navigationType: "push" }],
+    ["handler run", "#2", { from: fromHash1, navigationType: "push" }],
+    ["transition.finished rejected", "#2", { from: fromHash1, navigationType: "push" }],
+    ["promise microtask", "#2", { from: fromHash1, navigationType: "push" }],
+    ["navigatesuccess", "#2", { from: fromHash1, navigationType: "push" }],
+    ["transition.finished fulfilled", "#2", null]
+  ]);
+
+  recorder.assertErrorsAreAbortErrors();
+}, "event and promise ordering when location.href is set repeatedly and handled by intercept()");
+</script>

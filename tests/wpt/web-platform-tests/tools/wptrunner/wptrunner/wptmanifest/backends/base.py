@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs
+
 import abc
 
 from ..node import NodeVisitor
@@ -122,7 +124,7 @@ class Compiler(NodeVisitor):
         pass
 
 
-class ManifestItem(object):
+class ManifestItem:
     def __init__(self, node, **kwargs):
         self.parent = None
         self.node = node
@@ -130,7 +132,7 @@ class ManifestItem(object):
         self._data = {}
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__, self.node.data)
+        return f"<{self.__class__} {self.node.data}>"
 
     def __str__(self):
         rv = [repr(self)]
@@ -192,16 +194,13 @@ class ManifestItem(object):
         return rv
 
     def iteritems(self):
-        for item in self._flatten().items():
-            yield item
+        yield from self._flatten().items()
 
     def iterkeys(self):
-        for item in self._flatten().keys():
-            yield item
+        yield from self._flatten().keys()
 
     def itervalues(self):
-        for item in self._flatten().values():
-            yield item
+        yield from self._flatten().values()
 
     def append(self, child):
         child.parent = self

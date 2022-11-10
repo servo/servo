@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
 <script>
 
 function remote(path) {
@@ -12,7 +13,7 @@ function remote(path) {
 }
 
 //
-// This test loads a same-orign iframe resources/load_corp_images.html with
+// This test loads a same-origin iframe resources/load-corp-images.html with
 // Cross-Origin-Embedder-Policy: require-corp
 // The iframe loads two cross origin images, one with a
 // Cross-Origin-Resource-Policy: cross-origin header, and one without.
@@ -22,13 +23,14 @@ function remote(path) {
 // for the image loads when they are loaded from the cache.
 //
 
-const image_path = "/html/cross-origin-embedder-policy/resources/corp-image.py";
+const RUNS = ["NETWORK", "CACHED"];
+const RESOURCE_DESC = ["No CORP image", "CORP image"];
 
 let EXPECTED_LOADS = {
-  [`NETWORK-${remote(image_path)}`]: false,
-  [`NETWORK-${remote(image_path)}?corp-cross-origin=1`]: true,
-  [`CACHED-${remote(image_path)}`]: false,
-  [`CACHED-${remote(image_path)}?corp-cross-origin=1`]: true,
+  [`${RUNS[0]} - ${RESOURCE_DESC[0]}`]: false,
+  [`${RUNS[0]} - ${RESOURCE_DESC[1]}`]: true,
+  [`${RUNS[1]} - ${RESOURCE_DESC[0]}`]: false,
+  [`${RUNS[1]} - ${RESOURCE_DESC[1]}`]: true,
 }
 
 let TESTS = {};
@@ -37,37 +39,36 @@ for (let t in EXPECTED_LOADS) {
 }
 
 window.addEventListener("load", async () => {
-  let iframe = document.createElement("iframe");
-  let firstRun = true;
-  let t = async_test("main_test");
-  await new Promise((resolve, reject) => {
-    iframe.src = "resources/load-corp-images.html";
-    iframe.onload = () => { resolve() };
-    iframe.onerror = (e) => { reject(); };
-    window.addEventListener("message", (event) => {
-      // After the first done event we reload the iframe.
-      if (event.data.done) {
-        if (firstRun) {
-          firstRun = false;
-          iframe.contentWindow.location.reload();
-        } else {
-          // After the second done event the test is finished.
-          t.done();
-        }
+  const t = async_test("main_test");
+  const iframe = document.createElement("iframe");
+  // The token attribute is used to ensure the resource has never been seen by
+  // the HTTP cache. This can be useful if the cache isn't properly flushed in
+  // between two tests.
+  iframe.src = `resources/load-corp-images.html?revalidate=false&token=${token()}`;
+  let runCount = 0;
+  window.addEventListener("message", (event) => {
+    // After the first done event we reload the iframe.
+    if (event.data.done) {
+      ++runCount;
+      if (runCount < RUNS.length) {
+        iframe.contentWindow.location.reload();
       } else {
-        // Check that each image either loads or doesn't based on the expectations
-        let testName = `${firstRun ? "NETWORK-" : "CACHED-"}${event.data.src}`;
-        let test = TESTS[testName];
-        test.step(() => {
-          assert_equals(event.data.loaded, EXPECTED_LOADS[testName], `${firstRun ? "NETWORK" : "CACHED"} load of ${event.data.src} should ${EXPECTED_LOADS[testName] ? "" : "not"} succeed`);
-        });
-        test.done();
+        // After the second done event the test is finished.
+        t.done();
       }
-    }, false);
-    document.body.appendChild(iframe);
-  })
-});
+      return;
+    }
 
+    // Check that each image either loads or doesn't based on the expectations
+    let testName = `${RUNS[runCount]} - ${event.data.corp ? RESOURCE_DESC[1] : RESOURCE_DESC[0]}`;
+    let test = TESTS[testName];
+    test.step(() => {
+      assert_equals(event.data.loaded, EXPECTED_LOADS[testName], `${testName} should ${EXPECTED_LOADS[testName] ? "" : "not"} succeed`);
+    });
+    test.done();
+  }, false);
+  document.body.appendChild(iframe);
+});
 
 </script>
 </html>

@@ -45,10 +45,10 @@ Promise.all([promise1, promise2]).then(function(response1, response2) {
         ctx.drawImage(bitmap1, 0, 0, 50, 50);
         ctx.fillStyle = '#0f0';
         ctx.fillRect(0, 0, 50, 50);
-        _assertPixelApprox(canvas, 0,0, 0,255,0,255, "0,0", "0,255,0,255", 2);
-        _assertPixelApprox(canvas, 99,0, 0,255,0,255, "99,0", "0,255,0,255", 2);
-        _assertPixelApprox(canvas, 0,49, 0,255,0,255, "0,49", "0,255,0,255", 2);
-        _assertPixelApprox(canvas, 99,49, 0,255,0,255, "99,49", "0,255,0,255", 2);
+        _assertPixelApprox(canvas, 0,0, 0,255,0,255, 2);
+        _assertPixelApprox(canvas, 99,0, 0,255,0,255, 2);
+        _assertPixelApprox(canvas, 0,49, 0,255,0,255, 2);
+        _assertPixelApprox(canvas, 99,49, 0,255,0,255, 2);
     }, t_fail);
 }).then(t_pass, t_fail);
 

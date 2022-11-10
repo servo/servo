@@ -10,7 +10,7 @@
 <script src="/common/reftest-wait.js"></script>
 
 <style>
-#container {
+.container {
   width: 150px;
   height: 150px;
   background: lightblue;
@@ -36,7 +36,20 @@
 .large { width: 30px; height: 30px; background: pink; }
 </style>
 
-<div id=container class=hidden>
+<p>This test passes if the two light blue boxes below have the same content.
+<div id=container class="container hidden">
+  Text.
+  <div id=child></div>
+  <span>inline child</span>
+  <div class="abspos start small"></div>
+  <div class="relpos mid medium"></div>
+  <div class="fixedpos end large"></div>
+  <div class=relpos>
+    <div class="abspos mid small zindex"></div>
+  </div>
+</div>
+<br>
+<div class="container">
   Text.
   <div id=child></div>
   <span>inline child</span>

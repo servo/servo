@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/common.js"></script>
+<script src="resources/popup-test.js"></script>
+<script>
+  popup_test(
+    `Simple document with duplicated COOP header opening a same-origin popup`,
+    SAME_ORIGIN,
+    "unsafe-none",
+    "preserved");
+</script>

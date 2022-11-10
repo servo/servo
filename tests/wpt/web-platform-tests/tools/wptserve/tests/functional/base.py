@@ -1,15 +1,15 @@
 import base64
 import logging
 import os
-import pytest
 import unittest
 
 from urllib.parse import urlencode, urlunsplit
 from urllib.request import Request as BaseRequest
 from urllib.request import urlopen
 
-from hyper import HTTP20Connection, tls
-import ssl
+import httpx
+import pytest
+
 from localpaths import repo_root
 
 wptserve = pytest.importorskip("wptserve")
@@ -91,12 +91,8 @@ class TestUsingH2Server:
                                                    http2=True)
         self.server.start()
 
-        context = tls.init_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-        context.set_alpn_protocols(['h2'])
-        self.conn = HTTP20Connection('%s:%i' % (self.server.host, self.server.port), enable_push=True, secure=True, ssl_context=context)
-        self.conn.connect()
+        self.client = httpx.Client(base_url=f'https://{self.server.host}:{self.server.port}',
+                                   http2=True, verify=False)
 
     def teardown_method(self, test_method):
         self.server.stop()
@@ -121,7 +117,7 @@ class TestWrapperHandlerUsingServer(TestUsingServer):
             os.remove(filename)
 
     def setUp(self):
-        super(TestWrapperHandlerUsingServer, self).setUp()
+        super().setUp()
 
         for filename, content in self.dummy_files.items():
             filepath = os.path.join(doc_root, filename)
@@ -145,7 +141,7 @@ class TestWrapperHandlerUsingServer(TestUsingServer):
             self.assertEqual(fp.read(), resp.read())
 
     def tearDown(self):
-        super(TestWrapperHandlerUsingServer, self).tearDown()
+        super().tearDown()
 
         for filename, _ in self.dummy_files.items():
             filepath = os.path.join(doc_root, filename)

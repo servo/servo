@@ -68,7 +68,7 @@
                         if (target == blue && event.type == 'lostpointercapture') {
                           if (phase == PhaseEnum.Phase1WithCapturing) {
                             test_pointerEvent.step(function() {
-                              assert_equals(receivedEvents.join(','), 'pointerdown@green,gotpointercapture@blue,pointerup@blue,click@grey,lostpointercapture@blue', 'An element should only receive click when it is the first common ancestor of pointerdown and pointerup targets');
+                              assert_equals(receivedEvents.join(','), 'pointerdown@green,gotpointercapture@blue,pointerup@blue,click@blue,lostpointercapture@blue', 'An element should only receive click when it is the first common ancestor of pointerdown and pointerup targets');
                             });
                             phase = PhaseEnum.Phase2WithCapturing;
                             receivedEvents = [];
@@ -92,6 +92,10 @@
                 });
 
                 // Inject mouse inputs.
+                //
+                // TODO(mustaq@chromium.org): It is no longer testable manually.
+                // Switch it to a promise_test to simplify the code, and remove
+                // the instructions on HTML.
                 var actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: green})
                     .pointerDown()

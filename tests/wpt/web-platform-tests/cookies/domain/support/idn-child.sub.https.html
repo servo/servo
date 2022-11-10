@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/cookies/resources/cookie-test.js"></script>
+</head>
+<body>
+  <script>
+    async function assert_cookie(response, cookie) {
+      const get = await response.text();
+      assert_equals(get, cookie);
+      assert_equals(document.cookie, cookie);
+    }
+
+    async function assert_no_cookie(response) {
+      const get = await response.text();
+      assert_equals(get, "no cookies");
+      assert_equals(document.cookie, "");
+    }
+
+    promise_test(async t => {
+      t.add_cleanup(async () => { await fetch("idn.py?delete-utf8&host={{host}}") });
+      let response = await fetch("idn.py?set-utf8&host={{host}}");
+      assert_equals(await response.text(), "set");
+      response = await fetch("idn.py?get&host={{host}}");
+      await assert_no_cookie(response);
+    }, "UTF8-encoded IDN in domain attribute");
+
+    promise_test(async t => {
+      t.add_cleanup(async () => { await fetch("idn.py?delete-utf8-dot&host={{host}}") });
+      let response = await fetch("idn.py?set-utf8-dot&host={{host}}");
+      assert_equals(await response.text(), "set");
+      response = await fetch("idn.py?get&host={{host}}");
+      await assert_no_cookie(response);
+    }, "UTF8-encoded IDN with non-ASCII dot in domain attribute");
+
+    promise_test(async t => {
+      t.add_cleanup(async () => { await fetch("idn.py?delete-wrong-utf8&host={{host}}") });
+      let response = await fetch("idn.py?set-wrong-utf8&host={{host}}");
+      assert_equals(await response.text(), "set");
+      response = await fetch("idn.py?get&host={{host}}");
+      await assert_no_cookie(response);
+    }, "wrong UTF8-encoded IDN in domain attribute");
+
+    promise_test(async t => {
+      t.add_cleanup(async () => { await fetch("idn.py?delete-punycode&host={{host}}") });
+      let response = await fetch("idn.py?set-punycode&host={{host}}");
+      assert_equals(await response.text(), "set");
+      response = await fetch("idn.py?get&host={{host}}");
+      await assert_cookie(response, "punycode=set");
+    }, "punycode IDN in domain attribute");
+
+    promise_test(async t => {
+      t.add_cleanup(async () => { await fetch("idn.py?delete-wrong-punycode&host={{host}}") });
+      let response = await fetch("idn.py?set-wrong-punycode&host={{host}}");
+      assert_equals(await response.text(), "set");
+      response = await fetch("idn.py?get&host={{host}}");
+      await assert_no_cookie(response);
+    }, "wrong punycode IDN in domain attribute");
+
+    promise_test(async t => {
+      t.add_cleanup(async () => { await fetch("idn.py?delete-invalid-byte&host={{host}}") });
+      let response = await fetch("idn.py?set-invalid-byte&host={{host}}");
+      assert_equals(await response.text(), "set");
+      response = await fetch("idn.py?get&host={{host}}");
+      await assert_no_cookie(response);
+    }, "IDN with invalid UTF-8 bytes in domain attribute");
+  </script>
+</body>
+</html>

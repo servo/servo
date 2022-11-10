@@ -8,7 +8,10 @@
 <body>
 <div id="log"></div>
 <form id="input_form">
-  <input type="submit" value="submit"><br>
+  <fieldset>
+    <input type="radio" name="radio" value="1">
+    <input type="radio" name="radio" value="2">
+  </fieldset>
 </form>
 <script type="module">
 import inputTypes from "./input-types.js";
@@ -19,24 +22,47 @@ form.addEventListener("submit", (e) => {
   assert_true(false, 'form should not be submitted');
 });
 
+const radioButton = document.querySelector("input[type=radio]");
+radioButton.addEventListener("click", function(e) {
+  assert_true(false, `input radio should not be clicked`);
+});
+radioButton.addEventListener("focus", function(e) {
+  assert_true(false, `input radio should not be focused on`);
+});
+radioButton.addEventListener("change", function(e) {
+  assert_true(false, `input radio should not be changed`);
+});
+radioButton.addEventListener("input", function(e) {
+  assert_true(false, `input radio should not have been inputted`);
+});
+
 // Create and append input elements
 for (const inputType of inputTypes) {
+  if (inputType == "radio") {
+    continue;
+  }
+
   let input = document.createElement("input");
   input.type = inputType;
   form.appendChild(input);
-}
 
-const submit = document.querySelector("input[type=submit]");
-submit.addEventListener("click", function(e) {
-  assert_true(false, 'input submit should not be clicked');
-});
+  input.addEventListener("click", function(e) {
+    assert_true(false, `input ${inputType} should not be clicked`);
+  });
+  input.addEventListener("focus", function(e) {
+    assert_true(false, `input ${inputType} should not be focused on`);
+  });
+  input.addEventListener("change", function(e) {
+    assert_true(false, `input ${inputType} should not be changed`);
+  });
+  input.addEventListener("input", function(e) {
+    assert_true(false, `input ${inputType} should not have been inputted`);
+  });
+}
 
 // Start tests
 for (const inputType of inputTypes) {
   let input = document.querySelector(`input[type=${inputType}]`);
-  input.addEventListener("click", function(e) {
-    assert_true(false, `input ${inputType} should not be clicked`);
-  });
 
   test(() => {
     // keyCode: Enter
@@ -66,7 +92,35 @@ for (const inputType of inputTypes) {
         key: " ",
       })
     );
-  }, `Dipatching untrusted keypress events to input ${inputType} should not cause form submission or click event`);
+
+    // keyCode: Tab
+    input.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        keyCode: 9,
+      })
+    );
+
+    // key: Tab
+    input.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        key: "Tab",
+      })
+    );
+
+    // keyCode: ArrowUp
+    input.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        keyCode: 38,
+      })
+    );
+
+    // key: ArrowUp
+    input.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        key: "ArrowUp",
+      })
+    );
+  }, `Dispatching untrusted keypress events to input ${inputType} should not cause submission, click, change, input, or focus events`);
 
   test(() => {
     // keyCode: Enter
@@ -116,7 +170,55 @@ for (const inputType of inputTypes) {
         key: " ",
       })
     );
-  }, `Dipatching untrusted keyup/keydown event to input ${inputType} should not cause form submission or click event`);
+
+    // keyCode: Tab
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        keyCode: 9,
+      })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        keyCode: 9,
+      })
+    );
+
+    // key: Tab
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Tab",
+      })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        key: "Tab",
+      })
+    );
+
+    // keyCode: ArrowUp
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        keyCode: 38,
+      })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        keyCode: 38,
+      })
+    );
+
+    // key: ArrowUp
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowUp",
+      })
+    );
+    input.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        key: "ArrowUp",
+      })
+    );
+  }, `Dispatching untrusted keyup/keydown events to input ${inputType} should not cause submission, click, change, input, or focus events`);
 }
 </script>
 </body>

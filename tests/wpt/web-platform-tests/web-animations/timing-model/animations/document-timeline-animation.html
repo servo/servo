@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>document timeline animation</title>
+<link rel="match" href="document-timeline-animation-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="../../testcommon.js"></script>
+<style>
+  #box-1, #box-2 {
+    position: absolute;
+    top: 0px;
+    width: 40px;
+    height: 40px;
+  }
+  #box-1 {
+    background: blue;
+    z-index: 1;
+    left: 0px;
+  }
+  #box-2 {
+    background: white;
+    z-index: 2;
+    left: 100px;
+  }
+  #notes {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+  }
+  body {
+    background: white;
+  }
+</style>
+
+<body>
+  <div id="box-1"></div>
+  <div id="box-2"></div>
+  <p id="notes">
+    This test creates a document timeline animation. If any blue pixels appear
+    in the screenshot, the test fails.
+  </p>
+</body>
+<script>
+  onload = async function() {
+    const elem = document.getElementById('box-1');
+    const keyframes = [
+      { transform: 'none' },
+      { transform: 'translateX(100px)' }
+    ];
+    const effect =
+        new KeyframeEffect(elem, keyframes,
+                           {iterations: 1, duration: 10000, fill: 'forwards'});
+    const timeline = new DocumentTimeline();
+    const animation = new Animation(effect, timeline);
+    animation.play();
+    await animation.ready;
+    animation.finish();
+    await animation.finished;
+    await waitForAnimationFrames(2);
+    takeScreenshot();
+  };
+</script>

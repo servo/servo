@@ -19,11 +19,21 @@ test_valid_value('animation',
 test_valid_value('animation',
   '1s linear 1s 2 reverse forwards paused anim auto',
   '1s linear 1s 2 reverse forwards paused anim');
+test_valid_value('animation',
+  '1s linear 1s 2 reverse forwards paused anim scroll()');
 
 test_invalid_value('animation',
   '1s linear 1s 2 reverse forwards paused anim initial');
 test_invalid_value('animation',
   '1s linear 1s 2 reverse forwards paused anim 2000');
+test_invalid_value('animation',
+  '1s linear 1s 2 reverse forwards paused anim scroll(abc block)');
+test_invalid_value('animation',
+  '1s linear 1s 2 reverse forwards paused anim scroll(inline abc)');
+test_invalid_value('animation',
+  '1s linear 1s 2 reverse forwards paused anim scroll(abc)');
+test_invalid_value('animation',
+  '1s linear 1s 2 reverse forwards paused anim scroll("string")');
 
 test_computed_value('animation',
   '1s linear 1s 2 reverse forwards paused anim');

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>ResizeObserver content-box size and scrollbars</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1733042">
+<style>
+  #outer {
+    position: relative;
+    width: 100px;
+    height: 200px;
+    overflow: auto;
+    background: #818182;
+  }
+
+  #inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    background: #0a6fc0;
+  }
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>
+<script>
+  async function animationFrame() {
+    return new Promise(r => requestAnimationFrame(r));
+  }
+
+  // This test is expected to fail with overlay scrollbars.
+  promise_test(async function() {
+    let count = 0;
+
+    const outer = document.getElementById('outer');
+    const inner = document.getElementById('inner');
+    const observer = new ResizeObserver(entries => {
+      count++;
+    });
+
+    observer.observe(outer);
+
+    inner.style.top = '1000px';
+
+    await animationFrame();
+    await animationFrame();
+
+    inner.style.top = 0;
+
+    await animationFrame();
+    await animationFrame();
+
+    assert_equals(count, 2, "ResizeObserver should subtract scrollbar sizes from content-box rect");
+  });
+</script>

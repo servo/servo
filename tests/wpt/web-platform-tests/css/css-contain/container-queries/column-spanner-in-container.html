@@ -1,0 +1,41 @@
+<!doctype html>
+<title>CSS Container Queries Test: Column-spanner depending on container in column</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #multicol {
+    container-type: inline-size;
+    width: 600px;
+    columns: 2;
+    column-gap: 0;
+    height: 200px;
+  }
+  #spanner { height: 100px; }
+  @container (width = 600px) {
+    #spanner {
+      column-span: all;
+    }
+  }
+</style>
+<div id="multicol">
+  <div id="spanner"></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(spanner).width, "600px");
+  }, "#spanner matching container with column-width 300px, getting column-span:all");
+
+  test(() => {
+    multicol.style.width = "500px";
+    assert_equals(getComputedStyle(spanner).width, "250px");
+  }, "Reducing #multicol width means #spanner no longer gets column-span:all");
+
+  test(() => {
+    multicol.style.width = "";
+    assert_equals(getComputedStyle(spanner).width, "600px");
+  }, "Back to matching 300px and column-span:all");
+</script>

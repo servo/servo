@@ -1,0 +1,57 @@
+<!doctype html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+
+svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+}
+
+</style>
+<svg>
+<rect width="100" height="100" fill="black">
+<animate attributeName="opacity" to="0" dur="100ms" begin="click" restart="never">
+</rect>
+</svg>
+<script>
+
+promise_test(async test => {
+    const target = document.querySelector("rect");
+    const animation = document.querySelector("animate");
+
+    // Wait a frame and click on the element to start the animation.
+    await new Promise(requestAnimationFrame);
+
+    // Ensure the animation runs once completely.
+    await Promise.all([
+        new Promise(resolve => animation.addEventListener("beginEvent", resolve, { once: true })),
+        new Promise(resolve => animation.addEventListener("endEvent", resolve, { once: true })),
+        test_driver.click(target)
+    ]);
+
+    // Wait another frame.
+    await new Promise(requestAnimationFrame);
+
+    // Track whether the animation will start again.
+    let began = false;
+    animation.addEventListener("beginEvent", event => began = true, { once: true });
+
+    // Click on the element, which should not trigger the animation.
+    await test_driver.click(target);
+
+    // Wait a couple of frames to give it time to run.
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+
+    assert_false(began, "The animation must not restart");
+}, "Setting restart='never' prevents animation with begin='click' from restarting");
+
+</script>
+</body>

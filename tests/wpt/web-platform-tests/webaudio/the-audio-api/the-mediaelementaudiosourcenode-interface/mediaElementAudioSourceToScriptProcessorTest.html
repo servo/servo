@@ -73,13 +73,16 @@ https://searchfox.org/mozilla-central/source/dom/media/webaudio/test/test_mediaE
    let audioprocessListener = elementSourceTest.step_func(processListener);
    processor.addEventListener('audioprocess', audioprocessListener);
 
+   context.addEventListener('statechange', elementSourceTest.step_func(() => {
+     assert_equals(context.state, "running", "context.state");
+     audio.play();
+   }), {once: true});
+
    // When media playback ended, save the begin to compare with expected buffer
    audio.addEventListener("ended", elementSourceTest.step_func(function(e) {
      // Setting a timeout since we need audioProcess event to run for all samples
      window.setTimeout(elementSourceTest.step_func(loadExpectedBuffer), 50);
    }));
-
-   audio.play();
 
    function runTests(expected) {
      source.disconnect();

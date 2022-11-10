@@ -51,9 +51,12 @@
         display: inline-block;
         text-align: right; /* Keep parent's centering from tweaking my text */
       }
+      .baselineParent {
+        float: right;
+      }
       .baseline {
         background: teal;
-        float: right;
+        float: left;
       }
       .stretch {
         background: pink;
@@ -73,8 +76,10 @@
       <div class="centerParent">
         <div class="center big">a b</div>
       </div>
-      <div class="baseline">base</div>
-      <div class="baseline big">abc</div>
+      <div class="baselineParent">
+        <div class="baseline">base</div>
+        <div class="baseline big">abc</div>
+      </div>
       <div class="stretch clearFloats">stretch</div>
       <div class="stretch big">a b</div>
     </div>

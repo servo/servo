@@ -3,51 +3,23 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
 <script src="resources/utils.js"></script>
-<body>
-<script>
 
+<script>
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
-  const bc = new BroadcastChannel('test-channel');
+  const rcHelper = new RemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const prerenderedRC = await addPrerenderRC(referrerRC);
 
-  const gotMessage = new Promise(resolve => {
-    bc.addEventListener('message', e => {
-      resolve(e.data);
-    }, {
-      once: true
-    });
-  });
-  const url = `resources/visibility-state-check.html`;
-  window.open(url, '_blank', 'noopener');
+  assert_equals(await prerenderedRC.executeScript(() => document.visibilityState), "hidden");
 
-  const result = await gotMessage;
-  const expected = [
-    {
-      event: 'Initial visibilityState: hidden',
-      prerendering: true
-    },
-    {
-      event: 'started waiting visibilityState check',
-      prerendering: true
-    },
-    {
-      event: 'visibilityState after prerenderingchange: visible',
-      prerendering: false
-    },
-    {
-      event: 'finished waiting visibilityState check',
-      prerendering: false
-    }
-  ];
-  assert_equals(result.length, expected.length);
-  for (let i = 0; i < result.length; i++) {
-    assert_equals(result[i].event, expected[i].event, `event${i}`);
-    assert_equals(result[i].prerendering, expected[i].prerendering,
-      `prerendering${i}`);
-  }
-}, 'The visibilityState must be updated after prerendering.');
+  await activatePrerenderRC(referrerRC, prerenderedRC);
 
+  assert_equals(await prerenderedRC.executeScript(() => document.visibilityState), "visible");
+});
 </script>
-</body>

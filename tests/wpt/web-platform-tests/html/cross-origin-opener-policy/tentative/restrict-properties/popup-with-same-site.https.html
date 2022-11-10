@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+<script src="../../resources/popup-test.js"></script>
+<script>
+
+[
+  {
+    "title": "popup with empty coop",
+    "coop": "",
+    "opener": "restricted"
+  },
+  {
+    "title": "popup with coop unsafe-none",
+    "coop": "unsafe-none",
+    "opener": "restricted"
+  },
+  {
+    "title": "popup with coop same-origin",
+    "coop": "same-origin",
+    "opener": "severed"
+  },
+  {
+    "title": "popup with coop same-origin-allow-popups",
+    "coop": "same-origin-allow-popups",
+    "opener": "severed"
+  },
+  {
+    "title": "popup with coop restrict-properties",
+    "coop": "restrict-properties",
+    "opener": "restricted"
+  }
+].forEach(variant => {
+  popup_test(`Same-site ${variant.title}`, SAME_SITE,
+    { coop: variant.coop }, variant.opener);
+});
+
+</script>

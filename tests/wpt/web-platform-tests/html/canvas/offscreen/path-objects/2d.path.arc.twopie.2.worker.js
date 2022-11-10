@@ -23,7 +23,7 @@ ctx.lineWidth = 100;
 ctx.beginPath();
 ctx.arc(50, 25, 50, 0, 2*Math.PI - 1e-4, false);
 ctx.stroke();
-_assertPixel(canvas, 50,20, 0,255,0,255, "50,20", "0,255,0,255");
+_assertPixel(canvas, 50,20, 0,255,0,255);
 t.done();
 
 });

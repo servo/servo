@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1378657">
+<link rel="match" href="balanced-inner-multicol-ref.html">
+<p>There should be 6 small blue squares below.</p>
+<div style="columns:3; gap:0; column-fill:auto; width:300px; height:100px;">
+  <div style="columns:2; gap:0; max-height:260px;">
+    <div style="display:table;">
+      <div style="display:table-footer-group; break-inside:avoid;">
+        <div style="width:10px; height:10px; background:blue;"></div>
+      </div>
+      <div style="height:460px;"></div>
+    </div>
+  </div>
+</div>

@@ -382,6 +382,7 @@ function validateInboundRtpStreamStats(statsReport, stats) {
   assert_optional_number_field(stats, 'totalSamplesDuration');
   assert_unsigned_int_field(stats, 'framesReceived');
   assert_optional_string_field(stats, 'decoderImplementation');
+  assert_optional_boolean_field(stats, 'powerEfficientDecoder');
 }
 
 /*
@@ -558,6 +559,7 @@ function validateOutboundRtpStreamStats(statsReport, stats) {
   assert_optional_unsigned_int_field(stats, 'pliCount');
   assert_optional_unsigned_int_field(stats, 'sliCount');
   assert_optional_string_field(stats, 'encoderImplementation');
+  assert_optional_boolean_field(stats, 'powerEfficientEncoder');
   // Obsolete stats
   validateOptionalIdField(statsReport, stats, 'trackId', 'track');
 }
