@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>getComputedStyle without transition should not crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<body onload="start();">
+
+<script>
+async function start() {
+ var el = document.createElement(undefined);
+ document.body.appendChild(el);
+
+ var style = self.getComputedStyle(el, ':view-transition');
+ style.getPropertyValue("--child");
+}
+</script>

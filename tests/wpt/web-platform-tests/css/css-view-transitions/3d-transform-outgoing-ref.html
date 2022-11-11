@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Shared transitions: 3d transform ref</title>
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+div { box-sizing: border-box; will-change: transform }
+.rotate3d {
+  transform: translate(20px, 100px) rotate3d(1, 1, 1, 45deg);
+  background: green;
+}
+.shared {
+  contain: layout;
+  width: 100px;
+  height: 100px;
+}
+body { background: pink }
+
+</style>
+
+<div class="rotate3d shared"></div>
+

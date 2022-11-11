@@ -30,7 +30,9 @@
                 assert_not_equals(poseMatrix, null);
 
                 for(let i = 0; i < poseMatrix.length; i++) {
-                  assert_equals(poseMatrix[i], IDENTITY_MATRIX[i]);
+                  // "0 +" is to accept -0 which is equivalent to 0 in the
+                  // matrix.
+                  assert_equals(0 + poseMatrix[i], IDENTITY_MATRIX[i]);
                 }
 
                 fakeDeviceController.setViewerOrigin(VALID_POSE_TRANSFORM);
@@ -46,7 +48,9 @@
                 assert_not_equals(poseMatrix, null);
 
                 for(let i = 0; i < poseMatrix.length; i++) {
-                  assert_equals(poseMatrix[i], IDENTITY_MATRIX[i]);
+                  // "0 +" is to accept -0 which is equivalent to 0 in the
+                  // matrix.
+                  assert_equals(0 + poseMatrix[i], IDENTITY_MATRIX[i]);
                 }
               });
 

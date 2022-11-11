@@ -72,11 +72,10 @@ if (topLevelDocument) {
       .then(() => {
         promise_test(
             async t => {
-              const {promise} = await RunCallbackWithGesture('b1', () => {
+              await RunCallbackWithGesture(() => {
                 return promise_rejects_dom(t, "NotAllowedError", document.requestStorageAccess(),
                 "should reject in insecure context");
               });
-              return promise;
             },
             '[' + testPrefix +
                 '] document.requestStorageAccess() should be rejected when called with a user gesture in insecure context');

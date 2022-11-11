@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Shared transitions: iframe</title>
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+iframe { width: 500px; height: 500px }
+</style>
+
+<iframe srcdoc="
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+html { height: 50%; }
+</style>
+
+<div></div>
+"></iframe>
+
+

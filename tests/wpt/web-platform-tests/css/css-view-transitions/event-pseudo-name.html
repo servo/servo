@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Shared transitions: event pseudo name</title>
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="web-animations-api-ref.html">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+:root { view-transition-name: none; }
+#first {
+  background: blue;
+  width: 100px;
+  height: 100px;
+  contain:  paint;
+  view-transition-name: shared;
+}
+
+html::view-transition-group(*),
+html::view-transition-image-pair(*),
+html::view-transition-new(*),
+html::view-transition-old(*) {
+  animation-duration: 600s;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+html::view-transition-image-pair(*) {
+  animation: fade-in 600s both;
+}
+
+</style>
+<div id=first></div>
+<script>
+async_test(t => {
+  let names = [];
+  document.documentElement.addEventListener("animationstart", (e) => {
+    names.push(e.pseudoElement);
+    if (names.length == 4) {
+      t.step(() => assert_true(names.includes("::view-transition-group(shared)")));
+      t.step(() => assert_true(names.includes("::view-transition-image-pair(shared)")));
+      t.step(() => assert_true(names.includes("::view-transition-new(shared)")));
+      t.step(() => assert_true(names.includes("::view-transition-old(shared)")));
+      t.done();
+    }
+  });
+  document.startViewTransition();
+}, "verifies pseudo name includes a tag");
+
+</script>
+

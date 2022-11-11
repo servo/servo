@@ -847,6 +847,7 @@ CSS-COLLIDING-REF-NAME: css/css-break/background-image-001-ref.html
 # Ported crashtests from Mozilla
 SET TIMEOUT: editing/crashtests/backcolor-in-nested-editing-host-td-from-DOMAttrModified.html
 SET TIMEOUT: editing/crashtests/contenteditable-will-be-blurred-by-focus-event-listener.html
+SET TIMEOUT: editing/crashtests/delete-content-in-no-data-object.html
 SET TIMEOUT: editing/crashtests/designMode-document-will-be-blurred-by-focus-event-listener.html
 SET TIMEOUT: editing/crashtests/indent-outdent-after-closing-editable-dialog-element.html
 SET TIMEOUT: editing/crashtests/inserthtml-after-temporarily-removing-document-element.html

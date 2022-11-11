@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>SET: Blend modes are set up only in paired transitions</title>
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+}
+.tagone { view-transition-name: one }
+.tagtwo { view-transition-name: two }
+.tagthree { view-transition-name: three }
+</style>
+
+<div id=first class=tagone></div>
+<div id=second></div>
+<div id=third class=tagthree></div>
+
+<script>
+async_test(t => {
+  let transition = document.startViewTransition(() => {
+    first.classList.toggle("tagone");
+    second.classList.toggle("tagtwo");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(one)").isolation, "auto"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(one)").mixBlendMode, "normal"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(two)").isolation, "auto"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(two)").mixBlendMode, "normal"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(three)").isolation, "isolate"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(three)").mixBlendMode, "plus-lighter"));
+        t.step(() => assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(three)").mixBlendMode, "plus-lighter"));
+        t.done();
+      });
+    });
+  });
+}, "Blend modes are set up on paired transitions");
+</script>
