@@ -437,7 +437,7 @@ impl EventTarget {
         let mut handlers = self.handlers.borrow_mut();
 
         let listener = EventListenerType::Additive(listener.clone());
-        for entries in handlers.get_mut(ty) {
+        if let Some(entries) = handlers.get_mut(ty) {
             entries.drain_filter(|e| e.listener == listener && e.once);
         }
     }
@@ -734,7 +734,7 @@ impl EventTarget {
         };
         let mut handlers = self.handlers.borrow_mut();
         let entry = handlers.get_mut(&Atom::from(ty));
-        for entry in entry {
+        if let Some(entry) = entry {
             let phase = if options.capture {
                 ListenerPhase::Capturing
             } else {
