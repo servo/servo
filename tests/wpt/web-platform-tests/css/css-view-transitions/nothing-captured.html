@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Shared transitions: shared element with overflow</title>
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="nothing-captured-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+:root { view-transition-name: none; }
+.target {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  background: blue;
+  overflow-clip-margin: 50px;
+}
+.child {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  top: 50px;
+  left: 50px;
+  background: green;
+}
+
+/* None of these should apply, so make everything red if it does */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-image-pair(*) { visibility: hidden }
+html::view-transition { background: red; }
+</style>
+
+This text should appear unmodified, since the root isn't captured.
+<div class=target>
+  <div class=child>
+  </div>
+</div>
+
+<script>
+async function runTest() {
+  document.startViewTransition(() =>
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot)));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

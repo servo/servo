@@ -19,10 +19,10 @@ function createTestIframe(importMap, importMapBaseURL) {
       iframe.src = 'data:text/html;base64,' + btoa(testHTML);
     } else {
       iframe.src = '/common/blank.html';
-      iframe.onload = () => {
+      iframe.addEventListener('load', () => {
         iframe.contentDocument.write(testHTML);
         iframe.contentDocument.close();
-      };
+      }, {once: true});
     }
     document.body.appendChild(iframe);
   });

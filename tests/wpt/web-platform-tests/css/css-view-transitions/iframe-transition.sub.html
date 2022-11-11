@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Shared transitions: iframe</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="iframe-transition-ref.html">
+<meta name="assert" content="Ensure that iframe root capture is sized and displayed correctly">
+<meta name=fuzzy content="iframe-transition-ref.html:0-200;0-200">
+<script src="/common/reftest-wait.js"></script>
+<style>
+iframe { width: 500px; height: 500px }
+</style>
+
+<script>
+addEventListener("message", takeScreenshot);
+</script>
+
+<iframe id=frame src="http://{{domains[www]}}:{{ports[http][0]}}/css/css-view-transitions/support/frame-helper.html"></iframe>

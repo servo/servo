@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Shared transitions: root tag is reserved</title>
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+}
+</style>
+
+<div id=first></div>
+<div id=second></div>
+
+<script>
+promise_test(async t => {
+  return new Promise((resolve, reject) => {
+    first.style = "view-transition-name: target";
+    second.style = "view-transition-name: target";
+    let transition = document.startViewTransition();
+    transition.ready.then(() => {}, () => {});
+    transition.domUpdated.then(() => {}, () => {});
+    transition.finished.then(reject, resolve);
+  });
+}, "Two different elements with the same tag rejects capture");
+
+promise_test(async t => {
+  return new Promise((resolve, reject) => {
+    first.style = "view-transition-name: target";
+    let transition = document.startViewTransition(() => {
+      first.style = "view-transition-name: target";
+      second.style = "view-transition-name: target";
+    });
+    transition.ready.then(() => {}, () => {});
+    transition.domUpdated.then(() => {}, () => {});
+    transition.finished.then(reject, resolve);
+  });
+}, "Two different elements with the same tag rejects start");
+</script>

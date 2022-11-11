@@ -53,7 +53,7 @@ promise_test(async t => {
   createRecordingCloseWatcher(t, events, "watcher2");
 
   await sendCloseSignal();
-  assert_array_equals(events, ["watcher2 close", "watcher1 close"]);
+  assert_array_equals(events, ["watcher2 close", "watcher1 close", "freeWatcher close"]);
 }, "Multiple CloseWatchers created without user activation close together (with no cancel)");
 
 promise_test(async t => {

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>When paint containment is not present we should still run animation.</title>
+<link rel="help" href="https://github.com/vmpstr/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+div {
+  width: 10px;
+  height: 10px;
+  top: 10px;
+  left: 10px;
+  position: relative;
+  background: blue;
+}
+.green { background: green; }
+</style>
+
+<div id=first></div>
+<div id=second></div>
+
+<script>
+function rafAnimation() {
+  first.classList.toggle("green");
+  requestAnimationFrame(rafAnimation);
+}
+
+async function runTest() {
+  await waitForAtLeastOneFrame();
+  // Prepare with a shared element
+  first.style.viewTransitionName = "shared";
+  let t = document.startViewTransition(() => {
+    first.style.viewTransitionName = "";
+    second.style.viewTransitionName = "shared";
+  });
+
+  // The start() call above starts the capture. Force a hit test, which will
+  // determine compositing reasons.
+  document.elementFromPoint(0, 0);
+
+  // Wait for the transition to finish. This will note that we don't have
+  // paint containment and should de-composite the element.
+  await t.finished;
+
+  takeScreenshot();
+}
+
+onload = runTest;
+
+// Continually run raf animation which should paint every frame.
+rafAnimation();
+</script>
+
+</html>

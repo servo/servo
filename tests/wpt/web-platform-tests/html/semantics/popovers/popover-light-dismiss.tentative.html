@@ -389,41 +389,6 @@
   },'Moving focus back to the anchor element should not dismiss the popover');
 </script>
 
-<div popover id=p9>
-  <button>Button</button>
-  <span id=inside9after>Inside popover 9 after button</span>
-</div>
-<button id=b9after popovertoggletarget='p9'>Popover 9</button>
-<script>
-  promise_test(async () => {
-    const popover9 = document.querySelector('#p9');
-    const inside9After = document.querySelector('#inside9after');
-    const popover9Invoker = document.querySelector('#b9after');
-    assert_false(popover9.matches(':open'));
-    popover9Invoker.click(); // Trigger via the button
-    await clickOn(inside9After);
-    assert_true(popover9.matches(':open'));
-    await sendTab();
-    assert_equals(document.activeElement,popover9Invoker,'Focus should move to the invoking element');
-    assert_true(popover9.matches(':open'),'popover should stay open');
-    popover9.hidePopover();
-  },'Moving focus back to the active trigger element should not dismiss the popover');
-
-  promise_test(async () => {
-    const popover9 = document.querySelector('#p9');
-    const inside9After = document.querySelector('#inside9after');
-    const popover9Invoker = document.querySelector('#b9after');
-    assert_false(popover9.matches(':open'));
-    popover9.showPopover(); // Trigger directly
-    await clickOn(inside9After);
-    assert_true(popover9.matches(':open'));
-    await sendTab();
-    assert_equals(document.activeElement,popover9Invoker,'Focus should move to the invoking element');
-    assert_true(popover9.matches(':open'),'popover should stay open - even though the trigger wasn\'t used, it points to this popover');
-  },'Moving focus back to an inactive trigger element should also *not* dismiss the popover');
-</script>
-
-
 <!-- Convoluted ancestor relationship -->
 <div popover id=convoluted_p1>Popover 1
   <div id=convoluted_anchor>Anchor

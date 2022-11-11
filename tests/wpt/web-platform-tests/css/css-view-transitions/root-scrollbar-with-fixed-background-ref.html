@@ -1,0 +1,33 @@
+<!DOCTYPE html >
+<title>Shared transitions: capture root element with scrollbar (ref)</title>
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<style>
+#container {
+  background: lightblue;
+}
+#first {
+  width: 10px;
+  background: linear-gradient(green, blue);
+  height: 1000px;
+}
+body {
+  margin: 0px;
+  padding: 0px;
+  filter: invert(1);
+}
+</style>
+
+  <div id=container>
+   <div id=first></div>
+  </div>
+
+<script>
+  function scrollContainer() {
+    document.documentElement.scrollTop = 500;
+  }
+
+  onload = scrollContainer();
+</script>
+</html>

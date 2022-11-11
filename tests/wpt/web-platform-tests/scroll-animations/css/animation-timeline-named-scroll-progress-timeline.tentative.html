@@ -366,8 +366,93 @@ promise_test(async t => {
   assert_equals(getComputedStyle(target).translate, 'none');
 }, 'scroll-timeline-name on element becoming display:none affects subsequent siblings');
 
-// TODO: Add more tests which change scroll-timeline-name property.
-// Those animations which use this timeline should be restyled propertly.
+promise_test(async t => {
+  let [scroller, target] = createScrollerAndTarget(t);
+
+  // <div id='scroller' class='scroller'> ... </div>
+  // <div id='target'></div>
+
+  document.body.appendChild(scroller);
+  document.body.appendChild(target);
+
+  scroller.style.scrollTimelineName = 'timeline';
+  scroller.style.display = 'none';
+  target.style.animation = "anim 10s linear timeline";
+
+  await waitForNextFrame();
+
+  const anim = target.getAnimations()[0];
+  assert_true(!!anim, 'Failed to create animation');
+  assert_equals(anim.timeline, null);
+  // Hold time of animation is zero.
+  assert_equals(getComputedStyle(target).translate, '50px');
+
+  scroller.style.display = 'block';
+  scroller.scrollTop = 50;
+  await waitForNextFrame();
+
+  assert_true(!!anim.timeline, 'Failed to create timeline');
+  assert_equals(getComputedStyle(target).translate, '100px');
+
+}, 'scroll-timeline-name on element not resolved until element becomes visible');
+
+promise_test(async t => {
+  let [scroller, target] = createScrollerAndTarget(t);
+
+  // <div id='scroller' class='scroller'> ... </div>
+  // <div id='target'></div>
+
+  document.body.appendChild(scroller);
+  document.body.appendChild(target);
+
+  scroller.style.scrollTimelineName = 'timeline-A';
+  scroller.scrollTop = 50;
+  target.style.animation = "anim 10s linear timeline-B";
+
+  await waitForNextFrame();
+
+  const anim = target.getAnimations()[0];
+  assert_true(!!anim, 'Failed to create animation');
+  assert_equals(anim.timeline, null);
+  // Hold time of animation is zero.
+  assert_equals(getComputedStyle(target).translate, '50px');
+
+  scroller.style.scrollTimelineName = 'timeline-B';
+  await waitForNextFrame();
+
+  assert_true(!!anim.timeline, 'Failed to create timeline');
+  assert_equals(getComputedStyle(target).translate, '100px');
+
+}, 'Change in scroll-timeline-name to match animation timeline updates animation.');
+
+promise_test(async t => {
+  let [scroller, target] = createScrollerAndTarget(t);
+
+  // <div id='scroller' class='scroller'> ... </div>
+  // <div id='target'></div>
+
+  document.body.appendChild(scroller);
+  document.body.appendChild(target);
+
+  scroller.style.scrollTimelineName = 'timeline-A';
+  scroller.scrollTop = 50;
+  target.style.animation = "anim 10s linear timeline-A";
+
+  await waitForNextFrame();
+
+  const anim = target.getAnimations()[0];
+  assert_true(!!anim, 'Failed to create animation');
+  assert_true(!!anim.timeline, 'Failed to create timeline');
+  assert_equals(getComputedStyle(target).translate, '100px');
+
+  scroller.style.scrollTimelineName = 'timeline-B';
+  await waitForNextFrame();
+
+  assert_equals(anim.timeline, null, 'Failed to remove timeline');
+  assert_equals(getComputedStyle(target).translate, 'none');
+
+}, 'Change in scroll-timeline-name to no longer match animation timeline updates animation.');
+
 
 // -------------------------
 // Test scroll-timeline-axis
