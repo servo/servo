@@ -15,12 +15,12 @@
   <ol id="instructions">
     <li>Click inside the red area.
   </ol>
-  <iframe id="child" width="200" height="200"
-          src="http://{{domains[www]}}:{{ports[http][0]}}/html/user-activation/resources/child-message-event-api.html">
+  <iframe id="child" width="200" height="200">
   </iframe>
   <script>
     async_test(function(t) {
       var child = document.getElementById("child");
+      child.src = "http://{{hosts[alt][]}}:{{ports[http][0]}}/html/user-activation/resources/child-message-event-api.html";
       assert_false(navigator.userActivation.isActive);
       assert_false(navigator.userActivation.hasBeenActive);
       window.addEventListener("message", t.step_func(event => {

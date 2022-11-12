@@ -42,6 +42,6 @@
       assert_equals(iframe.contentWindow, null, "No more global");
       assert_true(userActivation.isActive, "isActive");
       assert_true(userActivation.hasBeenActive, "hasBeenActive");
-    }, "navigator.userActivation retains state even if browsing context is destroyed");
+    }, "navigator.userActivation retains state even if global is removed");
   </script>
 </html>

@@ -7,6 +7,11 @@
 <script src="/css/support/parsing-testcommon.js"></script>
 
 <script>
+const anchorNames = [
+  '',
+  '--foo',
+];
+
 const insetProperties = [
   'left',
   'right',
@@ -36,6 +41,7 @@ const fallbacks = [
   '1px',
   '50%',
   'calc(1px + 50%)',
+  'anchor(left)',
   'anchor(--bar left)',
   'anchor(--bar left, anchor(--baz right))',
 ];
@@ -44,10 +50,12 @@ const fallbacks = [
 for (let property of insetProperties) {
   // Using a wrong anchor-side (e.g., `top: anchor(--foo left)`) doesn't cause a
   // parse error, but triggers the fallback when resolved.
-  for (let side of anchorSides) {
-    for (let fallback of fallbacks) {
-      let value = `anchor(--foo ${side}${fallback ? ', ' + fallback : ''})`;
-      test_valid_value(property, value);
+  for (let name of anchorNames) {
+    for (let side of anchorSides) {
+      for (let fallback of fallbacks) {
+        let value = `anchor(${name ? name + ' ' : ''}${side}${fallback ? ', ' + fallback : ''})`;
+        test_valid_value(property, value);
+      }
     }
   }
 }

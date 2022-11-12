@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Popover combined with dialog/fullscreen behavior</title>
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div id=examples>
+  <dialog popover>Popover Dialog</dialog>
+  <dialog popover open style="top:50px;">Open Non-modal Popover Dialog</dialog>
+  <dialog popover=manual defaultopen style="top:100px;">Defaultopen Popover Dialog</dialog>
+  <dialog popover=manual defaultopen open style="top:150px;">Defaultopen and Open Popover Dialog</dialog>
+  <div    popover class=fullscreen>Fullscreen Popover</div>
+  <dialog popover class=fullscreen>Fullscreen Popover Dialog</dialog>
+  <dialog popover open class=fullscreen style="top:200px;">Fullscreen Open Non-modal Popover Dialog</dialog>
+</div>
+<button id=visible>Visible button</button>
+
+<style>
+  [popover] {
+    inset:auto;
+    top:0;
+    left:0;
+  }
+</style>
+
+<script>
+const isDialog = (ex) => ex instanceof HTMLDialogElement;
+const isFullscreen = (ex) => ex.classList.contains('fullscreen');
+function ensureIsOpenPopover(ex,message) {
+  // Because :open will eventually support <dialog>, this does extra work to
+  // verify we're dealing with an :open Popover.
+  message = message || 'Error';
+  assert_true(ex.matches(':open'),`${message}: Popover doesn\'t match :open`);
+  assert_false(ex.matches(':closed'),`${message}: Popover matches :closed`);
+  ex.hidePopover(); // Shouldn't throw if this is a showing popover
+  ex.showPopover(); // Show it again to avoid state change
+  assert_true(ex.matches(':open') && !ex.matches(':closed'),`${message}: Sanity`);
+}
+window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+  const examples = Array.from(document.querySelectorAll('#examples>*'));
+  examples.forEach(ex => {
+    promise_test(async (t) => {
+      t.add_cleanup(() => ex.remove());
+      if (ex.hasAttribute('open')) {
+        assert_true(isDialog(ex));
+        assert_true(isElementVisible(ex),'Open dialog should be visible by default');
+      } else if (ex.hasAttribute('defaultopen')) {
+        ensureIsOpenPopover(ex,'defaultopen should open the popover on load');
+        assert_true(isElementVisible(ex),'Popover with defaultopen should be visible by default');
+      }
+      if (isElementVisible(ex)) {
+        // ex is already open (defaultopen or open dialog)
+        assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover on an already-showing element should throw InvalidStateError');
+        if (ex.hasAttribute('open')) {
+          assert_true(isDialog(ex));
+          ex.removeAttribute('open');
+          assert_false(isElementVisible(ex),'Removing the open attribute should hide the dialog');
+        } else {
+          ex.hidePopover(); // Should not throw
+        }
+      } else {
+        ex.showPopover(); // Should not throw
+        ensureIsOpenPopover(ex,'showPopover should work');
+        ex.hidePopover(); // Should not throw
+        assert_true(ex.matches(':closed'),'hidePopover should work');
+      }
+      assert_false(isElementVisible(ex));
+
+      // Start with popover, try the other API
+      ex.showPopover();
+      let tested_something=false;
+      if (isDialog(ex)) {
+        tested_something=true;
+        ensureIsOpenPopover(ex);
+        assert_throws_dom("InvalidStateError",() => ex.showModal(),'Calling showModal() on an already-showing Popover should throw InvalidStateError');
+        assert_throws_dom("InvalidStateError",() => ex.show(),'Calling show() on an already-showing Popover should throw InvalidStateError');
+      }
+      if (isFullscreen(ex)) {
+        tested_something=true;
+        let requestSucceeded = false;
+        await blessTopLayer(ex)
+          .then(() => ex.requestFullscreen())
+          .then(() => {requestSucceeded = true;}) // We should not hit this.
+          .catch((exception) => {
+            // This exception is expected.
+            assert_equals(exception.name,'TypeError',`Invalid exception from requestFullscreen() (${exception.message})`);
+          });
+          assert_false(requestSucceeded,'requestFullscreen() should not succeed when the element is an already-showing Popover');
+      }
+      assert_true(tested_something);
+      ensureIsOpenPopover(ex);
+      ex.hidePopover();
+
+      // Start with the other API, then try popover
+      if (isDialog(ex)) {
+        ex.show();
+        assert_true(ex.hasAttribute('open'));
+        assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover() on an already-showing non-modal dialog should throw InvalidStateError');
+        ex.close();
+        assert_false(ex.hasAttribute('open'));
+        ex.showModal();
+        assert_true(ex.hasAttribute('open'));
+        assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover() on an already-showing modal dialog should throw InvalidStateError');
+        ex.close();
+        assert_false(ex.hasAttribute('open'));
+      } else if (isFullscreen(ex)) {
+        let requestSucceeded = false;
+        await blessTopLayer(visible)
+        .then(() => ex.requestFullscreen())
+        .then(() => {
+          assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover() on an already-fullscreen element should throw InvalidStateError');
+        });
+        await document.exitFullscreen()
+        .then(() => assert_true(true));
+      }
+    }, `Popover combination: ${ex.textContent}`);
+  });
+}));
+</script>
