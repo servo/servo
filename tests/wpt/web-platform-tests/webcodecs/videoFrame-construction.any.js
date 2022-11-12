@@ -94,6 +94,30 @@ test(t => {
   })
 }, 'Test constructing w/ unusable image argument throws: HAVE_NOTHING <video>.');
 
+promise_test(async t => {
+  // Test only valid for Window contexts.
+  if (!('document' in self))
+    return;
+
+  let video = document.createElement('video');
+  video.src = 'av1.mp4';
+  video.autoplay = true;
+  video.controls = false;
+  video.muted = false;
+  document.body.appendChild(video);
+
+  const loadVideo = new Promise((resolve) => {
+    video.onloadeddata = () => resolve();
+  });
+  await loadVideo;
+
+  let frame = new VideoFrame(video, {timestamp: 10});
+  assert_equals(frame.codedWidth, 320, 'codedWidth');
+  assert_equals(frame.codedHeight, 240, 'codedHeight');
+  assert_equals(frame.timestamp, 10, 'timestamp');
+  frame.close();
+}, 'Test we can construct a VideoFrame from a <video>.');
+
 test(t => {
   let canvas = new OffscreenCanvas(0, 0);
 

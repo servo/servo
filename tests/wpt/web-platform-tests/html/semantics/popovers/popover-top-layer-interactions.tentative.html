@@ -7,6 +7,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
 
 <body>
 <script>
@@ -36,7 +37,7 @@ const examples = [
     type: types.fullscreen,
     closes: [types.popover, types.fullscreen],
     createElement: () => document.createElement('div'),
-    trigger: async function(visibleElement) {assert_false(this.isTopLayer());await bless(visibleElement);await this.element.requestFullscreen();},
+    trigger: async function(visibleElement) {assert_false(this.isTopLayer());await blessTopLayer(visibleElement);await this.element.requestFullscreen();},
     close: function() {assert_equals(this.element,document.fullscreenElement); document.exitFullscreen();},
     isTopLayer: function() {return this.element.matches(':fullscreen');},
   },
@@ -57,19 +58,6 @@ function doneWithExample(ex) {
     ex.close();
   ex.element.remove();
   ex.element = null;
-}
-async function bless(visibleElement) {
-  // The normal "bless" function doesn't work well when there are top layer
-  // elements blocking clicks. Additionally, since the normal test_driver.bless
-  // function just adds a button to the main document and clicks it, we can't
-  // call that in the presence of open popovers, since that click will close them.
-  const button = document.createElement('button');
-  button.innerHTML = "Click me to activate";
-  visibleElement.appendChild(button);
-  let wait_click = new Promise(resolve => button.addEventListener("click", resolve, {once: true}));
-  await test_driver.click(button);
-  await wait_click;
-  button.remove();
 }
 // Test interactions between top layer elements
 for(let i=0;i<examples.length;++i) {

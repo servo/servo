@@ -11,7 +11,7 @@ async_test((t) => {
       assert_equals(history.length, 2)
 
       state = "c first"
-      self[0].location = "resources/c.html"
+      navigateFrameAfterDelay(t, "resources/c.html")
     } else if (state === "c first") {
       assert_equals(history.length, 3)
 
@@ -21,7 +21,7 @@ async_test((t) => {
       assert_equals(history.length, 3)
 
       state = "a third"
-      self[0].location.href = "resources/a.html"
+      navigateFrameAfterDelay(t, "resources/a.html")
     } else if (state === "a third") {
       assert_equals(history.length, 3)
       t.done()
@@ -32,7 +32,19 @@ async_test((t) => {
     assert_equals(history.length, 1)
 
     state = "b first"
-    self[0].location = "resources/b.html"
+
+    navigateFrameAfterDelay(t, "resources/b.html")
   })
 })
+
+function navigateFrameAfterDelay(t, url) {
+  // Delay to avoid triggering the "replace" behavior which occurs if
+  // the page isn't yet completely loaded, which only occurs after the
+  // load event handlers have finished:
+  // https://html.spec.whatwg.org/#location-object-navigate
+  // https://html.spec.whatwg.org/#the-end:completely-finish-loading
+  t.step_timeout(() => {
+    self[0].location = url
+  }, 0)
+}
 </script>

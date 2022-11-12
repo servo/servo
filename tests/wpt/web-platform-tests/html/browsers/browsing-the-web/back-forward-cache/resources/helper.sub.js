@@ -28,7 +28,7 @@ const executorPath =
 async function assert_bfcached(target) {
   const status = await getBFCachedStatus(target);
   assert_implements_optional(status === 'BFCached',
-      "Should be BFCached but actually wasn't");
+      "Could have been BFCached but actually wasn't");
 }
 
 async function assert_not_bfcached(target) {

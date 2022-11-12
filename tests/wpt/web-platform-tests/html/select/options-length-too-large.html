@@ -29,8 +29,13 @@
     });
 
     test(function() {
+        mySelect.options.length = Number.MAX_SAFE_INTEGER;
+        assert_equals(mySelect.options.length, 3, "Length of <select> should remain unchanged");
+    });
+
+    test(function() {
         mySelect.options.length = 100000;
-        assert_equals(mySelect.options.length, 100000, "Length of <select> should be 10,0000");
+        assert_equals(mySelect.options.length, 100000, "Length of <select> should be 100,000");
     });
 
     test(function() {

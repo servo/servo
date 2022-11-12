@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-<title>CSS Test:  font-variant-position: sub; low level equivalence</title>
+<title>CSS Test:  font-variant-position: super; low level equivalence</title>
 <link rel="author" title="Chris Lilley" href="chris@w3.org">
 <style>
   @font-face {
@@ -15,9 +15,11 @@
   }
 </style>
 <body>
-<p>Test passes if the three lines below are identical, with one checkmark (✓) followed by one cross (✗)</p>
+<p>Test passes if the three lines below are identical, with one cross (✗) followed by one checkmark (✓)  </p>
+<!-- Identical? If the UA is allowed to simulate subscripts and superscripts then the first line will use smaller glyphs than the second and third. Maybe "similar" and point out size doesn't matter on this test?  -->
+
 <section class="test">
-	<p class="ref">AB</p>
-	<p class="ref">AB</p>
-	<p class="ref">AB</p>
+	<p class="ref">BA</p>
+	<p class="ref">BA</p>
+	<p class="ref">BA</p>
 </section>

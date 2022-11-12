@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Priority Hints - iFrame element</title>
+<meta name="author" title="Patrick Meenan" href="mailto:patmeenan@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id=iframe1 src="/common/blank.html" fetchpriority=high></iframe>
+<iframe id=iframe2 src="/common/blank.html" fetchpriority=low></iframe>
+<iframe id=iframe3 src="/common/blank.html" fetchpriority=auto></iframe>
+<iframe id=iframe4 src="/common/blank.html" fetchpriority=xyz></iframe>
+<iframe id=iframe5 src="/common/blank.html"></iframe>
+
+<script>
+  test(() => {
+    assert_equals(iframe1.fetchPriority, "high", "high fetchPriority is a valid IDL value on the script element");
+    assert_equals(iframe2.fetchPriority, "low", "low fetchPriority is a valid IDL value on the script element");
+    assert_equals(iframe3.fetchPriority, "auto", "auto fetchPriority is a valid IDL value on the script element");
+    assert_equals(iframe4.fetchPriority, "auto", "invalid fetchPriority reflects as 'auto' IDL attribute on the script element");
+    assert_equals(iframe5.fetchPriority, "auto", "missing fetchPriority reflects as 'auto' IDL attribute on the script element");
+  }, "fetchpriority attribute on <iframe> elements should reflect valid IDL values");
+
+  test(() => {
+    const iframe = document.createElement("iframe");
+    assert_equals(iframe.fetchPriority, "auto");
+  }, "default fetchpriority attribute on <iframe> elements should be 'auto'");
+</script>

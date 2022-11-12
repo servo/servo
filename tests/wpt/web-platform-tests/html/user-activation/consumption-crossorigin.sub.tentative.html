@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+   Tentative due to:
+   https://github.com/web-platform-tests/wpt/issues/36727
+-->
 <html>
 <head>
   <meta name="timeout" content="long">
@@ -44,6 +48,10 @@
     }
 
     window.addEventListener("message", event => {
+
+        // Test driver can send messages too...
+        if (typeof event.data !== "string") return;
+
         var msg = JSON.parse(event.data);
 
         if (msg.type == 'child-one-loaded') {
@@ -65,8 +73,8 @@
             test_driver.click(document.getElementById("child-xo"));
         } else if (msg.type == 'child-one-report') {
             test(() => {
-                assert_false(msg.isActive);
-                assert_true(msg.hasBeenActive);
+                assert_false(msg.isActive, "Child1 frame isActive");
+                assert_true(msg.hasBeenActive, "Child1 frame hasBeenActive");
             }, "Child1 frame final state");
         } else if (msg.type == 'child-crossorigin-report') {
             // This msg was triggered by a user click followed by a window.open().
@@ -81,8 +89,8 @@
             frames[1].frames[0].postMessage(ask_report, "*");
         } else if (msg.type == 'child-two-report') {
             test(() => {
-                assert_false(msg.isActive);
-                assert_false(msg.hasBeenActive);
+                assert_false(msg.isActive, "isActive");
+                assert_false(msg.hasBeenActive, "hasBeenActive");
             }, "Grand child frame final state");
         }
 
@@ -95,20 +103,27 @@
                 finishReportPhase();
         }
     });
+    async function createIframes() {
+        const child1 = document.createElement("iframe");
+        child1.src = "http://{{hosts[alt][]}}:{{ports[http][0]}}/html/user-activation/resources/child-one.html";
+        child1.id = "child1";
+        await new Promise((resolve) => {
+            child1.onload = resolve;
+            document.body.appendChild(child1);
+        });
+        const childXO = document.createElement("iframe");
+        childXO.id = "child-xo";
+        childXO.src = "http://{{hosts[alt][]}}:{{ports[http][1]}}/html/user-activation/resources/consumption-crossorigin-child.sub.html";
+        document.body.appendChild(childXO);
+    }
   </script>
 </head>
-<body>
+<body onload="createIframes()">
   <h1>User activation consumption across cross-origin frame boundary</h1>
   <p>Tests that user activation consumption resets the transient states in all cross-origin frames.</p>
   <ol id="instructions">
     <li>Click anywhere on the yellow area.
     <li>Click anywhere on the green area (child frame).
   </ol>
-  <iframe id="child1" width="300px" height="40px"
-          src="http://{{domains[www1]}}:{{ports[http][0]}}/html/user-activation/resources/child-one.html">
-  </iframe>
-  <iframe id="child-xo" width="300px" height="140px"
-          src="http://{{domains[www2]}}:{{ports[http][0]}}/html/user-activation/resources/consumption-crossorigin-child.sub.html">
-  </iframe>
 </body>
 </html>

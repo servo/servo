@@ -60,3 +60,16 @@ async function waitForHoverTime(hoverWaitTimeMs) {
   await new Promise(resolve => step_timeout(resolve,hoverWaitTimeMs));
   await waitForRender();
 };
+async function blessTopLayer(visibleElement) {
+  // The normal "bless" function doesn't work well when there are top layer
+  // elements blocking clicks. Additionally, since the normal test_driver.bless
+  // function just adds a button to the main document and clicks it, we can't
+  // call that in the presence of open popovers, since that click will close them.
+  const button = document.createElement('button');
+  button.innerHTML = "Click me to activate";
+  visibleElement.appendChild(button);
+  let wait_click = new Promise(resolve => button.addEventListener("click", resolve, {once: true}));
+  await test_driver.click(button);
+  await wait_click;
+  button.remove();
+}

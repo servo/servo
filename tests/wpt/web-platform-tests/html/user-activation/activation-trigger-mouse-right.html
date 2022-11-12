@@ -9,13 +9,14 @@
   <script src="/resources/testdriver-vendor.js"></script>
   <script src="resources/utils.js"></script>
 </head>
-<body>
+<body onload="runTests()">
   <h1>Test for right-click activation trigger</h1>
   <p>Tests user activation from a mouse right-click.</p>
   <ol id="instructions">
     <li>Right-click anywhere in the document.
   </ol>
   <script>
+  function runTests() {
     promise_test(async () => {
         var actions = new test_driver.Actions();
         actions.pointerMove(0, 0, {origin: document.body})
@@ -53,6 +54,7 @@
         assert_false(consumed,
                      "contextmenu should have no activation after mousedown consumption");
     }, "Activation through right-click mouse event");
+  }
   </script>
 </body>
 </html>

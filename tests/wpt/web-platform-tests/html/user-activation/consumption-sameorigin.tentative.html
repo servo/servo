@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+   Tentative due to:
+   https://github.com/web-platform-tests/wpt/issues/36727
+-->
 <html>
 <head>
   <script src="/resources/testharness.js"></script>
@@ -26,7 +30,7 @@
             assert_false(navigator.userActivation.hasBeenActive);
         }, "Parent frame initial state");
 
-        test_driver.click(document.getElementById("child-so"));
+        return test_driver.click(document.getElementById("child-so"));
     }
 
     function finishReportPhase() {
@@ -40,7 +44,10 @@
         consumption_test.done();
     }
 
-    window.addEventListener("message", event => {
+    window.addEventListener("message", async event => {
+        // Test driver can send messages too...
+        if (typeof event.data !== "string") return;
+
         var msg = JSON.parse(event.data);
 
         if (msg.type == 'child-one-loaded') {
@@ -84,25 +91,32 @@
         // Phase switching.
         if (msg.type.endsWith("-loaded")) {
             if (--num_children_to_load == 0)
-                finishLoadPhase();
+                await finishLoadPhase();
         } else if (msg.type.endsWith("-report")) {
             if (--num_children_to_report == 0)
                 finishReportPhase();
         }
     });
+    async function createIframes() {
+        const child1 = document.createElement("iframe");
+        child1.src = "resources/child-one.html";
+        child1.id = "child1";
+        await new Promise((resolve) => {
+            child1.onload = resolve;
+            document.body.appendChild(child1);
+        });
+        const childSO = document.createElement("iframe");
+        childSO.id = "child-so";
+        childSO.src = "resources/consumption-sameorigin-child.html";
+        document.body.appendChild(childSO);
+    }
   </script>
 </head>
-<body>
+<body onload="createIframes()" >
   <h1>User activation consumption across same-origin frame boundary</h1>
   <p>Tests that user activation consumption resets the transient states in all same-origin frames.</p>
   <ol id="instructions">
     <li>Click anywhere on the green area (child frame).
   </ol>
-  <iframe id="child1" width="300px" height="40px"
-          src="resources/child-one.html">
-  </iframe>
-  <iframe id="child-so" width="300px" height="140px"
-          src="resources/consumption-sameorigin-child.html">
-  </iframe>
 </body>
 </html>

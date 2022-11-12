@@ -13,12 +13,14 @@
 <script>
   test(() => {
     assert_equals(link1.fetchPriority, "high", "high fetchPriority is a valid IDL value on the link element");
-    assert_equals(link2.fetchPriority, "low", "high fetchPriority is a valid IDL value on the link element");
+    assert_equals(link2.fetchPriority, "low", "low fetchPriority is a valid IDL value on the link element");
     assert_equals(link3.fetchPriority, "auto", "auto fetchPriority is a valid IDL value on the link element");
     assert_equals(link4.fetchPriority, "auto", "invalid fetchPriority reflects as 'auto' IDL attribute on the link element");
     assert_equals(link5.fetchPriority, "auto", "missing fetchPriority reflects as 'auto' IDL attribute on the link element");
   }, "fetchpriority attribute on <link> elements should reflect valid IDL values");
 
-  const link = document.createElement("link");
-  assert_equals(link.fetchPriority, "auto");
+  test(() => {
+    const link = document.createElement("link");
+    assert_equals(link.fetchPriority, "auto");
+  }, "default fetchpriority attribute on <link> elements should be 'auto'");
 </script>

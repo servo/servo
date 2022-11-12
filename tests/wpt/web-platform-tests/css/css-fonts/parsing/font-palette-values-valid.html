@@ -98,6 +98,11 @@
 /* 15 */
 @font-palette-values -- {
 }
+
+/* 16 */
+@font-palette-values --P {
+    font-family: foo, bar, baz;
+}
 </style>
 </head>
 <body>
@@ -204,7 +209,7 @@ test(function() {
 test(function() {
     let rule = rules[5];
     assert_equals(rule.name, "--F");
-    assert_equals(rule.fontFamily, "foo");
+    assert_in_array(rule.fontFamily, ["foo", "\"foo\""]);
     assert_equals(rule.basePalette, "");
     assert_equals(rule.overrideColors, "");
 });
@@ -369,6 +374,14 @@ test(function() {
     let rule = rules[15];
     assert_equals(rule.name, "--");
     assert_equals(rule.fontFamily, "");
+    assert_equals(rule.basePalette, "");
+    assert_equals(rule.overrideColors, "");
+});
+
+test(function() {
+    let rule = rules[16];
+    assert_equals(rule.name, "--P");
+    assert_equals(rule.fontFamily, "foo, bar, baz");
     assert_equals(rule.basePalette, "");
     assert_equals(rule.overrideColors, "");
 });

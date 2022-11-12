@@ -7,6 +7,11 @@
 <script src="/css/support/parsing-testcommon.js"></script>
 
 <script>
+const anchorNames = [
+  '--foo',
+  '',
+];
+
 const sizeProperties = [
   'width',
   'min-width',
@@ -36,16 +41,19 @@ const fallbacks = [
   '1px',
   '50%',
   'calc(1px + 50%)',
+  'anchor-size(block)',
   'anchor-size(--bar block)',
   'anchor-size(--bar block, anchor-size(--baz inline))',
 ];
 
 // Tests basic combinations
-for (let property of sizeProperties) {
-  for (let size of anchorSizes) {
-    for (let fallback of fallbacks) {
-      let value = `anchor-size(--foo ${size}${fallback ? ', ' + fallback : ''})`;
-      test_valid_value(property, value);
+for (let name of anchorNames) {
+  for (let property of sizeProperties) {
+    for (let size of anchorSizes) {
+      for (let fallback of fallbacks) {
+        let value = `anchor-size(${name ? name + ' ' : ''}${size}${fallback ? ', ' + fallback : ''})`;
+        test_valid_value(property, value);
+      }
     }
   }
 }

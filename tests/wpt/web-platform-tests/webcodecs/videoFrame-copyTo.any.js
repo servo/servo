@@ -121,7 +121,7 @@ promise_test(async t => {
   const layout = await frame.copyTo(data, options);
   assert_layout_equals(layout, options.layout);
   assert_buffer_equals(data, expectedData);
-}, 'Test stride and offset work.');
+}, 'Test I420 stride and offset work.');
 
 promise_test(async t => {
   const frame = makeI420_4x2();
@@ -146,7 +146,77 @@ promise_test(async t => {
   const layout = await frame.copyTo(data, options);
   assert_layout_equals(layout, options.layout);
   assert_buffer_equals(data, expectedData);
-}, 'Test stride and offset with padding.');
+}, 'Test I420 stride and offset with padding.');
+
+promise_test(async t => {
+  const init = {
+    format: 'I420A',
+    timestamp: 0,
+    codedWidth: 4,
+    codedHeight: 2,
+  };
+  const buf = new Uint8Array([
+    1, 2, 3, 4,     // y
+    5, 6, 7, 8,
+    9, 10,          // u
+    11, 12,         // v
+    13, 14, 15, 16, // a
+    17, 18, 19, 20,
+  ]);
+  const frame = new VideoFrame(buf, init);
+  const options = {
+      layout: [
+          {offset: 12, stride: 4},
+          {offset: 8, stride: 2},
+          {offset: 10, stride: 2},
+          {offset: 0, stride: 4},
+      ],
+  };
+  const expectedData = new Uint8Array([
+      13, 14, 15, 16, // a
+      17, 18, 19, 20,
+      9, 10,          // u
+      11, 12,         // v
+      1, 2, 3, 4,     // y
+      5, 6, 7, 8,
+  ]);
+  assert_equals(frame.allocationSize(options), expectedData.length, 'allocationSize()');
+  const data = new Uint8Array(expectedData.length);
+  const layout = await frame.copyTo(data, options);
+  assert_layout_equals(layout, options.layout);
+  assert_buffer_equals(data, expectedData);
+}, 'Test I420A stride and offset work.');
+
+promise_test(async t => {
+  const init = {
+    format: 'NV12',
+    timestamp: 0,
+    codedWidth: 4,
+    codedHeight: 2,
+  };
+  const buf = new Uint8Array([
+    1, 2, 3, 4,   // y
+    5, 6, 7, 8,
+    9, 10, 11, 12 // uv
+  ]);
+  const frame = new VideoFrame(buf, init);
+  const options = {
+      layout: [
+          {offset: 4, stride: 4},
+          {offset: 0, stride: 4},
+      ],
+  };
+  const expectedData = new Uint8Array([
+      9, 10, 11, 12, // uv
+      1, 2, 3, 4,    // y
+      5, 6, 7, 8
+  ]);
+  assert_equals(frame.allocationSize(options), expectedData.length, 'allocationSize()');
+  const data = new Uint8Array(expectedData.length);
+  const layout = await frame.copyTo(data, options);
+  assert_layout_equals(layout, options.layout);
+  assert_buffer_equals(data, expectedData);
+}, 'Test NV12 stride and offset work.');
 
 promise_test(async t => {
   const frame = makeI420_4x2();

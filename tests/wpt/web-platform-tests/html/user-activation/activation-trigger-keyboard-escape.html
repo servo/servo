@@ -8,7 +8,7 @@
   <script src="/resources/testdriver-vendor.js"></script>
   <script src="resources/utils.js"></script>
 </head>
-<body>
+<body onload="runTests()">
   <h1>Test for keyboard activation trigger for ESCAPE key</h1>
   <p>Tests missing user activation from a ESCAPE keyboard event.</p>
   <input type="text" autofocus />
@@ -16,12 +16,14 @@
     <li>Press ESCAPE key.
   </ol>
   <script>
+  function runTests() {
     promise_test(async () => {
         const ESCAPE_KEY = '\uE00C';
-        test_driver.send_keys(document.body, ESCAPE_KEY);
 
         let keydown_event = getEvent('keydown');
         let keyup_event = getEvent('keyup');
+
+        await test_driver.send_keys(document.body, ESCAPE_KEY);
 
         await keydown_event;
         let consumed = await consumeTransientActivation();
@@ -33,6 +35,7 @@
         assert_false(consumed,
                      "ESCAPE keyup should have no activation after keydown consumption");
     }, "Activation through ESCAPE keyboard event");
+  }
   </script>
 </body>
 </html>

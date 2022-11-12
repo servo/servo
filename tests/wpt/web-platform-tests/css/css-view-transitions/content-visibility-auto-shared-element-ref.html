@@ -19,10 +19,13 @@ body { background: pink }
   border: 1px solid black;
   box-sizing: border-box;
 }
+.hidden {
+  visibility: hidden;
+}
 </style>
 
 <div class=flex>
- <div class=box>ancestor c-v</div>
+ <div class="box hidden">ancestor c-v</div>
  <div class=box>self c-v</div>
  <div class=box>descendant c-v</div>
 </div>

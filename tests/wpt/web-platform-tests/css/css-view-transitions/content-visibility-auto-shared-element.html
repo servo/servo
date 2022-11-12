@@ -59,13 +59,14 @@ html::view-transition { background: pink }
 <div id=hidden></div>
 <div class=spacer></div>
 <div id=content>
- <div class=locked><div id=src1 class="box shared" style="view-transition-name: one">ancestor c-v</div></div>
+ <div id=lockme><div id=src1 class="box shared" style="view-transition-name: one">ancestor c-v</div></div>
  <div id=src2 class="box shared locked" style="view-transition-name: two">self c-v</div>
  <div id=src3 class="box shared" style="view-transition-name: three"><div class=locked>descendant c-v</div></div>
 </div>
 
 <script>
 async function runTest() {
+  lockme.classList.add("locked");
   document.startViewTransition(() => {
     content.remove();
     dst1.style = "view-transition-name: one";

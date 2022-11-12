@@ -43,6 +43,9 @@
     }
 
     window.addEventListener("message", event => {
+        // Test driver can send messages too...
+        if (typeof event.data !== "string") return;
+
         var msg = JSON.parse(event.data);
 
         if (msg.type == 'child-one-loaded') {
@@ -92,19 +95,27 @@
                 finishReportPhase();
         }
     });
+    async function createIframes() {
+        const child1 = document.createElement("iframe");
+        child1.src = "http://{{hosts[alt][]}}:{{ports[http][0]}}/html/user-activation/resources/child-one.html";
+        child1.id = "child1";
+        document.body.appendChild(child1);
+        await new Promise((resolve) => {
+            child1.onload = resolve;
+            document.body.appendChild(child1);
+        });
+        const childXO = document.createElement("iframe");
+        childXO.id = "child-xo";
+        childXO.src = "http://{{hosts[alt][]}}:{{ports[http][1]}}/html/user-activation/resources/propagation-crossorigin-child.sub.html";
+        document.body.appendChild(childXO);
+    }
   </script>
 </head>
-<body>
+<body onload="createIframes()">
   <h1>User activation propagation across cross-origin frame boundary</h1>
   <p>Tests that user activation does not propagate across cross-origin frame boundary.</p>
   <ol id="instructions">
     <li>Click anywhere on the green area (child frame).
   </ol>
-  <iframe id="child1" width="300px" height="40px"
-          src="http://{{domains[www1]}}:{{ports[http][0]}}/html/user-activation/resources/child-one.html">
-  </iframe>
-  <iframe id="child-xo" width="300px" height="140px"
-          src="http://{{domains[www2]}}:{{ports[http][0]}}/html/user-activation/resources/propagation-crossorigin-child.sub.html">
-  </iframe>
 </body>
 </html>
