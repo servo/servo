@@ -319,6 +319,7 @@ ${helpers.single_keyword(
     "text-combine-upright",
     "none all",
     engines="gecko",
+    gecko_enum_prefix="StyleTextCombineUpright",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright",
 )}
