@@ -1545,7 +1545,7 @@ impl ContainerName {
             return Ok(Self::none());
         }
         const DISALLOWED_CONTAINER_NAMES: &'static [&'static str] =
-            &["none", "not", "or", "and", "auto", "normal"];
+            &["none", "not", "or", "and"];
         idents.push(CustomIdent::from_ident(
             location,
             first,
