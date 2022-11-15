@@ -7,8 +7,16 @@
   fail.
 -->
 <link rel="preload" as="style" crossorigin href="resources/dummy.css?link-header-crossorigin-preload2">
+<link rel="preload" as="font" crossorigin="anonymous" href="resources/font.ttf?link-header-crossorigin-preload2">
 <link rel="stylesheet" crossorigin href="resources/dummy.css?link-header-crossorigin-preload2">
 <script src="resources/dummy.js?link-header-preload2"></script>
+<style>
+    @font-face {
+        font-family: myFont;
+        src: url(resources/font.ttf?link-header-crossorigin-preload2);
+    }
+    .custom-font { font-family: myFont, sans-serif; }
+</style>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
@@ -24,7 +32,9 @@
             numberOfResourceTimingEntries("resources/dummy.js?link-header-preload2") == 1 &&
             numberOfResourceTimingEntries("resources/dummy.css?link-header-preload") == 1 &&
             numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1") == 1 &&
-            numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload2") == 1) {
+            numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1") == 1 &&
+            numberOfResourceTimingEntries("resources/font.ttf?link-header-crossorigin-preload1") == 1 &&
+            numberOfResourceTimingEntries("resources/font.ttf?link-header-crossorigin-preload2") == 1) {
             done();
         }
         iterations++;
@@ -36,6 +46,8 @@
             verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-preload", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload2", 1);
+            verifyNumberOfResourceTimingEntries("resources/font.ttf?link-header-crossorigin-preload1", 1);
+            verifyNumberOfResourceTimingEntries("resources/font.ttf?link-header-crossorigin-preload2", 1);
             done();
         } else {
             step_timeout(check_finished, 500);
@@ -47,4 +59,5 @@
         step_timeout(check_finished, 500);
     });
 </script>
+<span class="custom-font">PASS - this text is here just so that the browser will download the font.</span>
 </body>
