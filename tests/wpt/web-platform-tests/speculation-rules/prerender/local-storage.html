@@ -14,6 +14,19 @@ setup(() => assertSpeculationRulesIsSupported());
 promise_test(async t => {
   const uid1 = token();
   const uid2 = token();
+
+  // A promise to wait until a prerendered page writes data with the "prerender"
+  // key in the local storage.
+  const write_promise = new Promise((resolve, reject) => {
+    window.addEventListener("storage", event => {
+      if (event.key !== 'prerender') {
+        reject("wrong key");
+      } else {
+        resolve();
+      }
+    }, { once: true });
+  });
+
   window.localStorage.setItem('initial', uid1);
   const {exec} = await create_prerendered_page(t);
   const result = await exec(uid2 => {
@@ -25,8 +38,10 @@ promise_test(async t => {
   assert_equals(
     result, uid1,
       'prerendering page should be able to read from local storage');
+
+  await write_promise;
   assert_equals(
-      window.localStorage.getItem('prerender'), uid2,
+    window.localStorage.getItem('prerender'), uid2,
       'prerendering page should be able to write to local storage');
 }, 'prerendering page should be able to access local storage');
 

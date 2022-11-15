@@ -14,37 +14,39 @@
 <input type=radio id=radio checked>
 
 <script>
-promise_test(async () => {
+promise_test(async t => {
   checkbox.focus();
 
   // Hold spacebar down
   await (new test_driver.Actions()).keyDown('\uE00D').send();
-  assert_equals(document.querySelector(':active'), checkbox,
+  t.add_cleanup(async () => {
+    // Release spacebar
+    await (new test_driver.Actions()).keyUp('\uE00D').send();
+  });
+  assert_equals(document.querySelector('input:active'), checkbox,
     'Checkboxes should be :active while the spacebar is pressed down.');
 
   // Press tab
   await (new test_driver.Actions()).keyDown('\uE004').keyUp('\uE004').send();
   assert_equals(document.querySelector(':active'), null,
     'Checkboxes should not be :active after tab is used to change focus.');
-
-  // Release spacebar
-  await (new test_driver.Actions()).keyUp('\uE00D').send();
 }, 'Checkboxes should clear :active when the user tabs away from them while holding spacebar.');
 
-promise_test(async () => {
+promise_test(async t => {
   radio.focus();
 
   // Hold spacebar down
   await (new test_driver.Actions()).keyDown('\uE00D').send();
-  assert_equals(document.querySelector(':active'), radio,
+  t.add_cleanup(async () => {
+    // Release spacebar
+    await (new test_driver.Actions()).keyUp('\uE00D').send();
+  });
+  assert_equals(document.querySelector('input:active'), radio,
     'Radios should be :active while the spacebar is pressed down.');
 
   // Press tab
   await (new test_driver.Actions()).keyDown('\uE004').keyUp('\uE004').send();
   assert_equals(document.querySelector(':active'), null,
     'Radios should not be :active after tab is used to change focus.');
-
-  // Release spacebar
-  await (new test_driver.Actions()).keyUp('\uE00D').send();
 }, 'Radios should clear :active when the user tabs away from them while holding spacebar.');
 </script>

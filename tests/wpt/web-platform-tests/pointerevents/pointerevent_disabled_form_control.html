@@ -18,7 +18,7 @@
             var inputSource = location.search.substring(1);
             var detected_pointertypes = {};
             var detected_eventTypes = {};
-            var eventList = ['pointerout', 'pointerover', 'pointerenter', 'pointermove', 'pointerdown', 'pointerup', 'pointerleave'];
+            var eventList = ['pointerout', 'pointerover', 'pointerenter', 'pointermove', 'pointerdown', 'gotpointercapture', 'pointerup', 'lostpointercapture', 'pointerleave'];
 
             function resetTestState() {
                 detected_eventTypes = {};
@@ -29,9 +29,13 @@
                 var actions_promise;
 
                 eventList.forEach(function(eventName) {
-                on_event(target, eventName, function (event) {
+                    on_event(target, eventName, function (event) {
                         detected_eventTypes[event.type] = true;
                         detected_pointertypes[event.pointerType] = true;
+
+                        if (event.type === "pointerdown") {
+                            target.setPointerCapture(event.pointerId);
+                        }
 
                         if (Object.keys(detected_eventTypes).length == eventList.length) {
                             // Make sure the test finishes after all the input actions are completed.
@@ -55,6 +59,7 @@
                         actions_promise = clickInTarget(inputSource, target).then(function() {
                             return new test_driver.Actions()
                                 .addPointer(inputSource + "Pointer1", inputSource)
+                                .pointerMove(0, 0, {origin: target})
                                 .pointerMove(0, 0)
                                 .send();
                         });
