@@ -198,7 +198,7 @@ impl Parse for Content {
         }
 
         let mut content = vec![];
-        let mut has_alt_content = false;
+        let mut has_moz_keyword = false;
         loop {
             {
                 if let Ok(image) = input.try_parse(|i| Image::parse_only_url(context, i)) {
@@ -249,8 +249,12 @@ impl Parse for Content {
                         "no-close-quote" => generics::ContentItem::NoCloseQuote,
                         #[cfg(feature = "gecko")]
                         "-moz-alt-content" => {
-                            has_alt_content = true;
+                            has_moz_keyword = true;
                             generics::ContentItem::MozAltContent
+                        },
+                        "-moz-label-content" if context.chrome_rules_enabled() => {
+                            has_moz_keyword = true;
+                            generics::ContentItem::MozLabelContent
                         },
                         _ =>{
                             let ident = ident.clone();
@@ -267,8 +271,9 @@ impl Parse for Content {
                 },
             }
         }
-        // We don't allow to parse `-moz-alt-content in multiple positions.
-        if content.is_empty() || (has_alt_content && content.len() != 1) {
+        // We don't allow to parse `-moz-alt/label-content` in multiple
+        // positions.
+        if content.is_empty() || (has_moz_keyword && content.len() != 1) {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         Ok(generics::Content::Items(content.into()))
