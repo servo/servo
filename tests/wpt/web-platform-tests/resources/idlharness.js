@@ -2449,7 +2449,7 @@ IdlInterface.prototype.test_member_maplike = function(member) {
             methods.push(
                 ["set", 2],
                 ["delete", 1],
-                ["clear", 1]
+                ["clear", 0]
             );
         }
 
@@ -2474,8 +2474,8 @@ IdlInterface.prototype.test_member_maplike = function(member) {
         assert_equals(sizeDesc.set, undefined, `size should not have a setter`);
         assert_equals(sizeDesc.enumerable, true, `size enumerable`);
         assert_equals(sizeDesc.configurable, true, `size configurable`);
-        assert_equals(sizeDesc.get.length, 0, `size getter length should have the right length`);
-        assert_equals(sizeDesc.get.name, "get size", `size getter have the right name`);
+        assert_equals(sizeDesc.get.length, 0, `size getter length`);
+        assert_equals(sizeDesc.get.name, "get size", `size getter name`);
     }, `${this.name} interface: maplike<${member.idlType.map(t => t.idlType).join(", ")}>`);
 };
 
@@ -2494,7 +2494,7 @@ IdlInterface.prototype.test_member_setlike = function(member) {
             methods.push(
                 ["add", 1],
                 ["delete", 1],
-                ["clear", 1]
+                ["clear", 0]
             );
         }
 
@@ -2519,8 +2519,8 @@ IdlInterface.prototype.test_member_setlike = function(member) {
         assert_equals(sizeDesc.set, undefined, `size should not have a setter`);
         assert_equals(sizeDesc.enumerable, true, `size enumerable`);
         assert_equals(sizeDesc.configurable, true, `size configurable`);
-        assert_equals(sizeDesc.get.length, 0, `size getter length should have the right length`);
-        assert_equals(sizeDesc.get.name, "size", `size getter have the right name`);
+        assert_equals(sizeDesc.get.length, 0, `size getter length`);
+        assert_equals(sizeDesc.get.name, "get size", `size getter name`);
     }, `${this.name} interface: setlike<${member.idlType.map(t => t.idlType).join(", ")}>`);
 };
 

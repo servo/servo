@@ -84,8 +84,14 @@ async def test_iframe(bidi_session, new_tab, test_page, test_page_same_origin_fr
     assert len(root_info["children"]) == 1
     child_info = root_info["children"][0]
 
-    assert_navigation_info(events[0], root_info["context"], test_page_same_origin_frame)
-    assert_navigation_info(events[1], child_info["context"], test_page)
+    # The ordering of the domContentLoaded event is not guaranteed between the
+    # root page and the iframe, find the appropriate events in the current list.
+    first_is_root = events[0]["context"] == root_info["context"]
+    root_event = events[0] if first_is_root else events[1]
+    child_event = events[1] if first_is_root else events[0]
+
+    assert_navigation_info(root_event, root_info["context"], test_page_same_origin_frame)
+    assert_navigation_info(child_event, child_info["context"], test_page)
 
     remove_listener()
     await bidi_session.session.unsubscribe(events=[DOM_CONTENT_LOADED_EVENT])

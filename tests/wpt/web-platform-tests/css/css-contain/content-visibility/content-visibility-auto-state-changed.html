@@ -1,11 +1,11 @@
 <!doctype HTML>
 <html>
 <meta charset="utf8">
-<title>Content Visibility: ContentVisibilityAutoStateChanged event.</title>
+<title>Content Visibility: ContentVisibilityAutoStateChange event.</title>
 <link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
 <meta name="timeout" content="long">
-<meta name="assert" content="ContentVisibilityAutoStateChanged fires when things enter/exit viewport">
+<meta name="assert" content="ContentVisibilityAutoStateChange fires when things enter/exit viewport">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -33,7 +33,7 @@ promise_test(t => new Promise(async (resolve, reject) => {
     requestAnimationFrame(() => requestAnimationFrame(waited));
   });
 
-  top.addEventListener("contentvisibilityautostatechanged", (e) => {
+  top.addEventListener("contentvisibilityautostatechange", (e) => {
     if (e.skipped)
       resolve();
     else
@@ -42,14 +42,14 @@ promise_test(t => new Promise(async (resolve, reject) => {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     middle.scrollIntoView();
   }));
-}), "ContentVisibilityAutoStateChanged fires when skipped");
+}), "ContentVisibilityAutoStateChange fires when skipped");
 
 promise_test(t => new Promise(async (resolve, reject) => {
   await new Promise((waited, _) => {
     requestAnimationFrame(() => requestAnimationFrame(waited));
   });
 
-  bottom.addEventListener("contentvisibilityautostatechanged", (e) => {
+  bottom.addEventListener("contentvisibilityautostatechange", (e) => {
     if (!e.skipped)
       resolve();
     else
@@ -58,6 +58,6 @@ promise_test(t => new Promise(async (resolve, reject) => {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     bottom.scrollIntoView();
   }));
-}), "ContentVisibilityAutoStateChanged fires when not skipped");
+}), "ContentVisibilityAutoStateChange fires when not skipped");
 </script>
 

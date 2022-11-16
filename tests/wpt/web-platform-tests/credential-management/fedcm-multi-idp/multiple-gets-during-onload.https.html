@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API multi IDP multiple gets during onload test.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script type="module">
+import {set_fedcm_cookie, set_alt_fedcm_cookie, default_request_options, default_alt_request_options} from '../support/fedcm-helper.sub.js';
+
+let cookies_promise = Promise.all([set_fedcm_cookie(), set_alt_fedcm_cookie()]);
+
+promise_test(async t => {
+  const window_loaded = new Promise(resolve => {
+    window.addEventListener('load', async () => {
+      const first_cred = navigator.credentials.get(default_request_options());
+      const second_cred = navigator.credentials.get(default_alt_request_options());
+      await cookies_promise;
+      await promise_rejects_dom(t, 'NetworkError', second_cred);
+      const first = await first_cred;
+      assert_equals(first.token, "token");
+      resolve();
+    });
+  });
+  await window_loaded;
+}, "No `get` calls before onload, multiple `get` calls during onload are allowed.");
+
+</script>

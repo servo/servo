@@ -453,6 +453,51 @@ promise_test(async t => {
 
 }, 'Change in scroll-timeline-name to no longer match animation timeline updates animation.');
 
+promise_test(async t => {
+  await waitForNextFrame();
+  let target = createTarget(t);
+  let scroller1 = createScroller(t);
+
+  target.style.animation = 'anim 10s linear timeline';
+  scroller1.style.scrollTimelineName = 'timeline';
+  scroller1.id = 'A';
+
+  // <div class='scroller' id='A'> ... </div> (scroller1)
+  // <div id='target'></div>
+  document.body.appendChild(scroller1);
+  document.body.append(target);
+
+  scroller1.scrollTop = 10; // 10%, in [50, 150].
+
+  await waitForNextFrame();
+
+  const anim = target.getAnimations()[0];
+
+  assert_equals(getComputedStyle(target).translate, '60px');
+  assert_true(!!anim.timeline, 'Failed to retrieve animation');
+  assert_equals(anim.timeline.source.id, 'A');
+
+  await waitForNextFrame();
+  await waitForNextFrame();
+
+  let scroller2 = createScroller(t);
+  scroller2.style.scrollTimelineName = 'timeline';
+  scroller2.id = 'B';
+
+  // <div class='scroller' id="A"> ... </div> (scroller1)
+  // <div class='scroller' id="B"> ... </div> (scroller2)
+  // <div id='target'></div>
+  document.body.insertBefore(scroller2, target);
+
+  scroller2.scrollTop = 50; // 50%, in [50, 150].
+
+  await waitForNextFrame();
+
+  // The timeline should be updated to scroller2.
+  assert_true(!!anim.timeline, 'Animation no longer has a timeline');
+  assert_equals(anim.timeline.source.id, 'B', 'Timeline not updated');
+  assert_equals(getComputedStyle(target).translate, '100px');
+}, 'Timeline lookup updates candidate when closer match available.');
 
 // -------------------------
 // Test scroll-timeline-axis

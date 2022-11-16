@@ -44,6 +44,7 @@ function testDomPartitionedCookies({cookieNames, expectsCookie}) {
 }
 
 function testCookieStorePartitionedCookies({cookieNames, expectsCookie}) {
+  if (!window.cookieStore) return;
   promise_test(async () => {
     const cookies = await cookieStore.getAll({partitioned: true});
     for (const cookieName of cookieNames) {
@@ -52,4 +53,12 @@ function testCookieStorePartitionedCookies({cookieNames, expectsCookie}) {
           getPartitionedCookieAssertDesc(expectsCookie, cookieName));
     }
   }, getPartitionedCookieTestName(expectsCookie, "CookieStore"));
+}
+
+function getCookieNames() {
+  const cookieNames = ["__Host-pchttp", "__Host-pcdom"];
+  if (window.cookieStore) {
+    cookieNames.push("__Host-pccookiestore");
+  }
+  return cookieNames;
 }

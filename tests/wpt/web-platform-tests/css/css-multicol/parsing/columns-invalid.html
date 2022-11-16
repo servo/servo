@@ -11,10 +11,22 @@
 </head>
 <body>
 <script>
+// Invalid keyword.
 test_invalid_value("columns", "none");
 
+// Only column-count can be unitless.
 test_invalid_value("columns", "10px 20px");
 test_invalid_value("columns", "10 20");
+
+// column-count needs to be 1 or more.
+test_invalid_value("columns", "0 0");
+test_invalid_value("columns", "0 7px");
+
+// Excess keywords.
+test_invalid_value("columns", "auto auto auto");
+test_invalid_value("columns", "10em auto auto");
+test_invalid_value("columns", "initial initial");
+test_invalid_value("columns", "inherit inherit");
 </script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 <link rel=author href="mailto:masonf@chromium.org">
 <link rel=help href="https://open-ui.org/components/popup.research.explainer">
 <link rel=match href="popover-anchor-display-ref.tentative.html">
+<script src="resources/popover-utils.js"></script>
 
 <p>There should be a green box attached to the right side of each orange box.</p>
 
@@ -23,6 +24,10 @@
   <div id=anchor3 class=anchor></div>
   <div id=popover3 popover=manual defaultopen></div>
 </div>
+
+<script>
+showDefaultopenPopoversOnLoad();
+</script>
 
 <style>
   .ex {
