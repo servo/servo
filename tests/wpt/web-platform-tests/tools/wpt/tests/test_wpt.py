@@ -346,7 +346,7 @@ def test_tests_affected_idlharness(capsys, manifest_dir):
             "webrtc-encoded-transform/idlharness.https.window.js\n" +
             "webrtc-identity/idlharness.https.window.js\n" +
             "webrtc-stats/idlharness.window.js\n" +
-            "webrtc-stats/supported-stats.html\n" +
+            "webrtc-stats/supported-stats.https.html\n" +
             "webrtc/idlharness.https.window.js\n") == out
 
 

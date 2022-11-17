@@ -4,11 +4,11 @@
 const invalidConfigs = [
   {
     comment: 'Emtpy codec',
-    config: { codec: '' },
+    config: {codec: ''},
   },
   {
     comment: 'Unrecognized codec',
-    config: { codec: 'bogus' },
+    config: {codec: 'bogus'},
   },
   {
     comment: 'Sample rate is too small',
@@ -45,11 +45,62 @@ const invalidConfigs = [
   },
   {
     comment: 'Bit rate too big',
+    config:
+        {codec: 'opus', sampleRate: 8000, numberOfChannels: 2, bitrate: 6e9},
+  },
+  {
+    comment: 'Opus complexity too big',
     config: {
       codec: 'opus',
       sampleRate: 8000,
       numberOfChannels: 2,
-      bitrate: 6e9
+      opus: {
+        complexity: 11,
+      },
+    },
+  },
+  {
+    comment: 'Opus packetlossperc too big',
+    config: {
+      codec: 'opus',
+      sampleRate: 8000,
+      numberOfChannels: 2,
+      opus: {
+        packetlossperc: 101,
+      },
+    },
+  },
+  {
+    comment: 'Opus frame duration too small',
+    config: {
+      codec: 'opus',
+      sampleRate: 8000,
+      numberOfChannels: 2,
+      opus: {
+        frameDuration: 0,
+      },
+    },
+  },
+  {
+    comment: 'Opus frame duration too big',
+    config: {
+      codec: 'opus',
+      sampleRate: 8000,
+      numberOfChannels: 2,
+      opus: {
+        frameDuration: 122500,
+      },
+    },
+  },
+  {
+    comment: 'Invalid Opus frameDuration',
+    config: {
+      codec: 'opus',
+      sampleRate: 8000,
+      numberOfChannels: 2,
+      opus: {
+        frameDuration: 2501,
+      },
     },
   },
 ];
@@ -111,6 +162,36 @@ const validConfigs = [
     bitrate: 128000,
     bogus: 123
   },
+  {
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    opus: {
+      complexity: 5,
+      frameDuration: 20000,
+      packetlossperc: 10,
+      useinbandfec: true,
+    },
+  },
+  {
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    opus: {
+      format: 'opus',
+      complexity: 10,
+      frameDuration: 60000,
+      packetlossperc: 20,  // Irrelevant without useinbandfec, but still valid.
+      usedtx: true,
+      bogus: 456,
+    },
+  },
+  {
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    opus: {},  // Use default values.
+  },
 ];
 
 validConfigs.forEach(config => {
@@ -124,6 +205,33 @@ validConfigs.forEach(config => {
     assert_equals(new_config.numberOfChannels, config.numberOfChannels);
     if (config.bitrate)
       assert_equals(new_config.bitrate, config.bitrate);
+
+    if (config.opus) {
+      let opus_config = config.opus;
+      let new_opus_config = new_config.opus;
+
+      assert_equals(new_opus_config.format, opus_config.format ?? 'opus');
+      assert_equals(
+          new_opus_config.frameDuration, opus_config.frameDuration ?? 20000);
+      assert_equals(
+          new_opus_config.packetlossperc, opus_config.packetlossperc ?? 0);
+      assert_equals(
+          new_opus_config.useinbandfec, opus_config.useinbandfec ?? false);
+      assert_equals(new_opus_config.usedtx, opus_config.usedtx ?? false);
+      assert_false(new_opus_config.hasOwnProperty('bogus'));
+
+      if (opus_config.complexity) {
+        assert_equals(new_opus_config.complexity, opus_config.complexity);
+      } else {
+        // Default complexity is 5 for mobile/ARM platforms, and 9 otherwise.
+        assert_true(
+            new_opus_config.complexity == 5 || new_opus_config.complexity == 9);
+      }
+
+    } else {
+      assert_false(new_config.hasOwnProperty('opus'));
+    }
+
     assert_false(new_config.hasOwnProperty('bogus'));
   }, "AudioEncoder.isConfigSupported() supports:" + JSON.stringify(config));
 });

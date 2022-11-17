@@ -1,5 +1,12 @@
 'use strict';
 
+function assert_px_equals(observed, expected, description) {
+  assert_equals(observed.unit, 'px',
+                `Unexpected unit type for '${description}'`);
+  assert_approx_equals(observed.value, expected, 0.0001,
+                       `Unexpected value for ${description}`);
+}
+
 function CreateViewTimelineOpacityAnimation(test, target, options) {
   const viewTimelineOptions = {
     subject: target,

@@ -23,7 +23,7 @@ test(() => {
 // partitioned cookie.
 testHttpPartitionedCookies({
   origin,
-  cookieNames: ["__Host-pchttp", "__Host-pcdom"],
+  cookieNames: getCookieNames(),
   expectsCookie: false,
 });
 
