@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<title>Test that a fixed positioned child of a dialog is aligned to the viewport</title>
+<head>
+<link rel="match" href="fixed-position-child-with-fixed-position-cb-ref.html">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#new-stacking-layer">
+<style>
+::backdrop {
+    display: none;
+}
+</style>
+</head>
+<body>
+<div style="will-change: transform">
+    <dialog id="dialog">
+        Dialog should be centered.
+        <div style="position: fixed; top: 0px; left: 0px">This fixed positioned element is aligned to viewport top-left.</div>
+    </dialog>
+</div>
+<script>
+dialog.showModal();
+</script>
+</body>
+</html>

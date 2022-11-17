@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API multi IDP single get during onload test.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script type="module">
+import {default_request_options, set_fedcm_cookie} from '../support/fedcm-helper.sub.js';
+
+promise_test(async t => {
+  const window_loaded = new Promise(resolve => {
+    window.addEventListener('load', async () => {
+      const first_cred = navigator.credentials.get(default_request_options());
+      await set_fedcm_cookie();
+      const first = await first_cred;
+      assert_equals(first.token, "token");
+      resolve();
+    });
+  });
+  await window_loaded;
+}, "Single `get` call during onload is allowed.");
+
+</script>

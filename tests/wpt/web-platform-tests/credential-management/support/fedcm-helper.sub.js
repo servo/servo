@@ -4,7 +4,7 @@ const alt_manifest_origin = 'https://{{hosts[alt][]}}:{{ports[https][0]}}';
 export function set_fedcm_cookie(host) {
   return new Promise(resolve => {
     if (host == undefined) {
-      document.cookie = 'cookie=1; SameSite=Strict; Secure';
+      document.cookie = 'cookie=1; SameSite=Strict; Path=/credential-management/support; Secure';
       resolve();
     } else {
       let popup_window = window.open(host + '/credential-management/support/set_cookie');

@@ -24,30 +24,34 @@ document.body.onload = async () => {
   const domCookieName = "__Host-pcdom";
   document.cookie = `${domCookieName}=foobar;${attributes}`;
 
-  // Set another partitioned cookie using the CookieStore API.
-  const cookieStoreCookieName = "__Host-pccookistore";
-  await cookieStore.set({
-    name: cookieStoreCookieName,
-    value: "foobar",
-    path: "/",
-    sameSite: "none",
-    partitioned: true,
-  });
+  // Set another partitioned cookie using the CookieStore API, if supported.
+  if (window.cookieStore) {
+    const cookieStoreCookieName = "__Host-pccookiestore";
+    await cookieStore.set({
+      name: cookieStoreCookieName,
+      value: "foobar",
+      path: "/",
+      sameSite: "none",
+      partitioned: true,
+    });
+  }
+
+  const cookieNames = getCookieNames();
 
   // Verify that the cookies are sent in requests from this top-level site.
   testHttpPartitionedCookies({
     origin: self.origin,
-    cookieNames: [httpCookieName, domCookieName, cookieStoreCookieName],
+    cookieNames,
     expectsCookie: true,
   });
 
   // Verify that the cookies are exposed to the DOM on this top-level site.
   testDomPartitionedCookies({
-    cookieNames: [httpCookieName, domCookieName, cookieStoreCookieName],
+    cookieNames,
     expectsCookie: true,
   });
   testCookieStorePartitionedCookies({
-    cookieNames: [httpCookieName, domCookieName, cookieStoreCookieName],
+    cookieNames,
     expectsCookie: true,
   });
 

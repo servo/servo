@@ -53,11 +53,11 @@ export class MockFederatedAuthRequest {
   }
 
   // Implements
-  //   RequestToken(url.mojom.Url provider, string id_request) =>
+  //   RequestToken(array<IdentityProviderGetParameters> idp_get_params) =>
   //                    (RequestTokenStatus status,
   //                      url.mojom.Url? selected_identity_provider_config_url,
   //                      string? token);
-  async requestToken(provider, idRequest) {
+  async requestToken(idp_get_params) {
     if (this.returnPending_) {
       this.pendingPromise_ = new Promise((resolve, reject) => {
         this.pendingPromiseResolve_ = resolve;

@@ -44,17 +44,29 @@
 </body>
 <script type="text/javascript">
   promise_test(async t => {
+    // Delays are associated with the animation and not with the timeline.
+    // Thus adjusting the delays has no effect on the timeline offsets.  The
+    // offsets always correspond to the 'cover' range.
+    const verifyTimelineOffsets = anim => {
+      const timeline = anim.timeline;
+      assert_px_equals(timeline.startOffset, 600, 'startOffset');
+      assert_px_equals(timeline.endOffset, 900, 'endOffset');
+    };
     await runTimelineDelayTest(t, {
       delay: { phase: 'cover', percent: CSS.percent(0) } ,
       endDelay: { phase: 'cover', percent: CSS.percent(100) },
       rangeStart: 600,
       rangeEnd: 900
+    }).then(anim => {
+      verifyTimelineOffsets(anim);
     });
     await runTimelineDelayTest(t, {
       delay: { phase: 'contain', percent: CSS.percent(0) } ,
       endDelay: { phase: 'contain', percent: CSS.percent(100) },
       rangeStart: 700,
       rangeEnd: 800
+    }).then(anim => {
+      verifyTimelineOffsets(anim);
     });
     await runTimelineDelayTest(t, {
       delay: { phase: 'enter', percent: CSS.percent(0) },

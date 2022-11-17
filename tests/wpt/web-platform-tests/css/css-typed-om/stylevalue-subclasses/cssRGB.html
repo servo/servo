@@ -28,34 +28,34 @@ const gValidColorTestCases = [
 
 for (const {color, desc, skipAlpha} of gInvalidColorTestCases) {
   test(() => {
-    assert_throws_js(TypeError, () => new CSSRGB(color, 0, 0));
-    assert_throws_js(TypeError, () => new CSSRGB(0, color, 0));
-    assert_throws_js(TypeError, () => new CSSRGB(0, 0, color));
-    assert_throws_js(TypeError, () => new CSSRGB(color, 0, 0, 0));
-    assert_throws_js(TypeError, () => new CSSRGB(0, color, 0, 0));
-    assert_throws_js(TypeError, () => new CSSRGB(0, 0, color, 0));
-    if (!skipAlpha) assert_throws_js(TypeError, () => new CSSRGB(0, 0, 0, color));
-  }, `Constructing a CSSRGB with ${desc} for the color channels throws a TypeError.`);
+    assert_throws_dom("SyntaxError", () => new CSSRGB(color, 0, 0));
+    assert_throws_dom("SyntaxError", () => new CSSRGB(0, color, 0));
+    assert_throws_dom("SyntaxError", () => new CSSRGB(0, 0, color));
+    assert_throws_dom("SyntaxError", () => new CSSRGB(color, 0, 0, 0));
+    assert_throws_dom("SyntaxError", () => new CSSRGB(0, color, 0, 0));
+    assert_throws_dom("SyntaxError", () => new CSSRGB(0, 0, color, 0));
+    if (!skipAlpha) assert_throws_dom("SyntaxError", () => new CSSRGB(0, 0, 0, color));
+  }, `Constructing a CSSRGB with ${desc} for the color channels throws a SyntaxError.`);
 }
 
 test(() => {
-  assert_throws_js(TypeError, () => new CSSRGB(0, 0, 0, CSS.number(1)));
-}, `Constructing a CSSRGB with a CSS number for the alpha channels throws a TypeError.`);
+  assert_throws_dom("SyntaxError", () => new CSSRGB(0, 0, 0, CSS.number(1)));
+}, `Constructing a CSSRGB with a CSS number for the alpha channels throws a SyntaxError.`);
 
 for (const attr of ['r', 'g', 'b', 'alpha']) {
-  for (const {value, desc} of gInvalidColorTestCases) {
+  for (const {color, desc} of gInvalidColorTestCases) {
     test(() => {
       const result = new CSSRGB(0, 0, 0, 0);
-      assert_throws_js(TypeError, () => result[attr] = value);
+      assert_throws_dom("SyntaxError", () => result[attr] = color);
       assert_style_value_equals(result[attr], CSS.percent(0));
-    }, `Updating CSSRGB. ${attr} to ${desc} throws a TypeError.`);
+    }, `Updating CSSRGB. ${attr} to ${desc} throws a SyntaxError.`);
   }
 }
 
 test(() => {
   const result = new CSSRGB(0, 0, 0);
-  assert_throws_js(TypeError, () => result.alpha = CSS.number(1));
-}, "Updating the alpha channel to a CSS number throws a TypeError.");
+  assert_throws_dom("SyntaxError", () => result.alpha = CSS.number(1));
+}, "Updating the alpha channel to a CSS number throws a SyntaxError.");
 
 test(() => {
   const result = new CSSRGB(0.5, CSS.number(73), CSS.percent(91));

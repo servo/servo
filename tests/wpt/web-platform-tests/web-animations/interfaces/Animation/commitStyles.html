@@ -42,6 +42,30 @@ test(t => {
   assert_numeric_style_equals(getComputedStyle(div).opacity, 0.2);
 }, 'Commits styles');
 
+test(t => {
+  const div = createDiv(t);
+  div.style.translate = '100px';
+  div.style.rotate = '45deg';
+  div.style.scale = '2';
+
+  const animation = div.animate(
+    { translate: '200px',
+      rotate: '90deg',
+      scale: 3 },
+    { duration: 1, fill: 'forwards' }
+  );
+  animation.finish();
+
+  animation.commitStyles();
+
+  // Cancel the animation so we can inspect the underlying style
+  animation.cancel();
+
+  assert_equals(getComputedStyle(div).translate, '200px');
+  assert_equals(getComputedStyle(div).rotate, '90deg');
+  assert_numeric_style_equals(getComputedStyle(div).scale, 3);
+}, 'Commits styles for individual transform properties');
+
 promise_test(async t => {
   const div = createDiv(t);
   div.style.opacity = '0.1';
