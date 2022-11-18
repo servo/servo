@@ -19,7 +19,7 @@
     testNavigationApiNotDetected(
       "Aborted navigate event is not a soft navigation",
       e => {
-        timestamps[counter]["clickEventStart"] = performance.now();
+        timestamps[counter]["eventStart"] = performance.now();
         e.intercept({handler: async () => {
           await addImageToMain();
           main.appendChild(img);

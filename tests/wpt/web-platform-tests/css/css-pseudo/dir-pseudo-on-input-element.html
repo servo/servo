@@ -60,8 +60,28 @@ test(() => {
     container.setAttribute('dir', 'rtl');
     container.appendChild(input);
 
+    // Insert the element into the document so that we can also check for
+    // 'direction' in computed style.
+    document.body.appendChild(container);
+
     assert_true(input.matches(':dir(ltr)'));
     assert_false(input.matches(':dir(rtl)'));
+    // Per https://html.spec.whatwg.org/multipage/rendering.html#bidi-rendering:
+    assert_equals(getComputedStyle(input).direction, 'ltr');
+
+    // Changing to a different type causes the special type=tel rule to no longer apply.
+    input.type = 'text';
+    assert_false(input.matches(':dir(ltr)'));
+    assert_true(input.matches(':dir(rtl)'));
+    assert_equals(getComputedStyle(input).direction, 'rtl');
+
+    // And restoring type=tel brings back that behavior.
+    input.type = 'tel';
+    assert_true(input.matches(':dir(ltr)'));
+    assert_false(input.matches(':dir(rtl)'));
+    assert_equals(getComputedStyle(input).direction, 'ltr');
+
+    document.body.removeChild(container);
 }, 'input element whose type attribute is in the telephone state in a RTL block');
 
 for (let type of ['text', 'search', 'url', 'email']) {
