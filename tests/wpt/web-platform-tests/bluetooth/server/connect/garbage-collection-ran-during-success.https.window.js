@@ -1,5 +1,6 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
+// META: script=/common/gc.js
 // META: script=/bluetooth/resources/bluetooth-test.js
 // META: script=/bluetooth/resources/bluetooth-fake-devices.js
 'use strict';
@@ -14,5 +15,5 @@ bluetooth_test(async () => {
     await fake_peripheral.setNextGATTConnectionResponse({code: HCI_SUCCESS});
     connectPromise = device.gatt.connect();
   }
-  await Promise.all([connectPromise, runGarbageCollection()]);
+  await Promise.all([connectPromise, garbageCollect()]);
 }, test_desc);

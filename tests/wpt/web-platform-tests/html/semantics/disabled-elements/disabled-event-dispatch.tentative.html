@@ -18,31 +18,31 @@
 <script>
 ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(eventName => {
   [true, false].forEach(clickChildElement => {
-    promise_test(async () => {
+    promise_test(async t => {
       const parentShouldReceiveEvents = eventName.startsWith('pointer');
       let parentReceivedEvent = false;
-      targetparent.addEventListener(eventName, () => {
+      targetparent.addEventListener(eventName, t.step_func(() => {
         if (parentShouldReceiveEvents) {
           parentReceivedEvent = true;
         } else {
           assert_unreached(`parent element should not receive ${eventName} events.`);
         }
-      });
+      }));
 
       const targetShouldReceiveEvents = eventName.startsWith('pointer');
       let targetReceivedEvent = false;
-      target.addEventListener(eventName, () => {
+      target.addEventListener(eventName, t.step_func(() => {
         if (targetShouldReceiveEvents) {
           targetReceivedEvent = true;
         } else {
           assert_unreached(`target element should not receive ${eventName} events.`);
         }
-      });
+      }));
 
       let childReceivedEvent = false;
-      targetchild.addEventListener(eventName, () => {
+      targetchild.addEventListener(eventName, t.step_func(() => {
         childReceivedEvent = true;
-      });
+      }));
 
       await test_driver.click(clickChildElement ? targetchild : target);
 

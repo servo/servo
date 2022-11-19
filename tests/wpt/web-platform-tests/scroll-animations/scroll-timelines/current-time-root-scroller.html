@@ -25,9 +25,9 @@ promise_test(async t => {
   await waitForNextFrame();
 
   const blockScrollTimeline = new ScrollTimeline(
-      { source: scroller, orientation: 'block' });
+      { source: scroller, axis: 'block' });
   const inlineScrollTimeline = new ScrollTimeline(
-      { source: scroller, orientation: 'inline' });
+      { source: scroller, axis: 'inline' });
 
   // Wait for new animation frame which allows the timeline to fully initialize
   await waitForNextFrame();

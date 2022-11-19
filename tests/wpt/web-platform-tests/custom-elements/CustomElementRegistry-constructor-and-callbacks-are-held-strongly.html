@@ -4,7 +4,7 @@
 <link rel="help" href="https://html.spec.whatwg.org/multipage/custom-elements.html#concept-custom-element-definition-lifecycle-callbacks">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/garbage-collect.js"></script>
+<script src="/common/gc.js"></script>
 
 <body>
 <div id="customElementsRoot"></div>
@@ -39,13 +39,13 @@ for (const tagName of tagNames) {
 }
 
 promise_test(async t => {
-    await maybeGarbageCollectAsync();
+    await garbageCollect();
 
     assert_true(tagNames.every(tagName => typeof customElements.get(tagName) === "function"));
 }, "constructor");
 
 promise_test(async t => {
-    await maybeGarbageCollectAsync();
+    await garbageCollect();
     for (const tagName of tagNames) {
         customElementsRoot.append(document.createElement(tagName));
     }
@@ -55,7 +55,7 @@ promise_test(async t => {
 }, "connectedCallback");
 
 promise_test(async t => {
-    await maybeGarbageCollectAsync();
+    await garbageCollect();
     for (const xFoo of customElementsRoot.children) {
         xFoo.setAttribute("foo", "bar");
     }
@@ -65,7 +65,7 @@ promise_test(async t => {
 }, "attributeChangedCallback");
 
 promise_test(async t => {
-    await maybeGarbageCollectAsync();
+    await garbageCollect();
     customElementsRoot.innerHTML = "";
 
     await delay(t, 10);
@@ -73,7 +73,7 @@ promise_test(async t => {
 }, "disconnectedCallback");
 
 promise_test(async t => {
-    await maybeGarbageCollectAsync();
+    await garbageCollect();
     for (const tagName of tagNames) {
         emptyIframe.contentDocument.adoptNode(document.createElement(tagName));
     }

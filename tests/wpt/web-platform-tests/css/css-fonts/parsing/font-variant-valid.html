@@ -95,12 +95,12 @@ test_valid_value('font-variant',
                  ' ordinal slashed-zero jis78 full-width ruby sub');
 
 test_valid_value('font-variant',
-                 'super proportional-width jis83 stacked-fractions' +
-                 ' tabular-nums oldstyle-nums historical-forms all-small-caps no-contextual' +
-                 ' no-historical-ligatures no-discretionary-ligatures no-common-ligatures',
-                 'no-common-ligatures no-discretionary-ligatures no-historical-ligatures' +
-                 ' no-contextual all-small-caps historical-forms oldstyle-nums tabular-nums' +
-                 ' stacked-fractions jis83 proportional-width super');
+  'super proportional-width jis83 stacked-fractions tabular-nums oldstyle-nums historical-forms all-small-caps no-contextual no-historical-ligatures no-discretionary-ligatures no-common-ligatures',
+  [
+    'no-common-ligatures no-discretionary-ligatures no-historical-ligatures no-contextual all-small-caps historical-forms oldstyle-nums tabular-nums stacked-fractions jis83 proportional-width super',
+    'no-contextual no-historical-ligatures no-discretionary-ligatures no-common-ligatures all-small-caps historical-forms stacked-fractions tabular-nums oldstyle-nums jis83 proportional-width super'
+  ]
+);
 </script>
 </body>
 </html>

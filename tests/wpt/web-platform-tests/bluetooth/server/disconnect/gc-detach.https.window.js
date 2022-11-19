@@ -1,5 +1,6 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
+// META: script=/common/gc.js
 // META: script=/bluetooth/resources/bluetooth-test.js
 // META: script=/bluetooth/resources/bluetooth-fake-devices.js
 'use strict';
@@ -26,7 +27,7 @@ bluetooth_test(async () => {
     });
     window.onmessage = messageEvent => {
       assert_equals(messageEvent.data, 'Connected');
-      runGarbageCollection().then(() => {
+      garbageCollect().then(() => {
         iframe.remove();
         resolve();
       });

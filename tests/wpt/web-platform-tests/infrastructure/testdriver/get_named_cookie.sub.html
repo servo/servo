@@ -7,6 +7,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 promise_test(async t => {
+  t.add_cleanup(test_driver.delete_all_cookies);
   const kTenDaysFromNow = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
   document.cookie = "test0=0";
   document.cookie = `test1=1; Expires=${kTenDaysFromNow.toUTCString()}`;

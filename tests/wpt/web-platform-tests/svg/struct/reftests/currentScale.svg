@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" onload="scaleDown()">
+  <title>Testcase for changing currentScale on SVG embedded in HTML</title>
+  <h:link rel="help" href="https://www.w3.org/TR/SVG/struct.html#__svg__SVGSVGElement__currentScale"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <script>
+    function scaleDown() {
+      document.documentElement.currentScale = 0.5;
+    }
+  </script>
+  <rect width="200" height="200" fill="green"/>
+</svg>

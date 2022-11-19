@@ -2,33 +2,8 @@
  * maybeGarbageCollectAsync
  *
  * It might garbage collect, it might not. If it doesn't, that's ok.
- *
- * Based on "(default export)" in
- * https://github.com/web-platform-tests/wpt/pull/22835/files#diff-fba53ea423a12f40917f41ba4ffadf1e, and "$262.gc()"
- * defined in https://github.com/tc39/test262/blob/main/INTERPRETING.md
- *
- *
- * @return {undefined}
  */
-async function maybeGarbageCollectAsync() {
-  if (typeof TestUtils !== 'undefined' && TestUtils.gc) {
-    await TestUtils.gc();
-  } else if (self.gc) {
-    // Use --expose_gc for V8 (and Node.js)
-    // to pass this flag at chrome launch use: --js-flags="--expose-gc"
-    // Exposed in SpiderMonkey shell as well
-    await self.gc();
-  } else if (self.GCController) {
-    // Present in some WebKit development environments
-    await GCController.collect();
-  } else {
-    /* eslint-disable no-console */
-    console.warn('Tests are running without the ability to do manual ' +
-                 'garbage collection. They will still work, but ' +
-                 'coverage will be suboptimal.');
-    /* eslint-enable no-console */
-  }
-}
+self.maybeGarbageCollectAsync = garbageCollect;
 
 /**
  * maybeGarbageCollectKeptObjectsAsync

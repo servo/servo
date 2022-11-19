@@ -9,6 +9,8 @@
 // they are run in if they are used in multiple iframes.
 const {testPrefix} = processQueryParams();
 
+test_driver.set_test_context(window.top);
+
 // Common tests to run in all frames.
 test(() => {
   assert_not_equals(document.requestStorageAccess, undefined);

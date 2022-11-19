@@ -20,6 +20,7 @@ function testSharedArrayBufferDescription(t, useView) {
   const data = testData;
 
   // Don't run test if the codec is not supported.
+  assert_equals("function", typeof AudioDecoder.isConfigSupported);
   let supported = false;
   return AudioDecoder
       .isConfigSupported({

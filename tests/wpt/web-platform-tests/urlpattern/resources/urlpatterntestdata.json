@@ -2794,5 +2794,50 @@
     "inputs": [{ "pathname": "/FOO", "search": "BAR", "hash": "BAZ",
                  "baseURL": "https://example.com:8080" }],
     "expected_obj": "error"
+  },
+  {
+    "pattern": [{ "search": "foo", "baseURL": "https://example.com/a/+/b" }],
+    "inputs": [{ "search": "foo", "baseURL": "https://example.com/a/+/b" }],
+    "exactly_empty_components": [ "username", "password", "port", "hash" ],
+    "expected_obj": {
+      "pathname": "/a/\\+/b"
+    },
+    "expected_match": {
+      "hostname": { "input": "example.com", "groups": {} },
+      "pathname": { "input": "/a/+/b", "groups": {} },
+      "protocol": { "input": "https", "groups": {} },
+      "search": { "input": "foo", "groups": {} }
+    }
+  },
+  {
+    "pattern": [{ "hash": "foo", "baseURL": "https://example.com/?q=*&v=?&hmm={}&umm=()" }],
+    "inputs": [{ "hash": "foo", "baseURL": "https://example.com/?q=*&v=?&hmm={}&umm=()" }],
+    "exactly_empty_components": [ "username", "password", "port" ],
+    "expected_obj": {
+      "search": "q=\\*&v=\\?&hmm=\\{\\}&umm=\\(\\)"
+    },
+    "expected_match": {
+      "hostname": { "input": "example.com", "groups": {} },
+      "pathname": { "input": "/", "groups": {} },
+      "protocol": { "input": "https", "groups": {} },
+      "search": { "input": "q=*&v=?&hmm={}&umm=()", "groups": {} },
+      "hash": { "input": "foo", "groups": {} }
+    }
+  },
+  {
+    "pattern": [ "#foo", "https://example.com/?q=*&v=?&hmm={}&umm=()" ],
+    "inputs": [ "https://example.com/?q=*&v=?&hmm={}&umm=()#foo" ],
+    "exactly_empty_components": [ "username", "password", "port" ],
+    "expected_obj": {
+      "search": "q=\\*&v=\\?&hmm=\\{\\}&umm=\\(\\)",
+      "hash": "foo"
+    },
+    "expected_match": {
+      "hostname": { "input": "example.com", "groups": {} },
+      "pathname": { "input": "/", "groups": {} },
+      "protocol": { "input": "https", "groups": {} },
+      "search": { "input": "q=*&v=?&hmm={}&umm=()", "groups": {} },
+      "hash": { "input": "foo", "groups": {} }
+    }
   }
 ]

@@ -1,3 +1,4 @@
+// META: script=/common/gc.js
 // META: script=resources/maybe-garbage-collect.js
 // ├──> maybeGarbageCollectAndCleanupAsync
 // ├──> maybeGarbageCollectAsync

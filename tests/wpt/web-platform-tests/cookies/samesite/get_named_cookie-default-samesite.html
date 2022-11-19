@@ -7,6 +7,8 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 promise_test(async t => {
+  await test_driver.delete_all_cookies();
+  t.add_cleanup(test_driver.delete_all_cookies);
   document.cookie = "test0=0";
   const cookie = await test_driver.get_named_cookie("test0");
   assert_equals(cookie["name"], "test0");

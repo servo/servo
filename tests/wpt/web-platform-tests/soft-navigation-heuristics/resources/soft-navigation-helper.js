@@ -2,7 +2,7 @@ var counter = 0;
 var clicked;
 var timestamps = []
 const MAX_CLICKS = 50;
-const URL = "/foobar.html";
+const URL = "foobar.html";
 const readValue = (value, defaultValue) => {
   return value != undefined ? value : defaultValue;
 }
@@ -17,9 +17,10 @@ const testSoftNavigation =
                                                    () => {});
       const testName = options.testName;
       const pushUrl = readValue(options.pushUrl, true);
+      const eventType = readValue(options.eventType, "click");
       promise_test(async t => {
         const preClickLcp = await getLcpEntries();
-        setClickEvent(t, link, pushState, addContent, pushUrl);
+        setEvent(t, link, pushState, addContent, pushUrl, eventType);
         for (let i = 0; i < clicks; ++i) {
           clicked = false;
           click(link);
@@ -101,9 +102,10 @@ const doubleRaf = () => {
   });
 };
 
-const setClickEvent = (t, link, pushState, addContent, pushUrl) => {
-  link.addEventListener("click", async e => {
-    timestamps[counter]["clickEventStart"] = performance.now();
+const setEvent = (t, button, pushState, addContent, pushUrl, eventType) => {
+  const eventObject = (eventType == "click") ? button : window;
+  eventObject.addEventListener(eventType, async e => {
+    timestamps[counter]["eventStart"] = performance.now();
     // Jump through a task, to ensure task tracking is working properly.
     await new Promise(r => t.step_timeout(r, 0));
 
@@ -148,8 +150,8 @@ const validateSoftNavigationEntry = async (clicks, extraValidations,
     const entryTimestamp = entry.startTime;
     assert_less_than_equal(timestamps[i]["syncPostClick"], entryTimestamp);
     assert_greater_than_equal(
-        timestamps[i]['clickEventStart'], entryTimestamp,
-        'Click event start timestamp matches');
+        timestamps[i]['eventStart'], entryTimestamp,
+        'Event start timestamp matches');
     assert_not_equals(entry.navigationId,
                       performance.getEntriesByType("navigation")[0].navigationId,
                       "The navigation ID was incremented");

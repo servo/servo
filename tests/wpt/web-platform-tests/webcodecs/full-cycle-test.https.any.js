@@ -15,8 +15,16 @@ promise_setup(async () => {
     '?vp8': {codec: 'vp8', hasEmbeddedColorSpace: false},
     '?vp9_p0': {codec: 'vp09.00.10.08', hasEmbeddedColorSpace: true},
     '?vp9_p2': {codec: 'vp09.02.10.10', hasEmbeddedColorSpace: true},
-    '?h264_avc': {codec: 'avc1.42001E', avc: {format: 'avc'}},
-    '?h264_annexb': {codec: 'avc1.42001E', avc: {format: 'annexb'}}
+    '?h264_avc': {
+      codec: 'avc1.42001E',
+      avc: {format: 'avc'},
+      hasEmbeddedColorSpace: true
+    },
+    '?h264_annexb': {
+      codec: 'avc1.42001E',
+      avc: {format: 'annexb'},
+      hasEmbeddedColorSpace: true
+    }
   }[location.search];
   config.hardwareAcceleration = 'prefer-software';
   config.width = 320;
@@ -29,6 +37,7 @@ promise_setup(async () => {
 
 async function runFullCycleTest(t, options) {
   let encoder_config = { ...ENCODER_CONFIG };
+  let encoder_color_space = {};
   const w = encoder_config.width;
   const h = encoder_config.height;
   let next_ts = 0
@@ -44,14 +53,20 @@ async function runFullCycleTest(t, options) {
       assert_equals(frame.timestamp, next_ts++, "decode timestamp");
 
       // The encoder is allowed to change the color space to satisfy the
-      // encoder when readback is needed to send the frame for encoding, so
-      // just ensure we have something set on the frame.
-      assert_not_equals(
-          frame.colorSpace.primaries, null, 'colorSpace.primaries');
-      assert_not_equals(frame.colorSpace.transfer, null, 'colorSpace.transfer');
-      assert_not_equals(frame.colorSpace.matrix, null, 'colorSpace.matrix');
-      assert_not_equals(
-          frame.colorSpace.fullRange, null, 'colorSpace.fullRange');
+      // encoder when readback is needed to send the frame for encoding, but
+      // the decoder shouldn't change it after the fact.
+      assert_equals(
+          frame.colorSpace.primaries, encoder_color_space.primaries,
+          'colorSpace.primaries');
+      assert_equals(
+          frame.colorSpace.transfer, encoder_color_space.transfer,
+          'colorSpace.transfer');
+      assert_equals(
+          frame.colorSpace.matrix, encoder_color_space.matrix,
+          'colorSpace.matrix');
+      assert_equals(
+          frame.colorSpace.fullRange, encoder_color_space.fullRange,
+          'colorSpace.fullRange');
 
       frames_decoded++;
       assert_true(validateBlackDots(frame, frame.timestamp),
@@ -69,6 +84,7 @@ async function runFullCycleTest(t, options) {
       let config = metadata.decoderConfig;
       if (config) {
         config.hardwareAcceleration = encoder_config.hardwareAcceleration;
+        encoder_color_space = config.colorSpace;
 
         // Removes the color space provided by the encoder so that color space
         // information in the underlying bitstream is exposed during decode.

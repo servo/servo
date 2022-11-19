@@ -40,7 +40,7 @@ promise_test( async t => {
   const v = document.getElementById('display');
   v.autoplay = true;
   // work around firefox bug 1586505, orthogonal to what's being tested
-  const frames = () => v.getVideoPlaybackQuality()?.totalVideoFrames ?? v.mozPaintedFrames;
+  const frames = () => v.getVideoPlaybackQuality()?.totalVideoFrames || v.mozPaintedFrames;
   const target_rate = 5;
   const stream = await getDisplayMedia({video: {width:160, frameRate: target_rate}});
   t.add_cleanup(() => stopTracks(stream));

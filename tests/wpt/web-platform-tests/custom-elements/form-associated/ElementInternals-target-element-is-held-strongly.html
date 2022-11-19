@@ -3,7 +3,7 @@
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../resources/garbage-collect.js"></script>
+<script src="/common/gc.js"></script>
 
 <script>
 customElements.define("x-foo", class extends HTMLElement {});
@@ -17,7 +17,7 @@ promise_test(async t => {
         elementInternals.push(targetElement.attachInternals());
     }
 
-    await maybeGarbageCollectAsync();
+    await garbageCollect();
     await new Promise(r => t.step_timeout(r, 100));
 
     const allShadowRootsAreAlive = elementInternals.every(eI => eI.shadowRoot instanceof ShadowRoot);

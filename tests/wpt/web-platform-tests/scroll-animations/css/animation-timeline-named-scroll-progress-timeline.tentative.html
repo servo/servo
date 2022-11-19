@@ -454,7 +454,45 @@ promise_test(async t => {
 }, 'Change in scroll-timeline-name to no longer match animation timeline updates animation.');
 
 promise_test(async t => {
+  let target = createTarget(t);
+  let scroller1 = createScroller(t);
+  let scroller2 = createScroller(t);
+
+  target.style.animation = 'anim 10s linear timeline';
+  scroller1.style.scrollTimelineName = 'timeline';
+  scroller2.style.scrollTimelineName = 'timeline';
+  scroller1.id = 'A';
+  scroller2.id = 'B';
+
+  // <div class='scroller' id='A'> ... </div> (scroller1)
+  // <div class='scroller' id="B"> ... </div> (scroller2)
+  // <div id='target'></div>
+  document.body.appendChild(scroller1);
+  document.body.appendChild(scroller2);
+  document.body.append(target);
+
+  scroller1.scrollTop = 10; // 10%, in [50, 150].
+  scroller2.scrollTop = 50; // 50%, in [50, 150].
   await waitForNextFrame();
+
+
+  // The named timeline lookup should select scroller2.
+  let anim = target.getAnimations()[0];
+  assert_true(!!anim, 'Failed to fetch animation');
+  assert_equals(anim.timeline.source.id, 'B');
+  assert_equals(getComputedStyle(target).translate, '100px');
+
+  scroller2.remove();
+
+  // Now it should select scroller1.
+  anim = target.getAnimations()[0];
+  assert_true(!!anim, 'Failed to fetch animation after update');
+  assert_true(!!anim.timeline, 'Animation no longer has a timeline');
+  assert_equals(anim.timeline.source.id, 'A', 'Timeline not updated');
+  assert_equals(getComputedStyle(target).translate, '60px');
+}, 'Timeline lookup finds next candidate when element is removed');
+
+promise_test(async t => {
   let target = createTarget(t);
   let scroller1 = createScroller(t);
 
@@ -473,11 +511,10 @@ promise_test(async t => {
 
   const anim = target.getAnimations()[0];
 
-  assert_equals(getComputedStyle(target).translate, '60px');
   assert_true(!!anim.timeline, 'Failed to retrieve animation');
   assert_equals(anim.timeline.source.id, 'A');
+  assert_equals(getComputedStyle(target).translate, '60px');
 
-  await waitForNextFrame();
   await waitForNextFrame();
 
   let scroller2 = createScroller(t);
@@ -498,6 +535,37 @@ promise_test(async t => {
   assert_equals(anim.timeline.source.id, 'B', 'Timeline not updated');
   assert_equals(getComputedStyle(target).translate, '100px');
 }, 'Timeline lookup updates candidate when closer match available.');
+
+promise_test(async t => {
+  let target = createTarget(t);
+
+  // <div id='target'></div>
+  document.body.append(target);
+  target.style.animation = "anim 10s linear timeline";
+
+  await waitForNextFrame();
+
+  // Timeline initially cannot be resolved, resulting in a null
+  // timeline. The animation's hold time is zero.
+  let anim = document.getAnimations()[0];
+  assert_equals(getComputedStyle(target).translate, '50px');
+
+  await waitForNextFrame();
+
+  let scroller = createScroller(t);
+  scroller.style.scrollTimelineName = 'timeline';
+
+  // <div class='scroller'> ... </div> (scroller1)
+  // <div id='target'></div>
+  document.body.insertBefore(scroller, target);
+
+  scroller.scrollTop = 50; // 50%, in [50, 150].
+
+  await waitForNextFrame();
+
+  // The timeline should be updated to scroller.
+  assert_equals(getComputedStyle(target).translate, '100px');
+}, 'Timeline lookup updates candidate when match becomes available.');
 
 // -------------------------
 // Test scroll-timeline-axis
