@@ -18,7 +18,7 @@ bluetooth_test(() => getHealthThermometerDevice({
             getPrimaryServices('health_thermometer')[UUID]]),
           expected);
       device.gatt.disconnect();
-      return runGarbageCollection();
+      return garbageCollect();
     })
     .then(() => promise),
     test_desc);

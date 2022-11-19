@@ -1,21 +1,5 @@
 // META: script=resources/fetch-tests.js
-
-function garbageCollect() {
-  if (self.TestUtils?.gc) return TestUtils.gc();
-  if (self.gc) return self.gc();
-  // Present in some WebKit development environments
-  if (self.GCController) return GCController.collect();
-
-  for (var i = 0; i < 1000; i++) gcRec(10);
-
-  function gcRec(n) {
-    if (n < 1) return {};
-    let temp = { i: "ab" + i + i / 100000 };
-    temp += "foo";
-    gcRec(n - 1);
-  }
-}
-
+// META: script=/common/gc.js
 
 function fetch_should_succeed(test, request) {
   return fetch(request).then(response => response.text());

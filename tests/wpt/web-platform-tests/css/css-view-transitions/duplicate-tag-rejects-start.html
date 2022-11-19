@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: duplicate tags in the new DOM skip the transition</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+}
+</style>
+
+<div id=first></div>
+<div id=second></div>
+
+<script>
+promise_test(async t => {
+  return new Promise((resolve, reject) => {
+    first.style = "view-transition-name: target";
+    let transition = document.startViewTransition(() => {
+      first.style = "view-transition-name: target";
+      second.style = "view-transition-name: target";
+    });
+
+    // First domUpdated resolves since the callback runs successfully.
+    let domUpdatedResolved = false;
+    transition.domUpdated.then(() => { domUpdatedResolved = true; }, reject);
+
+    // Then finished resolves since domUpdated was already resolved.
+    let finishResolved = false;
+    transition.domUpdated.then(() => {
+      assert_true(domUpdatedResolved, "domUpdated not resolved before finish");
+      finishResolved = true;
+    }, reject);
+
+    // Finally ready rejects.
+    transition.ready.then(reject, () => {
+      assert_true(finishResolved, "finish not resolved before ready");
+      resolve();
+    });
+  });
+}, "Two different elements with the same name in the new DOM should skip the transition");
+</script>

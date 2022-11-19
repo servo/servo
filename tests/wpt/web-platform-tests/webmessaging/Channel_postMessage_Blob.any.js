@@ -1,4 +1,5 @@
 // META: title=postMessage() with a Blob
+// META: script=/common/gc.js
 
     var TARGET = null;
     var SOURCE = null;
@@ -15,9 +16,7 @@
     (function() {
       SOURCE.postMessage({blob: new Blob(['foo', 'bar'])});
     })();
-    // TODO(https://github.com/web-platform-tests/wpt/issues/7899): Change to
-    // some sort of cross-browser GC trigger.
-    if (self.gc) self.gc();
+    garbageCollect();
 
     function TestMessageEvent(evt)
     {

@@ -179,18 +179,6 @@ function assert_promise_rejects_with_message(promise, expected, description) {
 }
 
 /**
- * Runs the garbage collection.
- * @returns {Promise<void>} Resolves when garbage collection has finished.
- */
-function runGarbageCollection() {
-  // Run gc() as a promise.
-  return new Promise(function(resolve, reject) {
-    GCController.collect();
-    step_timeout(resolve, 0);
-  });
-}
-
-/**
  * Helper class that can be created to check that an event has fired.
  */
 class EventCatcher {

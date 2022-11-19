@@ -2246,7 +2246,8 @@
                 ReadOnlyError: 0,
                 VersionError: 0,
                 OperationError: 0,
-                NotAllowedError: 0
+                NotAllowedError: 0,
+                OptOutError: 0
             };
 
             var code_name_map = {};

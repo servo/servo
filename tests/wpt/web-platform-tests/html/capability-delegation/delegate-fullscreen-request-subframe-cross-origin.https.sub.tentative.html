@@ -4,6 +4,7 @@
      https://github.com/WICG/capability-delegation/issues/10
 -->
 <title>Capability Delegation of Fullscreen Requests: Subframe Cross-Origin</title>
+<script src="/common/get-host-info.sub.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -20,14 +21,15 @@
   See wpt/html/user-activation/propagation*.html for frame tree user activation visibility tests.
 </div>
 
-<iframe allow="fullscreen" width="300px" height="50px"
-        src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/html/capability-delegation/resources/delegate-fullscreen-request-recipient.html">
+<iframe allow="fullscreen" width="300px" height="50px">
 </iframe>
 
 <script>
+  const origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+  document.querySelector("iframe").src = origin + "/html/capability-delegation/resources/delegate-fullscreen-request-recipient.html";
+
   function testCrossOriginSubframeFullscreenDelegation(capability, activate, expectation) {
       const message = {"type": "make-fullscreen-request"};
-      const origin = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
       const expectationType = expectation ? "succeeds" : "fails";
       const delegationType = capability ? "with delegation" : "without delegation";
       const activationType = activate ? "with user activation" : "with no user activation";

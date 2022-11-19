@@ -1,5 +1,6 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
+// META: script=/common/gc.js
 // META: script=/bluetooth/resources/bluetooth-test.js
 // META: script=/bluetooth/resources/bluetooth-fake-devices.js
 
@@ -18,7 +19,7 @@ bluetooth_test(async () => {
   iframe.remove();
   // Set iframe to null to ensure that the GC cleans up as much as possible.
   iframe = null;
-  await runGarbageCollection();
+  await garbageCollect();
 
   try {
     await characteristic.getDescriptor(user_description.name);

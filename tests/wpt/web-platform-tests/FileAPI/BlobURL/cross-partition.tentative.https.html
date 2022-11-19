@@ -18,6 +18,9 @@ const did_not_revoke_response = "URL.revokeObjectURL did not revoke";
 
 const can_blob_url_be_revoked_js = (blob_url, response_queue_name) => `
   async function test() {
+    if (!('revokeObjectURL' in URL)) {
+      return send("${response_queue_name}", "URL.revokeObjectURL is not exposed");
+    }
     try {
       var blob = await fetch("${blob_url}").then(response => response.blob());
       await blob.text();
@@ -260,8 +263,8 @@ promise_test(t => {
       await send(worker_1_uuid,
            can_blob_url_be_revoked_js(blob_url, response_queue_uuid));
       const response = await receive(response_queue_uuid);
-      if (response !== "TypeError: URL.revokeObjectURL is not a function") {
-        reject(`Calling URL.revokeObjectURL didn't throw as expected: ${response}`);
+      if (response !== "URL.revokeObjectURL is not exposed") {
+        reject(`URL.revokeObjectURL is exposed in a Service Worker context: ${response}`);
       }
       resolve();
     } catch (e) {

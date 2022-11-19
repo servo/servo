@@ -1,6 +1,6 @@
 // META: title=Blob Stream
 // META: script=../support/Blob.js
-// META: script=../../streams/resources/test-utils.js
+// META: script=/common/gc.js
 'use strict';
 
 // Helper function that triggers garbage collection while reading a chunk

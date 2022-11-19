@@ -5,7 +5,6 @@
 <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
 <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
 <link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
-<link rel="help" href="https://drafts.csswg.org/css-contain-3/#containment-inline-size">
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7529">
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7516">
 <meta name="assert" content="Tests that the last remembered size is tracked independently for each axis." />
@@ -24,15 +23,8 @@
   width: 100px;
   height: 50px;
 }
-.content-150-75::before {
-  width: 150px;
-  height: 75px;
-}
 .content-skip {
   content-visibility: hidden;
-}
-.contain-inline-size {
-  contain: inline-size;
 }
 .ciw-auto-2 {
   contain-intrinsic-width: auto 2px;
@@ -85,30 +77,4 @@ promise_test(async function() {
   target.className = "content-skip ciw-auto-2 cih-auto-1";
   checkSize(2, 50, "Using last remembered block size");
 }, "Only recording last remembered block size");
-
-promise_test(async function() {
-  target.className = "content-100-50";
-  checkSize(100, 50, "Sizing normally");
-
-  await nextRendering();
-  target.className = "content-100-50 ciw-auto-20 cih-auto-10 contain-inline-size";
-  checkSize(20, 50, "Size containment for inline axis");
-
-  await nextRendering();
-  target.className = "content-skip ciw-auto-2 cih-auto-1";
-  checkSize(2, 50, "Using last remembered block size");
-}, "contain:inline-size prevents recording last remembered inline size");
-
-promise_test(async function() {
-  target.className = "content-100-50 ciw-auto-20 cih-auto-10";
-  checkSize(100, 50, "Sizing normally");
-
-  await nextRendering();
-  target.className = "content-150-75 ciw-auto-20 cih-auto-10 contain-inline-size";
-  checkSize(20, 75, "Size containment for inline axis");
-
-  await nextRendering();
-  target.className = "content-skip ciw-auto-2 cih-auto-1";
-  checkSize(100, 75, "Using last remembered sizes from different times");
-}, "contain:inline-size can keep previous last remembered inline size");
 </script>

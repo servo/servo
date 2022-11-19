@@ -11,9 +11,8 @@
 <div id="shifter"></div>
 <script>
 
+const watcher = new ScoreWatcher;
 promise_test(async () => {
-  const watcher = new ScoreWatcher;
-
   // Wait for the initial render to complete.
   await waitForAnimationFrames(2);
 

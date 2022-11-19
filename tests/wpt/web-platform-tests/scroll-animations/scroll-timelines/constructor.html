@@ -57,39 +57,39 @@ test(t => {
 }, 'A ScrollTimeline created without a source should use the ' +
    'document.scrollingElement');
 
-// orientation
+// axis
 
 test(t => {
-  assert_equals(new ScrollTimeline().orientation, 'block');
-}, 'A ScrollTimeline created with the default orientation should default to ' +
+  assert_equals(new ScrollTimeline().axis, 'block');
+}, 'A ScrollTimeline created with the default axis should default to ' +
    `'block'`);
 
-const gValidOrientationValues = [
+const gValidAxisValues = [
   'block',
   'inline',
   'horizontal',
   'vertical',
 ];
 
-for (let orientation of gValidOrientationValues) {
+for (let axis of gValidAxisValues) {
   test(function() {
     const scrollTimeline =
-        new ScrollTimeline({orientation: orientation});
-    assert_equals(scrollTimeline.orientation, orientation);
-  }, `'${orientation}' is a valid orientation value`);
+        new ScrollTimeline({axis: axis});
+    assert_equals(scrollTimeline.axis, axis);
+  }, `'${axis}' is a valid axis value`);
 }
 
 test(t => {
   let constructorFunc = function() {
-    new ScrollTimeline({orientation: 'nonsense'})
+    new ScrollTimeline({axis: 'nonsense'})
   };
   assert_throws_js(TypeError, constructorFunc);
 
-  // 'auto' for orientation was previously in the spec, but was removed. Make
+  // 'auto' for axis was previously in the spec, but was removed. Make
   // sure that implementations do not support it.
   constructorFunc = function() {
-    new ScrollTimeline({orientation: 'auto'})
+    new ScrollTimeline({axis: 'auto'})
   };
   assert_throws_js(TypeError, constructorFunc);
-}, 'Creating a ScrollTimeline with an invalid orientation value should throw');
+}, 'Creating a ScrollTimeline with an invalid axis value should throw');
 </script>

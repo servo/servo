@@ -1,4 +1,5 @@
 async function checkEncoderSupport(test, config) {
+  assert_equals("function", typeof VideoEncoder.isConfigSupported);
   let supported = false;
   try {
     const support = await VideoEncoder.isConfigSupported(config);

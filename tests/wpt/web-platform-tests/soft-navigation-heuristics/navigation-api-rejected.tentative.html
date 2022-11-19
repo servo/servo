@@ -16,7 +16,7 @@
   <script>
     const link = document.getElementById("link");
     testNavigationApi("Test intercepted and rejected navigate event", e => {
-        timestamps[counter]["clickEventStart"] = performance.now();
+        timestamps[counter]["eventStart"] = performance.now();
         e.intercept({handler: async () => {
           await addImageToMain();
           throw new Error("This navigation handler rejected");

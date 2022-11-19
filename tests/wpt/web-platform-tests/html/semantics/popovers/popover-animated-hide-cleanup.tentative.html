@@ -9,7 +9,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/popover-utils.js"></script>
-<script src="/streams/resources/test-utils.js"></script>
+<script src="/common/gc.js"></script>
 
 <dialog>I am a dialog</dialog>
 
@@ -61,7 +61,7 @@ promise_test(async () => {
   popover.hidePopover(); // Start animations
   await rAF();
   popover.remove();
-  garbageCollect();
+  await garbageCollect();
   await rAF();
   // This test passes if it does not crash.
 },'Ensure no crashes if running animations are immediately cancelled (document removal)');
@@ -77,7 +77,7 @@ promise_test(async (t) => {
   t.add_cleanup(() => dialog.close());
   await rAF();
   popover.remove();
-  garbageCollect();
+  await garbageCollect();
   await rAF();
   // This test passes if it does not crash.
 },'Ensure no crashes if running animations are immediately cancelled (dialog showModal)');

@@ -1,5 +1,6 @@
 // META: title=MessageChannel in a detached iframe test
 // META: script=/service-workers/service-worker/resources/test-helpers.sub.js
+// META: script=/common/gc.js
 // Pull in the with_iframe helper function from the service worker tests
 
 
@@ -27,9 +28,7 @@ async function detached_frame_test(t, action) {
     iframe.remove();
   }
 
-  // TODO(https://github.com/web-platform-tests/wpt/issues/7899): Change to
-  // some sort of cross-browser GC trigger.
-  if (self.gc) self.gc();
+  await garbageCollect();
 
   // We are testing that neither of the above two events fire. We assume that a 2 second timeout
   // is good enough. We can't use any other API for an end condition because each MessagePort has
