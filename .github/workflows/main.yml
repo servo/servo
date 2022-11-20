@@ -96,7 +96,7 @@ jobs:
 
   build-mac:
     name: Build (macOS)
-    runs-on: macos-10.15
+    runs-on: macos-12
     steps:
       - name: Branch check
         if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-mac', github.ref) }}
@@ -146,7 +146,7 @@ jobs:
 
   # mac-wpt:
   #   #needs: build-mac
-  #   runs-on: macos-10.15
+  #   runs-on: macos-10.12
   #   env:
   #     max_chunk_id: 20
   #   strategy:
