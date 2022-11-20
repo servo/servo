@@ -106,7 +106,7 @@ def get_environ(stylo_threads, chaos_mode_flags):
     env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
     env["STYLO_THREADS"] = str(stylo_threads)
     if chaos_mode_flags is not None:
-        env["MOZ_CHAOSMODE"] = str(chaos_mode_flags)
+        env["MOZ_CHAOSMODE"] = hex(chaos_mode_flags)
     return env
 
 

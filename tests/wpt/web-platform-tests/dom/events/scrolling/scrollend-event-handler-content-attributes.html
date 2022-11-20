@@ -69,18 +69,21 @@ function runTest() {
     await waitForCompositorCommit();
     assert_equals(document.scrollingElement.scrollLeft, 200,
                   "Document scrolled on horizontal axis");
-    assert_equals(document.scrollingElement.scrollLeft, 200,
+    assert_equals(document.scrollingElement.scrollTop, 200,
                   "Document scrolled on vertical axis");
   }, "Tests scrollend event is not fired to document body event handler content attribute.");
 
   promise_test (async (t) => {
     await waitForCompositorCommit();
 
+    // Reset the scroll position.
+    document.scrollingElement.scrollTo({top: 0, left: 0});
+
     let scrollend_event = new Promise(resolve => document.onscrollend = resolve);
     document.scrollingElement.scrollTo({top: 200, left: 200});
     await scrollend_event;
 
-    assert_equals(document.scrollingElement.scrollLeft, 200,
+    assert_equals(document.scrollingElement.scrollTop, 200,
                   "Document scrolled on horizontal axis");
     assert_equals(document.scrollingElement.scrollLeft, 200,
                   "Document scrolled on vertical axis");
@@ -88,6 +91,9 @@ function runTest() {
 
   promise_test (async (t) => {
     await waitForCompositorCommit();
+
+    // Reset the scroll position.
+    target_div.scrollTo({top: 0, left: 0});
 
     let scrollend_event = new Promise(resolve => target_div.onscrollend = resolve);
     target_div.scrollTo({top: 200, left: 200});
