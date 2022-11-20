@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
 use crate::dom::bindings::error::{throw_dom_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::proxyhandler::fill_property_descriptor;
+use crate::dom::bindings::proxyhandler::set_property_descriptor;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -25,7 +25,9 @@ use embedder_traits::EmbedderMsg;
 use indexmap::map::IndexMap;
 use ipc_channel::ipc;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps};
-use js::glue::{GetProxyPrivate, GetProxyReservedSlot, SetProxyReservedSlot};
+use js::glue::{
+    GetProxyPrivate, GetProxyReservedSlot, SetProxyReservedSlot,
+};
 use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
@@ -33,7 +35,7 @@ use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::MutableHandleValue as RawMutableHandleValue;
-use js::jsapi::{JSAutoRealm, JSContext, JSErrNum, JSFreeOp, JSObject};
+use js::jsapi::{JSAutoRealm, JSContext, JSErrNum, JSObject, GCContext};
 use js::jsapi::{JSTracer, JS_DefinePropertyById, JSPROP_ENUMERATE, JSPROP_READONLY};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_IsExceptionPending};
@@ -901,30 +903,26 @@ unsafe extern "C" fn getOwnPropertyDescriptor(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
-    mut desc: RawMutableHandle<PropertyDescriptor>,
+    desc: RawMutableHandle<PropertyDescriptor>,
+    is_none: *mut bool,
 ) -> bool {
     let window = GetSubframeWindowProxy(cx, proxy, id);
     if let Some((window, attrs)) = window {
         rooted!(in(cx) let mut val = UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
-        desc.value = val.get();
-        fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), attrs);
+        set_property_descriptor(
+            MutableHandle::from_raw(desc),
+            val.handle().into(),
+            attrs,
+            &mut *is_none,
+        );
         return true;
     }
 
     let mut slot = UndefinedValue();
     GetProxyPrivate(proxy.get(), &mut slot);
     rooted!(in(cx) let target = slot.to_object());
-    if !JS_GetOwnPropertyDescriptorById(cx, target.handle().into(), id, desc) {
-        return false;
-    }
-
-    assert!(desc.obj.is_null() || desc.obj == target.get());
-    if desc.obj == target.get() {
-        desc.obj = proxy.get();
-    }
-
-    true
+    return JS_GetOwnPropertyDescriptorById(cx, target.handle().into(), id, desc, is_none);
 }
 
 #[allow(unsafe_code, non_snake_case)]
@@ -1062,7 +1060,6 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     hasOwn: None,
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
-    hasInstance: None,
     objectClassIs: None,
     className: None,
     fun_toString: None,
@@ -1161,10 +1158,11 @@ unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(
     proxy: RawHandleObject,
     id: RawHandleId,
     desc: RawMutableHandle<PropertyDescriptor>,
+    is_none: *mut bool,
 ) -> bool {
     let mut found = false;
     has_xorigin(cx, proxy, id, &mut found);
-    found && getOwnPropertyDescriptor(cx, proxy, id, desc)
+    found && getOwnPropertyDescriptor(cx, proxy, id, desc, is_none)
 }
 
 #[allow(unsafe_code, non_snake_case)]
@@ -1210,7 +1208,6 @@ static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
     hasOwn: Some(has_xorigin),
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
-    hasInstance: None,
     objectClassIs: None,
     className: None,
     fun_toString: None,
@@ -1226,7 +1223,7 @@ static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
 // How WindowProxy objects are garbage collected.
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn finalize(_fop: *mut JSFreeOp, obj: *mut JSObject) {
+unsafe extern "C" fn finalize(_fop: *mut GCContext, obj: *mut JSObject) {
     let mut slot = UndefinedValue();
     GetProxyReservedSlot(obj, 0, &mut slot);
     let this = slot.to_private() as *mut WindowProxy;

@@ -24,7 +24,8 @@ use js::jsapi::{
     ReadableStreamDefaultReaderRead, ReadableStreamError, ReadableStreamGetReader,
     ReadableStreamIsDisturbed, ReadableStreamIsLocked, ReadableStreamIsReadable,
     ReadableStreamReaderMode, ReadableStreamReaderReleaseLock, ReadableStreamUnderlyingSource,
-    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream,
+    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream, JS_GetArrayBufferViewData,
+    AutoRequireNoGC,
 };
 use js::jsval::JSVal;
 use js::jsval::UndefinedValue;
@@ -332,11 +333,14 @@ unsafe extern "C" fn write_into_read_request_buffer(
     source: *const c_void,
     _cx: *mut JSContext,
     _stream: HandleObject,
-    buffer: *mut c_void,
+    chunk: HandleObject,
     length: usize,
     bytes_written: *mut usize,
 ) {
     let source = &*(source as *const ExternalUnderlyingSourceController);
+    let mut is_shared_memory = false;
+    let buffer = JS_GetArrayBufferViewData(*chunk, &mut is_shared_memory, &AutoRequireNoGC { _address: 0 });
+    assert!(!is_shared_memory);
     let slice = slice::from_raw_parts_mut(buffer as *mut u8, length);
     source.write_into_buffer(slice);
 

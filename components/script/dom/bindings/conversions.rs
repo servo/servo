@@ -53,8 +53,6 @@ use js::error::throw_type_error;
 use js::glue::GetProxyReservedSlot;
 use js::glue::JS_GetReservedSlot;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
-use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
-use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING};
 use js::jsapi::{Heap, JSContext, JSObject, JSString};
 use js::jsapi::{IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_NewStringCopyN};
 use js::jsapi::{
@@ -160,13 +158,13 @@ where
 ///
 /// Handling of invalid UTF-16 in strings depends on the relevant option.
 pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
-    let id_raw = id.into();
-    if RUST_JSID_IS_STRING(id_raw) {
-        return Some(jsstring_to_str(cx, RUST_JSID_TO_STRING(id_raw)));
+    let id_raw = *id;
+    if id_raw.is_string() {
+        return Some(jsstring_to_str(cx, id_raw.to_string()));
     }
 
-    if RUST_JSID_IS_INT(id_raw) {
-        return Some(RUST_JSID_TO_INT(id_raw).to_string().into());
+    if id_raw.is_int() {
+        return Some(id_raw.to_int().to_string().into());
     }
 
     None

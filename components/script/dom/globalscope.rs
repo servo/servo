@@ -82,7 +82,7 @@ use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::Compile1;
 use js::jsapi::SetScriptPrivate;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
-use js::jsapi::{HandleObject, Heap};
+use js::jsapi::{HandleObject, Heap, InstantiateOptions, InstantiateGlobalStencil};
 use js::jsapi::{JSContext, JSObject, JSScript};
 use js::jsval::PrivateValue;
 use js::jsval::{JSVal, UndefinedValue};
@@ -120,6 +120,7 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::ops::Index;
+use std::ptr;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -2625,7 +2626,13 @@ impl GlobalScope {
                             }
                         },
                         SourceCode::Compiled(pre_compiled_script) => {
-                            compiled_script.set(pre_compiled_script.source_code.get());
+                            let options = InstantiateOptions {
+                                skipFilenameValidation: false,
+                                hideScriptFromDebugger: false,
+                                deferDebugMetadata: false,
+                            };
+                            let script = InstantiateGlobalStencil(*cx, &options, *pre_compiled_script.source_code, ptr::null_mut());
+                            compiled_script.set(script);
                         },
                     };
 

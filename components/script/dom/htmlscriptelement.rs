@@ -13,7 +13,6 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::document::Document;
 use crate::dom::element::{
     cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
@@ -44,10 +43,10 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{
-    CanCompileOffThread, CompileOffThread1, FinishOffThreadScript, Heap, JSScript, OffThreadToken,
+    CanCompileOffThread, CompileToStencilOffThread1, OffThreadToken,
 };
 use js::jsval::UndefinedValue;
-use js::rust::{transform_str_to_source_text, CompileOptionsWrapper};
+use js::rust::{transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, Stencil};
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
@@ -66,6 +65,7 @@ use std::io::{Read, Seek, Write};
 use std::mem::replace;
 use std::path::PathBuf;
 use std::process::Command;
+use std::ptr;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
@@ -113,21 +113,16 @@ unsafe extern "C" fn off_thread_compilation_callback(
             let cx = global.get_cx();
             let _ar = enter_realm(&*global);
 
-            rooted!(in(*cx)
-                let compiled_script = FinishOffThreadScript(*cx, token.0)
-            );
+            let compiled_script = FinishOffThreadStencil(*cx, token.0, ptr::null_mut());
 
-            let load = if compiled_script.get().is_null() {
+            let load = if compiled_script.is_null() {
                 Err(NetworkError::Internal(
                     "Off-thread compilation failed.".into(),
                 ))
             } else {
                 let script_text = DOMString::from(script);
-                let heap = Heap::default();
-                let source_code = RootedTraceableBox::new(heap);
-                source_code.set(compiled_script.get());
                 let code = SourceCode::Compiled(CompiledSourceCode {
-                    source_code: source_code,
+                    source_code: compiled_script,
                     original_text: Rc::new(script_text),
                 });
 
@@ -244,7 +239,7 @@ pub enum ScriptType {
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct CompiledSourceCode {
     #[ignore_malloc_size_of = "SM handles JS values"]
-    pub source_code: RootedTraceableBox<Heap<*mut JSScript>>,
+    pub source_code: Stencil,
     #[ignore_malloc_size_of = "Rc is hard"]
     pub original_text: Rc<DOMString>,
 }
@@ -446,7 +441,7 @@ impl FetchResponseListener for ClassicContext {
             });
 
             unsafe {
-                assert!(!CompileOffThread1(
+                assert!(!CompileToStencilOffThread1(
                     *cx,
                     options.ptr as *const _,
                     &mut transform_str_to_source_text(&context.script_text) as *mut _,
@@ -1113,7 +1108,8 @@ impl HTMLScriptElement {
                 .map(|record| record.handle());
 
             if let Some(record) = record {
-                let evaluated = module_tree.execute_module(global, record);
+                rooted!(in(*global.get_cx()) let mut rval = UndefinedValue());
+                let evaluated = module_tree.execute_module(global, record, rval.handle_mut().into());
 
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);

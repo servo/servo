@@ -20,7 +20,7 @@ use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::GetPropertyKeys;
 use js::rust::wrappers::JS_DefineUCProperty2;
-use js::rust::wrappers::JS_GetOwnPropertyDescriptorById;
+use js::jsapi::glue::JS_GetOwnPropertyDescriptorById;
 use js::rust::wrappers::JS_GetPropertyById;
 use js::rust::wrappers::JS_IdToValue;
 use js::rust::HandleId;
@@ -135,12 +135,13 @@ where
             rooted!(in(cx) let id = *id);
             rooted!(in(cx) let mut desc = PropertyDescriptor::default());
 
-            if !JS_GetOwnPropertyDescriptorById(cx, object.handle(), id.handle(), desc.handle_mut())
+            let mut is_none = false;
+            if !JS_GetOwnPropertyDescriptorById(cx, object.handle().into(), id.handle().into(), desc.handle_mut().into(), &mut is_none)
             {
                 return Err(());
             }
 
-            if (JSPROP_ENUMERATE as u32) & desc.attrs == 0 {
+            if !desc.enumerable_() {
                 continue;
             }
 
