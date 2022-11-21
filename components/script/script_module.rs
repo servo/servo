@@ -53,7 +53,7 @@ use js::jsapi::{GetRequestedModules, SetModuleMetadataHook, GetModuleRequestSpec
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN, JSPROP_ENUMERATE};
-use js::jsapi::{ModuleEvaluate, ModuleLink};
+use js::jsapi::{ModuleEvaluate, ModuleLink, ThrowOnModuleEvaluationFailure, ModuleErrorBehaviour};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
@@ -505,18 +505,32 @@ impl ModuleTree {
         module_record: HandleObject,
         eval_result: MutableHandleValue,
     ) -> Result<(), RethrowError> {
-        let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+        let cx = global.get_cx();
+        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         unsafe {
-            if !ModuleEvaluate(*global.get_cx(), module_record, eval_result) {
+            let ok = ModuleEvaluate(*cx, module_record, eval_result);
+            assert!(ok, "module evaluation failed");
+
+            rooted!(in(*cx) let mut evaluation_promise = ptr::null_mut::<JSObject>());
+            if eval_result.is_object() {
+                evaluation_promise.set(eval_result.to_object());
+            }
+
+            let throw_result = ThrowOnModuleEvaluationFailure(
+                *cx,
+                evaluation_promise.handle().into(),
+                ModuleErrorBehaviour::ThrowModuleErrorsSync,
+            );
+            if !throw_result {
                 warn!("fail to evaluate module");
 
-                rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
+                rooted!(in(*cx) let mut exception = UndefinedValue());
                 assert!(JS_GetPendingException(
-                    *global.get_cx(),
+                    *cx,
                     &mut exception.handle_mut()
                 ));
-                JS_ClearPendingException(*global.get_cx());
+                JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
                     exception.get(),
@@ -976,7 +990,7 @@ impl ModuleOwner {
         let existing_rethrow_error = module_tree.get_rethrow_error().borrow().as_ref().cloned();
 
         rooted!(in(*global.get_cx()) let mut rval = UndefinedValue());
-        let execution_err = if network_error.is_none() && existing_rethrow_error.is_none() {
+        if network_error.is_none() && existing_rethrow_error.is_none() {
             let record = module_tree
                 .get_record()
                 .borrow()
@@ -989,29 +1003,16 @@ impl ModuleOwner {
                 if let Some(exception) = evaluated.clone() {
                     module_tree.set_rethrow_error(exception);
                 }
-
-                evaluated
-            } else {
-                None
             }
-        } else {
-            None
-        };
+        }
 
         // Ensure any failures related to importing this dynamic module are immediately reported.
-        match (network_error, existing_rethrow_error, execution_err) {
-            (Some(_), _, _) => unsafe {
+        match (network_error, existing_rethrow_error) {
+            (Some(_), _) => unsafe {
                 let err = gen_type_error(&global, "Dynamic import failed".to_owned());
                 JS_SetPendingException(*cx, err.handle(), ExceptionStackBehavior::Capture);
             },
-            (None, _, Some(execution_err)) => unsafe {
-                JS_SetPendingException(
-                    *cx,
-                    execution_err.handle(),
-                    ExceptionStackBehavior::Capture,
-                );
-            },
-            (None, Some(rethrow_error), _) => unsafe {
+            (None, Some(rethrow_error)) => unsafe {
                 JS_SetPendingException(
                     *cx,
                     rethrow_error.handle(),
@@ -1019,7 +1020,7 @@ impl ModuleOwner {
                 );
             },
             // do nothing if there's no errors
-            (None, None, None) => {}
+            (None, None) => {}
         };
 
         debug!("Finishing dynamic import for {:?}", module_identity);
@@ -1030,14 +1031,18 @@ impl ModuleOwner {
         }
 
         unsafe {
-            FinishDynamicModuleImport(
+            let ok = FinishDynamicModuleImport(
                 *cx,
                 evaluation_promise.handle().into(),
                 module.referencing_private.handle(),
                 module.specifier.handle(),
                 module.promise.reflector().get_jsobject().into_handle(),
             );
-            assert!(!JS_IsExceptionPending(*cx));
+            if ok {
+                assert!(!JS_IsExceptionPending(*cx));
+            } else {
+                warn!("failed to finish dynamic module import");
+            }
         }
         return;
     }
