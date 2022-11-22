@@ -82,7 +82,7 @@ use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::Compile1;
 use js::jsapi::SetScriptPrivate;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
-use js::jsapi::{HandleObject, Heap, InstantiateOptions, InstantiateGlobalStencil};
+use js::jsapi::{HandleObject, Heap, InstantiateGlobalStencil, InstantiateOptions};
 use js::jsapi::{JSContext, JSObject, JSScript};
 use js::jsval::PrivateValue;
 use js::jsval::{JSVal, UndefinedValue};
@@ -2631,7 +2631,12 @@ impl GlobalScope {
                                 hideScriptFromDebugger: false,
                                 deferDebugMetadata: false,
                             };
-                            let script = InstantiateGlobalStencil(*cx, &options, *pre_compiled_script.source_code, ptr::null_mut());
+                            let script = InstantiateGlobalStencil(
+                                *cx,
+                                &options,
+                                *pre_compiled_script.source_code,
+                                ptr::null_mut(),
+                            );
                             compiled_script.set(script);
                         },
                     };

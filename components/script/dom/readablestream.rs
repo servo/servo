@@ -18,15 +18,15 @@ use js::glue::{
     CreateReadableStreamUnderlyingSource, DeleteReadableStreamUnderlyingSource,
     ReadableStreamUnderlyingSourceTraps,
 };
-use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject};
 use js::jsapi::{
-    IsReadableStream, NewReadableExternalSourceStreamObject, ReadableStreamClose,
-    ReadableStreamDefaultReaderRead, ReadableStreamError, ReadableStreamGetReader,
-    ReadableStreamIsDisturbed, ReadableStreamIsLocked, ReadableStreamIsReadable,
-    ReadableStreamReaderMode, ReadableStreamReaderReleaseLock, ReadableStreamUnderlyingSource,
-    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream, JS_GetArrayBufferViewData,
-    AutoRequireNoGC,
+    AutoRequireNoGC, IsReadableStream, JS_GetArrayBufferViewData,
+    NewReadableExternalSourceStreamObject, ReadableStreamClose, ReadableStreamDefaultReaderRead,
+    ReadableStreamError, ReadableStreamGetReader, ReadableStreamIsDisturbed,
+    ReadableStreamIsLocked, ReadableStreamIsReadable, ReadableStreamReaderMode,
+    ReadableStreamReaderReleaseLock, ReadableStreamUnderlyingSource,
+    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream,
 };
+use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject};
 use js::jsval::JSVal;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue as SafeHandleValue;
@@ -339,7 +339,11 @@ unsafe extern "C" fn write_into_read_request_buffer(
 ) {
     let source = &*(source as *const ExternalUnderlyingSourceController);
     let mut is_shared_memory = false;
-    let buffer = JS_GetArrayBufferViewData(*chunk, &mut is_shared_memory, &AutoRequireNoGC { _address: 0 });
+    let buffer = JS_GetArrayBufferViewData(
+        *chunk,
+        &mut is_shared_memory,
+        &AutoRequireNoGC { _address: 0 },
+    );
     assert!(!is_shared_memory);
     let slice = slice::from_raw_parts_mut(buffer as *mut u8, length);
     source.write_into_buffer(slice);

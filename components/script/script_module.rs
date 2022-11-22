@@ -47,13 +47,13 @@ use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::MutableHandleValue;
 use js::jsapi::Value;
 use js::jsapi::{CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport};
-use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
+use js::jsapi::{GetModuleRequestSpecifier, GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
-use js::jsapi::{GetRequestedModules, SetModuleMetadataHook, GetModuleRequestSpecifier};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN, JSPROP_ENUMERATE};
-use js::jsapi::{ModuleEvaluate, ModuleLink, ThrowOnModuleEvaluationFailure, ModuleErrorBehaviour};
+use js::jsapi::{ModuleErrorBehaviour, ModuleEvaluate, ModuleLink, ThrowOnModuleEvaluationFailure};
+use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
@@ -526,10 +526,7 @@ impl ModuleTree {
                 warn!("fail to evaluate module");
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(
-                    *cx,
-                    &mut exception.handle_mut()
-                ));
+                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
@@ -998,7 +995,9 @@ impl ModuleOwner {
                 .map(|record| record.handle());
 
             if let Some(record) = record {
-                let evaluated = module_tree.execute_module(&global, record, rval.handle_mut().into()).err();
+                let evaluated = module_tree
+                    .execute_module(&global, record, rval.handle_mut().into())
+                    .err();
 
                 if let Some(exception) = evaluated.clone() {
                     module_tree.set_rethrow_error(exception);
@@ -1020,7 +1019,7 @@ impl ModuleOwner {
                 );
             },
             // do nothing if there's no errors
-            (None, None) => {}
+            (None, None) => {},
         };
 
         debug!("Finishing dynamic import for {:?}", module_identity);
@@ -1430,7 +1429,11 @@ unsafe extern "C" fn HostResolveImportedModule(
 
     // Step 5.
     rooted!(in(*global_scope.get_cx()) let specifier = GetModuleRequestSpecifier(cx, specifier));
-    let url = ModuleTree::resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier.handle().into());
+    let url = ModuleTree::resolve_module_specifier(
+        *global_scope.get_cx(),
+        &base_url,
+        specifier.handle().into(),
+    );
 
     // Step 6.
     assert!(url.is_ok());

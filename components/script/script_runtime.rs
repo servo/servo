@@ -52,8 +52,8 @@ use js::jsapi::StreamConsumer as JSStreamConsumer;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
 use js::jsapi::{Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown};
 use js::jsapi::{
-    GCReason, GCOptions, JSGCStatus, JS_AddExtraGCRootsTracer,
-    JS_RequestInterruptCallback, JS_SetGCCallback,
+    GCOptions, GCReason, JSGCStatus, JS_AddExtraGCRootsTracer, JS_RequestInterruptCallback,
+    JS_SetGCCallback,
 };
 use js::jsapi::{HandleObject, Heap, JobQueue};
 use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
@@ -793,13 +793,10 @@ unsafe extern "C" fn gc_slice_callback(
         let desc: &GCDescription = &*desc;
         let options = match desc.options_ {
             GCOptions::Normal => "Normal",
-            GCOptions::Shrink => "Shrink", 
+            GCOptions::Shrink => "Shrink",
             GCOptions::Shutdown => "Shutdown",
-       };
-        println!(
-            "  isZone={}, options={}",
-            desc.isZone_, options
-        );
+        };
+        println!("  isZone={}, options={}", desc.isZone_, options);
     }
     let _ = stdout().flush();
 }

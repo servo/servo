@@ -42,11 +42,11 @@ use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{
-    CanCompileOffThread, CompileToStencilOffThread1, OffThreadToken,
-};
+use js::jsapi::{CanCompileOffThread, CompileToStencilOffThread1, OffThreadToken};
 use js::jsval::UndefinedValue;
-use js::rust::{transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, Stencil};
+use js::rust::{
+    transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, Stencil,
+};
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
@@ -1109,7 +1109,8 @@ impl HTMLScriptElement {
 
             if let Some(record) = record {
                 rooted!(in(*global.get_cx()) let mut rval = UndefinedValue());
-                let evaluated = module_tree.execute_module(global, record, rval.handle_mut().into());
+                let evaluated =
+                    module_tree.execute_module(global, record, rval.handle_mut().into());
 
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);

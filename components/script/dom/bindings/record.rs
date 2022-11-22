@@ -8,6 +8,7 @@ use crate::dom::bindings::conversions::jsid_to_string;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use indexmap::IndexMap;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
+use js::jsapi::glue::JS_GetOwnPropertyDescriptorById;
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::JSContext;
 use js::jsapi::JS_NewPlainObject;
@@ -20,7 +21,6 @@ use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::GetPropertyKeys;
 use js::rust::wrappers::JS_DefineUCProperty2;
-use js::jsapi::glue::JS_GetOwnPropertyDescriptorById;
 use js::rust::wrappers::JS_GetPropertyById;
 use js::rust::wrappers::JS_IdToValue;
 use js::rust::HandleId;
@@ -136,8 +136,13 @@ where
             rooted!(in(cx) let mut desc = PropertyDescriptor::default());
 
             let mut is_none = false;
-            if !JS_GetOwnPropertyDescriptorById(cx, object.handle().into(), id.handle().into(), desc.handle_mut().into(), &mut is_none)
-            {
+            if !JS_GetOwnPropertyDescriptorById(
+                cx,
+                object.handle().into(),
+                id.handle().into(),
+                desc.handle_mut().into(),
+                &mut is_none,
+            ) {
                 return Err(());
             }
 

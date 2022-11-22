@@ -25,9 +25,7 @@ use embedder_traits::EmbedderMsg;
 use indexmap::map::IndexMap;
 use ipc_channel::ipc;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps};
-use js::glue::{
-    GetProxyPrivate, GetProxyReservedSlot, SetProxyReservedSlot,
-};
+use js::glue::{GetProxyPrivate, GetProxyReservedSlot, SetProxyReservedSlot};
 use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
@@ -35,7 +33,7 @@ use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::MutableHandleValue as RawMutableHandleValue;
-use js::jsapi::{JSAutoRealm, JSContext, JSErrNum, JSObject, GCContext};
+use js::jsapi::{GCContext, JSAutoRealm, JSContext, JSErrNum, JSObject};
 use js::jsapi::{JSTracer, JS_DefinePropertyById, JSPROP_ENUMERATE, JSPROP_READONLY};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_IsExceptionPending};
