@@ -90,7 +90,6 @@ packages = [
   # https://github.com/servo/servo/pull/28236
   "dlib",
   "nix",
-  "nom",
   "strsim",
 
   # Duplicated by webrender debugger via ws

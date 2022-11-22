@@ -302,15 +302,13 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.58.1"
+version = "0.62.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f8523b410d7187a43085e7e064416ea32ded16bd0a4e6fc025e21616d01258f"
+checksum = "c6720a8b7b2d39dd533285ed438d458f65b31b5c257e6ac7bb3d7e82844dd722"
 dependencies = [
  "bitflags",
- "cexpr 0.4.0",
+ "cexpr",
  "clang-sys",
- "clap",
- "env_logger",
  "lazy_static",
  "lazycell",
  "log",
@@ -320,28 +318,8 @@ dependencies = [
  "regex",
  "rustc-hash",
  "shlex",
- "which 3.1.1",
-]
-
-[[package]]
-name = "bindgen"
-version = "0.62.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6720a8b7b2d39dd533285ed438d458f65b31b5c257e6ac7bb3d7e82844dd722"
-dependencies = [
- "bitflags",
- "cexpr 0.6.0",
- "clang-sys",
- "lazy_static",
- "lazycell",
- "peeking_take_while",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash",
- "shlex",
  "syn",
- "which 4.3.0",
+ "which",
 ]
 
 [[package]]
@@ -693,20 +671,11 @@ checksum = "6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c"
 
 [[package]]
 name = "cexpr"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4aedb84272dbe89af497cf81375129abda4fc0a9e7c5d317498c15cc30c0d27"
-dependencies = [
- "nom 5.1.2",
-]
-
-[[package]]
-name = "cexpr"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fac387a98bb7c37292057cffc56d62ecb629900026402633ae9160df93a8766"
 dependencies = [
- "nom 7.1.1",
+ "nom",
 ]
 
 [[package]]
@@ -3969,7 +3938,7 @@ name = "mozjs_sys"
 version = "0.68.2"
 source = "git+https://github.com/servo/mozjs#f87705d61015bf1646b33f33664da51f31b23b74"
 dependencies = [
- "bindgen 0.62.0",
+ "bindgen",
  "cc",
  "encoding_c",
  "encoding_c_mem",
@@ -4245,16 +4214,6 @@ name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
-
-[[package]]
-name = "nom"
-version = "5.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb4262d26ed83a1c0a33a38fe2bb15797329c85770da05e6b828ddb782627af"
-dependencies = [
- "memchr",
- "version_check",
-]
 
 [[package]]
 name = "nom"
@@ -6306,7 +6265,7 @@ dependencies = [
  "app_units",
  "arrayvec 0.7.1",
  "atomic_refcell",
- "bindgen 0.58.1",
+ "bindgen",
  "bitflags",
  "byteorder",
  "cssparser",
@@ -7436,10 +7395,10 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#af2e84a28d52521212816584e0553aaf364a9162"
+source = "git+https://github.com/servo/webxr#4eb957ac4f0e22ac5baded31eb86eea32862d687"
 dependencies = [
  "android_injected_glue",
- "bindgen 0.58.1",
+ "bindgen",
  "crossbeam-channel 0.4.4",
  "euclid",
  "gl_generator 0.13.1",
@@ -7459,7 +7418,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#af2e84a28d52521212816584e0553aaf364a9162"
+source = "git+https://github.com/servo/webxr#4eb957ac4f0e22ac5baded31eb86eea32862d687"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -7509,15 +7468,6 @@ source = "git+https://github.com/gfx-rs/wgpu?rev=e72724a6e393503c73f37e86aa9317a
 dependencies = [
  "bitflags",
  "serde",
-]
-
-[[package]]
-name = "which"
-version = "3.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d011071ae14a2f6671d0b74080ae0cd8ebf3a6f8c9589a2cd45f23126fe29724"
-dependencies = [
- "libc",
 ]
 
 [[package]]
@@ -7726,7 +7676,7 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "463705a63313cd4301184381c5e8042f0a7e9b4bb63653f216311d4ae74690b7"
 dependencies = [
- "nom 7.1.1",
+ "nom",
 ]
 
 [[package]]
