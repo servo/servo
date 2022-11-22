@@ -1985,9 +1985,6 @@ pub enum Appearance {
     MozWinMediaToolbox,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozWinBrowsertabbarToolbox,
-    /// Vista glass.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozWinGlass,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozWinBorderlessGlass,
     /// -moz-apperance style used in setting proper glass margins.
