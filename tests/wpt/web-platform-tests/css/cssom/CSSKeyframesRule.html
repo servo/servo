@@ -12,6 +12,10 @@
             100% { top: 200px; }
         }
         @keyframes empty {}
+        @keyframes indexed-access {
+            0% { top: 0px; }
+            100% { top: 200px; }
+        }
     </style>
 
     <script>
@@ -68,7 +72,14 @@
         empty.name = "none";
         assert_equals(empty.name, "none", "CSSKeyframesRule name setter, 'none'");
         assert_equals(empty.cssText.replace(/\s/g, ""), "@keyframes\"none\"{}", "CSSKeyframesRule cssText attribute with 'none' name");
-    });
+    }, 'name, cssRules, appendRule, findRule, deleteRule');
+
+    test(function () {
+        const keyframes = document.styleSheets[0].cssRules[2];
+        assert_equals(keyframes[0].cssText, "0% { top: 0px; }", "CSSKeyframesRule indexed getter [0]");
+        assert_equals(keyframes[1].cssText, "100% { top: 200px; }", "CSSKeyframesRule indexed getter [1]");
+        assert_equals(keyframes.length, 2, "CSSKeyframesRule.length");
+    }, 'indexed getter, length');
     </script>
 </head>
 </html>

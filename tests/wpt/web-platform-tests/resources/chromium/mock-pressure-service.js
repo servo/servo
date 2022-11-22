@@ -48,6 +48,10 @@ class MockPressureService {
       throw new Error('BindObserver() has already been called');
 
     this.observer_ = observer;
+    this.observer_.onConnectionError.addListener(() => {
+      this.stopPlatformCollector();
+      this.observer_ = null;
+    });
 
     return {status: this.pressureStatus_};
   }

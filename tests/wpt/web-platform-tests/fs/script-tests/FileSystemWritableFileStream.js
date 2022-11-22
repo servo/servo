@@ -34,26 +34,6 @@ directory_test(async (t, root) => {
 }, 'createWritable() fails when parent directory is removed');
 
 directory_test(async (t, root) => {
-  const dir = await createDirectory(t, 'parent_dir', root);
-  const file_name = 'write_fails_when_dir_removed.txt';
-  const handle = await createEmptyFile(t, file_name, dir);
-  const stream = await handle.createWritable();
-
-  await root.removeEntry('parent_dir', {recursive: true});
-  await promise_rejects_dom(t, 'NotFoundError', stream.write('foo'));
-}, 'write() fails when parent directory is removed');
-
-directory_test(async (t, root) => {
-  const dir = await createDirectory(t, 'parent_dir', root);
-  const file_name = 'truncate_fails_when_dir_removed.txt';
-  const handle = await createEmptyFile(t, file_name, dir);
-  const stream = await handle.createWritable();
-
-  await root.removeEntry('parent_dir', {recursive: true});
-  await promise_rejects_dom(t, 'NotFoundError', stream.truncate(0));
-}, 'truncate() fails when parent directory is removed');
-
-directory_test(async (t, root) => {
   const handle = await createFileWithContents(
       t, 'atomic_file_is_copied.txt', 'fooks', root);
   const stream = await handle.createWritable({keepExistingData: true});
