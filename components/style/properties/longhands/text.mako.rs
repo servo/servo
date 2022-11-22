@@ -24,6 +24,7 @@ ${helpers.single_keyword(
     "normal embed isolate bidi-override isolate-override plaintext",
     engines="gecko servo",
     servo_pref="layout.legacy_layout",
+    gecko_enum_prefix="StyleUnicodeBidi",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi",
     servo_restyle_damage="rebuild_and_reflow",
