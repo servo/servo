@@ -3954,6 +3954,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
+source = "git+https://github.com/servo/mozjs#f87705d61015bf1646b33f33664da51f31b23b74"
 dependencies = [
  "cc",
  "lazy_static",
@@ -3966,6 +3967,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
+source = "git+https://github.com/servo/mozjs#f87705d61015bf1646b33f33664da51f31b23b74"
 dependencies = [
  "bindgen 0.62.0",
  "cc",
