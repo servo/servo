@@ -195,17 +195,6 @@ directory_test(async (t, root) => {
 }, 'write() with a valid typed array buffer');
 
 directory_test(async (t, root) => {
-  const dir = await createDirectory(t, 'parent_dir', root);
-  const file_name = 'close_fails_when_dir_removed.txt';
-  const handle = await createEmptyFile(t, file_name, dir);
-  const stream = await handle.createWritable();
-  await stream.write('foo');
-
-  await root.removeEntry('parent_dir', {recursive: true});
-  await promise_rejects_dom(t, 'NotFoundError', stream.close());
-}, 'atomic writes: close() fails when parent directory is removed');
-
-directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, 'atomic_writes.txt', root);
   const stream = await handle.createWritable();
   await stream.write('foox');
@@ -277,22 +266,6 @@ directory_test(async (t, root) => {
 }, 'atomic writes: only one close() operation may succeed');
 
 directory_test(async (t, root) => {
-  const dir = await createDirectory(t, 'parent_dir', root);
-  const file_name = 'atomic_writable_file_stream_persists_removed.txt';
-  const handle = await createFileWithContents(t, file_name, 'foo', dir);
-
-  const stream = await handle.createWritable();
-  await stream.write('bar');
-
-  await dir.removeEntry(file_name);
-  await promise_rejects_dom(t, 'NotFoundError', getFileContents(handle));
-
-  await stream.close();
-  assert_equals(await getFileContents(handle), 'bar');
-  assert_equals(await getFileSize(handle), 3);
-}, 'atomic writes: writable file stream persists file on close, even if file is removed');
-
-directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, 'writer_written', root);
   const stream = await handle.createWritable();
   assert_false(stream.locked);
@@ -315,8 +288,8 @@ directory_test(async (t, root) => {
   const stream = await handle.createWritable();
 
   await promise_rejects_dom(
-      t, "SyntaxError", stream.write({type: 'truncate'}), 'truncate without size');
-
+      t, 'SyntaxError', stream.write({type: 'truncate'}),
+      'truncate without size');
 }, 'WriteParams: truncate missing size param');
 
 directory_test(async (t, root) => {
@@ -324,8 +297,7 @@ directory_test(async (t, root) => {
   const stream = await handle.createWritable();
 
   await promise_rejects_dom(
-      t, "SyntaxError", stream.write({type: 'write'}), 'write without data');
-
+      t, 'SyntaxError', stream.write({type: 'write'}), 'write without data');
 }, 'WriteParams: write missing data param');
 
 directory_test(async (t, root) => {
@@ -333,18 +305,17 @@ directory_test(async (t, root) => {
   const stream = await handle.createWritable();
 
   await promise_rejects_js(
-      t, TypeError, stream.write({type: 'write', data: null}), 'write with null data');
-
+      t, TypeError, stream.write({type: 'write', data: null}),
+      'write with null data');
 }, 'WriteParams: write null data param');
 
 directory_test(async (t, root) => {
-  const handle = await createFileWithContents(
-      t, 'content.txt', 'seekable', root);
+  const handle =
+      await createFileWithContents(t, 'content.txt', 'seekable', root);
   const stream = await handle.createWritable();
 
   await promise_rejects_dom(
-      t, "SyntaxError", stream.write({type: 'seek'}), 'seek without position');
-
+      t, 'SyntaxError', stream.write({type: 'seek'}), 'seek without position');
 }, 'WriteParams: seek missing position param');
 
 directory_test(async (t, root) => {

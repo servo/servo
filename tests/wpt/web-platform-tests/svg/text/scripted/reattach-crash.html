@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Chrome had a crash on dynamic style changes on &lt;text></title>
+<link rel="help" href="http://crbug.com/1385936">
+<style>
+#el9 {
+  background-color: blue;
+}
+.c3 {
+  transition-duration:0.2s;
+  background-color: red !important;
+  content: '';
+}
+</style>
+<script>
+onload = function() {
+  document.body.offsetTop;
+  el9.setAttribute('class', 'c3');
+  document.body.offsetTop;
+};
+</script>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg"><text id="el9"></text></svg>
+</body>

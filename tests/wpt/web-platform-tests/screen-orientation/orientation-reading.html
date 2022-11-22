@@ -90,8 +90,16 @@ test(() => {
   const type = screen.orientation.type;
   const angle = screen.orientation.angle;
 
-  screen.orientation.type = "foo";
-  screen.orientation.angle = 42;
+  try {
+    screen.orientation.type = "foo";
+  } catch (err) {
+    // implementation might throw an exception due to readonly
+  }
+  try {
+    screen.orientation.angle = 42;
+  } catch (err) {
+    // implementation might throw an exception due to readonly
+  }
 
   assert_equals(screen.orientation.type, type);
   assert_equals(screen.orientation.angle, angle);

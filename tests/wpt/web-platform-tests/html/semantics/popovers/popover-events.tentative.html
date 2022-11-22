@@ -17,21 +17,31 @@ window.onload = () => {
       assert_false(popover.matches(':open'));
       let showCount = 0;
       let hideCount = 0;
+      function showListener(e) {
+        assert_true(e.target.matches(':closed'),'The popover should be in the :closed state when the popovershow event fires.');
+        assert_false(e.target.matches(':open'),'The popover should *not* be in the :open state when the popovershow event fires.');
+        ++showCount;
+      };
+      function hideListener(e) {
+        assert_true(e.target.matches(':open'),'The popover should be in the :open state when the popoverhide event fires.');
+        assert_false(e.target.matches(':closed'),'The popover should *not* be in the :closed state when the popoverhide event fires.');
+        ++hideCount;
+      };
       switch (method) {
         case "listener":
           const controller = new AbortController();
           const signal = controller.signal;
           t.add_cleanup(() => controller.abort());
-          document.addEventListener('popovershow',() => ++showCount, {signal});
-          document.addEventListener('popoverhide',() => ++hideCount, {signal});
+          document.addEventListener('popovershow',showListener, {signal});
+          document.addEventListener('popoverhide',hideListener, {signal});
           break;
         case "attribute":
           assert_false(popover.hasAttribute('onpopovershow'));
           assert_false(popover.hasAttribute('onpopoverhide'));
           t.add_cleanup(() => popover.removeAttribute('onpopovershow'));
           t.add_cleanup(() => popover.removeAttribute('onpopoverhide'));
-          popover.onpopovershow = () => ++showCount;
-          popover.onpopoverhide = () => ++hideCount;
+          popover.onpopovershow = showListener;
+          popover.onpopoverhide = hideListener;
           break;
         default: assert_unreached();
       }
