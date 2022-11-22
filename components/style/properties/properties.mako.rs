@@ -169,6 +169,8 @@ pub mod shorthands {
                 continue;
             if not p.enabled_in_content() and not p.experimental(engine):
                 continue;
+            if "Style" not in p.rule_types_allowed_names():
+                continue;
             if p.logical:
                 logical_longhands.append(p.name)
             else:
