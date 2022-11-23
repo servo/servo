@@ -19,7 +19,6 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "text-size-adjust",
     "-webkit-font-feature-settings",
     "-webkit-user-drag",
-    "-webkit-clip-path",
     "orphans",
     "widows",
     "-webkit-user-modify",
