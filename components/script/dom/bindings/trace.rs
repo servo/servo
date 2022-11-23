@@ -82,7 +82,7 @@ use js::jsapi::{
     GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, JobQueue, TraceKind,
 };
 use js::jsval::JSVal;
-use js::rust::{GCMethods, Handle, Runtime};
+use js::rust::{GCMethods, Handle, Runtime, Stencil};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -677,6 +677,7 @@ unsafe_no_jsmanaged_fields!(MediaMetadata);
 unsafe_no_jsmanaged_fields!(WebrenderIpcSender);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
 unsafe_no_jsmanaged_fields!(DocumentAnimationSet);
+unsafe_no_jsmanaged_fields!(Stencil);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

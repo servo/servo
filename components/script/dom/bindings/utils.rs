@@ -18,11 +18,9 @@ use crate::dom::windowproxy;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::ToJSValConvertible;
 use js::glue::JS_GetReservedSlot;
+use js::glue::RUST_FUNCTION_VALUE_TO_JITINFO;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
-use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
-use js::glue::{
-    RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING, RUST_JSID_IS_VOID,
-};
+use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector;
@@ -192,16 +190,16 @@ pub unsafe fn get_property_on_prototype(
 /// Get an array index from the given `jsid`. Returns `None` if the given
 /// `jsid` is not an integer.
 pub unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32> {
-    let raw_id = id.into();
-    if RUST_JSID_IS_INT(raw_id) {
-        return Some(RUST_JSID_TO_INT(raw_id) as u32);
+    let raw_id = *id;
+    if raw_id.is_int() {
+        return Some(raw_id.to_int() as u32);
     }
 
-    if RUST_JSID_IS_VOID(raw_id) || !RUST_JSID_IS_STRING(raw_id) {
+    if raw_id.is_void() || !raw_id.is_string() {
         return None;
     }
 
-    let atom = RUST_JSID_TO_STRING(raw_id) as *mut JSAtom;
+    let atom = raw_id.to_string() as *mut JSAtom;
     let s = AtomToLinearString(atom);
     if GetLinearStringLength(s) == 0 {
         return None;
@@ -451,12 +449,12 @@ pub unsafe extern "C" fn resolve_global(
     if *rval {
         return true;
     }
-    if !RUST_JSID_IS_STRING(id) {
+    if !id.is_string() {
         *rval = false;
         return true;
     }
 
-    let string = RUST_JSID_TO_STRING(id);
+    let string = id.to_string();
     if !JS_DeprecatedStringHasLatin1Chars(string) {
         *rval = false;
         return true;

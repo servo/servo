@@ -105,7 +105,6 @@ impl InterfaceConstructorBehavior {
             finalize: None,
             call: Some(invalid_constructor),
             construct: Some(invalid_constructor),
-            hasInstance: None, // heycam/webidl#356
             trace: None,
         })
     }
@@ -122,7 +121,6 @@ impl InterfaceConstructorBehavior {
             finalize: None,
             call: Some(non_new_constructor),
             construct: Some(hook),
-            hasInstance: None, // heycam/webidl#356
             trace: None,
         })
     }

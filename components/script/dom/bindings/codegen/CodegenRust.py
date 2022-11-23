@@ -1886,7 +1886,7 @@ class AttrDefiner(PropertyDefiner):
                 "name": m.identifier.name,
                 "attr": m,
                 "flags": "JSPROP_ENUMERATE",
-                "is_accessor": "true",
+                "kind": "JSPropertySpec_Kind::NativeAccessor",
             }
             for m in descriptor.interface.members if
             m.isAttr() and m.isStatic() == static
@@ -1906,7 +1906,7 @@ class AttrDefiner(PropertyDefiner):
                 "name": "@@toStringTag",
                 "attr": None,
                 "flags": "JSPROP_READONLY",
-                "is_accessor": "false",
+                "kind": "JSPropertySpec_Kind::Value",
             })
 
     def generateArray(self, array, name):
@@ -1963,13 +1963,13 @@ class AttrDefiner(PropertyDefiner):
 
         def specData(attr):
             if attr["name"] == "@@toStringTag":
-                return (attr["name"][2:], attr["flags"], attr["is_accessor"],
+                return (attr["name"][2:], attr["flags"], attr["kind"],
                         str_to_const_array(self.descriptor.interface.getClassName()))
 
             flags = attr["flags"]
             if self.unforgeable:
                 flags += " | JSPROP_PERMANENT"
-            return (str_to_const_array(attr["attr"].identifier.name), flags, attr["is_accessor"], getter(attr),
+            return (str_to_const_array(attr["attr"].identifier.name), flags, attr["kind"], getter(attr),
                     setter(attr))
 
         def template(m):
@@ -1977,7 +1977,7 @@ class AttrDefiner(PropertyDefiner):
                 return """    JSPropertySpec {
                     name: JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 },
                     attributes_: (%s) as u8,
-                    isAccessor_: (%s),
+                    kind_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
                         value: JSPropertySpec_ValueWrapper {
                             type_: JSPropertySpec_ValueWrapper_Type::String,
@@ -1991,7 +1991,7 @@ class AttrDefiner(PropertyDefiner):
             return """    JSPropertySpec {
                     name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },
                     attributes_: (%s) as u8,
-                    isAccessor_: (%s),
+                    kind_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
                         accessors: JSPropertySpec_AccessorsOrValue_Accessors {
                             getter: JSPropertySpec_Accessor {
@@ -2361,7 +2361,6 @@ static CLASS_OPS: js::jsapi::JSClassOps = js::jsapi::JSClassOps {
     mayResolve: None,
     finalize: Some(%(finalizeHook)s),
     call: None,
-    hasInstance: None,
     construct: None,
     trace: Some(%(traceHook)s),
 };
@@ -3620,7 +3619,6 @@ let traps = ProxyTraps {
     hasOwn: Some(hasOwn),
     getOwnEnumerablePropertyKeys: Some(%(getOwnEnumerablePropertyKeys)s),
     nativeCall: None,
-    hasInstance: None,
     objectClassIs: None,
     className: Some(className),
     fun_toString: None,
@@ -5368,7 +5366,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             }
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(
                 template, templateValues, declType, argument.identifier.name))
-            self.cgRoot.prepend(CGGeneric("rooted!(in(*cx) let value = desc.value);"))
+            self.cgRoot.prepend(CGGeneric("rooted!(in(*cx) let value = desc.value_);"))
 
     def getArguments(self):
         args = [(a, process_arg(a.identifier.name, a)) for a in self.arguments]
@@ -5471,7 +5469,8 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
-                Argument('RawMutableHandle<PropertyDescriptor>', 'mut desc')]
+                Argument('RawMutableHandle<PropertyDescriptor>', 'mut desc'),
+                Argument('*mut bool', 'is_none')]
         CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
                                         "bool", args)
         self.descriptor = descriptor
@@ -5487,12 +5486,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 """
                 if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
                     if !proxyhandler::cross_origin_get_own_property_helper(
-                        cx, proxy, &CROSS_ORIGIN_PROPERTIES, id, desc
+                        cx, proxy, &CROSS_ORIGIN_PROPERTIES, id, desc, &mut *is_none
                     ) {
                         return false;
                     }
-                    if desc.obj.is_null() {
-                        return proxyhandler::cross_origin_property_fallback(cx, proxy, id, desc);
+                    if *is_none {
+                        return proxyhandler::cross_origin_property_fallback(cx, proxy, id, desc, &mut *is_none);
                     }
                     return true;
                 }
@@ -5507,8 +5506,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
-            fillDescriptor = ("desc.value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
+            fillDescriptor = ("set_property_descriptor(\n"
+                              "    MutableHandle::from_raw(desc),\n"
+                              "    result_root.handle(),\n"
+                              "    (%s) as u32,\n"
+                              "    &mut *is_none\n"
+                              ");\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5532,8 +5535,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = " | ".join(attrs)
             else:
                 attrs = "0"
-            fillDescriptor = ("desc.value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
+            fillDescriptor = ("set_property_descriptor(\n"
+                              "    MutableHandle::from_raw(desc),\n"
+                              "    result_root.handle(),\n"
+                              "    (%s) as u32,\n"
+                              "    &mut *is_none\n"
+                              ");\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5542,7 +5549,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             }
 
             # See the similar-looking in CGDOMJSProxyHandler_get for the spec quote.
-            condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+            condition = "id.is_string() || id.is_int()"
             if indexedGetter:
                 condition = "index.is_none() && (%s)" % condition
             # Once we start supporting OverrideBuiltins we need to make
@@ -5569,17 +5576,16 @@ get_expando_object(proxy, expando.handle_mut());
 let proxy_lt = Handle::from_raw(proxy);
 let id_lt = Handle::from_raw(id);
 if !expando.is_null() {
-    if !JS_GetPropertyDescriptorById(*cx, expando.handle().into(), id, desc) {
+    rooted!(in(*cx) let mut ignored = ptr::null_mut::<JSObject>());
+    if !JS_GetPropertyDescriptorById(*cx, expando.handle().into(), id, desc, ignored.handle_mut().into(), is_none) {
         return false;
     }
-    if !desc.obj.is_null() {
+    if !*is_none {
         // Pretend the property lives on the wrapper.
-        desc.obj = proxy.get();
         return true;
     }
 }
 """ + namedGet + """\
-desc.obj = ptr::null_mut();
 return true;"""
 
     def definition_body(self):
@@ -5628,12 +5634,12 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             if self.descriptor.hasUnforgeableMembers:
                 raise TypeError("Can't handle a named setter on an interface that has "
                                 "unforgeables. Figure out how that should work!")
-            set += ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n"
+            set += ("if id.is_string() || id.is_int() {\n"
                     + CGIndenter(CGProxyNamedSetter(self.descriptor)).define()
                     + "    return (*opresult).succeed();\n"
                     + "}\n")
         elif self.descriptor.operations['NamedGetter']:
-            set += ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n"
+            set += ("if id.is_string() || id.is_int() {\n"
                     + CGIndenter(CGProxyNamedGetter(self.descriptor)).define()
                     + "    if result.is_some() {\n"
                       "        return (*opresult).failNoNamedSetter();\n"
@@ -5839,7 +5845,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                         + "}\n\n")
 
         namedGetter = self.descriptor.operations['NamedGetter']
-        condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+        condition = "id.is_string() || id.is_int()"
         if indexedGetter:
             condition = "index.is_none() && (%s)" % condition
         if namedGetter:
@@ -5939,7 +5945,7 @@ if !expando.is_null() {
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+            condition = "id.is_string() || id.is_int()"
             # From step 1:
             #     If O supports indexed properties and P is an array index, then:
             #
@@ -6139,7 +6145,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
     A hook for finalize, used to release our native object.
     """
     def __init__(self, descriptor):
-        args = [Argument('*mut JSFreeOp', '_fop'), Argument('*mut JSObject', 'obj')]
+        args = [Argument('*mut GCContext', '_cx'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
 
@@ -6302,6 +6308,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::CallArgs',
         'js::jsapi::CurrentGlobalOrNull',
         'js::rust::wrappers::GetPropertyKeys',
+        'js::jsapi::GCContext',
         'js::jsapi::GetWellKnownSymbol',
         'js::rust::Handle',
         'js::jsapi::Handle as RawHandle',
@@ -6320,7 +6327,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSCLASS_RESERVED_SLOTS_SHIFT',
         'js::jsapi::JSClass',
         'js::jsapi::JSContext',
-        'js::jsapi::JSFreeOp',
         'js::jsapi::JSFunctionSpec',
         'js::jsapi::JSITER_HIDDEN',
         'js::jsapi::JSITER_OWNONLY',
@@ -6345,6 +6351,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSPropertySpec_Accessor',
         'js::jsapi::JSPropertySpec_AccessorsOrValue',
         'js::jsapi::JSPropertySpec_AccessorsOrValue_Accessors',
+        'js::jsapi::JSPropertySpec_Kind',
         'js::jsapi::JSPropertySpec_Name',
         'js::jsapi::JSPropertySpec_ValueWrapper',
         'js::jsapi::JSPropertySpec_ValueWrapper_Type',
@@ -6414,8 +6421,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::SetProxyReservedSlot',
         'js::rust::wrappers::NewProxyObject',
         'js::glue::ProxyTraps',
-        'js::glue::RUST_JSID_IS_INT',
-        'js::glue::RUST_JSID_IS_STRING',
         'js::rust::wrappers::RUST_SYMBOL_TO_JSID',
         'js::rust::wrappers::int_to_jsid',
         'js::glue::UnwrapObjectDynamic',
@@ -6521,7 +6526,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::inheritance::Castable',
         'crate::dom::bindings::proxyhandler',
         'crate::dom::bindings::proxyhandler::ensure_expando_object',
-        'crate::dom::bindings::proxyhandler::fill_property_descriptor',
+        'crate::dom::bindings::proxyhandler::set_property_descriptor',
         'crate::dom::bindings::proxyhandler::get_expando_object',
         'crate::dom::bindings::record::Record',
         'std::ptr::NonNull',
