@@ -218,7 +218,7 @@ impl<'a> Context<'a> {
             builder: StyleBuilder::for_inheritance(device, None, None),
             cached_system_font: None,
             in_media_query: true,
-            in_container_query: true,
+            in_container_query: false,
             quirks_mode,
             for_smil_animation: false,
             container_info: None,
