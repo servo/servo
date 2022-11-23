@@ -2009,12 +2009,6 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozWindowButtonRestore,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozWindowFrameBottom,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozWindowFrameLeft,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozWindowFrameRight,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozWindowTitlebar,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozWindowTitlebarMaximized,
