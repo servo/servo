@@ -5,18 +5,18 @@
 // META: script=./resources/common.js
 
 // This test verifies the behavior of the initial empty document nested inside
-// anonymous iframes.
+// credentialless iframes.
 //
 // The following tree of frames and documents is used:
 //  A
-//  ├──B (anonymous)
+//  ├──B (credentialless)
 //  │  └──D (initial empty document)
 //  └──C (control)
 //     └──E (initial empty document)
 //
 // Storage used for D and E must be different.
 promise_test(async test => {
-  const iframe_B = newAnonymousIframe(origin);
+  const iframe_B = newIframeCredentialless(origin);
   const iframe_C = newIframe(origin);
 
   // Create iframe_D and store a value in localStorage.
@@ -60,11 +60,11 @@ promise_test(async test => {
     send("${queue_C}", value_E);
   `);
 
-  // Verify the anonymous iframe and the normal one do not have access to each
+  // Verify the credentialless iframe and the normal one do not have access to each
   // other.
   assert_equals(await receive(queue_B), value_D); // key_D
   assert_equals(await receive(queue_B), "");      // key_E
   assert_equals(await receive(queue_C), "");      // key_D
   assert_equals(await receive(queue_C), value_E); // key_E
-}, "Local storage is correctly partitioned with regards to anonymous iframe " +
+}, "Local storage is correctly partitioned with regards to credentialless iframe " +
    "in initial empty documents.");

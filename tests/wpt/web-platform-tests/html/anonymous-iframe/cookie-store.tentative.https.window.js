@@ -5,18 +5,18 @@
 // META: script=/html/cross-origin-embedder-policy/credentialless/resources/common.js
 // META: script=./resources/common.js
 
-// A set of tests, checking cookies defined from within an anonymous iframe
+// A set of tests, checking cookies defined from within a credentialless iframe
 // continue to work.
 
 const same_origin = get_host_info().HTTPS_ORIGIN;
 const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
 const cookie_key = token()
 
-const anonymous_iframe = newAnonymousIframe(cross_origin);
+const credentialless_iframe = newIframeCredentialless(cross_origin);
 
 // Install some helper functions in the child to observe Cookies:
 promise_setup(async () => {
-  await send(anonymous_iframe, `
+  await send(credentialless_iframe, `
     window.getMyCookie = () => {
       const value = "; " + document.cookie;
       const parts = value.split("; ${cookie_key}=");
@@ -44,7 +44,7 @@ promise_setup(async () => {
 
 promise_test(async test => {
   const this_token = token();
-  send(anonymous_iframe, `
+  send(credentialless_iframe, `
     document.cookie = "${cookie_key}=cookie_value_1";
     send("${this_token}", getMyCookie());
   `);
@@ -54,7 +54,7 @@ promise_test(async test => {
 
 promise_test(async test => {
   const resource_token = token();
-  send(anonymous_iframe, `
+  send(credentialless_iframe, `
     fetch("${showRequestHeaders(cross_origin, resource_token)}");
   `);
 
@@ -68,7 +68,7 @@ promise_test(async test => {
   const resource_url = cross_origin + "/common/blank.html?pipe=" +
     `|header(Set-Cookie,${cookie_key}=cookie_value_2;Path=/common/dispatcher)`;
   const this_token = token();
-  send(anonymous_iframe, `
+  send(credentialless_iframe, `
     const next_cookie_value = nextCookieValue();
     fetch("${resource_url}");
     send("${this_token}", await next_cookie_value);
@@ -82,7 +82,7 @@ promise_test(async test => {
   const resource_url = cross_origin + "/common/blank.html?pipe=" +
     `|header(Set-Cookie,${cookie_key}=cookie_value_3;Path=/common/dispatcher)`;
   const this_token = token();
-  send(anonymous_iframe, `
+  send(credentialless_iframe, `
     const next_cookie_value = nextCookieValue();
     const iframe = document.createElement("iframe");
     iframe.src = "${resource_url}";

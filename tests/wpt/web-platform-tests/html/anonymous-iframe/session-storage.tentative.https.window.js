@@ -30,28 +30,28 @@ promise_test(async test => {
   const key_1 = token();
   const key_2 = token();
 
-  // 4 actors: 2 anonymous iframe and 2 normal iframe.
-  const iframe_anonymous_1 = newAnonymousIframe(origin);
-  const iframe_anonymous_2 = newAnonymousIframe(origin);
+  // 4 actors: 2 credentialless iframe and 2 normal iframe.
+  const iframe_credentialless_1 = newIframeCredentialless(origin);
+  const iframe_credentialless_2 = newIframeCredentialless(origin);
   const iframe_normal_1 = newIframe(origin);
   const iframe_normal_2 = newIframe(origin);
 
-  // 1. Store a value in one anonymous iframe and one normal iframe.
+  // 1. Store a value in one credentialless iframe and one normal iframe.
   await Promise.all([
-    store(iframe_anonymous_1, key_1, "value_1"),
+    store(iframe_credentialless_1, key_1, "value_1"),
     store(iframe_normal_1, key_2, "value_2"),
   ]);
 
   // 2. Check what each of them can retrieve.
   await Promise.all([
-    load(iframe_anonymous_1, key_1, "value_1"),
-    load(iframe_anonymous_2, key_1, "value_1"),
-    load(iframe_anonymous_1, key_2, "not found"),
-    load(iframe_anonymous_2, key_2, "not found"),
+    load(iframe_credentialless_1, key_1, "value_1"),
+    load(iframe_credentialless_2, key_1, "value_1"),
+    load(iframe_credentialless_1, key_2, "not found"),
+    load(iframe_credentialless_2, key_2, "not found"),
 
     load(iframe_normal_1, key_1, "not found"),
     load(iframe_normal_2, key_1, "not found"),
     load(iframe_normal_1, key_2, "value_2"),
     load(iframe_normal_2, key_2, "value_2"),
   ]);
-}, "Session storage is correctly partitioned with regards to anonymous iframe");
+}, "Session storage is correctly partitioned with regards to credentialless iframe");

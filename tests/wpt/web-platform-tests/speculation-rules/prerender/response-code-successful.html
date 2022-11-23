@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Check that successful responses result in activating the prerender</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<script>
+
+setup(() => assertSpeculationRulesIsSupported());
+
+function test_prerender_response_code(code) {
+  promise_test(async t => {
+    const {exec, tryToActivate} = await create_prerendered_page(t, {code});
+    const result = await tryToActivate();
+    assert_equals(result, 'activated');
+  },`Responses with code ${code} should be activated`);
+}
+
+for (const code of [200, 201, 202, 203]) {
+  test_prerender_response_code(code);
+}
+
+</script>
+</body>

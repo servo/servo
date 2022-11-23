@@ -15,6 +15,7 @@
 ::view-transition-group(*) {
   background-color: inherit;
   color: blue;
+  animation-duration: 0.321s;
 }
 
 ::view-transition-image-pair(*) {
@@ -36,12 +37,16 @@ promise_test(() => {
 
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").backgroundColor, "rgb(255, 0, 0)", "group");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").color, "rgb(0, 0, 255)", "group");
+      assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").animationDuration, "0.321s", "group");
 
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").color, "rgb(0, 0, 255)", "wrapper");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").overflowX, "clip", "wrapper");
+      assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").animationDuration, "0.321s", "wrapper");
 
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(root)").overflowX, "clip", "outgoing");
+      assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(root)").animationDuration, "0.321s", "outgoing");
       assert_equals(getComputedStyle(document.documentElement, ":view-transition-new(root)").overflowX, "clip", "incoming");
+      assert_equals(getComputedStyle(document.documentElement, ":view-transition-new(root)").animationDuration, "0.321s", "incoming");
     });
     await transition.finished;
     resolve();

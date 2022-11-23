@@ -10,22 +10,18 @@
 <script>
 
 setup(() => assertSpeculationRulesIsSupported());
-function test_prerender_response_code(code, expectation) {
+
+function test_prerender_response_code(code) {
   promise_test(async t => {
     const {exec, tryToActivate} = await create_prerendered_page(t, {code});
     const result = await tryToActivate();
-    assert_equals(result, expectation);
-  },`Responses with code ${code} should be ${expectation}`);
+    assert_equals(result, 'discarded');
+  },`Responses with code ${code} should be discarded`);
 }
 
-const expectations = {
-    activated: [200, 201, 202, 203],
-    discarded: [204, 205, 402, 404, 500, 503]
-};
-
-for (const expect in expectations) {
-    for (const code of expectations[expect])
-        test_prerender_response_code(code, expect);
+for (const code of [204, 205, 402, 404, 500, 503]) {
+  test_prerender_response_code(code);
 }
+
 </script>
 </body>

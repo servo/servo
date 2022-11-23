@@ -15,14 +15,16 @@
   </main>
   <script>
     const link = document.getElementById("link");
-    testSoftNavigation({
-      addContent: () => {
+    testSoftNavigationNotDetected({
+      eventHandler: url => {
         addTextToDivOnMain();
+        history.pushState({}, '');
       },
       link: link,
-      pushUrl: false,
-      test: "Test that a soft navigation is detected when a URL is not passed"
-        + " to the history API."});
+      eventName: "click",
+      eventTarget: link,
+      testName: "Test that a soft navigation is not detected when a URL is not"
+        + " passed to the history API."});
   </script>
 </body>
 </html>
