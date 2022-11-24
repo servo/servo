@@ -87,9 +87,7 @@ class Browser:
     """Abstract class serving as the basis for Browser implementations.
 
     The Browser is used in the TestRunnerManager to start and stop the browser
-    process, and to check the state of that process. This class also acts as a
-    context manager, enabling it to do browser-specific setup at the start of
-    the testrun and cleanup after the run is complete.
+    process, and to check the state of that process.
 
     :param logger: Structured logger to use for output.
     """
@@ -100,13 +98,6 @@ class Browser:
 
     def __init__(self, logger):
         self.logger = logger
-
-    def __enter__(self):
-        self.setup()
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        self.cleanup()
 
     def setup(self):
         """Used for browser-specific setup that happens at the start of a test run"""

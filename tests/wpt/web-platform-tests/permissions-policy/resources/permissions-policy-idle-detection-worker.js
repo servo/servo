@@ -6,9 +6,9 @@ if (typeof postMessage === 'function') {
     switch(event.data.type) {
       case 'ready':
         new IdleDetector().start().then(() => {
-          postMessage({ enabled: true });
+          postMessage({ type: 'availability-result', enabled: true });
         }, error => {
-          postMessage ({ enabled: false });
+          postMessage ({ type: 'availability-result', enabled: false });
         });
         break;
     }

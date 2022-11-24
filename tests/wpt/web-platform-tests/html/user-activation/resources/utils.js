@@ -31,3 +31,18 @@ async function consumeTransientActivation() {
     return false;
   }
 }
+
+function receiveMessage(type) {
+  return new Promise((resolve) => {
+    window.addEventListener("message", function listener(event) {
+      if (typeof event.data !== "string") {
+        return;
+      }
+      const data = JSON.parse(event.data);
+      if (data.type === type) {
+        window.removeEventListener("message", listener);
+        resolve(data);
+      }
+    });
+  });
+}

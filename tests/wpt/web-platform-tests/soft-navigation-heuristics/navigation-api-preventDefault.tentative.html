@@ -16,16 +16,19 @@
   </main>
   <script>
     const link = document.getElementById("link");
-    testNavigationApiNotDetected(
-      "Aborted navigate event is not a soft navigation",
-      e => {
+    testSoftNavigationNotDetected({
+      testName: "Aborted navigate event is not a soft navigation",
+      eventHandler: e => {
         timestamps[counter]["eventStart"] = performance.now();
         e.intercept({handler: async () => {
           await addImageToMain();
           main.appendChild(img);
         }});
         e.preventDefault();
-      }, link);
+      },
+      eventTarget: navigation,
+      eventName: "navigate",
+      link: link});
   </script>
 </body>
 </html>

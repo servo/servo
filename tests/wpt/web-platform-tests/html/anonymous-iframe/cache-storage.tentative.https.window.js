@@ -33,27 +33,27 @@ promise_test(async test => {
   const key_1 = token();
   const key_2 = token();
 
-  // 2 actors: An anonymous iframe and a normal one.
-  const iframe_anonymous = newAnonymousIframe(origin);
+  // 2 actors: A credentialless iframe and a normal one.
+  const iframe_credentialless = newIframeCredentialless(origin);
   const iframe_normal = newIframe(origin);
   const response_queue_1 = token();
   const response_queue_2 = token();
 
   // 1. Each of them store a value in CacheStorage with different keys.
-  send(iframe_anonymous , store_script(key_1, "value_1", response_queue_1));
+  send(iframe_credentialless , store_script(key_1, "value_1", response_queue_1));
   send(iframe_normal, store_script(key_2, "value_2", response_queue_2));
   assert_equals(await receive(response_queue_1), "stored");
   assert_equals(await receive(response_queue_2), "stored");
 
   // 2. Each of them tries to retrieve the value from opposite side, without
   //    success.
-  send(iframe_anonymous , load_script(key_2, response_queue_1));
+  send(iframe_credentialless , load_script(key_2, response_queue_1));
   send(iframe_normal, load_script(key_1, response_queue_2));
   assert_equals(await receive(response_queue_1), "not found");
   assert_equals(await receive(response_queue_2), "not found");
 
   // 3. Each of them tries to retrieve the value from their side, with success:
-  send(iframe_anonymous , load_script(key_1, response_queue_1));
+  send(iframe_credentialless , load_script(key_1, response_queue_1));
   send(iframe_normal, load_script(key_2, response_queue_2));
   assert_equals(await receive(response_queue_1), "value_1");
   assert_equals(await receive(response_queue_2), "value_2");

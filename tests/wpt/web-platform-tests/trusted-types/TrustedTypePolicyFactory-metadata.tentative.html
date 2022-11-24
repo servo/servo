@@ -136,6 +136,13 @@
           if (type == expected_type || !expected_type) {
             test_fn();
             assert_equals("" + element.getAttribute(property), "" + value);
+          } else if (elem == "script" && (property == "innerText" ||
+              property == "textContent" || property == "text")) {
+            // Due to the "slot setting" mechnanism, setting script's innerText,
+            // textContent and text attributes dosn't throw. So we can't use
+            // that in our tests.
+            // ref: https://w3c.github.io/trusted-types/dist/spec/#setting-slot-values
+            test_fn();
           } else {
             assert_throws_js(TypeError, test_fn, "throws");
           }
