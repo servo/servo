@@ -16,6 +16,9 @@
     non_upper_case_globals,
     missing_docs
 )]
+// TODO: Remove this when updating bindgen, see
+// https://github.com/rust-lang/rust-bindgen/issues/1651
+#[cfg_attr(test, allow(deref_nullptr))]
 pub mod structs {
     include!(concat!(env!("OUT_DIR"), "/gecko/structs.rs"));
 }
