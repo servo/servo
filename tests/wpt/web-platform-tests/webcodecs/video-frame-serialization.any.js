@@ -110,3 +110,28 @@ async_test(t => {
 
   t.done();
 }, 'Verify posting closed frames throws.');
+
+promise_test(async t => {
+  const open = indexedDB.open('VideoFrameTestDB', 1);
+  open.onerror = t.unreached_func('open should succeed');
+  open.onupgradeneeded = (event) => {
+    let db = event.target.result;
+    db.createObjectStore('MyVideoFrames', { keyPath: 'id' });
+  };
+  let db = await new Promise((resolve) => {
+    open.onsuccess = (e) => {
+      resolve(e.target.result);
+    };
+  });
+  t.add_cleanup(() => {
+    db.close();
+    indexedDB.deleteDatabase(db.name);
+  });
+
+  let transaction = db.transaction(['MyVideoFrames'], 'readwrite');
+  const store = transaction.objectStore('MyVideoFrames');
+  let frame = createDefaultVideoFrame();
+  assert_throws_dom("DataCloneError", () => {
+    store.add(frame);
+  });
+}, 'Verify storing a frame throws.');

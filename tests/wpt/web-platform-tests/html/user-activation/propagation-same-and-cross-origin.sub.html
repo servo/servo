@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/utils.js"></script>
+  </head>
+  <body>
+    <h1>Check that cross origin iframes don't get activated</h1>
+    <p>
+      Tests that activating a same-origin navigable doesn't activate a cross
+      origin navigable.
+    </p>
+    <ol id="instructions">
+      <li>Click inside the yellow area.</li>
+    </ol>
+    <h1>Same origin</h1>
+    <iframe id="so-child" width="200" height="50"></iframe>
+    <h1>Cross origin</h1>
+    <iframe id="xo-child" width="200" height="50"></iframe>
+  </body>
+  <script>
+    const soChild = document.getElementById("so-child");
+    const xoChild = document.getElementById("xo-child");
+
+    function requestXOReport() {
+      xoChild.contentWindow.postMessage(
+        JSON.stringify({ type: "report" }),
+        "*"
+      );
+      return receiveMessage(`child-two-report`);
+    }
+
+    promise_setup(() => {
+      soChild.src = "./resources/child-one.html";
+      xoChild.src =
+        "http://{{hosts[alt][]}}:{{ports[http][0]}}/html/user-activation/resources/child-two.html";
+      return Promise.all([
+        receiveMessage("child-one-loaded"),
+        receiveMessage("child-two-loaded"),
+      ]);
+    });
+
+    promise_test(async (t) => {
+      const unclickedCrossOrigin = await requestXOReport();
+      const soActivation = soChild.contentWindow.navigator.userActivation;
+      assert_false(
+        navigator.userActivation.isActive,
+        "top-frame navigator.userActivation.isActive must be false"
+      );
+      assert_false(
+        navigator.userActivation.hasBeenActive,
+        "top-frame navigator.userActivation.hasBeenActive must be false"
+      );
+
+      assert_false(soActivation.isActive, "child-one isActive must be false");
+      assert_false(
+        soActivation.hasBeenActive,
+        "child-one hasBeenActive must be false"
+      );
+      assert_false(
+        unclickedCrossOrigin.isActive,
+        "child-two isActive must be false"
+      );
+      assert_false(
+        unclickedCrossOrigin.hasBeenActive,
+        "child-two hasBeenActive must be false"
+      );
+    }, "Check Initial states of user activation are all false");
+
+    promise_test(async (t) => {
+      await test_driver.click(soChild);
+      const xoActivation = await requestXOReport();
+      const soActivation = soChild.contentWindow.navigator.userActivation;
+      assert_true(
+        navigator.userActivation.isActive,
+        "top-frame navigator.userActivation.isActive must be true"
+      );
+      assert_true(
+        navigator.userActivation.hasBeenActive,
+        "top-frame navigator.userActivation.hasBeenActive must be true"
+      );
+      assert_true(soActivation.isActive, "child-one isActive must be true");
+      assert_true(
+        soActivation.hasBeenActive,
+        "child-one hasBeenActive must be true"
+      );
+      assert_false(xoActivation.isActive, "child-two isActive must be false");
+      assert_false(
+        xoActivation.hasBeenActive,
+        "child-two hasBeenActive must be false"
+      );
+    }, "Check that activating a same-origin navigable doesn't activate a cross origin navigable");
+
+    promise_test(async (t) => {
+      await consumeTransientActivation();
+      const soActivation = soChild.contentWindow.navigator.userActivation;
+      // Before click...
+      assert_false(
+        navigator.userActivation.isActive,
+        "top-frame navigator.userActivation.isActive must be false"
+      );
+      assert_true(
+        navigator.userActivation.hasBeenActive,
+        "top-frame navigator.userActivation.hasBeenActive must be true"
+      );
+      assert_false(soActivation.isActive, "child-one isActive must be false");
+      assert_true(
+        soActivation.hasBeenActive,
+        "child-one hasBeenActive must be true"
+      );
+      const xoActivation = await requestXOReport();
+      assert_false(xoActivation.isActive, "child-two isActive must be false");
+      assert_false(
+        xoActivation.hasBeenActive,
+        "child-two hasBeenActive must be false"
+      );
+
+      // Click!
+      const [, xoActivationAfterClick] = await Promise.all([
+        test_driver.click(xoChild),
+        receiveMessage("child-two-clicked"),
+      ]);
+
+      // After click...
+      assert_true(
+        navigator.userActivation.isActive,
+        "top-frame navigator.userActivation.isActive must be true"
+      );
+      assert_true(
+        navigator.userActivation.hasBeenActive,
+        "top-frame navigator.userActivation.hasBeenActive must remain true"
+      );
+      assert_true(
+        xoActivationAfterClick.isActive,
+        "child-two isActive must be true"
+      );
+      assert_true(
+        xoActivationAfterClick.hasBeenActive,
+        "child-two hasBeenActive must be true"
+      );
+      assert_false(soActivation.isActive, "child-one isActive must be false");
+      assert_true(
+        soActivation.hasBeenActive,
+        "child-one hasBeenActive must remain true"
+      );
+    }, "Clicking on the cross-origin navigable activates parent navigable.");
+  </script>
+</html>

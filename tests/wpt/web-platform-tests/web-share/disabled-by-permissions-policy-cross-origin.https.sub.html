@@ -90,7 +90,7 @@
       const iframe = await loadIframe(
         t,
         crossOriginSrc,
-        `web-share=("${crossOrigin}")`
+        `web-share ${crossOrigin}`
       );
       iframe.contentWindow.postMessage(
         { action: "canShare", data: shareData },

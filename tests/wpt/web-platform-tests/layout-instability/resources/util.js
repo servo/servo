@@ -64,7 +64,7 @@ ScoreWatcher = function() {
     list.getEntries().forEach(entry => {
       this.lastEntry = entry;
       this.score += entry.value;
-      watcher_entry_record.push({startTime: entry.startTime, score: entry.value});
+      watcher_entry_record.push({startTime: entry.startTime, score: entry.value, hadRecentInput : entry.hadRecentInput});
       if (!entry.hadRecentInput)
         this.scoreWithInputExclusion += entry.value;
       this.resolve();

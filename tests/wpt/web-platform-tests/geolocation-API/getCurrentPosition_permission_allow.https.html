@@ -19,7 +19,10 @@
       let calledAsync = false;
       navigator.geolocation.getCurrentPosition(
         t.step_func((position) => {
-          assert_true(calledAsync, "Expected callback to be called asynchronously")
+          assert_true(
+            calledAsync,
+            "Expected callback to be called asynchronously"
+          );
           resolve(position);
         }),
         reject

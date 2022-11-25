@@ -58,22 +58,24 @@ const testNavigationApi = (testName, navigateEventHandler, link) => {
   }, testName);
 };
 
-const testNavigationApiNotDetected =
-    (testName, navigateEventHandler, link) => {
-      promise_test(async t => {
-        const preClickLcp = await getLcpEntries();
-        navigation.addEventListener('navigate', navigateEventHandler);
-        click(link);
-        await new Promise((resolve, reject) => {
-          (new PerformanceObserver(() => reject())).observe({
-            type: 'soft-navigation'
-          });
-          t.step_timeout(resolve, 1000);
+const testSoftNavigationNotDetected = options => {
+    promise_test(async t => {
+      const preClickLcp = await getLcpEntries();
+      options.eventTarget.addEventListener(options.eventName, options.eventHandler);
+      click(options.link);
+      await new Promise((resolve, reject) => {
+        (new PerformanceObserver(() =>
+            reject("Soft navigation should not be triggered"))).observe({
+          type: 'soft-navigation',
+          buffered: true
         });
-        assert_equals(
-            document.softNavigations, 0, 'Soft Navigation not detected');
-      }, testName);
-    };
+        t.step_timeout(resolve, 1000);
+      });
+      assert_equals(
+          document.softNavigations, 0, 'Soft Navigation not detected');
+    }, options.testName);
+  };
+
 const runEntryValidations = async preClickLcp => {
   await doubleRaf();
   validatePaintEntries('first-contentful-paint');
@@ -109,14 +111,11 @@ const setEvent = (t, button, pushState, addContent, pushUrl, eventType) => {
     // Jump through a task, to ensure task tracking is working properly.
     await new Promise(r => t.step_timeout(r, 0));
 
-    // Fetch some content
-    const response = await fetch("/soft-navigation-heuristics/resources/content.json");
-    const json = await response.json();
-
+    const url = URL + "?" + counter;
     if (pushState) {
       // Change the URL
       if (pushUrl) {
-        pushState(URL + "?" + counter);
+        pushState(url);
       } else {
         pushState();
       }
@@ -125,7 +124,7 @@ const setEvent = (t, button, pushState, addContent, pushUrl, eventType) => {
     // Wait 10 ms to make sure the timestamps are correct.
     await new Promise(r => t.step_timeout(r, 10));
 
-    await addContent(json);
+    await addContent(url);
     ++counter;
 
     clicked = true;

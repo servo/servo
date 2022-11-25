@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+    "use strict";
+
+    const same_origin_src =
+      "/permissions-policy/resources/permissions-policy-geolocation.html";
+    const cross_origin_src =
+      "https://{{hosts[][]}}:{{ports[https][0]}}" + same_origin_src;
+
+    promise_test(async (t) => {
+      await test_driver.set_permission(
+        { name: "geolocation" },
+        "granted",
+        false
+      );
+
+      const posError = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(reject, resolve);
+      });
+
+      assert_true(
+        posError instanceof GeolocationPositionError,
+        "Expected instance of GeolocationPositionError"
+      );
+
+      assert_equals(
+        posError.code,
+        GeolocationPositionError.prototype.PERMISSION_DENIED,
+        "Expected PERMISSION_DENIED"
+      );
+
+      const watchError = await new Promise((resolve, reject) => {
+        navigator.geolocation.watchPosition(reject, resolve);
+      });
+      assert_true(
+        watchError instanceof GeolocationPositionError,
+        "Expected instance of GeolocationPositionError"
+      );
+      assert_equals(
+        watchError.code,
+        GeolocationPositionError.prototype.PERMISSION_DENIED,
+        "Expected PERMISSION_DENIED"
+      );
+    }, "Permissions-Policy header geolocation=() disallows the top-level document.");
+
+    async_test((t) => {
+      test_feature_availability(
+        "geolocation",
+        t,
+        same_origin_src,
+        expect_feature_unavailable_default
+      );
+    }, "Permissions-Policy header geolocation=() disallows same-origin iframes.");
+
+    async_test((t) => {
+      test_feature_availability(
+        "geolocation",
+        t,
+        cross_origin_src,
+        expect_feature_unavailable_default
+      );
+    }, "Permissions-Policy header geolocation=() disallows cross-origin iframes.");
+  </script>
+</body>

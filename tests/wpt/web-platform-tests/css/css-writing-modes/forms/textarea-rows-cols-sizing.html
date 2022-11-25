@@ -1,0 +1,105 @@
+<!doctype html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://html.spec.whatwg.org/#the-textarea-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Textarea rows/cols size mapping in different writing modes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<textarea></textarea>
+
+<script>
+for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
+    if (!CSS.supports(`writing-mode: ${writingMode}`))
+        continue;
+
+    const isHorizontal = writingMode === "horizontal-tb";
+    const textarea = document.querySelector("textarea");
+
+    test(t => {
+        textarea.style.writingMode = writingMode;
+        t.add_cleanup(() => {
+            textarea.removeAttribute("style");
+            textarea.removeAttribute("rows");
+        });
+
+        const rowsDimension = isHorizontal ? "height" : "width";
+        const colsDimension = isHorizontal ? "width" : "height";
+
+        let previousRect = textarea.getBoundingClientRect();
+        textarea.rows = 10;
+        assert_equals(
+            textarea.getBoundingClientRect()[colsDimension],
+            previousRect[colsDimension],
+            `${colsDimension} shouldn't change when changing rows`
+        );
+        previousRect = textarea.getBoundingClientRect();
+
+        textarea.rows = 9;
+        assert_true(
+            textarea.getBoundingClientRect()[rowsDimension] < previousRect[rowsDimension],
+            `${rowsDimension} should decrease when decreasing rows`
+        );
+        assert_equals(
+            textarea.getBoundingClientRect()[colsDimension],
+            previousRect[colsDimension],
+            `${colsDimension} shouldn't change when changing rows`
+        );
+        previousRect = textarea.getBoundingClientRect();
+
+        textarea.rows = 11;
+        assert_true(
+            textarea.getBoundingClientRect()[rowsDimension] > previousRect[rowsDimension],
+            `${rowsDimension} should increase when increasing rows`
+        );
+        assert_equals(
+            textarea.getBoundingClientRect()[colsDimension],
+            previousRect[colsDimension],
+            `${colsDimension} shouldn't change when changing rows`
+        );
+    }, `textarea[style="writing-mode: ${writingMode}"] rows attribute changes the size correctly`);
+
+    test(t => {
+        textarea.style.writingMode = writingMode;
+        t.add_cleanup(() => {
+            textarea.removeAttribute("style");
+            textarea.removeAttribute("cols");
+        });
+
+        const rowsDimension = isHorizontal ? "height" : "width";
+        const colsDimension = isHorizontal ? "width" : "height";
+
+        let previousRect = textarea.getBoundingClientRect();
+        textarea.cols = 40;
+        assert_equals(
+            textarea.getBoundingClientRect()[rowsDimension],
+            previousRect[rowsDimension],
+            `${rowsDimension} shouldn't change when changing cols`
+        );
+        previousRect = textarea.getBoundingClientRect();
+
+        textarea.cols = 30;
+        assert_true(
+            textarea.getBoundingClientRect()[colsDimension] < previousRect[colsDimension],
+            `${colsDimension} should decrease when decreasing cols`
+        );
+        assert_equals(
+            textarea.getBoundingClientRect()[rowsDimension],
+            previousRect[rowsDimension],
+            `${rowsDimension} shouldn't change when changing cols`
+        );
+        previousRect = textarea.getBoundingClientRect();
+
+        textarea.cols = 50;
+        assert_true(
+            textarea.getBoundingClientRect()[colsDimension] > previousRect[colsDimension],
+            `${colsDimension} should increase when increasing cols`
+        );
+        assert_equals(
+            textarea.getBoundingClientRect()[rowsDimension],
+            previousRect[rowsDimension],
+            `${rowsDimension} shouldn't change when changing cols`
+        );
+    }, `textarea[style="writing-mode: ${writingMode}"] cols attribute changes the size correctly`);
+};
+</script>

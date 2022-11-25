@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Detect navigation.traverseTo()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+    <div>
+      <a id=link>Click me!</a>
+    </div>
+  </main>
+  <script>
+    let key;
+    window.onload = async () => {
+      // Wait for after the load event so that the navigation doesn't get converted
+      // into a replace navigation.
+      await new Promise(r => step_timeout(r, 0));
+
+      navigation.onnavigate = e => {
+        e.intercept();
+      };
+      // Push a couple of navigation entries, so that we'd have a navigation entry to traverse to.
+      await navigation.navigate("foobar.html").finished;
+      key = navigation.currentEntry.key;
+      await navigation.navigate("another.html").finished;
+
+      const link = document.getElementById("link");
+      testSoftNavigation({
+        addContent: () => {
+          addTextToDivOnMain();
+        },
+        link: link,
+        pushState: async () =>{
+          await navigation.traverseTo(key).committed;
+        },
+        test: "`navigation.traverseTo()` properly works with SoftNavigationHeuristics"});
+    };
+  </script>
+</body>
+</html>
+
+
+
