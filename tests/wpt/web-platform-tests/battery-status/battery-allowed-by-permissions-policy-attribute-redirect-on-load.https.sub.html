@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/permissions-policy/resources/permissions-policy.js></script>
+<script>
+'use strict';
+
+const relative_path = '/permissions-policy/resources/permissions-policy-battery.html';
+const base_src = '/permissions-policy/resources/redirect-on-load.html#';
+const same_origin_src = base_src + relative_path;
+const cross_origin_src = base_src + 'https://{{domains[www]}}:{{ports[https][0]}}' +
+  relative_path;
+const header = 'permissions policy allow="battery"';
+
+async_test(t => {
+  test_feature_availability(
+      'navigator.getBattery()', t, same_origin_src,
+      expect_feature_available_default, 'battery');
+}, `${header} allows same-origin relocation.`);
+
+async_test(t => {
+  test_feature_availability(
+      'navigator.getBattery()', t, cross_origin_src,
+      expect_feature_unavailable_default, 'battery');
+}, `${header} disallows cross-origin relocation.`);
+</script>
+</body>

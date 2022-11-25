@@ -6,8 +6,8 @@ if (typeof postMessage === 'function') {
     switch(event.data.type) {
       case 'ready':
         navigator.usb.getDevices().then(
-            () => postMessage({ enabled: true }),
-            error => postMessage ({ enabled: false }));
+            () => postMessage({ type: 'availability-result', enabled: true }),
+            error => postMessage ({ type: 'availability-result', enabled: false }));
         break;
     }
   };

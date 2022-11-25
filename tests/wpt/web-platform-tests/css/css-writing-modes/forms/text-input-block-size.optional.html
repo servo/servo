@@ -1,0 +1,44 @@
+<!doctype html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Test block-size of text-based inputs is consistent across writing-modes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+    input { appearance: none }
+</style>
+
+<input id="horizontalInput">
+<input id="verticalInput">
+
+<script>
+for (const inputType of ["text", "email", "password", "search", "tel", "url", "number"]) {
+    horizontalInput.type = inputType;
+    verticalInput.type = inputType;
+    for (const writingMode of ["vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
+        if (!CSS.supports(`writing-mode: ${writingMode}`))
+            continue;
+        test(t => {
+            verticalInput.style.writingMode = writingMode;
+            t.add_cleanup(() => {
+                verticalInput.removeAttribute("style");
+            });
+
+            const verticalRect = verticalInput.getBoundingClientRect();
+            assert_true(
+                verticalRect.width < verticalRect.height,
+                "input has correct aspect ratio for default input size"
+            );
+
+            const horizontalRect = horizontalInput.getBoundingClientRect();
+            assert_equals(
+                Math.round(verticalRect.width),
+                Math.round(horizontalRect.height),
+                "width of vertical input matches height of horizontal input"
+            );
+        }, `Test input[type=${inputType}] block-size in writing-mode: ${writingMode}`);
+    }
+}
+</script>

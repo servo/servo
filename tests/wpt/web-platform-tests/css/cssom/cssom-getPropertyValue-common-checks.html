@@ -72,13 +72,11 @@ test(function() {
     const result = computedStyle.getPropertyValue(property);
     if (CSS.supports(property, result)) {
       initialValues.set(property, result);
-    } else if (property === "all") {
-      bad.push("all");
-    } else {
+    } else if (property !== "all") {
       bad.push([property, result]);
     }
   }
-  assert_array_equals(bad, ["all"]);
+  assert_array_equals(bad, []);
 }, "All properties (except 'all') can serialize their initial value (computed)");
 
 test(function() {
@@ -87,7 +85,7 @@ test(function() {
     style.cssText = "";
     style.setProperty(property, value);
     const result = style.getPropertyValue(property);
-    if (!CSS.supports(property, result)) {
+    if (!CSS.supports(property, result) && property !== "all") {
       bad.push([property, value, result]);
     }
   }
@@ -121,12 +119,12 @@ test(function() {
       style.setProperty(longhand, initialValues.get(longhand));
     }
     const result = style.getPropertyValue(shorthand);
-    if (!CSS.supports(shorthand, result)) {
+    if (!CSS.supports(shorthand, result) && shorthand !== "all") {
       bad.push([shorthand, result]);
     }
   }
   assert_array_equals(bad, []);
-}, "All shorthands can serialize their longhands set to their initial value");
+}, "All shorthands (except 'all') can serialize their longhands set to their initial value");
 
 test(function() {
   const bad = [];

@@ -6,7 +6,7 @@
 
 const same_origin = get_host_info().HTTPS_ORIGIN;
 const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
-const cookie_key = "anonymous_iframe_load_cookie";
+const cookie_key = "credentialless_iframe_load_cookie";
 const cookie_same_origin = "same_origin";
 const cookie_cross_origin = "cross_origin";
 
@@ -15,12 +15,12 @@ const cookieFromResource = async resource_token => {
   return parseCookies(headers)[cookie_key];
 };
 
-// Load an anonymous iframe, return the HTTP request cookies.
-const cookieFromAnonymousIframeRequest = async (iframe_origin) => {
+// Load a credentialless iframe, return the HTTP request cookies.
+const cookieFromCredentiallessIframeRequest = async (iframe_origin) => {
   const resource_token = token();
   let iframe = document.createElement("iframe");
   iframe.src = `${showRequestHeaders(iframe_origin, resource_token)}`;
-  iframe.anonymous = true;
+  iframe.credentialless = true;
   document.body.appendChild(iframe);
   return await cookieFromResource(resource_token);
 };
@@ -46,48 +46,48 @@ promise_test_parallel(async test => {
 
   promise_test_parallel(async test => {
     assert_equals(
-      await cookieFromAnonymousIframeRequest(same_origin),
+      await cookieFromCredentiallessIframeRequest(same_origin),
       undefined
     );
-  }, "Anonymous same-origin iframe is loaded without credentials");
+  }, "Credentialless same-origin iframe is loaded without credentials");
 
   promise_test_parallel(async test => {
     assert_equals(
-      await cookieFromAnonymousIframeRequest(cross_origin),
+      await cookieFromCredentiallessIframeRequest(cross_origin),
       undefined
     );
-  }, "Anonymous cross-origin iframe is loaded without credentials");
+  }, "Credentialless cross-origin iframe is loaded without credentials");
 
-  let iframe_same_origin = newAnonymousIframe(same_origin);
-  let iframe_cross_origin = newAnonymousIframe(cross_origin);
+  const iframe_same_origin = newIframeCredentialless(same_origin);
+  const iframe_cross_origin = newIframeCredentialless(cross_origin);
 
   promise_test_parallel(async test => {
     assert_equals(
       await cookieFromResourceInIframe(iframe_same_origin, same_origin),
       undefined
     );
-  }, "same_origin anonymous iframe can't send same_origin credentials");
+  }, "same_origin credentialless iframe can't send same_origin credentials");
 
   promise_test_parallel(async test => {
     assert_equals(
       await cookieFromResourceInIframe(iframe_same_origin, cross_origin),
       undefined
     );
-  }, "same_origin anonymous iframe can't send cross_origin credentials");
+  }, "same_origin credentialless iframe can't send cross_origin credentials");
 
   promise_test_parallel(async test => {
     assert_equals(
       await cookieFromResourceInIframe(iframe_cross_origin, cross_origin),
       undefined
     );
-  }, "cross_origin anonymous iframe can't send cross_origin credentials");
+  }, "cross_origin credentialless iframe can't send cross_origin credentials");
 
   promise_test_parallel(async test => {
     assert_equals(
       await cookieFromResourceInIframe(iframe_cross_origin, same_origin),
       undefined
     );
-  }, "cross_origin anonymous iframe can't send same_origin credentials");
+  }, "cross_origin credentialless iframe can't send same_origin credentials");
 
   promise_test_parallel(async test => {
     assert_equals(
@@ -95,7 +95,7 @@ promise_test_parallel(async test => {
                                        "iframe"),
       undefined
     );
-  }, "same_origin anonymous iframe can't send same_origin credentials "
+  }, "same_origin credentialless iframe can't send same_origin credentials "
                         + "on child iframe");
 
   promise_test_parallel(async test => {
@@ -104,8 +104,8 @@ promise_test_parallel(async test => {
                                        "iframe"),
       undefined
     );
-  }, "same_origin anonymous iframe can't send cross_origin credentials "
-                        + "on child iframe");
+  }, "same_origin credentialless iframe can't send cross_origin credentials "
+    + "on child iframe");
 
   promise_test_parallel(async test => {
     assert_equals(
@@ -113,8 +113,8 @@ promise_test_parallel(async test => {
                                        "iframe"),
       undefined
     );
-  }, "cross_origin anonymous iframe can't send cross_origin credentials "
-                        + "on child iframe");
+  }, "cross_origin credentialless iframe can't send cross_origin credentials "
+    + "on child iframe");
 
   promise_test_parallel(async test => {
     assert_equals(
@@ -122,7 +122,7 @@ promise_test_parallel(async test => {
                                        "iframe"),
       undefined
     );
-  }, "cross_origin anonymous iframe can't send same_origin credentials "
-                        + "on child iframe");
+  }, "cross_origin credentialless iframe can't send same_origin credentials "
+    + "on child iframe");
 
 }, "Setup")

@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: Expose cross-origin non-TAO images renderTime.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    getLCPStartTime = async () => {
+      return await new Promise(resolve => {
+        new PerformanceObserver((entryList, observer) => {
+          if (entryList.getEntries()[0]) {
+            resolve(entryList.getEntries()[0].startTime);
+            observer.disconnect();
+          }
+
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+      });
+    }
+
+    getFCPStartTime = () => {
+      return performance.getEntriesByName('first-contentful-paint')[0].startTime;
+    }
+    promise_test(async t => {
+      await new Promise(resolve => {
+        let img = document.createElement('img');
+        img.addEventListener('load', () => {
+          resolve();
+        })
+        img.src = '{{location[scheme]}}://{{hosts[alt][www]}}:{{ports[http][0]}}/images/blue.png'
+        document.body.appendChild(img);
+      });
+
+      lcp = await getLCPStartTime();
+      fcp = getFCPStartTime();
+      assert_approx_equals(lcp, fcp, 0.001);
+    }, 'lcp and fcp')
+  </script>
+</body>

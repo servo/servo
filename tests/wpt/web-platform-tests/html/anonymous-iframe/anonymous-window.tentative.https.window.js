@@ -7,44 +7,44 @@ const {ORIGIN} = get_host_info();
 promise_test_parallel(async t => {
   const iframe = document.createElement("iframe");
   iframe.src = ORIGIN + "/common/blank.html?pipe=status(204)";
-  iframe.anonymous = false;
+  iframe.credentialless = false;
   document.body.appendChild(iframe);
-  iframe.anonymous = true;
+  iframe.credentialless = true;
   iframe.contentWindow.modified = true;
   iframe.src = ORIGIN + "/common/blank.html";
   // Wait for navigation to complete.
   await new Promise(resolve => iframe.onload = resolve);
-  assert_true(iframe.anonymous);
-  assert_true(iframe.contentWindow.anonymouslyFramed);
+  assert_true(iframe.credentialless);
+  assert_true(iframe.contentWindow.credentialless);
   assert_equals(undefined, iframe.contentWindow.modified);
-}, "Anonymous (false => true) => window not reused.");
+}, "Credentialless (false => true) => window not reused.");
 
 promise_test_parallel(async t => {
   const iframe = document.createElement("iframe");
   iframe.src = ORIGIN + "/common/blank.html?pipe=status(204)";
-  iframe.anonymous = true;
+  iframe.credentialless = true;
   document.body.appendChild(iframe);
-  iframe.anonymous = false;
+  iframe.credentialless = false;
   iframe.contentWindow.modified = true;
   iframe.src = ORIGIN + "/common/blank.html";
   // Wait for navigation to complete.
   await new Promise(resolve => iframe.onload = resolve);
-  assert_false(iframe.anonymous);
-  assert_false(iframe.contentWindow.anonymouslyFramed);
+  assert_false(iframe.credentialless);
+  assert_false(iframe.contentWindow.credentialless);
   assert_equals(undefined, iframe.contentWindow.modified);
-}, "Anonymous (true => false) => window not reused.");
+}, "Credentialless (true => false) => window not reused.");
 
 promise_test_parallel(async t => {
   const iframe = document.createElement("iframe");
-  iframe.anonymous = true;
+  iframe.credentialless = true;
   iframe.src = ORIGIN + "/common/blank.html?pipe=status(204)";
   document.body.appendChild(iframe);
-  iframe.anonymous = true;
+  iframe.credentialless = true;
   iframe.contentWindow.modified = true;
   iframe.src = ORIGIN + "/common/blank.html";
   // Wait for navigation to complete.
   await new Promise(resolve => iframe.onload = resolve);
-  assert_true(iframe.anonymous);
-  assert_true(iframe.contentWindow.anonymouslyFramed);
+  assert_true(iframe.credentialless);
+  assert_true(iframe.contentWindow.credentialless);
   assert_true(iframe.contentWindow.modified);
-}, "Anonymous (true => true) => window reused.");
+}, "Credentialless (true => true) => window reused.");

@@ -10,16 +10,17 @@ setup(() => {
     "HTMLFencedFrameElement is not supported.");
 })
 
-// Check whether this anonymous bit propagates toward FencedFrame. It shouldn't.
+// Check whether this credentialless bit propagates toward FencedFrame. It
+// shouldn't.
 promise_test(async test => {
   const origin = get_host_info().HTTPS_ORIGIN;
   const msg_queue = token();
 
-  // 1. Create an anonymous iframe.
-  const frame_anonymous = newAnonymousIframe(origin);
+  // 1. Create a credentialless iframe.
+  const iframe_credentialless = newIframeCredentialless(origin);
 
   // 2. Create a FencedFrame within it.
-  send(frame_anonymous, `
+  send(iframe_credentialless, `
     const importScript = ${importScript};
     await importScript("/common/utils.js");
     await importScript("/html/cross-origin-embedder-policy/credentialless" +
@@ -30,10 +31,10 @@ promise_test(async test => {
   `);
   const frame_fenced = await receive(msg_queue);
 
-  // 3. Expect it not to be considered anonymous.
+  // 3. Expect it not to be considered credentialless.
   send(frame_fenced, `
-    send("${msg_queue}", window.anonymouslyFramed);
+    send("${msg_queue}", window.credentialless);
   `);
   assert_equals(await receive(msg_queue), "false",
-    "Check window.anonymouslyFramed in FencedFrame");
-}, 'FencedFrame within an AnonymousIframe is not anonymous')
+    "Check window.credentialless in FencedFrame");
+}, 'FencedFrame within a credentialless iframe is not credentialless')

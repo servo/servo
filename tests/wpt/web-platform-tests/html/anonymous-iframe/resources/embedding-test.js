@@ -10,7 +10,7 @@ setup({ explicit_timeout: true });
 const EXPECT_LOAD = "load";
 const EXPECT_BLOCK = "block";
 
-// Load an anonymous iframe. Control both the parent and the child headers.
+// Load a credentialless iframe. Control both the parent and the child headers.
 // Check whether it loaded or not.
 const embeddingTest = (description, {
   parent_headers,
@@ -41,7 +41,7 @@ const embeddingTest = (description, {
     // The parent creates its child:
     await send(parent_token, `
       const iframe = document.createElement("iframe");
-      iframe.anonymous = true;
+      iframe.credentialless = true;
       iframe.src = "${child_url}";
       document.body.appendChild(iframe);
     `);
@@ -63,8 +63,8 @@ const embeddingTest = (description, {
     //   timing out. False-negative are not a problem, they just need not to
     //   overwhelm the true-negative, which is trivial to get.
     step_timeout(() => send(reply_token, "block"), expectation == EXPECT_BLOCK
-      ? 2000
-      : 6000
+      ? 1500
+      : 3500
     );
 
     assert_equals(await receive(reply_token), expectation);

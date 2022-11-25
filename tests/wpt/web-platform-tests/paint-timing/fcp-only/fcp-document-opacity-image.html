@@ -39,9 +39,11 @@ promise_test(async t => {
   assert_equals(fcp_entries.length, 1, "Got an FCP entry");
   const lcp_entries = await new Promise(resolve => {new PerformanceObserver((list) => resolve(list.getEntries())).observe({type: 'largest-contentful-paint', buffered: true})});
   assert_equals(lcp_entries.length, 1, "Got an LCP entry");
-  assert_less_than_equal(fcp_entries[0].startTime, lcp_entries[0].startTime, "LCP is not smaller than FCP");
+  // TODO: Rewrite this assertion after the FCP and LCP precision alignment CL is landed. Currently FCP start time has a higher precision than that of LCP. That means, even if the two are intrinsically the same, FCP.startTime will be larger as it has more fractional digits.
+  isLess = fcp_entries[0].startTime < lcp_entries[0].startTime;
+  isEqualToMicrosecond = Math.abs(fcp_entries[0].startTime - lcp_entries[0].startTime) < 0.001;
+  assert_true(isLess || isEqualToMicrosecond, "FCP should be smaller than FCP.");
 }, "Test that FCP after opacity change is not a larger value than LCP");
 </script>
 </body>
 </html>
-

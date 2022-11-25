@@ -37,39 +37,39 @@ promise_test(async test => {
   const key_1 = token();
   const key_2 = token();
 
-  // 2 actors: An anonymous iframe and a normal one.
-  const iframe_anonymous = newAnonymousIframe(origin);
+  // 2 actors: A credentialless iframe and a normal one.
+  const iframe_credentialless = newIframeCredentialless(origin);
   const iframe_normal = newIframe(origin);
   const response_queue_1 = token();
   const response_queue_2 = token();
 
   // 1. Hold two different locks on both sides.
-  send(iframe_anonymous, acquire_script(key_1, response_queue_1));
+  send(iframe_credentialless, acquire_script(key_1, response_queue_1));
   send(iframe_normal, acquire_script(key_2, response_queue_2));
   assert_equals(await receive(response_queue_1), "locked");
   assert_equals(await receive(response_queue_2), "locked");
-  await assertHeldKeys(iframe_anonymous, [key_1]);
+  await assertHeldKeys(iframe_credentialless, [key_1]);
   await assertHeldKeys(iframe_normal, [key_2]);
 
   // 2. Try to acquire the lock with the same key on the opposite side. It
   //    shouldn't block, because they are partitioned.
-  send(iframe_anonymous , acquire_script(key_2, response_queue_1));
+  send(iframe_credentialless , acquire_script(key_2, response_queue_1));
   send(iframe_normal, acquire_script(key_1, response_queue_2));
   assert_equals(await receive(response_queue_1), "locked");
   assert_equals(await receive(response_queue_2), "locked");
-  await assertHeldKeys(iframe_anonymous, [key_1, key_2]);
+  await assertHeldKeys(iframe_credentialless, [key_1, key_2]);
   await assertHeldKeys(iframe_normal, [key_1, key_2]);
 
   // 3. Cleanup: release the 4 locks (2 on each sides).
-  send(iframe_anonymous, release_script(response_queue_1));
+  send(iframe_credentialless, release_script(response_queue_1));
   assert_equals(await receive(response_queue_1), "unlocked");
   assert_equals(await receive(response_queue_1), "unlocked");
-  await assertHeldKeys(iframe_anonymous, []);
+  await assertHeldKeys(iframe_credentialless, []);
   await assertHeldKeys(iframe_normal, [key_1, key_2]);
 
   send(iframe_normal, release_script(response_queue_2));
   assert_equals(await receive(response_queue_2), "unlocked");
   assert_equals(await receive(response_queue_2), "unlocked");
-  await assertHeldKeys(iframe_anonymous, []);
+  await assertHeldKeys(iframe_credentialless, []);
   await assertHeldKeys(iframe_normal, []);
 })

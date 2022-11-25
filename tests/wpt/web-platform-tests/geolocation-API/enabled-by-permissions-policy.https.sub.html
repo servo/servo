@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+    const same_origin_src =
+      "/permissions-policy/resources/permissions-policy-geolocation.html";
+    const cross_origin_src =
+      "https://{{hosts[][]}}:{{ports[https][0]}}" + same_origin_src;
+
+    promise_test(async (t) => {
+      await test_driver.set_permission({ name: "geolocation" }, "granted");
+      const result = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+
+      assert_true(
+        result instanceof GeolocationPosition,
+        "Expected a GeolocationPosition"
+      );
+    }, "Permissions-Policy header geolocation=* allows the top-level document.");
+
+    async_test((t) => {
+      test_feature_availability(
+        "geolocation",
+        t,
+        same_origin_src,
+        expect_feature_available_default
+      );
+    }, "Permissions-Policy header geolocation=* allows same-origin iframes.");
+
+    async_test((t) => {
+      test_feature_availability(
+        "geolocation",
+        t,
+        cross_origin_src,
+        expect_feature_available_default
+      );
+    }, "Permissions-Policy header geolocation=* allows cross-origin iframes.");
+  </script>
+</body>

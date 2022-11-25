@@ -50,11 +50,11 @@ const read_script = (done) => `
 `;
 
 promise_test(async test => {
-  // 4 actors: 2 anonymous iframe and 2 normal iframe.
+  // 4 actors: 2 credentialless iframe and 2 normal iframe.
   const origin = get_host_info().HTTPS_REMOTE_ORIGIN;
   const iframes = [
-    newAnonymousIframe(origin),
-    newAnonymousIframe(origin),
+    newIframeCredentialless(origin),
+    newIframeCredentialless(origin),
     newIframe(origin),
     newIframe(origin),
   ];
@@ -80,8 +80,8 @@ promise_test(async test => {
   }));
 
 
-  // Verify the two anonymous iframe share the same state and the normal iframe
-  // share a second state
+  // Verify the two credentialless iframe share the same state and the normal
+  // iframe share a second state
   assert_equals(states[0][keys[0]], values[0]);
   assert_equals(states[0][keys[1]], values[1]);
   assert_equals(states[0][keys[2]], undefined);
