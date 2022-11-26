@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning Test: @position-fallback - tree scoped names</title>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-rule">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/declarative-shadow-dom-polyfill.js"></script>
@@ -65,9 +66,44 @@
   </template>
 </div>
 
+
+<style>
+  @position-fallback --host-slot-part {
+    @try {
+      left: 1px;
+    }
+  }
+  #host_slotted_part::part(part) {
+    position-fallback: --host-slot-part;
+  }
+</style>
+<div id="host_slotted_part">
+  <template shadowroot="open">
+    <style>
+      @position-fallback --host-slot-part {
+        @try {
+          left: 2px;
+        }
+      }
+      ::slotted(#slotted), :host {
+        position: absolute;
+        position-fallback: --host-slot-part;
+      }
+      #part {
+        position: absolute;
+      }
+    </style>
+    <div id="part" part="part"></div>
+    <slot></slot>
+  </template>
+  <div id="slotted"></div>
+</div>
+
+
 <script>
   setup(() => {
     polyfill_declarative_shadow_dom(outer_host);
+    polyfill_declarative_shadow_dom(host_slotted_part);
   });
 
   test(() => {
@@ -109,4 +145,15 @@
     assert_equals(inner_root.querySelector("#inner_pf_inner").offsetLeft, 300);
   }, "Inner position-fallback matches @position-fallback in #inner_host scope");
 
+  test(() => {
+    assert_equals(host_slotted_part.offsetLeft, 2);
+  }, "@position-fallback from same scope as :host rule");
+
+  test(() => {
+    assert_equals(slotted.offsetLeft, 2);
+  }, "@position-fallback from same scope as ::slotted() rule");
+
+  test(() => {
+    assert_equals(host_slotted_part.shadowRoot.querySelector("#part").offsetLeft, 1);
+  }, "@position-fallback from same scope as ::part() rule");
 </script>

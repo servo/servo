@@ -160,6 +160,7 @@ valid_relative_colon_dot = {
     "path-colon-colon-number-relative": "::23",
     "path-starts-with-pile-of-poo": "💩http://foo",
     "path-contains-pile-of-poo": "http💩//:foo",
+    "path-slash-pile-of-poo": "/💩",
 }
 valid.update(valid_relative_colon_dot)
 
