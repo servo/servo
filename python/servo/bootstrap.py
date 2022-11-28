@@ -111,7 +111,7 @@ def linux(context, force=False):
                 'clang', 'clang-libs', 'llvm', 'autoconf213', 'python3-devel',
                 'gstreamer1-devel', 'gstreamer1-plugins-base-devel',
                 'gstreamer1-plugins-bad-free-devel', 'libjpeg-turbo-devel',
-                'zlib', 'libjpeg', 'zlib']
+                'zlib', 'libjpeg']
     pkgs_xbps = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
                  'libunwind-devel', 'MesaLib-devel', 'glib-devel', 'pkg-config',
                  'libX11-devel', 'libXrandr-devel', 'gperf', 'bzip2-devel',
