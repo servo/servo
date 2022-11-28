@@ -109,7 +109,8 @@ sudo dnf install curl libtool gcc-c++ libXi-devel libunwind-devel \
     rpm-build openssl-devel cmake libX11-devel libXcursor-devel \
     libXmu-devel dbus-devel ncurses-devel harfbuzz-devel \
     ccache clang clang-libs python3-devel gstreamer1-devel \
-    gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
+    gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213 \
+    libjpeg-turbo-devel zlib libjpeg
 ```
 
 #### On CentOS
