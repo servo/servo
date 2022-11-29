@@ -8,7 +8,7 @@
 
 use crate::parser::ParserContext;
 use crate::values::generics::calc as generic;
-use crate::values::generics::calc::{MinMaxOp, RoundingStrategy, SortKey};
+use crate::values::generics::calc::{MinMaxOp, ModRemOp, RoundingStrategy, SortKey};
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::length::{ContainerRelativeLength, ViewportPercentageLength};
 use crate::values::specified::{self, Angle, Time};
@@ -54,6 +54,10 @@ pub enum MathFunction {
     Clamp,
     /// `round()`: https://drafts.csswg.org/css-values-4/#funcdef-round
     Round,
+    /// `mod()`: https://drafts.csswg.org/css-values-4/#funcdef-mod
+    Mod,
+    /// `rem()`: https://drafts.csswg.org/css-values-4/#funcdef-rem
+    Rem,
     /// `sin()`: https://drafts.csswg.org/css-values-4/#funcdef-sin
     Sin,
     /// `cos()`: https://drafts.csswg.org/css-values-4/#funcdef-cos
@@ -490,6 +494,22 @@ impl CalcNode {
                         step: Box::new(step),
                     })
                 },
+                MathFunction::Mod | MathFunction::Rem => {
+                    let dividend = Self::parse_argument(context, input, allowed_units)?;
+                    input.expect_comma()?;
+                    let divisor = Self::parse_argument(context, input, allowed_units)?;
+
+                    let op = match function {
+                        MathFunction::Mod => ModRemOp::Mod,
+                        MathFunction::Rem => ModRemOp::Rem,
+                        _ => unreachable!(),
+                    };
+                    Ok(Self::ModRem {
+                        dividend: Box::new(dividend),
+                        divisor: Box::new(divisor),
+                        op,
+                    })
+                },
                 MathFunction::Min | MathFunction::Max => {
                     // TODO(emilio): The common case for parse_comma_separated
                     // is just one element, but for min / max is two, really...
@@ -780,6 +800,8 @@ impl CalcNode {
             trig_enabled()
         } else if matches!(function, Round) {
             round_enabled()
+        } else if matches!(function, Mod | Rem) {
+            static_prefs::pref!("layout.css.mod-rem.enabled")
         } else {
             true
         };
