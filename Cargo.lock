@@ -878,7 +878,7 @@ dependencies = [
  "euclid",
  "gfx_traits",
  "gleam 0.12.1",
- "image 0.24.4",
+ "image 0.24.5",
  "ipc-channel",
  "keyboard-types",
  "libc",
@@ -1322,15 +1322,6 @@ checksum = "73770f8e1fe7d64df17ca66ad28994a0a623ea497fa69486e14984e715c5d174"
 dependencies = [
  "adler32",
  "byteorder",
-]
-
-[[package]]
-name = "deflate"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c86f7e25f518f4b81808a2cf1c50996a61f5c2eb394b2393bd87f2a4780a432f"
-dependencies = [
- "adler32",
 ]
 
 [[package]]
@@ -2966,9 +2957,9 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.4"
+version = "0.24.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd8e4fb07cf672b1642304e731ef8a6a4c7891d67bb4fd4f5ce58cd6ed86803c"
+checksum = "69b7ea949b537b0fd0af141fff8c77690f2ce96f4f41f042ccb6c69c6c965945"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -2978,7 +2969,7 @@ dependencies = [
  "jpeg-decoder",
  "num-rational 0.4.0",
  "num-traits",
- "png 0.17.5",
+ "png 0.17.7",
  "scoped_threadpool",
  "tiff",
 ]
@@ -3131,9 +3122,9 @@ dependencies = [
 
 [[package]]
 name = "jpeg-decoder"
-version = "0.2.6"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9478aa10f73e7528198d75109c8be5cd7d15fb530238040148d5f9a22d4c5b3b"
+checksum = "bc0000e42512c92e31c2252315bda326620a4e034105e900c98ec492fa077b3e"
 dependencies = [
  "rayon",
 ]
@@ -3846,6 +3837,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "miniz_oxide"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b275950c28b37e794e8c55d88aeb5e139d0ce23fdbbeda68f8d7174abdf9e8fa"
+dependencies = [
+ "adler",
+]
+
+[[package]]
 name = "mio"
 version = "0.6.22"
 source = "git+https://github.com/servo/mio.git?branch=servo-mio-0.6.22#f640fd662db03026ca2a1b21ac1e161ec6f8150b"
@@ -4144,7 +4144,7 @@ dependencies = [
  "http",
  "hyper 0.14.5",
  "hyper_serde",
- "image 0.24.4",
+ "image 0.24.5",
  "ipc-channel",
  "lazy_static",
  "log",
@@ -4870,20 +4870,20 @@ checksum = "c150bf7479fafe3dd8740dbe48cc33b2a3efb7b0fe3483aced8bbc39f6d0238d"
 dependencies = [
  "bitflags",
  "crc32fast",
- "deflate 0.8.6",
+ "deflate",
  "miniz_oxide 0.3.7",
 ]
 
 [[package]]
 name = "png"
-version = "0.17.5"
+version = "0.17.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc38c0ad57efb786dd57b9864e5b18bae478c00c824dc55a38bbc9da95dde3ba"
+checksum = "5d708eaf860a19b19ce538740d2b4bdeeb8337fa53f7738455e706623ad5c638"
 dependencies = [
  "bitflags",
  "crc32fast",
- "deflate 1.0.0",
- "miniz_oxide 0.5.4",
+ "flate2",
+ "miniz_oxide 0.6.2",
 ]
 
 [[package]]
@@ -5356,7 +5356,7 @@ dependencies = [
  "html5ever",
  "http",
  "hyper_serde",
- "image 0.24.4",
+ "image 0.24.5",
  "indexmap",
  "ipc-channel",
  "itertools",
@@ -5634,7 +5634,7 @@ dependencies = [
  "clipboard",
  "euclid",
  "getopts",
- "image 0.24.4",
+ "image 0.24.5",
  "keyboard-types",
  "lazy_static",
  "libc",
@@ -6574,9 +6574,9 @@ checksum = "7572415bd688d401c52f6e36f4c8e805b9ae1622619303b9fa835d531db0acae"
 
 [[package]]
 name = "tiff"
-version = "0.7.4"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f71e422515e83e3ab8a03d4781d05ebf864fc61f4546e6ecffa58cbd34181a0"
+checksum = "f17def29300a156c19ae30814710d9c63cd50288a49c6fd3a10ccfbe4cf886fd"
 dependencies = [
  "flate2",
  "jpeg-decoder",
@@ -7265,7 +7265,7 @@ dependencies = [
  "euclid",
  "headers",
  "http",
- "image 0.24.4",
+ "image 0.24.5",
  "ipc-channel",
  "keyboard-types",
  "log",
