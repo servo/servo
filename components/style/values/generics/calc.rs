@@ -34,6 +34,27 @@ pub enum MinMaxOp {
     Max,
 }
 
+/// Whether we're a `mod` or `rem` function.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToAnimatedZero,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ModRemOp {
+    /// `mod()`
+    Mod,
+    /// `rem()`
+    Rem,
+}
+
 /// The strategy used in `round()`
 #[derive(
     Clone,
@@ -161,6 +182,15 @@ pub enum GenericCalcNode<L> {
         value: Box<GenericCalcNode<L>>,
         /// The step value.
         step: Box<GenericCalcNode<L>>,
+    },
+    /// A `mod()` or `rem()` function.
+    ModRem {
+        /// The dividend calculation.
+        dividend: Box<GenericCalcNode<L>>,
+        /// The divisor calculation.
+        divisor: Box<GenericCalcNode<L>>,
+        /// Is the function mod or rem?
+        op: ModRemOp,
     },
 }
 
@@ -312,6 +342,19 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     strategy,
                     value,
                     step,
+                }
+            },
+            Self::ModRem {
+                ref dividend,
+                ref divisor,
+                op,
+            } => {
+                let dividend = Box::new(dividend.map_leaves_internal(map));
+                let divisor = Box::new(divisor.map_leaves_internal(map));
+                CalcNode::ModRem {
+                    dividend,
+                    divisor,
+                    op,
                 }
             },
         }
@@ -469,6 +512,29 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     },
                 }
             },
+            Self::ModRem {
+                ref dividend,
+                ref divisor,
+                op,
+            } => {
+                let dividend = dividend.resolve_internal(leaf_to_output_fn)?;
+                let divisor = divisor.resolve_internal(leaf_to_output_fn)?;
+
+                // In mod(A, B) only, if B is infinite and A has opposite sign to B
+                // (including an oppositely-signed zero), the result is NaN.
+                // https://drafts.csswg.org/css-values/#round-infinities
+                if matches!(op, ModRemOp::Mod) &&
+                    divisor.is_infinite() &&
+                    dividend.is_sign_negative() != divisor.is_sign_negative()
+                {
+                    return Ok(<O as Float>::nan());
+                }
+
+                match op {
+                    ModRemOp::Mod => dividend - divisor * (dividend / divisor).floor(),
+                    ModRemOp::Rem => dividend - divisor * (dividend / divisor).trunc(),
+                }
+            },
         })
     }
 
@@ -539,6 +605,14 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 value.mul_by(scalar);
                 step.mul_by(scalar);
             },
+            Self::ModRem {
+                ref mut dividend,
+                ref mut divisor,
+                ..
+            } => {
+                dividend.mul_by(scalar);
+                divisor.mul_by(scalar);
+            },
         }
     }
 
@@ -569,6 +643,14 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             } => {
                 value.visit_depth_first_internal(f);
                 step.visit_depth_first_internal(f);
+            },
+            Self::ModRem {
+                ref mut dividend,
+                ref mut divisor,
+                ..
+            } => {
+                dividend.visit_depth_first_internal(f);
+                divisor.visit_depth_first_internal(f);
             },
             Self::Sum(ref mut children) | Self::MinMax(ref mut children, _) => {
                 for child in &mut **children {
@@ -772,6 +854,36 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     },
                 };
             },
+            Self::ModRem {
+                ref dividend,
+                ref divisor,
+                op,
+            } => {
+                let mut result = dividend.clone();
+
+                // In mod(A, B) only, if B is infinite and A has opposite sign to B
+                // (including an oppositely-signed zero), the result is NaN.
+                // https://drafts.csswg.org/css-values/#round-infinities
+                if matches!(op, ModRemOp::Mod) &&
+                    divisor.is_infinite_leaf() &&
+                    dividend.is_negative_leaf() != divisor.is_negative_leaf()
+                {
+                    result.mul_by(f32::NAN);
+                    return replace_self_with!(&mut *result);
+                }
+
+                let result = match op {
+                    ModRemOp::Mod => dividend.try_op(divisor, |a, b| a - b * (a / b).floor()),
+                    ModRemOp::Rem => dividend.try_op(divisor, |a, b| a - b * (a / b).trunc()),
+                };
+
+                let mut result = match result {
+                    Ok(res) => res,
+                    Err(..) => return,
+                };
+
+                return replace_self_with!(&mut result);
+            },
             Self::MinMax(ref mut children, op) => {
                 let winning_order = match op {
                     MinMaxOp::Min => cmp::Ordering::Less,
@@ -887,6 +999,14 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
 
                 true
             },
+            Self::ModRem { op, .. } => {
+                dest.write_str(match op {
+                    ModRemOp::Mod => "mod(",
+                    ModRemOp::Rem => "rem(",
+                })?;
+
+                true
+            },
             _ => {
                 if is_outermost {
                     dest.write_str("calc(")?;
@@ -944,6 +1064,15 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 value.to_css_impl(dest, false)?;
                 dest.write_str(", ")?;
                 step.to_css_impl(dest, false)?;
+            },
+            Self::ModRem {
+                ref dividend,
+                ref divisor,
+                ..
+            } => {
+                dividend.to_css_impl(dest, false)?;
+                dest.write_str(", ")?;
+                divisor.to_css_impl(dest, false)?;
             },
             Self::Leaf(ref l) => l.to_css(dest)?,
         }
