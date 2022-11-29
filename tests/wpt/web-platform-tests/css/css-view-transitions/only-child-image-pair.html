@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: ensure :only-child is supported on view-transition-image-pair</title>
+<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+::view-transition-image-pair(root):only-child {
+  background-color: red;
+}
+::view-transition-image-pair(*):only-child {
+  color: red;
+}
+</style>
+
+<script>
+promise_test(() => {
+  return new Promise(async (resolve, reject) => {
+    let transition = document.startViewTransition();
+    transition.ready.then(() => {
+      let style = getComputedStyle(
+        document.documentElement, ":view-transition-image-pair(root)");
+      if (style.backgroundColor == "rgb(255, 0, 0)" && style.color == "rgb(255, 0, 0)")
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should always match for ::view-transition-image-pair");
+</script>

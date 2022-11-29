@@ -6,19 +6,18 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/popover-utils.js"></script>
 
+<button id=visible>Visible button</button>
 <div id=examples>
   <dialog popover>Popover Dialog</dialog>
   <dialog popover open style="top:50px;">Open Non-modal Popover Dialog</dialog>
-  <dialog popover=manual defaultopen style="top:100px;">Defaultopen Popover Dialog</dialog>
-  <dialog popover=manual defaultopen open style="top:150px;">Defaultopen and Open Popover Dialog</dialog>
   <div    popover class=fullscreen>Fullscreen Popover</div>
   <dialog popover class=fullscreen>Fullscreen Popover Dialog</dialog>
   <dialog popover open class=fullscreen style="top:200px;">Fullscreen Open Non-modal Popover Dialog</dialog>
 </div>
-<button id=visible>Visible button</button>
 
 <style>
   [popover] {
@@ -26,15 +25,19 @@
     top:0;
     left:0;
   }
+  [popover].fullscreen.visible {
+    display:block;
+  }
 </style>
 
 <script>
-showDefaultopenPopoversOnLoad();
 const isDialog = (ex) => ex instanceof HTMLDialogElement;
 const isFullscreen = (ex) => ex.classList.contains('fullscreen');
 function ensureIsOpenPopover(ex,message) {
   // Because :open will eventually support <dialog>, this does extra work to
-  // verify we're dealing with an :open Popover.
+  // verify we're dealing with an :open Popover. Note that this will also throw
+  // if this is an element with the `popover` attribute that has been made
+  // visible via an explicit `display:block` style rule.
   message = message || 'Error';
   assert_true(ex.matches(':open'),`${message}: Popover doesn\'t match :open`);
   assert_false(ex.matches(':closed'),`${message}: Popover matches :closed`);
@@ -47,23 +50,13 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
   examples.forEach(ex => {
     promise_test(async (t) => {
       t.add_cleanup(() => ex.remove());
+      // Test initial conditions
       if (ex.hasAttribute('open')) {
         assert_true(isDialog(ex));
         assert_true(isElementVisible(ex),'Open dialog should be visible by default');
-      } else if (ex.hasAttribute('defaultopen')) {
-        ensureIsOpenPopover(ex,'defaultopen should open the popover on load');
-        assert_true(isElementVisible(ex),'Popover with defaultopen should be visible by default');
-      }
-      if (isElementVisible(ex)) {
-        // ex is already open (defaultopen or open dialog)
         assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover on an already-showing element should throw InvalidStateError');
-        if (ex.hasAttribute('open')) {
-          assert_true(isDialog(ex));
-          ex.removeAttribute('open');
-          assert_false(isElementVisible(ex),'Removing the open attribute should hide the dialog');
-        } else {
-          ex.hidePopover(); // Should not throw
-        }
+        ex.removeAttribute('open');
+        assert_false(isElementVisible(ex),'Removing the open attribute should hide the dialog');
       } else {
         ex.showPopover(); // Should not throw
         ensureIsOpenPopover(ex,'showPopover should work');
@@ -74,24 +67,24 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
 
       // Start with popover, try the other API
       ex.showPopover();
+      ensureIsOpenPopover(ex);
       let tested_something=false;
       if (isDialog(ex)) {
         tested_something=true;
-        ensureIsOpenPopover(ex);
         assert_throws_dom("InvalidStateError",() => ex.showModal(),'Calling showModal() on an already-showing Popover should throw InvalidStateError');
         assert_throws_dom("InvalidStateError",() => ex.show(),'Calling show() on an already-showing Popover should throw InvalidStateError');
       }
       if (isFullscreen(ex)) {
         tested_something=true;
         let requestSucceeded = false;
-        await blessTopLayer(ex)
-          .then(() => ex.requestFullscreen())
+        await blessTopLayer(ex);
+        await ex.requestFullscreen()
           .then(() => {requestSucceeded = true;}) // We should not hit this.
           .catch((exception) => {
             // This exception is expected.
             assert_equals(exception.name,'TypeError',`Invalid exception from requestFullscreen() (${exception.message})`);
           });
-          assert_false(requestSucceeded,'requestFullscreen() should not succeed when the element is an already-showing Popover');
+        assert_false(requestSucceeded,'requestFullscreen() should not succeed when the element is an already-showing Popover');
       }
       assert_true(tested_something);
       ensureIsOpenPopover(ex);
@@ -111,13 +104,45 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
         assert_false(ex.hasAttribute('open'));
       } else if (isFullscreen(ex)) {
         let requestSucceeded = false;
-        await blessTopLayer(visible)
-        .then(() => ex.requestFullscreen())
-        .then(() => {
-          assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover() on an already-fullscreen element should throw InvalidStateError');
-        });
+        await blessTopLayer(visible);
+        await ex.requestFullscreen()
+          .then(() => {
+            assert_throws_dom("InvalidStateError",() => ex.showPopover(),'Calling showPopover() on an already-fullscreen element should throw InvalidStateError');
+          });
         await document.exitFullscreen()
         .then(() => assert_true(true));
+      }
+
+      // Finally, try invoking these combined popovers via a declarative invoker
+      const button = document.createElement('button');
+      t.add_cleanup(() => button.remove());
+      document.body.appendChild(button);
+      assert_equals(ex.id,'');
+      ex.id = 'popover-id';
+      button.popoverToggleTarget = ex.id;
+      assert_true(ex.matches(':closed'));
+      await clickOn(button);
+      ensureIsOpenPopover(ex,'Invoking element should be able to invoke all popovers');
+      ex.hidePopover();
+      if (isDialog(ex)) {
+        ex.showModal();
+        assert_true(ex.hasAttribute('open'));
+      } else if (isFullscreen(ex)) {
+        // Popover fullscreen isn't visible by default, so explicitly add
+        // display:block, so that calls to "clickOn" can succeed.
+        ex.classList.add('visible');
+        await blessTopLayer(visible);
+        await ex.requestFullscreen();
+      } else {
+        assert_unreached('Not a dialog or fullscreen');
+      }
+      ex.appendChild(button); // Add button to the element, so it's visible to click
+      await clickOn(button);
+      assert_true(ex.matches(':closed'),'The invoker click should have failed on the already-open dialog/fullscreen');
+      if (isDialog(ex)) {
+        ex.close();
+      } else {
+        await document.exitFullscreen()
       }
     }, `Popover combination: ${ex.textContent}`);
   });

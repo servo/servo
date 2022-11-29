@@ -4,7 +4,8 @@
 <!--Split test cases due to the use of timeouts in speculation rules test utilities.-->
 <meta name="variant" content="?1-1">
 <meta name="variant" content="?2-2">
-<meta name="variant" content="?3-last">
+<meta name="variant" content="?3-3">
+<meta name="variant" content="?4-last">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -62,5 +63,26 @@ subsetTest(promise_test, async t => {
   assert_prefetched(headers, "must be prefetched");
   assert_equals(headers.referer, '', "must send no referrer");
 }, 'with "no-referrer" referrer policy');
+
+subsetTest(promise_test, async t => {
+  assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+
+  const agent = await spawnWindow(t);
+  await agent.setReferrerPolicy("no-referrer");
+
+  const next_url = agent.getExecutorURL({ page: 2 });
+  await agent.execute_script((url) => {
+    const a = addLink(url);
+    a.referrerPolicy = 'strict-origin';
+    insertDocumentRule();
+  }, [next_url]);
+  await new Promise(resolve => t.step_timeout(resolve, 2000));
+  await agent.navigate(next_url);
+
+  const headers = await agent.getRequestHeaders();
+  const expected_referrer = next_url.origin + '/';
+  assert_prefetched(headers, 'must be prefetched');
+  assert_equals(headers.referer, expected_referrer);
+}, 'with "strict-origin" link referrer policy overriding "no-referrer" of referring page');
 
 </script>

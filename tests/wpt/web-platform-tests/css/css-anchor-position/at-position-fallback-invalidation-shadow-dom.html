@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: Dynamically change @position-fallback rules in Shadow DOM</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
+<style>
+  body { margin: 0; }
+</style>
+
+<div id="host">
+  <template shadowroot="open">
+    <style>
+      ::slotted(#slotted), :host {
+        position-fallback: --pf;
+        position: absolute;
+      }
+    </style>
+    <slot></slot>
+  </template>
+  <div id="slotted"></div>
+</div>
+
+<script>
+  setup(() => {
+    polyfill_declarative_shadow_dom(host);
+  });
+
+  test(() => {
+    assert_equals(host.offsetLeft, 0);
+  }, "#host is initially left:auto");
+
+  test(() => {
+    assert_equals(slotted.offsetLeft, 0);
+  }, "#slotted is initially left:auto");
+
+  host.shadowRoot.styleSheets[0].insertRule(`
+    @position-fallback --pf {
+      @try { left: 100px; }
+    }
+  `);
+
+  test(() => {
+    assert_equals(host.offsetLeft, 100);
+  }, "#host with inserted @position-fallback applied");
+
+  test(() => {
+    assert_equals(slotted.offsetLeft, 100);
+  }, "#slotted with inserted @position-fallback applied");
+</script>

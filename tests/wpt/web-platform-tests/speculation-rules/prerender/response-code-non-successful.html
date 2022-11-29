@@ -1,5 +1,11 @@
 <!DOCTYPE html>
 <title>Check that non-successful responses result in discarding the prerender</title>
+<meta name="variant" content="?code=204">
+<meta name="variant" content="?code=205">
+<meta name="variant" content="?code=402">
+<meta name="variant" content="?code=404">
+<meta name="variant" content="?code=500">
+<meta name="variant" content="?code=503">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -11,17 +17,14 @@
 
 setup(() => assertSpeculationRulesIsSupported());
 
-function test_prerender_response_code(code) {
-  promise_test(async t => {
-    const {exec, tryToActivate} = await create_prerendered_page(t, {code});
-    const result = await tryToActivate();
-    assert_equals(result, 'discarded');
-  },`Responses with code ${code} should be discarded`);
-}
+const params = new URLSearchParams(window.location.search);
+const code = params.get('code');
 
-for (const code of [204, 205, 402, 404, 500, 503]) {
-  test_prerender_response_code(code);
-}
+promise_test(async t => {
+  const {exec, tryToActivate} = await create_prerendered_page(t, {code});
+  const result = await tryToActivate();
+  assert_equals(result, 'discarded');
+},`Responses with code ${code} should be discarded`);
 
 </script>
 </body>
