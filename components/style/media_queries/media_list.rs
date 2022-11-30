@@ -82,31 +82,17 @@ impl MediaList {
 
         computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
             self.media_queries.iter().any(|mq| {
-                let media_match = mq.media_type.matches(device.media_type());
-
-                // Check if the media condition match.
-                let query_match = match media_match {
-                    true => mq.condition.as_ref().map_or(KleeneValue::True, |c| c.matches(context)),
-                    false => KleeneValue::False,
+                let mut query_match = if mq.media_type.matches(device.media_type()) {
+                    mq.condition.as_ref().map_or(KleeneValue::True, |c| c.matches(context))
+                } else {
+                    KleeneValue::False
                 };
 
                 // Apply the logical NOT qualifier to the result
-                match mq.qualifier {
-                    Some(Qualifier::Not) => {
-                        match query_match {
-                            KleeneValue::False => true,
-                            KleeneValue::True => false,
-                            KleeneValue::Unknown => false,
-                        }
-                    },
-                    _ => {
-                        match query_match {
-                            KleeneValue::False => false,
-                            KleeneValue::True => true,
-                            KleeneValue::Unknown => false,
-                        }
-                    },
+                if matches!(mq.qualifier, Some(Qualifier::Not)) {
+                    query_match = !query_match;
                 }
+                query_match.to_bool(/* unknown = */ false)
             })
         })
     }

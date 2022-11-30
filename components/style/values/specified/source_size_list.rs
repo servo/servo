@@ -9,7 +9,6 @@ use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::queries::{FeatureType, QueryCondition};
-use crate::queries::condition::KleeneValue;
 use crate::values::computed::{self, ToComputedValue};
 use crate::values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 use app_units::Au;
@@ -58,15 +57,10 @@ impl SourceSizeList {
     /// Evaluate this <source-size-list> to get the final viewport length.
     pub fn evaluate(&self, device: &Device, quirks_mode: QuirksMode) -> Au {
         computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
-                let matching_source_size = self
+            let matching_source_size = self
                 .source_sizes
                 .iter()
-                .find(|source_size| match source_size.condition.matches(context) {
-                    KleeneValue::Unknown => false,
-                    KleeneValue::False => false,
-                    KleeneValue::True => true,
-                }
-            );
+                .find(|source_size| source_size.condition.matches(context).to_bool(/* unknown = */ false));
 
             match matching_source_size {
                 Some(source_size) => source_size.value.to_computed_value(context),

@@ -17,7 +17,6 @@ use cssparser::{Parser, Token};
 use std::cmp::{Ordering, PartialOrd};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use crate::error_reporting::ContextualParseError;
 
 /// Whether we're parsing a media or container query feature.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
@@ -503,13 +502,11 @@ impl QueryFeatureExpression {
     }
 
     /// Parse a feature expression where we've already consumed the parenthesis.
-    /// For unknown features, we keeps the warning even though they might be parsed "correctly" because of <general-enclosed>
     pub fn parse_in_parenthesis_block<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
-        let start_position = input.position();
         let (feature_index, range) =
             match input.try_parse(|input| Self::parse_feature_name(context, input, feature_type)) {
                 Ok(v) => v,
@@ -517,12 +514,6 @@ impl QueryFeatureExpression {
                     if let Ok(expr) = Self::parse_multi_range_syntax(context, input, feature_type) {
                         return Ok(expr);
                     }
-                    let location = e.location;
-                    let error = ContextualParseError::UnsupportedRule(
-                        input.slice_from(start_position),
-                        e.clone(),
-                    );
-                    context.log_css_error(location, error);
                     return Err(e);
                 },
             };
