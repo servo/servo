@@ -19,6 +19,7 @@ use crate::invalidation::stylesheets::RuleChangeKind;
 use crate::media_queries::Device;
 use crate::properties::{self, CascadeMode, ComputedValues};
 use crate::properties::{AnimationDeclarations, PropertyDeclarationBlock};
+use crate::queries::condition::KleeneValue;
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_collector::{containing_shadow_ignoring_svg_use, RuleCollector};
 use crate::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
@@ -2380,7 +2381,13 @@ impl CascadeData {
                 None => return true,
                 Some(ref c) => c,
             };
-            if !condition.matches(stylist.device(), element, &mut context.extra_data.cascade_input_flags) {
+            let result = match !condition.matches(stylist.device(), element, &mut context.extra_data.cascade_input_flags) {
+                KleeneValue::True => true,
+                KleeneValue::False => false,
+                KleeneValue::Unknown => true,
+            };
+
+            if result {
                 return false;
             }
             id = condition_ref.parent;

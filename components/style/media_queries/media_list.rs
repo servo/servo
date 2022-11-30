@@ -11,6 +11,7 @@ use crate::context::QuirksMode;
 use crate::error_reporting::ContextualParseError;
 use crate::parser::ParserContext;
 use crate::values::computed;
+use crate::queries::condition::KleeneValue;
 use cssparser::{Delimiter, Parser};
 use cssparser::{ParserInput, Token};
 
@@ -84,13 +85,27 @@ impl MediaList {
                 let media_match = mq.media_type.matches(device.media_type());
 
                 // Check if the media condition match.
-                let query_match =
-                    media_match && mq.condition.as_ref().map_or(true, |c| c.matches(context));
+                let query_match = match media_match {
+                    true => mq.condition.as_ref().map_or(KleeneValue::True, |c| c.matches(context)),
+                    false => KleeneValue::False,
+                };
 
                 // Apply the logical NOT qualifier to the result
                 match mq.qualifier {
-                    Some(Qualifier::Not) => !query_match,
-                    _ => query_match,
+                    Some(Qualifier::Not) => {
+                        match query_match {
+                            KleeneValue::False => true,
+                            KleeneValue::True => false,
+                            KleeneValue::Unknown => false,
+                        }
+                    },
+                    _ => {
+                        match query_match {
+                            KleeneValue::False => false,
+                            KleeneValue::True => true,
+                            KleeneValue::Unknown => false,
+                        }
+                    },
                 }
             })
         })
