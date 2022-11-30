@@ -31,7 +31,7 @@ test(t => {
 
 test(t => {
   const styleMap = createComputedStyleMap(t, '--foo: auto; --bar: 10px');
-  assert_style_value_array_equals(styleMap.getAll('--foo'), [new CSSUnparsedValue([' auto'])]);
+  assert_style_value_array_equals(styleMap.getAll('--foo'), [new CSSUnparsedValue(['auto'])]);
 }, 'Calling StylePropertyMap.getAll with a valid custom property returns a single element list with the correct entry');
 
 test(t => {

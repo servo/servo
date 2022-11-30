@@ -13,7 +13,6 @@
     insertSpeculationRules({ prefetch: [{ source: 'list', urls: [url] }] });
     await new Promise(resolve => t.step_timeout(resolve, 2000));
 
-    let was_prefetched = await isUrlPrefetched(url);
-    assert_true(was_prefetched, "redirected url should be prefetched");
+    assert_equals(await isUrlPrefetched(url), 1, "redirected url should be prefetched");
   }, "browser should be able to prefetch redirected urls");
 </script>

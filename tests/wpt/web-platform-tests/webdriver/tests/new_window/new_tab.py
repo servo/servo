@@ -61,3 +61,29 @@ def test_sets_no_opener(session):
 
     session.window_handle = value["handle"]
     assert opener(session) is None
+
+
+def test_focus_content(session, inline):
+    response = new_window(session, type_hint="tab")
+    value = assert_success(response)
+    assert value["type"] == "tab"
+
+    session.window_handle = value["handle"]
+
+    session.url = inline("""
+        <span contenteditable="true"> abc </span>
+        <script>
+            const selection = getSelection();
+            window.onload = async() => {
+                const initial = document.querySelector("span");
+                initial.focus();
+                initial.setAttribute(
+                    "_focused",
+                    selection.anchorNode == initial.firstChild
+                );
+            }
+        </script>
+    """)
+
+    elem = session.find.css("span", all=False)
+    assert elem.attribute("_focused") == "true"

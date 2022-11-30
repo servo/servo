@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8"/>
+<title>Fixed positioned</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-mrow">
+<link rel="match" href="fixed-positioned-001-ref.html"/>
+<meta name="assert" content="Verify visual rendering of fixed positioned mtext elements.">
+<style>
+  body { overflow: hidden; }
+</style>
+<body>
+  <div style="position: absolute; left: 100px; top: 200px;
+              height: 3000px; width: 3000px;">
+    <math>
+      <mrow>
+        <mspace width="100px" height="300px" style="background: green"/>
+        <mspace width="100px" height="300px" style="background: red"/>
+        <mspace width="100px" height="300px" style="background: green"/>
+        <mtext style="position: fixed; left: 150px; top: 100px;"><span style="display: inline-block; width: 50px; height: 300px; background: green"></span></mtext>
+        <mtext style="position: fixed; left: 200px; top: 100px;"><span style="display: inline-block; width: 50px; height: 150px; background: green"></span></mtext>
+        <mtext style="position: fixed; left: 200px; top: 250px;"><span style="display: inline-block; width: 50px; height: 150px; background: green"></span></mtext>
+      </mrow>
+    </math>
+    <p>Test passes if you see a green square and no red.</p>
+  </div>
+  <script>
+    requestAnimationFrame(() => {
+      window.scrollTo(50, 100);
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+</body>
+</html>

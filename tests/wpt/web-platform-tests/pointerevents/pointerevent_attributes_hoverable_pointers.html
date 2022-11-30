@@ -14,7 +14,7 @@
         <!-- Additional helper script for common checks across event types -->
         <script type="text/javascript" src="pointerevent_support.js"></script>
         <script>
-            var input = location.search.substring(1);
+            var input_pointertype = location.search.substring(1);
             var detected_pointertypes = {};
             var detected_eventTypes = {};
             var eventList = ['pointerover', 'pointerenter', 'pointermove', 'pointerdown', 'pointerup', 'pointerout', 'pointerleave'];
@@ -79,7 +79,7 @@
 
                 check_PointerEvent(event, testNamePrefix);
 
-                // Test isPrimary value
+                // Test isPrimary
                 test(function () {
                     assert_equals(event.isPrimary, true, "isPrimary should be true");
                 }, pointerTestName + ".isPrimary attribute is correct.");
@@ -95,7 +95,7 @@
             }
 
             function run() {
-                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", [input]);
+                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", [input_pointertype]);
                 var square1 = document.getElementById("square1");
                 var rectSquare1 = square1.getBoundingClientRect();
                 var innerFrame = document.getElementById('innerFrame');
@@ -128,12 +128,12 @@
                 });
 
                 // Inject mouse or pen inputs.
-                actions_promise = clickInTarget(input, square1).then(function() {
-                    return moveToDocument(input);
+                actions_promise = clickInTarget(input_pointertype, square1).then(function() {
+                    return moveToDocument(input_pointertype);
                 }).then(function() {
-                    return clickInTarget(input, square2);
+                    return clickInTarget(input_pointertype, square2);
                 }).then(function() {
-                    return moveToDocument(input);
+                    return moveToDocument(input_pointertype);
                 }).then(function() {
                     test_pointerEvent.done();
                 });
@@ -164,4 +164,3 @@
         <div id="log"></div>
     </body>
 </html>
-

@@ -38,7 +38,7 @@
 <script>
 // Set author-level CSS that matches UA style, but don't use the 'revert' value.
 const elements = document.querySelectorAll('#container > *');
-const fallbackProps = [
+const fallbackProps = new Set([
   'background-color',
   'border-top-color',
   'border-top-style',
@@ -83,17 +83,27 @@ const fallbackProps = [
   'border-start-end-radius',
   'border-end-start-radius',
   'border-end-end-radius',
-];
+]);
+
+let mutations = []
 
 // Make sure that any supported property that is not in the above list
 // does not affect the widget type.
 const declarations = getComputedStyle(document.documentElement);
+
 for (const prop of declarations) {
-  if (fallbackProps.includes(prop)) {
+  if (fallbackProps.has(prop)) {
     continue;
   }
   for (const el of elements) {
-    el.style.setProperty(prop, getComputedStyle(el).getPropertyValue(prop));
+    mutations.push([el, prop, getComputedStyle(el).getPropertyValue(prop)]);
   }
+}
+
+// Batch all setProperty calls together (without calling gCS().getPropertyValue
+// for each mutation) to avoid excessive style recalcs.
+for (let mutation of mutations) {
+  const [el, prop, value] = mutation;
+  el.style.setProperty(prop, value);
 }
 </script>

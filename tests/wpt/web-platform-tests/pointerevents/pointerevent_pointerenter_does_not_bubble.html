@@ -32,7 +32,6 @@
                 on_event(target0, "pointerenter", function (event) {
                     pointerenter_event = event;
 
-                    check_PointerEvent(event);
                     test_pointerEvent.step(function () {
                         assert_equals(event.type, "pointerenter", "pointer event received: " + event.type);
                         assert_false(event.bubbles, "pointerenter event.bubbles should be false: " + event.bubbles);

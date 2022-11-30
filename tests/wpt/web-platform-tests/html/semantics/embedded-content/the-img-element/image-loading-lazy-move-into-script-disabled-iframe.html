@@ -14,10 +14,7 @@
 </iframe>
 <script>
 promise_test(async t => {
-  const p1 = new Promise(resolve => iframe.addEventListener("load", resolve));
-  const p2 = new Promise(resolve => sandboxediframe.addEventListener("load", resolve));
-
-  await Promise.all([p1, p2]);
+  await new Promise(resolve => window.addEventListener('load', resolve));
 
   const image = iframe.contentDocument.querySelector("img");
 

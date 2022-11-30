@@ -35,7 +35,7 @@ test(() => {
 
 test(() => {
   const result = styleMap.get('--foo');
-  assert_style_value_equals(result, new CSSUnparsedValue([' auto']));
+  assert_style_value_equals(result, new CSSUnparsedValue(['auto']));
 }, 'Computed StylePropertyMap contains custom property declarations in style rules');
 
 test(() => {
@@ -45,7 +45,7 @@ test(() => {
 
 test(() => {
   const result = styleMap.get('--bar');
-  assert_style_value_equals(result, new CSSUnparsedValue([' 5']));
+  assert_style_value_equals(result, new CSSUnparsedValue(['5']));
 }, 'Computed StylePropertyMap contains custom property declarations in inline rules');
 
 test(() => {

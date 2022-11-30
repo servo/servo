@@ -80,10 +80,6 @@ function assert_style_value_equals(a, b) {
       assert_equals(a.variable, b.variable);
       assert_style_value_equals(a.fallback, b.fallback);
       break;
-    case 'CSSPositionValue':
-      assert_style_value_equals(a.x, b.x);
-      assert_style_value_equals(a.y, b.y);
-      break;
     case 'CSSTransformValue':
       assert_style_value_array_equals(a, b);
       break;

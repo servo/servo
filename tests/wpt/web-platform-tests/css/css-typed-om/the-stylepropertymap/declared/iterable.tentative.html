@@ -42,9 +42,9 @@ test(t => {
   const keys = [...styleMap.keys()], values = [...styleMap.values()];
 
   assert_array_equals(keys, ['--A', '--B', '--C']);
-  assert_style_value_array_equals(values[0], [new CSSUnparsedValue([' A'])]);
-  assert_style_value_array_equals(values[1], [new CSSUnparsedValue([' B'])]);
-  assert_style_value_array_equals(values[2], [new CSSUnparsedValue([' C'])]);
+  assert_style_value_array_equals(values[0], [new CSSUnparsedValue(['A'])]);
+  assert_style_value_array_equals(values[1], [new CSSUnparsedValue(['B'])]);
+  assert_style_value_array_equals(values[2], [new CSSUnparsedValue(['C'])]);
 }, 'StylePropertyMap iterator returns custom properties with the correct CSSStyleValue');
 
 </script>

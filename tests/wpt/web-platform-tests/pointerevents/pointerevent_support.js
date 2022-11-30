@@ -84,7 +84,8 @@ function check_PointerEvent(event, testNamePrefix) {
         ["readonly", "boolean", "isPrimary"],
         ["readonly", "long", "detail", 0],
         ["readonly", "object", "fromElement", null],
-        ["readonly", "object", "toElement", null]
+        ["readonly", "object", "toElement", null],
+        ["readonly", "boolean", "isTrusted", true]
     ].forEach(function (attr) {
         var readonly = attr[0];
         var type = attr[1];
@@ -116,6 +117,12 @@ function check_PointerEvent(event, testNamePrefix) {
         }
     });
 
+    // Check the composed value
+    // https://w3c.github.io/pointerevents/#attributes-and-default-actions
+    test(function () {
+        let expected = (event.type != 'pointerenter' && event.type != 'pointerleave');
+        assert_equals(event.composed, expected, "composed attribute value");
+    }, pointerTestName + ".composed value is valid");
 
     // Check the pressure value
     // TA: 1.6, 1.7, 1.8
@@ -236,8 +243,6 @@ function rPointerCapture(e) {
 var globalPointerEventTest = null;
 var expectedPointerType = null;
 const ALL_POINTERS = ['mouse', 'touch', 'pen'];
-const HOVERABLE_POINTERS = ['mouse', 'pen'];
-const NOHOVER_POINTERS = ['touch'];
 
 function MultiPointerTypeTest(testName, types) {
     this.testName = testName;

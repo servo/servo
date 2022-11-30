@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compatibility: parsing -webkit-border-radius with valid values</title>
+<link rel="help" href="https://compat.spec.whatwg.org/#propdef--webkit-border-radius">
+<link rel="help" href="https://github.com/whatwg/compat/issues/133">
+<meta name="assert" content="-webkit-border-radius supports CSS Wide keywords and the full grammar '<length-percentage>{1,4} [ / <length-percentage>{1,4} ]?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_valid_value("-webkit-border-radius", "initial");
+test_valid_value("-webkit-border-radius", "inherit");
+test_valid_value("-webkit-border-radius", "unset");
+test_valid_value("-webkit-border-radius", "revert");
+
+test_valid_value("-webkit-border-radius", "1px");
+test_valid_value("-webkit-border-radius", "1px 5%", ["1px 5%", "1px / 5%"]);
+test_valid_value("-webkit-border-radius", "1px 2% 3px");
+test_valid_value("-webkit-border-radius", "1px 2% 3px 4%");
+test_valid_value("-webkit-border-radius", "1px / 2px", ["1px 2px", "1px / 2px"]);
+test_valid_value("-webkit-border-radius", "5em / 1px 2% 3px 4%");
+test_valid_value("-webkit-border-radius", "1px 2% / 3px 4px");
+test_valid_value("-webkit-border-radius", "1px 2px 3em / 1px 2px 3%");
+test_valid_value("-webkit-border-radius", "1px 2% / 2px 3em 4px 5em");
+test_valid_value("-webkit-border-radius", "1px 2% 3px 4% / 5em");
+
+test_valid_value("-webkit-border-radius", "1px 1px 1px 2% / 1px 2% 1px 2%", "1px 1px 1px 2% / 1px 2%");
+test_valid_value("-webkit-border-radius", "1px 1px 1px 1px / 1px 1px 2% 1px", "1px / 1px 1px 2%");
+test_valid_value("-webkit-border-radius", "1px 1px 2% 2%");
+test_valid_value("-webkit-border-radius", "1px 2% 1px 1px");
+test_valid_value("-webkit-border-radius", "1px 2% 2% 2% / 1px 2% 3px 2%", "1px 2% 2% / 1px 2% 3px");
+
+test_valid_value("-webkit-border-top-left-radius", "10px");
+test_valid_value("-webkit-border-top-right-radius", "20%");
+test_valid_value("-webkit-border-bottom-right-radius", "30px 40%");
+test_valid_value("-webkit-border-bottom-left-radius", "50% 60px");
+
+// Some browsers treat '-webkit-border-radius: l1 l2' as 'border-radius: l1 / l2'.
+// Regardless of whether this is done, ensure that there is round-tripping.
+const target = document.getElementById("target");
+const style = target.style;
+const cs = getComputedStyle(target);
+test(function() {
+  style.cssText = "-webkit-border-radius: 1px 2px";
+  const oldLonghands = [...style].map(p => p + ": " + style[p]);
+  const value = style.getPropertyValue("border-radius");
+  assert_in_array(value, ["1px 2px", "1px / 2px"]);
+  assert_equals(cs.getPropertyValue("border-radius"), value);
+  style.cssText = "border-radius: " + value;
+  const newLonghands = [...style].map(p => p + ": " + style[p]);
+  assert_array_equals(newLonghands, oldLonghands);
+}, "Serialize border-radius from -webkit-border-radius: 1px 2px");
+test(function() {
+  style.cssText = "border-radius: 1px 2px";
+  const oldLonghands = [...style].map(p => p + ": " + style[p]);
+  const value = style.getPropertyValue("-webkit-border-radius");
+  assert_in_array(value, ["1px 2px", "1px 2px 1px"]);
+  assert_equals(cs.getPropertyValue("-webkit-border-radius"), value);
+  style.cssText = "-webkit-border-radius: " + value;
+  const newLonghands = [...style].map(p => p + ": " + style[p]);
+  assert_array_equals(newLonghands, oldLonghands);
+}, "Serialize -webkit-border-radius from border-radius: 1px 2px");
+</script>
+</body>
+</html>
