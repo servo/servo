@@ -34,7 +34,6 @@ packages = [
   "cocoa",
   "crossbeam-channel",
   "crossbeam-utils",
-  "deflate",
   "fixedbitset",
   "getrandom",
   "gleam",
