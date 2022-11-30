@@ -15,6 +15,7 @@ use crate::properties::ComputedValues;
 use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
 use crate::queries::{FeatureType, QueryCondition};
+use crate::queries::condition::KleeneValue;
 use crate::shared_lock::{
     DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
@@ -226,7 +227,7 @@ impl ContainerCondition {
         device: &Device,
         element: E,
         invalidation_flags: &mut ComputedValueFlags,
-    ) -> bool
+    ) -> KleeneValue
     where
         E: TElement,
     {
