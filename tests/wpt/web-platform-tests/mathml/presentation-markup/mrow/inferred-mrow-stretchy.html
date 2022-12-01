@@ -32,12 +32,12 @@
   window.addEventListener("load", () => { loadAllFonts().then(runTests); });
   function runTests()
   {
-      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd"].forEach((tag) => {
-          var mo = document.getElementById("mo" + tag);
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd", "None", "Mprescripts"].forEach((tag) => {
+          var mo = document.getElementById(`mo${tag}`);
           test(function() {
               assert_true(MathMLFeatureDetection.has_mspace());
               assert_greater_than_equal(mo.getBoundingClientRect().height, 100);
-          }, "operator stretching inside " + tag);
+          }, `operator stretching inside ${tag}`);
       });
       done();
   }
@@ -57,6 +57,8 @@
     <math><mpadded lspace="10px"><mo id="moMpadded">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mpadded></math>
     <math><unknown><mo id="moUnknown">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></unknown></math>
     <math><mtable><mtr><mtd><mo id="moMtd">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mtd></mtr></mtable></math>
+    <math><none><mo id="moNone">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></none></math>
+    <math><mprescripts><mo id="moMprescripts">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mprescripts></math>
   </p>
 </body>
 </html>

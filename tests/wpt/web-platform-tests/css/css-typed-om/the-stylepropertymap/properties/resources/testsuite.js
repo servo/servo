@@ -226,15 +226,6 @@ const gTestSyntaxExamples = {
       }
     ],
   },
-  '<position>': {
-    description: 'a position',
-    examples: [
-      {
-        decription: "origin position",
-        input: new CSSPositionValue(new CSSUnitValue(0, 'px'), new CSSUnitValue(0, 'px'))
-      }
-    ],
-  },
   '<url>': {
     description: 'a URL',
     examples: [

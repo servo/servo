@@ -6,7 +6,8 @@
 <meta name="variant" content="?2-2">
 <meta name="variant" content="?3-3">
 <meta name="variant" content="?4-4">
-<meta name="variant" content="?5-last">
+<meta name="variant" content="?5-5">
+<meta name="variant" content="?6-last">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -33,6 +34,25 @@ subsetTest(promise_test, async t => {
   assert_prefetched(headers, "must be prefetched");
   assert_equals(headers.referer, expectedReferrer, "must send the origin as the referrer");
 }, 'with "strict-origin" referrer policy in rule set overriding "strict-origin-when-cross-origin" of referring page');
+
+subsetTest(promise_test, async t => {
+  assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+
+  const agent = await spawnWindow(t);
+  const next_url = agent.getExecutorURL({ page: 2 });
+  await agent.execute_script((url) => {
+    const a = addLink(url);
+    a.referrerPolicy = 'no-referrer';
+    insertDocumentRule(undefined, { referrer_policy: 'strict-origin' });
+  }, [next_url]);
+  await new Promise(resolve => t.step_timeout(resolve, 2000));
+  await agent.navigate(next_url);
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, 'must be prefetched');
+  const expected_referrer = next_url.origin + '/';
+  assert_equals(headers.referer, expected_referrer, 'must send the origin as the referrer');
+}, 'with "strict-origin" referrer policy in rule set override "no-referrer" of link');
 
 subsetTest(promise_test, async t => {
   assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");

@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<title>MouseEvent attributes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+
+<span id="left">Left</span> <span id="right">Right</span>
+
+<script>
+  'use strict';
+
+  const event_list = ["mouseover", "mouseenter", "mousemove",
+                      "mousedown", "mouseup", "mouseout", "mouseleave"];
+
+  promise_test(async () => {
+      let left = document.getElementById("left");
+      let right = document.getElementById("right");
+
+      let event_promises = [];
+      event_list.forEach(ename => event_promises.push(getEvent(ename, right)));
+
+      let actions = new test_driver.Actions().addPointer("TestPointer", "mouse")
+          .pointerMove(0, 0, {origin: left})
+          .pointerDown()
+          .pointerUp()
+          .pointerMove(0, 0, {origin: right})
+          .pointerDown()
+          .pointerUp()
+          .pointerMove(0, 0, {origin: left})
+          .pointerDown()
+          .pointerUp()
+      await actions.send();
+
+      for (let i = 0; i < event_promises.length; i++) {
+          let e = await event_promises[i];
+
+          assert_equals(e.constructor, window.MouseEvent,
+                        e.type + " should use a MouseEvent constructor");
+          assert_true(e instanceof MouseEvent,
+                      e.type + " should be a MouseEvent");
+
+          assert_true(e.isTrusted,
+                      e.type + ".isTrusted attribute");
+
+          assert_equals(e.composed,
+                        e.type != 'mouseenter' && e.type != 'mouseleave',
+                        e.type + ".composed attribute");
+
+          assert_equals(e.bubbles,
+                        e.type != 'mouseenter' && e.type != 'mouseleave',
+                        e.type + ".bubbles attribute");
+
+          assert_equals(e.cancelable,
+                        e.type != 'mouseenter' && e.type != 'mouseleave',
+                        e.type + ".cancelable attribute");
+      }
+  }, "MouseEvent attributes");
+</script>

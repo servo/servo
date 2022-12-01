@@ -3,8 +3,11 @@
 
 test(() => {
     const params = new URLSearchParams();
+    params.set("description",
+        "An early hints preload without `as` attribute should be ignored.");
     params.set("resource-url",
         SAME_ORIGIN_RESOURCES_URL + "/empty.js?" + token());
-    const test_url = "resources/preload-without-as.h2.py?" + params.toString();
+    params.set("should-preload", false);
+    const test_url = "resources/preload-as-test.h2.py?" + params.toString();
     window.location.replace(new URL(test_url, window.location));
 });

@@ -29,7 +29,7 @@
 
                 on_event(target0, "pointerleave", function (event) {
                     detected_pointertypes[event.pointerType] = true;
-                    check_PointerEvent(event);
+
                     test_pointerEvent.step(function () {
                         assert_equals(event.type, "pointerleave", "pointer event received: " + event.type);
                         assert_false(event.bubbles, "pointerleave event.bubbles should be false: " + event.bubbles);

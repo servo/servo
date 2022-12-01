@@ -33,7 +33,7 @@
 
     async function loadIframe(t, src, allowList) {
       const iframe = document.createElement("iframe");
-      if (allowList !== null) iframe.allow = allowList;
+      if (allowList !== undefined) iframe.allow = allowList;
       t.add_cleanup(() => {
         iframe.remove();
       });
@@ -58,7 +58,7 @@
 
     promise_test(async (t) => {
       assert_true("share" in navigator, "navigator.share is exposed");
-      const iframe = await loadIframe(t, crossOriginSrc, "web-share=()");
+      const iframe = await loadIframe(t, crossOriginSrc, "web-share 'none'");
       const iframeWindow = iframe.contentWindow;
       iframeWindow.postMessage({ action: "share", data: shareData }, "*");
       const data = await waitForMessage("share");
@@ -68,7 +68,7 @@
 
     promise_test(async (t) => {
       assert_true("share" in navigator, "navigator.share is exposed");
-      const iframe = await loadIframe(t, crossOriginSrc, "web-share=(self)");
+      const iframe = await loadIframe(t, crossOriginSrc, "web-share 'self'");
       const iframeWindow = iframe.contentWindow;
       iframeWindow.postMessage({ action: "share", data: shareData }, "*");
       const data = await waitForMessage("share");
@@ -106,7 +106,7 @@
 
     promise_test(async (t) => {
       assert_true("canShare" in navigator, "navigator.canShare is exposed");
-      const iframe = await loadIframe(t, sameOriginPath, "web-share=(self)");
+      const iframe = await loadIframe(t, sameOriginPath, "web-share 'self'");
       iframe.contentWindow.postMessage(
         { action: "canShare", data: shareData },
         "*"

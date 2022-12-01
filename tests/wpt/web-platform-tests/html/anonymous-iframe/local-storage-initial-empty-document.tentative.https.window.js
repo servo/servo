@@ -60,11 +60,15 @@ promise_test(async test => {
     send("${queue_C}", value_E);
   `);
 
-  // Verify the credentialless iframe and the normal one do not have access to each
-  // other.
-  assert_equals(await receive(queue_B), value_D); // key_D
-  assert_equals(await receive(queue_B), "");      // key_E
-  assert_equals(await receive(queue_C), "");      // key_D
-  assert_equals(await receive(queue_C), value_E); // key_E
-}, "Local storage is correctly partitioned with regards to credentialless iframe " +
-   "in initial empty documents.");
+  // Verify the credentialless iframe and the normal one do not have access to
+  // each other.
+  assert_equals(await receive(queue_B), value_D, // key_D
+    "Credentialless iframe can access credentialless context");
+  assert_equals(await receive(queue_B), "",      // key_E
+    "Credentialless iframe can't access credentialled context");
+  assert_equals(await receive(queue_C), "",      // key_D
+    "Credentialled iframe can't access credentialless context");
+  assert_equals(await receive(queue_C), value_E, // key_E
+    "Credentialled iframe can access credentialled context");
+}, "Local storage is correctly partitioned with regards to credentialless " +
+   "iframe in initial empty documents.");

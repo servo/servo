@@ -11,6 +11,18 @@ test(function() {
   assert_true(responseError.headers.entries().next().done, "Headers should be empty");
 }, "Check response returned by static method error()");
 
+promise_test (async function() {
+  let response = await fetch("../resources/data.json");
+
+  try {
+    response.headers.append('name', 'value');
+  } catch (e) {
+    assert_equals(e.constructor.name, "TypeError");
+  }
+
+  assert_not_equals(response.headers.get("name"), "value", "response headers should be immutable");
+}, "Ensure response headers are immutable");
+
 test(function() {
   const headers = Response.error().headers;
 

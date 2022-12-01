@@ -17,7 +17,7 @@ test(() => {
   assert_equals(style.inlineSize, "160px");
   assert_equals(style.blockSize, style.height);
   assert_equals(style.inlineSize, style.width);
-}, `progress[style="writing-mode: horizontal-tb"] block size should match height and inline should match width`);
+}, `progress[style="writing-mode: horizontal-tb"] block size should match height and inline size should match width`);
 
 for (const writingMode of ["vertical-lr", "vertical-rl"]) {
   test(() => {
@@ -27,6 +27,6 @@ for (const writingMode of ["vertical-lr", "vertical-rl"]) {
     assert_equals(style.inlineSize, "160px");
     assert_equals(style.blockSize, style.width);
     assert_equals(style.inlineSize, style.height);
-  }, `progress[style="writing-mode: ${writingMode}"] block size should match width and inline should match width`);
+  }, `progress[style="writing-mode: ${writingMode}"] block size should match width and inline size should match height`);
 };
 </script>

@@ -20,13 +20,13 @@
   window.addEventListener("load", runTests);
   function runTests()
   {
-      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd"].forEach((tag) => {
-          var x = document.getElementById("above" + tag).getBoundingClientRect();
-          var y = document.getElementById("below" + tag).getBoundingClientRect();
+      ["Mrow", "Sqrt", "Style", "Error", "Phantom", "Math", "Menclose", "Mpadded", "Unknown", "Mtd", "None", "Mprescripts"].forEach((tag) => {
+          var x = document.getElementById(`above${tag}`).getBoundingClientRect();
+          var y = document.getElementById(`below${tag}`).getBoundingClientRect();
           test(function() {
               assert_true(MathMLFeatureDetection.has_mspace());
               assert_equals(x.bottom, y.top);
-          }, "baseline alignment inside " + tag);
+          }, `baseline alignment inside ${tag}`);
       });
       done();
   }
@@ -50,6 +50,8 @@
 ></mspace><mspace id="belowUnknown" width="10px" depth="30px" style="background: blue"></mspace></unknown></math>
     <math><mtable><mtr><mtd><mspace id="aboveMtd" width="10px" height="30px" style="background: purple"
 ></mspace><mspace id="belowMtd" width="10px" depth="30px" style="background: blue"></mspace></mtd></mtr></mtable></math>
+    <math><none><mspace id="aboveNone" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowNone" width="10px" depth="30px" style="background: blue"></mspace></none></math>
+    <math><mprescripts><mspace id="aboveMprescripts" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowMprescripts" width="10px" depth="30px" style="background: blue"></mspace></none></math>
   </p>
 </body>
 </html>

@@ -15,6 +15,7 @@
             var detected_pointertypes = {};
             var detected_eventTypes = {};
             var eventList = ['pointerover', 'pointerenter', 'pointerdown', 'pointerup', 'pointerout', 'pointerleave'];
+            // TODO(mustaq@chromium.org): missing touch pointermove coverage!
             var expectedPointerId = NaN;
 
             function resetTestState() {
@@ -38,16 +39,16 @@
                 // Test button and buttons
                 test(function() {
                     assert_equals(event.button, 0, "Button attribute is 0")
-                }, pointerTestName + "'s button attribute is 0 when left mouse button is pressed.");
+                }, pointerTestName + "'s button attribute is 0 on touch-down.");
 
                 if (event.type == 'pointerdown' || event.type == 'pointerover' || event.type == 'pointerenter') {
                     test(function() {
                         assert_equals(event.buttons, 1, "Buttons attribute is 1")
-                    }, pointerTestName + "'s buttons attribute is 1 when left mouse button is pressed.");
+                    }, pointerTestName + "'s buttons attribute is 1 on touch-down.");
                 } else {
                     test(function() {
                         assert_equals(event.buttons, 0, "Buttons attribute is 0")
-                    }, pointerTestName + "'s buttons is 0 when mouse buttons are in released state.");
+                    }, pointerTestName + "'s buttons is 0 on touch-release.");
                 }
 
                 // Test clientX and clientY
@@ -73,7 +74,7 @@
             }
 
             function run() {
-                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", NOHOVER_POINTERS);
+                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", ['touch']);
                 var square1 = document.getElementById("square1");
                 var rectSquare1 = square1.getBoundingClientRect();
                 var innerFrame = document.getElementById('innerFrame');
@@ -135,4 +136,3 @@
         <div id="log"></div>
     </body>
 </html>
-

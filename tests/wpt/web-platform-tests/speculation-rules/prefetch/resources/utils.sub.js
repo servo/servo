@@ -96,14 +96,17 @@ class PrefetchAgent extends RemoteContext {
   }
 }
 
+// Produces a URL with a UUID which will record when it's prefetched.
+// |extra_params| can be specified to add extra search params to the generated
+// URL.
+function getPrefetchUrl(extra_params={}) {
+  let params = new URLSearchParams({ uuid: token(), ...extra_params });
+  return new URL(`prefetch.py?${params}`, SR_PREFETCH_UTILS_URL);
+}
+
 // Produces n URLs with unique UUIDs which will record when they are prefetched.
 function getPrefetchUrlList(n) {
-  let urls = [];
-  for (let i=0; i<n; i++) {
-    let params = new URLSearchParams({uuid: token()});
-    urls.push(new URL(`prefetch.py?${params}`, SR_PREFETCH_UTILS_URL));
-  }
-  return urls;
+  return Array.from({ length: n }, () => getPrefetchUrl());
 }
 
 function getRedirectUrl() {
@@ -130,6 +133,28 @@ function insertSpeculationRules(body) {
   script.type = 'speculationrules';
   script.textContent = JSON.stringify(body);
   document.head.appendChild(script);
+}
+
+// Creates and appends <a href=|href|> to |insertion point|. If
+// |insertion_point| is not specified, document.body is used.
+function addLink(href, insertion_point=document.body) {
+  const a = document.createElement('a');
+  a.href = href;
+  insertion_point.appendChild(a);
+  return a;
+}
+
+// Inserts a prefetch document rule with |predicate|. |predicate| can be
+// undefined, in which case the default predicate will be used (i.e. all links
+// in document will match).
+function insertDocumentRule(predicate, extra_options={}) {
+  insertSpeculationRules({
+    prefetch: [{
+      source: 'document',
+      where: predicate,
+      ...extra_options
+    }]
+  });
 }
 
 function assert_prefetched (requestHeaders, description) {

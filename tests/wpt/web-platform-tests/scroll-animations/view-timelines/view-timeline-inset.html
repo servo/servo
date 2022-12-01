@@ -157,4 +157,14 @@ promise_test(async t => {
     rangeEnd: 900 - 0.1 * vmin
   });
 }, 'view timeline with viewport relative insets.');
+
+
+promise_test(async t => {
+  assert_throws_dom('NOT_SUPPORTED_ERR', () => {
+    new ViewTimeline({
+      subject: target,
+      inset: [ CSS.rad(1) ]
+    });
+  });
+}, 'view timeline with invalid inset');
 </script>

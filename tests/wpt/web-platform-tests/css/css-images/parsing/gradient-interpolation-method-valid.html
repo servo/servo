@@ -31,6 +31,7 @@ const CONIC_GRADIENT_SPECIFIERS = [
 ];
 
 const legacy_stops = "red, blue"
+const legacy_stops_with_hint = "red, 50%, blue"
 const non_legacy_stops = "color(srgb 1 0 0), blue"
 
 function test_gradients_no_specified_interpolation_method(gradientFunction, specifiers, stops)
@@ -58,6 +59,7 @@ function test_gradients(gradientFunction, colorInterpolationMethod, colorInterpo
 function test_gradient_with_interpolation_method(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResult, specifiers, stops) {
     const colorInterpolationMethodResultForLegacyStops = (colorInterpolationMethodResult == "srgb") ? "" : colorInterpolationMethodResult;
     test_gradients(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResultForLegacyStops, specifiers, legacy_stops)
+    test_gradients(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResultForLegacyStops, specifiers, legacy_stops_with_hint)
 
     const colorInterpolationMethodResultForNonLegacyStops = (colorInterpolationMethodResult == "oklab") ? "" : colorInterpolationMethodResult;
     test_gradients(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResultForNonLegacyStops, specifiers, non_legacy_stops)
@@ -65,6 +67,7 @@ function test_gradient_with_interpolation_method(gradientFunction, colorInterpol
 
 function test_each_interpolation_method(gradientFunction, specifiers) {
     test_gradients_no_specified_interpolation_method(gradientFunction, specifiers, legacy_stops)
+    test_gradients_no_specified_interpolation_method(gradientFunction, specifiers, legacy_stops_with_hint)
     test_gradients_no_specified_interpolation_method(gradientFunction, specifiers, non_legacy_stops)
 
     for (const colorSpace of [ "lab", "oklab", "srgb", "srgb-linear", "xyz", "xyz-d50", "xyz-d65" ]) {
