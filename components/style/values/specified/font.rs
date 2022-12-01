@@ -72,21 +72,29 @@ macro_rules! system_font_methods {
 #[allow(missing_docs)]
 #[cfg(feature = "gecko")]
 pub enum SystemFont {
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-caption
     Caption,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-icon
     Icon,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-menu
     Menu,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-message-box
     MessageBox,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-small-caption
     SmallCaption,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-status-bar
     StatusBar,
-    MozWindow,
-    MozDocument,
-    MozWorkspace,
-    MozDesktop,
-    MozInfo,
-    MozDialog,
-    MozButton,
+    /// Internal system font, used by the `<menupopup>`s on macOS.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozPullDownMenu,
+    /// Internal system font, used for `<button>` elements.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozButton,
+    /// Internal font, used by `<select>` elements.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozList,
+    /// Internal font, used by `<input>` elements.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozField,
     #[css(skip)]
     End, // Just for indexing purposes.

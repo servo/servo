@@ -71,7 +71,7 @@
         let mut stretch = None;
         let size;
         % if engine == "gecko":
-            if let Ok(sys) = input.try_parse(SystemFont::parse) {
+            if let Ok(sys) = input.try_parse(|i| SystemFont::parse(context, i)) {
                 return Ok(expanded! {
                      % for name in SYSTEM_FONT_LONGHANDS:
                         ${name}: ${name}::SpecifiedValue::system_font(sys),
