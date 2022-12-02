@@ -63,13 +63,8 @@ impl RngCore for ServoRng {
     }
 }
 
+#[derive(Default)]
 pub struct Seed([u8; 32]);
-
-impl Default for Seed {
-    fn default() -> Self {
-        Seed([0; 32])
-    }
-}
 
 impl AsMut<[u8]> for Seed {
     fn as_mut(&mut self) -> &mut [u8] {
