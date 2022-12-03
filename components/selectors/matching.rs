@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::attr::{AttrSelectorOperation, NamespaceConstraint, ParsedAttrSelectorOperation};
+use crate::attr::{
+    AttrSelectorOperation, CaseSensitivity, NamespaceConstraint, ParsedAttrSelectorOperation,
+    ParsedCaseSensitivity,
+};
 use crate::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use crate::nth_index_cache::NthIndexCacheInner;
 use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
@@ -580,12 +583,7 @@ fn matches_local_name<E>(element: &E, local_name: &LocalName<E::Impl>) -> bool
 where
     E: Element,
 {
-    let name = select_name(
-        element.is_html_element_in_html_document(),
-        &local_name.name,
-        &local_name.lower_name,
-    )
-    .borrow();
+    let name = select_name(element, &local_name.name, &local_name.lower_name).borrow();
     element.has_local_name(name)
 }
 
@@ -665,14 +663,11 @@ where
         Component::AttributeInNoNamespaceExists {
             ref local_name,
             ref local_name_lower,
-        } => {
-            let is_html = element.is_html_element_in_html_document();
-            element.attr_matches(
-                &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<E::Impl>()),
-                select_name(is_html, local_name, local_name_lower),
-                &AttrSelectorOperation::Exists,
-            )
-        },
+        } => element.attr_matches(
+            &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<E::Impl>()),
+            select_name(element, local_name, local_name_lower),
+            &AttrSelectorOperation::Exists,
+        ),
         Component::AttributeInNoNamespace {
             ref local_name,
             ref value,
@@ -683,13 +678,12 @@ where
             if never_matches {
                 return false;
             }
-            let is_html = element.is_html_element_in_html_document();
             element.attr_matches(
                 &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<E::Impl>()),
                 local_name,
                 &AttrSelectorOperation::WithValue {
                     operator,
-                    case_sensitivity: case_sensitivity.to_unconditional(is_html),
+                    case_sensitivity: to_unconditional_case_sensitivity(case_sensitivity, element),
                     expected_value: value,
                 },
             )
@@ -698,7 +692,6 @@ where
             if attr_sel.never_matches {
                 return false;
             }
-            let is_html = element.is_html_element_in_html_document();
             let empty_string;
             let namespace = match attr_sel.namespace() {
                 Some(ns) => ns,
@@ -709,7 +702,7 @@ where
             };
             element.attr_matches(
                 &namespace,
-                select_name(is_html, &attr_sel.local_name, &attr_sel.local_name_lower),
+                select_name(element, &attr_sel.local_name, &attr_sel.local_name_lower),
                 &match attr_sel.operation {
                     ParsedAttrSelectorOperation::Exists => AttrSelectorOperation::Exists,
                     ParsedAttrSelectorOperation::WithValue {
@@ -718,7 +711,10 @@ where
                         ref expected_value,
                     } => AttrSelectorOperation::WithValue {
                         operator,
-                        case_sensitivity: case_sensitivity.to_unconditional(is_html),
+                        case_sensitivity: to_unconditional_case_sensitivity(
+                            case_sensitivity,
+                            element,
+                        ),
                         expected_value,
                     },
                 },
@@ -867,11 +863,35 @@ where
 }
 
 #[inline(always)]
-fn select_name<'a, T>(is_html: bool, local_name: &'a T, local_name_lower: &'a T) -> &'a T {
-    if is_html {
+fn select_name<'a, E: Element, T: PartialEq>(
+    element: &E,
+    local_name: &'a T,
+    local_name_lower: &'a T,
+) -> &'a T {
+    if local_name == local_name_lower || element.is_html_element_in_html_document() {
         local_name_lower
     } else {
         local_name
+    }
+}
+
+#[inline(always)]
+fn to_unconditional_case_sensitivity<'a, E: Element>(
+    parsed: ParsedCaseSensitivity,
+    element: &E,
+) -> CaseSensitivity {
+    match parsed {
+        ParsedCaseSensitivity::CaseSensitive | ParsedCaseSensitivity::ExplicitCaseSensitive => {
+            CaseSensitivity::CaseSensitive
+        },
+        ParsedCaseSensitivity::AsciiCaseInsensitive => CaseSensitivity::AsciiCaseInsensitive,
+        ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
+            if element.is_html_element_in_html_document() {
+                CaseSensitivity::AsciiCaseInsensitive
+            } else {
+                CaseSensitivity::CaseSensitive
+            }
+        },
     }
 }
 
