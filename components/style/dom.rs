@@ -95,7 +95,7 @@ where
     #[inline]
     fn next(&mut self) -> Option<N> {
         let prev = self.previous.take()?;
-        self.previous = prev.next_in_preorder(Some(self.scope));
+        self.previous = prev.next_in_preorder(self.scope);
         self.previous
     }
 }
@@ -164,6 +164,7 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     fn owner_doc(&self) -> Self::ConcreteDocument;
 
     /// Iterate over the DOM children of a node.
+    #[inline(always)]
     fn dom_children(&self) -> DomChildren<Self> {
         DomChildren(self.first_child())
     }
@@ -172,6 +173,7 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     fn is_in_document(&self) -> bool;
 
     /// Iterate over the DOM children of a node, in preorder.
+    #[inline(always)]
     fn dom_descendants(&self) -> DomDescendants<Self> {
         DomDescendants {
             previous: Some(*self),
@@ -179,26 +181,26 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
         }
     }
 
-    /// Returns the next children in pre-order, optionally scoped to a subtree
-    /// root.
+    /// Returns the next node after this one, in a pre-order tree-traversal of
+    /// the subtree rooted at scoped_to.
     #[inline]
-    fn next_in_preorder(&self, scoped_to: Option<Self>) -> Option<Self> {
+    fn next_in_preorder(&self, scoped_to: Self) -> Option<Self> {
         if let Some(c) = self.first_child() {
             return Some(c);
         }
 
-        let mut current = Some(*self);
+        let mut current = *self;
         loop {
             if current == scoped_to {
                 return None;
             }
 
-            debug_assert!(current.is_some(), "not a descendant of the scope?");
-            if let Some(s) = current?.next_sibling() {
+            if let Some(s) = current.next_sibling() {
                 return Some(s);
             }
 
-            current = current?.parent_node();
+            debug_assert!(current.parent_node().is_some(), "Not a descendant of the scope?");
+            current = current.parent_node()?;
         }
     }
 
