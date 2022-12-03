@@ -142,6 +142,7 @@ pub enum SystemColor {
     Buttonhighlight,
     Buttonshadow,
     Buttontext,
+    Buttonborder,
     /// Text color in the (active) titlebar.
     Captiontext,
     #[parse(aliases = "-moz-field")]
@@ -151,6 +152,9 @@ pub enum SystemColor {
     MozDisabledfield,
     #[parse(aliases = "-moz-fieldtext")]
     Fieldtext,
+
+    Mark,
+    Marktext,
 
     /// Combobox widgets
     MozComboboxtext,
