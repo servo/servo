@@ -365,7 +365,7 @@ where
         ref lower_name,
     } = *local_name;
 
-    let chosen_name = if element.is_html_element_in_html_document() {
+    let chosen_name = if name == lower_name || element.is_html_element_in_html_document() {
         lower_name
     } else {
         name
