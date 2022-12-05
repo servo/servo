@@ -7,8 +7,9 @@
 
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
-#[cfg(feature = "gecko")]
-use crate::properties::longhands::contain::SpecifiedValue;
+use crate::properties::longhands::contain::computed_value::T as Contain;
+use crate::properties::longhands::container_type::computed_value::T as ContainerType;
+use crate::properties::longhands::content_visibility::computed_value::T as ContentVisibility;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::position::computed_value::T as Position;
@@ -465,6 +466,47 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    fn adjust_for_contain(&mut self) {
+        let box_style = self.style.get_box();
+        debug_assert_eq!(box_style.clone_contain(), box_style.clone_effective_containment());
+        let container_type = box_style.clone_container_type();
+        let content_visibility = box_style.clone_content_visibility();
+        if container_type == ContainerType::Normal &&
+            content_visibility == ContentVisibility::Visible
+        {
+            return;
+        }
+        let old_contain = box_style.clone_contain();
+        let mut new_contain = old_contain;
+        match content_visibility {
+            ContentVisibility::Visible => {},
+            // `content-visibility:auto` also applies size containment when content
+            // is not relevant (and therefore skipped). This is checked in
+            // nsIFrame::GetContainSizeAxes.
+            ContentVisibility::Auto => new_contain.insert(
+                Contain::LAYOUT | Contain::PAINT | Contain::STYLE),
+            ContentVisibility::Hidden => new_contain.insert(
+                Contain::LAYOUT | Contain::PAINT | Contain::SIZE | Contain::STYLE),
+        }
+        match container_type {
+            ContainerType::Normal => {},
+            // https://drafts.csswg.org/css-contain-3/#valdef-container-type-inline-size:
+            //     Applies layout containment, style containment, and inline-size
+            //     containment to the principal box.
+            ContainerType::InlineSize => new_contain.insert(
+                Contain::LAYOUT | Contain::STYLE | Contain::INLINE_SIZE),
+            // https://drafts.csswg.org/css-contain-3/#valdef-container-type-size:
+            //     Applies layout containment, style containment, and size
+            //     containment to the principal box.
+            ContainerType::Size => new_contain.insert(
+                Contain::LAYOUT | Contain::STYLE | Contain::SIZE),
+        }
+        if new_contain == old_contain {
+            return;
+        }
+        self.style.mutate_box().set_effective_containment(new_contain);
+    }
+
     /// Handles the relevant sections in:
     ///
     /// https://drafts.csswg.org/css-display/#unbox-html
@@ -899,6 +941,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_webkit_line_clamp();
         self.adjust_for_position();
         self.adjust_for_overflow();
+        self.adjust_for_contain();
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_table_text_align();
