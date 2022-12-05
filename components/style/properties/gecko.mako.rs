@@ -1127,7 +1127,7 @@ fn static_assert() {
     ${impl_copy_animation_value(ident, gecko_ffi_name)}
 </%def>
 
-<% skip_box_longhands= """display""" %>
+<% skip_box_longhands= """display contain""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
     #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
@@ -1137,8 +1137,7 @@ fn static_assert() {
 
     #[inline]
     pub fn copy_display_from(&mut self, other: &Self) {
-        self.gecko.mDisplay = other.gecko.mDisplay;
-        self.gecko.mOriginalDisplay = other.gecko.mDisplay;
+        self.set_display(other.gecko.mDisplay);
     }
 
     #[inline]
@@ -1158,6 +1157,40 @@ fn static_assert() {
     #[inline]
     pub fn clone_display(&self) -> longhands::display::computed_value::T {
         self.gecko.mDisplay
+    }
+
+    #[inline]
+    pub fn set_contain(&mut self, v: longhands::contain::computed_value::T) {
+        self.gecko.mContain = v;
+        self.gecko.mEffectiveContainment = v;
+    }
+
+    #[inline]
+    pub fn copy_contain_from(&mut self, other: &Self) {
+        self.set_contain(other.gecko.mContain);
+    }
+
+    #[inline]
+    pub fn reset_contain(&mut self, other: &Self) {
+        self.copy_contain_from(other)
+    }
+
+    #[inline]
+    pub fn clone_contain(&self) -> longhands::contain::computed_value::T {
+        self.gecko.mContain
+    }
+
+    #[inline]
+    pub fn set_effective_containment(
+        &mut self,
+        v: longhands::contain::computed_value::T
+    ) {
+        self.gecko.mEffectiveContainment = v;
+    }
+
+    #[inline]
+    pub fn clone_effective_containment(&self) -> longhands::contain::computed_value::T {
+        self.gecko.mEffectiveContainment
     }
 </%self:impl_trait>
 
