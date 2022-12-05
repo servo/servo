@@ -1041,7 +1041,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn primary_box_size(&self) -> Size2D<Au> {
+    fn primary_content_box_size(&self) -> Size2D<Au> {
         if !self.as_node().is_connected() {
             return Size2D::zero();
         }
@@ -1058,7 +1058,10 @@ impl<'le> TElement for GeckoElement<'le> {
             if frame.is_null() {
                 return Size2D::zero();
             }
-            Size2D::new(Au((**frame).mRect.width), Au((**frame).mRect.height))
+            let mut width = 0;
+            let mut height = 0;
+            bindings::Gecko_ContentSize(*frame, &mut width, &mut height);
+            Size2D::new(Au(width), Au(height))
         }
     }
 
