@@ -30,7 +30,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, SourceLocation};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
+use style_traits::{CssWriter, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 
 /// A source for a font-face rule.
@@ -44,8 +44,35 @@ pub enum Source {
     Local(FamilyName),
 }
 
-impl OneOrMoreSeparated for Source {
-    type S = Comma;
+/// A list of sources for the font-face src descriptor.
+#[derive(Clone, Debug, Eq, PartialEq, ToCss, ToShmem)]
+#[css(comma)]
+pub struct SourceList(#[css(iterable)] pub Vec<Source>);
+
+// We can't just use OneOrMoreSeparated to derive Parse for the Source list,
+// because we want to filter out components that parsed as None, then fail if no
+// valid components remain. So we provide our own implementation here.
+impl Parse for SourceList {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        // Parse the comma-separated list, then let filter_map discard any None items.
+        let list = input
+            .parse_comma_separated(|input| {
+                let s = input.parse_entirely(|input| Source::parse(context, input));
+                while input.next().is_ok() {}
+                Ok(s.ok())
+            })?
+            .into_iter()
+            .filter_map(|s| s)
+            .collect::<Vec<Source>>();
+        if list.is_empty() {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        } else {
+            Ok(SourceList(list))
+        }
+    }
 }
 
 /// Keywords for the font-face src descriptor's format() function.
@@ -465,7 +492,7 @@ pub struct FontFace<'a>(&'a FontFaceRuleData);
 #[cfg(feature = "servo")]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct EffectiveSources(Vec<Source>);
+pub struct EffectiveSources(SourceList);
 
 #[cfg(feature = "servo")]
 impl<'a> FontFace<'a> {
@@ -645,7 +672,7 @@ macro_rules! font_face_descriptors_common {
                 $(
                     if let Some(ref value) = self.$ident {
                         dest.write_str(concat!($name, ": "))?;
-                        ToCss::to_css(value, &mut CssWriter::new(dest))?;
+                        value.to_css(&mut CssWriter::new(dest))?;
                         dest.write_str("; ")?;
                     }
                 )*
@@ -739,7 +766,7 @@ font_face_descriptors! {
         "font-family" family / mFamily: FamilyName,
 
         /// The alternative sources for this font face.
-        "src" sources / mSrc: Vec<Source>,
+        "src" sources / mSrc: SourceList,
     ]
     optional descriptors = [
         /// The style of this font face.
@@ -787,7 +814,7 @@ font_face_descriptors! {
         "font-family" family / mFamily: FamilyName,
 
         /// The alternative sources for this font face.
-        "src" sources / mSrc: Vec<Source>,
+        "src" sources / mSrc: SourceList,
     ]
     optional descriptors = [
     ]
