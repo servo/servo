@@ -698,9 +698,9 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
 
     let url_opt = url_opt.and_then(|url_string| {
         parse_url_or_filename(&cwd, url_string)
-            .or_else(|error| {
+            .map_err(|error| {
                 warn!("URL parsing failed ({:?}).", error);
-                Err(error)
+                error
             })
             .ok()
     });
@@ -722,7 +722,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
                     Err(_) => Some(OutputOptions::FileName(argument)),
                 },
             },
-            None => Some(OutputOptions::Stdout(5.0 as f64)),
+            None => Some(OutputOptions::Stdout(5.0)),
         }
     } else {
         // if the p option doesn't exist:
