@@ -331,7 +331,7 @@ impl QueryCondition {
     /// <general-enclosed>.
     pub fn matches(&self, context: &computed::Context) -> KleeneValue {
         match *self {
-            QueryCondition::Feature(ref f) => KleeneValue::from(f.matches(context)),
+            QueryCondition::Feature(ref f) => f.matches(context),
             QueryCondition::GeneralEnclosed(_) => KleeneValue::Unknown,
             QueryCondition::InParens(ref c) => c.matches(context),
             QueryCondition::Not(ref c) => !c.matches(context),

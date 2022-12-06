@@ -8,6 +8,7 @@
 use super::feature::{Evaluator, QueryFeatureDescription};
 use super::feature::{FeatureFlags, KeywordDiscriminant};
 use crate::parser::{Parse, ParserContext};
+use crate::queries::condition::KleeneValue;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::values::computed::{self, Ratio, ToComputedValue};
 use crate::values::specified::{Integer, Length, Number, Resolution};
@@ -575,7 +576,7 @@ impl QueryFeatureExpression {
     }
 
     /// Returns whether this query evaluates to true for the given device.
-    pub fn matches(&self, context: &computed::Context) -> bool {
+    pub fn matches(&self, context: &computed::Context) -> KleeneValue {
         macro_rules! expect {
             ($variant:ident, $v:expr) => {
                 match *$v {
@@ -585,7 +586,7 @@ impl QueryFeatureExpression {
             };
         }
 
-        match self.feature().evaluator {
+        KleeneValue::from(match self.feature().evaluator {
             Evaluator::Length(eval) => {
                 let v = eval(context);
                 self.kind
@@ -594,7 +595,7 @@ impl QueryFeatureExpression {
             Evaluator::OptionalLength(eval) => {
                 let v = match eval(context) {
                     Some(v) => v,
-                    None => return false,
+                    None => return KleeneValue::Unknown,
                 };
                 self.kind
                     .evaluate(v, |v| expect!(Length, v).to_computed_value(context))
@@ -619,7 +620,7 @@ impl QueryFeatureExpression {
             Evaluator::OptionalNumberRatio(eval) => {
                 let ratio = match eval(context) {
                     Some(v) => v,
-                    None => return false,
+                    None => return KleeneValue::Unknown,
                 };
                 // See above for subtleties here.
                 self.kind
@@ -646,7 +647,7 @@ impl QueryFeatureExpression {
                 let boolean = eval(context);
                 computed.map_or(boolean, |v| v == boolean)
             },
-        }
+        })
     }
 }
 
