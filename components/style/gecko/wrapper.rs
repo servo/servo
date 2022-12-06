@@ -322,11 +322,6 @@ impl<'ln> GeckoNode<'ln> {
         self.flags() & (NODE_IS_IN_SHADOW_TREE as u32) != 0
     }
 
-    #[inline]
-    fn is_connected(&self) -> bool {
-        self.get_bool_flag(nsINode_BooleanFlag::IsConnected)
-    }
-
     /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
     /// Make sure to mirror any modifications in both places.
     #[inline]
@@ -1041,29 +1036,16 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn primary_content_box_size(&self) -> Size2D<Option<Au>> {
-        if !self.as_node().is_connected() {
-            return Size2D::new(None, None)
-        }
-
+    fn query_container_size(&self) -> Size2D<Option<Au>> {
+        let mut width = -1;
+        let mut height = -1;
         unsafe {
-            let frame = self
-                .0
-                ._base
-                ._base
-                ._base
-                .__bindgen_anon_1
-                .mPrimaryFrame
-                .as_ref();
-            if frame.is_null() {
-                return Size2D::new(None, None)
-            }
-            let mut width = 0;
-            let mut height = 0;
-            bindings::Gecko_ContentSize(*frame, &mut width, &mut height);
-            // FIXME: Should use None if there isn't size containment.
-            Size2D::new(Some(Au(width)), Some(Au(height)))
+            bindings::Gecko_GetQueryContainerSize(self.0, &mut width, &mut height);
         }
+        Size2D::new(
+            if width >= 0 { Some(Au(width)) } else { None },
+            if height >= 0 { Some(Au(height)) } else { None },
+        )
     }
 
     /// Return the list of slotted nodes of this node.
