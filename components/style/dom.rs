@@ -943,8 +943,10 @@ pub trait TElement:
     fn namespace(&self)
         -> &<SelectorImpl as selectors::parser::SelectorImpl>::BorrowedNamespaceUrl;
 
-    /// Returns the size of the primary box of the element.
-    fn primary_content_box_size(&self) -> euclid::default::Size2D<Option<app_units::Au>>;
+    /// Returns the size of the element to be used in container size queries.
+    /// This will usually be the size of the content area of the primary box,
+    /// but can be None if there is no box or if some axis lacks size containment.
+    fn query_container_size(&self) -> euclid::default::Size2D<Option<app_units::Au>>;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit
