@@ -698,9 +698,9 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
 
     let url_opt = url_opt.and_then(|url_string| {
         parse_url_or_filename(&cwd, url_string)
-            .or_else(|error| {
+            .map_err(|error| {
                 warn!("URL parsing failed ({:?}).", error);
-                Err(error)
+                error
             })
             .ok()
     });
@@ -722,7 +722,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
                     Err(_) => Some(OutputOptions::FileName(argument)),
                 },
             },
-            None => Some(OutputOptions::Stdout(5.0 as f64)),
+            None => Some(OutputOptions::Stdout(5.0)),
         }
     } else {
         // if the p option doesn't exist:
@@ -784,7 +784,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         bubble_inline_sizes_separately = true;
     }
 
-    let (devtools_enabled, devtools_port) = if opt_match.opt_present("devtools") {
+    let (devtools_server_enabled, devtools_port) = if opt_match.opt_present("devtools") {
         let port = opt_match
             .opt_str("devtools")
             .map(|port| {
@@ -847,37 +847,37 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
 
     let opts = Opts {
-        is_running_problem_test: is_running_problem_test,
+        is_running_problem_test,
         url: url_opt,
-        tile_size: tile_size,
-        time_profiling: time_profiling,
+        tile_size,
+        time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
-        mem_profiler_period: mem_profiler_period,
-        nonincremental_layout: nonincremental_layout,
+        mem_profiler_period,
+        nonincremental_layout,
         userscripts: opt_match.opt_default("userscripts", ""),
-        user_stylesheets: user_stylesheets,
+        user_stylesheets,
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.replace_surrogates,
         gc_profile: debug_options.gc_profile,
         load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
-        bubble_inline_sizes_separately: bubble_inline_sizes_separately,
+        bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
         trace_layout: debug_options.trace_layout,
-        devtools_port: devtools_port,
-        devtools_server_enabled: devtools_enabled,
-        webdriver_port: webdriver_port,
-        initial_window_size: initial_window_size,
+        devtools_port,
+        devtools_server_enabled,
+        webdriver_port,
+        initial_window_size,
         multiprocess: opt_match.opt_present("M"),
         background_hang_monitor: opt_match.opt_present("B"),
         sandbox: opt_match.opt_present("S"),
-        random_pipeline_closure_probability: random_pipeline_closure_probability,
-        random_pipeline_closure_seed: random_pipeline_closure_seed,
+        random_pipeline_closure_probability,
+        random_pipeline_closure_seed,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_layout: debug_options.show_parallel_layout,
         enable_text_antialiasing: !debug_options.disable_text_aa,
-        enable_subpixel_text_antialiasing: enable_subpixel_text_antialiasing,
+        enable_subpixel_text_antialiasing,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
         dump_rule_tree: debug_options.dump_rule_tree,
@@ -892,7 +892,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         webrender_stats: debug_options.webrender_stats,
         config_dir: opt_match.opt_str("config-dir").map(Into::into),
         full_backtraces: debug_options.full_backtraces,
-        is_printing_version: is_printing_version,
+        is_printing_version,
         webrender_record: debug_options.webrender_record,
         webrender_batch: !debug_options.webrender_disable_batch,
         shaders_dir: opt_match.opt_str("shaders").map(Into::into),
