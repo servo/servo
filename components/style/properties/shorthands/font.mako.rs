@@ -28,7 +28,6 @@
         ${'font-language-override' if engine == 'gecko' else ''}
         ${'font-feature-settings' if engine == 'gecko' else ''}
         ${'font-variation-settings' if engine == 'gecko' else ''}
-        ${'font-palette' if engine == 'gecko' else ''}
     "
     derive_value_info="False"
     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font"
@@ -51,7 +50,7 @@
                                 variant_emoji variant_ligatures \
                                 variant_numeric variant_position \
                                 feature_settings variation_settings \
-                                optical_sizing palette".split()
+                                optical_sizing".split()
     %>
     % if engine == "gecko":
         % for prop in gecko_sub_properties:
@@ -189,11 +188,6 @@
                     return Ok(());
                 }
             }
-            if let Some(v) = self.font_palette {
-                if v != &font_palette::get_initial_specified_value() {
-                    return Ok(());
-                }
-            }
             if let Some(v) = self.font_variant_emoji {
                 if v != &font_variant_emoji::get_initial_specified_value() {
                     return Ok(());
@@ -201,7 +195,7 @@
             }
 
             % for name in gecko_sub_properties:
-            % if name != "optical_sizing" and name != "variation_settings" and name != "palette" and name != "variant_emoji":
+            % if name != "optical_sizing" and name != "variation_settings" and name != "variant_emoji":
             if self.font_${name} != &font_${name}::get_initial_specified_value() {
                 return Ok(());
             }
@@ -264,7 +258,7 @@
             let mut all = true;
 
             % for prop in SYSTEM_FONT_LONGHANDS:
-            % if prop == "font_optical_sizing" or prop == "font_variation_settings" or prop == "font_palette":
+            % if prop == "font_optical_sizing" or prop == "font_variation_settings":
             if let Some(value) = self.${prop} {
             % else:
             {
