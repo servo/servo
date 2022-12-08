@@ -189,16 +189,14 @@ impl ToCss for FontFaceSourceTechFlags {
             };
         }
 
-        // Being CSS keywords, these are ASCII-case-insensitive; but we serialize
-        // as mixed-case to match how they're listed in the spec.
         write_if_flag!("features-opentype" => FEATURES_OPENTYPE);
         write_if_flag!("features-aat" => FEATURES_AAT);
         write_if_flag!("features-graphite" => FEATURES_GRAPHITE);
-        write_if_flag!("color-COLRv0" => COLOR_COLRV0);
-        write_if_flag!("color-COLRv1" => COLOR_COLRV1);
-        write_if_flag!("color-SVG" => COLOR_SVG);
+        write_if_flag!("color-colrv0" => COLOR_COLRV0);
+        write_if_flag!("color-colrv1" => COLOR_COLRV1);
+        write_if_flag!("color-svg" => COLOR_SVG);
         write_if_flag!("color-sbix" => COLOR_SBIX);
-        write_if_flag!("color-CBDT" => COLOR_CBDT);
+        write_if_flag!("color-cbdt" => COLOR_CBDT);
         write_if_flag!("variations" => VARIATIONS);
         write_if_flag!("palettes" => PALETTES);
         write_if_flag!("incremental" => INCREMENTAL);
