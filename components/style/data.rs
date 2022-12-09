@@ -476,10 +476,16 @@ impl ElementData {
     /// happens later in the styling pipeline. The former gives us the stronger guarantees
     /// we need for style sharing, the latter does not.
     pub fn safe_for_cousin_sharing(&self) -> bool {
-        !self.flags.intersects(
+        if self.flags.intersects(
             ElementDataFlags::TRAVERSED_WITHOUT_STYLING |
                 ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE,
-        )
+        ) {
+            return false;
+        }
+        if !self.styles.primary().get_box().clone_container_type().is_normal() {
+            return false;
+        }
+        true
     }
 
     /// Measures memory usage.
