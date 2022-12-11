@@ -175,8 +175,12 @@ const popover = document.querySelector('[popover]');
 const button = document.querySelector('button');
 let showCount = 0;
 let hideCount = 0;
-popover.addEventListener('popovershow',() => ++showCount);
-popover.addEventListener('popoverhide',() => ++hideCount);
+popover.addEventListener('beforetoggle',(e) => {
+  if (e.newState === "open")
+      ++showCount;
+    else
+      ++hideCount;
+  });
 
 async function assertState(expectOpen,expectShow,expectHide) {
   assert_equals(popover.matches(':open'),expectOpen,'Popover open state is incorrect');

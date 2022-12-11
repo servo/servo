@@ -51,6 +51,8 @@ div { box-sizing: border-box; will-change: transform }
 <div id=hidden></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function runTest() {
   document.startViewTransition(() => {
     wrapper.classList.toggle("wrap_perspective");

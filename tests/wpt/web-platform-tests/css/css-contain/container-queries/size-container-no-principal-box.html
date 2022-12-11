@@ -22,6 +22,12 @@
   @container (min-width: 0) {
     #ref { color: green; }
   }
+  @container not (max-width: 0) {
+    span { background-color: red; }
+  }
+  @container not (max-width: 0) {
+    #ref { background-color: green; }
+  }
 </style>
 <div id="outer">
   <div id="ref"></div>
@@ -33,7 +39,7 @@
 
   test(() => {
     assert_equals(getComputedStyle(ref).color, "rgb(0, 128, 0)");
-  }, "Check that container queries is supported");
+  }, "(min-width: 0) can match a container with a principal box");
 
   test(() => {
     assert_equals(getComputedStyle(inner_none.firstChild).color, "rgb(0, 0, 0)");
@@ -42,4 +48,16 @@
   test(() => {
     assert_equals(getComputedStyle(inner_contents.firstChild).color, "rgb(0, 0, 0)");
   }, "(min-width: 0) does not match a container without a principal box (display:contents)");
+
+  test(() => {
+    assert_equals(getComputedStyle(ref).backgroundColor, "rgb(0, 128, 0)");
+  }, "not (max-width: 0) can match a container with a principal box");
+
+  test(() => {
+    assert_equals(getComputedStyle(inner_none.firstChild).backgroundColor, "rgba(0, 0, 0, 0)");
+  }, "not (max-width: 0) does not match a container without a principal box (display:none)");
+
+  test(() => {
+    assert_equals(getComputedStyle(inner_contents.firstChild).backgroundColor, "rgba(0, 0, 0, 0)");
+  }, "not (max-width: 0) does not match a container without a principal box (display:contents)");
 </script>

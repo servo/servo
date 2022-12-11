@@ -17,7 +17,7 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
   image_capture_test(async (t, imageCaptureTest) => {
     const ptzPermission = hasPanTiltZoomPermissionGranted ? 'granted' : 'denied';
     await test_driver.set_permission({name: 'camera', panTiltZoom: true},
-        ptzPermission, false);
+        ptzPermission);
 
     let mockSettings = imageCaptureTest.mockImageCapture().state();
 

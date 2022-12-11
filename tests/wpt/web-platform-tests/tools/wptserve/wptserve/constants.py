@@ -11,6 +11,7 @@ content_types = utils.invert_dict({
     "audio/ogg": ["oga"],
     "audio/webm": ["weba"],
     "audio/x-wav": ["wav"],
+    "image/avif": ["avif"],
     "image/bmp": ["bmp"],
     "image/gif": ["gif"],
     "image/jpeg": ["jpg", "jpeg"],

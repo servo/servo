@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html>
 <title>View transitions: ensures view-transition-name is not tracked on element removed by script</title>
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
@@ -22,6 +22,7 @@
 </body>
 <script>
 promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     // Remove an uncontained element. Because this element is not visited when
     // discovering named elements, the transition is not skipped.

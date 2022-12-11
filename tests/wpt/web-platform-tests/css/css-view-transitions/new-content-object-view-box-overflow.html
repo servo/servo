@@ -56,6 +56,8 @@ html::view-transition { background: lightpink; }
 </div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() =>
     requestAnimationFrame(() => requestAnimationFrame(takeScreenshot)));

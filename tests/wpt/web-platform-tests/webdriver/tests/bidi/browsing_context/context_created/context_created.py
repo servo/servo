@@ -34,11 +34,8 @@ async def test_not_unsubscribed(bidi_session):
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_new_context(bidi_session, wait_for_event, type_hint):
-    # Unsubscribe in case a previous tests subscribed to the event
-    await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])
-
-    await bidi_session.session.subscribe(events=[CONTEXT_CREATED_EVENT])
+async def test_new_context(bidi_session, wait_for_event, subscribe_events, type_hint):
+    await subscribe_events([CONTEXT_CREATED_EVENT])
 
     on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
     top_level_context = await bidi_session.browsing_context.create(type_hint="tab")
@@ -53,11 +50,8 @@ async def test_new_context(bidi_session, wait_for_event, type_hint):
     )
 
 
-async def test_evaluate_window_open_without_url(bidi_session, wait_for_event, top_context):
-    # Unsubscribe in case a previous tests subscribed to the event
-    await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])
-
-    await bidi_session.session.subscribe(events=[CONTEXT_CREATED_EVENT])
+async def test_evaluate_window_open_without_url(bidi_session, subscribe_events, wait_for_event, top_context):
+    await subscribe_events([CONTEXT_CREATED_EVENT])
 
     on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
 
@@ -76,16 +70,11 @@ async def test_evaluate_window_open_without_url(bidi_session, wait_for_event, to
         parent=None,
     )
 
-    await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])
 
-
-async def test_evaluate_window_open_with_url(bidi_session, wait_for_event, inline, top_context):
-    # Unsubscribe in case a previous tests subscribed to the event
-    await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])
-
+async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wait_for_event, inline, top_context):
     url = inline("<div>foo</div>")
 
-    await bidi_session.session.subscribe(events=[CONTEXT_CREATED_EVENT])
+    await subscribe_events([CONTEXT_CREATED_EVENT])
 
     on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
 
@@ -104,17 +93,14 @@ async def test_evaluate_window_open_with_url(bidi_session, wait_for_event, inlin
     )
 
 
-async def test_navigate_creates_iframes(bidi_session, top_context, test_page_multiple_frames):
-    # Unsubscribe in case a previous tests subscribed to the event
-    await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])
-
+async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_context, test_page_multiple_frames):
     events = []
 
     async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
-    await bidi_session.session.subscribe(events=[CONTEXT_CREATED_EVENT])
+    await subscribe_events([CONTEXT_CREATED_EVENT])
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page_multiple_frames, wait="complete"
@@ -153,20 +139,16 @@ async def test_navigate_creates_iframes(bidi_session, top_context, test_page_mul
     )
 
     remove_listener()
-    await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])
 
 
-async def test_navigate_creates_nested_iframes(bidi_session, top_context, test_page_nested_frames):
-    # Unsubscribe in case a previous tests subscribed to the event
-    await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])
-
+async def test_navigate_creates_nested_iframes(bidi_session, subscribe_events, top_context, test_page_nested_frames):
     events = []
 
     async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
-    await bidi_session.session.subscribe(events=[CONTEXT_CREATED_EVENT])
+    await subscribe_events([CONTEXT_CREATED_EVENT])
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page_nested_frames, wait="complete"
@@ -207,4 +189,3 @@ async def test_navigate_creates_nested_iframes(bidi_session, top_context, test_p
     )
 
     remove_listener()
-    await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])

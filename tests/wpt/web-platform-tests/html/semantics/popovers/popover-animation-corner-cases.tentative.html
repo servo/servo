@@ -100,7 +100,9 @@ promise_test(async (t) => {
   assert_true(isElementVisible(popover));
   assert_equals(popover.getAnimations({subtree: true}).length,0);
   let animation;
-  popover.addEventListener('popoverhide', () => {
+  popover.addEventListener('beforetoggle', (e) => {
+    if (e.newState !== "closed")
+      return;
     animation = popover.animate([{opacity: 1},{opacity: 0}],1000000);
   });
   assert_equals(popover.getAnimations({subtree: true}).length,0,'There should be no animations yet');
@@ -111,7 +113,7 @@ promise_test(async (t) => {
   animation.finish();
   await waitForRender();
   assert_false(isElementVisible(popover),'Once the animation ends, the popover is hidden');
-},'It should be possible to use the "popoverhide" event handler to animate the hide');
+},'It should be possible to use the "beforetoggle" event handler to animate the hide');
 
 
 promise_test(async (t) => {
@@ -121,27 +123,31 @@ promise_test(async (t) => {
   popover.showPopover();
   assert_true(isElementVisible(popover));
   assert_equals(popover.getAnimations({subtree: true}).length,0);
-  popover.addEventListener('popoverhide', () => {
-    popover.animate([{opacity: 1},{opacity: 0}],1000000);
+  let animation;
+  popover.addEventListener('beforetoggle', (e) => {
+    if (e.newState !== "closed")
+      return;
+    animation = popover.animate([{opacity: 1},{opacity: 0}],1000000);
   });
   assert_equals(popover.getAnimations({subtree: true}).length,0,'There should be no animations yet');
   dialog.showModal(); // Force hide the popover
   await waitForRender();
   assert_equals(popover.getAnimations({subtree: true}).length,1,'the hide animation should now be running');
-  assert_false(isElementVisible(popover),'But the animation should *not* keep the popover visible in this case');
-},'It should *not* be possible to use the "popoverhide" event handler to animate the hide, if the hide is due to dialog.showModal');
+  assert_true(isElementVisible(popover),'And the animation should keep the popover visible');
+  animation.finish();
+  await waitForRender();
+  assert_false(isElementVisible(popover),'Once the animation ends, the popover is hidden');
+},'It should be possible to use the "beforetoggle" event handler to animate the hide, even when the hide is due to dialog.showModal');
 
 promise_test(async (t) => {
   const {popover, descendent} = createPopover(t,'');
   popover.showPopover();
   assert_true(isElementVisible(popover));
-  popover.addEventListener('popoverhide', (e) => {
-    e.preventDefault();
-  });
+  popover.addEventListener('beforetoggle', (e) => e.preventDefault());
   popover.hidePopover();
   await waitForRender();
   assert_false(isElementVisible(popover),'Even if hide event is cancelled, the popover still closes');
-},'hide event cannot be cancelled');
+},'toggle event cannot be cancelled');
 
 promise_test(async (t) => {
   const {popover, descendent} = createPopover(t,'animation');
@@ -169,7 +175,9 @@ promise_test(async (t) => {
   popover.showPopover();
   assert_true(isElementVisible(popover));
   assert_equals(popover.getAnimations({subtree: true}).length,0);
-  popover.addEventListener('popoverhide', () => {
+  popover.addEventListener('beforetoggle', (e) => {
+    if (e.newState !== "closed")
+      return;
     popover.animate([{opacity: 1},{opacity: 0}],1000000);
   });
   assert_equals(popover.getAnimations({subtree: true}).length,0,'There should be no animations yet');
@@ -193,7 +201,9 @@ promise_test(async (t) => {
 promise_test(async (t) => {
   const {popover, descendent} = createPopover(t,'');
   popover.showPopover();
-  popover.addEventListener('popoverhide', () => {
+  popover.addEventListener('beforetoggle', (e) => {
+    if (e.newState !== "closed")
+      return;
     popover.animate([{opacity: 1},{opacity: 0}],1000000);
   });
   popover.hidePopover();

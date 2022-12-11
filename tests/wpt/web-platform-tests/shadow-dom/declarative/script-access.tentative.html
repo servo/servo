@@ -22,12 +22,12 @@ function myObserver(mutationsList, observer) {
       case 'noroot':
         const template = n.querySelector('template');
         assert_true(!!template,'Regular template should still be present');
-        // Make sure adding 'shadowroot' attribute doesn't trigger a shadow root,
+        // Make sure adding 'shadowrootmode' attribute doesn't trigger a shadow root,
         // even if added before parsing completes.
-        template.setAttribute('shadowroot','open');
-        assert_not_equals(template.content, null, 'Regular template should have content, even after adding shadowroot attribute');
-        assert_not_equals(template.innerHTML, "", 'Regular template should have innerHTML, even after adding shadowroot attribute');
-        assert_not_equals(template.getInnerHTML({includeShadowRoots: true}), "", 'Regular template should have getInnerHTML(), even after adding shadowroot attribute');
+        template.setAttribute('shadowrootmode','open');
+        assert_not_equals(template.content, null, 'Regular template should have content, even after adding shadowrootmode attribute');
+        assert_not_equals(template.innerHTML, "", 'Regular template should have innerHTML, even after adding shadowrootmode attribute');
+        assert_not_equals(template.getInnerHTML({includeShadowRoots: true}), "", 'Regular template should have getInnerHTML(), even after adding shadowrootmode attribute');
         break;
       default:
         assert_unreached('Unrecognized template');
@@ -39,13 +39,13 @@ observer.observe(document.body, { childList: true, subtree: true });
 assert_equals(templatesSeen, 0, 'No mutations yet');
 </script>
 
-<div id=openhost class=host><template shadowroot=open>
+<div id=openhost class=host><template shadowrootmode=open>
   <slot></slot>
   <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
   <script> // some content, which shouldn't be necessary </script>
 </template></div>
 
-<div id=closedhost class=host><template shadowroot=closed>
+<div id=closedhost class=host><template shadowrootmode=closed>
   <slot></slot>
   <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
   <script> // some content, which shouldn't be necessary </script>
@@ -75,7 +75,7 @@ test(t => {
 
   // No shadow root
   host = document.querySelector('#noroot');
-  assert_true(!!host.querySelector('template'), 'Template node still present for invalid shadowroot value');
+  assert_true(!!host.querySelector('template'), 'Template node still present for invalid shadowrootmode value');
   assert_true(!host.shadowRoot, 'No shadow root');
 },'Streaming Declarative Shadow DOM: template .content() should be null');
 </script>
@@ -99,14 +99,14 @@ sync_events.forEach(e => addSyncObserver(e));
 </script>
 
 <div id=synchost1>
-  <template shadowroot=open>
+  <template shadowrootmode=open>
     <div class=foo>content</div>
     <slot></slot>
   </template>
 </div>
 
 <div id=synchost2>
-  <template shadowroot=closed>
+  <template shadowrootmode=closed>
     <div class=foo>content</div>
     <slot></slot>
   </template>

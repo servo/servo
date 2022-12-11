@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html>
 <title>View transitions: transition skipped if no containment on old element</title>
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
@@ -20,6 +20,7 @@ div {
 
 <script>
 promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition(() => {
       first.style.contain = "paint";

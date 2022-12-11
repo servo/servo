@@ -13,7 +13,7 @@ const meteringModeNames = ['none', 'manual', 'single-shot', 'continuous'];
 
 image_capture_test(async (t, imageCaptureTest) => {
   await test_driver.set_permission({name: 'camera', panTiltZoom: true},
-        'granted', false);
+        'granted');
 
   const constraints = { advanced : [{ whiteBalanceMode : 'single-shot',
                                       exposureMode     : 'manual',

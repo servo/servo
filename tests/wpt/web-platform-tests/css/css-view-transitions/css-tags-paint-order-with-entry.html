@@ -95,6 +95,8 @@ html::view-transition { background: lightpink; }
 <div id=hidden class=hidden></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() => {
     const f = document.createElement("div");

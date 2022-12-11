@@ -17,8 +17,7 @@
     promise_test(async (t) => {
       await test_driver.set_permission(
         { name: "geolocation" },
-        "granted",
-        false
+        "granted"
       );
 
       const posError = await new Promise((resolve, reject) => {

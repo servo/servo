@@ -24,7 +24,7 @@ observer.observe(document.body, { childList: true, subtree: true });
   <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
   <script> // some content, which shouldn't be necessary </script>
   <!-- The imperative shadow root should be attached now. -->
-  <template id=ordinarytemplate shadowroot=open>
+  <template id=ordinarytemplate shadowrootmode=open>
     <span id=toreplace>This should get removed</span>
   </template>
   <script>

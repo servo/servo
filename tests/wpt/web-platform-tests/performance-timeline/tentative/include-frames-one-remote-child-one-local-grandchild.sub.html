@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+</body>
+<script>
+promise_test(() => {
+    return new Promise(resolve => {
+        performance.clearResourceTimings()
+
+        // Create child iframe.
+        const remoteChildFrame = document.createElement('iframe')
+        remoteChildFrame.src = "http://{{hosts[][www]}}:{{ports[http][0]}}/performance-timeline/resources/parent-frame-with-child.sub.html"
+        document.body.appendChild(remoteChildFrame)
+
+        // Listen for postMessage() from grandchild frame.
+        window.addEventListener("message", () => {
+            const entries = performance.getEntries(true)
+            const navigationEntries = performance.getEntriesByType("navigation", true)
+            const markedEntries = performance.getEntriesByName("entry-name", undefined, true)
+
+            // 3 entries for parent, 0 for child, 2 for grandchild.
+            assert_equals(entries.length, 5)
+
+            // 1 entry for parent, 1 for grandchild.
+            assert_equals(navigationEntries.length, 2)
+
+            // 1 entry for grandchild.
+            assert_equals(markedEntries.length, 1)
+
+            resolve()
+        })
+    })
+}, "GetEntries of a ParentFrame with one RemoteFrame child and one LocalFrame grandchild")
+</script>

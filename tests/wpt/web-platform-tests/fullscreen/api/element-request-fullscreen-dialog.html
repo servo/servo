@@ -7,12 +7,18 @@
 <div id="log"></div>
 <dialog></dialog>
 <script>
-async_test(t => {
-  var dialog = document.querySelector("dialog");
-  assert_true(dialog instanceof HTMLDialogElement);
-  document.onfullscreenchange = t.unreached_func("fullscreenchange event");
-  document.onfullscreenerror = t.step_func_done();
-
-  test_driver.bless("Initiate fullscreen", () => dialog.requestFullscreen().catch(() => {}));
-});
+    promise_test(async (t) => {
+        const dialog = document.querySelector("dialog");
+        assert_true(dialog instanceof HTMLDialogElement);
+        document.onfullscreenchange = t.unreached_func(
+            "fullscreenchange event"
+        );
+        const errorEventPromise = new Promise(
+            (resolve) => (document.onfullscreenerror = resolve)
+        );
+        Promise.all([
+            promise_rejects_js(t, TypeError, dialog.requestFullscreen()),
+            errorEventPromise,
+        ]);
+    });
 </script>

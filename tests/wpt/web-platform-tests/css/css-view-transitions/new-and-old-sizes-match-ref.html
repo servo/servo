@@ -36,6 +36,8 @@ html::view-transition { background: lightpink; }
 </style>
 <div id=target class=box><div class=inner_overflow>X</div></div>
 <script>
+failIfNot(document.startViewTransition, "Reference missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() => {
     requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));

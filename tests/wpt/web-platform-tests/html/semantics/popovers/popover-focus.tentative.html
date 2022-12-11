@@ -152,8 +152,9 @@
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by popover.showPopover()`);
       const dialog = document.body.appendChild(document.createElement('dialog'));
       dialog.showModal();
-      assert_false(isElementVisible(popover), 'Opening a modal dialog should hide the popover immediately');
+      assert_false(popover.matches(':open'), 'Opening a modal dialog should hide the popover');
       assert_not_equals(document.activeElement, priorFocus, 'prior element should *not* get focus when a modal dialog is shown');
+      await finishAnimationsAndVerifyHide(popover);
       dialog.close();
       dialog.remove();
 

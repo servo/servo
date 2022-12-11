@@ -106,7 +106,7 @@
 
   promise_test(async t => {
     t.add_cleanup(() => {
-      container.class = '';
+      container.classList.remove('scroll-padded');
     });
     const anim = await runTimelineInsetTest(t, {
       inset: [ "auto", "auto" ],
@@ -125,13 +125,13 @@
 
 promise_test(async t => {
   t.add_cleanup(() => {
-    target.class = '';
+    target.classList.remove('big-font');
   });
   const anim = await runTimelineInsetTest(t, {
     inset: [ CSS.em(1), CSS.em(2) ],
     rangeStart: 632,
     rangeEnd: 884
-  })
+  });
   verifyTimelineOffsets(anim, 632, 884);
   target.classList.add('big-font');
   await runTimelineRangeTest(t, {
@@ -158,13 +158,69 @@ promise_test(async t => {
   });
 }, 'view timeline with viewport relative insets.');
 
+promise_test(async t => {
+  await runTimelineInsetTest(t, {
+    inset: "10px",
+    rangeStart: 610,
+    rangeEnd: 890
+  });
+  await runTimelineInsetTest(t, {
+    inset: "10px 20px",
+    rangeStart: 620,
+    rangeEnd: 890
+  });
+  await runTimelineInsetTest(t, {
+    inset: "10%",
+    rangeStart: 620,
+    rangeEnd: 880
+  });
+  await runTimelineInsetTest(t, {
+    inset: "10% 20%",
+    rangeStart: 640,
+    rangeEnd: 880
+  });
+  await runTimelineInsetTest(t, {
+    inset: "auto",
+    rangeStart: 600,
+    rangeEnd: 900
+  });
+  await runTimelineInsetTest(t, {
+    inset: "1em 2em",
+    rangeStart: 632,
+    rangeEnd: 884
+  });
+  assert_throws_js(TypeError, () => {
+    new ViewTimeline({
+      subject: target,
+      inset: "go fish"
+    });
+  });
+
+  assert_throws_js(TypeError, () => {
+    new ViewTimeline({
+      subject: target,
+      inset: "1 2"
+    });
+  });
+
+}, 'view timeline inset as string');
 
 promise_test(async t => {
-  assert_throws_dom('NOT_SUPPORTED_ERR', () => {
+  assert_throws_js(TypeError, () => {
     new ViewTimeline({
       subject: target,
       inset: [ CSS.rad(1) ]
     });
   });
+
+  assert_throws_js(TypeError, () => {
+    new ViewTimeline({
+      subject: target,
+      inset: [ CSS.px(10), CSS.px(10), CSS.px(10) ]
+    });
+  });
+
+
 }, 'view timeline with invalid inset');
+
 </script>

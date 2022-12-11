@@ -27,7 +27,7 @@ assert_false(gotHost, 'No mutations yet');
 <div id=host>
   <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
   <script> // some content, which shouldn't be necessary </script>
-  <template shadowroot=open>
+  <template shadowrootmode=open>
     Content
     <slot>Fallback</slot>
   </template>

@@ -26,13 +26,15 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
     assert_equals(entry.renderTime, 0, 'renderTime should be 0');
     assert_between_exclusive(entry.loadTime, timeLowerBound, performance.now(),
       'loadTime should be between the lower bound and the current time');
-    assert_equals(entry.startTime, entry.loadTime, 'startTime should equal loadTime');
+    assert_approx_equals(entry.startTime, entry.loadTime, 0.001,
+      'startTime should be equal to renderTime to the precision of 1 millisecond.');
   } else {
     assert_between_exclusive(entry.loadTime, timeLowerBound, entry.renderTime,
       'loadTime should occur between the lower bound and the renderTime');
     assert_greater_than_equal(performance.now(), entry.renderTime,
       'renderTime should occur before the entry is dispatched to the observer.');
-    assert_equals(entry.startTime, entry.renderTime, 'startTime should equal renderTime');
+    assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
+      'startTime should be equal to renderTime to the precision of 1 millisecond.');
   }
   if (options.includes('sizeLowerBound')) {
     assert_greater_than(entry.size, expectedSize);
@@ -62,7 +64,7 @@ const load_and_observe = url => {
           resolve(entryList.getEntries()[0]);
         }
       }
-    })).observe({type: 'largest-contentful-paint', buffered: true});
+    })).observe({ type: 'largest-contentful-paint', buffered: true });
     const img = new Image();
     img.id = 'image_id';
     img.src = url;
@@ -78,7 +80,7 @@ const load_video_and_observe = url => {
           resolve(entryList.getEntries()[0]);
         }
       }
-    })).observe({type: 'largest-contentful-paint', buffered: true});
+    })).observe({ type: 'largest-contentful-paint', buffered: true });
     const video = document.createElement("video");
     video.id = 'video_id';
     video.src = url;
@@ -88,3 +90,63 @@ const load_video_and_observe = url => {
     document.body.appendChild(video);
   });
 };
+
+const getLCPStartTime = (identifier) => {
+  return new Promise(resolve => {
+    new PerformanceObserver((entryList, observer) => {
+      entryList.getEntries().forEach(e => {
+        if (e.url.includes(identifier)) {
+          resolve(e);
+          observer.disconnect();
+        }
+      });
+    }).observe({ type: 'largest-contentful-paint', buffered: true });
+  });
+}
+
+const getFCPStartTime = () => {
+  return performance.getEntriesByName('first-contentful-paint')[0];
+}
+
+const add_text = (text) => {
+  const paragraph = document.createElement('p');
+  paragraph.innerHTML = text;
+  document.body.appendChild(paragraph);
+}
+
+const loadImage = (url, shouldBeIgnoredForLCP = false) => {
+  return new Promise(function (resolve, reject) {
+    let image = document.createElement('img');
+    image.addEventListener('load', () => { resolve(image); });
+    image.addEventListener('error', reject);
+    image.src = url;
+    if (shouldBeIgnoredForLCP)
+      image.style.opacity = 0;
+    document.body.appendChild(image);
+  });
+}
+
+const checkLCPEntryForNonTaoImages = (times = {}) => {
+  const lcp = times['lcp'];
+  const fcp = times['fcp'];
+  const lcp_url_components = lcp.url.split('/');
+
+  if (lcp.loadTime <= fcp.startTime) {
+    assert_approx_equals(lcp.startTime, fcp.startTime, 0.001,
+      'LCP start time should be the same as FCP for ' +
+      lcp_url_components[lcp_url_components.length - 1]) +
+      ' when LCP load time is less than FCP.';
+  } else {
+    assert_approx_equals(lcp.startTime, lcp.loadTime, 0.001,
+      'LCP start time should be the same as LCP load time for ' +
+      lcp_url_components[lcp_url_components.length - 1]) +
+      ' when LCP load time is no less than FCP.';
+  }
+
+  assert_equals(lcp.renderTime, 0,
+    'The LCP render time of Non-Tao image should always be 0.');
+}
+
+const raf = () => {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}

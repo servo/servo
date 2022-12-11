@@ -7,7 +7,8 @@
 <meta name="variant" content="?3-3">
 <meta name="variant" content="?4-4">
 <meta name="variant" content="?5-5">
-<meta name="variant" content="?6-last">
+<meta name="variant" content="?6-6">
+<meta name="variant" content="?7-last">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -60,19 +61,18 @@ subsetTest(promise_test, async t => {
   const agent = await spawnWindow(t);
   await agent.setReferrerPolicy("unsafe-url");
 
-  const nextURL = agent.getExecutorURL({ page: 2 });
-  await agent.forceSinglePrefetch(nextURL, { referrer_policy: "no-referrer" });
+  const nextURL = agent.getExecutorURL({ hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
+  await agent.forceSinglePrefetch(
+      nextURL, { referrer_policy: "no-referrer", requires: ["anonymous-client-ip-when-cross-origin"] });
   await agent.navigate(nextURL);
 
   // This referring page's referrer policy would not be eligible for
-  // prefetching, but setting a sufficiently strict policy in the rule allows
-  // for prefetching.
-  // TODO(crbug.com/1379846): This test will be trivialized once the prefetch
-  // referrer policy requirements are relaxed for same-site.
+  // cross-site prefetching, but setting a sufficiently strict policy in the
+  // rule allows for prefetching.
   const headers = await agent.getRequestHeaders();
   assert_prefetched(headers, "must be prefetched");
   assert_equals(headers.referer, '', "must send no referrer");
-}, 'with "no-referrer" referrer policy in rule set overriding "unsafe-url" of referring page');
+}, 'with "no-referrer" referrer policy in rule set overriding "unsafe-url" of cross-site referring page');
 
 subsetTest(promise_test, async t => {
   assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
@@ -109,17 +109,35 @@ subsetTest(promise_test, async t => {
   await agent.setReferrerPolicy("strict-origin");
   const expectedReferrer = agent.getExecutorURL().origin + "/";
 
-  const nextURL = agent.getExecutorURL({ page: 2 });
-  await agent.forceSinglePrefetch(nextURL, { referrer_policy: "unsafe-url" });
+  const nextURL = agent.getExecutorURL({ hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
+  await agent.forceSinglePrefetch(
+      nextURL, { referrer_policy: "unsafe-url", requires: ["anonymous-client-ip-when-cross-origin"] });
   await agent.navigate(nextURL);
 
   // This referring page's referrer policy would normally make it eligible for
-  // prefetching, but setting an unacceptable policy in the rule makes it ineligible.
-  // TODO(crbug.com/1379846): This test will be invalidated once the prefetch
-  // referrer policy requirements are relaxed for same-site.
+  // cross-site prefetching, but setting an unacceptable policy in the rule
+  // makes it ineligible.
   const headers = await agent.getRequestHeaders();
   assert_not_prefetched(headers, "must not be prefetched");
   assert_equals(headers.referer, expectedReferrer, "must send the origin as the referrer");
-}, 'with "unsafe-url" referrer policy in rule set overriding "strict-origin" of referring page');
+}, 'with "unsafe-url" referrer policy in rule set overriding "strict-origin" of cross-site referring page');
+
+subsetTest(promise_test, async t => {
+  assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+
+  const agent = await spawnWindow(t);
+  await agent.setReferrerPolicy("strict-origin");
+  const expectedReferrer = agent.getExecutorURL().origin + "/";
+
+  const nextURL = agent.getExecutorURL({ page: 2 });
+  // The empty string is a valid value for "referrer_policy" and will be
+  // treated as if the key were omitted.
+  await agent.forceSinglePrefetch(nextURL, { referrer_policy: "" });
+  await agent.navigate(nextURL);
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers.referer, expectedReferrer, "must send the origin as the referrer");
+}, 'with empty string referrer policy in rule set defaulting to "strict-origin" of referring page');
 
 </script>

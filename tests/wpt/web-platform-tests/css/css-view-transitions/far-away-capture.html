@@ -66,6 +66,8 @@ html::view-transition { background: pink }
 </div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() => {
     content.remove();

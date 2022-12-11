@@ -13,7 +13,7 @@
 for (const entry of ['accelerometer', 'gyroscope',
     'magnetometer', 'ambient-light-sensor']) {
   promise_test(async t => {
-    await test_driver.set_permission({ name: entry }, 'denied', false);
+    await test_driver.set_permission({ name: entry }, 'denied');
 
     const status = await navigator.permissions.query({ name: entry });
     assert_class_string(status, "PermissionStatus");
@@ -21,7 +21,7 @@ for (const entry of ['accelerometer', 'gyroscope',
   }, `Deny ${entry} permission should work.`);
 
   promise_test(async t => {
-    await test_driver.set_permission({ name: entry }, 'granted', false);
+    await test_driver.set_permission({ name: entry }, 'granted');
 
     const status = await navigator.permissions.query({ name: entry });
     assert_class_string(status, "PermissionStatus");

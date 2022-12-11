@@ -43,6 +43,8 @@
 
 <div></div>
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 // Ensure a root snapshot captured on a page with scrollbars uses the full
 // viewport size (including scrollbars). Areas obscured by scrollbars should be
 // filled with background and content; the snapshot should not be scaled-to-fit.

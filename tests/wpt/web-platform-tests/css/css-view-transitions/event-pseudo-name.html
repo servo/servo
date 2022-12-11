@@ -35,6 +35,7 @@ html::view-transition-image-pair(*) {
 <div id=first></div>
 <script>
 async_test(t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   let names = [];
   document.documentElement.addEventListener("animationstart", (e) => {
     names.push(e.pseudoElement);

@@ -18,43 +18,27 @@
 <script>
 ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(eventName => {
   [true, false].forEach(clickChildElement => {
-    promise_test(async t => {
-      const parentShouldReceiveEvents = eventName.startsWith('pointer');
+    promise_test(async () => {
       let parentReceivedEvent = false;
-      targetparent.addEventListener(eventName, t.step_func(() => {
-        if (parentShouldReceiveEvents) {
-          parentReceivedEvent = true;
-        } else {
-          assert_unreached(`parent element should not receive ${eventName} events.`);
-        }
-      }));
+      targetparent.addEventListener(eventName, () => parentReceivedEvent = true);
 
-      const targetShouldReceiveEvents = eventName.startsWith('pointer');
       let targetReceivedEvent = false;
-      target.addEventListener(eventName, t.step_func(() => {
-        if (targetShouldReceiveEvents) {
-          targetReceivedEvent = true;
-        } else {
-          assert_unreached(`target element should not receive ${eventName} events.`);
-        }
-      }));
+      target.addEventListener(eventName, () => targetReceivedEvent = true);
 
       let childReceivedEvent = false;
-      targetchild.addEventListener(eventName, t.step_func(() => {
-        childReceivedEvent = true;
-      }));
+      targetchild.addEventListener(eventName, () => childReceivedEvent = true);
 
       await test_driver.click(clickChildElement ? targetchild : target);
 
-      if (parentShouldReceiveEvents) {
-        assert_true(parentReceivedEvent, `parent element should receive ${eventName} events.`);
-      }
-      if (targetShouldReceiveEvents) {
-        assert_true(targetReceivedEvent, `target element should receive ${eventName} events.`);
-      }
-      if (clickChildElement) {
-        assert_true(childReceivedEvent, `child element should receive ${eventName} events.`);
-      }
+      const parentShouldReceiveEvents = eventName.startsWith('pointer');
+      assert_equals(parentReceivedEvent, parentShouldReceiveEvents,
+                    `parent element received ${eventName} events`);
+
+      const targetShouldReceiveEvents = eventName.startsWith('pointer');
+      assert_equals(targetReceivedEvent, targetShouldReceiveEvents,
+                    `target element received ${eventName} events`);
+      assert_equals(childReceivedEvent, clickChildElement,
+                    `child element received ${eventName} events`);
     }, `Testing ${eventName} events when clicking ${clickChildElement ? 'child of ' : ''}disabled form controls.`);
   });
 });

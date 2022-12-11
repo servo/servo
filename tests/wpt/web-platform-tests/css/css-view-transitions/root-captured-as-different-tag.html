@@ -43,6 +43,8 @@ html::view-transition-image-pair(root) { visibility: hidden; }
 <div id=e1 class=box></div>
 <div id=shared></div>
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() => {
     e1.classList.add("dst");

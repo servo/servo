@@ -44,9 +44,11 @@ promise_test(async function(test) {
 
 promise_test(async function(test) {
   var inboxBucket = await navigator.storageBuckets.open('inbox');
+  var draftBucket = await navigator.storageBuckets.open('drafts');
 
   test.add_cleanup(async function() {
     await navigator.storageBuckets.delete('inbox');
+    await navigator.storageBuckets.delete('drafts');
   });
 
   var caches = inboxBucket.caches;
@@ -57,8 +59,13 @@ promise_test(async function(test) {
 
   await navigator.storageBuckets.delete('inbox');
 
-  return promise_rejects_dom(
+  await promise_rejects_dom(
       test, 'UnknownError', caches.open('attachments'));
+
+  // Also test when `caches` is first accessed after the deletion.
+  await navigator.storageBuckets.delete('drafts');
+  return promise_rejects_dom(
+      test, 'UnknownError', draftBucket.caches.open('attachments'));
 }, 'cache.open promise is rejected when bucket is gone');
 
 done();

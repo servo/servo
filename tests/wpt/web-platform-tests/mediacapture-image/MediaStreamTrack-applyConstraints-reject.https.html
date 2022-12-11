@@ -11,7 +11,7 @@
 var makePromiseTest = function(getConstraint) {
   image_capture_test(async (t, imageCaptureTest) => {
     await test_driver.set_permission({name: 'camera', panTiltZoom: true},
-        'granted', false);
+        'granted');
 
     imageCaptureTest.mockImageCapture().state().supportsTorch = false;
 

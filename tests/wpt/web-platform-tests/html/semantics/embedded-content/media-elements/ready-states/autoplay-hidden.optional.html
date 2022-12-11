@@ -8,13 +8,15 @@
 <div id="log"></div>
 <script>
 
+// https://html.spec.whatwg.org/multipage/media.html#ready-states:eligible-for-autoplay-2
+
 promise_test(async t => {
   let video = document.createElement("video");
   video.src = getVideoURI("/media/movie_5");
   video.autoplay = true;
-  // In Safari and Chrome, the video needs to be muted in order to be paused when
-  // hidden. They decided to do this in order to save resources when a video
-  // goes out of view and isn't expected to make any sound.
+  // In Safari, Chrome and Firefox, the video needs to be muted in order to be
+  // paused when hidden. They decided to do this in order to save resources when
+  // a video goes out of view and isn't expected to make any sound.
   video.muted = true;
   video.loop = true;
   let watcher = new EventWatcher(t, video, ["playing", "pause"]);

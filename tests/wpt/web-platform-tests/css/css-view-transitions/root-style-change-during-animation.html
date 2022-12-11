@@ -47,6 +47,8 @@ html::view-transition-group(root) {
 <div id=hidden></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function flipClass() {
   document.documentElement.classList.add("test");
   requestAnimationFrame(takeScreenshot);

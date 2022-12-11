@@ -76,8 +76,10 @@ for (const args of [
     const stream = await getNoiseStream({video: true, audio: true});
     const statsEntry = await setupPcAndGetStatEntry(t, stream, type, kind, stat);
     assert_not_own_property(statsEntry, stat);
-  }, stat + " not exposed when not capturing or fullscreen.");
+  }, stat + " not exposed when not capturing.");
 
+  // Exposing hardware capabilities when a there is a fullscreen element was
+  // removed with https://github.com/w3c/webrtc-stats/pull/713.
   promise_test(async (t) => {
     const stream = await getNoiseStream({video: true, audio: true});
 
@@ -87,8 +89,8 @@ for (const args of [
 
     const statsEntry = await setupPcAndGetStatEntry(
       t, stream, type, kind, stat);
-    assert_own_property(statsEntry, stat);
-  }, stat + " exposed when fullscreen.");
+    assert_not_own_property(statsEntry, stat);
+  }, stat + " not exposed when fullscreen and not capturing.");
 
   promise_test(async (t) => {
     const stream = await navigator.mediaDevices.getUserMedia(

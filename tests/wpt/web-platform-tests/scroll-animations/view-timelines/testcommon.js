@@ -130,6 +130,8 @@ async function runTimelineInsetTest(t, options) {
     fill: 'both'
   }
   const length = options.inset.length;
-  const range = options.inset.join(' ');
+  const range =
+      (options.inset instanceof Array) ? options.inset.join(' ')
+                                       : options.inset;
   return runTimelineRangeTest(t, options, range);
 }

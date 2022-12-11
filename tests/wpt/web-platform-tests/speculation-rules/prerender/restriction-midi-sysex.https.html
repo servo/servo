@@ -21,7 +21,7 @@ promise_test(async t => {
   // is deferred during prerendering so the test would trivially pass without
   // the permission.
   await test_driver.set_permission(
-      {name: 'midi', sysex: true}, 'granted', true);
+      {name: 'midi', sysex: true}, 'granted');
 
   const gotMessage = new Promise(resolve => {
     bc.addEventListener('message', e => {

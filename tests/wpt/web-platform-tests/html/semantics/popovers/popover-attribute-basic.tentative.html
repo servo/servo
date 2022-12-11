@@ -84,6 +84,14 @@ window.onload = () => {
     assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/true, 'After togglePopover() on hidden popover, it should be visible');
     popover.togglePopover();
     assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/false, 'After togglePopover() on visible popover, it should be hidden');
+    popover.togglePopover(/*force=*/true);
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/true, 'After togglePopover(true) on hidden popover, it should be visible');
+    popover.togglePopover(/*force=*/true);
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/true, 'After togglePopover(true) on visible popover, it should be visible');
+    popover.togglePopover(/*force=*/false);
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/false, 'After togglePopover(false) on visible popover, it should be hidden');
+    popover.togglePopover(/*force=*/false);
+    assertPopoverVisibility(popover, /*isPopover*/true, /*expectedVisibility*/false, 'After togglePopover(false) on hidden popover, it should be hidden');
     const parent = popover.parentElement;
     popover.remove();
     assert_throws_dom("InvalidStateError",() => popover.showPopover(),'Calling showPopover on a disconnected popover should throw InvalidStateError');
@@ -275,7 +283,9 @@ window.onload = () => {
     other_popover.showPopover();
     const popover = createPopover(t);
     popover.setAttribute('popover','auto');
-    other_popover.addEventListener('popoverhide',() => {
+    other_popover.addEventListener('beforetoggle', (e) => {
+      if (e.newState !== "closed")
+        return;
       popover.setAttribute('popover','manual');
     },{once: true});
     assert_true(other_popover.matches(':open'));
@@ -283,7 +293,7 @@ window.onload = () => {
     popover.showPopover();
     assert_false(other_popover.matches(':open'),'unrelated popover is hidden');
     assert_false(popover.matches(':open'),'popover is not shown if its type changed during show');
-  },`Changing the popover type in a "popoverhide" event handler should not cause problems (during showPopover())`);
+  },`Changing the popover type in a "beforetoggle" event handler should not cause problems (during showPopover())`);
 
   test((t) => {
     const popover = createPopover(t);
@@ -294,11 +304,15 @@ window.onload = () => {
     popover.showPopover();
     other_popover.showPopover();
     let nested_popover_hidden=false;
-    other_popover.addEventListener('popoverhide',() => {
+    other_popover.addEventListener('beforetoggle', (e) => {
+      if (e.newState !== "closed")
+        return;
       nested_popover_hidden = true;
       popover.setAttribute('popover','manual');
     },{once: true});
-    popover.addEventListener('popoverhide',() => {
+    popover.addEventListener('beforetoggle', (e) => {
+      if (e.newState !== "closed")
+        return;
       assert_true(nested_popover_hidden,'The nested popover should be hidden first');
     },{once: true});
     assert_true(popover.matches(':open'));
@@ -307,7 +321,7 @@ window.onload = () => {
     assert_false(other_popover.matches(':open'),'unrelated popover is hidden');
     assert_false(popover.matches(':open'),'popover is still hidden if its type changed during hide event');
     assert_throws_dom("InvalidStateError",() => other_popover.hidePopover(),'Nested popover should already be hidden');
-  },`Changing the popover type in a "popoverhide" event handler should not cause problems (during hidePopover())`);
+  },`Changing the popover type in a "beforetoggle" event handler should not cause problems (during hidePopover())`);
 
   function interpretedType(typeString,method) {
     if (validTypes.includes(typeString))
@@ -344,7 +358,9 @@ window.onload = () => {
             popover.showPopover();
             assert_true(popover.matches(':open'));
             let gotEvent = false;
-            popover.addEventListener('popoverhide',() => {
+            popover.addEventListener('beforetoggle', (e) => {
+              if (e.newState !== "closed")
+                return;
               gotEvent = true;
               setPopoverValue(popover,inEventType,method);
             },{once:true});
@@ -380,7 +396,7 @@ window.onload = () => {
                 }
               }
             }
-          },`Changing a popover from ${type} to ${newType} (via ${method}), and then ${inEventType} during 'popoverhide' works`);
+          },`Changing a popover from ${type} to ${newType} (via ${method}), and then ${inEventType} during 'beforetoggle' works`);
         });
       });
     });
@@ -403,8 +419,7 @@ window.onload = () => {
     assert_false(popover.matches(':closed'),'Not :closed until animations finish');
     assert_true(getComputedStyle(popover).opacity > 0.9,'Animations should start on hide');
     assert_throws_dom("InvalidStateError",() => popover.hidePopover(),'Calling hidePopover on a popover that is in the process of animating hide should throw InvalidStateError');
-    popover.showPopover(); // But showPopover should still be ok.
-    popover.hidePopover(); // Clean up
+    assert_throws_dom("InvalidStateError",() => popover.showPopover(),'Calling showPopover on a popover that is in the process of animating hide should throw InvalidStateError');
     await finishAnimations(popover);
     assert_true(popover.matches(':closed'),':closed should match once animations finish');
   },'Exceptions are thrown even when show/hide are animated');

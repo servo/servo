@@ -1,37 +1,63 @@
 <!DOCTYPE html>
-<title>Document#fullscreenEnabled removing allowfullscreen after load and then navigating</title>
+<title>
+    Document#fullscreenEnabled removing allowfullscreen after load and then
+    navigating
+</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
+<iframe></iframe>
 <script>
-async_test((t) => {
-  const iframe = document.createElement('iframe');
-  iframe.allowFullscreen = true;
-
-  let i = 0;
-
-  const path = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-  iframe.src = "http://{{domains[www1]}}:{{ports[http][0]}}" + path + "resources/echo-fullscreenEnabled.html";
-  iframe.onload = t.step_func(() => {
-    if (i === 0) {
-      iframe.allowFullscreen = false;
+    function requestStatus(iframe) {
+        iframe.contentWindow.postMessage(
+            "What is document.fullscreenEnabled?",
+            "*"
+        );
+        return new Promise((resolve) => {
+            window.addEventListener("message", function listener(e) {
+                window.removeEventListener("message", listener);
+                resolve(event.data);
+            });
+        });
     }
-    iframe.contentWindow.postMessage('What is document.fullscreenEnabled?', '*');
-  });
 
-  window.onmessage = t.step_func((e) => {
-    i++;
-    if (i === 1) {
-      assert_true(e.data, 'document.fullscreenEnabled in the iframe, before navigation');
+    promise_test(async (t) => {
+        const iframe = document.querySelector("iframe");
+        iframe.allowFullscreen = true;
+        assert_true(iframe.allowFullscreen, "allowFullscreen is false");
+        assert_true(
+            iframe.hasAttribute("allowfullscreen"),
+            "allowFullscreen attribute is present"
+        );
+        await new Promise((resolve) => {
+            iframe.onload = resolve;
+            const path = location.pathname.substring(
+                0,
+                location.pathname.lastIndexOf("/") + 1
+            );
+            iframe.src = `http://{{hosts[][]}}:{{ports[http][0]}}${path}resources/echo-fullscreenEnabled.html`;
+        });
 
-      // Navigate the iframe. This will fire a second 'load' event on the iframe.
-      iframe.contentWindow.location.href = iframe.src + '?2';
-    } else {
-      assert_false(e.data, 'document.fullscreenEnabled in the iframe, after navigation');
-      t.done();
-    }
-  });
+        assert_true(
+            await requestStatus(iframe),
+            "document.fullscreenEnabled in the iframe, before navigation"
+        );
 
-  document.body.appendChild(iframe);
-});
+        iframe.allowFullscreen = false;
+        assert_false(iframe.allowFullscreen, "allowFullscreen is false");
+        assert_false(
+            iframe.hasAttribute("allowfullscreen"),
+            "allowFullscreen attribute is not present"
+        );
+
+        await new Promise((resolve) => {
+            iframe.onload = resolve;
+            iframe.contentWindow.location.href = iframe.src + "?2";
+        });
+
+        assert_false(
+            await requestStatus(iframe),
+            "document.fullscreenEnabled in the iframe, after navigation"
+        );
+    });
 </script>

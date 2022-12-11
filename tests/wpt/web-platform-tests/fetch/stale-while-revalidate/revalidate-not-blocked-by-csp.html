@@ -54,12 +54,14 @@ promise_test(async t => {
   // Query the server again and again. At some point it must have received the
   // revalidation request. We poll, because we don't know when the revalidation
   // will occur.
+  let query = false;
   while(true) {
     await new Promise(r => step_timeout(r, 25));
-    let response = await fetch(image_src + "&query");
+    let response = await fetch(`${image_src}${query ? "&query" : ""}`);
     let count = response.headers.get("Count");
     if (count == "2")
       break;
+    query ^= true;
   }
 }, "Request revalidation aren't blocked by CSP");
 

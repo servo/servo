@@ -27,4 +27,15 @@
       sender.setParameters(param));
   }, `setParameters() when transceiver is stopped should reject with InvalidStateError`);
 
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const sender = pc.addTransceiver('audio').sender;
+    const param = sender.getParameters();
+    sender.setParameters(param);
+
+    return promise_rejects_dom(t, 'InvalidStateError',
+      sender.setParameters(param));
+  }, `setParameters() with already used parameters should reject with InvalidStateError`);
+
 </script>

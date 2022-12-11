@@ -57,6 +57,8 @@ html::view-transition-new(target2) { animation: unset; opacity: 1; }
 <div id=hidden class=hidden></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() => {
     target1.style = "";

@@ -12,7 +12,7 @@ async_test((t) => {
   // no allowfullscreen attribute
 
   const path = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-  iframe.src = "http://{{domains[www1]}}:{{ports[http][0]}}" + path + "resources/echo-fullscreenEnabled.html?pipe=trickle(d1)";
+  iframe.src = "http://{{hosts[][]}}:{{ports[http][0]}}" + path + "resources/echo-fullscreenEnabled.html?pipe=trickle(d1)";
   iframe.onload = t.step_func(() => {
     iframe.contentWindow.postMessage('What is document.fullscreenEnabled?', '*');
   });

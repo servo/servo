@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html>
 <title>Shared transitions: promise resolution ordering</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:vmpstr@chromium.org">
@@ -24,6 +24,7 @@ div {
 
 <script>
 promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise((resolve, reject) => {
     let dom_change_ran = false;
     let transition = document.startViewTransition(() => {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html>
 <title>Shared transitions: ensure input is discarded when rendering is suppressed</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
@@ -58,6 +58,7 @@ async function runTest(resolve, reject) {
 }
 
 promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     // Dispatch an event before starting the test to finish init logic in
     // synthetic input dispatch.

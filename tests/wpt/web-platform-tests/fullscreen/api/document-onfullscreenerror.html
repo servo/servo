@@ -4,26 +4,21 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-async_test(function(t)
-{
-    var sync = true;
-    var promise_executed = false;
-    assert_equals(document.onfullscreenerror, null, "initial onfullscreenerror");
-    document.onfullscreenerror = t.step_func_done(function(event) {
-        assert_true(promise_executed);
-        assert_false(sync);
-    });
-    var e = document.createElement('span');
-    var promise = e.requestFullscreen();
-    if (promise) {
-        promise.catch(()=> {
-            assert_false(sync);
-            promise_executed = true;
-        });
-    } else {
-        // If promises aren't supported just treat it as already done.
-        promise_executed = true;
-    }
-    sync = false;
-});
+    promise_test(async (t) => {
+        assert_equals(
+            document.onfullscreenerror,
+            null,
+            "initial onfullscreenerror"
+        );
+        const [, event] = await Promise.all([
+            promise_rejects_js(
+                t,
+                TypeError,
+                document.documentElement.requestFullscreen()
+            ),
+            new Promise((r) => document.addEventListener("fullscreenerror", r)),
+        ]);
+        assert_equals(event.target, document.documentElement);
+        assert_true(event instanceof Event);
+    }, "Checks that the fullscreenerror event is fired when entering fullscreen fails");
 </script>

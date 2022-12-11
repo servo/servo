@@ -9,7 +9,11 @@
 // they are run in if they are used in multiple iframes.
 const {testPrefix} = processQueryParams();
 
-test_driver.set_test_context(window.top);
+if (window !== window.top) {
+  // WPT synthesizes a top-level HTML test for this JS file, and in that case we
+  // don't want to, or need to, call set_test_context.
+  test_driver.set_test_context(window.top);
+}
 
 // Common tests to run in all frames.
 test(() => {

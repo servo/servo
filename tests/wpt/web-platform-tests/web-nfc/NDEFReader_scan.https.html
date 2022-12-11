@@ -36,7 +36,7 @@ nfc_test(async t => {
 }, "Test that NDEFReader.scan rejects if signal is not an AbortSignal.");
 
 nfc_test(async t => {
-  await test_driver.set_permission({ name: 'nfc' }, 'denied', false);
+  await test_driver.set_permission({ name: 'nfc' }, 'denied');
   const ndef = new NDEFReader();
   await promise_rejects_dom(t, 'NotAllowedError', ndef.scan());
 }, "NDEFReader.scan should fail if user permission is not granted.");

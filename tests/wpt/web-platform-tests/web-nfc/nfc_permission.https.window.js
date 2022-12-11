@@ -4,7 +4,7 @@
 'use strict';
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'nfc'}, 'denied', false);
+  await test_driver.set_permission({name: 'nfc'}, 'denied');
 
   const status = await navigator.permissions.query({name: 'nfc'});
   assert_class_string(status, 'PermissionStatus');
@@ -12,7 +12,7 @@ promise_test(async t => {
 }, 'Deny nfc permission should work.');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'nfc'}, 'granted', false);
+  await test_driver.set_permission({name: 'nfc'}, 'granted');
 
   const status = await navigator.permissions.query({name: 'nfc'});
   assert_class_string(status, 'PermissionStatus');

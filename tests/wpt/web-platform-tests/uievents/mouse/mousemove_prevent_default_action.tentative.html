@@ -1,96 +1,93 @@
 <!doctype html>
-<html>
-<head>
-  <meta charset=utf-8>
-  <title>mousemove event: preventDefault()</title>
-  <link rel="author" title="Mirko Brodesser" href="mailto:mbrodesser@mozilla.com">
-  <link rel="help" href="https://github.com/w3c/uievents/issues/278">
-  <script src=/resources/testharness.js></script>
-  <script src=/resources/testharnessreport.js></script>
-  <script src=/uievents/resources/eventrecorder.js></script>
-  <script src=/resources/testdriver.js></script>
-  <script src=/resources/testdriver-actions.js></script>
-  <script src=/resources/testdriver-vendor.js></script>
-</head>
+<meta charset=utf-8>
+<title>mousemove event: preventDefault()</title>
+<link rel="author" title="Mirko Brodesser" href="mailto:mbrodesser@mozilla.com">
+<link rel="help" href="https://github.com/w3c/uievents/issues/278">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/utils.js></script>
 
 <body>
-  <div id="a">a</div>
-  <div id="b">b</div>
+  <div id="a">div a</div>
+  <div id="b">div b</div>
+  <div id="c" draggable="true">div c</div>
 </body>
 
 <script>
-const eventsToRecord = [
-  "mousedown",
-  "mousemove",
-  "selectionchange",
-];
+  'use strict';
 
-const expectedEventRecords = [
-  {type: "mousemove", target: "a"},
-  {type: "mousemove", target: "document"},
-  {type: "mousedown", target: "a"},
-  {type: "mousedown", target: "document"},
-  {type: "selectionchange", target: "document"},
-  {type: "mousemove", target: "b"},
-  {type: "mousemove", target: "document"},
-];
+  let event_log = [];
 
-window.onload = function () {
-  setup({single_test: true});
+  function logEvents(e) {
+    event_log.push(e.type);
+  }
 
-  const a = document.getElementById("a");
-  const b = document.getElementById("b");
-  const nodesToListenForEvents = [a, b, document];
-
-  EventRecorder.configure({
-    objectMap: {
-      "a" : a,
-      "b" : b,
-      "document" : document,
-    }
+  // Deliberately avoiding mouseup here because the last selectionchange
+  // may be fired before or after the mouseup.
+  ["mousedown", "mousemove", "selectionchange", "dragstart"].forEach(ename => {
+    document.addEventListener(ename, logEvents);
   });
+  document.addEventListener("mousemove", e => e.preventDefault());
 
-  EventRecorder.addEventListenersForNodes(eventsToRecord,
-    nodesToListenForEvents, null);
+  promise_test(async () => {
+    event_log = [];
 
-  document.addEventListener("mousemove", (event) => {
-    event.preventDefault();
-  });
+    const a = document.getElementById("a");
+    const b = document.getElementById("b");
 
-  EventRecorder.start();
+    let mouseup_promise = getEvent("mouseup", document);
 
-  let actions_promise = new test_driver.Actions()
-    .pointerMove(0, 0, {origin: a})
-    .pointerDown()
-    .send();
+    await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: a})
+        .pointerDown()
+        .addTick()
+        .addTick()
+        .pointerMove(0, 0, {origin: b})
+        .addTick()
+        .addTick()
+        .pointerUp()
+        .send();
 
-  actions_promise.then(() => {
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        // Requested two animation frames to enforce flushing the
-        // "selectionchange" event.
-      })
-    });
-  });
+    await mouseup_promise;
 
-  actions_promise = new test_driver.Actions()
-    .pointerMove(0, 0, {origin: b})
-    .send();
+    const expected_events = ["mousemove", "mousedown", "selectionchange",
+        "mousemove", "selectionchange"];
 
-  actions_promise.then(() => {
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        // Requested two animation frames to enforce flusing the
-        // "selectionchange" event, if there was one.
+    assert_equals(event_log.toString(), expected_events.toString(),
+        "received events");
+  }, "selectionchange event firing when mousemove event is prevented");
 
-        EventRecorder.stop();
-        assert_true(EventRecorder.checkRecords(expectedEventRecords),
-          "Events are as expected");
+  promise_test(async () => {
+    event_log = [];
 
-        done();
-      });
-    });
-  });
-};
+    const b = document.getElementById("b");
+    const c = document.getElementById("c");
+
+    let dragstart_promise = getEvent("dragstart", document);
+
+    // A mouseup event is not expected.  This avoids timing out when the
+    // dragstart event is missing.
+    let mouseup_promise = getEvent("mouseup", document);
+
+    await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: c})
+        .pointerDown()
+        .addTick()
+        .addTick()
+        .pointerMove(0, 0, {origin: b})
+        .addTick()
+        .addTick()
+        .pointerUp()
+        .send();
+
+    await Promise.race([dragstart_promise, mouseup_promise]);
+
+    const expected_events = ["mousemove", "mousedown", "mousemove", "dragstart"];
+
+    assert_equals(event_log.toString(), expected_events.toString(),
+        "received events");
+  }, "dragstart event firing when mousemove event is prevented");
 </script>
-</html>

@@ -15,35 +15,47 @@
     </style>
 
     <script>
+    var styleSheet = document.styleSheets[0]
+    var div = document.createElement('div')
     test(function () {
-        var styleSheet = document.styleSheets[0];
-
-        assert_equals(styleSheet.cssRules[0].style.cssText, "overflow: inherit;", "Single value overflow with CSS-wide keyword should serialize correctly.");
-        assert_equals(styleSheet.cssRules[1].style.cssText, "overflow: hidden;", "Single value overflow with non-CSS-wide keyword should serialize correctly.");
-        assert_equals(styleSheet.cssRules[2].style.cssText, "overflow: initial;", "Overflow-x/y longhands with same CSS-wide keyword should serialize correctly.");
-        assert_equals(styleSheet.cssRules[3].style.cssText, "overflow: scroll;", "Overflow-x/y longhands with same non-CSS-wide keyword should serialize correctly.");
-        assert_equals(styleSheet.cssRules[4].style.cssText, "overflow: scroll hidden;", "Overflow-x/y longhands with different keywords should serialize correctly.");
-
-        var div = document.createElement('div');
-        div.style.overflow = "inherit";
-        assert_equals(div.style.overflow, "inherit", "Single value overflow with CSS-wide keyword should serialize correctly.");
-
-        div.style.overflow = "hidden";
-        assert_equals(div.style.overflow, "hidden", "Single value overflow with non-CSS-wide keyword should serialize correctly.");
-
-        div.style.overflow = "";
-        div.style.overflowX = "initial";
-        div.style.overflowY = "initial";
-        assert_equals(div.style.overflow, "initial", "Overflow-x/y longhands with same CSS-wide keyword should serialize correctly.");
-
-        div.style.overflowX = "scroll";
-        div.style.overflowY = "scroll";
-        assert_equals(div.style.overflow, "scroll", "Overflow-x/y longhands with same non-CSS-wide keyword should serialize correctly.");
-
-        div.style.overflowX = "scroll";
-        div.style.overflowY = "hidden";
-        assert_equals(div.style.overflow, "scroll hidden", "Overflow-x/y longhands with different keywords should serialize correctly.");
-    });
+        assert_equals(styleSheet.cssRules[0].style.cssText, "overflow: inherit;")
+    }, "Single value overflow with CSS-wide keyword should serialize correctly.")
+    test(function () {
+        assert_equals(styleSheet.cssRules[1].style.cssText, "overflow: hidden;")
+    }, "Single value overflow with non-CSS-wide keyword should serialize correctly.")
+    test(function () {
+        assert_equals(styleSheet.cssRules[2].style.cssText, "overflow: initial;")
+    }, "Overflow-x/y longhands with same CSS-wide keyword should serialize correctly.")
+    test(function () {
+        assert_equals(styleSheet.cssRules[3].style.cssText, "overflow: scroll;")
+    }, "Overflow-x/y longhands with same non-CSS-wide keyword should serialize correctly.")
+    test(function () {
+        assert_equals(styleSheet.cssRules[4].style.cssText, "overflow: scroll hidden;")
+    }, "Overflow-x/y longhands with different keywords should serialize correctly.")
+    test(function () {
+        div.style.overflow = "inherit"
+        assert_equals(div.style.overflow, "inherit")
+    }, "Single value overflow on element with CSS-wide keyword should serialize correctly.")
+    test(function () {
+        div.style.overflow = "hidden"
+        assert_equals(div.style.overflow, "hidden")
+    }, "Single value overflow on element with non-CSS-wide keyword should serialize correctly.")
+    test(function () {
+        div.style.overflow = ""
+        div.style.overflowX = "initial"
+        div.style.overflowY = "initial"
+        assert_equals(div.style.overflow, "initial")
+    }, "Overflow-x/y longhands on element with same CSS-wide keyword should serialize correctly.")
+    test(function () {
+        div.style.overflowX = "scroll"
+        div.style.overflowY = "scroll"
+        assert_equals(div.style.overflow, "scroll")
+    }, "Overflow-x/y longhands on element with same non-CSS-wide keyword should serialize correctly.")
+    test(function () {
+        div.style.overflowX = "scroll"
+        div.style.overflowY = "hidden"
+        assert_equals(div.style.overflow, "scroll hidden")
+    }, "Overflow-x/y longhands on element with different keywords should serialize correctly.")
     </script>
 </head>
 </html>

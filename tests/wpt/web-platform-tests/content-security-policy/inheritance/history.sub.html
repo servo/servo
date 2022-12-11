@@ -133,7 +133,7 @@
 
       // Closing fails sometimes on Firefox:
       // https://bugzilla.mozilla.org/show_bug.cgi?id=1698093
-      t.add_cleanup(() => { try { popup.close(); } catch {} });
+      t.add_cleanup(() => { popup.close(); });
 
       // Perform a real navigation in the popup. This is needed because the
       // initial empty document is not stored in history (so there is no way of

@@ -122,3 +122,15 @@ promise_test(async t => {
   assert_equals(Promise.resolve(p), p, 'request() result is a Promise');
   await promise_rejects_exactly(t, test_error, p, 'result should reject');
 }, 'Returned Promise rejects if callback throws asynchronously');
+
+promise_test(async t => {
+  const res = uniqueName(t);
+  let then_invoked = false;
+  const test_error = { then: _ => { then_invoked = true; } };
+  const p = navigator.locks.request(res, async lock => {
+    throw test_error;
+  });
+  assert_equals(Promise.resolve(p), p, 'request() result is a Promise');
+  await promise_rejects_exactly(t, test_error, p, 'result should reject');
+  assert_false(then_invoked, 'then() should not be invoked');
+}, 'If callback throws a thenable, its then() should not be invoked');

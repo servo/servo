@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <title>TestDriver set_permission method</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -7,11 +7,17 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <script>
-promise_test(t => {
-  return test_driver.set_permission({name: "ambient-light-sensor"}, "granted", true);
-}, "Grant Permission for one realm");
+    const descriptor = { name: "geolocation" };
 
-promise_test(t => {
-  return test_driver.set_permission({name: "push", userVisibleOnly: true}, "denied");
-}, "Deny Permission, omit one realm");
+    promise_test(async (t) => {
+        await test_driver.set_permission(descriptor, "granted");
+        permission = await navigator.permissions.query(descriptor);
+        assert_equals(permission.state, "granted");
+    }, "Grant Permission");
+
+    promise_test(async (t) => {
+        await test_driver.set_permission(descriptor, "denied");
+        permission = await navigator.permissions.query(descriptor);
+        assert_equals(permission.state, "denied");
+    }, "Deny Permission");
 </script>

@@ -11,7 +11,7 @@
 // original, with a mock Mojo service implementation.
 image_capture_test(async (t, imageCaptureTest) => {
   await test_driver.set_permission({name: 'camera', panTiltZoom: true},
-        'granted', false);
+        'granted');
 
   const constraints = { advanced : [{ whiteBalanceMode : 'single-shot',
                                       exposureMode     : 'manual',
@@ -126,7 +126,7 @@ image_capture_test(async (t, imageCaptureTest) => {
 // when cloning a MediaStreamTrack.
 image_capture_test(async (t, imageCaptureTest) => {
   await test_driver.set_permission({name: 'camera', panTiltZoom: true},
-        'granted', false);
+        'granted');
 
   let stream = await navigator.mediaDevices.getUserMedia({video: true});
   let originalVideoTrack = stream.getVideoTracks()[0];
@@ -199,7 +199,7 @@ image_capture_test(async (t, imageCaptureTest) => {
 // when cloning a MediaStreamTrack.
 image_capture_test(async (t, imageCaptureTest) => {
   await test_driver.set_permission({name: 'camera', panTiltZoom: true},
-      'granted', false);
+      'granted');
 
   let stream = await navigator.mediaDevices.getUserMedia({video: true});
   let originalVideoTrack = stream.getVideoTracks()[0];

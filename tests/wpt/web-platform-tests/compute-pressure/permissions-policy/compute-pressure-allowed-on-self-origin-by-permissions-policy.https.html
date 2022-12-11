@@ -12,13 +12,13 @@ const same_origin_src =
 const cross_origin_src = get_host_info().HTTPS_REMOTE_ORIGIN + same_origin_src;
 const header = 'permissions policy header "compute-pressure=self"';
 
-test(() => {
+promise_test(async () => {
   try {
     const observer = new PressureObserver(() => {});
-    observer.observe("cpu");
+    await observer.observe("cpu");
     observer.disconnect();
   } catch (e) {
-    assert_unreached();
+    assert_unreached('expected promise to resolve.');
   }
 }, `${header} allows the top-level document.`);
 

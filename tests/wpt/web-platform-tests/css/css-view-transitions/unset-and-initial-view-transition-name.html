@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html>
 <title>View transitions: validates that view-transition-name: unset or initial are ignored</title>
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
@@ -35,6 +35,7 @@
 
 <script>
 promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition();
     await transition.domUpdated;

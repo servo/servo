@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerconnection MSID generation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+
+function msidLines(desc) {
+  const sections = SDPUtils.splitSections(desc.sdp);
+  return SDPUtils.matchPrefix(sections[1], 'a=msid:');
+}
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const dc = pc.createDataChannel('foo');
+  const desc = await pc.createOffer();
+  assert_equals(msidLines(desc).length, 0);
+}, 'No media track produces no MSID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  pc.addTrack(stream1.getTracks()[0]);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], /^a=msid:-/);
+}, 'AddTrack without a stream produces MSID with no stream ID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  pc.addTrack(stream1.getTracks()[0], stream1);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], /^a=msid:[\!#$%&'*+-.0-9a-zA-Z]/);
+}, 'AddTrack with a stream produces MSID with a stream ID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  const stream2 = new MediaStream(stream1.getTracks());
+  pc.addTrack(stream1.getTracks()[0], stream1, stream2);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 2);
+  assert_regexp_match(msid_lines[0], /^a=msid:[\!#$%&'*+-.0-9a-zA-Z]/);
+  assert_regexp_match(msid_lines[1], /^a=msid:[\!#$%&'*+-.0-9a-zA-Z]/);
+}, 'AddTrack with two streams produces two MSID lines');
+
+</script>

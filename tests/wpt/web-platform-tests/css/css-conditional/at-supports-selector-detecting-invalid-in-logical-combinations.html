@@ -1,0 +1,50 @@
+<!doctype html>
+<title>CSS Conditional Test: @supports selector() detecting invalid in logical combinations.</title>
+<link rel="author" title="Byungwoo Lee" href="mailto:blee@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-conditional/#at-supports">
+<link rel="match" href="at-supports-selector-detecting-invalid-in-logical-combinations-ref.html">
+<style>
+  div.invalid {
+    background-color: green;
+    height: 100px;
+    width: 100px;
+  }
+  div.valid {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+  }
+  @supports selector(:is(.a)) {
+    div.is.valid { background: green };
+  }
+  @supports selector(:where(.a)) {
+    div.where.valid { background: green };
+  }
+  @supports selector(:has(.a)) {
+    div.has.valid { background: green };
+  }
+  @supports selector(:not(.a)) {
+    div.not.valid { background: green };
+  }
+  @supports selector(:is(:foo, .a)) {
+    div.is.invalid { background: red };
+  }
+  @supports selector(:where(:foo, .a)) {
+    div.where.invalid { background: red };
+  }
+  @supports selector(:has(:foo, .a)) {
+    div.has.invalid { background: red };
+  }
+  @supports selector(:not(:foo, .a)) {
+    div.not.invalid { background: red };
+  }
+</style>
+<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+<div class="is valid"></div>
+<div class="where valid"></div>
+<div class="has valid"></div>
+<div class="not valid"></div>
+<div class="is invalid"></div>
+<div class="where invalid"></div>
+<div class="has invalid"></div>
+<div class="not invalid"></div>

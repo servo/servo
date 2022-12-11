@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<title>Prefetched response including No-Vary-Search headers is used during navigation</title>
+<meta charset="utf-8">
+
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-2">
+<meta name="variant" content="?3-3">
+<meta name="variant" content="?4-4">
+<meta name="variant" content="?5-5">
+<meta name="variant" content="?6-6">
+<meta name="variant" content="?7-7">
+<meta name="variant" content="?8-8">
+<meta name="variant" content="?9-9">
+<meta name="variant" content="?10-10">
+<meta name="variant" content="?11-11">
+<meta name="variant" content="?12-12">
+<meta name="variant" content="?13-13">
+<meta name="variant" content="?14-14">
+<meta name="variant" content="?15-15">
+<meta name="variant" content="?16-16">
+<meta name="variant" content="?17-17">
+<meta name="variant" content="?18-18">
+<meta name="variant" content="?19-19">
+<meta name="variant" content="?20-20">
+<meta name="variant" content="?21-21">
+<meta name="variant" content="?22-22">
+<meta name="variant" content="?23-23">
+<meta name="variant" content="?24-24">
+<meta name="variant" content="?25-25">
+<meta name="variant" content="?26-last">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.sub.js"></script>
+<script src="/common/subset-tests.js"></script>
+
+<script>
+  function addNoVarySearchHeaderUsingPipe(url, value){
+    // Use server pipes https://web-platform-tests.org/writing-tests/server-pipes.html
+    // to populate No-Vary-Search response header.
+    // The "," and ")" characters need to be escaped by using backslash
+    // (see https://web-platform-tests.org/writing-tests/server-pipes.html).
+    // E.g. params=("a") becomes params=("a"\), params=("a"),key-order becomes
+    // params=("a"\)\,key-order etc.
+    url.searchParams.append("pipe",
+      `header(No-Vary-Search,${value.replaceAll(/[,)]/g, '\\$&')})`);
+  }
+
+  /*
+    remoteAgent: the RemoteContext instance used to communicate between the
+      test and the window where prefetch/navigation is happening
+    noVarySearchHeaderValue: the value of No-Vary-Search header to be populated
+      for the prefetched response
+    prefetchQuery: query params to be added to prefetchExecutor url and prefetched
+    navigateQuery: query params to be added to prefetchExecutor url and navigated to
+  */
+  async function prefetchAndNavigate(remoteAgent, noVarySearchHeaderValue, prefetchQuery, navigateQuery){
+    const nextUrl = remoteAgent.getExecutorURL();
+    const navigateToUrl = new URL(nextUrl);
+    // Add query params to the url to be prefetched.
+    const additionalPrefetchedUrlSearchParams = new URLSearchParams(prefetchQuery);
+    addNoVarySearchHeaderUsingPipe(nextUrl, noVarySearchHeaderValue);
+    additionalPrefetchedUrlSearchParams.forEach((value, key) => {
+      nextUrl.searchParams.append(key, value);
+    });
+
+    await remoteAgent.forceSinglePrefetch(nextUrl);
+
+    // Add new query params to navigateToUrl to match No-Vary-Search test case.
+    const additionalNavigateToUrlSearchParams = new URLSearchParams(navigateQuery);
+    addNoVarySearchHeaderUsingPipe(navigateToUrl, noVarySearchHeaderValue);
+    additionalNavigateToUrlSearchParams.forEach((value, key) => {
+      navigateToUrl.searchParams.append(key, value);
+    });
+    await remoteAgent.navigate(navigateToUrl);
+  }
+
+  function prefetch_no_vary_search_test(description, noVarySearch, prefetchQuery, navigateQuery, shouldUsePrefetch){
+    promise_test(async t => {
+      assert_implements(HTMLScriptElement.supports('speculationrules'), "Speculation Rules not supported");
+      const agent = await spawnWindow(t, {});
+      await prefetchAndNavigate(agent,
+        noVarySearch,
+        prefetchQuery,
+        navigateQuery);
+
+      if(shouldUsePrefetch){
+        assert_prefetched(await agent.getRequestHeaders(),
+          "Navigation didn't use the prefetched response!");
+      }
+      else{
+        assert_not_prefetched(await agent.getRequestHeaders(),
+          "Navigation used the prefetched response!");
+      }
+     }, description);
+  }
+
+  // Test inputs:
+  // - description: a description of the test.
+  // - no-vary-search: No-Vary-Search header value for the response.
+  // - prefetch-query: added to query part of prefetch-executor when prefetching
+  // - navigate-query: added to query part of prefetch-executor when navigating
+  // - shouldUsePrefetch: if the test case expects the prefetched entry to be
+  //   used or not.
+  [{description:"Use prefetched response as query parameter b has the same value.",
+    noVarySearch: 'params=("a")',
+    prefetchQuery: "a=2&b=3",
+    navigateQuery: "b=3",
+    shouldUsePrefetch: true},
+
+   {description:"Don't use prefetched response as query parameter b has different value.",
+    noVarySearch: 'params("a")',
+    prefetchQuery: "a=2&b=3",
+    navigateQuery: "b=2",
+    shouldUsePrefetch: false},
+
+   {description:"Use prefetched response as the URLs do not vary by a and b.",
+    noVarySearch: 'params=("a" "b")',
+    prefetchQuery: "a=2&b=3",
+    navigateQuery: "b=2",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as the URLs do not vary on any query parameters.",
+    noVarySearch: "params",
+    prefetchQuery: "a=2&b=3",
+    navigateQuery: "b=4&c=5",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as the URLs do not vary on any query parameters.",
+    noVarySearch: "params",
+    prefetchQuery: "",
+    navigateQuery: "b=4&c=5",
+    shouldUsePrefetch: true},
+
+   {description:"Don't use prefetched response as the URLs have different value for c.",
+    noVarySearch: "key-order",
+    prefetchQuery: "c=4&b=3&a=2",
+    navigateQuery: "a=2&c=5&b=3",
+    shouldUsePrefetch: false},
+
+   {description:"Don't use prefetched response as the URLs have the values in different order for a.",
+    noVarySearch: "key-order",
+    prefetchQuery: "b=5&a=3&a=4&d=6&c=5&b=3",
+    navigateQuery: "d=6&a=4&b=5&b=3&c=5&a=3",
+    shouldUsePrefetch: false},
+
+   {description:"Use prefetched response as the URLs have the same values for a.",
+    noVarySearch: "key-order",
+    prefetchQuery: "b=5&a=3&a=4&d=6&c=5&b=3",
+    navigateQuery: "d=6&a=3&b=5&b=3&c=5&a=4",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as the URLs have the same values for a.",
+    noVarySearch: "key-order=?1",
+    prefetchQuery: "b=5&a=3&a=4&d=6&c=5&b=3",
+    navigateQuery: "d=6&a=3&b=5&b=3&c=5&a=4",
+    shouldUsePrefetch: true},
+
+   {description:"Don't use prefetched response as key-order is set to false and the URLs are not identical.",
+    noVarySearch: "key-order=?0",
+    prefetchQuery: "b=5&a=3&a=4&d=6&c=5&b=3",
+    navigateQuery: "d=6&a=3&b=5&b=3&c=5&a=4",
+    shouldUsePrefetch: false},
+
+   {description:"Use prefetched response as query parameter c can be ignored.",
+    noVarySearch: 'params=("c")',
+    prefetchQuery: "a=2&b=2&c=5",
+    navigateQuery: "a=2&c=3&b=2",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as query parameter a can be ignored.",
+    noVarySearch: 'params=("a")',
+    prefetchQuery: "a=2",
+    navigateQuery: "",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as query parameter a can be ignored.",
+    noVarySearch: 'params=("a")',
+    prefetchQuery: "",
+    navigateQuery: "a=2",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as all query parameters except c can be ignored.",
+    noVarySearch: 'params, except=("c")',
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "a=1&b=2&c=3",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as all query parameters except c can be ignored." +
+                " Only the last except matters.",
+    noVarySearch: 'params, except=("b"), except=("c")',
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "a=1&b=2&c=3",
+    shouldUsePrefetch: true},
+
+   {description:"Don't use prefetched response as even though all query parameters" +
+                " except c can be ignored, c has different value.",
+    noVarySearch: 'params, except=("c")',
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "a=1&b=2&c=5",
+    shouldUsePrefetch: false},
+
+   {description:"Use prefetched response as even though all query parameters" +
+                " except c and d can be ignored, c value matches and d value matches.",
+    noVarySearch: 'params, except=("c" "d")',
+    prefetchQuery: "b=5&a=3&d=6&c=5",
+    navigateQuery: "d=6&a=1&b=2&c=5",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as even though all query parameters except" +
+                " c and d can be ignored, c value matches and d value matches." +
+                " Some query parameters to be ignored appear multiple times in the query.",
+    noVarySearch: 'params, except=("c" "d")',
+    prefetchQuery: "b=5&a=3&a=4&d=6&c=5",
+    navigateQuery: "d=6&a=1&a=2&b=2&b=3&c=5",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as all query parameters except c can be ignored." +
+                " Allow extension via parameters.",
+    noVarySearch: 'params, except=("c";unknown)',
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "a=1&b=2&c=3",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as query parameter c can be ignored." +
+                " Allow extension via parameters.",
+    noVarySearch: 'params=("c";unknown)',
+    prefetchQuery: "a=2&b=2&c=5",
+    navigateQuery: "a=2&c=3&b=2",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as the URLs have the values in different order for a." +
+                " Allow extension via parameters.",
+    noVarySearch: "key-order;unknown",
+    prefetchQuery: "b=5&a=3&a=4&d=6&c=5&b=3",
+    navigateQuery: "d=6&a=3&b=5&b=3&c=5&a=4",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as the URLs do not vary on any query parameters." +
+                " Allow extension via parameters.",
+    noVarySearch: "params;unknown",
+    prefetchQuery: "",
+    navigateQuery: "b=4&c=5",
+    shouldUsePrefetch: true},
+
+   {description:"Use prefetched response as all query parameters except c can be ignored." +
+                " Allow extension via parameters.",
+    noVarySearch: 'params;unknown, except=("c");unknown',
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "a=1&b=2&c=3",
+    shouldUsePrefetch: true},
+
+   {description:"Don't use the prefetched URL. Empty No-Vary-Search means default URL variance." +
+                " The prefetched and the navigated URLs have to be the same.",
+    noVarySearch: "",
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "a=1&b=2&c=3",
+    shouldUsePrefetch: false},
+
+   {description:"Use the prefetched URL. Empty No-Vary-Search means default URL variance." +
+                " The prefetched and the navigated URLs have to be the same.",
+    noVarySearch: "",
+    prefetchQuery: "b=5&a=3&d=6&c=3",
+    navigateQuery: "b=5&a=3&d=6&c=3",
+    shouldUsePrefetch: true},
+
+   {description:"Use the prefetched URL. Empty No-Vary-Search means default URL variance." +
+                " The prefetched and the navigated URLs have to be the same.",
+    noVarySearch: "",
+    prefetchQuery: "",
+    navigateQuery: "",
+    shouldUsePrefetch: true},
+
+  ].forEach(({description, noVarySearch, prefetchQuery, navigateQuery, shouldUsePrefetch}) => {
+    subsetTest(prefetch_no_vary_search_test,
+      description, noVarySearch, prefetchQuery, navigateQuery,
+      shouldUsePrefetch);
+  });
+
+</script>

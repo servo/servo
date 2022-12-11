@@ -17,7 +17,7 @@ promise_test(async t => {
       resolve();
     }, {sampleRate: 1.0});
     t.add_cleanup(() => observer2.disconnect());
-    observer2.observe('cpu');
+    observer2.observe('cpu').catch(reject);
   });
 
   assert_equals(

@@ -30,8 +30,12 @@
   test_valid_selector('.a:has(.b):has(.c)');
   test_valid_selector('*|*:has(*)', ':has(*)');
   test_valid_selector(':has(*|*)', ':has(*)');
-  test_valid_selector('.a:has()', '.a:has()');
   test_invalid_selector(':has');
   test_invalid_selector('.a:has');
   test_invalid_selector('.a:has b');
+  /* :has() is unforgiving, but :is() can still forgive */
+  test_invalid_selector(':has()');
+  test_invalid_selector(':has(123)');
+  test_invalid_selector(':has(.a, 123)');
+  test_valid_selector(':has(:is(.a, 123))', ':has(:is(.a))');
 </script>

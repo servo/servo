@@ -237,6 +237,15 @@
         extraConfig,
       });
     }
+
+    async createContextWithUrl(extraConfig) {
+      let saveUrl;
+      let wrapper = await this.createContext({
+        executorCreator: (url) => {saveUrl = url},
+        extraConfig,
+      });
+      return [wrapper, saveUrl];
+    }
   }
   // Export this class.
   self.RemoteContextHelper = RemoteContextHelper;

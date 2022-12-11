@@ -52,6 +52,7 @@ html::view-transition-new(shared) {
 
 <script>
 async_test(t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   document.startViewTransition(() => {
     target.classList.toggle("before");
     target.classList.toggle("after");
@@ -68,5 +69,4 @@ async_test(t => {
     });
   });
 }, "hit test should not hit unpainted element, but does hit pseudo and unrelated elements");
-
 </script>

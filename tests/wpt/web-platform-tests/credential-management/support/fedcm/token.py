@@ -9,14 +9,16 @@ def main(request, response):
     return (533, [], "Wrong Accept")
   if request.headers.get(b"Sec-Fetch-Dest") != b"webidentity":
     return (500, [], "Wrong Sec-Fetch-Dest header")
-  if not request.headers.get(b"Referer"):
-    return (534, [], "Missing Referer")
+  if request.headers.get(b"Referer"):
+    return (534, [], "Should not have Referer")
+  if not request.headers.get(b"Origin"):
+    return (535, [], "Missing Origin")
 
   if not request.POST.get(b"client_id"):
-    return (535, [], "Missing 'client_id' POST parameter")
+    return (536, [], "Missing 'client_id' POST parameter")
   if not request.POST.get(b"account_id"):
-    return (536, [], "Missing 'account_id' POST parameter")
+    return (537, [], "Missing 'account_id' POST parameter")
   if not request.POST.get(b"disclosure_text_shown"):
-    return (537, [], "Missing 'disclosure_text_shown' POST parameter")
+    return (538, [], "Missing 'disclosure_text_shown' POST parameter")
 
   return "{\"token\": \"token\"}"

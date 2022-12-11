@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Remove the last element on the fullscreen element stack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="first">
+  <div id="last"></div>
+</div>
+<script>
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    const first = document.getElementById("first");
+    const [, firstEvent] = await Promise.all([
+      trusted_request(first),
+      fullScreenChange(),
+    ]);
+
+    assert_equals(document.fullscreenElement, first);
+    assert_equals(firstEvent.target, first);
+
+    const last = document.getElementById("last");
+    const [, lastEvent] = await Promise.all([
+      trusted_request(last),
+      fullScreenChange(),
+    ]);
+
+    assert_equals(document.fullscreenElement, last);
+    assert_equals(event.target, last);
+    last.remove();
+    // Because /last/ was removed from the top layer, we exit
+    // fullscreen element synchronously.
+    assert_equals(document.fullscreenElement, first);
+
+    const finalEvent = await fullScreenChange();
+    // fullscreen change element should be queued against the
+    // document target.
+    assert_equals(document.fullscreenElement, null);
+    assert_equals(event.target, document);
+  });
+</script>

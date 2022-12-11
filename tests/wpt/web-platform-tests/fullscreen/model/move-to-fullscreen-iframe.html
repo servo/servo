@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Moving fullscreen document's body into a fullscreen iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<iframe allowfullscreen></iframe>
+<script>
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    const iframe = document.querySelector("iframe");
+    await new Promise((resolve) => {
+      iframe.onload = resolve;
+      iframe.src = "about:blank";
+    });
+    const iframeDoc = iframe.contentDocument;
+
+    // Enter fullscreen for the iframe's body element.
+    await Promise.all([
+      trusted_request(iframeDoc.body, iframeDoc.body),
+      fullScreenChange(),
+    ]);
+
+    assert_equals(
+      document.fullscreenElement,
+      iframe,
+      "document's initial fullscreen element"
+    );
+    assert_equals(
+      iframeDoc.fullscreenElement,
+      iframeDoc.body,
+      "iframe's initial fullscreen element"
+    );
+
+    // Then, move the outer document's body into the iframe. This is an unusual
+    // thing to do, but means that the iframe is removed from its document and
+    // should trigger fullscreen exit.
+    iframeDoc.documentElement.appendChild(document.body);
+
+    // If we exit in an orderly fashion, that's all one can ask for.
+    await fullScreenChange();
+    assert_equals(
+      document.fullscreenElement,
+      null,
+      "document's final fullscreen element"
+    );
+
+    // Because the iframe was removed, its browsing context was discarded and
+    // its contentDocument has become null. Because that browsing context was
+    // neither a descendant browsing context nor had an active document,
+    // nothing at all was done with it in the exit fullscreen algorithm, so
+    // its fullscreenElement is unchanged.
+    assert_equals(iframe.contentDocument, null, "iframe's content document");
+    assert_equals(
+      iframeDoc.fullscreenElement,
+      iframeDoc.body,
+      "iframe's final fullscreen element"
+    );
+  });
+</script>

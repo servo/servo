@@ -17,7 +17,7 @@
 <div id=mainpage style="display:none">
   <div class=wrapper>
     <div class=host>
-      <template shadowroot=open>
+      <template shadowrootmode=open>
         <span class=content>Content</span>
       </template>
     </div>
@@ -29,7 +29,7 @@ const content = `
   <html><body>
   <div class=wrapper>
     <div class=host>
-      <template shadowroot=open>
+      <template shadowrootmode=open>
         <span class=content>Content</span>
       </template>
     </div>
@@ -49,7 +49,7 @@ function assert_dsd(el,shouldHaveShadow) {
     assert_true(!host.shadowRoot, 'Shadow root FOUND - none should be present.');
     const tmpl = host.querySelector('template');
     assert_true(!!tmpl, 'The template should be left as a <template> element');
-    assert_equals(tmpl.getAttribute('shadowroot'),'open','The shadowroot attribute should still be present');
+    assert_equals(tmpl.getAttribute('shadowrootmode'),'open','The shadowrootmode attribute should still be present');
     assert_true(!!tmpl.content.querySelector('.content'),'Unable to locate content');
   }
 }

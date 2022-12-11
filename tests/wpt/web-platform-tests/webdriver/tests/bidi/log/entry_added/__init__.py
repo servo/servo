@@ -1,5 +1,6 @@
 from webdriver.bidi.modules.script import ContextTarget
-from ... import any_int, any_list, any_string, recursive_compare
+
+from ... import any_int, any_list, any_string, create_console_api_message, recursive_compare
 
 
 def assert_base_entry(
@@ -85,16 +86,6 @@ def assert_javascript_entry(
     recursive_compare({
         "type": "javascript",
     }, entry)
-
-
-async def create_console_api_message(bidi_session, context, text):
-    await bidi_session.script.call_function(
-        function_declaration="""(text) => console.log(text)""",
-        arguments=[{"type": "string", "value": text}],
-        await_promise=False,
-        target=ContextTarget(context["context"]),
-    )
-    return text
 
 
 async def create_console_api_message_for_primitive_value(bidi_session, context, type, value):

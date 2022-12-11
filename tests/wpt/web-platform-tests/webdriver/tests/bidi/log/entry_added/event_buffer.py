@@ -10,9 +10,6 @@ from . import assert_base_entry, create_log
 async def test_console_log_cached_messages(
     bidi_session, wait_for_event, log_type, new_tab
 ):
-    # Unsubscribe in case previous tests subscribed to log.entryAdded
-    await bidi_session.session.unsubscribe(events=["log.entryAdded"])
-
     # Log a message before subscribing
     expected_text = await create_log(bidi_session, new_tab, log_type, "cached_message")
 
@@ -57,17 +54,15 @@ async def test_console_log_cached_messages(
     assert len(events) == 3
     assert_base_entry(events[2], text=expected_text, context=new_tab["context"])
 
+    await bidi_session.session.unsubscribe(events=["log.entryAdded"])
     remove_listener()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("log_type", ["console_api_log", "javascript_error"])
 async def test_console_log_cached_message_after_refresh(
-    bidi_session, wait_for_event, new_tab, log_type
+    bidi_session, subscribe_events, new_tab, log_type
 ):
-    # Unsubscribe in case previous tests subscribed to log.entryAdded
-    await bidi_session.session.unsubscribe(events=["log.entryAdded"])
-
     # Track all received log.entryAdded events in the events array
     events = []
 
@@ -83,7 +78,7 @@ async def test_console_log_cached_message_after_refresh(
     )
     expected_text_2 = await create_log(bidi_session, new_tab, log_type, "cached_message_2")
 
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+    await subscribe_events(events=["log.entryAdded"])
 
     # Check that only the cached message was retrieved.
     assert len(events) == 2

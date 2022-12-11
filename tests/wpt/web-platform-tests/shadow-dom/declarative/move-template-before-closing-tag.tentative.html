@@ -56,7 +56,7 @@ function runTest(testdiv) {
 <div class=test shouldattach=true description="Moving the template node during parsing should attach to initial parent (content before observer)">
   <div class=new-host></div>
   <div class=old-host>
-    <template class='template' shadowroot=open>
+    <template class='template' shadowrootmode=open>
       <span class=contents>Template contents</span>
       <script></script> <!-- Observer runs here, moves <template> node -->
     </template>
@@ -66,7 +66,7 @@ function runTest(testdiv) {
 <div class=test shouldattach=true description="Moving the template node during parsing should attach to initial parent (content after observer)">
   <div class=new-host></div>
   <div class=old-host>
-    <template class='template' shadowroot=open>
+    <template class='template' shadowrootmode=open>
       <script></script> <!-- Observer runs here, moves <template> node -->
       <span class=contents>Template contents</span>
     </template>
@@ -76,7 +76,7 @@ function runTest(testdiv) {
 <div class=test shouldattach=false description="Moving the template node from invalid parent to valid parent should still not attach">
   <div class=new-host></div>
   <video class=old-host>
-    <template class='template' shadowroot=open>
+    <template class='template' shadowrootmode=open>
       <span class=contents>Template contents</span>
       <script></script> <!-- Observer runs here, moves <template> node -->
     </template>

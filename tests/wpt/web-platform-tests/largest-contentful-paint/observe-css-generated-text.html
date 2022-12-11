@@ -27,8 +27,8 @@
         'Render time should be greater than time just before rendering');
       assert_greater_than_equal(performance.now(), entry.renderTime,
         'renderTime should be less than current time');
-      assert_equals(entry.startTime, entry.renderTime,
-        'startTime should equal renderTime');
+      assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
+        'startTime should be equal to renderTime to the precision of 1 millisecond.');
       assert_equals(entry.duration, 0, 'duration should be 0');
       assert_greater_than_equal(entry.size, expectedSize,
         'Size should match expected size');

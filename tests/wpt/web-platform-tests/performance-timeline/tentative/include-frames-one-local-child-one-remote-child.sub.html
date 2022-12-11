@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+</body>
+<script>
+promise_test(() => {
+    return new Promise(resolve => {
+        performance.clearResourceTimings()
+
+        let localFrameLoaded = false
+        let remoteFrameLoaded = false
+
+        // Create first child iframe.
+        const localChildFrame = document.createElement('iframe')
+        localChildFrame.src = "../resources/child-frame.html"
+        document.body.appendChild(localChildFrame)
+
+        localChildFrame.addEventListener("load", () => {
+            localFrameLoaded = true
+            if (remoteFrameLoaded)
+                verifyPerformanceEntries()
+        })
+
+        // Create second child iframe.
+        const remoteChildFrame = document.createElement('iframe')
+        remoteChildFrame.src = "http://{{hosts[][www]}}:{{ports[http][0]}}/resources/child-frame.html"
+        document.body.appendChild(remoteChildFrame)
+
+        remoteChildFrame.addEventListener("load", () => {
+            remoteFrameLoaded = true
+            if (localFrameLoaded)
+                verifyPerformanceEntries()
+        })
+
+        function verifyPerformanceEntries() {
+            const entries = performance.getEntries(true)
+            const navigationEntries = performance.getEntriesByType("navigation", true)
+            const markedEntries = performance.getEntriesByName("entry-name", undefined, true)
+
+            // 4 entries for parent, 2 for local child, 0 for remote child.
+            assert_equals(entries.length, 6)
+
+            // 1 entry for parent, 1 for local child.
+            assert_equals(navigationEntries.length, 2)
+
+            // 1 entry for local child.
+            assert_equals(markedEntries.length, 1)
+
+            resolve()
+        }
+    })
+}, "GetEntries of a ParentFrame with one RemoteFrame child and one LocalFrame child")
+</script>

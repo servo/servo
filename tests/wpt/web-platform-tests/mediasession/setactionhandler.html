@@ -4,20 +4,26 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 
-test(function(t) {
-  window.navigator.mediaSession.setActionHandler("play", null);
-  window.navigator.mediaSession.setActionHandler("pause", null);
-  window.navigator.mediaSession.setActionHandler("previoustrack", null);
-  window.navigator.mediaSession.setActionHandler("nexttrack", null);
-  window.navigator.mediaSession.setActionHandler("seekbackward", null);
-  window.navigator.mediaSession.setActionHandler("seekforward", null);
-  window.navigator.mediaSession.setActionHandler("stop", null);
-  window.navigator.mediaSession.setActionHandler("seekto", null);
-  window.navigator.mediaSession.setActionHandler("skipad", null);
-  window.navigator.mediaSession.setActionHandler("togglemicrophone", null);
-  window.navigator.mediaSession.setActionHandler("togglecamera", null);
-  window.navigator.mediaSession.setActionHandler("hangup", null);
-}, "Test that setActionHandler() can be executed for supported actions");
+[
+  "play",
+  "pause",
+  "previoustrack",
+  "nexttrack",
+  "seekbackward",
+  "seekforward",
+  "stop",
+  "seekto",
+  "skipad",
+  "togglemicrophone",
+  "togglecamera",
+  "hangup",
+  "previousslide",
+  "nextslide",
+].forEach((action) =>
+  test((t) => {
+    window.navigator.mediaSession.setActionHandler(action, null);
+  }, `Test that setActionHandler("${action}") succeeds`)
+);
 
 test(function(t) {
   assert_throws_js(

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Fonts Module Level 4: interaction of font-palette and font shorthand</title>
 <link rel="help" href="https://drafts.csswg.org/css-fonts/#font-prop">
-<meta name="assert" content="font-palette is reset to normal by font shorthand.">
+<meta name="assert" content="font-palette is NOT reset to normal by font shorthand.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style id="style">
@@ -17,11 +17,11 @@ div {
 }
 #a {
     font: 50px colr;
-    font-palette: dark;
+    font-palette: dark;  /* should NOT cause the shorthand to be empty */
 }
 #b {
     font-palette: dark;
-    font: 50px colr;  /* should reset font-palette to normal */
+    font: 50px colr;  /* should NOT reset font-palette to normal */
 }
 #c {
     font-palette: dark;
@@ -37,7 +37,7 @@ div {
 </style>
 </head>
 <body>
-<p>The first and third examples should use the 'dark' palette; the second and fourth, 'normal'.</p>
+<p>The first three examples should use the 'dark' palette; the fourth, 'normal'.</p>
 <div id=a>A</div>
 <div id=b>A</div>
 <div id=c>A</div>
@@ -47,7 +47,10 @@ test(function() {
     let testElem = document.getElementById("a");
     let computed = window.getComputedStyle(testElem);
     assert_equals(computed.fontPalette, "dark");
-    assert_equals(computed.font, "");
+    assert_not_equals(computed.font, "");
+    /* The exact form of the font shorthand varies, but should include these pieces: */
+    assert_not_equals(computed.font.indexOf("50px"), -1);
+    assert_not_equals(computed.font.indexOf("colr"), -1);
     assert_equals(computed.fontFamily, "colr");
     assert_equals(computed.fontSize, "50px");
 });
@@ -55,20 +58,22 @@ test(function() {
 test(function() {
     let testElem = document.getElementById("b");
     let computed = window.getComputedStyle(testElem);
-    assert_equals(computed.fontPalette, "normal");
+    assert_equals(computed.fontPalette, "dark");
     assert_not_equals(computed.font, "");
-    /* The exact form of the font shorthand varies, but should include these pieces: */
     assert_not_equals(computed.font.indexOf("50px"), -1);
     assert_not_equals(computed.font.indexOf("colr"), -1);
-    /* And there should be no trace of this: */
-    assert_equals(computed.font.indexOf("dark"), -1);
+    assert_equals(computed.fontFamily, "colr");
+    assert_equals(computed.fontSize, "50px");
 });
 
 test(function() {
     let testElem = document.getElementById("c");
     let computed = window.getComputedStyle(testElem);
     assert_equals(computed.fontPalette, "dark");
-    assert_equals(computed.font, "");
+    assert_not_equals(computed.font.indexOf("50px"), -1);
+    assert_not_equals(computed.font.indexOf("colr"), -1);
+    assert_equals(computed.fontFamily, "colr");
+    assert_equals(computed.fontSize, "50px");
 });
 
 test(function() {
@@ -77,6 +82,8 @@ test(function() {
     assert_equals(computed.fontPalette, "normal");
     assert_not_equals(computed.font.indexOf("50px"), -1);
     assert_not_equals(computed.font.indexOf("colr"), -1);
+    assert_equals(computed.fontFamily, "colr");
+    assert_equals(computed.fontSize, "50px");
 });
 </script>
 </body>
