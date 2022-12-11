@@ -43,6 +43,8 @@ This text should appear unmodified, since the root isn't captured.
 </div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() =>
     requestAnimationFrame(() => requestAnimationFrame(takeScreenshot)));

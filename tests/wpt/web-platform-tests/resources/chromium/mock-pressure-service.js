@@ -120,6 +120,18 @@ class MockPressureService {
       factors: pressureFactors,
     };
   }
+
+  setExpectedFailure(expectedException) {
+    assert_true(
+        expectedException instanceof DOMException,
+        'setExpectedFailure() expects a DOMException instance');
+    if (expectedException.name === 'NotSupportedError') {
+      this.pressureStatus_ = PressureStatus.kNotSupported;
+    } else {
+      throw new TypeError(
+          `Unexpected DOMException '${expectedException.name}'`);
+    }
+  }
 }
 
 export const mockPressureService = new MockPressureService();

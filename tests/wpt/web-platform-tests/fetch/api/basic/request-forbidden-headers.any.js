@@ -36,6 +36,9 @@ requestForbiddenHeaders("Accept-Encoding is a forbidden request header", {"Accep
 
 requestForbiddenHeaders("Access-Control-Request-Headers is a forbidden request header", {"Access-Control-Request-Headers": ""});
 requestForbiddenHeaders("Access-Control-Request-Method is a forbidden request header", {"Access-Control-Request-Method": ""});
+requestForbiddenHeaders(
+    'Access-Control-Request-Private-Network is a forbidden request header',
+    {'Access-Control-Request-Private-Network': ''});
 requestForbiddenHeaders("Connection is a forbidden request header", {"Connection": "close"});
 requestForbiddenHeaders("Content-Length is a forbidden request header", {"Content-Length": "42"});
 requestForbiddenHeaders("Cookie is a forbidden request header", {"Cookie": "cookie=none"});

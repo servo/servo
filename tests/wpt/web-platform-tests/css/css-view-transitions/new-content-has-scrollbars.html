@@ -46,6 +46,8 @@
 
 <div></div>
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 // Ensure a root snapshot captured in the absence of scrollbars is displayed at
 // full size when rendered in the incoming viewport which is inset by
 // scrollbars. The content must not be scaled-to-fit.

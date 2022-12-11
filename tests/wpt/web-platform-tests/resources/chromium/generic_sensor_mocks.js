@@ -490,7 +490,7 @@ self.GenericSensorTest = (() => {
         for (const entry
                  of ['accelerometer', 'gyroscope', 'magnetometer',
                      'ambient-light-sensor']) {
-          await test_driver.set_permission({name: entry}, 'granted', false);
+          await test_driver.set_permission({name: entry}, 'granted');
         }
       }
 

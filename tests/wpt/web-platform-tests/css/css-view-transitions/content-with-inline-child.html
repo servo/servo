@@ -53,6 +53,8 @@ html::view-transition-new(target) { animation: unset; opacity: 0; }
 </div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() => {
     // Remove the target to ensure the ref is compared against the snapshot.

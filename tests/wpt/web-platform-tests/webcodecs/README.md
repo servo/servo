@@ -56,6 +56,7 @@ gifski -o four-colors-flip.gif four-colors*.png
 ```
 ffmpeg -i four-colors-flip.gif -vcodec libaom-av1 -crf 16 four-colors-flip.mp4
 mp4box -add-image ref:primary:tk=1:samp=1 -ab avis -ab avif -ab miaf -brand avis four-colors-flip.mp4 -out four-colors-flip.avif
+mp4box -edits 1=r four-colors-flip.avif
 ```
 
 ### four-colors-limited-range-(420|422|444)-8bpc.avif

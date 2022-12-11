@@ -1,27 +1,27 @@
 <!DOCTYPE html>
-<title>Document#exitFullscreen() when the document is not the active document</title>
+<title>
+    Document#exitFullscreen() when the document is not the active document
+</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <iframe allowfullscreen></iframe>
 <script>
-var t = async_test();
+    promise_test(async (t) => {
+        const iframe = document.querySelector("iframe");
+        const stolenTypeError = iframe.contentWindow.TypeError;
+        const documentBeforeNav = iframe.contentDocument;
 
-onload = t.step_func(() => {
-  var iframe = document.querySelector("iframe");
-  var promiseBeforeNav = iframe.contentWindow.Promise;
-  var documentBeforeNav = iframe.contentDocument;
+        await new Promise((resolve) => {
+            iframe.onload = resolve;
+            iframe.src = "about:blank";
+        });
 
-  iframe.onload = t.step_func(() => {
-    var p = documentBeforeNav.exitFullscreen();
-    assert_true(p instanceof promiseBeforeNav, 'exitFullscreen() returns promise');
-    // The promise should already be rejected, so its reject callback should be
-    // invoked before a second promise's callback.
-    p.catch(t.step_func_done());
-    Promise.resolve().then(t.unreached_func('new promise resolved before exitFullscreen() promise rejected'));
-  });
-
-  // Navigate the iframe
-  window[0].location.href = '/common/blank.html';
-});
+        await promise_rejects_js(
+            t,
+            stolenTypeError,
+            documentBeforeNav.documentElement.requestFullscreen(),
+            "Promise should be undefined after navigation"
+        );
+    });
 </script>

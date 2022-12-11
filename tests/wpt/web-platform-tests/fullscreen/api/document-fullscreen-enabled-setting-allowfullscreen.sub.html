@@ -11,7 +11,7 @@ async_test((t) => {
   let i = 0;
 
   const path = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-  iframe.src = "http://{{domains[www1]}}:{{ports[http][0]}}" + path + "resources/echo-fullscreenEnabled.html";
+  iframe.src = "http://{{hosts[][]}}:{{ports[http][0]}}" + path + "resources/echo-fullscreenEnabled.html";
   iframe.onload = t.step_func(() => {
     if (i === 0) {
       iframe.allowFullscreen = true;

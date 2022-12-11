@@ -46,6 +46,15 @@ var test_map = {
     "atan(infinity)"                                    :"calc(90deg)",
     "atan(tan(90deg))"                                  :"calc(90deg)",
     "atan(tan(-90deg))"                                 :"calc(-90deg)",
+    "atan2(37.320508075, 10)"                           :"calc(75deg)",
+    "atan2(1s, 1000ms)"                                 :"calc(45deg)",
+    "atan2(infinity, infinity)"                         :"calc(45deg)",
+    "atan2(-infinity, -infinity)"                       :"calc(-135deg)",
+    "atan2(infinity, 10)"                               :"calc(90deg)",
+    "atan2(10, infinity)"                               :"calc(0deg)",
+    "atan2(NaN, 10)"                                    :"calc(NaN * 1deg)",
+    "atan2(10, NaN)"                                    :"calc(NaN * 1deg)",
+    "atan2(NaN, NaN)"                                   :"calc(NaN * 1deg)",
 };
 
 for (var exp in test_map) {

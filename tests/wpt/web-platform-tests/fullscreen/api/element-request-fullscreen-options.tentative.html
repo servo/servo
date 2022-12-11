@@ -1,19 +1,27 @@
 <!DOCTYPE html>
 <title>Element#requestFullscreen({ screen }) tentative support</title>
-<link rel="help" href="https://w3c.github.io/window-placement/"/>
+<link rel="help" href="https://w3c.github.io/window-placement/" />
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-promise_test(async t => {
-  // Grant window-placement permissions for testdriver.
-  await test_driver.set_permission({name: "window-placement"}, "granted");
+    promise_test(async (t) => {
+        await test_driver.set_permission(
+            { name: "window-placement" },
+            "granted"
+        );
 
-  let invoked = false;
-  let options = { get screen() { invoked = true; return undefined; } };
-  return document.body.requestFullscreen(options).then(
-    () => { assert_unreached("promise unexpectedly fulfilled"); },
-    () => { assert_true(invoked, "screen getter not invoked"); });
-}, "fullscreenOptions.screen getter is invoked on requestFullscreen");
+        const options = {
+            get screen() {
+                return undefined;
+            },
+        };
+
+        await promise_rejects_js(
+            t,
+            TypeError,
+            document.body.requestFullscreen(options)
+        );
+    }, "fullscreenOptions.screen getter is invoked on requestFullscreen");
 </script>

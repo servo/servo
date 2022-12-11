@@ -73,6 +73,8 @@ html::view-transition { background: lightpink; }
 <div class=rl><div id=three class=shared>T</div></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() => {
     one.remove();

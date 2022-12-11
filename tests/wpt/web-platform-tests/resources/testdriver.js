@@ -398,24 +398,22 @@
          *
          * @example
          * await test_driver.set_permission({ name: "background-fetch" }, "denied");
-         * await test_driver.set_permission({ name: "push", userVisibleOnly: true }, "granted", true);
+         * await test_driver.set_permission({ name: "push", userVisibleOnly: true }, "granted");
          *
-         * @param {Object} descriptor - a `PermissionDescriptor
-         *                              <https://w3c.github.io/permissions/#dictdef-permissiondescriptor>`_
-         *                              object
+         * @param {PermissionDescriptor} descriptor - a `PermissionDescriptor
+         *                              <https://w3c.github.io/permissions/#dom-permissiondescriptor>`_
+         *                              dictionary.
          * @param {String} state - the state of the permission
-         * @param {boolean} one_realm - Optional. Whether the permission applies to only one realm
          * @param {WindowProxy} context - Browsing context in which
          *                                to run the call, or null for the current
          *                                browsing context.
          * @returns {Promise} fulfilled after the permission is set, or rejected if setting the
          *                    permission fails
          */
-        set_permission: function(descriptor, state, one_realm=false, context=null) {
+        set_permission: function(descriptor, state, context=null) {
             let permission_params = {
               descriptor,
               state,
-              oneRealm: one_realm,
             };
             return window.test_driver_internal.set_permission(permission_params, context);
         },

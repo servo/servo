@@ -32,6 +32,8 @@ html::view-transition-old(*) {
 <div id=first></div>
 <div id=second></div>
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function setAnimation() {
   document.documentElement.animate({ transform: ['translate(100px)', 'translate(100px)'] }, { duration: 10000, pseudoElement: '::view-transition-group(first)'});
   document.documentElement.animate({ transform: ['translate(150px)', 'translate(150px)'] }, { duration: 10000, pseudoElement: '::view-transition-group(second)'});

@@ -11,13 +11,13 @@ promise_test(async t => {
   observer1.disconnect();
 
   const observer2_changes = [];
-  await new Promise(resolve => {
+  await new Promise((resolve, reject) => {
     const observer2 = new PressureObserver(changes => {
       observer2_changes.push(changes);
       resolve();
     }, {sampleRate: 1});
     t.add_cleanup(() => observer2.disconnect());
-    observer2.observe('cpu');
+    observer2.observe('cpu').catch(reject);
   });
 
   assert_equals(

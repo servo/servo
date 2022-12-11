@@ -26,7 +26,9 @@ test(t => {
   assert_equals(frame.visibleRect.height, clone.visibleRect.height);
 
   frame.close();
+  assert_true(isFrameClosed(frame));
   clone.close();
+  assert_true(isFrameClosed(clone));
 }, 'Test we can clone a VideoFrame.');
 
 test(t => {

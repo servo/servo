@@ -1,21 +1,19 @@
 <!DOCTYPE html>
-<title>Document#fullscreenEnabled when the document is not the active document</title>
+<title>
+    Document#fullscreenEnabled when the document is not the active document
+</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <iframe allowfullscreen></iframe>
 <script>
-var t = async_test();
-
-onload = t.step_func(() => {
-  var iframe = document.querySelector("iframe");
-  var documentBeforeNav = iframe.contentDocument;
-
-  iframe.onload = t.step_func_done(() => {
-    assert_false(documentBeforeNav.fullscreenEnabled);
-  });
-
-  // Navigate the iframe
-  window[0].location.href = '/common/blank.html';
-});
+    promise_test(async (t) => {
+        const iframe = document.querySelector("iframe");
+        const documentBeforeNav = iframe.contentDocument;
+        await new Promise((resolve) => {
+            iframe.onload = resolve;
+            iframe.src = "/common/blank.html";
+        });
+        assert_false(documentBeforeNav.fullscreenEnabled)
+    });
 </script>

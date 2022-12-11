@@ -17,31 +17,32 @@ window.onload = () => {
       assert_false(popover.matches(':open'));
       let showCount = 0;
       let hideCount = 0;
-      function showListener(e) {
-        assert_true(e.target.matches(':closed'),'The popover should be in the :closed state when the popovershow event fires.');
-        assert_false(e.target.matches(':open'),'The popover should *not* be in the :open state when the popovershow event fires.');
-        ++showCount;
-      };
-      function hideListener(e) {
-        assert_true(e.target.matches(':open'),'The popover should be in the :open state when the popoverhide event fires.');
-        assert_false(e.target.matches(':closed'),'The popover should *not* be in the :closed state when the popoverhide event fires.');
-        ++hideCount;
+      function listener(e) {
+        if (e.newState === "open") {
+          assert_equals(e.currentState,"closed",'Popover toggleevent states should be "open" and "closed"')
+          assert_true(e.target.matches(':closed'),'The popover should be in the :closed state when the opening event fires.');
+          assert_false(e.target.matches(':open'),'The popover should *not* be in the :open state when the opening event fires.');
+          ++showCount;
+        } else {
+          assert_equals(e.currentState,"open",'Popover toggleevent states should be "open" and "closed"')
+          assert_equals(e.newState,"closed",'Popover toggleevent states should be "open" and "closed"')
+          assert_true(e.target.matches(':open'),'The popover should be in the :open state when the hiding event fires.');
+          assert_false(e.target.matches(':closed'),'The popover should *not* be in the :closed state when the hiding event fires.');
+          ++hideCount;
+        }
       };
       switch (method) {
         case "listener":
           const controller = new AbortController();
           const signal = controller.signal;
           t.add_cleanup(() => controller.abort());
-          document.addEventListener('popovershow',showListener, {signal});
-          document.addEventListener('popoverhide',hideListener, {signal});
+          // The 'beforetoggle' event bubbles.
+          document.addEventListener('beforetoggle', listener, {signal});
           break;
         case "attribute":
-          assert_false(popover.hasAttribute('onpopovershow'));
-          assert_false(popover.hasAttribute('onpopoverhide'));
-          t.add_cleanup(() => popover.removeAttribute('onpopovershow'));
-          t.add_cleanup(() => popover.removeAttribute('onpopoverhide'));
-          popover.onpopovershow = showListener;
-          popover.onpopoverhide = hideListener;
+          assert_false(popover.hasAttribute('onbeforetoggle'));
+          t.add_cleanup(() => popover.removeAttribute('onbeforetoggle'));
+          popover.onbeforetoggle = listener;
           break;
         default: assert_unreached();
       }
@@ -62,7 +63,7 @@ window.onload = () => {
       assert_false(popover.matches(':open'));
       assert_equals(1,showCount);
       assert_equals(1,hideCount);
-    }, `Popovershow and popoverhide events (${method}) get properly dispatched for popovers`);
+    }, `Toggle event (${method}) get properly dispatched for popovers`);
   }
 
   promise_test(async t => {
@@ -71,18 +72,20 @@ window.onload = () => {
     const signal = controller.signal;
     t.add_cleanup(() => controller.abort());
     let cancel = true;
-    popover.addEventListener('popovershow',(e) => {
+    popover.addEventListener('beforetoggle',(e) => {
+      if (e.newState !== "open")
+        return;
       if (cancel)
         e.preventDefault();
     }, {signal});
     assert_false(popover.matches(':open'));
     popover.showPopover();
-    assert_false(popover.matches(':open'),'The "popovershow" event should be cancelable');
+    assert_false(popover.matches(':open'),'The "beforetoggle" event should be cancelable for the "opening" transition');
     cancel = false;
     popover.showPopover();
     assert_true(popover.matches(':open'));
     popover.hidePopover();
     assert_false(popover.matches(':open'));
-  }, 'Popovershow event is cancelable');
+  }, 'Toggle event is cancelable for the "opening" transition');
 };
 </script>

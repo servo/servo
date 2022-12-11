@@ -10,8 +10,10 @@ def main(request, response):
       return (531, [], "Wrong Accept")
     if request.headers.get(b"Sec-Fetch-Dest") != b"webidentity":
       return (532, [], "Wrong Sec-Fetch-Dest header")
-    if not request.headers.get(b"Referer"):
-      return (533, [], "Missing Referer")
+    if request.headers.get(b"Referer"):
+      return (533, [], "Should not have Referer")
+    if not request.headers.get(b"Origin"):
+      return (534, [], "Missing Origin")
 
   counter = request.server.stash.take(keys.CLIENT_METADATA_COUNTER_KEY)
   try:

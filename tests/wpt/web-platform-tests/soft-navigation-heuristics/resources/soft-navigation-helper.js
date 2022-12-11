@@ -22,6 +22,7 @@ const testSoftNavigation =
         const preClickLcp = await getLcpEntries();
         setEvent(t, link, pushState, addContent, pushUrl, eventType);
         for (let i = 0; i < clicks; ++i) {
+          let paint_entries_promise = waitOnPaintEntriesPromise();
           clicked = false;
           click(link);
 
@@ -30,6 +31,9 @@ const testSoftNavigation =
               type: 'soft-navigation'
             });
           });
+          // Ensure paint timing entries are fired before moving on to the next
+          // click.
+          await paint_entries_promise;
         }
         assert_equals(
             document.softNavigations, clicks,
@@ -162,11 +166,11 @@ const validateSoftNavigationEntry = async (clicks, extraValidations,
   }
   assert_equals(performance.getEntriesByType("soft-navigation").length,
                 expectedClicks, "Performance timeline got an entry");
-  extraValidations(entries, options);
+  await extraValidations(entries, options);
 
 };
 
-const validatePaintEntries = async type => {
+const validatePaintEntries = async (type, entries_number = 2) => {
   const entries = await new Promise(resolve => {
     (new PerformanceObserver(list => resolve(
       list.getEntriesByName(type)))).observe(
@@ -175,9 +179,12 @@ const validatePaintEntries = async type => {
   // TODO(crbug/1372997): investigate why this is not failing when multiple
   // clicks are fired. Also, make sure the observer waits on the number of
   // required clicks, instead of counting on double rAF.
-  assert_equals(entries.length, 2, "There are two entries for " + type);
-  assert_not_equals(entries[0].startTime, entries[1].startTime,
-    "Entries have different timestamps for " + type);
+  assert_equals(entries.length, entries_number,
+    `There are ${entries_number} entries for ${type}`);
+  if (entries_number > 1) {
+    assert_not_equals(entries[0].startTime, entries[1].startTime,
+      "Entries have different timestamps for " + type);
+  }
 };
 
 const getLcpEntries = async () => {
@@ -211,3 +218,17 @@ const addTextToDivOnMain = () => {
   div.style="font-size: 3em";
   main.appendChild(div);
 }
+
+const waitOnPaintEntriesPromise = () => {
+  return new Promise((resolve, reject) => {
+    const paint_entries = []
+    new PerformanceObserver(list => {
+      paint_entries.push(...list.getEntries());
+      if (paint_entries.length == 2) {
+        resolve();
+      } else if (paint_entries.length > 2) {
+        reject();
+      }
+    }).observe({type: 'paint'});
+  });
+};

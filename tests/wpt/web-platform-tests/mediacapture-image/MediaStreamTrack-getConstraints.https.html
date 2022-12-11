@@ -32,7 +32,7 @@ const constraints = { whiteBalanceMode     : "single-shot",
 function makePromiseTest(constraint) {
   image_capture_test(async function(t) {
     await test_driver.set_permission({name: 'camera', panTiltZoom: true},
-        'granted', false);
+        'granted');
 
     let stream = await navigator.mediaDevices.getUserMedia({video: true});
     let videoTrack = stream.getVideoTracks()[0];

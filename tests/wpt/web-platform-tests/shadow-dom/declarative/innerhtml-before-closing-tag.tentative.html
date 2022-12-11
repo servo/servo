@@ -29,7 +29,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 </script>
 
 <div id=host>
-  <template id=shadow shadowroot=open>
+  <template id=shadow shadowrootmode=open>
     <span id=toreplace><span id=oldcontent>This should get removed</span></span>
     <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
     <script> // some content, which shouldn't be necessary </script>

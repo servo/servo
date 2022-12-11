@@ -27,6 +27,8 @@ html::view-transition-old(*) { animation: unset; opacity: 0; }
 <div id=box></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   document.startViewTransition(() => {
     document.documentElement.style.viewTransitionName = "none";

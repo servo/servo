@@ -42,11 +42,13 @@
   height: 100px;
 }
 </style>
-<body id="container" onload="checkLayout('#target')">
-  <div id="a1"></div>
-  <div id="a2"></div>
-  <div id="ref"></div>
-  <div id="target"
-       data-offset-x=200 data-offset-y=100
-       data-expected-width=300 data-expected-height=100></div>
+<body onload="checkLayout('#target')">
+  <div id="container">
+    <div id="a1"></div>
+    <div id="a2"></div>
+    <div id="ref"></div>
+    <div id="target"
+        data-offset-x=200 data-offset-y=100
+        data-expected-width=300 data-expected-height=100></div>
+  </div>
 </body>

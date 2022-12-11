@@ -47,6 +47,10 @@ for (const colorSpace of [ "lab", "oklab" ]) {
     test_computed_value("color", `${colorSpace}(0 0 0 / none)`, `${colorSpace}(0 0 0 / none)`);
 }
 
+// These tests validate that lab lightness range is 0-100 and oklab lightness range is 0.0-1.0.
+test_computed_value("color", `lab(20% 0 10/0.5)`, `lab(20 0 10 / 0.5)`);
+test_computed_value("color", `oklab(20% 0 10/0.5)`, `oklab(0.2 0 10 / 0.5)`);
+
 for (const colorSpace of [ "lch", "oklch" ]) {
     test_computed_value("color", `${colorSpace}(0 0 0deg)`, `${colorSpace}(0 0 0)`);
     test_computed_value("color", `${colorSpace}(0 0 0deg / 1)`, `${colorSpace}(0 0 0)`);
@@ -75,6 +79,10 @@ for (const colorSpace of [ "lch", "oklch" ]) {
     test_computed_value("color", `${colorSpace}(none none none / 0.5)`, `${colorSpace}(none none none / 0.5)`);
     test_computed_value("color", `${colorSpace}(0 0 0 / none)`, `${colorSpace}(0 0 0 / none)`);
 }
+
+// These tests validate that lch lightness range is 0-100 and oklch lightness range is 0.0-1.0.
+test_computed_value("color", `lch(20% 0 10/0.5)`, `lch(20 0 10 / 0.5)`);
+test_computed_value("color", `oklch(20% 0 10/0.5)`, `oklch(0.2 0 10 / 0.5)`);
 </script>
 </body>
 </html>

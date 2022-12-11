@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Timeline offset in Animation Keyframes</title>
+<link rel="help" href="https://w3c.github.io/csswg-drafts/scroll-animations-1/#named-range-keyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  @keyframes fade-in-out-animation {
+    enter 0%, exit 100% { opacity: 0 }
+    enter 100%, exit 0% { opacity: 1 }
+  }
+
+  #subject {
+    background-color:  rgba(0, 0, 255);
+    height: 200px;
+    width: 200px;
+    view-timeline-name: foo;
+    animation: linear 1s both fade-in-out-animation foo;
+  }
+
+  #container {
+    border:  5px solid black;
+    height:  400px;
+    width:  400px;
+    overflow-y:  scroll;
+    resize: both;
+  }
+
+  .spacer {
+    height: 600px;
+    width: 100%;
+  }
+</style>
+<body onload="runTests()">
+  <div id="container">
+    <div class="spacer"></div>
+    <div id="subject"></div>
+    <div class="spacer"></div>
+  </div>
+</body>
+
+<script type="text/javascript">
+  function runTests() {
+    promise_test(async t => {
+      // scrollTop=200 to 400 is the enter range
+      container.scrollTop = 200;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '0', 'Effect at enter 0%');
+
+      container.scrollTop = 300;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '0.5', 'Effect at enter 50%');
+
+      container.scrollTop = 400;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '1', 'Effect at enter 100%');
+
+      // scrollTop=600-800 is the exit range
+      container.scrollTop = 600;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '1', 'Effect at exit 0%');
+
+      container.scrollTop = 700;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '0.5', 'Effect at exit 50%');
+
+      container.scrollTop = 800;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '0', 'Effect at exit 100%');
+
+      // First change scrollTop so that you are at enter 100%, then resize the container in a way
+      // that scrollTop is the same, but now the animation is at enter 50% and check opacity.
+      // After changing the height of container, scrollTop=300-500 is the enter range
+      container.scrollTop = 400;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '1', 'Effect at enter 100%');
+      container.style.height = '300px';
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '0.5', 'Effect at enter 50%');
+
+      // After changing the height of container, scrollTop=600-800 is still the exit range
+      container.scrollTop = 700;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(subject).opacity, '0.5', 'Effect at exit 50%');
+    });
+  }
+</script>
+</html>

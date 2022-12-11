@@ -32,6 +32,8 @@ html::view-transition { background: lightpink; }
 <div id=e2 class=box></div>
 <div id=e3 class=box></div>
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   let t = document.startViewTransition(() => {
     e1.classList.add("dst");

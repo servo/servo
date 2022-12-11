@@ -25,7 +25,7 @@ promise_test(async t => {
 
   await test_driver.set_permission({
     name: 'notifications'
-  }, 'granted', true);
+  }, 'granted');
   const gotMessage = new Promise(resolve => {
     bc.addEventListener('message', e => {
       resolve(e.data);
@@ -48,7 +48,7 @@ promise_test(async t => {
 
   await test_driver.set_permission({
     name: 'notifications'
-  }, 'granted', true);
+  }, 'granted');
   const gotMessage = new Promise(resolve => {
     bc.addEventListener('message', e => {
       resolve(e.data);

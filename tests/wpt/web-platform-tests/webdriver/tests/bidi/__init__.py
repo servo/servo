@@ -1,5 +1,7 @@
 from typing import Any, Callable
 
+from webdriver.bidi.modules.script import ContextTarget
+
 
 # Compares 2 objects recursively.
 # Actual value can have more keys as part of the forwards-compat design.
@@ -45,3 +47,13 @@ def int_interval(start: int, end: int) -> Callable[[Any], None]:
         assert start <= actual <= end
 
     return _
+
+
+async def create_console_api_message(bidi_session, context, text):
+    await bidi_session.script.call_function(
+        function_declaration="""(text) => console.log(text)""",
+        arguments=[{"type": "string", "value": text}],
+        await_promise=False,
+        target=ContextTarget(context["context"]),
+    )
+    return text

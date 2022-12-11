@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.execCommand("selectAll");
+  document.querySelector("li").addEventListener("DOMSubtreeModified", () => {
+    document.designMode = "on";
+    document.execCommand("justifyCenter");
+    getSelection().deleteFromDocument();
+  });
+  document.querySelector("li").type = "1";
+});
+</script>
+</head>
+<body>
+<li>
+  <h3 align="right">
+    <option contenteditable="true"></option>
+  </h3>
+</li>
+</body>
+</html>

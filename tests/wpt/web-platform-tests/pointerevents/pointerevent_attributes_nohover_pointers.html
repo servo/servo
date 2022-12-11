@@ -28,59 +28,59 @@
                     return;
                 var expectedEventType =  eventList[Object.keys(detected_eventTypes).length];
                 detected_eventTypes[event.type] = true;
-                var pointerTestName = testNamePrefix + ' ' + expectedPointerType + ' ' + expectedEventType;
+                var pointerTestName = (testNamePrefix ? testNamePrefix + ' ' : '')
+                    + expectedPointerType + ' ' + expectedEventType;
 
                 detected_pointertypes[event.pointerType] = true;
 
                 test(function() {
-                    assert_equals(event.type, expectedEventType, "Event.type should be " + expectedEventType)
-                }, pointerTestName + "'s type should be " + expectedEventType);
+                    assert_equals(event.type, expectedEventType);
+                }, pointerTestName + ".type should be " + expectedEventType);
 
                 // Test button and buttons
                 test(function() {
-                    assert_equals(event.button, 0, "Button attribute is 0")
-                }, pointerTestName + "'s button attribute is 0 on touch-down.");
+                    assert_equals(event.button, 0);
+                }, pointerTestName + ".button attribute is 0 on touch-down.");
 
                 if (event.type == 'pointerdown' || event.type == 'pointerover' || event.type == 'pointerenter') {
                     test(function() {
-                        assert_equals(event.buttons, 1, "Buttons attribute is 1")
-                    }, pointerTestName + "'s buttons attribute is 1 on touch-down.");
+                        assert_equals(event.buttons, 1);
+                    }, pointerTestName + ".buttons attribute is 1 on touch-down.");
                 } else {
                     test(function() {
-                        assert_equals(event.buttons, 0, "Buttons attribute is 0")
-                    }, pointerTestName + "'s buttons is 0 on touch-release.");
+                        assert_equals(event.buttons, 0);
+                    }, pointerTestName + ".buttons is 0 on touch-release.");
                 }
 
                 // Test clientX and clientY
                 test(function () {
-                    assert_true(event.clientX >= targetBoundingClientRect.left && event.clientX < targetBoundingClientRect.right && event.clientY >= targetBoundingClientRect.top && event.clientY < targetBoundingClientRect.bottom, "ClientX/Y should be in the boundaries of the box");
-                }, pointerTestName + "'s ClientX and ClientY attributes are correct.");
+                    assert_true(event.clientX >= targetBoundingClientRect.left && event.clientX < targetBoundingClientRect.right && event.clientY >= targetBoundingClientRect.top && event.clientY < targetBoundingClientRect.bottom);
+                }, pointerTestName + ".clientX and .clientY attributes are correct.");
 
                 check_PointerEvent(event, testNamePrefix);
 
                 // Test isPrimary
                 test(function () {
-                    assert_equals(event.isPrimary, true, "isPrimary should be true");
-                }, pointerTestName + ".isPrimary attribute is correct.");
+                    assert_equals(event.isPrimary, true);
+                }, pointerTestName + ".isPrimary attribute is true.");
 
                 // Test pointerId value
                 if (isNaN(expectedPointerId)) {
                     expectedPointerId = event.pointerId;
                 } else {
                     test(function () {
-                        assert_equals(event.pointerId, expectedPointerId, "pointerId should remain the same for the same active pointer");
+                        assert_equals(event.pointerId, expectedPointerId);
                     }, pointerTestName + ".pointerId should be the same as previous pointer events for this active pointer.");
                 }
             }
 
-            function run() {
+            async function run() {
                 var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", ['touch']);
                 var square1 = document.getElementById("square1");
                 var rectSquare1 = square1.getBoundingClientRect();
                 var innerFrame = document.getElementById('innerFrame');
                 var square2 = innerFrame.contentDocument.getElementById('square2');
                 var rectSquare2 = square2.getBoundingClientRect();
-                var actions_promise;
 
                 eventList.forEach(function(eventName) {
                     on_event(square1, eventName, function (event) {
@@ -98,18 +98,14 @@
                         checkPointerEventAttributes(event, rectSquare2, "Inner frame ");
                         if (Object.keys(detected_eventTypes).length == eventList.length) {
                             square2.style.visibility = 'hidden';
-                            // Make sure the test finishes after all the input actions are completed.
-                            actions_promise.then( () => {
-                                test_pointerEvent.done();
-                            });
+                            test_pointerEvent.done();
                         }
                     });
                 });
 
                 // Inject touch inputs.
-                actions_promise = clickInTarget("touch", square1).then(function() {
-                    return clickInTarget("touch", square2);
-                });
+                await clickInTarget("touch", square1);
+                await clickInTarget("touch", square2);
             }
         </script>
     </head>

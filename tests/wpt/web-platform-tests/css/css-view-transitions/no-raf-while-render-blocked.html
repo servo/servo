@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta name="timeout" content="long">
-<html class=reftest-wait>
+<html>
 <title>Shared transitions: rAF is not issued while render-blocked</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
@@ -24,6 +24,7 @@ div {
 let renderBlocked = true;
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     requestAnimationFrame(() => {
       document.startViewTransition(() => {

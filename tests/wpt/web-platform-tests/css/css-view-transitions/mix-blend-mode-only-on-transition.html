@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html>
 <title>SET: Blend modes are set up only in paired transitions</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:vmpstr@chromium.org">
@@ -25,6 +25,7 @@ div {
 
 <script>
 async_test(t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   let transition = document.startViewTransition(() => {
     first.classList.toggle("tagone");
     second.classList.toggle("tagtwo");

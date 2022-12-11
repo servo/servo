@@ -11,7 +11,7 @@
 const shadowContent = '<span>Shadow tree</span><slot></slot>';
 function getDeclarativeContent(mode, delegatesFocus) {
   const delegatesFocusText = delegatesFocus ? ' shadowrootdelegatesfocus' : '';
-  return `<template shadowroot=${mode}${delegatesFocusText}>${shadowContent}</template>`;
+  return `<template shadowrootmode=${mode}${delegatesFocusText}>${shadowContent}</template>`;
 }
 
 const lightDomTextContent = 'Light DOM';
@@ -61,9 +61,9 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
     } else {
       if (!nochildren) {
         // Invalid elements should retain a <template> element child with a shadowroot attribute.
-        const template = nodes.wrapper.querySelector('template[shadowroot]');
+        const template = nodes.wrapper.querySelector('template[shadowrootmode]');
         assert_true(!!template);
-        assert_equals(template.getAttribute('shadowroot'), mode, `Template with shadowroot=${mode} should be left over`);
+        assert_equals(template.getAttribute('shadowrootmode'), mode, `Template with shadowrootmode=${mode} should be left over`);
         const span = nodes.wrapper.querySelector('span.lightdom');
         assert_true(!!span);
         assert_equals(span.textContent, lightDomTextContent);

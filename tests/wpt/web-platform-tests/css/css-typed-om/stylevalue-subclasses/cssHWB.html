@@ -14,10 +14,13 @@ const gValidHueInputs = [
   {hue: CSS.grad(81), desc: 'gradians'},
 ];
 
-const gInvalidHueInputs = [
+const gInvalidHueInputsNotNumericValue = [
   {hue: 180, desc: "a number"},
-  {hue: CSS.px(1), desc: "css pixels"},
   {hue: undefined, desc: "undefined"},
+]
+
+const gInvalidHueInputsNumericValue = [
+  {hue: CSS.px(1), desc: "css pixels"},
 ]
 
 for (const {hue, desc} of gValidHueInputs) {
@@ -33,10 +36,16 @@ for (const {hue, desc} of gValidHueInputs) {
   }, `CSSHWB.h can be updated with a ${desc}.`);
 }
 
-for (const {hue, desc} of gInvalidHueInputs) {
+for (const {hue, desc} of gInvalidHueInputsNotNumericValue) {
   test(() => {
     assert_throws_js(TypeError, () => new CSSHWB(hue, 0, 0));
-  }, `Constructing a CSSHWB with ${desc} for hue throws a type error.`);
+  }, `Constructing a CSSHWB with ${desc} for hue throws a TypeError.`);
+}
+
+for (const {hue, desc} of gInvalidHueInputsNumericValue) {
+  test(() => {
+    assert_throws_dom("SyntaxError", () => new CSSHWB(hue, 0, 0));
+  }, `Constructing a CSSHWB with ${desc} for hue throws a SyntaxError.`);
 }
 
 test(() => {
@@ -56,16 +65,16 @@ test(() => {
 }, 'CSSHWB can be constructed from four numbers.');
 
 test(() => {
-  assert_throws_js(TypeError, () => new CSSHWB(CSS.deg(0), CSS.number(1), 0, 0));
-  assert_throws_js(TypeError, () => new CSSHWB(CSS.deg(0), 0, CSS.number(1), 0));
-  assert_throws_js(TypeError, () => new CSSHWB(CSS.deg(0), 0, 0, CSS.number(1)));
-}, `Constructing a CSSHWB with CSS.number for s, l or alpha throws a TypeError`);
+  assert_throws_dom("SyntaxError", () => new CSSHWB(CSS.deg(0), CSS.number(1), 0, 0));
+  assert_throws_dom("SyntaxError", () => new CSSHWB(CSS.deg(0), 0, CSS.number(1), 0));
+  assert_throws_dom("SyntaxError", () => new CSSHWB(CSS.deg(0), 0, 0, CSS.number(1)));
+}, `Constructing a CSSHWB with CSS.number for s, l or alpha throws a SyntaxError`);
 
 for (const attr of ['w', 'b', 'alpha']) {
   test(() => {
     const result = new CSSHWB(CSS.deg(0), 0, 0);
-    assert_throws_js(TypeError, () => result[attr] = CSS.number(1));
-  }, `Updating a CSSHWB with CSS.number for ${attr} throws a TypeError`);
+    assert_throws_dom("SyntaxError", () => result[attr] = CSS.number(1));
+  }, `Updating a CSSHWB with CSS.number for ${attr} throws a SyntaxError`);
 
   test(() => {
     const result = new CSSHWB(CSS.deg(0), 0, 0);

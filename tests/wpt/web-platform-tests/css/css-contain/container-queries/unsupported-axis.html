@@ -167,3 +167,51 @@
     assert_equals(getComputedStyle(target).getPropertyValue('--block-size2'), '');
   }, '(block-size > 0px), with writing-mode:vertical-rl');
 </script>
+
+
+<style>
+  @container not (width < 0px) {
+    #target { --not-width:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    assert_equals(getComputedStyle(target).getPropertyValue('--not-width'), 'true');
+  }, 'not (width < 0px)');
+</script>
+
+
+<style>
+  @container not (height < 0px) {
+    #target { --not-height:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    assert_equals(getComputedStyle(target).getPropertyValue('--not-height'), '');
+  }, 'not (height < 0px)');
+</script>
+
+
+<style>
+  @container not (inline-size < 0px) {
+    #target { --not-inline-size:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    assert_equals(getComputedStyle(target).getPropertyValue('--not-inline-size'), 'true');
+  }, 'not (inline-size < 0px)');
+</script>
+
+
+<style>
+  @container not (block-size < 0px) {
+    #target { --not-block-size:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    assert_equals(getComputedStyle(target).getPropertyValue('--not-block-size'), '');
+  }, 'not (block-size < 0px)');
+</script>

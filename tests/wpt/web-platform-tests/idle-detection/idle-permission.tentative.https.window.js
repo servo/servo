@@ -3,14 +3,14 @@
 'use strict';
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'idle-detection'}, 'denied', false);
+  await test_driver.set_permission({name: 'idle-detection'}, 'denied');
 
   let detector = new IdleDetector();
   await promise_rejects_dom(t, 'NotAllowedError', detector.start());
 }, 'Denying idle-detection permission should block access.');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'idle-detection'}, 'granted', false);
+  await test_driver.set_permission({name: 'idle-detection'}, 'granted');
 
   let detector = new IdleDetector();
   await detector.start();
@@ -24,7 +24,7 @@ promise_test(async t => {
 }, 'Granting idle-detection permission should allow access.');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'idle-detection'}, 'prompt', false);
+  await test_driver.set_permission({name: 'idle-detection'}, 'prompt');
 
   await promise_rejects_dom(t, 'NotAllowedError', IdleDetector.requestPermission());
 

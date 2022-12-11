@@ -132,7 +132,12 @@ cache_test(function(cache, test) {
   }, 'Cache.put with HTTP 206 response');
 
 cache_test(function(cache, test) {
-    var test_url = new URL('./resources/fetch-status.py?status=206', location.href);
+    // We need to jump through some hoops to allow the test to perform opaque
+    // response filtering, but bypass the ORB safelist check. This is
+    // done, by forcing the MIME type retrieval to fail and the
+    // validation of partial first response to succeed.
+    var pipe = "status(206)|header(Content-Type,)|header(Content-Range, bytes 0-1/41)|slice(null, 1)";
+    var test_url = new URL(`./resources/blank.html?pipe=${pipe}`, location.href);
     test_url.hostname = REMOTE_HOST;
     var request = new Request(test_url.href, { mode: 'no-cors' });
     var response;

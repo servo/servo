@@ -121,6 +121,85 @@
 
   test_replacechildren(document.createElement('div'), 'Element');
   test_replacechildren(document.createDocumentFragment(), 'DocumentFragment');
+
+  async_test(t => {
+    let root = document.createElement("div");
+    root.innerHTML = "<div id='a'>text<div id='b'>text2</div></div>";
+    const a = root.firstChild;
+    const b = a.lastChild;
+    const txt = b.previousSibling;
+    const txt2 = b.firstChild;
+
+    const observer = new MutationObserver((mutations) => {
+
+      assert_equals(mutations.length, 2, "mutations.length");
+
+      assert_equals(mutations[0].target.id, "a", "Target of the removal");
+      assert_equals(mutations[0].addedNodes.length, 0, "Should not have added nodes");
+      assert_equals(mutations[0].removedNodes.length, 1, "Should have 1 removed node");
+      assert_equals(mutations[0].removedNodes[0], txt, "Should have removed txt node");
+
+      assert_equals(mutations[1].target.id, "b", "Target of the replaceChildren");
+      assert_equals(mutations[1].removedNodes.length, 1, "Should have removed 1 node");
+      assert_equals(mutations[1].removedNodes[0], txt2, "Should have removed txt2 node");
+      assert_equals(mutations[1].addedNodes.length, 1, "Should have added a node");
+      assert_equals(mutations[1].addedNodes[0], txt, "Should have added txt node");
+
+      observer.disconnect();
+      t.done();
+    });
+
+    observer.observe(a,  {
+      subtree: true,
+      childList: true
+    });
+
+    b.replaceChildren(txt);
+  }, "There should be a MutationRecord for the node removed from another parent node.");
+
+  async_test(t => {
+    // This is almost the same test as above, but passes two nodes to replaceChildren.
+
+    let root = document.createElement("div");
+    root.innerHTML = "<div id='a'><div id='c'></div>text<div id='b'>text2</div></div>";
+    const a = root.firstChild;
+    const b = a.lastChild;
+    const c = a.firstChild;
+    const txt = b.previousSibling;
+    const txt2 = b.firstChild;
+
+    const observer = new MutationObserver((mutations) => {
+
+      assert_equals(mutations.length, 3, "mutations.length");
+
+      assert_equals(mutations[0].target.id, "a", "Target of the removal");
+      assert_equals(mutations[0].addedNodes.length, 0, "Should not have added nodes");
+      assert_equals(mutations[0].removedNodes.length, 1, "Should have 1 removed node");
+      assert_equals(mutations[0].removedNodes[0], c, "Should have removed c node");
+
+      assert_equals(mutations[1].target.id, "a", "Target of the removal");
+      assert_equals(mutations[1].addedNodes.length, 0, "Should not have added nodes");
+      assert_equals(mutations[1].removedNodes.length, 1, "Should have 1 removed node");
+      assert_equals(mutations[1].removedNodes[0], txt, "Should have removed txt node");
+
+      assert_equals(mutations[2].target.id, "b", "Target of the replaceChildren");
+      assert_equals(mutations[2].removedNodes.length, 1, "Should have removed 1 node");
+      assert_equals(mutations[2].removedNodes[0], txt2, "Should have removed txt2 node");
+      assert_equals(mutations[2].addedNodes.length, 2, "Should have added a node");
+      assert_equals(mutations[2].addedNodes[0], c, "Should have added c node");
+      assert_equals(mutations[2].addedNodes[1], txt, "Should have added txt node");
+
+      observer.disconnect();
+      t.done();
+    });
+
+    observer.observe(a,  {
+      subtree: true,
+      childList: true
+    });
+
+    b.replaceChildren(c, txt);
+  }, "There should be MutationRecords for the nodes removed from another parent node.");
 </script>
 
 </html>

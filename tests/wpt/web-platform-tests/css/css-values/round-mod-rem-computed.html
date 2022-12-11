@@ -44,7 +44,7 @@ test_math_used('calc(mod(18,5) * 2 + mod(17,5))', '8', {type:'number'});
 test_math_used('calc(rem(mod(18,5),5))', '3', {type:'number'});
 test_math_used('calc(rem(mod(18,5),mod(17,5)))', '1', {type:'number'});
 test_math_used('calc(mod(-140,-90))', '-50', {type:'number'});
-test_math_used('calc(mod(rem(1,18)* -1,5))', '-1', {type:'number'});
+test_math_used('calc(mod(rem(1,18)* -1,5))', '4', {type:'number'});
 
 // Type check
 test_math_used('round(10px,6px)', '12px');
@@ -118,4 +118,29 @@ test_math_used('round(2rem,5px)', '30px');
 test_math_used('round(100px,1rem)', '96px');
 test_math_used('round(10s,6000ms)', '12s', {type:'time'});
 test_math_used('round(10000ms,6s)', '12s', {type:'time'});
+
+test_math_used('mod(10%,1px)', '0.5px');
+test_math_used('mod(10%,5px)', '2.5px');
+test_math_used('mod(2rem,5px)', '2px');
+test_math_used('mod(100px,1rem)', '4px');
+test_math_used('mod(10s,6000ms)', '4s', {type:'time'});
+test_math_used('mod(10000ms,6s)', '4s', {type:'time'});
+test_math_used('mod(18px,100% / 15)', '3px');
+test_math_used('mod(-18px,100% / 15)', '2px');
+test_math_used('mod(18%,5%)', '3%');
+test_math_used('mod(-18%,5%)', '2%');
+test_math_used('mod(18vw,5vw)', '3vw');
+test_math_used('mod(-18vw,5vw)', '2vw');
+
+test_math_used('rem(10%,1px)', '0.5px');
+test_math_used('rem(10%,5px)', '2.5px');
+test_math_used('rem(2rem,5px)', '2px');
+test_math_used('rem(100px,1rem)', '4px');
+test_math_used('rem(10s,6000ms)', '4s', {type:'time'});
+test_math_used('rem(10000ms,6s)', '4s', {type:'time'});
+test_math_used('rem(18px,100% / 15)', '3px');
+test_math_used('rem(-18px,100% / 15)', '-3px');
+test_math_used('rem(18vw,5vw)', '3vw');
+test_math_used('rem(-18vw,5vw)', '-3vw');
+
 </script>

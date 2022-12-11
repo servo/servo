@@ -11,7 +11,7 @@
 
 This test should not crash, and there should be two lines of text visible below.
 <x-1>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
         <style>
             @import 'non-existent.css';
         </style>
@@ -21,7 +21,7 @@ This test should not crash, and there should be two lines of text visible below.
 </x-1>
 
 <x-2>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
         <slot></slot>
     </template>
     <p>Line 2</p>

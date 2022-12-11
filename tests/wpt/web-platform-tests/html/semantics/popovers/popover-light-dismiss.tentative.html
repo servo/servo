@@ -47,14 +47,18 @@
   const afterp1 = document.querySelector('#after_p1');
 
   let popover1HideCount = 0;
-  popover1.addEventListener('popoverhide',(e) => {
+  popover1.addEventListener('beforetoggle',(e) => {
+    if (e.newState !== "closed")
+      return;
     ++popover1HideCount;
-    e.preventDefault(); // 'popoverhide' should not be cancellable.
+    e.preventDefault(); // 'beforetoggle' should not be cancellable.
   });
   let popover2HideCount = 0;
-  popover2.addEventListener('popoverhide',(e) => {
+  popover2.addEventListener('beforetoggle',(e) => {
+    if (e.newState !== "closed")
+      return;
     ++popover2HideCount;
-    e.preventDefault(); // 'popoverhide' should not be cancellable.
+    e.preventDefault(); // 'beforetoggle' should not be cancellable.
   });
   promise_test(async () => {
     assert_false(popover1.matches(':open'));
@@ -482,7 +486,9 @@ promise_test(async () => {
   p13.showPopover();
   p14.showPopover();
   p15.showPopover();
-  p15.addEventListener('popoverhide',() => {
+  p15.addEventListener('beforetoggle', (e) => {
+    if (e.newState !== "closed")
+      return;
     p14.hidePopover();
   },{once:true});
   assert_true(p13.matches(':open') && p14.matches(':open') && p15.matches(':open'),'all three should be open');

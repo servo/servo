@@ -16,7 +16,8 @@
   #inclusive-ancestor-host-before,
   #inclusive-ancestor-part-before,
   #inclusive-ancestor-inner-part,
-  #inclusive-ancestor-slot-fallback {
+  #inclusive-ancestor-slot-fallback,
+  #inner-scope-host-part {
     width: 400px;
     container-type: inline-size;
   }
@@ -250,6 +251,27 @@
   </div>
 </div>
 
+<div id="inner-scope-host-part">
+  <div>
+    <template shadowroot="open">
+      <style>
+        div {
+          width: 200px;
+          container-type: inline-size;
+        }
+        @container (width = 400px) {
+          :host::part(part) { color: green; }
+        }
+      </style>
+      <div>
+        <span id="t12" part="part"></span>
+      </div>
+    </template>
+    <style>
+    </style>
+  </div>
+</div>
+
 <script>
   setup(() => {
     assert_implements_container_queries();
@@ -314,4 +336,10 @@
     const t11 = document.querySelector("#no-container-for-part > div").shadowRoot.querySelector("#t11");
     assert_equals(getComputedStyle(t11).color, green);
   }, "Should not match container inside shadow tree for ::part()");
+
+  test(() => {
+    const t12 = document.querySelector("#inner-scope-host-part > div").shadowRoot.querySelector("#t12");
+    assert_equals(getComputedStyle(t12).color, green);
+  }, "A :host::part rule should match containers in the originating element tree");
+
 </script>

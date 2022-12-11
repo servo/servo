@@ -77,7 +77,7 @@ test_computed_value("grid-template-columns", '[] 150px [] 1fr []', '150px 150px'
 // <auto-repeat> = repeat( [ auto-fill | auto-fit ] , [ <line-names>? <fixed-size> ]+ <line-names>? )
 test_computed_value("grid-template-columns", 'repeat(auto-fill, 200px)', '200px');
 test_computed_value("grid-template-columns", 'repeat(auto-fit, [one] 20%)',
-                    '[one] 60px [one] 0px [one] 0px [one] 0px [one] 0px');
+                    '[one] 60px [one] 60px [one] 60px [one] 60px [one] 60px');
 test_computed_value("grid-template-columns", 'repeat(auto-fill, minmax(100px, 5fr) [two])',
                     '100px [two] 100px [two] 100px [two]');
 test_computed_value("grid-template-columns", 'repeat(auto-fit, [three] minmax(max-content, 6em) [four])',

@@ -3,7 +3,26 @@ from typing import Any, Mapping
 
 import pytest
 import webdriver
+from webdriver.bidi.error import InvalidArgumentException, NoSuchFrameException
 from webdriver.bidi.modules.script import ContextTarget
+
+
+@pytest.fixture
+async def subscribe_events(bidi_session):
+    subscriptions = [];
+    async def subscribe_events(events, contexts = None):
+       await bidi_session.session.subscribe(events=events, contexts=contexts)
+       subscriptions.append((events, contexts))
+
+    yield subscribe_events
+
+    for events, contexts in reversed(subscriptions):
+        try:
+            await bidi_session.session.unsubscribe(
+                events=events, contexts=contexts
+        )
+        except (InvalidArgumentException, NoSuchFrameException):
+            pass
 
 
 @pytest.fixture

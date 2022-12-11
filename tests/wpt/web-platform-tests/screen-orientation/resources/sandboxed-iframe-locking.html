@@ -20,7 +20,12 @@ test_driver.bless("request full screen", async () => {
   }
 
   screen.orientation.unlock();
-  await document.exitFullscreen();
+  try {
+    await document.exitFullscreen();
+  } catch (error) {
+    data.result = "errored";
+    data.name = error.name;
+  }
 
   parent.window.postMessage(data, "*");
 });

@@ -145,7 +145,7 @@ nfc_test(async t => {
  invalid records.");
 
 nfc_test(async t => {
-  await test_driver.set_permission({ name: 'nfc' }, 'denied', false);
+  await test_driver.set_permission({ name: 'nfc' }, 'denied');
   const ndef = new NDEFReader();
   await promise_rejects_dom(t, 'NotAllowedError', ndef.write(test_text_data));
 }, 'NDEFReader.write should fail if user permission is not granted.');

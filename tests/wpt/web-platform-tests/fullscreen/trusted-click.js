@@ -1,42 +1,65 @@
-// Invokes callback from a trusted click event.
-//
-// TODO(mustaq): This method needs a cleanup.  This is based on an old version
-// of the HTML spec.  The new spec doesn't require a callback because the user
-// activation is visible across the Window object:
-// https://html.spec.whatwg.org/multipage/interaction.html#tracking-user-activation.
-function trusted_click(test, callback, container)
-{
+/**
+ * Invokes callback from a trusted click event, avoiding interception by fullscreen element.
+ *
+ * @param {Element} container - Element where button will be created and clicked.
+ */
+function trusted_click(container = document.body) {
     var document = container.ownerDocument;
     var button = document.createElement("button");
     button.textContent = "click to continue test";
     button.style.display = "block";
     button.style.fontSize = "20px";
     button.style.padding = "10px";
-    button.onclick = test.step_func(function()
-    {
-        callback();
-        container.removeChild(button);
+    button.addEventListener("click", () => {
+        button.remove();
     });
     container.appendChild(button);
+    if (window.top !== window) test_driver.set_test_context(window.top);
+    // Race them for manually testing...
+    return Promise.race([
+        test_driver.click(button),
+        new Promise((resolve) => {
+            button.addEventListener("click", resolve);
+        }),
+    ]);
 }
 
 // Invokes element.requestFullscreen() from a trusted click.
-function trusted_request(test, element, container)
-{
-    trusted_click(test, () => {
-        var promise = element.requestFullscreen();
-        if (promise) {
-            // Keep the promise resolution silent. Otherwise unhandledrejection
-            // may fire for the failure test cases.
-            promise.then(() => {}, () => {});
-        }
-    }, container || element.parentNode);
+async function trusted_request(element = document.body, whereToCreateButton = null) {
+    await trusted_click(whereToCreateButton ?? element.parentNode ?? element);
+    return element.requestFullscreen();
 }
 
-// Invokes element.requestFullscreen() from a trusted click.
-function trusted_request_with_promise(test, element, container, resolve, reject)
-{
-    trusted_click(test, () => {
-        element.requestFullscreen().then(resolve, reject);
-    }, container || element.parentNode);
+/**
+ * Used to await a fullscreen change event, once.
+ *
+ * @param {EventTarget} target
+ * @returns
+ */
+function fullScreenChange(target = document) {
+    return new Promise((resolve) =>
+        target.addEventListener("fullscreenchange", resolve, { once: true })
+    );
+}
+
+/**
+ * Sets up a message event listener, and returns a promise that resolves
+ * when the message from the iframe is received.
+ *
+ * @param {HTMLIFrameElement} iframe
+ * @returns {Promise<object>}
+ */
+function promiseMessage(iframe) {
+    return new Promise((resolve) => {
+        window.addEventListener(
+            "message",
+            (e) => {
+                if (e.data?.report.api === "fullscreen") {
+                    resolve(e.data);
+                }
+            },
+            { once: true }
+        );
+        iframe.contentWindow.postMessage({ action: "report" }, "*");
+    });
 }

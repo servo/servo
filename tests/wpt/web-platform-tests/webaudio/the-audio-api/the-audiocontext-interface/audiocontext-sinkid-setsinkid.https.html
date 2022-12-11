@@ -83,5 +83,29 @@ promise_test(t =>
                         audioContext.setSinkId('some_random_device_id')),
     'setSinkId() should fail with NotFoundError on an invalid device ' +
     'identifier.');
+
+// setSinkId invoked from closed AudioContext should throw InvalidStateError
+// DOMException.
+promise_test(async t => {
+  await audioContext.close();
+  t.step(() => {
+    assert_equals(audioContext.state, 'closed');
+  });
+  promise_rejects_dom(t, 'InvalidStateError',
+                      audioContext.setSinkId('some_random_device_id'))
+},'setSinkId() should fail with InvalidStateError when calling from a' +
+  'stopped AudioContext');
+
+// setSinkId invoked from detached document should throw InvalidStateError
+// DOMException.
+promise_test(async t => {
+  const iframe = document.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
+  document.body.appendChild(iframe);
+  let iframeAudioContext = new iframe.contentWindow.AudioContext();
+  document.body.removeChild(iframe);
+  promise_rejects_dom(t, 'InvalidStateError',
+                      iframeAudioContext.setSinkId('some_random_device_id'));
+},'setSinkId() should fail with InvalidStateError when calling from a' +
+  'detached document');
 </script>
 </html>

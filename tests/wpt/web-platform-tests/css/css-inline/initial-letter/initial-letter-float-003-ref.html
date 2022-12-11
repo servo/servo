@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests float-avoidance in the block-direction</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#initial-letter-floats">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+    .sample {
+        border: solid 1px green;
+        font-family: Ahem;
+        font-size: 20px;
+        line-height: 24px;
+        width: 230px;
+    }
+
+    .float {
+        background: cyan;
+        clear: left;
+        float: left;
+        height: 50px;
+        width: 50px;
+    }
+
+    .fake-initial-letter {
+        background: lime;
+        float: left;
+        height: 80px;
+        margin-right: 10px;
+        margin-top: -48px;
+        width: 80px;
+    }
+</style>
+</head>
+<body>
+<div class="sample">
+<div class="float"></div><div class="float" style="width:80px"></div>
+<div class="fake-initial-letter"></div>
+<div style="display:inline-block; margin-left:-10px;">
+bc<br>def<br>ghi<br>jkl<br></div>
+mno<br>
+</div>
+</body>
+</html>

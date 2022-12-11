@@ -31,6 +31,9 @@ function assert_color_channel_approx_equals(a, b) {
         assert_approx_equals(a[i].value, b[i].value, epsilonForUnitType(a.unit));
       }
       break;
+    case 'CSSKeywordValue':
+      assert_equals(a.value, b.value);
+      break;
     default:
       assert_equals(a.unit, b.unit);
       assert_approx_equals(a.value, b.value, epsilonForUnitType(a.unit));

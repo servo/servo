@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html>
 <title>Shared transitions: author styles ignored during prepare</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
@@ -33,6 +33,7 @@ function validate_background(pseudoString) {
 }
 
 promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise((resolve, reject) => {
     document.startViewTransition(() => {
       resolve();

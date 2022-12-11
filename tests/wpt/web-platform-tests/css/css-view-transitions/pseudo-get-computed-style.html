@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html>
 <title>Shared transitions: check pseudo element's display property</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:vmpstr@chromium.org">
@@ -24,6 +24,7 @@ div {
 
 <script>
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition(() => {
       assert_equals(getComputedStyle(document.documentElement, ":view-transition").position, "fixed", ":view-transition");
@@ -54,6 +55,7 @@ promise_test(() => {
 }, "position property of pseudo elements");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition(() => {
       assert_equals(getComputedStyle(document.documentElement, ":view-transition").position, "fixed");

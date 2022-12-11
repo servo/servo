@@ -50,6 +50,8 @@ html::view-transition-old(*) {
 <div id=first></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   await waitForAtLeastOneFrame();
 

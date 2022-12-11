@@ -8,7 +8,7 @@
 <script src="support/helpers.js"></script>
 
 <div id="host" style="display:none">
-  <template shadowroot="open">
+  <template shadowrootmode="open">
     <slot id="s1" name="slot1"></slot>
   </template>
   <div id="c1" slot="slot1"></div>
@@ -28,14 +28,28 @@ test(() => {
 }, 'Declarative Shadow DOM: Basic test');
 
 test(() => {
-  assert_true(HTMLTemplateElement.prototype.hasOwnProperty("shadowRoot"),'Unable to feature detect');
+  assert_true(HTMLTemplateElement.prototype.hasOwnProperty("shadowRootMode"),'Unable to feature detect');
 }, 'Declarative Shadow DOM: Feature detection');
+
+test(() => {
+  const t = document.createElement('template');
+  t.setAttribute('shadowrootmode','open');
+  assert_equals(t.shadowRootMode,'open','The shadowRootMode IDL should reflect the content attribute');
+  t.setAttribute('shadowrootmode','closed');
+  assert_equals(t.shadowRootMode,'closed','"open" and "closed" should both be valid values');
+  t.setAttribute('shadowrootmode','OpEn');
+  assert_equals(t.shadowRootMode,'open','Case insensitive');
+  t.setAttribute('shadowrootmode','INVALID');
+  assert_equals(t.shadowRootMode,null,'Invalid values map to null');
+  t.removeAttribute('shadowrootmode');
+  assert_equals(t.shadowRootMode,null,'No shadowrootmode attribute maps to null');
+}, 'Shadowrootmode reflection');
 
 test(() => {
   const div = document.createElement('div');
   setInnerHTML(div,`
     <div id="host">
-      <template shadowroot="open">
+      <template shadowrootmode="open">
         <slot id="s1" name="slot1"></slot>
       </template>
       <div id="c1" slot="slot1"></div>
@@ -56,7 +70,7 @@ test(() => {
   const div = document.createElement('div');
   setInnerHTML(div,`
     <div id="host">
-      <template shadowroot="invalid">
+      <template shadowrootmode="invalid">
       </template>
     </div>
     `);
@@ -64,15 +78,15 @@ test(() => {
   assert_equals(host.shadowRoot, null, "Shadow root was found");
   const tmpl = host.querySelector('template');
   assert_true(!!tmpl,"Template should still be present");
-  const shadowrootAttr = tmpl.getAttribute('shadowroot');
-  assert_equals(shadowrootAttr,"invalid","'shadowroot' attribute should still be present");
+  const shadowrootAttr = tmpl.getAttribute('shadowrootmode');
+  assert_equals(shadowrootAttr,"invalid","'shadowrootmode' attribute should still be present");
 }, 'Declarative Shadow DOM: Invalid shadow root attribute');
 
 test(() => {
   const div = document.createElement('div');
   setInnerHTML(div,`
     <div id="host">
-      <template shadowroot="closed">
+      <template shadowrootmode="closed">
       </template>
     </div>
     `);
@@ -85,7 +99,7 @@ test(() => {
   const div = document.createElement('div');
   setInnerHTML(div,`
     <div id="host">
-      <template shadowroot="open">
+      <template shadowrootmode="open">
         <slot id="s1" name="slot1"></slot>
     </div>
     `);
@@ -101,7 +115,7 @@ test(() => {
   const div = document.createElement('div');
   setInnerHTML(div,`
     <div id="host">
-      <template shadowroot="open" shadowrootdelegatesfocus>
+      <template shadowrootmode="open" shadowrootdelegatesfocus>
       </template>
     </div>
     `);
@@ -110,7 +124,7 @@ test(() => {
   assert_true(host.shadowRoot.delegatesFocus,"delegatesFocus should be true");
   setInnerHTML(div,`
     <div id="host">
-      <template shadowroot="open">
+      <template shadowrootmode="open">
       </template>
     </div>
     `);
@@ -121,10 +135,10 @@ test(() => {
 </script>
 
 <div id="multi-host" style="display:none">
-  <template shadowroot="open">
+  <template shadowrootmode="open">
     <span>root 1</span>
   </template>
-  <template shadowroot="closed">
+  <template shadowrootmode="closed">
     <span>root 2</span>
   </template>
 </div>
@@ -141,7 +155,7 @@ test(() => {
 
 <template id="template-containing-shadow">
   <div class="innerdiv">
-    <template shadowroot=open>Content</template>
+    <template shadowrootmode=open>Content</template>
   </div>
 </template>
 <script>
@@ -184,7 +198,7 @@ test(() => {
 <template id="template-containing-deep-shadow">
   <div><div><div><div><div>
     <div class="innerdiv">
-      <template shadowroot=open>Content</template>
+      <template shadowrootmode=open>Content</template>
     </div>
   </div></div></div></div></div>
 </template>
@@ -203,7 +217,7 @@ test(() => {
   <div>
     <template id="inner-template">
       <div class="innerdiv">
-        <template shadowroot=open>Content</template>
+        <template shadowrootmode=open>Content</template>
       </div>
     </template>
   </div>
@@ -222,7 +236,7 @@ test(() => {
 
 <template id="template-containing-ua-shadow">
   <div class="innerdiv">
-    <template shadowroot=open>
+    <template shadowrootmode=open>
       <video></video> <!--Assumed to have UA shadow root-->
     </template>
   </div>
@@ -246,7 +260,7 @@ test(() => {
 
 <template id="template-containing-ua-shadow-closed">
   <div class="innerdiv">
-    <template shadowroot=closed>
+    <template shadowrootmode=closed>
       <video></video> <!--Assumed to have UA shadow root-->
     </template>
   </div>
@@ -264,7 +278,7 @@ test(() => {
 </script>
 
 <template id="root-element-shadow">
-    <template shadowroot=open>Content</template>
+    <template shadowrootmode=open>Content</template>
 </template>
 <script>
 test(() => {
@@ -275,6 +289,6 @@ test(() => {
   assert_equals(host.shadowRoot, null, "Shadow root should not be present");
   const tmpl = host.querySelector('template');
   assert_true(!!tmpl,"Template should still be present");
-  assert_equals(tmpl.getAttribute('shadowroot'),"open","'shadowroot' attribute should still be present");
+  assert_equals(tmpl.getAttribute('shadowrootmode'),"open","'shadowrootmode' attribute should still be present");
 }, 'Declarative Shadow DOM: template root element');
 </script>

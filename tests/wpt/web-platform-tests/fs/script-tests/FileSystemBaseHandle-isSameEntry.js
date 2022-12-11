@@ -105,14 +105,3 @@ directory_test(async (t, root_dir) => {
       await file_handle.isSameEntry(dir_handle),
       'a file and directory handle pointing at the same path should not be considered the same entry');
 }, 'isSameEntry comparing a file to a directory of the same path returns false');
-
-directory_test(async (t, root_dir) => {
-  const inboxBucket = await navigator.storageBuckets.open('inbox');
-  const inboxRootDir = await inboxBucket.getDirectory();
-
-  assert_false(await inboxRootDir.isSameEntry(root_dir));
-
-  const handle1 = await createEmptyFile(t, 'mtime.txt', inboxRootDir);
-  const handle2 = await inboxRootDir.getFileHandle('mtime.txt');
-  assert_true(await handle1.isSameEntry(handle2));
-}, 'isSameEntry works as expected with buckets');

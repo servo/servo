@@ -7,7 +7,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
 <script>
-  test_valid_selector('.a:has(.b:has(.c))', '.a:has()');
-  test_valid_selector('.a:has(.b:has(.c), .d)', '.a:has(.d)');
-  test_valid_selector('.a:has(.b:is(.c:has(.d) .e))', '.a:has(.b:is())');
+  test_invalid_selector('.a:has(.b:has(.c))');
+  test_valid_selector('.a:has(:is(.b:has(.c)))', '.a:has(:is())');
+  test_valid_selector('.a:has(:is(.b:has(.c), .d))', '.a:has(:is(.d))');
 </script>

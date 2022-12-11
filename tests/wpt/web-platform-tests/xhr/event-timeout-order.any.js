@@ -17,5 +17,5 @@ test.step(function () {
     xhr.send("Test Message");
     test.step_timeout(() => {
         assert_unreached("ontimeout not called.");
-    }, 10);
+    }, 2000);
 });

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(function() {
+  var event = new BeforeToggleEvent("");
+  assert_true(event instanceof window.BeforeToggleEvent);
+}, "the event is an instance of BeforeToggleEvent");
+
+test(function() {
+  var event = new BeforeToggleEvent("");
+  assert_true(event instanceof window.Event);
+}, "the event inherts from Event");
+
+test(function() {
+  assert_throws_js(TypeError, function() {
+    new BeforeToggleEvent();
+  }, 'First argument (type) is required, so was expecting a TypeError.');
+}, 'Missing type argument');
+
+test(function() {
+  var event = new BeforeToggleEvent("test");
+  assert_equals(event.type, "test");
+}, "type argument is string");
+
+test(function() {
+  var event = new BeforeToggleEvent(null);
+  assert_equals(event.type, "null");
+}, "type argument is null");
+
+test(function() {
+  var event = new BeforeToggleEvent(undefined);
+  assert_equals(event.type, "undefined");
+}, "event type set to undefined");
+
+test(function() {
+  var event = new BeforeToggleEvent("test");
+  assert_equals(event.currentState, "");
+}, "currentState has default value of empty string");
+
+test(function() {
+  var event = new BeforeToggleEvent("test");
+  assert_readonly(event, "currentState", "readonly attribute value");
+}, "currentState is readonly");
+
+test(function() {
+  var event = new BeforeToggleEvent("test");
+  assert_equals(event.newState, "");
+}, "newState has default value of empty string");
+
+test(function() {
+  var event = new BeforeToggleEvent("test");
+  assert_readonly(event, "newState", "readonly attribute value");
+}, "newState is readonly");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", null);
+  assert_equals(event.currentState, "");
+  assert_equals(event.newState, "");
+}, "BeforeToggleEventInit argument is null");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", undefined);
+  assert_equals(event.currentState, "");
+  assert_equals(event.newState, "");
+}, "BeforeToggleEventInit argument is undefined");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {});
+  assert_equals(event.currentState, "");
+  assert_equals(event.newState, "");
+}, "BeforeToggleEventInit argument is empty dictionary");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: "sample"});
+  assert_equals(event.currentState, "sample");
+}, "currentState set to 'sample'");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: undefined});
+  assert_equals(event.currentState, "");
+}, "currentState set to undefined");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: null});
+  assert_equals(event.currentState, "null");
+}, "currentState set to null");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: false});
+  assert_equals(event.currentState, "false");
+}, "currentState set to false");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: true});
+  assert_equals(event.currentState, "true");
+}, "currentState set to true");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: 0.5});
+  assert_equals(event.currentState, "0.5");
+}, "currentState set to a number");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: []});
+  assert_equals(event.currentState, "");
+}, "currentState set to []");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: [1, 2, 3]});
+  assert_equals(event.currentState, "1,2,3");
+}, "currentState set to [1, 2, 3]");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {currentState: {sample: 0.5}});
+  assert_equals(event.currentState, "[object Object]");
+}, "currentState set to an object");
+
+test(function() {
+  var event = new BeforeToggleEvent("test",
+      {currentState: {valueOf: function () { return 'sample'; }}});
+  assert_equals(event.currentState, "[object Object]");
+}, "currentState set to an object with a valueOf function");
+
+test(function() {
+  var eventInit = {currentState: "sample",newState: "sample2"};
+  var event = new BeforeToggleEvent("test", eventInit);
+  assert_equals(event.currentState, "sample");
+  assert_equals(event.newState, "sample2");
+}, "BeforeToggleEventInit properties set value");
+
+test(function() {
+  var eventInit = {currentState: "open",newState: "closed"};
+  var event = new BeforeToggleEvent("beforetoggle", eventInit);
+  assert_equals(event.currentState, "open");
+  assert_equals(event.newState, "closed");
+}, "BeforeToggleEventInit properties set value 2");
+
+test(function() {
+  var eventInit = {currentState: "closed",newState: "open"};
+  var event = new BeforeToggleEvent("beforetoggle", eventInit);
+  assert_equals(event.currentState, "closed");
+  assert_equals(event.newState, "open");
+}, "BeforeToggleEventInit properties set value 3");
+
+test(function() {
+  var eventInit = {currentState: "open",newState: "open"};
+  var event = new BeforeToggleEvent("beforetoggle", eventInit);
+  assert_equals(event.currentState, "open");
+  assert_equals(event.newState, "open");
+}, "BeforeToggleEventInit properties set value 4");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: "sample"});
+  assert_equals(event.newState, "sample");
+}, "newState set to 'sample'");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: undefined});
+  assert_equals(event.newState, "");
+}, "newState set to undefined");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: null});
+  assert_equals(event.newState, "null");
+}, "newState set to null");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: false});
+  assert_equals(event.newState, "false");
+}, "newState set to false");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: true});
+  assert_equals(event.newState, "true");
+}, "newState set to true");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: 0.5});
+  assert_equals(event.newState, "0.5");
+}, "newState set to a number");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: []});
+  assert_equals(event.newState, "");
+}, "newState set to []");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: [1, 2, 3]});
+  assert_equals(event.newState, "1,2,3");
+}, "newState set to [1, 2, 3]");
+
+test(function() {
+  var event = new BeforeToggleEvent("test", {newState: {sample: 0.5}});
+  assert_equals(event.newState, "[object Object]");
+}, "newState set to an object");
+
+test(function() {
+  var event = new BeforeToggleEvent("test",
+      {newState: {valueOf: function () { return 'sample'; }}});
+  assert_equals(event.newState, "[object Object]");
+}, "newState set to an object with a valueOf function");
+</script>

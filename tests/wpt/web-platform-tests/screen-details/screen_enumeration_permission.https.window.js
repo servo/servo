@@ -4,7 +4,7 @@
 "use strict";
 
 promise_test(async t => {
-  await test_driver.set_permission({ name: "window-placement" }, "denied", false);
+  await test_driver.set_permission({ name: "window-placement" }, "denied");
 
   const status = await navigator.permissions.query({ name:"window-placement" });
   assert_class_string(status, "PermissionStatus");
@@ -12,7 +12,7 @@ promise_test(async t => {
 }, "Deny window management permission should work.");
 
 promise_test(async t => {
-  await test_driver.set_permission({ name: "window-placement" }, "granted", false);
+  await test_driver.set_permission({ name: "window-placement" }, "granted");
 
   const status = await navigator.permissions.query({ name: "window-placement" });
   assert_class_string(status, "PermissionStatus");

@@ -53,9 +53,10 @@
     { src: 'url("foo.ttf") dummy("opentype") tech(variations)', valid: false },
     { src: 'url("foo.ttf") dummy("opentype") dummy(variations)', valid: false },
     { src: 'url("foo.ttf") format(opentype) tech(features-opentype) dummy(something)', valid: false },
-    // Valid value after unparseable value must be ignored.
-    { src: 'url("foo.ttf") format(dummy), url("foo.ttf") tech(variations)', valid: false },
-    { src: 'url("foo.ttf") tech(color, url("bar.html")', valid: false },
+    // A parsing error in one component does not make the entire descriptor invalid.
+    { src: 'url("foo.ttf") format(dummy), url("foo.ttf") tech(variations)', valid: true },
+    // check_same_tech isn't currently smart enough to handle this.
+    { src: 'url("foo.ttf") tech(color), url("bar.html")', dontcomparetech: true, valid: true },
   ];
 
   // Assert that the two arguments have the same set of keywords in the tech() function,
@@ -69,7 +70,9 @@
     const tech = /tech\((.+)\)/;
     var specified_techs = tech.exec(specified)[1].split(/,\s*/).sort().join(", ");
     var serialized_techs = tech.exec(serialized)[1].split(/,\s*/).sort().join(", ");
-    assert_equals(serialized_techs, specified_techs, "expected matching tech() lists");
+    // Per CSSOM spec, keywords are serialized in ASCII-lowercase form:
+    // https://drafts.csswg.org/cssom/#serialize-a-css-component-value
+    assert_equals(serialized_techs, specified_techs.toLowerCase(), "expected matching tech() lists");
   }
 
   for (let t of tests) {

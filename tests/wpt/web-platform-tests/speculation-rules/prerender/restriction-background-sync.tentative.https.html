@@ -30,8 +30,7 @@ promise_test(async t => {
   // periodicSync.register() waits until the permission is granted, which
   // is deferred during prerendering so the test would trivially pass without
   // the permission.
-  await test_driver.set_permission({name: 'periodic-background-sync'}, 'granted',
-                                    location.origin, location.origin);
+  await test_driver.set_permission({name: 'periodic-background-sync'}, 'granted');
 
   // Install the service worker first to test periodicSync.register in the
   // prerendering page.

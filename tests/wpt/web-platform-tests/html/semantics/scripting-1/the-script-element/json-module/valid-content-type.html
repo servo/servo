@@ -29,11 +29,11 @@ import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=appli
 check(t2, v);
 </script>
 <script type="module" onerror="t3.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/html+json" assert { type: "json"};
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/html%2Bjson" assert { type: "json"};
 check(t3, v);
 </script>
 <script type="module" onerror="t4.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=image/svg+json" assert { type: "json"};
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=image/svg%2Bjson" assert { type: "json"};
 check(t4, v);
 </script>
 <script type="module" onerror="t5.step(() => assert_unreached(event))">

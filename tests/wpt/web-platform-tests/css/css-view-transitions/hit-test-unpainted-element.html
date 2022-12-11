@@ -46,6 +46,8 @@ html::view-transition-new(shared) {
 <div id=target class=before></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function mouseMoveToTarget(x, y) {
   return new test_driver.Actions().pointerMove(x, y).send();
 }

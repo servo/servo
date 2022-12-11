@@ -59,8 +59,8 @@ async_test((t) => {
   function step2() {
     const r = container.getBoundingClientRect();
     t.step(() => {
-      assert_equals(r.y, 3000, "step3 offset");
-      assert_equals(r.height, 10, "step3 height");
+      assert_equals(r.y, 3000, "step2 offset");
+      assert_equals(r.height, 10, "step2 height");
     });
     document.scrollingElement.scrollTop = 3000;
     requestAnimationFrame(step3);
@@ -69,8 +69,8 @@ async_test((t) => {
   function step3() {
     const r = container.getBoundingClientRect();
     t.step(() => {
-      assert_less_than(r.y, 3000, "step2 offset");
-      assert_equals(r.height, 10, "step2 height");
+      assert_less_than(r.y, 3000, "step3 offset");
+      assert_equals(r.height, 10, "step3 height");
     });
     document.scrollingElement.scrollTop = 0;
     requestAnimationFrame(step4);
@@ -88,8 +88,8 @@ async_test((t) => {
   function step5() {
     const r = container.getBoundingClientRect();
     t.step(() => {
-      assert_equals(r.y, 3000, "step4 offset");
-      assert_equals(r.height, 10, "step4 height");
+      assert_equals(r.y, 3000, "step5 offset");
+      assert_equals(r.height, 10, "step5 height");
     });
 
     selection.removeAllRanges();

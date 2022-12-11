@@ -38,6 +38,8 @@ html::view-transition-new(root) { animation-duration: 0s; opacity: 1 }
 <div id=e1 class=box></div>
 <div id=shared></div>
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   let t = document.startViewTransition(() => {
     e1.classList.add("dst");

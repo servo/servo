@@ -46,12 +46,12 @@
     { src: 'url("foo.ttf") format(embedded-opentype), url("bar.html")', valid: true },
     { src: 'url("foo.ttf") format("svg"), url("bar.html")', valid: true },
     { src: 'url("foo.ttf") format(svg), url("bar.html")', valid: true },
-    // Hard parsing errors should make the line invalid.
-    { src: 'url("foo.ttf") format(xyzz 200px), url("bar.html")', valid: false },
-    { src: 'url("foo.ttf") format(xyzz), url("bar.html")', valid: false },
-    { src: 'url("foo.ttf") dummy(xyzzy), url("bar.html")', valid: false },
-    { src: 'url("foo.ttf") format(), url("bar.html")', valid: false },
-    { src: 'url("foo.ttf") format(none), url("bar.html")', valid: false },
+    // A parsing error in one component does not make the entire descriptor invalid.
+    { src: 'url("foo.ttf") format(xyzz 200px), url("bar.html")', valid: true },
+    { src: 'url("foo.ttf") format(xyzz), url("bar.html")', valid: true },
+    { src: 'url("foo.ttf") dummy(xyzzy), url("bar.html")', valid: true },
+    { src: 'url("foo.ttf") format(), url("bar.html")', valid: true },
+    { src: 'url("foo.ttf") format(none), url("bar.html")', valid: true },
   ];
 
   for (let t of tests) {

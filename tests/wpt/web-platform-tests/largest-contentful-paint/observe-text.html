@@ -20,7 +20,8 @@ p {
         assert_equals(entry.entryType, 'largest-contentful-paint');
         assert_greater_than_equal(entry.renderTime, beforeRender);
         assert_greater_than_equal(performance.now(), entry.renderTime);
-        assert_equals(entry.startTime, entry.renderTime, 'startTime should equal renderTime');
+        assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
+          'startTime should be equal to renderTime to the precision of 1 millisecond.');
         assert_equals(entry.duration, 0);
         // Some lower bound: height of at least 12 px.
         // Width of at least 100 px.

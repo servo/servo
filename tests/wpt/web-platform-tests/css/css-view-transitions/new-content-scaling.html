@@ -49,6 +49,8 @@ html::view-transition { background: lightpink; }
 <div id=target class="shared src"><div class=inner></div></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   let t = document.startViewTransition(() => {
     target.classList.remove("src");

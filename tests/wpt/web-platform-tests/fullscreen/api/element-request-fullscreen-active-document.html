@@ -1,38 +1,43 @@
 <!DOCTYPE html>
-<title>Element#requestFullscreen() when the document is not the active document</title>
+<title>
+    Element#requestFullscreen() when the document is not the active document
+</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <iframe allowfullscreen></iframe>
 <script>
-var t = async_test();
+    promise_test(async (t) => {
+        const iframe = document.querySelector("iframe");
+        const typeErrorConstructor = iframe.contentWindow.TypeError;
+        const documentBeforeNav = iframe.contentDocument;
 
-onload = t.step_func(() => {
-  var iframe = document.querySelector("iframe");
-  var documentBeforeNav = iframe.contentDocument;
-  documentBeforeNav.onfullscreenchange = t.unreached_func('fullscreenchange event');
-  documentBeforeNav.onfullscreenerror = t.unreached_func('fullscreenerror event');
+        documentBeforeNav.onfullscreenchange = t.unreached_func(
+            "fullscreenchange event"
+        );
+        documentBeforeNav.onfullscreenerror = t.unreached_func(
+            "fullscreenerror event"
+        );
 
-  iframe.onload = t.step_func(() => {
-    var p = documentBeforeNav.documentElement.requestFullscreen();
-    // If a promise was returned, it should already be rejected, so its reject
-    // callback should be invoked before a second promise's callback.
-    // This test does not fail if promises aren't implemented.
-    if (p) {
-      var rejected = false;
-      p.catch(t.step_func(() => rejected = true));
-      Promise.resolve().then(t.step_func(() => assert_true(rejected)));
-    }
-    // Per spec the fullscreenerror event should be fired at the next animtion
-    // frame, but at least Gecko and WebKit will instead effectively do "queue a
-    // task to fire ...". Use both rAF and setTimeout to fail even if the timing
-    // of the (unexpected) event isn't as expected.
-    requestAnimationFrame(t.step_func(() => {
-      step_timeout(t.step_func_done());
-    }));
-  });
+        await new Promise((r) => {
+            iframe.src = "/common/blank.html";
+            iframe.onload = r;
+        });
 
-  // Navigate the iframe
-  window[0].location.href = '/common/blank.html';
-});
+        await promise_rejects_js(
+            t,
+            typeErrorConstructor,
+            documentBeforeNav.documentElement.requestFullscreen()
+        );
+
+        // Per spec the fullscreenerror event should be fired at the next animation
+        // frame, but at least Gecko and WebKit will instead effectively do "queue a
+        // task to fire ...". Use both rAF and setTimeout to fail even if the timing
+        // of the (unexpected) event isn't as expected.
+        await new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                t.step_timeout(resolve);
+            });
+        });
+    });
 </script>

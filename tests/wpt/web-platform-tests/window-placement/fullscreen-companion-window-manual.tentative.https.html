@@ -43,8 +43,13 @@ async function testPopupOnScreen(popupTest, screen, expectPopup) {
     return;
   assert_equals(!popup.closed, expectPopup, 'Popup open');
   popups.push(popup);
-  if (autoCleanUp.checked)
-    popupTest.add_cleanup(popup.close);
+  if (autoCleanUp.checked) {
+    // TODO(crbug.com/1338645): Remove this workaround (delay) after browser code is
+    // fixed.
+    popupTest.add_cleanup(()=>{
+      setTimeout(popup.close, 1000);
+    });
+  }
 }
 
 promise_test(async setUpTest => {
