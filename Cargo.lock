@@ -1497,18 +1497,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 
 [[package]]
-name = "display-link"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "303de632386f9c82eb7823456f5932bd40b4de9521078901767bf16a9f331491"
-dependencies = [
- "foreign-types",
- "objc",
- "objc-foundation",
- "time-point",
-]
-
-[[package]]
 name = "dlib"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5651,6 +5639,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-display-link"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1060be2a0bbc35e712ec35ae98119b8def1071a5f2edbe392fd4c899bc2a5f4"
+dependencies = [
+ "foreign-types",
+ "objc",
+ "objc-foundation",
+ "thiserror",
+ "time-point",
+]
+
+[[package]]
 name = "servo-egl"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6371,9 +6372,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.4.1"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbbf3b7f873f25cb7791b06a00f0626a141c05f1b95e5b34bc498358876e1a58"
+checksum = "e70e69faf378eeb7b44044ab434a06672e0bd495d32a47d84a097e69dd994985"
 dependencies = [
  "bitflags",
  "cfg_aliases",
@@ -6381,7 +6382,6 @@ dependencies = [
  "cocoa 0.19.1",
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
- "display-link",
  "euclid",
  "gl_generator 0.14.0",
  "io-surface",
@@ -6393,6 +6393,7 @@ dependencies = [
  "objc",
  "parking_lot 0.10.2",
  "raw-window-handle",
+ "servo-display-link",
  "wayland-sys 0.24.1",
  "winapi",
  "winit",
