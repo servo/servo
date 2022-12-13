@@ -435,19 +435,17 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         properties::adjust_border_width(self.style);
     }
 
-    /// The initial value of outline-width may be changed at computed value time.
+    /// outline-style: none causes a computed outline-width of zero at computed
+    /// value time.
     fn adjust_for_outline(&mut self) {
-        if self
-            .style
-            .get_outline()
-            .clone_outline_style()
-            .none_or_hidden() &&
-            self.style.get_outline().outline_has_nonzero_width()
-        {
-            self.style
-                .mutate_outline()
-                .set_outline_width(crate::Zero::zero());
+        let outline = self.style.get_outline();
+        if !outline.clone_outline_style().none_or_hidden() {
+            return;
         }
+        if !outline.outline_has_nonzero_width() {
+            return;
+        }
+        self.style.mutate_outline().set_outline_width(crate::Zero::zero());
     }
 
     /// CSS overflow-x and overflow-y require some fixup as well in some cases.
