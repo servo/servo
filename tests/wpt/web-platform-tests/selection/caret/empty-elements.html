@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Placing selection inside empty elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div contenteditable id="host">
+  <p><strong id="strong"></strong></p>
+</div>
+<script>
+test( () => {
+  const range = document.createRange();
+
+  range.setStart( strong, 0 );
+  range.collapse()
+  getSelection().removeAllRanges();
+  getSelection().addRange( range );
+
+  const selectedRange = getSelection().getRangeAt( 0 );
+
+  assert_equals( selectedRange.startContainer, strong );
+  assert_equals( selectedRange.startOffset, 0 );
+  assert_equals( selectedRange.endContainer, strong );
+  assert_equals( selectedRange.endOffset, 0 );
+}, 'Selection can be placed inside the empty element' );
+</script>
