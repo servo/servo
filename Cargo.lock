@@ -4506,7 +4506,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3a704eb390aafdc107b0e392f56a82b668e3a71366993b5340f5833fd62505e"
 dependencies = [
  "lock_api 0.3.4",
- "parking_lot_core 0.7.2",
+ "parking_lot_core 0.7.3",
 ]
 
 [[package]]
@@ -4532,9 +4532,9 @@ dependencies = [
 
 [[package]]
 name = "parking_lot_core"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d58c7c768d4ba344e3e8d72518ac13e259d7c7ade24167003b8488e10b6740a3"
+checksum = "b93f386bb233083c799e6e642a9d73db98c24a5deeb95ffc85bf281255dffc98"
 dependencies = [
  "cfg-if 0.1.10",
  "cloudabi 0.0.3",
