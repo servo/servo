@@ -678,8 +678,7 @@ fn static_assert() {
     }
 
     pub fn copy_border_${side.ident}_style_from(&mut self, other: &Self) {
-        self.gecko.mBorderStyle[${side.index}] = other.gecko.mBorderStyle[${side.index}];
-        self.gecko.mComputedBorder.${side.ident} = self.gecko.mBorder.${side.ident};
+        self.set_border_${side.ident}_style(other.gecko.mBorderStyle[${side.index}]);
     }
 
     pub fn reset_border_${side.ident}_style(&mut self, other: &Self) {
@@ -809,9 +808,7 @@ fn static_assert() {
     }
 
     pub fn copy_outline_style_from(&mut self, other: &Self) {
-        // FIXME(emilio): Why doesn't this need to reset mActualOutlineWidth?
-        // Looks fishy.
-        self.gecko.mOutlineStyle = other.gecko.mOutlineStyle;
+        self.set_outline_style(other.gecko.mOutlineStyle);
     }
 
     pub fn reset_outline_style(&mut self, other: &Self) {
