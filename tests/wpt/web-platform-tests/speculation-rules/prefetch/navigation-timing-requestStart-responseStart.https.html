@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<meta name="variant" content="">
+<meta name="variant" content="?prefetch=true">
+
+<script>
+const searchParams = new URLSearchParams(location.search);
+const prefetchEnabled = searchParams.has('prefetch');
+
+promise_test(async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      "Speculation Rules not supported");
+
+    const agent = await spawnWindow(t);
+    // Some meaningless query param to avoid cached response.
+    const prefetchUrl = agent.getExecutorURL({ a: "b" });
+
+    if (prefetchEnabled)
+      await agent.forceSinglePrefetch(prefetchUrl);
+
+    await agent.navigate(prefetchUrl);
+
+    if (prefetchEnabled) {
+      assert_prefetched(await agent.getRequestHeaders(),
+        `Prefetch ${prefetchUrl.href} should work.`);
+    } else {
+      assert_not_prefetched(await agent.getRequestHeaders(),
+        `${prefetchUrl.href} should not be prefetched.`);
+    }
+
+    const entries = await agent.execute_script(
+      () => performance.getEntriesByType('navigation'));
+    assert_equals(entries.length, 1, 'Wrong number of navigation entries');
+    const entry = entries[0];
+
+    // Events timeline:
+    //   ... -> connectEnd --> requestStart --> responseStart --> ...
+    if (prefetchEnabled) {
+      assert_equals(entry.connectEnd, entry.requestStart);
+      assert_equals(entry.requestStart, entry.responseStart);
+    } else {
+      assert_less_than_equal(entry.connectEnd, entry.requestStart);
+      assert_less_than_equal(entry.requestStart, entry.responseStart);
+    }
+
+  }, "PerformanceNavigationTiming.requestStart/responseStart test, same origin prefetch.");
+</script>

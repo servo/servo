@@ -23,6 +23,18 @@ for (const composite of ['accumulate', 'add']) {
 
   test(t => {
     const div = createDiv(t);
+    div.style.marginLeft = '10px';
+    const anim =
+      div.animate([{ marginLeft: '20px', offset: 0.25 }, { marginLeft: '30px', offset: 0.75 }],
+                  { duration: 100, composite });
+
+    anim.currentTime = 50;
+    assert_equals(getComputedStyle(div).marginLeft, '35px',
+      'Animated margin-left style at 50%');
+  }, `${composite} onto the base value when the interval does not include the 0 or 1 keyframe`);
+
+  test(t => {
+    const div = createDiv(t);
     const anims = [];
     anims.push(div.animate({ marginLeft: ['10px', '20px'],
                              composite: 'replace' },

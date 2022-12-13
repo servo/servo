@@ -48,7 +48,15 @@
                         assert_equals(event.pointerId, pointerdown_event.pointerId, "pointerId should be the same for pointerdown and pointercancel");
                         assert_equals(event.pointerType, pointerdown_event.pointerType, "pointerType should be the same for pointerdown and pointercancel");
                         assert_equals(event.isPrimary, pointerdown_event.isPrimary, "isPrimary should be the same for pointerdown and pointercancel");
+                    });
+                    test_pointerEvent.step(function () {
                         check_PointerEvent(event);
+                    });
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.x, 0, "pointercancel.x must be zero");
+                        assert_equals(event.y, 0, "pointercancel.x must be zero");
+                        assert_equals(event.clientX, 0, "pointercancel.clientX must be zero");
+                        assert_equals(event.clientY, 0, "pointercancel.clientY must be zero");
                     });
                 });
 

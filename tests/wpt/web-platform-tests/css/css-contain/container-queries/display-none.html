@@ -374,4 +374,20 @@
       assert_equals(s.getPropertyValue('--x'), '50');
     }, 'getComputedStyle when in display:none with layout dirty outer element');
   </script>
+
+  <!-- Intermediate container has forced style -->
+  <div class="container">
+    <div class="none">
+      <div id="inner19" class="container">
+        <div id="target19" class="target"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    test(function() {
+      getComputedStyle(inner19).getPropertyValue('--x');
+      let s = getComputedStyle(target19);
+      assert_equals(s.getPropertyValue('--x'), '');
+    }, 'getComputedStyle when display:none inner container has forced style');
+  </script>
 </main>

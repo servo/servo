@@ -79,10 +79,17 @@ async function readValueFromServer(key) {
 // Convenience wrapper around the above getter that will wait until a value is
 // available on the server.
 async function nextValueFromServer(key) {
+  let retry = 0;
   while (true) {
     // Fetches the test result from the server.
-    const { status, value } = await readValueFromServer(key);
-    if (!status) {
+    let success = true;
+    const { status, value } = await readValueFromServer(key).catch(e => {
+      if (retry++ >= 5) {
+        throw new Error('readValueFromServer failed');
+      }
+      success = false;
+    });
+    if (!success || !status) {
       // The test result has not been stored yet. Retry after a while.
       await new Promise(resolve => setTimeout(resolve, 100));
       continue;
