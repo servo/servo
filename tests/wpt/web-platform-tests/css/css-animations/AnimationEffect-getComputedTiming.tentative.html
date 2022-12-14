@@ -271,8 +271,9 @@ test(t => {
   const div = addDiv(t, { style: 'animation: moveAnimation 100s' });
   const anim = div.getAnimations()[0];
   anim.currentTime = 5 * MS_PER_SEC;
-  assert_equals(anim.effect.getComputedTiming().localTime, anim.currentTime,
-                'current localTime after setting currentTime');
+  assert_times_equal(anim.effect.getComputedTiming().localTime,
+                     anim.currentTime,
+                     'current localTime after setting currentTime');
 }, 'localTime of an animation is always equal to currentTime');
 
 promise_test(async t => {
@@ -283,13 +284,15 @@ promise_test(async t => {
 
   await anim.ready;
 
-  assert_equals(anim.effect.getComputedTiming().localTime, anim.currentTime,
-                'localTime is equal to currentTime');
+  assert_times_equal(anim.effect.getComputedTiming().localTime,
+                     anim.currentTime,
+                     'localTime is equal to currentTime');
 
   await waitForFrame();
 
-  assert_equals(anim.effect.getComputedTiming().localTime, anim.currentTime,
-                'localTime is equal to currentTime');
+  assert_times_equal(anim.effect.getComputedTiming().localTime,
+                     anim.currentTime,
+                     'localTime is equal to currentTime');
 }, 'localTime reflects playbackRate immediately');
 
 test(t => {

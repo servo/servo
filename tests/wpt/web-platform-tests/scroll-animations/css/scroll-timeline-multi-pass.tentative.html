@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
 <style>
   @keyframes expand_width {
     from { width: 100px; }
@@ -27,11 +28,13 @@
   }
   #element1 {
     width: 1px;
-    animation: expand_width 10s timeline1;
+    animation: expand_width 10s;
+    animation-timeline: timeline1;
   }
   #element2 {
     height: 1px;
-    animation: expand_height 10s timeline2;
+    animation: expand_height 10s;
+    animation-timeline: timeline2;
   }
 </style>
 <main id=main>
@@ -41,6 +44,8 @@
   </div>
 </main>
 <script>
+    setup(assert_implements_animation_timeline);
+
     function insertScroller(timeline_name) {
       let scroller = document.createElement('div');
       scroller.classList.add('scroller');

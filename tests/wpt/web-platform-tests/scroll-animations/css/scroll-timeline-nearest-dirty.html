@@ -17,7 +17,8 @@
     height: 100px;
   }
   #element {
-    animation: anim forwards scroll();
+    animation: anim forwards;
+    animation-timeline: scroll();
   }
   #spacer {
     height: 200px;
@@ -29,6 +30,8 @@
 </div>
 
 <script>
+setup(assert_implements_animation_timeline);
+
 promise_test(async () => {
   await waitForCSSScrollTimelineStyle();
   assert_equals(getComputedStyle(element).zIndex, '100');

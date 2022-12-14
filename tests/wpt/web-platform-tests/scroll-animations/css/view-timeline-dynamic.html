@@ -25,6 +25,8 @@
 </style>
 <main id=main></main>
 <script>
+  setup(assert_implements_animation_timeline);
+
   function inflate(t, template) {
     t.add_cleanup(() => main.replaceChildren());
     main.append(template.content.cloneNode(true));
@@ -46,7 +48,8 @@
       view-timeline-name: t1;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -98,7 +101,8 @@
       view-timeline-name: t1;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -129,7 +133,8 @@
       view-timeline-name: t1;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -156,7 +161,8 @@
       view-timeline-name: t1;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>

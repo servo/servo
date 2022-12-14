@@ -28,7 +28,14 @@
     width: 100px;
     height: 100px;
     background-color: green;
-    animation: anim 1s linear timeline;
+    animation: anim 1s linear;
+    animation-timeline: timeline;
+  }
+
+  @supports not (animation-timeline:timeline) {
+    #box {
+      animation-play-state: paused;
+    }
   }
 </style>
 

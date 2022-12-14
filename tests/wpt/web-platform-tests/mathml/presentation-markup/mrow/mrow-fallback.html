@@ -63,6 +63,15 @@
         }
       }
     });
+    Array.from(document.getElementById("invalidMultiscripts").
+               getElementsByTagName("mmultiscripts")).forEach(element => {
+      let reference = element.nextElementSibling;
+      let description = element.dataset.description;
+      test(function() {
+        compareLayout(element, reference, epsilon);
+      }, `Invalid mmultiscripts should lay out as an mrow (${description})`);
+    });
+
     done();
   }
 </script>
@@ -70,5 +79,47 @@
 <body>
   <div id="log"></div>
   <div id="container"></div>
+  <div id="invalidMultiscripts">
+    <math>
+      <mmultiscripts data-description="first in-flow child is an <mprescripts>">
+        <mprescripts/>
+        <mspace height="5px" depth="15px" width="10px" style="background: black"/>
+        <mspace height="30px" depth="10px" width="20px" style="background: black"/>
+        <mspace height="15px" depth="45px" width="30px" style="background: black"/>
+        <mspace height="60px" depth="20px" width="40px" style="background: black"/>
+
+      </mmultiscripts>
+      <mrow>
+        <mprescripts/>
+        <mspace height="5px" depth="15px" width="10px" style="background: black"/>
+        <mspace height="30px" depth="10px" width="20px" style="background: black"/>
+        <mspace height="15px" depth="45px" width="30px" style="background: black"/>
+        <mspace height="60px" depth="20px" width="40px" style="background: black"/>
+
+      </mrow>
+    </math>
+    <math>
+      <mmultiscripts data-description="one of the even number of children after the first <mprescripts> is an <mprescripts>">
+        <mspace height="5px" depth="15px" width="10px" style="background: black"/>
+        <mspace height="30px" depth="10px" width="20px" style="background: black"/>
+        <mspace height="15px" depth="45px" width="30px" style="background: black"/>
+        <mprescripts/>
+        <mspace height="60px" depth="20px" width="40px" style="background: black"/>
+        <mprescripts/>
+        <mspace height="25px" depth="75px" width="50px" style="background: black"/>
+        <mspace height="35px" depth="105px" width="70px" style="background: black"/>
+      </mmultiscripts>
+      <mrow>
+        <mspace height="5px" depth="15px" width="10px" style="background: black"/>
+        <mspace height="30px" depth="10px" width="20px" style="background: black"/>
+        <mspace height="15px" depth="45px" width="30px" style="background: black"/>
+        <mprescripts/>
+        <mspace height="60px" depth="20px" width="40px" style="background: black"/>
+        <mprescripts/>
+        <mspace height="25px" depth="75px" width="50px" style="background: black"/>
+        <mspace height="35px" depth="105px" width="70px" style="background: black"/>
+      </mrow>
+    </math>
+  </div>
 </body>
 </html>

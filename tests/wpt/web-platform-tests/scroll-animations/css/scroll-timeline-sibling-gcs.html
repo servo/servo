@@ -23,7 +23,8 @@
   #element {
     height: 10px;
     width: 10px;
-    animation: anim 10s linear timeline;
+    animation: anim 10s linear;
+    animation-timeline: timeline;
     background-color: rgb(0, 0, 0);
   }
 </style>
@@ -36,6 +37,8 @@
   </div>
 </div>
 <script>
+  setup(assert_implements_animation_timeline);
+
   promise_test(async (t) => {
     element.offsetTop;
     scroller.scrollTop = 50;

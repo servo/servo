@@ -28,6 +28,8 @@
 <script>
 "use strict";
 
+setup(assert_implements_animation_timeline);
+
 const createTargetAndScroller = function(t) {
   let container = document.createElement('div');
   container.id = 'container';
@@ -69,7 +71,8 @@ async function scrollTop(element, value) {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
 
   await scrollTop(scroller, 25); // [0, 100].
   assert_equals(getComputedStyle(target).translate, '25px');
@@ -77,7 +80,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '0s linear anim forwards scroll(nearest)';
+  target.style.animation = '0s linear anim forwards';
+  target.style.animationTimeline = 'scroll(nearest)';
 
   await scrollTop(scroller, 25); // [0, 100].
   assert_equals(getComputedStyle(target).translate, '100px');
@@ -90,7 +94,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
 
   await scrollTop(scroller, 25); // [0, 100].
   assert_equals(getComputedStyle(target).translate, '25px');
@@ -108,7 +113,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim forwards scroll(nearest)';
+  target.style.animation = '10s linear anim forwards';
+  target.style.animationTimeline = 'scroll(nearest)';
   target.style.animationIterationCount = '0';
 
   await scrollTop(scroller, 25); // [0, 100].
@@ -117,7 +123,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim forwards scroll(nearest)';
+  target.style.animation = '10s linear anim forwards';
+  target.style.animationTimeline = 'scroll(nearest)';
   target.style.animationIterationCount = 'infinite';
 
   await scrollTop(scroller, 25); // [0, 100].
@@ -131,7 +138,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
 
   await scrollTop(scroller, 25) // [0, 100].
   assert_equals(getComputedStyle(target).translate, '25px');
@@ -139,7 +147,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
   target.style.animationDirection = 'reverse';
 
   await scrollTop(scroller, 25); // 25% in the reversing direction.
@@ -148,7 +157,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
   target.style.animationIterationCount = '2';
   target.style.animationDirection = 'alternate';
 
@@ -161,7 +171,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
   target.style.animationIterationCount = '2';
   target.style.animationDirection = 'alternate-reverse';
 
@@ -179,7 +190,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
 
   await scrollTop(scroller, 25); // [0, 100].
   assert_equals(getComputedStyle(target).translate, '25px');
@@ -204,7 +216,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
 
   //         active
   // |--------------------|
@@ -225,7 +238,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   let [target, scroller] = createTargetAndScroller(t);
-  target.style.animation = '10s linear anim scroll(nearest)';
+  target.style.animation = '10s linear anim';
+  target.style.animationTimeline = 'scroll(nearest)';
   target.style.animationDelay = '10s';
   target.style.animationDelayStart = '10s'; // crbug.com/1375994
 

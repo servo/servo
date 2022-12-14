@@ -27,11 +27,11 @@ const gCssWideKeywordsExamples = [
   },
   {
     description: 'inherit keyword',
-    input: new CSSKeywordValue('initial')
+    input: new CSSKeywordValue('inherit')
   },
   {
     description: 'unset keyword',
-    input: new CSSKeywordValue('initial')
+    input: new CSSKeywordValue('unset')
   },
   {
     description: 'revert keyword',
@@ -191,7 +191,7 @@ const gTestSyntaxExamples = {
       },
       {
         description: "one fraction",
-        input: new CSSUnitValue(0, 'fr')
+        input: new CSSUnitValue(1, 'fr')
       },
       {
         description: "negative fraction",
@@ -292,10 +292,10 @@ const gTestSyntaxExamples = {
 // Test setting a value in a style map and then getting it from the inline and
 // computed styles.
 function testPropertyValid(propertyName, examples, specified, computed, description) {
-  test(t => {
-    let element = createDivWithStyle(t);
+  for (const example of examples) {
+    test(t => {
+      let element = createDivWithStyle(t);
 
-    for (const example of examples) {
       element.attributeStyleMap.set(propertyName, example.input);
 
       // specified style
@@ -325,8 +325,8 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
         assert_style_value_equals(computedResult, example.input,
           `Setting ${example.description} and getting its computed value`);
       }
-    }
-  }, `Can set '${propertyName}' to ${description}`);
+    }, `Can set '${propertyName}' to ${description}: ${example.input}`);
+  }
 }
 
 // We have to special case CSSImageValue as they cannot be created with a

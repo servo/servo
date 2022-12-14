@@ -39,6 +39,8 @@
 <script>
 "use strict";
 
+setup(assert_implements_animation_timeline);
+
 function createScroller(t, scrollerSizeClass) {
   let scroller = document.createElement('div');
   let className = scrollerSizeClass || 'square';
@@ -89,7 +91,8 @@ promise_test(async t => {
   target.appendChild(content);
 
   target.style.scrollTimelineName = 'timeline';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   target.scrollTop = 50; // 50%, in [0, 100].
   await waitForNextFrame();
@@ -111,7 +114,8 @@ promise_test(async t => {
   parent.insertBefore(target, parent.firstElementChild);
 
   parent.style.scrollTimelineName = 'timeline';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   parent.scrollTop = 100; // 50%, in [0, 200].
   await waitForNextFrame();
@@ -128,7 +132,8 @@ promise_test(async t => {
   document.body.appendChild(target);
 
   sibling.style.scrollTimelineName = 'timeline';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   sibling.scrollTop = 50; // 50%, in [0, 100].
   await waitForNextFrame();
@@ -149,7 +154,8 @@ promise_test(async t => {
   parent.appendChild(target);
 
   sibling.style.scrollTimelineName = 'timeline';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   sibling.scrollTop = 50; // 50%, in [0, 100].
   await waitForNextFrame();
@@ -170,7 +176,8 @@ promise_test(async t => {
   document.body.appendChild(sibling);
 
   sibling.style.scrollTimelineName = 'timeline';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   sibling.scrollTop = 50; // 50%, in [0, 100].
   await waitForNextFrame();
@@ -199,7 +206,8 @@ promise_test(async t => {
   parent.style.scrollTimelineName = 'timeline';
   parent.style.scrollTimelineAxis = 'inline';
   sibling.style.scrollTimelineName = 'timeline';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   parent.scrollTop = 50; // 25%, in [0, 200].
   sibling.scrollTop = 50; // 50%, in [0, 100].
@@ -224,7 +232,8 @@ promise_test(async t => {
   document.body.appendChild(target);
 
   sibling.style.scrollTimelineName = 'timeline';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   sibling.scrollTop = 50; // 50%, in [0, 100].
   await waitForNextFrame();
@@ -248,7 +257,8 @@ promise_test(async t => {
   main.appendChild(sibling);
   main.appendChild(target);
 
-  target.style.animation = 'anim 10s linear timeline';
+  target.style.animation = 'anim 10s linear';
+  target.style.animationTimeline = 'timeline';
   sibling.scrollTop = 50; // 50%, in [50, 150].
   await waitForNextFrame();
 
@@ -270,7 +280,8 @@ promise_test(async t => {
   // <div id='target'></div>
   document.body.appendChild(target);
 
-  target.style.animation = 'anim 10s linear timeline';
+  target.style.animation = 'anim 10s linear';
+  target.style.animationTimeline = 'timeline';
 
   // Unknown animation-timeline, current time held at zero.
   assert_equals(getComputedStyle(target).translate, '50px');
@@ -302,7 +313,8 @@ promise_test(async t => {
   await waitForNextFrame();
 
   scroller.style.scrollTimelineName = 'timeline';
-  target.style.animation = 'anim 10s linear timeline';
+  target.style.animation = 'anim 10s linear';
+  target.style.animationTimeline = 'timeline';
   await waitForCSSScrollTimelineStyle();
 
   assert_equals(getComputedStyle(target).translate, '100px');
@@ -329,7 +341,8 @@ promise_test(async t => {
   document.body.appendChild(target);
 
   scroller.style.scrollTimelineName = 'timeline';
-  target.style.animation = 'anim 10s linear timeline';
+  target.style.animation = 'anim 10s linear';
+  target.style.animationTimeline = 'timeline';
 
   // Unknown animation-timeline, current time held at zero.
   assert_equals(getComputedStyle(target).translate, '50px');
@@ -353,7 +366,8 @@ promise_test(async t => {
   await waitForNextFrame();
 
   scroller.style.scrollTimelineName = 'timeline';
-  target.style.animation = 'anim 10s linear timeline';
+  target.style.animation = 'anim 10s linear';
+  target.style.animationTimeline = 'timeline';
   await waitForCSSScrollTimelineStyle();
 
   assert_equals(getComputedStyle(target).translate, '100px');
@@ -377,7 +391,8 @@ promise_test(async t => {
 
   scroller.style.scrollTimelineName = 'timeline';
   scroller.style.display = 'none';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   await waitForNextFrame();
 
@@ -407,7 +422,8 @@ promise_test(async t => {
 
   scroller.style.scrollTimelineName = 'timeline-A';
   scroller.scrollTop = 50;
-  target.style.animation = "anim 10s linear timeline-B";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline-B';
 
   await waitForNextFrame();
 
@@ -436,7 +452,8 @@ promise_test(async t => {
 
   scroller.style.scrollTimelineName = 'timeline-A';
   scroller.scrollTop = 50;
-  target.style.animation = "anim 10s linear timeline-A";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline-A';
 
   await waitForNextFrame();
 
@@ -458,7 +475,8 @@ promise_test(async t => {
   let scroller1 = createScroller(t);
   let scroller2 = createScroller(t);
 
-  target.style.animation = 'anim 10s linear timeline';
+  target.style.animation = 'anim 10s linear';
+  target.style.animationTimeline = 'timeline';
   scroller1.style.scrollTimelineName = 'timeline';
   scroller2.style.scrollTimelineName = 'timeline';
   scroller1.id = 'A';
@@ -496,7 +514,8 @@ promise_test(async t => {
   let target = createTarget(t);
   let scroller1 = createScroller(t);
 
-  target.style.animation = 'anim 10s linear timeline';
+  target.style.animation = 'anim 10s linear';
+  target.style.animationTimeline = 'timeline';
   scroller1.style.scrollTimelineName = 'timeline';
   scroller1.id = 'A';
 
@@ -541,7 +560,8 @@ promise_test(async t => {
 
   // <div id='target'></div>
   document.body.append(target);
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   await waitForNextFrame();
 
@@ -579,7 +599,8 @@ promise_test(async t => {
   document.body.appendChild(target);
 
   scroller.style.scrollTimeline = 'timeline block';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   scroller.scrollLeft = 50;
   await waitForNextFrame();
@@ -594,7 +615,8 @@ promise_test(async t => {
   document.body.appendChild(target);
 
   scroller.style.scrollTimeline = 'timeline inline';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   scroller.scrollTop = 50;
   await waitForNextFrame();
@@ -609,7 +631,8 @@ promise_test(async t => {
   document.body.appendChild(target);
 
   scroller.style.scrollTimeline = 'timeline horizontal';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   scroller.scrollLeft = 50;
   await waitForNextFrame();
@@ -624,7 +647,8 @@ promise_test(async t => {
   document.body.appendChild(target);
 
   scroller.style.scrollTimeline = 'timeline vertical';
-  target.style.animation = "anim 10s linear timeline";
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
 
   scroller.scrollTop = 50;
   await waitForNextFrame();

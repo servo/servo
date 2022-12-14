@@ -6,6 +6,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/helper.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 <style>
 
 .animated-div {
@@ -236,8 +237,9 @@ test(t => {
 
   const anim = div.getAnimations()[0];
   anim.currentTime = 5000;
-  assert_equals(anim.effect.getComputedTiming().localTime, anim.currentTime,
-                'current localTime after setting currentTime');
+  assert_times_equal(anim.effect.getComputedTiming().localTime,
+                     anim.currentTime,
+                     'current localTime after setting currentTime');
 }, 'localTime is always equal to currentTime');
 
 promise_test(async t => {
@@ -251,12 +253,14 @@ promise_test(async t => {
 
   await anim.ready;
 
-  assert_equals(anim.effect.getComputedTiming().localTime, anim.currentTime,
-                'localTime is equal to currentTime');
+  assert_times_equal(anim.effect.getComputedTiming().localTime,
+                     anim.currentTime,
+                     'localTime is equal to currentTime');
   await waitForFrame();
 
-  assert_equals(anim.effect.getComputedTiming().localTime, anim.currentTime,
-                'localTime is equal to currentTime');
+  assert_times_equal(anim.effect.getComputedTiming().localTime,
+                     anim.currentTime,
+                     'localTime is equal to currentTime');
 }, 'localTime reflects playbackRate immediately');
 
 
