@@ -63,6 +63,7 @@ use crate::shared_lock::{Locked, SharedRwLock};
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
 use crate::values::{AtomIdent, AtomString};
+use crate::values::computed::Display;
 use crate::CaseSensitivityExt;
 use crate::LocalName;
 use app_units::Au;
@@ -1036,7 +1037,14 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn query_container_size(&self) -> Size2D<Option<Au>> {
+    fn query_container_size(&self, display: &Display) -> Size2D<Option<Au>> {
+        // If an element gets 'display: contents' and its nsIFrame has not been removed yet,
+        // Gecko_GetQueryContainerSize will not notice that it can't have size containment.
+        // Other cases like 'display: inline' will be handled once the new nsIFrame is created.
+        if display.is_contents() {
+            return Size2D::new(None, None);
+        }
+
         let mut width = -1;
         let mut height = -1;
         unsafe {
