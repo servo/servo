@@ -19,6 +19,7 @@ use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylist::CascadeData;
 use crate::traversal_flags::TraversalFlags;
 use crate::values::AtomIdent;
+use crate::values::computed::Display;
 use crate::{LocalName, Namespace, WeakAtom};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use selectors::matching::{QuirksMode, VisitedHandlingMode};
@@ -946,7 +947,7 @@ pub trait TElement:
     /// Returns the size of the element to be used in container size queries.
     /// This will usually be the size of the content area of the primary box,
     /// but can be None if there is no box or if some axis lacks size containment.
-    fn query_container_size(&self) -> euclid::default::Size2D<Option<app_units::Au>>;
+    fn query_container_size(&self, display: &Display) -> euclid::default::Size2D<Option<app_units::Au>>;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

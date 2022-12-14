@@ -201,7 +201,7 @@ impl ContainerCondition {
             }
         }
 
-        let size = potential_container.query_container_size();
+        let size = potential_container.query_container_size(&box_style.clone_display());
         let style = style.clone();
         TraversalResult::Done(ContainerLookupResult {
             element: potential_container,
@@ -464,7 +464,7 @@ impl<'a> ContainerSizeQuery<'a> {
         let box_style = style.get_box();
 
         let container_type = box_style.clone_container_type();
-        let size = e.query_container_size();
+        let size = e.query_container_size(&box_style.clone_display());
         match container_type {
             ContainerType::Size => {
                 TraversalResult::Done(

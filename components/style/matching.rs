@@ -981,6 +981,13 @@ pub trait MatchMethods: TElement {
             // Stopped being a size container. Re-evaluate container queries and units on all our descendants.
             // Changes into and between different size containment is handled in `UpdateContainerQueryStyles`.
             restyle_requirement = ChildRestyleRequirement::MustMatchDescendants;
+        } else if old_container_type.is_size_container_type() &&
+            !old_primary_style.is_display_contents() &&
+            new_primary_style.is_display_contents()
+        {
+            // Also re-evaluate when a container gets 'display: contents', since size queries will now evaluate to unknown.
+            // Other displays like 'inline' will keep generating a box, so they are handled in `UpdateContainerQueryStyles`.
+            restyle_requirement = ChildRestyleRequirement::MustMatchDescendants;
         }
 
         restyle_requirement = cmp::max(
