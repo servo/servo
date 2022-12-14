@@ -6,6 +6,7 @@
  href="https://www.w3.org/TR/web-animations-1/#animation-effect-phases-and-states">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
 <style>
   @keyframes slide {
     from { transform: translateX(100px);  }
@@ -26,7 +27,8 @@
     background-color:  green;
     height:  100px;
     width:  100px;
-    animation:  slide 1s linear timeline;
+    animation:  slide 1s linear;
+    animation-timeline: timeline;
   }
 </style>
 <body>
@@ -36,6 +38,8 @@
   </div>
 </body>
 <script type="text/javascript">
+  setup(assert_implements_animation_timeline);
+
   promise_test(async t => {
     // Newly created timeline is inactive,
     let animations = document.getAnimations();

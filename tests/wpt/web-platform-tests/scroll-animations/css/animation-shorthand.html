@@ -10,45 +10,23 @@
 <script>
 test_valid_value('animation',
   '1s linear 1s 2 reverse forwards paused anim');
-test_valid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim timeline');
-test_valid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim none');
-test_valid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim "initial"');
-test_valid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim auto',
-  '1s linear 1s 2 reverse forwards paused anim');
-test_valid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim scroll()');
 
 test_invalid_value('animation',
   '1s linear 1s 2 reverse forwards paused anim initial');
 test_invalid_value('animation',
   '1s linear 1s 2 reverse forwards paused anim 2000');
 test_invalid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim scroll(abc block)');
+  '1s linear 1s 2 reverse forwards paused anim scroll()');
 test_invalid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim scroll(inline abc)');
-test_invalid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim scroll(abc)');
-test_invalid_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim scroll("string")');
+  '1s linear 1s 2 reverse forwards paused anim timeline');
 
 test_computed_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim');
-test_computed_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim timeline');
-test_computed_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim none');
-test_computed_value('animation',
-  '1s linear 1s 2 reverse forwards paused anim auto',
   '1s linear 1s 2 reverse forwards paused anim');
 
 test_shorthand_value('animation',
-  `1s linear 1s 2 reverse forwards paused anim1 timeline,
-   1s linear 1s 2 reverse forwards paused anim2 none,
-   1s linear 1s 2 reverse forwards paused anim3 auto`,
+  `1s linear 1s 2 reverse forwards paused anim1,
+   1s linear 1s 2 reverse forwards paused anim2,
+   1s linear 1s 2 reverse forwards paused anim3`,
 {
   'animation-duration': '1s, 1s, 1s',
   'animation-timing-function': 'linear, linear, linear',
@@ -58,6 +36,6 @@ test_shorthand_value('animation',
   'animation-fill-mode': 'forwards, forwards, forwards',
   'animation-play-state': 'paused, paused, paused',
   'animation-name': 'anim1, anim2, anim3',
-  'animation-timeline': 'timeline, none, auto'
+  'animation-timeline': 'auto, auto, auto'
 });
 </script>

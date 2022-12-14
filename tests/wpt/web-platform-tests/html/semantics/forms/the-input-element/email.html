@@ -55,4 +55,12 @@
     mult.value = 'u,ser1@example.com,user2@test.com,user3@test.com';
     assert_false(mult.validity.valid);
   }, "valid value is a set of valid email addresses separated by a single ','");
+
+  test(function(){
+    mult.removeAttribute('multiple');
+    mult.value = 'user1@example.com , user2@example.com';
+    assert_equals(mult.value, 'user1@example.com , user2@example.com');
+    mult.setAttribute('multiple', true);
+    assert_equals(mult.value, 'user1@example.com,user2@example.com');
+  }, 'When the multiple attribute is set, the user agent must run the value sanitization algorithm');
 </script>

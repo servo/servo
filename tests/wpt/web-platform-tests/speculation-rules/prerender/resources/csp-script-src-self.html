@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+
+<head>
+  <!-- disallow inline script -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
+</head>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script src="csp-script-src.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  writeValueToServer(params.get('key'), "csp is ignored unexpectedly");
+</script>

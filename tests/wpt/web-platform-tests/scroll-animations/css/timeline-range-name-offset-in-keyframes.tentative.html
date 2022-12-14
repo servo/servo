@@ -6,6 +6,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
 <style>
   @keyframes fade-in-out-animation {
     enter 0%, exit 100% { opacity: 0 }
@@ -17,7 +18,8 @@
     height: 200px;
     width: 200px;
     view-timeline-name: foo;
-    animation: linear 1s both fade-in-out-animation foo;
+    animation: linear 1s both fade-in-out-animation;
+    animation-timeline: foo;
   }
 
   #container {
@@ -42,6 +44,8 @@
 </body>
 
 <script type="text/javascript">
+  setup(assert_implements_animation_timeline);
+
   function runTests() {
     promise_test(async t => {
       // scrollTop=200 to 400 is the enter range

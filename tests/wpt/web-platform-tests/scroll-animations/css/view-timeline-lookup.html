@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
 <style>
   @keyframes anim {
     from { z-index: 0; }
@@ -33,7 +34,8 @@
     #target {
       height: 0px;
       view-timeline: t1;
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -60,7 +62,8 @@
       view-timeline: t1;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -88,7 +91,8 @@
       view-timeline: t1;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -119,7 +123,8 @@
       view-timeline: t1;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -150,7 +155,8 @@
       view-timeline: t1;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -186,7 +192,8 @@
       view-timeline: t2;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -225,7 +232,8 @@
       height: 50px;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>
@@ -265,7 +273,8 @@
       height: 50px;
     }
     #target {
-      animation: anim 1s linear t1;
+      animation: anim 1s linear;
+      animation-timeline: t1;
     }
   </style>
   <div id=scroller class=scroller>

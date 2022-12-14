@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
 <style>
   @keyframes anim {
     from { z-index: 0; background-color: skyblue;}
@@ -31,6 +32,8 @@
   </div>
 </template>
 <script>
+  setup(assert_implements_animation_timeline);
+
   function inflate(t, template) {
     t.add_cleanup(() => main.replaceChildren());
     main.append(template.content.cloneNode(true));
@@ -59,7 +62,8 @@
       // work around a bug.
       await waitForNextFrame();
 
-      target.style.animation = 'anim 10s linear t1';
+      target.style.animation = 'anim 10s linear';
+      target.style.animationTimeline = 't1';
       target.style.animationDelayStart = options.startDelay;
       target.style.animationDelayEnd = options.endDelay;
 

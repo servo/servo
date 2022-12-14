@@ -1,8 +1,22 @@
+async function waitForScrollendEvent(test, target, timeoutMs = 500) {
+  return new Promise((resolve, reject) => {
+    const timeoutCallback = test.step_timeout(() => {
+      reject(`No Scrollend event received for target ${target}`);
+    }, timeoutMs);
+    target.addEventListener('scrollend', (evt) => {
+      clearTimeout(timeoutCallback);
+      resolve(evt);
+    }, { once: true });
+  });
+}
+
 const MAX_FRAME = 700;
 const MAX_UNCHANGED_FRAMES = 20;
 
 // Returns a promise that resolves when the given condition is met or rejects
 // after MAX_FRAME animation frames.
+// TODO(crbug.com/1400399): deprecate. We should not use frame based waits in
+// WPT as frame rates may vary greatly in different testing environments.
 function waitFor(condition, error_message = 'Reaches the maximum frames.') {
   return new Promise((resolve, reject) => {
     function tick(frames) {
@@ -19,6 +33,9 @@ function waitFor(condition, error_message = 'Reaches the maximum frames.') {
   });
 }
 
+// TODO(crbug.com/1400446): Test driver should defer sending events until the
+// browser is ready. Also the term compositor-commit is misleading as not all
+// user-agents use a compositor process.
 function waitForCompositorCommit() {
   return new Promise((resolve) => {
     // rAF twice.
@@ -28,6 +45,8 @@ function waitForCompositorCommit() {
   });
 }
 
+// TODO(crbug.com/1400399): Deprecate as frame rates may vary greatly in
+// different test environments.
 function waitForAnimationEnd(getValue) {
   var last_changed_frame = 0;
   var last_position = getValue();
@@ -124,6 +143,8 @@ function mouseActionsInTarget(target, origin, delta, pause_time_in_ms = 100) {
 // Returns a promise that resolves when the given condition holds for 10
 // animation frames or rejects if the condition changes to false within 10
 // animation frames.
+// TODO(crbug.com/1400399): Deprecate as frame rates may very greatly in
+// different test environments.
 function conditionHolds(condition, error_message = 'Condition is not true anymore.') {
   const MAX_FRAME = 10;
   return new Promise((resolve, reject) => {

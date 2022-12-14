@@ -15,9 +15,11 @@ var browserTests = [
     "<p><strike>[foo</strike></p> <p><strike>bar]</strike></p>",
     [true,true],
     {"stylewithcss":[false,true,"",false,false,""],"strikethrough":[false,false,"",false,true,""]}],
+// The first <span> should be styled with text-decoration, then, it becomes a
+// good container for the following text node and the other <span>.
 ["<span>[foo</span> <span>bar]</span>",
     [["stylewithcss","true"],["strikethrough",""]],
-    "<span style=\"text-decoration:line-through\"><span>[foo</span> <span>bar]</span></span>",
+    "<span style=\"text-decoration:line-through\"><span>foo</span> <span>bar</span></span>",
     [true,true],
     {"stylewithcss":[false,false,"",false,true,""],"strikethrough":[false,false,"",false,true,""]}],
 ["<span>[foo</span> <span>bar]</span>",
@@ -25,9 +27,12 @@ var browserTests = [
     "<strike><span>[foo</span> <span>bar]</span></strike>",
     [true,true],
     {"stylewithcss":[false,true,"",false,false,""],"strikethrough":[false,false,"",false,true,""]}],
+// Entire the content of the first <p> and the last <p> should be wrapped in
+// new <span> elements, and in the middle <p>, the <span> element should be
+// styled but the invisible text nodes should be ignored.
 ["<p>[foo</p><p> <span>bar</span> </p><p>baz]</p>",
     [["stylewithcss","true"],["strikethrough",""]],
-    "<p><span style=\"text-decoration:line-through\">[foo</span></p><p> <span style=\"text-decoration:line-through\"><span>bar</span></span> </p><p><span style=\"text-decoration:line-through\">baz]</span></p>",
+    "<p><span style=\"text-decoration:line-through\">[foo</span></p><p> <span style=\"text-decoration:line-through\">bar</span> </p><p><span style=\"text-decoration:line-through\">baz</span></p>",
     [true,true],
     {"stylewithcss":[false,false,"",false,true,""],"strikethrough":[false,false,"",false,true,""]}],
 ["<p>[foo</p><p> <span>bar</span> </p><p>baz]</p>",
@@ -588,7 +593,7 @@ var browserTests = [
     {"stylewithcss":[false,true,"",false,false,""],"strikethrough":[false,false,"",false,true,""]}],
 ["foo<span class=\"underline\">[bar]</span>baz",
     [["stylewithcss","true"],["strikethrough",""]],
-    "foo<span style=\"text-decoration:line-through\"><span class=\"underline\">[bar]</span></span>baz",
+    "foo<span class=\"underline\" style=\"text-decoration:line-through\">bar</span>baz",
     [true,true],
     {"stylewithcss":[false,false,"",false,true,""],"strikethrough":[false,false,"",false,true,""]}],
 ["foo<span class=\"underline\">[bar]</span>baz",

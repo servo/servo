@@ -25,6 +25,8 @@
 <script>
 'use strict';
 
+setup(assert_implements_animation_timeline);
+
 promise_test(async t => {
   const div = addDiv(t, { style: 'width: 50px; height: 100px;' });
   const filling = addDiv(t, { class: 'fill-vh' });
@@ -32,7 +34,8 @@ promise_test(async t => {
   scroller.scrollTop = 0;
   await waitForNextFrame();
 
-  div.style.animation = 'anim 100s linear scroll(root)';
+  div.style.animation = 'anim 100s linear';
+  div.style.animationTimeline = 'scroll(root)';
   await waitForCSSScrollTimelineStyle();
 
   const anim = div.getAnimations()[0];

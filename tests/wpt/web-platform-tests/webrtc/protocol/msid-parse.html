@@ -68,4 +68,16 @@ promise_test(async t => {
   assert_equals(trackevent.streams.length, 2);
 }, 'Description with two msid produces two streams');
 
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const ontrackPromise = addEventListenerPromise(t, pc, 'track');
+  await pc.setRemoteDescription({type: 'offer',
+                                 sdp: preamble + 'a=msid:foo\n'});
+  const trackevent = await ontrackPromise;
+  assert_equals(pc.getReceivers().length, 1);
+  assert_equals(trackevent.streams.length, 1);
+  assert_equals(trackevent.streams[0].id, 'foo');
+}, 'Description with msid foo but no track id is accepted');
+
 </script>
