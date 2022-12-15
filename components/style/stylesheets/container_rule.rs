@@ -12,16 +12,16 @@ use crate::logical_geometry::{LogicalSize, WritingMode};
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
 use crate::properties::ComputedValues;
+use crate::queries::condition::KleeneValue;
 use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
 use crate::queries::{FeatureType, QueryCondition};
-use crate::queries::condition::KleeneValue;
 use crate::shared_lock::{
     DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
 };
 use crate::str::CssStringWriter;
 use crate::stylesheets::CssRules;
-use crate::values::computed::{ContainerType, CSSPixelLength, Context, Ratio};
+use crate::values::computed::{CSSPixelLength, ContainerType, Context, Ratio};
 use crate::values::specified::ContainerName;
 use app_units::Au;
 use cssparser::{Parser, SourceLocation};
@@ -138,7 +138,7 @@ enum TraversalResult<T> {
 fn traverse_container<E, F, R>(mut e: E, evaluator: F) -> Option<(E, R)>
 where
     E: TElement,
-    F: Fn(E) -> TraversalResult<R>
+    F: Fn(E) -> TraversalResult<R>,
 {
     while let Some(element) = e.traversal_parent() {
         match evaluator(element) {
@@ -173,7 +173,7 @@ impl ContainerCondition {
 
     fn valid_container_info<E>(
         &self,
-        potential_container: E
+        potential_container: E,
     ) -> TraversalResult<ContainerLookupResult<E>>
     where
         E: TElement,
@@ -244,10 +244,15 @@ impl ContainerCondition {
             size_query_container_lookup,
             |context| {
                 let matches = self.condition.matches(context);
-                if context.style().flags().contains(ComputedValueFlags::USES_VIEWPORT_UNITS) {
+                if context
+                    .style()
+                    .flags()
+                    .contains(ComputedValueFlags::USES_VIEWPORT_UNITS)
+                {
                     // TODO(emilio): Might need something similar to improve
                     // invalidation of font relative container-query lengths.
-                    invalidation_flags.insert(ComputedValueFlags::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES);
+                    invalidation_flags
+                        .insert(ComputedValueFlags::USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES);
                 }
                 matches
             },
@@ -292,7 +297,10 @@ fn eval_block_size(context: &Context) -> Option<CSSPixelLength> {
 
 fn eval_aspect_ratio(context: &Context) -> Option<Ratio> {
     let info = context.container_info.as_ref()?;
-    Some(Ratio::new(info.size.width?.0 as f32, info.size.height?.0 as f32))
+    Some(Ratio::new(
+        info.size.width?.0 as f32,
+        info.size.height?.0 as f32,
+    ))
 }
 
 fn eval_orientation(context: &Context, value: Option<Orientation>) -> bool {
@@ -440,11 +448,9 @@ pub enum ContainerSizeQuery<'a> {
 }
 
 impl<'a> ContainerSizeQuery<'a> {
-    fn evaluate_potential_size_container<E>(
-        e: E
-    ) -> TraversalResult<ContainerSizeQueryResult>
+    fn evaluate_potential_size_container<E>(e: E) -> TraversalResult<ContainerSizeQueryResult>
     where
-        E: TElement
+        E: TElement,
     {
         let data = match e.borrow_data() {
             Some(data) => data,
@@ -466,29 +472,21 @@ impl<'a> ContainerSizeQuery<'a> {
         let container_type = box_style.clone_container_type();
         let size = e.query_container_size(&box_style.clone_display());
         match container_type {
-            ContainerType::Size => {
-                TraversalResult::Done(
-                    ContainerSizeQueryResult {
-                        width: size.width,
-                        height: size.height,
-                    }
-                )
-            },
+            ContainerType::Size => TraversalResult::Done(ContainerSizeQueryResult {
+                width: size.width,
+                height: size.height,
+            }),
             ContainerType::InlineSize => {
                 if wm.is_horizontal() {
-                    TraversalResult::Done(
-                        ContainerSizeQueryResult {
-                            width: size.width,
-                            height: None,
-                        }
-                    )
+                    TraversalResult::Done(ContainerSizeQueryResult {
+                        width: size.width,
+                        height: None,
+                    })
                 } else {
-                    TraversalResult::Done(
-                        ContainerSizeQueryResult {
-                            width: None,
-                            height: size.height,
-                        }
-                    )
+                    TraversalResult::Done(ContainerSizeQueryResult {
+                        width: None,
+                        height: size.height,
+                    })
                 }
             },
             ContainerType::Normal => TraversalResult::InProgress,
@@ -500,12 +498,14 @@ impl<'a> ContainerSizeQuery<'a> {
     where
         E: TElement + 'a,
     {
-        match traverse_container(element, |e| { Self::evaluate_potential_size_container(e) }) {
-            Some((container, result)) => if result.is_complete() {
+        match traverse_container(element, |e| Self::evaluate_potential_size_container(e)) {
+            Some((container, result)) => {
+                if result.is_complete() {
                     result
                 } else {
                     // Traverse up from the found size container to see if we can get a complete containment.
                     result.merge(Self::lookup(container))
+                }
             },
             None => ContainerSizeQueryResult::default(),
         }
@@ -524,13 +524,11 @@ impl<'a> ContainerSizeQuery<'a> {
                     style
                         .flags
                         .contains(ComputedValueFlags::SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE)
-                }
+                },
                 None => true, // `display: none`, still want to show a correct computed value, so give it a try.
             };
             if should_traverse {
-                return Self::NotEvaluated(Box::new(move || {
-                    Self::lookup(element)
-                }));
+                return Self::NotEvaluated(Box::new(move || Self::lookup(element)));
             }
         }
         Self::none()
