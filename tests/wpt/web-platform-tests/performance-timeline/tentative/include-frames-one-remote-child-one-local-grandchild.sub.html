@@ -10,9 +10,9 @@ promise_test(() => {
     return new Promise(resolve => {
         performance.clearResourceTimings()
 
-        // Create child iframe.
+        // Create child iframe with an embedded frame that is cross-origin with its parent, but same-origin with the current frame.
         const remoteChildFrame = document.createElement('iframe')
-        remoteChildFrame.src = "http://{{hosts[][www]}}:{{ports[http][0]}}/performance-timeline/resources/parent-frame-with-child.sub.html"
+        remoteChildFrame.src = "http://{{hosts[][www]}}:{{ports[http][0]}}/performance-timeline/resources/parent-frame-with-cross-origin-child.sub.html"
         document.body.appendChild(remoteChildFrame)
 
         // Listen for postMessage() from grandchild frame.

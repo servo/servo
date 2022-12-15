@@ -233,9 +233,14 @@ function run() {
                              .pointerMove(50, 50)
                              .pointerDown()
                              .pointerMove(200, 200)
+                             // Pause here to make sure that the previous and following pointer moves
+                             // are not coalesced. If they are coalesced, we will not see the second
+                             // move event which is when the pending lostpointercapture should be fired
+                             // (Since the pointerup event is targeted at a different frame, it won't dispatch
+                             // the pending lostpointercapture event).
+                             .pause(300)
                              .pointerMove(250, 250)
                              .pointerUp()
-                             .pointerMove(251, 251)
                              .send();
         // Wait for pointerup to fire.
         await watcher_promise;

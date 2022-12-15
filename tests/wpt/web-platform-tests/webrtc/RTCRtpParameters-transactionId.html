@@ -11,10 +11,6 @@
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
-  // The following helper functions are called from RTCRtpParameters-helper.js:
-  //   doOfferAnswerExchange
-  //   validateSenderRtpParameters
-
   /*
     5.1.  RTCPeerConnection Interface Extensions
       partial interface RTCPeerConnection {
@@ -64,16 +60,53 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
-    await doOfferAnswerExchange(t, pc);
 
     const param1 = sender.getParameters();
     const param2 = sender.getParameters();
+    assert_equals(typeof param1.transactionId, "string");
+    assert_greater_than(param1.transactionId.length, 0);
+    assert_equals(typeof param2.transactionId, "string");
+    assert_greater_than(param2.transactionId.length, 0);
+    assert_equals(param1.transactionId, param2.transactionId);
 
-    validateSenderRtpParameters(param1);
-    validateSenderRtpParameters(param2);
+    await undefined;
+    const param3 = sender.getParameters();
+    assert_equals(typeof param3.transactionId, "string");
+    assert_greater_than(param3.transactionId.length, 0);
+    assert_equals(param1.transactionId, param3.transactionId);
+  }, `sender.getParameters() should return the same transaction ID if called back-to-back without relinquishing the event loop, even if the microtask queue runs`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+
+    const param1 = sender.getParameters();
+    sender.setParameters(param1);
+    const param2 = sender.getParameters();
+    assert_equals(typeof param1.transactionId, "string");
+    assert_greater_than(param1.transactionId.length, 0);
+    assert_equals(typeof param2.transactionId, "string");
+    assert_greater_than(param2.transactionId.length, 0);
+
+    assert_equals(param1.transactionId, param2.transactionId);
+  }, `sender.getParameters() should return the same transaction ID if called back-to-back without relinquishing the event loop, even if there is an intervening call to setParameters`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+
+    const param1 = sender.getParameters();
+    await pc.createOffer();
+    const param2 = sender.getParameters();
+    assert_equals(typeof param1.transactionId, "string");
+    assert_greater_than(param1.transactionId.length, 0);
+    assert_equals(typeof param2.transactionId, "string");
+    assert_greater_than(param2.transactionId.length, 0);
 
     assert_not_equals(param1.transactionId, param2.transactionId);
-  }, `sender.getParameters() should return different transaction IDs for each call`);
+  }, `sender.getParameters() should return a different transaction ID if the event loop is relinquished between multiple calls`);
 
   /*
     5.2.  setParameters
@@ -88,15 +121,13 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
-    await doOfferAnswerExchange(t, pc);
 
     const param = sender.getParameters();
-    validateSenderRtpParameters(param);
 
     const { transactionId } = param;
     param.transactionId = `${transactionId}-modified`;
 
-    return promise_rejects_dom(t, 'InvalidModificationError',
+    await promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, `sender.setParameters() with transaction ID different from last getParameters() should reject with InvalidModificationError`);
 
@@ -104,14 +135,12 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
-    await doOfferAnswerExchange(t, pc);
 
     const param = sender.getParameters();
-    validateSenderRtpParameters(param);
 
-    param.transactionId = undefined;
+    delete param.transactionId;
 
-    return promise_rejects_js(t, TypeError,
+    await promise_rejects_js(t, TypeError,
       sender.setParameters(param));
   }, `sender.setParameters() with transaction ID unset should reject with TypeError`);
 
@@ -119,33 +148,39 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
-    await doOfferAnswerExchange(t, pc);
 
     const param = sender.getParameters();
-    validateSenderRtpParameters(param);
 
-    return sender.setParameters(param)
-    .then(() =>
-      promise_rejects_dom(t, 'InvalidStateError',
-        sender.setParameters(param)));
+    await sender.setParameters(param);
+    await promise_rejects_dom(t, 'InvalidStateError', sender.setParameters(param))
   }, `setParameters() twice with the same parameters should reject with InvalidStateError`);
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
-    await doOfferAnswerExchange(t, pc);
 
     const param1 = sender.getParameters();
+    // Queue a task, does not really matter what kind
+    await pc.createOffer();
     const param2 = sender.getParameters();
-
-    validateSenderRtpParameters(param1);
-    validateSenderRtpParameters(param2);
 
     assert_not_equals(param1.transactionId, param2.transactionId);
 
-    return promise_rejects_dom(t, 'InvalidModificationError',
+    await promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param1));
   }, `setParameters() with parameters older than last getParameters() should reject with InvalidModificationError`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+
+    const param1 = sender.getParameters();
+    await pc.createOffer();
+
+    await promise_rejects_dom(t, 'InvalidStateError',
+      sender.setParameters(param1));
+  }, `setParameters() when the event loop has been relinquished since the last getParameters() should reject with InvalidStateError`);
 
 </script>
