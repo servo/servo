@@ -55,4 +55,16 @@ test_invalid_value('animation-timeline', 'scroll(abc root)');
 test_invalid_value('animation-timeline', 'scroll(abc)');
 test_invalid_value('animation-timeline', 'scroll(vertical abc)');
 test_invalid_value('animation-timeline', 'scroll("string")');
+
+// https://drafts.csswg.org/scroll-animations-1/#scroll-notation
+test_valid_value('animation-timeline', 'view()');
+test_valid_value('animation-timeline', 'view(block)', 'view()');
+test_valid_value('animation-timeline', 'view(inline)');
+test_valid_value('animation-timeline', 'view(horizontal)');
+test_valid_value('animation-timeline', 'view(vertical)');
+
+test_invalid_value('animation-timeline', 'view(abc block)');
+test_invalid_value('animation-timeline', 'view(abc)');
+test_invalid_value('animation-timeline', 'view(vertical abc)');
+test_invalid_value('animation-timeline', 'view("string")');
 </script>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+</body>
+<script>
+promise_test(() => {
+    return new Promise(resolve => {
+        performance.clearResourceTimings()
+
+        let sameOriginFrameLoaded = false
+        let crossOriginFrameLoaded = false
+
+        // Create first child iframe.
+        const sameOriginChildFrame = document.createElement('iframe')
+        sameOriginChildFrame.src = "../resources/child-frame.html"
+        document.body.appendChild(sameOriginChildFrame)
+
+        sameOriginChildFrame.addEventListener("load", () => {
+            sameOriginFrameLoaded = true
+            if (crossOriginFrameLoaded)
+                verifyPerformanceEntries()
+        })
+
+        // Create second child iframe.
+        const crossOriginChildFrame = document.createElement('iframe')
+        crossOriginChildFrame.src = "http://{{hosts[][www]}}:{{ports[http][0]}}/resources/child-frame.html"
+        document.body.appendChild(crossOriginChildFrame)
+
+        crossOriginChildFrame.addEventListener("load", () => {
+            crossOriginFrameLoaded = true
+            if (sameOriginFrameLoaded)
+                verifyPerformanceEntries()
+        })
+
+        function verifyPerformanceEntries() {
+            const entries = performance.getEntries(true)
+            const navigationEntries = performance.getEntriesByType("navigation", true)
+            const markedEntries = performance.getEntriesByName("entry-name", undefined, true)
+
+            // 4 entries for parent, 2 for local child, 0 for remote child.
+            assert_equals(entries.length, 6)
+
+            // 1 entry for parent, 1 for local child.
+            assert_equals(navigationEntries.length, 2)
+
+            // 1 entry for local child.
+            assert_equals(markedEntries.length, 1)
+
+            resolve()
+        }
+    })
+}, "GetEntries of a parent Frame with one Cross-Origin child and one Same-Origin child")
+</script>

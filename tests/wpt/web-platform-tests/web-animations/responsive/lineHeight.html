@@ -26,11 +26,11 @@ test(function() {
 
     player.currentTime = 5;
     element.style.fontSize = '40px';
-    assert_equals(getComputedStyle(element).lineHeight, '0px');
+    assert_equals(getComputedStyle(element).lineHeight, '20px');
 
     player.currentTime = 7.5;
-    assert_equals(getComputedStyle(element).lineHeight, '0px');
-}, 'lineHeight clamped to 0px');
+    assert_equals(getComputedStyle(element).lineHeight, '10px');
+}, 'lineHeight clamped to 0px on keyframes');
 
 test(function() {
     container.style.lineHeight = 'normal';

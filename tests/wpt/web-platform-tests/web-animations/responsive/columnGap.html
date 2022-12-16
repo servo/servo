@@ -26,11 +26,11 @@ test(function() {
 
     player.currentTime = 5;
     element.style.fontSize = '40px';
-    assert_equals(getComputedStyle(element).columnGap, '0px');
+    assert_equals(getComputedStyle(element).columnGap, '20px');
 
     player.currentTime = 7.5;
-    assert_equals(getComputedStyle(element).columnGap, '0px');
-}, 'column-gap clamped to 0px');
+    assert_equals(getComputedStyle(element).columnGap, '10px');
+}, 'column-gap clamped to 0px on keyframes');
 
 test(function() {
     container.style.columnGap = 'normal';

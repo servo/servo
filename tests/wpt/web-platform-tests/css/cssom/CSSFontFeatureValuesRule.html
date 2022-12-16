@@ -5,34 +5,49 @@
   rel="help"
   href="https://drafts.csswg.org/css-fonts-4/#om-fontfeaturevalues"
 />
-<link rel="author" title="Dominik Röttsches" href="drott@chromium.org">
-<meta name="assert" content="CSSFontFeatureValuesRule interface is accessible and supports read and write access.">
+<link rel="author" title="Dominik Röttsches" href="drott@chromium.org" />
+<meta
+  name="assert"
+  content="CSSFontFeatureValuesRule interface is accessible and supports read and write access."
+/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style></style>
+<body></body>
 <script>
   let rule_initial = `
-@font-feature-values test_family {
-  @annotation {
-    the_first: 6;
+  @font-feature-values test_family {
+    @annotation {
+      the_first: 6;
+    }
+    @styleset {
+      yo: 7;
+      del: 4;
+      di: 10 9 4 5;
+    }
   }
-  @styleset {
-    yo: 7;
-    del: 4;
-    di: 10 9 4 5;
-  }
-}
-`;
+  `;
 
   let rule_added = `
-@font-feature-values second_family {
-  @annotation {
-    yabab: 2;
-    yogog: 4;
-    bidib: 5;
+  @font-feature-values second_family {
+    @annotation {
+      yabab: 2;
+      yogog: 4;
+      bidib: 5;
+    }
   }
-}
-`;
+  `;
+
+  let rule_overlap = `
+  @font-feature-values test_family {
+    @annotation {
+      baric: 17;
+    }
+    @ornaments {
+      fooic: 1;
+    }
+  }
+  `;
 
   function resetStateAndTest(testFunction) {
     var sheet = document.styleSheets[0];
@@ -133,4 +148,45 @@
       assert_equals(document.styleSheets[0].cssRules[1].annotation.size, 0);
     });
   }, "Clearing all entries is possible.");
+
+  test(function () {
+    resetStateAndTest(() => {
+      assert_equals(document.styleSheets[0].cssRules.length, 1);
+      document.styleSheets[0].insertRule(rule_overlap, 1);
+      assert_equals(document.styleSheets[0].cssRules.length, 2);
+
+      // Force updating internal state.
+      getComputedStyle(document.body).borderTop;
+
+      assert_equals(
+        document.styleSheets[0].cssRules[0].annotation.size,
+        1,
+        "1 annotation."
+      );
+      assert_equals(
+        document.styleSheets[0].cssRules[0].styleset.size,
+        3,
+        "3 entries in styleset."
+      );
+      assert_equals(
+        document.styleSheets[0].cssRules[0].ornaments.size,
+        0,
+        "No ornament entries."
+      );
+      assert_false(
+        document.styleSheets[0].cssRules[0].annotation.has("baric"),
+        "Annotation must not contain 'baric'."
+      );
+      assert_false(
+        document.styleSheets[0].cssRules[0].ornaments.has("fooic"),
+        "Ornaments must not contain 'fooic'."
+      );
+
+      assert_equals(document.styleSheets[0].cssRules[1].annotation.size, 1);
+      assert_equals(document.styleSheets[0].cssRules[1].ornaments.size, 1);
+      assert_false(
+        document.styleSheets[0].cssRules[1].annotation.has("the_first")
+      );
+    });
+  }, "Multiple rules for the same family are kept separate in CSSOM.");
 </script>

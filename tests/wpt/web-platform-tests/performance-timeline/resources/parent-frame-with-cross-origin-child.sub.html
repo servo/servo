@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<head></head>
+<body></body>
+<script>
+    // Create child frame that is cross-origin with its parent.
+    const childFrame = document.createElement('iframe')
+    childFrame.src = "http://{{hosts[][]}}:{{ports[http][0]}}/performance-timeline/resources/child-frame.html"
+    document.body.appendChild(childFrame)
+
+    performance.mark("entry-name")
+
+    childFrame.addEventListener('load', () => {
+        const entries = performance.getEntries(true)
+        window.parent.postMessage(entries.length, "*")
+    })
+</script>
