@@ -26,6 +26,11 @@
         "name": "Non-ASCII character in directive value should drop the whole directive.",
       },
       {
+        "csp": "img-src ‘none’;",
+        "expected": true,
+        "name": "Non-ASCII quote character in directive value should drop the whole directive.",
+      },
+      {
         "csp": "img-src 'none'; style-src \u00A1invalid-source 'none'",
         "expected": false,
         "name": "Non-ASCII character in directive value should not affect other directives.",

@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Message BC</title>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+window.executor = new Executor(params.get("key"));
+</script>

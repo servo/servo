@@ -89,6 +89,7 @@ promise_test(async t => {
   for (let i = 0; i < frames_to_encode; i++) {
     var frame = createFrame(original_w, original_h, next_ts++);
     encoder.encode(frame, {});
+    frame.close();
   }
 
   params.width = new_w;
@@ -102,6 +103,7 @@ promise_test(async t => {
   for (let i = 0; i < frames_to_encode; i++) {
     var frame = createFrame(new_w, new_h, next_ts++);
     encoder.encode(frame, {});
+    frame.close();
   }
 
   await encoder.flush();

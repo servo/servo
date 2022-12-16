@@ -58,4 +58,12 @@ test_computed_value('animation-timeline', 'scroll(root)');
 test_computed_value('animation-timeline', 'scroll(nearest)', 'scroll()');
 test_computed_value('animation-timeline', 'scroll(inline nearest)', 'scroll(inline)');
 test_computed_value('animation-timeline', 'scroll(vertical root)');
+
+// https://drafts.csswg.org/scroll-animations-1/#view-notation
+test_computed_value('animation-timeline', 'view()');
+test_computed_value('animation-timeline', 'view(block)', 'view()');
+test_computed_value('animation-timeline', 'view(inline)');
+test_computed_value('animation-timeline', 'view(horizontal)');
+test_computed_value('animation-timeline', 'view(vertical)');
+
 </script>

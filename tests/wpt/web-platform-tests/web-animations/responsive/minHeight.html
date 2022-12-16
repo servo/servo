@@ -21,11 +21,15 @@ test(function() {
 
 test(function() {
     element.style.fontSize = '10px';
-    var player = element.animate([{minHeight: '30px'}, {minHeight: 'calc(30px - 2em)'}], 10);
+    var player = element.animate([{minHeight: '40px'}, {minHeight: 'calc(40px - 2em)'}], 10);
     player.pause();
-    player.currentTime = 7.5;
+
+    player.currentTime = 5;
     element.style.fontSize = '40px';
-    assert_equals(getComputedStyle(element).minHeight, '0px');
-}, 'minHeight clamped to 0px');
+    assert_equals(getComputedStyle(element).minHeight, '20px');
+
+    player.currentTime = 7.5;
+    assert_equals(getComputedStyle(element).minHeight, '10px');
+}, 'minHeight clamped to 0px on keyframes');
 
 </script>

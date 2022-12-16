@@ -63,6 +63,10 @@ promise_test(async t => {
 
   let frame1 = createFrame(640, 480, 0);
   let frame2 = createFrame(640, 480, 33333);
+  t.add_cleanup(() => {
+    frame1.close();
+    frame2.close();
+  });
 
   encoder.encode(frame1);
   encoder.encode(frame2);
