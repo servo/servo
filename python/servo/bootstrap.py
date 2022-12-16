@@ -394,6 +394,8 @@ def get_linux_distribution():
         'fedora linux',
         'void',
         'nixos',
+        'arch',
+        'arch linux',
     ]:
         raise Exception('mach bootstrap does not support %s, please file a bug' % distrib)
 
