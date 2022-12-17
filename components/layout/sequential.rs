@@ -183,7 +183,7 @@ pub fn guess_float_placement(flow: &mut dyn Flow) {
             .flags
             .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
         {
-            // Do not propagate floats in or out, but do propogate between kids.
+            // Do not propagate floats in or out, but do propagate between kids.
             guess_float_placement(kid);
         } else {
             floats_in.compute_floats_in(kid);

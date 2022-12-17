@@ -20,7 +20,7 @@ struct StopRun {
     stop_count: usize,
 }
 
-/// Determines the radius of a circle if it was not explictly provided.
+/// Determines the radius of a circle if it was not explicitly provided.
 /// <https://drafts.csswg.org/css-images-3/#typedef-size>
 fn circle_size_keyword(
     keyword: ShapeExtent,
@@ -57,7 +57,7 @@ where
     )
 }
 
-/// Determines the radius of an ellipse if it was not explictly provided.
+/// Determines the radius of an ellipse if it was not explicitly provided.
 /// <https://drafts.csswg.org/css-images-3/#typedef-size>
 fn ellipse_size_keyword(
     keyword: ShapeExtent,

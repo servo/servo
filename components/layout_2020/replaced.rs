@@ -30,7 +30,7 @@ pub(crate) struct ReplacedContent {
     intrinsic: IntrinsicSizes,
 }
 
-/// * Raster images always have an instrinsic width and height, with 1 image pixel = 1px.
+/// * Raster images always have an intrinsic width and height, with 1 image pixel = 1px.
 ///   The intrinsic ratio should be based on dividing those.
 ///   See https://github.com/w3c/csswg-drafts/issues/4572 for the case where either is zero.
 ///   PNG specifically disallows this but I (SimonSapin) am not sure about other formats.
