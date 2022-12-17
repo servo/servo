@@ -281,7 +281,7 @@ where
     };
 
     let is_root_element = pseudo.is_none() && element.map_or(false, |e| e.is_root());
-    let container_size_query = ContainerSizeQuery::for_option_element(element);
+    let container_size_query = ContainerSizeQuery::for_option_element(element, None);
 
     let mut context = computed::Context::new(
         // We'd really like to own the rules here to avoid refcount traffic, but
