@@ -49,7 +49,7 @@ class command:
         self.params_fn = fn
         self.result_fn: Optional[Callable[..., Any]] = None
 
-    def result(self, fn: Callable[[Any, MutableMapping[str, Any]], Mapping[str, Any]]) -> None:
+    def result(self, fn: Callable[[Any, MutableMapping[str, Any]], Any]) -> None:
         self.result_fn = fn
 
     def __set_name__(self, owner: Any, name: str) -> None:

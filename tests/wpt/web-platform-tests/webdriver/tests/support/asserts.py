@@ -1,5 +1,4 @@
 import imghdr
-import struct
 from base64 import decodebytes
 
 from webdriver import Element, NoSuchAlertException, WebDriverException
@@ -213,7 +212,14 @@ def assert_move_to_coordinates(point, target, events):
 
 
 def assert_png(screenshot):
-    """Test that screenshot is a Base64 encoded PNG file."""
-    image = decodebytes(screenshot.encode())
+    """Test that screenshot is a Base64 encoded PNG file, or a bytestring representing a PNG.
+
+    Returns the bytestring for the PNG, if the assert passes
+    """
+    if type(screenshot) == str:
+        image = decodebytes(screenshot.encode())
+    else:
+        image = screenshot
     mime_type = imghdr.what("", image)
     assert mime_type == "png", "Expected image to be PNG, but it was {}".format(mime_type)
+    return image

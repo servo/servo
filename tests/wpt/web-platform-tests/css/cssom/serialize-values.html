@@ -140,11 +140,33 @@
       return null;
     }
 
-    function create_result(actual, expected) {
+    // A more elegant way of doing this would be better, but for now this exception list handles cases where "center" must be omitted.
+    var minimal_results = {
+        "background-position: 5% center": "5%",
+        "background-position: 0.5% center": "0.5%",
+        "background-position: -5% center": "-5%",
+        "background-position: -0.5% center": "-0.5%",
+        "background-position: 0px center": "0px",
+        "background-position: 1px center": "1px",
+        "background-position: 0.1em center": "0.1em",
+        "background-position: 0px center": "0px",
+        "background-position: -1px center": "-1px",
+        "background-position: -0.1em center": "-0.1em",
+        "background-position: left center": "left",
+        "background-position: center top": "top",
+        "background-position: center center": "center",
+        "background-position: center bottom": "bottom",
+        "background-position: right center": "right",
+    };
+
+    function create_result(propertyName, actual, expected) {
+      var key = propertyName + ": " + expected
+      if (key in minimal_results)
+        expected = minimal_results[key]
       return {actual: actual, expected: expected}
     }
 
-    function all_values(values) {
+    function all_values(propertyName, values) {
       var results = [];
       for (var i = 0; i < values.length; i++) {
         var value = values[i];
@@ -153,17 +175,17 @@
           var result;
           while ((result = f()) != null) {
             if (typeof result == "object" && 'serialized' in result) {
-              results.push(create_result(result.actual, result.serialized));
+              results.push(create_result(propertyName, result.actual, result.serialized));
             } else {
-              results.push(create_result(result, result));
+              results.push(create_result(propertyName, result, result));
             }
           }
         } else if (typeof value == "string") {
-          results.push(create_result(value, value));
+          results.push(create_result(propertyName, value, value));
         } else if (value instanceof Array) {
           var subresults = [];
           for (var j = 0; j < value.length; j++) {
-            var subresult = all_values(value[j], true);
+            var subresult = all_values(propertyName, value[j]);
             if (!(subresult instanceof Array)) {
               subresult = [subresult];
             }
@@ -188,16 +210,16 @@
             subresults = choose_slices(subresults).map(function (a) {
               var actual = a.map(function(a) { return a.actual });
               var expected = a.map(function(a) { return a.expected });
-              return create_result(actual.join(' '), expected.join(' '))
+              return create_result(propertyName, actual.join(' '), expected.join(' '))
             });
           }
           for (var j = 0; j < subresults.length; j++) {
             results = results.concat(subresults[j]);
           }
         } else if (value instanceof Object && 'serialized' in value) {
-          results.push(create_result(value.actual, value.serialized));
+          results.push(create_result(propertyName, value.actual, value.serialized));
         } else if (typeof value == "number") {
-          results.push(create_result(value.toString(), value.toString()));
+          results.push(create_result(propertyName, value.toString(), value.toString()));
         } else {
           throw "unexpected value type: " + typeof(value);
         }
@@ -205,8 +227,8 @@
       return results;
     }
 
-    function create_value_generator(property) {
-      var results = all_values(property.values);
+    function create_value_generator(propertyName, property) {
+      var results = all_values(propertyName, property.values);
       return iterable(results);
     }
 
@@ -242,7 +264,7 @@
     }
 
     function test_property(property) {
-      var generator = create_value_generator(property[1]);
+      var generator = create_value_generator(property[0], property[1]);
       while (run_individual_test(property[0], generator, property[1].initial)) {
       }
     }

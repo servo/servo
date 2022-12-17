@@ -35,17 +35,20 @@
       margin-bottom: 0px;
     }
   </style>
+  <script src="/web-animations/testcommon.js"></script>
   <script>
-    window.addEventListener("load", function() {
+    window.addEventListener("load", async function() {
       const scroller = document.scrollingElement;
 
       // Move the scroller to the halfway point.
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
       scroller.scrollTop = 0.5 * maxScroll;
 
-      window.requestAnimationFrame(() => {
-        window.parent.postMessage("success", "*");
-      });
+      await waitForCompositorReady();
+      await waitForNextFrame();
+      await waitForNextFrame();
+
+      window.parent.postMessage("success", "*");
     });
   </script>
   <body>
@@ -54,11 +57,17 @@
   </body>
   </html>
 '></iframe>
-
+<script src="/web-animations/testcommon.js"></script>
 <script>
+  async function finishTest() {
+    await waitForCompositorReady();
+    await waitForNextFrame();
+    await waitForNextFrame();
+    document.documentElement.classList.remove("reftest-wait");
+  }
   window.addEventListener("message", event => {
     if (event.data == "success") {
-      document.documentElement.classList.remove("reftest-wait");
+      finishTest();
     }
   }, false);
 </script>

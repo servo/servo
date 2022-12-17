@@ -3917,6 +3917,22 @@
     "search": "",
     "hash": ""
   },
+  "Non-special domains with empty labels",
+  {
+    "input": "h://.",
+    "base": "about:blank",
+    "href": "h://.",
+    "origin": "h://.",
+    "protocol": "h:",
+    "username": "",
+    "password": "",
+    "host": ".",
+    "hostname": ".",
+    "port": "",
+    "pathname": "",
+    "search": "",
+    "hash": ""
+  },
   "Broken IPv6",
   {
     "input": "http://[www.google.com]/",
@@ -8121,6 +8137,21 @@
     "hostname": "ab",
     "port": "",
     "pathname": "/p",
+    "search": "",
+    "hash": ""
+  },
+  "IDNA hostnames which get mapped to 'localhost'",
+  {
+    "input": "file://loC𝐀𝐋𝐇𝐨𝐬𝐭/usr/bin",
+    "base": "about:blank",
+    "href": "file:///usr/bin",
+    "protocol": "file:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "/usr/bin",
     "search": "",
     "hash": ""
   },
