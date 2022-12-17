@@ -1164,11 +1164,11 @@ impl Fragment {
             // https://drafts.csswg.org/css2/visudet.html#min-max-widths
             (MaybeAuto::Auto, MaybeAuto::Auto) => {
                 if self.has_intrinsic_ratio() {
-                    // This approch follows the spirit of cover and contain constraint.
+                    // This approach follows the spirit of cover and contain constraint.
                     // https://drafts.csswg.org/css-images-3/#cover-contain
 
                     // First, create two rectangles that keep aspect ratio while may be clamped
-                    // by the contraints;
+                    // by the constraints;
                     let first_isize = inline_constraint.clamp(intrinsic_inline_size);
                     let first_bsize = Au::new(
                         (first_isize.0 as i64 * intrinsic_block_size.0 as i64 /

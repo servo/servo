@@ -289,7 +289,7 @@ fn tile_image(position: &mut Au, size: &mut Au, absolute_anchor_origin: Au, imag
     *position = new_position;
 }
 
-/// For either the x or the y axis ajust various values to account for tiling.
+/// For either the x or the y axis adjust various values to account for tiling.
 ///
 /// This is done separately for both axes because the repeat keywords may differ.
 fn tile_image_axis(

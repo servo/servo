@@ -1363,7 +1363,7 @@ impl<'le> ThreadSafeLayoutElement<'le> for ServoThreadSafeLayoutElement<'le> {
 /// but they have no use right now.
 ///
 /// Note that the element implementation is needed only for selector matching,
-/// not for inheritance (styles are inherited appropiately).
+/// not for inheritance (styles are inherited appropriately).
 impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     type Impl = SelectorImpl;
 

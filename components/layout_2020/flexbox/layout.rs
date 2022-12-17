@@ -352,7 +352,7 @@ fn layout<'context, 'boxes>(
     let content_block_size = match flex_context.flex_axis {
         FlexAxis::Row => {
             // `container_main_size` ends up unused here but in this case that’s fine
-            // since it was already excatly the one decided by the outer formatting context.
+            // since it was already exactly the one decided by the outer formatting context.
             container_cross_size
         },
         FlexAxis::Column => {
@@ -362,7 +362,7 @@ fn layout<'context, 'boxes>(
             // The spec is missing something to resolve this conflict:
             // https://github.com/w3c/csswg-drafts/issues/5190
             // And we’ll need to change the signature of `IndependentFormattingContext::layout`
-            // to allow the inner formatting context to “negociate” a used inline-size
+            // to allow the inner formatting context to “negotiate” a used inline-size
             // with the outer one somehow.
             container_main_size
         },
