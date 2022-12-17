@@ -30,7 +30,7 @@ jobs:
       - name: Package binary
         run: tar -czf target.tar.gz target/release/servo resources
       - name: Archive binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: release-binary
           path: target.tar.gz
@@ -74,7 +74,7 @@ jobs:
             --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
             --always-succeed
       - name: Archive logs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wpt${{ matrix.chunk_id }}-logs-linux
           path: |
