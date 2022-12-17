@@ -13,7 +13,7 @@ jobs:
     name: Build on Linux
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Bootstrap
@@ -45,7 +45,7 @@ jobs:
       matrix:
         chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - uses: actions/download-artifact@v2
@@ -91,7 +91,7 @@ jobs:
       - "linux-wpt"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
       # Download all artifacts

@@ -15,7 +15,7 @@ jobs:
     name: Upload nightly (Linux)
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Bootstrap
@@ -36,7 +36,7 @@ jobs:
     name: Upload nightly (macOS)
     runs-on: macos-12
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 2
       # TODO: Remove this step when the compatibility issue between mozjs and
@@ -77,7 +77,7 @@ jobs:
     name: Upload nightly (Windows)
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Copy to C drive
@@ -116,7 +116,7 @@ jobs:
     name: Upload nightly (UWP)
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: Copy to C drive
