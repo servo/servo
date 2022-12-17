@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<title>:has() invalidation with :playing, :paused, :seeking and :muted pseudo-classes</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://w3c.github.io/csswg-drafts/selectors/#video-state">
+<style>
+  #subject {
+    background-color: black;
+    accent-color: black;
+    color: black;
+    border: 2px solid black;
+  }
+  #subject:has(:muted) {
+    background-color: red;
+  }
+  #subject:has(:playing) {
+    border-color: green;
+  }
+  #subject:has(:paused) {
+    color: orange;
+  }
+  #subject:has(:seeking) {
+    accent-color: blue;
+  }
+</style>
+<body>
+  <div id="subject">
+    Test media pseudo-classes invalidation with :has()
+    <input type="checkbox">
+    <video width="300" height="300" loop></video>
+  </div>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    const GREEN = "rgb(0, 128, 0)";
+    const ORANGE = "rgb(255, 165, 0)";
+    const BLUE = "rgb(0, 0, 255)";
+    const RED = "rgb(255, 0, 0)";
+    const BLACK = "rgb(0, 0, 0)";
+
+    function assert_matches_muted(muted) {
+      assert_equals(getComputedStyle(subject).backgroundColor, muted ? RED : BLACK);
+    }
+
+    function assert_matches_playing(playing) {
+      assert_equals(getComputedStyle(subject).borderColor, playing ? GREEN : BLACK);
+      assert_equals(getComputedStyle(subject).color, !playing ? ORANGE : BLACK);
+    }
+
+    function assert_matches_seeking(seeking) {
+      assert_equals(getComputedStyle(subject).accentColor, seeking ? BLUE : BLACK);
+    }
+
+    promise_test(async (t) => {
+      t.add_cleanup(() => {
+        video.muted = false;
+        video.pause();
+        video.removeAttribute("src");
+      });
+      const video = document.querySelector("video");
+      assert_matches_muted(false);
+      assert_matches_playing(false);
+      assert_matches_seeking(false);
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = "/media/counting.mp4";
+      });
+      video.muted = true; // allows us to play the video
+      assert_matches_muted(true);
+      await new Promise((r) => {
+        video.addEventListener("playing", r, { once: true });
+        video.play();
+      });
+      assert_matches_playing(true);
+    }, "Test :playing pseudo-classes");
+
+    promise_test(async (t) => {
+      t.add_cleanup(() => {
+        video.removeAttribute("src");
+      });
+      const video = document.querySelector("video");
+      assert_matches_muted(false);
+      assert_matches_playing(false);
+      assert_matches_seeking(false);
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = "/media/counting.mp4";
+      });
+
+      assert_matches_seeking(false);
+      await new Promise((r) => {
+        video.addEventListener("seeking", r, { once: true });
+        video.currentTime = 10;
+      });
+      assert_matches_seeking(true);
+    }, "Test :seeking pseudo-class");
+
+    promise_test(async (t) => {
+      t.add_cleanup(() => {
+        video.removeAttribute("src");
+      });
+      const video = document.querySelector("video");
+      await new Promise((r) => {
+        video.addEventListener("canplay", r, { once: true });
+        video.src = "/media/counting.mp4";
+      });
+      assert_matches_muted(false);
+      video.muted = true;
+      assert_matches_muted(true);
+      video.muted = false;
+      assert_matches_muted(false);
+    }, "Test :muted pseudo-class");
+  </script>
+</body>

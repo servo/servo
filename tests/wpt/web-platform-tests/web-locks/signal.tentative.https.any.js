@@ -32,6 +32,36 @@ promise_test(async t => {
 promise_test(async t => {
   const res = uniqueName(t);
 
+  const controller = new AbortController();
+  const reason = 'My dog ate it.';
+  controller.abort(reason);
+
+  const promise =
+        navigator.locks.request(res, {signal: controller.signal},
+                                t.unreached_func('callback should not run'));
+
+  await promise_rejects_exactly(
+    t, reason, promise, "Rejection should give the abort reason");
+}, 'Passing an already aborted signal rejects with the custom abort reason.');
+
+promise_test(async t => {
+  const res = uniqueName(t);
+
+  const controller = new AbortController();
+  controller.abort();
+
+  const promise =
+        navigator.locks.request(res, {signal: controller.signal},
+                                t.unreached_func('callback should not run'));
+
+  await promise_rejects_exactly(
+    t, controller.signal.reason, promise,
+    "Rejection should give the abort reason");
+}, 'Passing an already aborted signal rejects with the default abort reason.');
+
+promise_test(async t => {
+  const res = uniqueName(t);
+
   // Grab a lock and hold it until this subtest completes.
   requestLockAndHold(t, res);
 

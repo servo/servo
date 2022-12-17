@@ -1,5 +1,4 @@
 import pytest
-
 from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultException
 
 from ... import any_int, any_string, recursive_compare
@@ -148,9 +147,7 @@ async def test_invalid_script(bidi_session, top_context):
                     'children': [],
                     'localName': 'div',
                     'namespaceURI': 'http://www.w3.org/1999/xhtml',
-                    'nodeName': '',
                     'nodeType': 1,
-                    'nodeValue': ''
                 }
             },
         ),

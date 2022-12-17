@@ -22,14 +22,14 @@ test_valid_value("animation", "4", ["4", "0s ease 0s 4 normal none running none"
 test_valid_value("animation", "reverse", ["reverse", "0s ease 0s 1 reverse none running none"]);
 test_valid_value("animation", "both", ["both", "0s ease 0s 1 normal both running none"]);
 test_valid_value("animation", "paused", ["paused", "0s ease 0s 1 normal none paused none"]);
-test_valid_value("animation", "none", ["none", "0s ease 0s 1 normal none running none"]);
+test_valid_value("animation", "none", ["0s", "none", "0s ease 0s 1 normal none running none"]);
 test_valid_value("animation", "anim", ["anim", "0s ease 0s 1 normal none running anim"]);
 
 test_valid_value("animation", "anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)",
   "1s cubic-bezier(0, -2, 1, 3) -3s 4 reverse both paused anim");
 
 test_valid_value("animation", "anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)",
-  "0s ease 0s 1 reverse both paused anim, 1s cubic-bezier(0, -2, 1, 3) -3s 4 normal none running none");
+  ["reverse both paused anim, 1s cubic-bezier(0, -2, 1, 3) -3s 4", "0s ease 0s 1 reverse both paused anim, 1s cubic-bezier(0, -2, 1, 3) -3s 4 normal none running none"]);
 
 // TODO: Add test with a single negative time.
 // TODO: Add test with a single timing-function keyword.

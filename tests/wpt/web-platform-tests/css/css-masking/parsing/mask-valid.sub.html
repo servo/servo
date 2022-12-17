@@ -11,52 +11,55 @@
 </head>
 <body>
 <script>
-// <mask-layer> = <mask-reference> <masking-mode>? || <position> [ / <bg-size> ]? ||
-// <repeat-style> || <geometry-box> || [ <geometry-box> | no-clip ] || <compositing-operator>
+// <mask-layer> = <mask-reference> || <position> [ / <bg-size> ]? || <repeat-style> ||
+// <geometry-box> || [ <geometry-box> | no-clip ] || <compositing-operator> || <masking-mode>
 
-// <mask-reference> <masking-mode>?
 // <mask-reference> = none | <image> | <mask-source>
-// <masking-mode> = alpha | luminance | auto
 test_valid_value('mask', 'none');
-test_valid_value('mask', 'none alpha');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue)');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) luminance');
 test_valid_value('mask', 'url("https://{{host}}/")');
-test_valid_value('mask', 'url("https://{{host}}/") alpha');
 
 // <position> [ / <bg-size> ]?
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) 1px 2px');
 test_valid_value('mask', 'url("https://{{host}}/") 1px 2px / contain');
 
 // <repeat-style> = repeat-x | repeat-y | [repeat | space | round | no-repeat]{1,2}
-test_valid_value('mask', 'none repeat-y');
+test_valid_value('mask', 'repeat-y');
 
 // <geometry-box> = <shape-box> | fill-box | stroke-box | view-box
 // <shape-box> = <box> | margin-box
 // <box> = border-box | padding-box | content-box
-test_valid_value('mask', 'none border-box', 'none');
+test_valid_value('mask', 'border-box', 'none');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) padding-box');
-test_valid_value('mask', 'none content-box');
-test_valid_value('mask', 'none margin-box');
+test_valid_value('mask', 'content-box');
+test_valid_value('mask', 'margin-box');
 test_valid_value('mask', 'url("https://{{host}}/") fill-box');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) stroke-box');
-test_valid_value('mask', 'none view-box');
+test_valid_value('mask', 'view-box');
 
 // [ <geometry-box> | no-clip ]
-test_valid_value('mask', 'none no-clip', 'none border-box no-clip');
+test_valid_value('mask', 'no-clip');
 
 // <compositing-operator> = add | subtract | intersect | exclude
 test_valid_value('mask', 'url("https://{{host}}/") add', 'url("https://{{host}}/")');
-test_valid_value('mask', 'none subtract');
+test_valid_value('mask', 'subtract');
 test_valid_value('mask', 'url("https://{{host}}/") intersect');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) exclude');
 
+// <masking-mode> = alpha | luminance | auto
+test_valid_value('mask', 'alpha');
+test_valid_value('mask', 'url("https://{{host}}/") alpha');
 
-// <mask-layer> = <mask-reference> <masking-mode>? || <position> [ / <bg-size> ]? ||
-// <repeat-style> || <geometry-box> || [ <geometry-box> | no-clip ] || <compositing-operator>
+// <mask-layer> = <mask-reference> || <position> [ / <bg-size> ]? || <repeat-style> ||
+// <geometry-box> || [ <geometry-box> | no-clip ] || <compositing-operator> || <masking-mode>
 test_valid_value('mask', 'intersect no-clip space round 1px 2px / contain stroke-box linear-gradient(to left bottom, red, blue) luminance', 'linear-gradient(to left bottom, red, blue) luminance 1px 2px / contain space round stroke-box no-clip intersect');
+test_valid_value('mask', 'intersect no-clip space round 1px 2px / contain view-box, stroke-box linear-gradient(to left bottom, red, blue) luminance', '1px 2px / contain space round view-box no-clip intersect, linear-gradient(to left bottom, red, blue) luminance stroke-box');
 
-test_valid_value('mask', 'intersect no-clip space round 1px 2px / contain view-box, stroke-box linear-gradient(to left bottom, red, blue) luminance', 'none 1px 2px / contain space round view-box no-clip intersect, linear-gradient(to left bottom, red, blue) luminance stroke-box');
+// Earlier versions of the mask shorthand always required a <mask-reference>.
+// To avoid unnecessarily losing test coverage, keep one of the test cases from back then.
+test_valid_value('mask', 'none alpha', 'alpha');
+
 </script>
 </body>
 </html>

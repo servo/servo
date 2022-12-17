@@ -1,0 +1,93 @@
+<!doctype html>
+<title>Coalesced events under load</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
+<meta name="variant" content="?touch">
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    touch-action: none;
+  }
+</style>
+<div id="target"></div>
+
+<script>
+  "use strict";
+  const pointer_type = location.search.substring(1);
+  const target = document.getElementById("target");
+
+  // https://w3c.github.io/pointerevents/#coalesced-events
+  function checkCoalescedMoveEventAttributes(event) {
+    let coalesced_events = event.getCoalescedEvents();
+    assert_greater_than_equal(coalesced_events.length, 1,
+        "pointermove.getCoalescedEvents() has at least 1 entry");
+
+    for (let i = 0; i < coalesced_events.length; i++) {
+      let coalesced_event = coalesced_events[i];
+
+      assert_equals(coalesced_event.isTrusted, true,
+          "coalesced_event.isTrusted is true");
+      assert_equals(coalesced_event.bubbles, false,
+          "coalesced_event.bubbles is false");
+      assert_equals(coalesced_event.cancelable, false,
+          "coalesced_event.cancelable is false");
+
+      if (i > 0) {
+        assert_greater_than_equal(coalesced_event.timeStamp,
+            coalesced_events[i-1].timeStamp,
+            "coalesced_event.timeStamp must be ascending");
+      }
+    }
+  }
+
+  let coalesced_event_received = false;
+
+  promise_test(async t => {
+    let current_busyloop_ms = 5;
+
+    target.addEventListener("pointerdown", event => {
+      // Every pointerdown blocks the main thread for a certain time limit,
+      // and then increases the time limit for next round in case the
+      // current limit fails to cause event coalescing.
+      let now = performance.now();
+      while (performance.now() < now + current_busyloop_ms)
+        continue;
+      current_busyloop_ms *= 2;
+    });
+
+    target.addEventListener("pointermove", t.step_func(event => {
+      checkCoalescedMoveEventAttributes(event);
+      if (event.getCoalescedEvents().length > 1)
+        coalesced_event_received = true;
+    }));
+
+    // Repeatedly send a long action sequence until either a coalesced event is
+    // encountered or the busyloop becomes too long.
+    while (!coalesced_event_received && current_busyloop_ms < 500) {
+      let pointerup_promise = getEvent("pointerup", target);
+
+      let actions = new test_driver.Actions()
+          .addPointer("TestPointer", pointer_type)
+          .pointerMove(0, 0, { origin: target })
+          .pointerDown();
+      for (let i = 0; i < 5; i++) {
+        actions = actions.pointerMove(20, 20, { origin: target })
+            .pointerMove(0, 0, { origin: target });
+      }
+      actions = actions.pointerUp();
+
+      await actions.send();
+      await await pointerup_promise;
+    }
+
+    assert_true(coalesced_event_received, "Coalesed pointermoves received");
+  }, "Coalesced pointermoves under load");
+</script>

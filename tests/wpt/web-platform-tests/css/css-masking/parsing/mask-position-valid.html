@@ -11,25 +11,25 @@
 </head>
 <body>
 <script>
-test_valid_value("mask-position", "10%", "10% center");
+test_valid_value("mask-position", "10%");
 test_valid_value("mask-position", "right 30% top 60px");
 test_valid_value("mask-position", "-20% -30px");
-test_valid_value("mask-position", "30px center");
+test_valid_value("mask-position", "30px center", "30px");
 test_valid_value("mask-position", "40px top");
 test_valid_value("mask-position", "bottom 10% right 20%", "right 20% bottom 10%");
 test_valid_value("mask-position", "bottom right", "right bottom");
 test_valid_value("mask-position", "center 50px");
-test_valid_value("mask-position", "center bottom");
-test_valid_value("mask-position", "center left", "left center");
-test_valid_value("mask-position", "left", "left center");
+test_valid_value("mask-position", "center bottom", "bottom");
+test_valid_value("mask-position", "center left", "left");
+test_valid_value("mask-position", "left");
 test_valid_value("mask-position", "left bottom");
 test_valid_value("mask-position", "right 40%");
-test_valid_value("mask-position", "top", "center top");
-test_valid_value("mask-position", "top center", "center top");
-test_valid_value("mask-position", "center", "center center");
+test_valid_value("mask-position", "top");
+test_valid_value("mask-position", "top center", "top");
+test_valid_value("mask-position", "center", "center");
 
 test_valid_value("mask-position", "bottom left, right 20%", "left bottom, right 20%");
-test_valid_value("mask-position", "top, center, left", "center top, center center, left center");
+test_valid_value("mask-position", "top, center, left");
 </script>
 </body>
 </html>
