@@ -148,7 +148,7 @@ function animation_test(property, values, description) {
   }, description);
 };
 
-function discrete_animation_test(syntax, fromValue, toValue) {
+function discrete_animation_test(syntax, fromValue, toValue, description) {
   test(() => {
     const name = generate_name();
 
@@ -176,5 +176,5 @@ function discrete_animation_test(syntax, fromValue, toValue) {
     checkAtProgress(0.5, toValue);
     checkAtProgress(0.75, toValue);
     checkAtProgress(1, toValue);
-  }, `Animating a custom property of type ${syntax} is discrete`);
+  }, description || `Animating a custom property of type ${syntax} is discrete`);
 }

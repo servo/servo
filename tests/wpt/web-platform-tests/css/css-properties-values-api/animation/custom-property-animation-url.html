@@ -7,5 +7,7 @@
 <script>
 
 discrete_animation_test("<url>", 'url("https://example.com/from")', 'url("https://example.com/to")');
+discrete_animation_test("<url>+", 'url("https://example.com/from1") url("https://example.com/from2")', 'url("https://example.com/to1") url("https://example.com/to2")');
+discrete_animation_test("<url>#", 'url("https://example.com/from1"), url("https://example.com/from2")', 'url("https://example.com/to1"), url("https://example.com/to2")');
 
 </script>
