@@ -19,6 +19,47 @@ function test_invalid_value_variants(property, value) {
   test_invalid_value(property, "-webkit-" + value);
 }
 
+function test_default_resolution() {
+  // Based on the spec, the resolution is optional and should default
+  // to 1x if not specified.
+  // This set of tests verify this expectation.
+
+  // Test when the only image is missing it's resolution
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url(foo))',
+    'image-set(url("foo") 1x)'
+  );
+
+  // Test when the 1st of 2 images is missing it's resolution
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url(foo), url(bar) 1x)',
+    'image-set(url("foo") 1x, url("bar") 1x)'
+  );
+
+  // Test when the 2nd of 2 images is missing it's resolution
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url(foo) 1x, url(bar))',
+    'image-set(url("foo") 1x, url("bar") 1x)'
+  );
+
+  // Test when both images are missing their resolutions
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url(foo), url(bar))',
+    'image-set(url("foo") 1x, url("bar") 1x)'
+  );
+
+  // Test when the middle of 3 images is missing it's resolution
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url(foo) 1x, url(bar), url(baz) 2x)',
+    'image-set(url("foo") 1x, url("bar") 1x, url("baz") 2x)'
+  );
+}
+
 test_valid_value_variants('background-image', "image-set(url(example.png) 1x)", 'image-set(url("example.png") 1x)');
 test_valid_value_variants('background-image', 'image-set(url("example.png") 1x)');
 test_valid_value_variants('background-image', "image-set('example.jpg' 1x)", 'image-set(url("example.jpg") 1x)');
@@ -45,4 +86,6 @@ test_invalid_value_variants('background-image', "image-set(url(example.png) type
 test_invalid_value_variants('background-image', "image-set(url(example.png) 1xtype('image/png'))");
 test_invalid_value_variants('background-image', "image-set(type('image/png') url(example.png) 1x)");
 test_invalid_value_variants('cursor', "image-set(linear-gradient(black, white) 1x)");
+
+test_default_resolution();
 </script>

@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset=utf-8>
+<body>
+<script>
+async function test() {
+  // Step 5 (client-hints/inner-delegation/accept_ch_delegation_to_src.sub.https.html)
+  let r = await fetch("https://{{host}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  if (r.status == 200) {
+    return "Site 3 fetching Site 1 did recieve sec-ch-device-memory";
+  }
+  r = await fetch("https://{{hosts[alt][]}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  if (r.status == 200) {
+    return "Site 3 fetching Site 2 did recieve sec-ch-device-memory";
+  }
+  r = await fetch("/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  if (r.status == 200) {
+    return "Site 3 fetching Site 3 did recieve sec-ch-device-memory";
+  }
+  return "ch-device-memory is available as expected for src"
+}
+test().then((message) => window.top.postMessage(message, "*"));
+</script>
+</body>

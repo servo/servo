@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+animation_test({
+  syntax: "<transform-list>",
+  inherits: false,
+  initialValue: "translateX(0px)"
+}, {
+  keyframes: ["translateX(100px) scale(2)", "translateX(200px) scale(4)"],
+  expected: "translateX(150px) scale(3)"
+}, 'Animating a custom property of type <transform-list> containing multiple values');
+
+animation_test({
+  syntax: "<transform-list>",
+  inherits: false,
+  initialValue: "translateX(100px) scale(2)"
+}, {
+  keyframes: "translateX(200px) scale(4)",
+  expected: "translateX(150px) scale(3)"
+}, 'Animating a custom property of type <transform-list> containing multiple values with a single keyframe');
+
+animation_test({
+  syntax: "<transform-list>",
+  inherits: false,
+  initialValue: "translateX(100px) scale(2)"
+}, {
+  composite: "add",
+  keyframes: ["translateX(200px) scale(3)", "translateX(300px) scale(4)"],
+  expected: "translateX(100px) scale(2) translateX(250px) scale(3.5)"
+}, 'Animating a custom property of type <transform-list> containing multiple values with additivity');
+
+animation_test({
+  syntax: "<transform-list>",
+  inherits: false,
+  initialValue: "translateX(100px) scale(2)"
+}, {
+  composite: "add",
+  keyframes: "translateX(300px) scale(3)",
+  expected: "translateX(100px) scale(2) translateX(150px) scale(2)"
+}, 'Animating a custom property of type <transform-list> containing multiple values with a single keyframe and additivity');
+
+animation_test({
+  syntax: "<transform-list>",
+  inherits: false,
+  initialValue: "translateX(100px) scale(2)"
+}, {
+  iterationComposite: "accumulate",
+  keyframes: ["translateX(0px) scale(3)", "translateX(100px) scale(4)"],
+  expected: "translateX(250px) scale(11.5)"
+}, 'Animating a custom property of type <transform-list> containing multiple values with iterationComposite');
+
+animation_test({
+  syntax: "<transform-list>",
+  inherits: false,
+  initialValue: "translateX(0px)"
+}, {
+  keyframes: ["translateX(100px) scale(2)", "rotate(180deg)"],
+  expected: "matrix(0, -1.5, 1.5, 0, 50, 0)"
+}, 'Animating a custom property of type <transform-list> containing multiple values and with mismatching list lengths');
+
+</script>
