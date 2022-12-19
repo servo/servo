@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS margin-trim computed style</title>
+<link rel="help" href="https://www.w3.org/TR/css-box-4/#margin-trim">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<meta name="assert" content="Test the computed values for margin-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("margin-trim", "none");
+test_computed_value("margin-trim", "block");
+test_computed_value("margin-trim", "inline");
+test_computed_value("margin-trim", "block-start block-end", "block");
+test_computed_value("margin-trim", "inline-start inline-end", "inline");
+test_computed_value("margin-trim", "block-start");
+test_computed_value("margin-trim", "block-end");
+test_computed_value("margin-trim", "inline-start");
+test_computed_value("margin-trim", "inline-end");
+test_computed_value("margin-trim", "block-start inline-start");
+test_computed_value("margin-trim", "inline-start block-start", "block-start inline-start");
+test_computed_value("margin-trim", "inline-end block-start", "block-start inline-end");
+test_computed_value("margin-trim", "inline-end block-end", "block-end inline-end");
+test_computed_value("margin-trim", "block-start block-end inline-start", "block-start inline-start block-end");
+test_computed_value("margin-trim", "inline-start block-start inline-end block-end", "block-start inline-start block-end inline-end");
+test_computed_value("margin-trim", "inline-start inline-end block-start", "block-start inline-start inline-end");
+</script>
+</body>
+</html>

@@ -3922,7 +3922,7 @@
     "input": "h://.",
     "base": "about:blank",
     "href": "h://.",
-    "origin": "h://.",
+    "origin": "null",
     "protocol": "h:",
     "username": "",
     "password": "",
