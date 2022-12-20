@@ -19,14 +19,34 @@ const logical = {
   corners: ['start-start', 'start-end', 'end-start', 'end-end'],
 };
 
-for (const prefix of ['margin-', 'inset-', 'padding-']) {
-  for (const side of [...logical.sides, ...logical.axes]) {
-    runPropertyTests(prefix + side, [
-      // TODO: Test 'auto'
-      { syntax: '<percentage>' },
-      { syntax: '<length>' },
-    ]);
-  }
+for (const side of [...logical.sides, ...logical.axes]) {
+  runPropertyTests('margin-' + side, [
+    // TODO: Test 'auto'
+    { syntax: '<percentage>' },
+    { syntax: '<length>' }
+  ]);
+}
+
+for (const side of [...logical.sides, ...logical.axes]) {
+  runPropertyTests('padding-' + side, [
+    // TODO: Test 'auto'
+    {
+      syntax: '<percentage>',
+      specified: assert_is_equal_with_range_handling
+    },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling
+    },
+  ]);
+}
+
+for (const side of [...logical.sides, ...logical.axes]) {
+  runPropertyTests('inset-' + side, [
+    // TODO: Test 'auto'
+    { syntax: '<percentage>' },
+    { syntax: '<length>' }
+  ]);
 }
 
 // BORDERS
@@ -42,7 +62,10 @@ for (const side of [...logical.sides, ...logical.axes]) {
     { syntax: 'thin' },
     { syntax: 'medium' },
     { syntax: 'thick' },
-    { syntax: '<length>' },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling
+    },
   ]);
 
   runPropertyTests(`border-${side}-color`, [
@@ -59,8 +82,14 @@ for (const side of [...logical.sides, ...logical.axes]) {
 // border radius
 for (const side of logical.corners) {
   runPropertyTests(`border-${side}-radius`, [
-    { syntax: '<percentage>' },
-    { syntax: '<length>' },
+    {
+      syntax: '<percentage>',
+      specified: assert_is_equal_with_range_handling
+    },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling
+    },
   ]);
 }
 </script>

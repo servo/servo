@@ -13,7 +13,10 @@
 'use strict';
 
 runListValuedPropertyTests('animation-duration', [
-  { syntax: '<time>' },
+  {
+    syntax: '<time>',
+    specified: assert_is_equal_with_range_handling
+  },
 ]);
 
 </script>

@@ -18,10 +18,12 @@ runPropertyTests('border-image-outset', [
   // Typed OM level 1.
   {
     syntax: '<length>',
+    specified: assert_is_equal_with_range_handling,
     computed: (_, result) => assert_is_unsupported(result)
   },
   {
     syntax: '<number>',
+    specified: assert_is_equal_with_range_handling,
     computed: (_, result) => assert_is_unsupported(result)
   },
 ]);

@@ -1,6 +1,6 @@
 import pytest
-
 from webdriver.bidi.modules.script import ContextTarget
+
 from ... import recursive_compare
 
 
@@ -113,9 +113,14 @@ async def test_default_arguments(bidi_session, top_context):
             {"type": "boolean", "value": False},
         ),
         (
-             "window.foo = 3; window",
+            "window.foo = 3; window",
             "(window) => window.foo",
             {"type": "number", "value": 3},
+        ),
+        (
+            "document.createElement('div')",
+            "(node) => node.tagName",
+            {"type": "string", "value": "DIV"},
         ),
         (
             "({SOME_PROPERTY:'SOME_VALUE'})",
@@ -167,8 +172,7 @@ async def test_remote_value_argument(
 )
 async def test_primitive_values(bidi_session, top_context, argument, expected):
     result = await bidi_session.script.call_function(
-        function_declaration=
-        f"""(arg) => {{
+        function_declaration=f"""(arg) => {{
             if(arg!=={expected})
                 throw Error("Argument should be {expected}, but was "+arg);
             return arg;
@@ -185,8 +189,7 @@ async def test_primitive_values(bidi_session, top_context, argument, expected):
 async def test_nan(bidi_session, top_context):
     nan_remote_value = {"type": "number", "value": "NaN"}
     result = await bidi_session.script.call_function(
-        function_declaration=
-        f"""(arg) => {{
+        function_declaration=f"""(arg) => {{
             if(!isNaN(arg))
                 throw Error("Argument should be 'NaN', but was "+arg);
             return arg;
@@ -210,7 +213,7 @@ async def test_nan(bidi_session, top_context):
              ],
          },
          "Array"
-        ),
+         ),
         ({"type": "date", "value": "2022-05-31T13:47:29.000Z"},
          "Date"
          ),
@@ -221,7 +224,7 @@ async def test_nan(bidi_session, top_context):
              ],
          },
          "Map"
-        ),
+         ),
         ({
              "type": "object",
              "value": [
@@ -229,7 +232,7 @@ async def test_nan(bidi_session, top_context):
              ],
          },
          "Object"
-        ),
+         ),
         ({"type": "regexp", "value": {"pattern": "foo", "flags": "g"}},
          "RegExp"
          ),
@@ -240,13 +243,12 @@ async def test_nan(bidi_session, top_context):
              ],
          },
          "Set"
-        )
+         )
     ],
 )
 async def test_local_values(bidi_session, top_context, argument, expected_type):
     result = await bidi_session.script.call_function(
-        function_declaration=
-        f"""(arg) => {{
+        function_declaration=f"""(arg) => {{
             if(! (arg instanceof {expected_type}))
                 throw Error("Argument type should be {expected_type}, but was "+
                     Object.prototype.toString.call(arg));

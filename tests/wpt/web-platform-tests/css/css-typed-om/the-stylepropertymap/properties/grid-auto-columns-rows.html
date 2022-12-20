@@ -20,8 +20,14 @@ for (const suffix of ['columns', 'rows']) {
     { syntax: 'min-content' },
     { syntax: 'max-content' },
     { syntax: 'auto' },
-    { syntax: '<length>' },
-    { syntax: '<percentage>' },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling
+    },
+    {
+      syntax: '<percentage>',
+      specified: assert_is_equal_with_range_handling
+    },
     { syntax: '<flex>' },
   ]);
 
