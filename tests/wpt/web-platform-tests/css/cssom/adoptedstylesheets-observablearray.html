@@ -7,12 +7,19 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <span id=target>Test Span</span>
-
+<div id="divNonConstructed" class="nonConstructed"></div>
 <style>
   #target {background-color: red;}
 </style>
 
 <script>
+
+const shadowRootNonConstructed = divNonConstructed.attachShadow({mode:'open'})
+nonConstructedStyle = document.createElement("style");
+shadowRootNonConstructed.appendChild(nonConstructedStyle);
+nonConstructedStyle.sheet.insertRule(".nonConstructed { color: red; }", 0);
+const nonConstructedStyleSheet = nonConstructedStyle.sheet;
+
 function assert_is(targetStyle, color) {
   assert_equals(targetStyle.getPropertyValue('background-color'), color);
 }
@@ -52,6 +59,11 @@ function testRoot(d, targetStyle) {
   d.adoptedStyleSheets.splice(0, 1, sheet1);
   assert_equals(d.adoptedStyleSheets.length, 1);
   assert_is(targetStyle, green);
+
+  // Adding non-constructed stylesheet to AdoptedStyleSheets is not allowed.
+  assert_throws_dom('NotAllowedError', () => { document.adoptedStyleSheets.push(nonConstructedStyleSheet); });
+
+  assert_throws_js(TypeError, () => { document.adoptedStyleSheets.push("foo"); });
 }
 
 test(function() {

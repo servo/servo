@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Autoplay policy basic behavior test for media element</title>
+<script src="/common/media.js"></script>
+<script src=/resources/testharness.js></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(async function playAudibleMediaElement() {
+  const video = document.createElement('video');
+  video.src = getVideoURI('/media/movie_5');
+  await new Promise(r => video.onloadedmetadata = r);
+  const startPlaying = await video.play().then(_ => true, _ => false);
+  if (startPlaying) {
+    assert_equals(
+      window.navigator.getAutoplayPolicy(video),
+      "allowed",
+      'Correct value when audible video is allowed to play');
+  } else {
+    assert_in_array(
+      window.navigator.getAutoplayPolicy(video),
+      ["disallowed", "allowed-muted"],
+      'Correct value when audible video is not allowed to play'
+    );
+  }
+}, "Check autoplay policy when playing audible media element");
+
+promise_test(async function playInaudibleMediaElement() {
+  const video = document.createElement('video');
+  video.src = getVideoURI('/media/movie_5');
+  video.muted = true;
+  await new Promise(r => video.onloadedmetadata = r);
+  const startPlaying = await video.play().then(_ => true, _ => false);
+  if (startPlaying) {
+    assert_in_array(
+      window.navigator.getAutoplayPolicy(video),
+      ["allowed", "allowed-muted"],
+      'Correct value when inaudible video is allowed to play');
+  } else {
+    assert_equals(
+      window.navigator.getAutoplayPolicy(video),
+      "disallowed",
+      'Correct value when inaudible video is not allowed to play'
+    );
+  }
+}, "Check autoplay policy when playing inaudible media element");
+
+</script>

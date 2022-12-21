@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Autoplay policy value test</title>
+<script src=/resources/testharness.js></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(function getAutoplayPolicyByType() {
+  assert_in_array(
+      window.navigator.getAutoplayPolicy("mediaelement"),
+      ["allowed", "allowed-muted", "disallowed"],
+      'Correct return value for mediaelement type');
+
+  assert_in_array(
+      window.navigator.getAutoplayPolicy("audiocontext"),
+      ["allowed", "disallowed"],
+      'Correct return value for audiocontext type');
+}, "Test method 'getAutoplayPolicy(AutoplayPolicyMediaType type)'");
+
+test(function getAutoplayPolicyMediaElement() {
+  const audioElement = document.createElement('audio');
+  assert_in_array(
+      window.navigator.getAutoplayPolicy(audioElement),
+      ["allowed", "allowed-muted", "disallowed"],
+      'Correct return value for audio element');
+
+  const videoElement = document.createElement('video');
+  assert_in_array(
+      window.navigator.getAutoplayPolicy(videoElement),
+      ["allowed", "allowed-muted", "disallowed"],
+      'Correct return value for audio element');
+}, "Test method 'getAutoplayPolicy(HTMLMediaElement element)'");
+
+test(function getAutoplayPolicyAudioContext() {
+  const audioContext = new window.AudioContext();
+  assert_in_array(
+      window.navigator.getAutoplayPolicy(audioContext),
+      ["allowed", "disallowed"],
+      'Correct return value for audio element');
+}, "Test method 'getAutoplayPolicy(AudioContext context)'");
+
+</script>

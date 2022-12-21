@@ -15,15 +15,27 @@
 
 for (const suffix of ['top', 'left', 'right', 'bottom']) {
   runPropertyTests('scroll-padding-' + suffix, [
-    { syntax: '<percentage>' },
-    { syntax: '<length>' },
+    {
+      syntax: '<percentage>',
+      specified: assert_is_equal_with_range_handling
+    },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling
+    },
   ]);
 }
 
 for (const suffix of ['inline-start', 'block-start', 'inline-end', 'block-end']) {
   runPropertyTests('scroll-padding-' + suffix, [
-    { syntax: '<percentage>' },
-    { syntax: '<length>' },
+    {
+      syntax: '<percentage>',
+      specified: assert_is_equal_with_range_handling
+    },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling
+    },
   ]);
 }
 

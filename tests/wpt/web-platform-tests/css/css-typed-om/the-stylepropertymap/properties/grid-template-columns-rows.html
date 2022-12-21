@@ -16,6 +16,18 @@
 for (const suffix of ['columns', 'rows']) {
   runPropertyTests(`grid-template-${suffix}`, [
     { syntax: 'none' },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling
+    },
+    {
+      syntax: '<percentage>',
+      specified: assert_is_equal_with_range_handling
+    },
+    {
+      syntax: '<flex>',
+      specified: assert_is_equal_with_range_handling
+    }
   ]);
 
   runUnsupportedPropertyTests(`grid-template-${suffix}`, [

@@ -19,7 +19,8 @@
 </style>
 
 <script>
-test(() => {
+test((t) => {
+  t.add_cleanup(() => { document.getElementsByTagName('style')[0].remove(); });
   const range = document.caretRangeFromPoint();
   assert_not_equals(range, null, "range exists");
   assert_equals(range.startContainer, html, "startContainer is html");

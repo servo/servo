@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta name=fuzzy content="0-5;0-5">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-non-keyframe-timing-function-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+
+</style>
+<script src="/common/reftest-wait.js"></script>
+
+<body>
+  <div class="container"></div>
+
+  <script>
+    document.querySelector('.container').animate([
+      // 1st keyframe must have a non-linear easing function or the animation
+      // will extrapolate based on the animation-wide timing function
+      { clipPath: 'circle(20% at 20% 20%)', easing: 'ease' },
+      { clipPath: 'circle(50% at 50% 50%)' }
+    ], {
+      easing: 'cubic-bezier(0, 2, 1, 2)',
+      duration: 1000000,
+      delay: -500000
+    });
+    document.getAnimations()[0].ready.then(() => {
+      takeScreenshot();
+    });
+  </script>
+</body>
+
+</html>

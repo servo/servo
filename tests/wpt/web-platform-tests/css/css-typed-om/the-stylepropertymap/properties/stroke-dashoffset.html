@@ -15,7 +15,11 @@
 
 runPropertyTests('stroke-dashoffset', [
   { syntax: '<length>' },
-  { syntax: '<percentage>' }
+  { syntax: '<percentage>' },
+  {
+    syntax: '<number>',
+    computed: (_, result) => assert_is_unit('px', result)
+  },
 ]);
 
 </script>
