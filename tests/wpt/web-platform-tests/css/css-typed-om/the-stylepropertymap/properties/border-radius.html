@@ -19,10 +19,12 @@ for (const suffix of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
   runPropertyTests('border-' + suffix + '-radius', [
     {
       syntax: '<length>',
+      specified: assert_is_equal_with_range_handling,
       computed: (_, result) => assert_is_unsupported(result)
     },
     {
       syntax: '<percentage>',
+      specified: assert_is_equal_with_range_handling,
       computed: (_, result) => assert_is_unsupported(result)
     },
   ]);

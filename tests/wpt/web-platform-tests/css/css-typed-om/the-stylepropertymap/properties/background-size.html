@@ -14,8 +14,14 @@
 'use strict';
 
 runListValuedPropertyTests('background-size', [
-  { syntax: '<length>' },
-  { syntax: '<percentage>' },
+  {
+    syntax: '<length>',
+    specified: assert_is_equal_with_range_handling
+  },
+  {
+    syntax: '<percentage>',
+    specified: assert_is_equal_with_range_handling
+  },
   { syntax: 'auto' },
   { syntax: 'cover' },
   { syntax: 'contain' },

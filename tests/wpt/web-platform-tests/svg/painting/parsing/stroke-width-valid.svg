@@ -13,8 +13,8 @@
   <h:script src="/css/support/parsing-testcommon.js"/>
   <script><![CDATA[
 
-test_valid_value("stroke-width", "0", "0px");
-test_valid_value("stroke-width", "10", "10px");
+test_valid_value("stroke-width", "0");
+test_valid_value("stroke-width", "10");
 test_valid_value("stroke-width", "1px");
 test_valid_value("stroke-width", "calc(2em + 3ex)");
 test_valid_value("stroke-width", "4%");

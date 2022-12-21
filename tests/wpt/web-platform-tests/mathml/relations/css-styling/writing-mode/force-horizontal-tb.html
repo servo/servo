@@ -12,6 +12,10 @@
   /* selector defined in mathml-fragments.js */
   .element {
     writing-mode: vertical-lr;
+    padding-block-start: 10px;
+    padding-block-end: 15px;
+    padding-inline-start: 20px;
+    padding-inline-end: 25px;
   }
 </style>
 </head>
@@ -21,7 +25,6 @@
     <math class="element"></math>
   </div>
   <script>
-    test(function () {
       var container = document.getElementById("container");
       for (tag in MathMLFragments) {
           container.insertAdjacentHTML("beforeend", `<math>${MathMLFragments[tag]}</math>`);
@@ -32,9 +35,16 @@
       Array.from(document.getElementsByClassName("element")).forEach(element => {
         var tag = element.tagName;
         var style = window.getComputedStyle(element);
-        assert_equals(style["writing-mode"], "horizontal-tb", `writing-mode on ${tag}`);
-      }, `writing-mode is forced to horizontal-tb on all MathML elements`);
-    });
+        test(function () {
+          assert_equals(style["writing-mode"], "horizontal-tb");
+        }, `writing-mode is forced to horizontal-tb on <${tag}> element`);
+        test(function () {
+          assert_equals(style["padding-block-start"], style["padding-top"]);
+          assert_equals(style["padding-block-end"], style["padding-bottom"]);
+          assert_equals(style["padding-inline-start"], style["padding-left"]);
+          assert_equals(style["padding-inline-end"], style["padding-right"]);
+        }, `logical properties interpreted in horizontal-tb on <${tag}> element`);
+      });
   </script>
 </body>
 </html>

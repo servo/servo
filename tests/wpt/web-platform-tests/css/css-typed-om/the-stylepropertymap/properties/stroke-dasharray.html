@@ -14,7 +14,20 @@
 'use strict';
 
 runPropertyTests('stroke-dasharray', [
-  { syntax: 'none' }
+  { syntax: 'none' },
+  {
+    syntax: '<length>',
+    specified: assert_is_equal_with_range_handling,
+  },
+  {
+    syntax: '<percentage>',
+    specified: assert_is_equal_with_range_handling,
+  },
+  {
+    syntax: '<number>',
+    specified: assert_is_equal_with_range_handling,
+    computed: (_, result) => assert_is_unit('px', result)
+  },
 ]);
 
 runUnsupportedPropertyTests('stroke-dasharray', [
