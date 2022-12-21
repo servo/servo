@@ -135,14 +135,14 @@ enum TraversalResult<T> {
     Done(T),
 }
 
-fn traverse_container<E, F, R>(
+fn traverse_container<E, S, F, R>(
     mut e: E,
-    originating_element_style: Option<&Arc<ComputedValues>>,
+    originating_element_style: Option<&S>,
     evaluator: F,
 ) -> Option<(E, R)>
 where
     E: TElement,
-    F: Fn(E, Option<&Arc<ComputedValues>>) -> TraversalResult<R>,
+    F: Fn(E, Option<&S>) -> TraversalResult<R>,
 {
     if originating_element_style.is_some() {
         match evaluator(e, originating_element_style) {
@@ -479,7 +479,7 @@ pub enum ContainerSizeQuery<'a> {
 impl<'a> ContainerSizeQuery<'a> {
     fn evaluate_potential_size_container<E>(
         e: E,
-        originating_element_style: Option<&Arc<ComputedValues>>,
+        originating_element_style: Option<&ComputedValues>,
     ) -> TraversalResult<ContainerSizeQueryResult>
     where
         E: TElement,
@@ -492,7 +492,7 @@ impl<'a> ContainerSizeQuery<'a> {
                     Some(d) => d,
                     None => return TraversalResult::InProgress,
                 };
-                data.styles.primary()
+                &**data.styles.primary()
             },
         };
         if !style
@@ -533,7 +533,7 @@ impl<'a> ContainerSizeQuery<'a> {
     /// Find the query container size for a given element. Meant to be used as a callback for new().
     fn lookup<E>(
         element: E,
-        originating_element_style: Option<&Arc<ComputedValues>>,
+        originating_element_style: Option<&ComputedValues>,
     ) -> ContainerSizeQueryResult
     where
         E: TElement + 'a,
@@ -558,10 +558,7 @@ impl<'a> ContainerSizeQuery<'a> {
     }
 
     /// Create a new instance of the container size query for given element, with a deferred lookup callback.
-    pub fn for_element<E>(
-        element: E,
-        originating_element_style: Option<&'a Arc<ComputedValues>>,
-    ) -> Self
+    pub fn for_element<E>(element: E, originating_element_style: Option<&'a ComputedValues>) -> Self
     where
         E: TElement + 'a,
     {
@@ -576,7 +573,7 @@ impl<'a> ContainerSizeQuery<'a> {
                     None => return Self::none(),
                 };
                 data = parent.borrow_data();
-                data.as_ref().map(|data| data.styles.primary())
+                data.as_ref().map(|data| &**data.styles.primary())
             },
         };
         let should_traverse = match style {
@@ -596,7 +593,7 @@ impl<'a> ContainerSizeQuery<'a> {
     /// Create a new instance, but with optional element.
     pub fn for_option_element<E>(
         element: Option<E>,
-        originating_element_style: Option<&'a Arc<ComputedValues>>,
+        originating_element_style: Option<&'a ComputedValues>,
     ) -> Self
     where
         E: TElement + 'a,
