@@ -178,3 +178,60 @@ function discrete_animation_test(syntax, fromValue, toValue, description) {
     checkAtProgress(1, toValue);
   }, description || `Animating a custom property of type ${syntax} is discrete`);
 }
+
+function transition_test(options, description) {
+  promise_test(async () => {
+    const customProperty = generate_name();
+
+    CSS.registerProperty({
+      name: customProperty,
+      syntax: options.syntax,
+      inherits: false,
+      initialValue: options.from
+    });
+
+    assert_equals(getComputedStyle(target).getPropertyValue(customProperty), options.from, "Element has the expected initial value");
+
+    const transitionEventPromise = new Promise(resolve => {
+      target.addEventListener("transitionrun", event => {
+          assert_equals(event.propertyName, customProperty, "TransitionEvent has the expected property name");
+          resolve();
+      });
+    });
+
+    target.style.transition = `${customProperty} 1s -500ms linear`;
+    target.style.setProperty(customProperty, options.to);
+
+    const animations = target.getAnimations();
+    assert_equals(animations.length, 1, "A single animation is running");
+
+    const transition = animations[0];
+    assert_class_string(transition, "CSSTransition", "A CSSTransition is running");
+
+    transition.pause();
+    assert_equals(getComputedStyle(target).getPropertyValue(customProperty), options.expected, "Element has the expected animated value");
+
+    await transitionEventPromise;
+  }, description);
+}
+
+function no_transition_test(options, description) {
+  test(() => {
+    const customProperty = generate_name();
+
+    CSS.registerProperty({
+      name: customProperty,
+      syntax: options.syntax,
+      inherits: false,
+      initialValue: options.from
+    });
+
+    assert_equals(getComputedStyle(target).getPropertyValue(customProperty), options.from, "Element has the expected initial value");
+
+    target.style.transition = `${customProperty} 1s -500ms linear`;
+    target.style.setProperty(customProperty, options.to);
+
+    assert_equals(target.getAnimations().length, 0, "No animation was created");
+    assert_equals(getComputedStyle(target).getPropertyValue(customProperty), options.to, "Element has the expected final value");
+  }, description);
+};

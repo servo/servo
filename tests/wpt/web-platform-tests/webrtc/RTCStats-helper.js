@@ -560,6 +560,7 @@ function validateOutboundRtpStreamStats(statsReport, stats) {
   assert_optional_unsigned_int_field(stats, 'sliCount');
   assert_optional_string_field(stats, 'encoderImplementation');
   assert_optional_boolean_field(stats, 'powerEfficientEncoder');
+  assert_optional_string_field(stats, 'scalabilityMode');
   // Obsolete stats
   validateOptionalIdField(statsReport, stats, 'trackId', 'track');
 }

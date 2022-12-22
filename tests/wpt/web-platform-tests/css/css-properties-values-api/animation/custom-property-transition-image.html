@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+no_transition_test({
+  syntax: "<image>",
+  from: 'url("https://example.com/from")',
+  to: 'url("https://example.com/to")',
+}, 'A custom property of type <image> cannot yield a CSS Transition');
+
+</script>

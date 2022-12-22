@@ -189,3 +189,37 @@ async def test_navigate_creates_nested_iframes(bidi_session, subscribe_events, t
     )
 
     remove_listener()
+
+
+async def test_subscribe_to_one_context(
+    bidi_session, subscribe_events, top_context, test_page_same_origin_frame
+):
+    # Subscribe to a specific context
+    await subscribe_events(
+        events=[CONTEXT_CREATED_EVENT], contexts=[top_context["context"]]
+    )
+
+    # Track all received browsingContext.contextCreated events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
+
+    await bidi_session.browsing_context.create(type_hint="tab")
+
+    # Make sure we didn't receive the event for the new tab
+    wait = AsyncPoll(bidi_session, timeout=0.5)
+    with pytest.raises(TimeoutException):
+        await wait.until(lambda _: len(events) > 0)
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=test_page_same_origin_frame, wait="complete"
+    )
+
+    # Make sure we received the event for the iframe
+    await wait.until(lambda _: len(events) >= 1)
+    assert len(events) == 1
+
+    remove_listener()

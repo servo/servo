@@ -22,6 +22,11 @@ runListValuedPropertyTests('stroke-width', [
     syntax: '<percentage>',
     specified: assert_is_equal_with_range_handling
   },
+  {
+    syntax: '<number>',
+    specified: assert_is_equal_with_range_handling,
+    computed: (_, result) => assert_is_unit('px', result)
+  },
 ]);
 
 </script>

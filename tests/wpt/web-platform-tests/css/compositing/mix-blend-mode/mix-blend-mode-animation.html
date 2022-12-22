@@ -5,6 +5,7 @@
         <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
         <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
         <meta name="assert" content="Test checks that an element with mix-blend-mode and animation blends with the parent element.">
+        <meta name="fuzzy" content="0-2;0-11000">
         <link rel="reviewer" title="Rik Cabanier" href="mailto:cabanier@adobe.com">
         <link rel="reviewer" title="Mirela Budaes" href="mailto:mbudaes@adobe.com">
         <link rel="match" href="reference/mix-blend-mode-animation-ref.html">
@@ -17,19 +18,20 @@
 
             @keyframes changeOpacity
             {
-                from { opacity: 1; }
+                from { opacity: 0.9; }
+                50% { opacity: 0.9; }
                 to { opacity: 0.1; }
             }
 
             #blender {
                 background: #F00;
                 mix-blend-mode: difference;
-                animation: changeOpacity 1s;
+                animation: changeOpacity 10s;
             }
         </style>
     </head>
     <body>
-        <p>Test passes if you can see a fading green box.</p>
+        <p>Test passes if you can see a fading green box after 5 seconds.</p>
         <div><div id="blender"></div></div>
     </body>
 </html>

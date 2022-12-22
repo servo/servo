@@ -98,7 +98,6 @@ partial interface Document {
   // also has obsolete members
 };
 Document includes GlobalEventHandlers;
-Document includes DocumentAndElementEventHandlers;
 
 partial interface mixin DocumentOrShadowRoot {
   readonly attribute Element? activeElement;
@@ -131,7 +130,6 @@ interface HTMLElement : Element {
 };
 
 HTMLElement includes GlobalEventHandlers;
-HTMLElement includes DocumentAndElementEventHandlers;
 HTMLElement includes ElementContentEditable;
 HTMLElement includes HTMLOrSVGElement;
 
@@ -1905,7 +1903,9 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler oncontextlost;
   attribute EventHandler oncontextmenu;
   attribute EventHandler oncontextrestored;
+  attribute EventHandler oncopy;
   attribute EventHandler oncuechange;
+  attribute EventHandler oncut;
   attribute EventHandler ondblclick;
   attribute EventHandler ondrag;
   attribute EventHandler ondragend;
@@ -1936,6 +1936,7 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler onmouseout;
   attribute EventHandler onmouseover;
   attribute EventHandler onmouseup;
+  attribute EventHandler onpaste;
   attribute EventHandler onpause;
   attribute EventHandler onplay;
   attribute EventHandler onplaying;
@@ -1981,12 +1982,6 @@ interface mixin WindowEventHandlers {
   attribute EventHandler onstorage;
   attribute EventHandler onunhandledrejection;
   attribute EventHandler onunload;
-};
-
-interface mixin DocumentAndElementEventHandlers {
-  attribute EventHandler oncopy;
-  attribute EventHandler oncut;
-  attribute EventHandler onpaste;
 };
 
 typedef (DOMString or Function) TimerHandler;

@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <title>Sub Apps: Valid calls for add()</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/subapps-helpers.js"></script>
+
 <script>
 
 promise_test(async t => {
@@ -19,7 +22,9 @@ promise_test(async t => {
   let expected_results = {};
   expected_results[same_origin_url] = "success-new-install";
 
-  await subapps_add_expect_success_with_result(t, add_call_params, mocked_response, expected_results);
+  await test_driver.bless("installing a subapp", async function () {
+    await subapps_add_expect_success_with_result(t, add_call_params, mocked_response, expected_results);
+  });
 }, 'Add API call works with single sub app.');
 
 promise_test(async t => {
@@ -43,7 +48,10 @@ promise_test(async t => {
   expected_results[url_1] = "success-new-install";
   expected_results[url_2] = "success-new-install";
 
-  await subapps_add_expect_success_with_result(t, add_call_params, mocked_response, expected_results);
+
+  await test_driver.bless("installing a subapp", async function () {
+    await subapps_add_expect_success_with_result(t, add_call_params, mocked_response, expected_results);
+  });
 }, 'Add API call works with multiple sub apps.');
 
 </script>

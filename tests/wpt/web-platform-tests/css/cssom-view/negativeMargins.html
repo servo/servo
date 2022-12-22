@@ -9,6 +9,7 @@
   Hello
 </div>
 <script>
+ setup({explicit_done:true});
  window.onload = function () {
    var outer = document.getElementById('outer');
    var inner = document.getElementById('inner');
@@ -25,6 +26,7 @@
                          [inner, outer, document.body, document.querySelector('html')],
                          "elementsFromPoint should get sequence [inner, outer, body, html]");
    });
+   done();
  };
 </script>
 </body>

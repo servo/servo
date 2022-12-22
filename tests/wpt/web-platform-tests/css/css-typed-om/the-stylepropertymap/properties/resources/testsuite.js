@@ -193,12 +193,17 @@ const gTestSyntaxExamples = {
         description: "one fraction",
         input: new CSSUnitValue(1, 'fr')
       },
+      // TODO(https://github.com/w3c/css-houdini-drafts/issues/734):
+      // Add calc tests involving 'fr' when that is spec'd in CSS.
+    ],
+  },
+  '<negative-flex>': {
+    description: 'a flexible length',
+    examples: [
       {
         description: "negative fraction",
         input: new CSSUnitValue(-3.14, 'fr')
       },
-      // TODO(https://github.com/w3c/css-houdini-drafts/issues/734):
-      // Add calc tests involving 'fr' when that is spec'd in CSS.
     ],
   },
   '<number>': {

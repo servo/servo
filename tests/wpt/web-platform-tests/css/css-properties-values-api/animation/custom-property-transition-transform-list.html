@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<transform-list>",
+  from: "translateX(100px) scale(2)",
+  to: "translateX(200px) scale(4)",
+  expected: "translateX(150px) scale(3)"
+}, 'A custom property of type <transform-list> can yield a CSS Transition');
+
+</script>
