@@ -90,9 +90,6 @@ async function subapps_add_expect_success_with_result(t, add_call_params, mocked
 
   await createMockSubAppsService(Status.SUCCESS, mocked_response);
   await navigator.subApps.add(add_call_params)
-    .catch(e => {
-      assert_unreached("Should not have rejected.");
-    })
     .then(result => {
       for (const app_id in expected_results) {
         assert_own_property(result, app_id, "Return results are missing entry for subapp.")

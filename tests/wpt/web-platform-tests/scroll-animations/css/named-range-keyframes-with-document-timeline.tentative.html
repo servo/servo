@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Named range keyframe offset when you have a document timeline</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes fade-in-animation {
+    from { opacity: 0 }
+
+    enter 0% { opacity: 0 }
+    enter 100% { opacity: 1 }
+    exit 0% { opacity: 1 }
+    exit 100% { opacity: 0 }
+
+    to { opacity: 1 }
+  }
+
+  #subject {
+    background-color: blue;
+    height: 200px;
+    width: 200px;
+    animation: linear both fade-in-animation;
+    animation-duration: 0.1s;
+    animation-play-state: paused;
+  }
+</style>
+<body onload="runTests()">
+  <div id="subject"></div>
+</body>
+
+<script type="text/javascript">
+  setup(assert_implements_animation_timeline);
+
+  function runTests() {
+    promise_test(async t => {
+      const anim = subject.getAnimations()[0];
+      anim.currentTime = -1;
+      assert_equals(getComputedStyle(subject).opacity, "0",
+              'unexpected value in the before phase');
+
+      anim.currentTime = 50;
+      assert_equals(getComputedStyle(subject).opacity, "0.5",
+              'unexpected value in the middle of the animation');
+
+      anim.currentTime = 100;
+      assert_equals(getComputedStyle(subject).opacity, "1",
+              'unexpected value in the after phase');
+    });
+  }
+</script>
+</html>

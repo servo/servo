@@ -54,9 +54,9 @@ test(function() {
     assert_equals(computedStyle.getPropertyValue('--registered-length-5'), '70px');
     assert_equals(computedStyle.getPropertyValue('--registered-length-6'), '80px');
     assert_equals(computedStyle.getPropertyValue('--registered-length-7'), '123px');
-    assert_equals(computedStyle.getPropertyValue('--length-1'), ' 20px');
-    assert_equals(computedStyle.getPropertyValue('--length-2'), ' 10px');
-    assert_equals(computedStyle.getPropertyValue('--length-3'), ' calc(123px + 123px)');
+    assert_equals(computedStyle.getPropertyValue('--length-1'), '20px');
+    assert_equals(computedStyle.getPropertyValue('--length-2'), '10px');
+    assert_equals(computedStyle.getPropertyValue('--length-3'), 'calc(123px + 123px)');
     assert_equals(computedStyle.getPropertyValue('--registered-length-invalid'), '15px');
 
     assert_equals(computedStyle.getPropertyValue('--registered-token-stream-1'), '');

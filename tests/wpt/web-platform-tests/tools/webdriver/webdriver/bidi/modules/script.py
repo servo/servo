@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Any, Optional, Mapping, List, MutableMapping, Union, Dict
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Union
 
+from ..error import UnknownErrorException
 from ._module import BidiModule, command
 
 
@@ -69,9 +70,14 @@ class Script(BidiModule):
 
     @call_function.result
     def _call_function(self, result: Mapping[str, Any]) -> Any:
-        if "result" not in result:
+        assert "type" in result
+
+        if result["type"] == "success":
+            return result["result"]
+        elif result["type"] == "exception":
             raise ScriptEvaluateResultException(result)
-        return result["result"]
+        else:
+            raise UnknownErrorException(f"""Invalid type '{result["type"]}' in response""")
 
     @command
     def disown(self, handles: List[str], target: Target) -> Mapping[str, Any]:
@@ -98,9 +104,14 @@ class Script(BidiModule):
 
     @evaluate.result
     def _evaluate(self, result: Mapping[str, Any]) -> Any:
-        if "result" not in result:
+        assert "type" in result
+
+        if result["type"] == "success":
+            return result["result"]
+        elif result["type"] == "exception":
             raise ScriptEvaluateResultException(result)
-        return result["result"]
+        else:
+            raise UnknownErrorException(f"""Invalid type '{result["type"]}' in response""")
 
     @command
     def get_realms(

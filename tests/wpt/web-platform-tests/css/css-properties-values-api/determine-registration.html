@@ -101,7 +101,7 @@ test(() => {
 
   with_style_node(`div { ${name}: calc(1px + 1px); }`, () => {
     // ${name} should be a token sequence at this point.
-    assert_equals(getComputedStyle(div).getPropertyValue(name), ' calc(1px + 1px)');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'calc(1px + 1px)');
 
     with_at_property({
       name: name,
@@ -114,7 +114,7 @@ test(() => {
     });
 
     // ${name} should be a token sequence again.
-    assert_equals(getComputedStyle(div).getPropertyValue(name), ' calc(1px + 1px)');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'calc(1px + 1px)');
   });
 }, 'Computed value becomes token sequence when @property is removed');
 
@@ -122,7 +122,7 @@ test(() => {
   let name = generate_name();
 
   with_style_node(`#outer { ${name}: 10px; }`, () => {
-    assert_equals(getComputedStyle(div).getPropertyValue(name), ' 10px');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '10px');
 
     with_at_property({
       name: name,
@@ -134,7 +134,7 @@ test(() => {
       assert_equals(getComputedStyle(div).getPropertyValue(name), '0px');
     });
 
-    assert_equals(getComputedStyle(div).getPropertyValue(name), ' 10px');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '10px');
   });
 }, 'Inherited status is reflected in computed styles when @property is removed');
 

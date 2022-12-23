@@ -379,6 +379,14 @@ check('FileList empty', func_FileList_empty, compare_FileList, true);
 check('Array FileList object, FileList empty', () => ([func_FileList_empty()]), compare_Array(enumerate_props(compare_FileList)), true);
 check('Object FileList object, FileList empty', () => ({'x':func_FileList_empty()}), compare_Object(enumerate_props(compare_FileList)), true);
 
+function compare_ArrayBuffer(actual, input) {
+  assert_true(actual instanceof ArrayBuffer, 'instanceof ArrayBuffer');
+  assert_equals(actual.byteLength, input.byteLength, 'byteLength');
+  assert_equals(actual.maxByteLength, input.maxByteLength, 'maxByteLength');
+  assert_equals(actual.resizable, input.resizable, 'resizable');
+  assert_equals(actual.growable, input.growable, 'growable');
+}
+
 function compare_ArrayBufferView(view) {
   const Type = self[view];
   return function(actual, input) {
@@ -386,6 +394,8 @@ function compare_ArrayBufferView(view) {
       assert_unreached(actual);
     assert_true(actual instanceof Type, 'instanceof '+view);
     assert_equals(actual.length, input.length, 'length');
+    assert_equals(actual.byteLength, input.byteLength, 'byteLength');
+    assert_equals(actual.byteOffset, input.byteOffset, 'byteOffset');
     assert_not_equals(actual.buffer, input.buffer, 'buffer');
     for (let i = 0; i < actual.length; ++i) {
       assert_equals(actual[i], input[i], 'actual['+i+']');
@@ -667,3 +677,77 @@ check(
     assert_equals(Object.getPrototypeOf(copy), File.prototype);
   }
 );
+
+check(
+  'Resizable ArrayBuffer',
+  () => {
+    const ab = new ArrayBuffer(16, { maxByteLength: 1024 });
+    assert_true(ab.resizable);
+    return ab;
+  },
+  compare_ArrayBuffer);
+
+structuredCloneBatteryOfTests.push({
+  description: 'Growable SharedArrayBuffer',
+  async f(runner) {
+    const sab = createBuffer('SharedArrayBuffer', 16, { maxByteLength: 1024 });
+    assert_true(sab.growable);
+    try {
+      const copy = await runner.structuredClone(sab);
+      compare_ArrayBuffer(sab, copy);
+    } catch (e) {
+      // If we're cross-origin isolated, cloning SABs should not fail.
+      if (e instanceof DOMException && e.code === DOMException.DATA_CLONE_ERR) {
+        assert_false(self.crossOriginIsolated);
+      } else {
+        throw e;
+      }
+    }
+  }
+});
+
+check(
+  'Length-tracking TypedArray',
+  () => {
+    const ab = new ArrayBuffer(16, { maxByteLength: 1024 });
+    assert_true(ab.resizable);
+    return new Uint8Array(ab);
+  },
+  compare_ArrayBufferView('Uint8Array'));
+
+check(
+  'Length-tracking DataView',
+  () => {
+    const ab = new ArrayBuffer(16, { maxByteLength: 1024 });
+    assert_true(ab.resizable);
+    return new DataView(ab);
+  },
+  compare_ArrayBufferView('DataView'));
+
+structuredCloneBatteryOfTests.push({
+  description: 'Serializing OOB TypedArray throws',
+  async f(runner, t) {
+    const ab = new ArrayBuffer(16, { maxByteLength: 1024 });
+    const ta = new Uint8Array(ab, 8);
+    ab.resize(0);
+    await promise_rejects_dom(
+      t,
+      "DataCloneError",
+      runner.structuredClone(ta)
+    );
+  }
+});
+
+structuredCloneBatteryOfTests.push({
+  description: 'Serializing OOB DataView throws',
+  async f(runner, t) {
+    const ab = new ArrayBuffer(16, { maxByteLength: 1024 });
+    const dv = new DataView(ab, 8);
+    ab.resize(0);
+    await promise_rejects_dom(
+      t,
+      "DataCloneError",
+      runner.structuredClone(dv)
+    );
+  }
+});

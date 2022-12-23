@@ -38,9 +38,9 @@ test(() => {
   root.append(template.content.cloneNode(true));
   let inside = root.querySelector('#inside');
   assert_equals(getComputedStyle(outside).getPropertyValue('--x'), '2px');
-  assert_equals(getComputedStyle(outside).getPropertyValue('--y'), ' calc(1px + 1px)');
+  assert_equals(getComputedStyle(outside).getPropertyValue('--y'), 'calc(1px + 1px)');
   assert_equals(getComputedStyle(inside).getPropertyValue('--x'), '2px');
-  assert_equals(getComputedStyle(inside).getPropertyValue('--y'), ' calc(1px + 1px)');
+  assert_equals(getComputedStyle(inside).getPropertyValue('--y'), 'calc(1px + 1px)');
 }, '@property rules in shadow trees should have no effect');
 
 </script>

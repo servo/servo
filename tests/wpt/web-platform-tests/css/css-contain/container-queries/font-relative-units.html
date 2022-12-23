@@ -15,6 +15,7 @@
     container-type: inline-size;
     font-size: 50px;
     width: 10ex;
+    height: 50rex;
   }
   #ch_container {
     container-type: inline-size;
@@ -40,6 +41,9 @@
   @container (width: 10ex) {
     #ex_test { color: green }
   }
+  @container (49rex <= width <= 100rex) {
+    #rex_test { color: green }
+  }
   @container (width: 10ch) {
     #ch_test { color: green }
   }
@@ -56,6 +60,7 @@
 </div>
 <div id="ex_container">
   <div id="ex_test"></div>
+  <div id="rex_test"></div>
 </div>
 <div id="ch_container">
   <div id="ch_test"></div>
@@ -73,6 +78,7 @@
   test(() => assert_equals(getComputedStyle(em_test).color, green), "em relative inline-size");
   test(() => assert_equals(getComputedStyle(rem_test).color, green), "rem relative inline-size");
   test(() => assert_equals(getComputedStyle(ex_test).color, green), "ex relative inline-size");
+  test(() => assert_equals(getComputedStyle(rex_test).color, green), "rex relative inline-size" + getComputedStyle(ex_container).width + getComputedStyle(ex_container).height);
   test(() => assert_equals(getComputedStyle(ch_test).color, green), "ch relative inline-size");
   test(() => assert_equals(getComputedStyle(ic_test).color, green), "ic relative inline-size");
   test(() => assert_equals(getComputedStyle(lh_test).color, green), "lh relative inline-size");

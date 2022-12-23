@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Crash test: table-header-group with default overflow/clip margin</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+
+<style type="text/css">
+*:last-child{
+  display: table-header-group;
+}
+</style>
+
+<object>
+  <table>
+    <caption>Text</caption>
+    <tbody></tbody>
+  </table>
+</object>

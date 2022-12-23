@@ -130,36 +130,6 @@
     });
   }, 'If the constructor is already defined, should throw a NotSupportedError');
 
-  // 9.1. If extends is a valid custom element name,
-  // then throw a NotSupportedError.
-  validCustomElementNames.forEach(name =>  {
-    test(() =>  {
-      assert_throws_dom(expectNotSupportedError, testWindow.DOMException, () =>  {
-        customElements.define('test-define-extend-valid-name', class {}, { extends: name });
-      });
-    }, `If extends is ${name}, should throw a NotSupportedError`);
-  });
-
-  // 9.2. If the element interface for extends and the HTML namespace is HTMLUnknownElement
-  // (e.g., if extends does not indicate an element definition in this specification),
-  // then throw a NotSupportedError.
-  [
-    // https://html.spec.whatwg.org/multipage/dom.html#elements-in-the-dom:htmlunknownelement
-    'bgsound',
-    'blink',
-    'isindex',
-    'multicol',
-    'nextid',
-    'spacer',
-    'elementnametobeunknownelement',
-  ].forEach(name =>  {
-    test(() =>  {
-      assert_throws_dom(expectNotSupportedError, testWindow.DOMException, () =>  {
-        customElements.define('test-define-extend-' + name, class {}, { extends: name });
-      });
-    }, `If extends is ${name}, should throw a NotSupportedError`);
-  });
-
   // 12.1. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
   const err = new Error('check this is rethrown');
   err.name = 'rethrown';
