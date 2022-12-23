@@ -292,8 +292,7 @@ class TestEnvironment:
                 for port, server in servers:
                     if scheme == "webtransport-h3":
                         if not webtranport_h3_server_is_running(host, port, timeout=5.0):
-                            # TODO(bashi): Consider supporting retry.
-                            failed.append((host, port))
+                            pending.append((host, port))
                         continue
                     s = socket.socket()
                     s.settimeout(0.1)

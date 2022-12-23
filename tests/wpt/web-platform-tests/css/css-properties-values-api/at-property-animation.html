@@ -258,7 +258,7 @@ test_with_at_property({
 test(() => {
   let name = generate_name();
   with_style_node(`div { ${name}: 100px; transition: ${name} steps(2, start) 100s; }`, () => {
-    assert_equals(getComputedStyle(div).getPropertyValue(name), ' 100px');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '100px');
 
     let style1 = document.createElement('style');
     style1.textContent = `
@@ -287,7 +287,7 @@ test(() => {
       // (making the computed value a token sequence again). We should snap
       // to the new token sequence.
       style1.remove();
-      assert_equals(getComputedStyle(div).getPropertyValue(name), ' 400px');
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '400px');
     } finally {
       style1.remove();
       style2.remove();

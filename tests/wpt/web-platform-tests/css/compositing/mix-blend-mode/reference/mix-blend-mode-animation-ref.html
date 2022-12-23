@@ -12,18 +12,19 @@
 
             @keyframes changeOpacity
             {
-                from { opacity: 1; }
+                from { opacity: 0.9; }
+                50% { opacity: 0.9; }
                 to { opacity: 0.1; }
             }
 
             #blender {
                 background: #0F0;
-                animation: changeOpacity 1s;
+                animation: changeOpacity 10s;
             }
         </style>
     </head>
     <body>
-        <p>Test passes if you can see a fading green box.</p>
+        <p>Test passes if you can see a fading green box after 5 seconds.</p>
         <div><div id="blender"></div></div>
     </body>
 </html>

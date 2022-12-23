@@ -60,7 +60,8 @@
   test(() => {
     assert_equals(getComputedStyle(outer, "::first-letter").color, green);
   }, "Originating element container for outer ::first-letter");
-  test(() => {
+  test((t) => {
+    t.add_cleanup(() => dialog.close());
     assert_equals(getComputedStyle(dialog, "::backdrop").backgroundColor, lime, "::backdrop not rendered");
     dialog.showModal();
     assert_equals(getComputedStyle(dialog, "::backdrop").backgroundColor, green, "::backdrop rendered");

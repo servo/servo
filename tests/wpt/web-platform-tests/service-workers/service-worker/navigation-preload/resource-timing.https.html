@@ -19,14 +19,14 @@ function check_timing_entry(entry, url, decodedBodySize, encodedBodySize) {
     '"navigation":' + url);
 
   // If the server returns the redirect response, |decodedBodySize| is null and
-  // |entry.decodedBodySize| shuld be 0. Otherwise |entry.decodedBodySize| must
+  // |entry.decodedBodySize| should be 0. Otherwise |entry.decodedBodySize| must
   // same as |decodedBodySize|
   assert_equals(
     entry.decodedBodySize, Number(decodedBodySize),
     'decodedBodySize must same as the decoded size in the server:' + url);
 
   // If the server returns the redirect response, |encodedBodySize| is null and
-  // |entry.encodedBodySize| shuld be 0. Otherwise |entry.encodedBodySize| must
+  // |entry.encodedBodySize| should be 0. Otherwise |entry.encodedBodySize| must
   // same as |encodedBodySize|
   assert_equals(
     entry.encodedBodySize, Number(encodedBodySize),

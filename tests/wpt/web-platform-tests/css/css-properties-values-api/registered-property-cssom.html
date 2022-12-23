@@ -25,8 +25,8 @@ var sheetStyle = document.styleSheets[0].cssRules[0].style;
 
 test(function() {
   // Nothing registered yet, whatever you specify works
-  assert_equals(computedStyle.getPropertyValue('--length'), ' 10px');
-  assert_equals(computedStyle.getPropertyValue('--color'), ' red');
+  assert_equals(computedStyle.getPropertyValue('--length'), '10px');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'red');
 
   inlineStyle.setProperty('--length', '5');
   inlineStyle.setProperty('--color', 'hello');

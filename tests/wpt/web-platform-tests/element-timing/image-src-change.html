@@ -1,46 +1,75 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
 <title>Element Timing: src change triggers new entry</title>
-<body>
-<style>
-body {
-  margin: 0;
-}
-</style>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="resources/element-timing-helpers.js"></script>
-<img src='resources/square100.png' elementtiming='my_image' id='my_id'/>
-<script>
-  async_test(function (t) {
-    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
-    let beforeRender = performance.now();
-    const img = document.getElementById('my_id');
-    let firstCallback = true;
-    const observer = new PerformanceObserver(
-      t.step_func(entryList => {
-        assert_equals(entryList.getEntries().length, 1);
-        const entry = entryList.getEntries()[0];
-        if (firstCallback) {
-          const pathname = window.location.origin + '/element-timing/resources/square100.png';
-          checkElement(entry, pathname, 'my_image', 'my_id', beforeRender, img);
-          checkRect(entry, [0, 100, 0, 100]);
-          checkNaturalSize(entry, 100, 100);
 
-          // Set the src to trigger another entry.
-          img.src = '/images/black-rectangle.png';
-          beforeRender = performance.now();
-          firstCallback = false;
-          return;
-        }
-        const pathname = window.location.origin + '/images/black-rectangle.png';
-        checkElement(entry, pathname, 'my_image', 'my_id', beforeRender, img);
-        checkRect(entry, [0, 100, 0, 50]);
-        checkNaturalSize(entry, 100, 50);
-        t.done();
-    }));
-    observer.observe({type: 'element', buffered: true});
-  }, 'Element Timing: changing src causes a new entry to be dispatched.');
-</script>
+<body>
+  <style>
+    body {
+      margin: 0;
+    }
+
+  </style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/element-timing-helpers.js"></script>
+  <img elementtiming='my_image' id='my_id' />
+  <script>
+    const getObservedEntry = async (pathname) => {
+      return await new Promise(resolve => {
+        new PerformanceObserver(entryList => {
+          assert_equals(entryList.getEntries().length, 1);
+          if (entryList.getEntries()[0].url == pathname) {
+            resolve(entryList.getEntries()[0]);
+          }
+        }).observe({ type: 'element', buffered: true });
+      });
+    }
+
+    promise_test(async (t) => {
+      assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+
+      // Take beforeRender timestamp.
+      let beforeRender = performance.now();
+
+      //Load image
+      const img = document.getElementById('my_id');
+
+      const url1 = 'resources/square100.png';
+      await new Promise(resolve => {
+        img.addEventListener('load', resolve);
+        img.src = url1;
+      });
+
+      // Get element entry.
+      let pathname = window.location.origin + '/element-timing/' + url1;
+      let entry = await getObservedEntry(pathname);
+
+      // Check entry.
+      checkElement(entry, pathname, 'my_image', 'my_id', beforeRender, img);
+      checkRect(entry, [0, 100, 0, 100]);
+      checkNaturalSize(entry, 100, 100);
+
+      // Take beforeRender timestamp before changing image src.
+      beforeRender = performance.now();
+
+      // Set the src to trigger another entry.
+      const url2 = '/images/black-rectangle.png';
+
+      //Load image with changed src.
+      await new Promise(resolve => {
+        img.addEventListener('load', resolve);
+        img.src = url2;
+      });
+
+      // Get the corresponding element entry.
+      pathname = window.location.origin + url2;
+      entry = await getObservedEntry(pathname);
+
+      // Check entry.
+      checkElement(entry, pathname, 'my_image', 'my_id', beforeRender, img);
+      checkRect(entry, [0, 100, 0, 50]);
+      checkNaturalSize(entry, 100, 50);
+    }, 'Element Timing: changing src causes a new entry to be dispatched.')
+  </script>
 
 </body>

@@ -9,16 +9,12 @@ const handlersListPromise = fetch("/interfaces/html.idl").then(res => res.text()
   const parsedHTMLIDL = WebIDL2.parse(htmlIDL);
   const windowEventHandlers = handlersInInterface(parsedHTMLIDL, "WindowEventHandlers");
   const globalEventHandlers = handlersInInterface(parsedHTMLIDL, "GlobalEventHandlers");
-  const documentAndElementEventHandlers = handlersInInterface(parsedHTMLIDL, "DocumentAndElementEventHandlers");
 
   const shadowedHandlers = [
     ...windowReflectingBodyElementEventHandlerSet,
     ...windowEventHandlers
   ];
-  const notShadowedHandlers = [
-    ...globalEventHandlers.filter(name => !windowReflectingBodyElementEventHandlerSet.has(name)),
-    ...documentAndElementEventHandlers
-  ];
+  const notShadowedHandlers = globalEventHandlers.filter(name => !windowReflectingBodyElementEventHandlerSet.has(name));
   return {
     shadowedHandlers,
     notShadowedHandlers
