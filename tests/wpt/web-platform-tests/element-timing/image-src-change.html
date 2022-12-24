@@ -17,7 +17,6 @@
     const getObservedEntry = async (pathname) => {
       return await new Promise(resolve => {
         new PerformanceObserver(entryList => {
-          assert_equals(entryList.getEntries().length, 1);
           if (entryList.getEntries()[0].url == pathname) {
             resolve(entryList.getEntries()[0]);
           }

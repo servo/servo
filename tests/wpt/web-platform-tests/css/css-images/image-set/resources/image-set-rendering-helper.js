@@ -24,4 +24,4 @@ function createTestDiv() {
   document.body.appendChild(testDiv);
 }
 
-window.onload = setupTest;
+document.addEventListener("DOMContentLoaded", setupTest);

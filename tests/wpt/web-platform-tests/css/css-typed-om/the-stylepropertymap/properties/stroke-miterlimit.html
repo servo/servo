@@ -16,7 +16,14 @@
 runPropertyTests('stroke-miterlimit', [
   {
     syntax: '<number>',
-    specified: assert_is_equal_with_range_handling
+    specified: assert_is_equal_with_range_handling,
+    computed: (input, result) => {
+      const number = input.to('number');
+      if (number.value < 0)
+        assert_style_value_equals(result, new CSSUnitValue(0, 'number'));
+      else
+        assert_style_value_equals(result, new CSSUnitValue(number.value, 'number'));
+    }
   },
 ]);
 
