@@ -20,7 +20,14 @@ runListValuedPropertyTests('stroke-width', [
   },
   {
     syntax: '<percentage>',
-    specified: assert_is_equal_with_range_handling
+    specified: assert_is_equal_with_range_handling,
+    computed: (input, result) => {
+      const percent = input.to('percent').value;
+      if (percent < 0)
+        assert_style_value_equals(result, new CSSUnitValue(0, 'percent'));
+      else
+        assert_style_value_equals(result, new CSSUnitValue(percent, 'percent'));
+    }
   },
   {
     syntax: '<number>',

@@ -1325,6 +1325,12 @@ const gCSSProperties2 = {
       { type: 'discrete', options: [ [ 'capitalize', 'uppercase' ] ] }
     ]
   },
+  'text-wrap': {
+    // https://drafts.csswg.org/css-text-4/#propdef-text-wrap
+    types: [
+      { type: 'discrete', options: [ [ 'wrap', 'nowrap' ] ] }
+    ]
+  },
   'touch-action': {
     // https://w3c.github.io/pointerevents/#the-touch-action-css-property
     types: [

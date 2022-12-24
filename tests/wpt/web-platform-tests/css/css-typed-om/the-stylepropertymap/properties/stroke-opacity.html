@@ -13,7 +13,7 @@
 <script>
 'use strict';
 
-function assert_is_equal_with_clamping(input, result) {
+function assert_is_equal_with_clamping_number(input, result) {
   const number = input.to('number');
 
   if (number.value < 0)
@@ -24,11 +24,25 @@ function assert_is_equal_with_clamping(input, result) {
     assert_style_value_equals(result, input);
 }
 
+function assert_is_equal_with_clamping_percentage(input, result) {
+  const number = input.to('percent').value / 100.;
+
+  if (number < 0)
+    assert_style_value_equals(result, new CSSUnitValue(0, 'number'));
+  else if (number > 1)
+    assert_style_value_equals(result, new CSSUnitValue(100, 'number'));
+  else
+    assert_style_value_equals(result, new CSSUnitValue(number, 'number'));
+}
+
 runPropertyTests('stroke-opacity', [
   {
     syntax: '<number>',
-    computed: assert_is_equal_with_clamping
+    computed: assert_is_equal_with_clamping_number
   },
+  { syntax: '<percentage>',
+    computed: assert_is_equal_with_clamping_percentage
+  }
 ]);
 
 </script>
