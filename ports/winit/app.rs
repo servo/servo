@@ -40,7 +40,7 @@ impl App {
         device_pixels_per_px: Option<f32>,
         user_agent: Option<String>,
     ) {
-        let events_loop = EventsLoop::new(opts::get().headless);
+        let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some());
 
         // Implements window methods, used by compositor.
         let window = if opts::get().headless {
