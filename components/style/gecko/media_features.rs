@@ -6,6 +6,7 @@
 
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
+use crate::gecko_bindings::structs::ScreenColorGamut;
 use crate::media_queries::{Device, MediaType};
 use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
@@ -139,6 +140,38 @@ fn eval_color_index(_: &Context) -> u32 {
 fn eval_monochrome(context: &Context) -> u32 {
     // For color devices we should return 0.
     unsafe { bindings::Gecko_MediaFeatures_GetMonochromeBitsPerPixel(context.device().document()) }
+}
+
+/// Values for the color-gamut media feature.
+/// This implements PartialOrd so that lower values will correctly match
+/// higher capabilities.
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, PartialOrd, ToCss)]
+#[repr(u8)]
+enum ColorGamut {
+    /// The sRGB gamut.
+    Srgb,
+    /// The gamut specified by the Display P3 Color Space.
+    P3,
+    /// The gamut specified by the ITU-R Recommendation BT.2020 Color Space.
+    Rec2020,
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#color-gamut
+fn eval_color_gamut(context: &Context, query_value: Option<ColorGamut>) -> bool {
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return false,
+    };
+    let color_gamut =
+        unsafe { bindings::Gecko_MediaFeatures_ColorGamut(context.device().document()) };
+    // Match if our color gamut is at least as wide as the query value
+    query_value <=
+        match color_gamut {
+            // EndGuard_ is not a valid color gamut, so the default color-gamut is used.
+            ScreenColorGamut::Srgb | ScreenColorGamut::EndGuard_ => ColorGamut::Srgb,
+            ScreenColorGamut::P3 => ColorGamut::P3,
+            ScreenColorGamut::Rec2020 => ColorGamut::Rec2020,
+        }
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#resolution
@@ -585,7 +618,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 64] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -695,6 +728,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
         atom!("monochrome"),
         AllowsRanges::Yes,
         Evaluator::Integer(eval_monochrome),
+        FeatureFlags::empty(),
+    ),
+    feature!(
+        atom!("color-gamut"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_color_gamut, ColorGamut),
         FeatureFlags::empty(),
     ),
     feature!(
