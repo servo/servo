@@ -349,6 +349,7 @@ where
             pseudo,
             inputs,
             &self.context.shared.guards,
+            pseudo.and(parent_style),
             parent_style,
             parent_style,
             layout_parent_style,
