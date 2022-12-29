@@ -296,6 +296,12 @@ pub struct ContainerInfo {
     wm: WritingMode,
 }
 
+impl ContainerInfo {
+    fn size(&self) -> Option<Size2D<Au>> {
+        Some(Size2D::new(self.size.width?, self.size.height?))
+    }
+}
+
 fn eval_width(context: &Context) -> Option<CSSPixelLength> {
     let info = context.container_info.as_ref()?;
     Some(CSSPixelLength::new(info.size.width?.to_f32_px()))
@@ -332,12 +338,12 @@ fn eval_aspect_ratio(context: &Context) -> Option<Ratio> {
     ))
 }
 
-fn eval_orientation(context: &Context, value: Option<Orientation>) -> bool {
-    let info = match context.container_info.as_ref() {
-        Some(info) => info,
-        None => return false,
+fn eval_orientation(context: &Context, value: Option<Orientation>) -> KleeneValue {
+    let size = match context.container_info.as_ref().and_then(|info| info.size()) {
+        Some(size) => size,
+        None => return KleeneValue::Unknown,
     };
-    Orientation::eval(info.size, value)
+    KleeneValue::from(Orientation::eval(size, value))
 }
 
 /// https://drafts.csswg.org/css-contain-3/#container-features
