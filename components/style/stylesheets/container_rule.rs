@@ -135,14 +135,14 @@ enum TraversalResult<T> {
     Done(T),
 }
 
-fn traverse_container<E, S, F, R>(
+fn traverse_container<E, F, R>(
     mut e: E,
-    originating_element_style: Option<&S>,
+    originating_element_style: Option<&ComputedValues>,
     evaluator: F,
 ) -> Option<(E, R)>
 where
     E: TElement,
-    F: Fn(E, Option<&S>) -> TraversalResult<R>,
+    F: Fn(E, Option<&ComputedValues>) -> TraversalResult<R>,
 {
     if originating_element_style.is_some() {
         match evaluator(e, originating_element_style) {
@@ -185,7 +185,7 @@ impl ContainerCondition {
     fn valid_container_info<E>(
         &self,
         potential_container: E,
-        originating_element_style: Option<&Arc<ComputedValues>>,
+        originating_element_style: Option<&ComputedValues>,
     ) -> TraversalResult<ContainerLookupResult<E>>
     where
         E: TElement,
@@ -198,7 +198,7 @@ impl ContainerCondition {
                     Some(d) => d,
                     None => return TraversalResult::InProgress,
                 };
-                data.styles.primary()
+                &**data.styles.primary()
             },
         };
         let wm = style.writing_mode;
@@ -220,7 +220,7 @@ impl ContainerCondition {
         }
 
         let size = potential_container.query_container_size(&box_style.clone_display());
-        let style = style.clone();
+        let style = style.to_arc();
         TraversalResult::Done(ContainerLookupResult {
             element: potential_container,
             info: ContainerInfo { size, wm },
@@ -232,7 +232,7 @@ impl ContainerCondition {
     pub fn find_container<E>(
         &self,
         e: E,
-        originating_element_style: Option<&Arc<ComputedValues>>,
+        originating_element_style: Option<&ComputedValues>,
     ) -> Option<ContainerLookupResult<E>>
     where
         E: TElement,
@@ -254,7 +254,7 @@ impl ContainerCondition {
         &self,
         device: &Device,
         element: E,
-        originating_element_style: Option<&Arc<ComputedValues>>,
+        originating_element_style: Option<&ComputedValues>,
         invalidation_flags: &mut ComputedValueFlags,
     ) -> KleeneValue
     where
