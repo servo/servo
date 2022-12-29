@@ -60,6 +60,11 @@ function checkSizes(expectedSizes, msg) {
   }
 }
 
+function checkSize(expectedWidth, expectedHeight, msg) {
+  assert_equals(target.clientWidth, expectedWidth, msg + " - clientWidth");
+  assert_equals(target.clientHeight, expectedHeight, msg + " - clientHeight");
+}
+
 function nextRendering() {
   return new Promise(resolve => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
@@ -72,7 +77,7 @@ promise_test(async function() {
 
   await nextRendering();
   target.className = "cis-auto content-skip";
-  checkSizes([[50, 150]], "Using last remembered size");
+  checkSize(50, 150, "Using last remembered size");
 }, "Last remembered size supports multiple fragments");
 
 promise_test(async function() {
@@ -85,6 +90,6 @@ promise_test(async function() {
 
   await nextRendering();
   target.className = "cis-auto content-skip";
-  checkSizes([[50, 175]], "Using updated last remembered size");
+  checkSize(50, 175, "Using updated last remembered size");
 }, "Last remembered size is updated when 2nd fragment changes size");
 </script>
