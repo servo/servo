@@ -507,7 +507,7 @@ where
 
     fn match_pseudo(
         &mut self,
-        originating_element_style: &Arc<ComputedValues>,
+        originating_element_style: &ComputedValues,
         pseudo_element: &PseudoElement,
         visited_handling: VisitedHandlingMode,
     ) -> Option<MatchingResults> {
@@ -544,7 +544,7 @@ where
             NeedsSelectorFlags::Yes,
         );
         matching_context.extra_data.originating_element_style =
-            Some(originating_element_style.clone());
+            Some(originating_element_style);
 
         // NB: We handle animation rules for ::before and ::after when
         // traversing them.

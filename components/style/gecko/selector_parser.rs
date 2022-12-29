@@ -18,7 +18,6 @@ use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
 use dom::{DocumentState, ElementState};
 use selectors::parser::SelectorParseErrorKind;
 use selectors::SelectorList;
-use servo_arc::Arc;
 use std::fmt;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 
@@ -236,7 +235,7 @@ pub struct SelectorImpl;
 /// A set of extra data to carry along with the matching context, either for
 /// selector-matching or invalidation.
 #[derive(Default)]
-pub struct ExtraMatchingData {
+pub struct ExtraMatchingData<'a> {
     /// The invalidation data to invalidate doc-state pseudo-classes correctly.
     pub invalidation_data: InvalidationMatchingData,
 
@@ -246,11 +245,11 @@ pub struct ExtraMatchingData {
 
     /// The style of the originating element in order to evaluate @container
     /// size queries affecting pseudo-elements.
-    pub originating_element_style: Option<Arc<ComputedValues>>,
+    pub originating_element_style: Option<&'a ComputedValues>,
 }
 
 impl ::selectors::SelectorImpl for SelectorImpl {
-    type ExtraMatchingData = ExtraMatchingData;
+    type ExtraMatchingData<'a> = ExtraMatchingData<'a>;
     type AttrValue = AtomString;
     type Identifier = AtomIdent;
     type LocalName = AtomIdent;

@@ -103,6 +103,15 @@ impl ComputedValues {
         ).to_outer(None)
     }
 
+    /// Converts the computed values to an Arc<> from a reference.
+    pub fn to_arc(&self) -> Arc<Self> {
+        // SAFETY: We're guaranteed to be allocated as an Arc<> since the
+        // functions above are the only ones that create ComputedValues
+        // instances in Gecko (and that must be the case since ComputedValues'
+        // member is private).
+        unsafe { Arc::from_raw_addrefed(self) }
+    }
+
     #[inline]
     pub fn is_pseudo_style(&self) -> bool {
         self.0.mPseudoType != PseudoStyleType::NotPseudo
@@ -208,8 +217,8 @@ impl ComputedValuesInner {
                 &self,
                 pseudo_ty,
             );
-            // We're simulating move semantics by having C++ do a memcpy and then forgetting
-            // it on this end.
+            // We're simulating move semantics by having C++ do a memcpy and
+            // then forgetting it on this end.
             forget(self);
             UniqueArc::assume_init(arc).shareable()
         }
