@@ -637,7 +637,7 @@ impl QueryFeatureExpression {
                     .kind
                     .non_ranged_value()
                     .map(|v| *expect!(Enumerated, v));
-                evaluator(context, computed)
+                return evaluator(context, computed)
             },
             Evaluator::BoolInteger(eval) => {
                 let computed = self

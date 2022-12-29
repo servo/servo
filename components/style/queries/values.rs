@@ -4,6 +4,9 @@
 
 //! Common feature values between media and container features.
 
+use app_units::Au;
+use euclid::default::Size2D;
+
 /// The orientation media / container feature.
 /// https://drafts.csswg.org/mediaqueries-5/#orientation
 /// https://drafts.csswg.org/css-contain-3/#orientation
@@ -17,10 +20,7 @@ pub enum Orientation {
 
 impl Orientation {
     /// A helper to evaluate a orientation query given a generic size getter.
-    pub fn eval<T>(size: euclid::default::Size2D<T>, value: Option<Self>) -> bool
-    where
-        T: PartialOrd,
-    {
+    pub fn eval(size: Size2D<Au>, value: Option<Self>) -> bool {
         let query_orientation = match value {
             Some(v) => v,
             None => return true,
