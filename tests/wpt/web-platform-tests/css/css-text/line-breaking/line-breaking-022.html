@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: Simple line breaking test</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-details">
+<link rel="match" href="reference/line-reabking-022.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<meta name="flags" content="ahem" >
+<meta name=assert content="Any Unicode character with the the BK and NL line breaking class must be treated as forced line breaks">
+<style>
+div {
+  font: 25px/1 Ahem;
+  color: transparent; /* No interested in the rendering of the characters with BK an ML line breaking classes themselves, merely in their effects on line breaking. */
+}
+span { color: green; }
+.red {
+  z-index: -1;
+  position: absolute;
+  width: 1em;
+  height: 6em;
+  background: red;
+}
+</style>
+
+<p>This test passes if there is no red.
+
+<div class=red></div>
+
+<div>
+<span>1</span>&#x000C;<span>2</span>&#x000B;<span>3</span>&#x2028;<span>4</span>&#x2029;<span>5</span>&#x0085;<span>6</span>
+</div>
