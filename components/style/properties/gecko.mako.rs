@@ -1725,9 +1725,33 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         }
     }
 
-    <% impl_non_negative_length("column_rule_width", "mColumnRuleWidth",
+    pub fn set_column_rule_style(&mut self, v: longhands::column_rule_style::computed_value::T) {
+        self.gecko.mColumnRuleStyle = v;
+        // NB: This is needed to correctly handling the initial value of
+        // column-rule-width when colun-rule-style changes, see the
+        // update_border_${side.ident} comment for more details.
+        self.gecko.mActualColumnRuleWidth = self.gecko.mColumnRuleWidth;
+    }
+
+    pub fn copy_column_rule_style_from(&mut self, other: &Self) {
+        self.set_column_rule_style(other.gecko.mColumnRuleStyle);
+    }
+
+    pub fn reset_column_rule_style(&mut self, other: &Self) {
+        self.copy_column_rule_style_from(other)
+    }
+
+    pub fn clone_column_rule_style(&self) -> longhands::column_rule_style::computed_value::T {
+        self.gecko.mColumnRuleStyle.clone()
+    }
+
+    <% impl_non_negative_length("column_rule_width", "mActualColumnRuleWidth",
+                                inherit_from="mColumnRuleWidth",
                                 round_to_pixels=True) %>
-    ${impl_simple('column_rule_style', 'mColumnRuleStyle')}
+
+    pub fn column_rule_has_nonzero_width(&self) -> bool {
+        self.gecko.mActualColumnRuleWidth != 0
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters">
@@ -2008,6 +2032,7 @@ pub fn assert_initial_values_match(data: &PerDocumentStyleData) {
                 "border-bottom-width",
                 "border-left-width",
                 "border-right-width",
+                "column-rule-width",
                 "font-family",
                 "font-size",
                 "outline-width",
