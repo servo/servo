@@ -77,12 +77,10 @@ pub enum FontBaseSize {
 
 impl FontBaseSize {
     /// Calculate the actual size for a given context
-    pub fn resolve(&self, context: &Context) -> computed::Length {
+    pub fn resolve(&self, context: &Context) -> computed::FontSize {
         match *self {
-            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
-            FontBaseSize::InheritedStyle => {
-                context.style().get_parent_font().clone_font_size().size()
-            },
+            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size(),
+            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size(),
         }
     }
 }
@@ -167,11 +165,11 @@ impl FontRelativeLength {
                         context
                             .rule_cache_conditions
                             .borrow_mut()
-                            .set_font_size_dependency(reference_font_size.into());
+                            .set_font_size_dependency(reference_font_size.computed_size);
                     }
                 }
 
-                (reference_font_size, length)
+                (reference_font_size.computed_size(), length)
             },
             FontRelativeLength::Ex(length) => {
                 // The x-height is an intrinsically horizontal metric.
@@ -184,7 +182,9 @@ impl FontRelativeLength {
                     //     determine the x-height, a value of 0.5em must be
                     //     assumed.
                     //
-                    reference_font_size * 0.5
+                    // (But note we use 0.5em of the used, not computed
+                    // font-size)
+                    reference_font_size.used_size() * 0.5
                 });
                 (reference_size, length)
             },
@@ -212,11 +212,13 @@ impl FontRelativeLength {
                     //     writing-mode is vertical-rl or vertical-lr and
                     //     text-orientation is upright).
                     //
+                    // Same caveat about computed vs. used font-size applies
+                    // above.
                     let wm = context.style().writing_mode;
                     if wm.is_vertical() && wm.is_upright() {
-                        reference_font_size
+                        reference_font_size.used_size()
                     } else {
-                        reference_font_size * 0.5
+                        reference_font_size.used_size() * 0.5
                     }
                 });
                 (reference_size, length)
@@ -228,7 +230,8 @@ impl FontRelativeLength {
                     // https://drafts.csswg.org/css-values/#cap
                     //
                     //     In the cases where it is impossible or impractical to
-                    //     determine the cap-height, the font’s ascent must be used.
+                    //     determine the cap-height, the font’s ascent must be
+                    //     used.
                     //
                     metrics.ascent
                 });
@@ -247,7 +250,9 @@ impl FontRelativeLength {
                     //     determine the ideographic advance measure, it must be
                     //     assumed to be 1em.
                     //
-                    reference_font_size
+                    // Same caveat about computed vs. used as for other
+                    // metric-dependent units.
+                    reference_font_size.used_size()
                 });
                 (reference_size, length)
             },
@@ -259,7 +264,7 @@ impl FontRelativeLength {
                 //     value.
                 //
                 let reference_size = if context.builder.is_root_element || context.in_media_query {
-                    reference_font_size
+                    reference_font_size.computed_size()
                 } else {
                     context.device().root_font_size()
                 };

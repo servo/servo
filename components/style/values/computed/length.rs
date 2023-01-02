@@ -58,7 +58,7 @@ impl specified::NoCalcLength {
                 length.to_computed_value(context)
             },
             specified::NoCalcLength::ServoCharacterWidth(length) => {
-                length.to_computed_value(context.style().get_font().clone_font_size().size())
+                length.to_computed_value(context.style().get_font().clone_font_size().computed_size())
             },
         }
     }

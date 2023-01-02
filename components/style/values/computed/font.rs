@@ -226,8 +226,13 @@ impl FontWeight {
 #[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
 /// The computed value of font-size
 pub struct FontSize {
-    /// The size.
-    pub size: NonNegativeLength,
+    /// The computed size, that we use to compute ems etc. This accounts for
+    /// e.g., text-zoom.
+    pub computed_size: NonNegativeLength,
+    /// The actual used size. This is the computed font size, potentially
+    /// constrained by other factors like minimum font-size settings and so on.
+    #[css(skip)]
+    pub used_size: NonNegativeLength,
     /// If derived from a keyword, the keyword and additional transformations applied to it
     #[css(skip)]
     pub keyword_info: KeywordInfo,
@@ -236,15 +241,22 @@ pub struct FontSize {
 impl FontSize {
     /// The actual computed font size.
     #[inline]
-    pub fn size(&self) -> Length {
-        self.size.0
+    pub fn computed_size(&self) -> Length {
+        self.computed_size.0
+    }
+
+    /// The actual used font size.
+    #[inline]
+    pub fn used_size(&self) -> Length {
+        self.used_size.0
     }
 
     #[inline]
     /// Get default value of font size.
     pub fn medium() -> Self {
         Self {
-            size: NonNegative(Length::new(specified::FONT_MEDIUM_PX)),
+            computed_size: NonNegative(Length::new(specified::FONT_MEDIUM_PX)),
+            used_size: NonNegative(Length::new(specified::FONT_MEDIUM_PX)),
             keyword_info: KeywordInfo::medium(),
         }
     }
@@ -255,13 +267,14 @@ impl ToAnimatedValue for FontSize {
 
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
-        self.size.0
+        self.computed_size.0
     }
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         FontSize {
-            size: NonNegative(animated.clamp_to_non_negative()),
+            computed_size: NonNegative(animated.clamp_to_non_negative()),
+            used_size: NonNegative(animated.clamp_to_non_negative()),
             keyword_info: KeywordInfo::none(),
         }
     }
@@ -839,7 +852,7 @@ impl ToComputedValue for specified::MozScriptMinSize {
         match self.0 {
             NoCalcLength::FontRelative(value) => value.to_computed_value(cx, base_size),
             NoCalcLength::ServoCharacterWidth(value) => {
-                value.to_computed_value(base_size.resolve(cx))
+                value.to_computed_value(base_size.resolve(cx).computed_size())
             },
             ref l => l.to_computed_value(cx),
         }
