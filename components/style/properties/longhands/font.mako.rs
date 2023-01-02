@@ -382,10 +382,12 @@ pub mod system_font {
                 );
                 &mut *system.as_mut_ptr()
             };
+            let size = NonNegative(cx.maybe_zoom_text(system.size.0));
             let ret = ComputedSystemFont {
                 font_family: system.family.clone(),
                 font_size: FontSize {
-                    size: NonNegative(cx.maybe_zoom_text(system.size.0)),
+                    computed_size: size,
+                    used_size: size,
                     keyword_info: KeywordInfo::none()
                 },
                 font_weight: system.weight,

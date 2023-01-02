@@ -983,7 +983,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 },
             };
 
-            if font.gecko().mScriptUnconstrainedSize == new_size.size {
+            if font.gecko().mScriptUnconstrainedSize == new_size.computed_size {
                 return;
             }
 

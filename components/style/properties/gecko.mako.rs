@@ -863,6 +863,8 @@ fn static_assert() {
         self.gecko.mScriptUnconstrainedSize = other.gecko.mScriptUnconstrainedSize;
 
         self.gecko.mSize = other.gecko.mScriptUnconstrainedSize;
+        // NOTE: Intentionally not copying from mFont.size. The cascade process
+        // recomputes the used size as needed.
         self.gecko.mFont.size = other.gecko.mSize;
         self.gecko.mFontSizeKeyword = other.gecko.mFontSizeKeyword;
 
@@ -876,12 +878,14 @@ fn static_assert() {
     }
 
     pub fn set_font_size(&mut self, v: FontSize) {
-        let size = v.size;
-        self.gecko.mScriptUnconstrainedSize = size;
+        let computed_size = v.computed_size;
+        self.gecko.mScriptUnconstrainedSize = computed_size;
 
         // These two may be changed from Cascade::fixup_font_stuff.
-        self.gecko.mSize = size;
-        self.gecko.mFont.size = size;
+        self.gecko.mSize = computed_size;
+        // NOTE: Intentionally not copying from used_size. The cascade process
+        // recomputes the used size as needed.
+        self.gecko.mFont.size = computed_size;
 
         self.gecko.mFontSizeKeyword = v.keyword_info.kw;
         self.gecko.mFontSizeFactor = v.keyword_info.factor;
@@ -892,7 +896,8 @@ fn static_assert() {
         use crate::values::specified::font::KeywordInfo;
 
         FontSize {
-            size: self.gecko.mSize,
+            computed_size: self.gecko.mSize,
+            used_size: self.gecko.mFont.size,
             keyword_info: KeywordInfo {
                 kw: self.gecko.mFontSizeKeyword,
                 factor: self.gecko.mFontSizeFactor,

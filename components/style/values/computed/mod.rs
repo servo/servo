@@ -327,7 +327,7 @@ impl<'a> Context<'a> {
             FontBaseSize::CurrentStyle => ComputedValueFlags::DEPENDS_ON_SELF_FONT_METRICS,
             FontBaseSize::InheritedStyle => ComputedValueFlags::DEPENDS_ON_INHERITED_FONT_METRICS,
         });
-        let size = base_size.resolve(self);
+        let size = base_size.resolve(self).used_size();
         let style = self.style();
 
         let (wm, font) = match base_size {

@@ -907,11 +907,11 @@ impl FontSize {
                 // If the parent font was keyword-derived, this is too.
                 // Tack the % onto the factor
                 info = compose_keyword(pc.0);
-                (base_size.resolve(context) * pc.0).normalized()
+                (base_size.resolve(context).computed_size() * pc.0).normalized()
             },
             FontSize::Length(LengthPercentage::Calc(ref calc)) => {
                 let calc = calc.to_computed_value_zoomed(context, base_size);
-                calc.resolve(base_size.resolve(context))
+                calc.resolve(base_size.resolve(context).computed_size())
             },
             FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived
@@ -940,13 +940,13 @@ impl FontSize {
                         .as_ref()
                         .unwrap()
                         .font_size
-                        .size
-                        .0
+                        .computed_size()
                 }
             },
         };
         computed::FontSize {
-            size: NonNegative(size),
+            computed_size: NonNegative(size),
+            used_size: NonNegative(size),
             keyword_info: info,
         }
     }
@@ -963,7 +963,7 @@ impl ToComputedValue for FontSize {
     #[inline]
     fn from_computed_value(computed: &computed::FontSize) -> Self {
         FontSize::Length(LengthPercentage::Length(
-            ToComputedValue::from_computed_value(&computed.size.0),
+            ToComputedValue::from_computed_value(&computed.computed_size()),
         ))
     }
 }
