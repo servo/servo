@@ -322,10 +322,7 @@ where
             Component::Root |
             Component::Empty |
             Component::Scope |
-            Component::NthChild(..) |
-            Component::NthLastChild(..) |
-            Component::NthOfType(..) |
-            Component::NthLastOfType(..) |
+            Component::Nth(..) |
             Component::FirstOfType |
             Component::LastOfType |
             Component::OnlyOfType |

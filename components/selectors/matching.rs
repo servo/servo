@@ -8,7 +8,7 @@ use crate::attr::{
 };
 use crate::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use crate::nth_index_cache::NthIndexCacheInner;
-use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
+use crate::parser::{AncestorHashes, Combinator, Component, LocalName, NthType};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use crate::tree::Element;
 use bitflags::bitflags;
@@ -391,10 +391,7 @@ fn hover_and_active_quirk_applies<Impl: SelectorImpl>(
         Component::LastChild |
         Component::OnlyChild |
         Component::Empty |
-        Component::NthChild(_, _) |
-        Component::NthLastChild(_, _) |
-        Component::NthOfType(_, _) |
-        Component::NthLastOfType(_, _) |
+        Component::Nth(_) |
         Component::FirstOfType |
         Component::LastOfType |
         Component::OnlyOfType => false,
@@ -815,18 +812,14 @@ where
             Some(ref scope_element) => element.opaque() == *scope_element,
             None => element.is_root(),
         },
-        Component::NthChild(a, b) => {
-            matches_generic_nth_child(element, context.shared, a, b, false, false)
-        },
-        Component::NthLastChild(a, b) => {
-            matches_generic_nth_child(element, context.shared, a, b, false, true)
-        },
-        Component::NthOfType(a, b) => {
-            matches_generic_nth_child(element, context.shared, a, b, true, false)
-        },
-        Component::NthLastOfType(a, b) => {
-            matches_generic_nth_child(element, context.shared, a, b, true, true)
-        },
+        Component::Nth(nth_data) => matches_generic_nth_child(
+            element,
+            context.shared,
+            nth_data.a,
+            nth_data.b,
+            nth_data.ty == NthType::OfType || nth_data.ty == NthType::LastOfType,
+            nth_data.ty == NthType::LastChild || nth_data.ty == NthType::LastOfType,
+        ),
         Component::FirstOfType => {
             matches_generic_nth_child(element, context.shared, 0, 1, true, false)
         },
