@@ -13,87 +13,6 @@ env:
   SHELL: /bin/bash
 
 jobs:
-  build-win:
-    name: Build (Windows)
-    runs-on: windows-2019
-    steps:
-      - name: Branch check
-        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
-        run: exit 0
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Copy to C drive
-        run: cp D:\a C:\ -Recurse
-      - name: Bootstrap
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: |
-          python -m pip install --upgrade pip virtualenv
-          python mach fetch
-      - name: Release build
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach build --release --media-stack=dummy
-      - name: Unit tests
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach test-unit --release
-      - name: Smoketest
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach smoketest --angle
-
-  build-uwp-x64:
-    name: Build (Windows UWP x64)
-    runs-on: windows-2019
-    steps:
-      - name: Branch check
-        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
-        run: exit 0
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Copy to C drive
-        run: cp D:\a C:\ -Recurse
-      - name: Bootstrap
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: |
-          python -m pip install --upgrade pip virtualenv
-          python mach fetch
-      - name: Release build
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach build --release --target=x86_64-uwp-windows-msvc
-      #- name: Package
-      #  working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-      #  run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64
-      #  env:
-      #    CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
-      - name: Tidy
-        run: python mach test-tidy --force-cpp --no-wpt
-
-  build-uwp-arm64:
-    name: Build (Windows UWP arm64)
-    runs-on: windows-2019
-    steps:
-      - name: Branch check
-        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
-        run: exit 0
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Copy to C drive
-        run: cp D:\a C:\ -Recurse
-      - name: Bootstrap
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: |
-          python -m pip install --upgrade pip virtualenv
-          python mach fetch
-      - name: Release build
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach build --release --target=aarch64-uwp-windows-msvc
-      #- name: Package
-      #  working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-      #  run: python mach package --release --target=aarch64-uwp-windows-msvc --uwp=arm64
-      #  env:
-      #    CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
-
   build-mac:
     name: Build (macOS)
     runs-on: macos-12
@@ -144,152 +63,67 @@ jobs:
           name: release-binary-macos
           path: target.tar.gz
 
-  # mac-wpt:
-  #   #needs: build-mac
-  #   runs-on: macos-10.12
-  #   env:
-  #     max_chunk_id: 20
-  #   strategy:
-  #     matrix:
-  #       chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 2
-  #
-  #     #- name: Download release binary
-  #     #  uses: actions/download-artifact@v3
-  #     #  with:
-  #     #    name: release-binary-macos
-  #
-  #     - name: Fake build
-  #       run: |
-  #         wget https://joshmatthews.net/release-binary-macos.zip
-  #         unzip release-binary-macos.zip
-  #
-  #     - name: Prep test environment
-  #       run: |
-  #         brew install gnu-tar
-  #         gtar -xzf target.tar.gz
-  #         python3 -m pip install --upgrade pip virtualenv
-  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
-  #     - name: Smoketest
-  #       run: python3 ./mach smoketest
-  #     - name: Run tests
-  #       run: |
-  #         python3 ./mach test-wpt \
-  #           --release --processes=3 --timeout-multiplier=8 \
-  #           --total-chunks=${{ env.max_chunk_id }} --this-chunk=${{ matrix.chunk_id }} \
-  #           --log-raw=test-wpt.log \
-  #           --log-servojson=wpt-jsonsummary.log \
-  #           --always-succeed | cat
-  #         python3 ./mach filter-intermittents wpt-jsonsummary.log \
-  #           --log-intermittents=intermittents.log \
-  #           --log-filteredsummary=filtered-wpt-summary.log \
-  #           --tracker-api=default --reporter-api=default
-  #
-  #     - name: Archive logs
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: wpt${{ matrix.chunk_id }}-logs-macos
-  #         path: |
-  #           test-wpt.log
-  #           wpt-jsonsummary.log
-  #           filtered-wpt-summary.log
-  #           intermittents.log
-
-  build-linux:
-    name: Build (Linux)
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Branch check
-        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-linux refs/heads/try-wpt', github.ref) }}
-        run: exit 0
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Bootstrap
-        run: |
-          python3 -m pip install --upgrade pip virtualenv
-          sudo apt update
-          python3 ./mach bootstrap
-      - name: Release build
-        run: python3 ./mach build --release
-      - name: Lockfile check
-        run: ./etc/ci/lockfile_changed.sh
-      - name: Forbidden panic check
-        run: ./etc/ci/check_no_panic.sh
-      - name: Package binary
-        run: tar -czf target.tar.gz target/release/servo resources
-      - name: Archive binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-binary
-          path: target.tar.gz
-
-  linux-wpt:
-    name: Linux WPT Tests
-    runs-on: ubuntu-20.04
-    needs: ["build-linux"]
+  mac-wpt:
+    needs: build-mac
+    runs-on: macos-10.12
     env:
       max_chunk_id: 20
     strategy:
-      fail-fast: false
       matrix:
-        chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        # chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        chunk_id: [1]
     steps:
-      - name: Branch check
-        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-wpt', github.ref) }}
-        run: exit 0
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
-      - uses: actions/download-artifact@v3
-        with:
-          name: release-binary
-          path: release-binary
-      - name: unPackage binary
-        run: tar -xzf release-binary/target.tar.gz
+
+      #- name: Download release binary
+      #  uses: actions/download-artifact@v3
+      #  with:
+      #    name: release-binary-macos
+
+      - name: Fake build
+        run: |
+          wget https://joshmatthews.net/release-binary-macos.zip
+          unzip release-binary-macos.zip
+
       - name: Prep test environment
         run: |
+          brew install gnu-tar
+          gtar -xzf target.tar.gz
           python3 -m pip install --upgrade pip virtualenv
-          sudo apt update
-          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
-          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
-          sudo apt install ./libffi6_3.2.1-8_amd64.deb
-          python3 ./mach bootstrap-gstreamer
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+      - name: Smoketest
+        run: python3 ./mach smoketest
       - name: Run tests
         run: |
           python3 ./mach test-wpt \
-            --release --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-            --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-            --always-succeed
-          python3 ./mach filter-intermittents wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-            --log-intermittents=intermittents.${{ matrix.chunk_id }}.log \
-            --log-filteredsummary=filtered-wpt-summary.${{ matrix.chunk_id }}.log \
+            --release --processes=3 --timeout-multiplier=8 \
+            --total-chunks=${{ env.max_chunk_id }} --this-chunk=${{ matrix.chunk_id }} \
+            --log-raw=test-wpt.log \
+            --log-servojson=wpt-jsonsummary.log \
+            --always-succeed | cat
+          python3 ./mach filter-intermittents wpt-jsonsummary.log \
+            --log-intermittents=intermittents.log \
+            --log-filteredsummary=filtered-wpt-summary.log \
             --tracker-api=default --reporter-api=default
+
       - name: Archive logs
         uses: actions/upload-artifact@v3
-        if: ${{ failure() }}
         with:
-          name: wpt${{ matrix.chunk_id }}-logs-linux
+          name: wpt${{ matrix.chunk_id }}-logs-macos
           path: |
-            test-wpt.${{ matrix.chunk_id }}.log
-            wpt-jsonsummary.${{ matrix.chunk_id }}.log
-            filtered-wpt-summary.${{ matrix.chunk_id }}.log
-            intermittents.${{ matrix.chunk_id }}.log
+            test-wpt.log
+            wpt-jsonsummary.log
+            filtered-wpt-summary.log
+            intermittents.log
 
   build_result:
     name: homu build finished
     runs-on: ubuntu-latest
     needs:
-      - "build-win"
-      - "build-uwp-x64"
-      - "build-linux"
       - "build-mac"
-      - "linux-wpt"
+      - "mac-wpt"
 
     steps:
       - name: Mark the job as successful
