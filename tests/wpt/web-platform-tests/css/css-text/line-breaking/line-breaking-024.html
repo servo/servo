@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: fallback line breaking (Khmer)</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-details">
+<link rel="mismatch" href="reference/line-breaking-024-ref.html">
+<meta name=assert content="In languages requiring lexical or orthographic analysis for line breaking, some form of fallback line breaking must occur even if the UA doesn't know how to perform it correctly. Overflowing is not allowed.">
+<style>
+div {
+    border-right: 6em solid;
+    width: 6em;
+}
+.test {
+    color: blue;
+}
+.ref {
+    white-space: pre;
+    color: orange;
+}
+</style>
+
+<p>This test passes if the <strong>blue text wraps</strong> into more that one line, making it <strong>different</strong> from the orange one.
+
+
+<div class=test lang="km">ការទទួលស្គាល់សេចក្ដីថ្លៃថ្នូរជាប់ពីកំណើត</div>
+
+<div class=ref lang="km">ការទទួលស្គាល់សេចក្ដីថ្លៃថ្នូរជាប់ពីកំណើត</div>

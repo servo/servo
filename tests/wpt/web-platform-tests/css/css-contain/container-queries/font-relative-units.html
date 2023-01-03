@@ -47,8 +47,14 @@
   @container (width: 10ch) {
     #ch_test { color: green }
   }
+  @container (width: 50rch) {
+    #rch_test { color: green }
+  }
   @container (width: 10ic) {
     #ic_test { color: green }
+  }
+  @container (width: 50ric) {
+    #ric_test { color: green }
   }
   @container (width: 10lh) {
     #lh_test { color: green }
@@ -64,9 +70,11 @@
 </div>
 <div id="ch_container">
   <div id="ch_test"></div>
+  <div id="rch_test"></div>
 </div>
 <div id="ic_container">
   <div id="ic_test"></div>
+  <div id="ric_test"></div>
 </div>
 <div id="lh_container">
   <div id="lh_test"></div>
@@ -78,8 +86,10 @@
   test(() => assert_equals(getComputedStyle(em_test).color, green), "em relative inline-size");
   test(() => assert_equals(getComputedStyle(rem_test).color, green), "rem relative inline-size");
   test(() => assert_equals(getComputedStyle(ex_test).color, green), "ex relative inline-size");
-  test(() => assert_equals(getComputedStyle(rex_test).color, green), "rex relative inline-size" + getComputedStyle(ex_container).width + getComputedStyle(ex_container).height);
+  test(() => assert_equals(getComputedStyle(rex_test).color, green), "rex relative inline-size");
   test(() => assert_equals(getComputedStyle(ch_test).color, green), "ch relative inline-size");
+  test(() => assert_equals(getComputedStyle(rch_test).color, green), "rch relative inline-size");
   test(() => assert_equals(getComputedStyle(ic_test).color, green), "ic relative inline-size");
+  test(() => assert_equals(getComputedStyle(ric_test).color, green), "ric relative inline-size");
   test(() => assert_equals(getComputedStyle(lh_test).color, green), "lh relative inline-size");
 </script>

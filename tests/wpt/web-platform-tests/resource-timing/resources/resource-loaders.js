@@ -135,7 +135,6 @@ const load = {
     if (type) {
       object.type = type;
     }
-    object.style = "width: 0px; height: 0px";
     document.body.appendChild(object);
     await loaded;
     document.body.removeChild(object);

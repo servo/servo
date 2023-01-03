@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>text-justify:inter-character and ligatures</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#letter-spacing-property'>
+<link rel='match' href='reference/letter-spacing-ligatures-003-ref.html'>
+<meta name=flags content="should">
+<meta name="assert" content="When the effective spacing between two characters is not zero (due to either justification […]), user agents should not apply optional ligatures, but they do need to apply mandatory ones.">
+<style>
+div {
+    font-size: 2em;
+    width: 12ch;
+}
+.test {
+    text-align: justify;
+    text-align-last: justify;
+    text-justify: inter-character;
+}
+span { float: right; }
+.ref { color: blue; }
+</style>
+<p>Test passes if the black text looks like the blue one.
+<div lang=km class=test>&#x179F;&#x17B6;&#x17A0;&#x17B6;</div>
+<div lang=km class=ref>&#x179F;&#x17B6;<span>&#x17A0;&#x17B6;</span></div>
+
