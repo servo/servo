@@ -1036,6 +1036,27 @@ impl Combinator {
     }
 }
 
+/// An enum for the different types of :nth- pseudoclasses
+#[derive(Copy, Clone, Eq, PartialEq, ToShmem)]
+#[shmem(no_bounds)]
+pub enum NthType {
+    Child,
+    LastChild,
+    OfType,
+    LastOfType,
+}
+
+/// The properties that comprise an :nth- pseudoclass as of Selectors 3 (e.g.,
+/// nth-child(An+B)).
+/// https://www.w3.org/TR/selectors-3/#nth-child-pseudo
+#[derive(Copy, Clone, Eq, PartialEq, ToShmem)]
+#[shmem(no_bounds)]
+pub struct NthSelectorData {
+    pub ty: NthType,
+    pub a: i32,
+    pub b: i32,
+}
+
 /// A CSS simple selector or combinator. We store both in the same enum for
 /// optimal packing and cache performance, see [1].
 ///
@@ -1084,10 +1105,7 @@ pub enum Component<Impl: SelectorImpl> {
     Root,
     Empty,
     Scope,
-    NthChild(i32, i32),
-    NthLastChild(i32, i32),
-    NthOfType(i32, i32),
-    NthLastOfType(i32, i32),
+    Nth(NthSelectorData),
     FirstOfType,
     LastOfType,
     OnlyOfType,
@@ -1598,15 +1616,14 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             FirstOfType => dest.write_str(":first-of-type"),
             LastOfType => dest.write_str(":last-of-type"),
             OnlyOfType => dest.write_str(":only-of-type"),
-            NthChild(a, b) | NthLastChild(a, b) | NthOfType(a, b) | NthLastOfType(a, b) => {
-                match *self {
-                    NthChild(_, _) => dest.write_str(":nth-child(")?,
-                    NthLastChild(_, _) => dest.write_str(":nth-last-child(")?,
-                    NthOfType(_, _) => dest.write_str(":nth-of-type(")?,
-                    NthLastOfType(_, _) => dest.write_str(":nth-last-of-type(")?,
-                    _ => unreachable!(),
+            Nth(nth_data) => {
+                match nth_data.ty {
+                    NthType::Child => dest.write_str(":nth-child(")?,
+                    NthType::LastChild => dest.write_str(":nth-last-child(")?,
+                    NthType::OfType => dest.write_str(":nth-of-type(")?,
+                    NthType::LastOfType => dest.write_str(":nth-last-of-type(")?,
                 }
-                write_affine(dest, a, b)?;
+                write_affine(dest, nth_data.a, nth_data.b)?;
                 dest.write_char(')')
             },
             Is(ref list) | Where(ref list) | Negation(ref list) | Has(ref list) => {
@@ -2312,10 +2329,10 @@ where
     Impl: SelectorImpl,
 {
     match_ignore_ascii_case! { &name,
-        "nth-child" => return parse_nth_pseudo_class(parser, input, state, Component::NthChild),
-        "nth-of-type" => return parse_nth_pseudo_class(parser, input, state, Component::NthOfType),
-        "nth-last-child" => return parse_nth_pseudo_class(parser, input, state, Component::NthLastChild),
-        "nth-last-of-type" => return parse_nth_pseudo_class(parser, input, state, Component::NthLastOfType),
+        "nth-child" => return parse_nth_pseudo_class(parser, input, state, NthType::Child),
+        "nth-of-type" => return parse_nth_pseudo_class(parser, input, state, NthType::OfType),
+        "nth-last-child" => return parse_nth_pseudo_class(parser, input, state, NthType::LastChild),
+        "nth-last-of-type" => return parse_nth_pseudo_class(parser, input, state, NthType::LastOfType),
         "is" if parser.parse_is_and_where() => return parse_is_where_has(parser, input, state, Component::Is),
         "where" if parser.parse_is_and_where() => return parse_is_where_has(parser, input, state, Component::Where),
         "has" if parser.parse_has() => return parse_is_where_has(parser, input, state, Component::Has),
@@ -2342,22 +2359,21 @@ where
     P::parse_non_ts_functional_pseudo_class(parser, name, input).map(Component::NonTSPseudoClass)
 }
 
-fn parse_nth_pseudo_class<'i, 't, P, Impl, F>(
+fn parse_nth_pseudo_class<'i, 't, P, Impl>(
     _: &P,
     input: &mut CssParser<'i, 't>,
     state: SelectorParsingState,
-    selector: F,
+    ty: NthType,
 ) -> Result<Component<Impl>, ParseError<'i, P::Error>>
 where
     P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
-    F: FnOnce(i32, i32) -> Component<Impl>,
 {
     if !state.allows_tree_structural_pseudo_classes() {
         return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
     }
     let (a, b) = parse_nth(input)?;
-    Ok(selector(a, b))
+    Ok(Component::Nth(NthSelectorData { ty, a, b }))
 }
 
 /// Returns whether the name corresponds to a CSS2 pseudo-element that
