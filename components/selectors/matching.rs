@@ -8,7 +8,7 @@ use crate::attr::{
 };
 use crate::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use crate::nth_index_cache::NthIndexCacheInner;
-use crate::parser::{AncestorHashes, Combinator, Component, LocalName, NthType};
+use crate::parser::{AncestorHashes, Combinator, Component, LocalName, NthSelectorData};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use crate::tree::Element;
 use bitflags::bitflags;
@@ -800,46 +800,8 @@ where
             Some(ref scope_element) => element.opaque() == *scope_element,
             None => element.is_root(),
         },
-        Component::Nth(nth_data) => {
-            if nth_data.is_function ||
-                (match nth_data.ty {
-                    NthType::Child => return matches_first_child(element, context.shared),
-                    NthType::LastChild => return matches_last_child(element, context.shared),
-                    NthType::OnlyChild => {
-                        return matches_first_child(element, context.shared) &&
-                            matches_last_child(element, context.shared)
-                    },
-                    NthType::OnlyOfType => {
-                        return matches_generic_nth_child(
-                            element,
-                            context.shared,
-                            nth_data.a,
-                            nth_data.b,
-                            true,
-                            false,
-                        ) && matches_generic_nth_child(
-                            element,
-                            context.shared,
-                            nth_data.a,
-                            nth_data.b,
-                            true,
-                            true,
-                        )
-                    },
-                    _ => true,
-                })
-            {
-                matches_generic_nth_child(
-                    element,
-                    context.shared,
-                    nth_data.a,
-                    nth_data.b,
-                    nth_data.ty == NthType::OfType || nth_data.ty == NthType::LastOfType,
-                    nth_data.ty == NthType::LastChild || nth_data.ty == NthType::LastOfType,
-                )
-            } else {
-                unreachable!()
-            }
+        Component::Nth(ref nth_data) => {
+            matches_generic_nth_child(element, context.shared, nth_data)
         },
         Component::Is(ref list) | Component::Where(ref list) => context.shared.nest(|context| {
             for selector in &**list {
@@ -899,14 +861,10 @@ fn to_unconditional_case_sensitivity<'a, E: Element>(
     }
 }
 
-#[inline]
 fn matches_generic_nth_child<E>(
     element: &E,
     context: &mut MatchingContext<E::Impl>,
-    a: i32,
-    b: i32,
-    is_of_type: bool,
-    is_from_end: bool,
+    nth_data: &NthSelectorData,
 ) -> bool
 where
     E: Element,
@@ -915,12 +873,38 @@ where
         return false;
     }
 
+    let NthSelectorData { ty, a, b, .. } = *nth_data;
+    let is_of_type = ty.is_of_type();
+    if ty.is_only() {
+        return matches_generic_nth_child(element, context, &NthSelectorData::first(is_of_type)) &&
+            matches_generic_nth_child(element, context, &NthSelectorData::last(is_of_type));
+    }
+
+    let is_from_end = ty.is_from_end();
+
+    // It's useful to know whether this can only select the first/last element
+    // child for optimization purposes, see the `HAS_EDGE_CHILD_SELECTOR` flag.
+    let is_edge_child_selector = a == 0 && b == 1 && !is_of_type;
+
     if context.needs_selector_flags() {
-        element.apply_selector_flags(if is_from_end {
+        element.apply_selector_flags(if is_edge_child_selector {
+            ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR
+        } else if is_from_end {
             ElementSelectorFlags::HAS_SLOW_SELECTOR
         } else {
             ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS
         });
+    }
+
+    // :first/last-child are rather trivial to match, don't bother with the
+    // cache.
+    if is_edge_child_selector {
+        return if is_from_end {
+            element.next_sibling_element()
+        } else {
+            element.prev_sibling_element()
+        }
+        .is_none();
     }
 
     // Grab a reference to the appropriate cache.
@@ -1012,26 +996,4 @@ where
     }
 
     index
-}
-
-#[inline]
-fn matches_first_child<E>(element: &E, context: &MatchingContext<E::Impl>) -> bool
-where
-    E: Element,
-{
-    if context.needs_selector_flags() {
-        element.apply_selector_flags(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
-    }
-    element.prev_sibling_element().is_none()
-}
-
-#[inline]
-fn matches_last_child<E>(element: &E, context: &MatchingContext<E::Impl>) -> bool
-where
-    E: Element,
-{
-    if context.needs_selector_flags() {
-        element.apply_selector_flags(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
-    }
-    element.next_sibling_element().is_none()
 }
