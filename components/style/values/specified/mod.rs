@@ -76,8 +76,9 @@ pub use self::page::{PageName, PageSize, PageSizeOrientation, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{
-    GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto,
+    GridAutoFlow, GridTemplateAreas, Position, PositionOrAuto,
 };
+pub use self::position::{MasonryAutoFlow, MasonryPlacement, MasonryItemOrder};
 pub use self::position::{PositionComponent, ZIndex};
 pub use self::ratio::Ratio;
 pub use self::rect::NonNegativeLengthOrNumberRect;
