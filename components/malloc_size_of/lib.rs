@@ -711,16 +711,10 @@ where
             Component::Class(..) |
             Component::AttributeInNoNamespaceExists { .. } |
             Component::AttributeInNoNamespace { .. } |
-            Component::FirstChild |
-            Component::LastChild |
-            Component::OnlyChild |
             Component::Root |
             Component::Empty |
             Component::Scope |
             Component::Nth(..) |
-            Component::FirstOfType |
-            Component::LastOfType |
-            Component::OnlyOfType |
             Component::Host(None) => 0,
         }
     }
