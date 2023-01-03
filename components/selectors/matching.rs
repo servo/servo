@@ -387,14 +387,8 @@ fn hover_and_active_quirk_applies<Impl: SelectorImpl>(
         Component::Class(_) |
         Component::PseudoElement(_) |
         Component::Negation(_) |
-        Component::FirstChild |
-        Component::LastChild |
-        Component::OnlyChild |
         Component::Empty |
-        Component::Nth(_) |
-        Component::FirstOfType |
-        Component::LastOfType |
-        Component::OnlyOfType => false,
+        Component::Nth(_) => false,
         Component::NonTSPseudoClass(ref pseudo_class) => pseudo_class.is_active_or_hover(),
         _ => true,
     })
@@ -784,12 +778,6 @@ where
             }
             element.match_non_ts_pseudo_class(pc, &mut context.shared)
         },
-        Component::FirstChild => matches_first_child(element, context.shared),
-        Component::LastChild => matches_last_child(element, context.shared),
-        Component::OnlyChild => {
-            matches_first_child(element, context.shared) &&
-                matches_last_child(element, context.shared)
-        },
         Component::Root => element.is_root(),
         Component::Empty => {
             if context.shared.needs_selector_flags() {
@@ -812,23 +800,46 @@ where
             Some(ref scope_element) => element.opaque() == *scope_element,
             None => element.is_root(),
         },
-        Component::Nth(nth_data) => matches_generic_nth_child(
-            element,
-            context.shared,
-            nth_data.a,
-            nth_data.b,
-            nth_data.ty == NthType::OfType || nth_data.ty == NthType::LastOfType,
-            nth_data.ty == NthType::LastChild || nth_data.ty == NthType::LastOfType,
-        ),
-        Component::FirstOfType => {
-            matches_generic_nth_child(element, context.shared, 0, 1, true, false)
-        },
-        Component::LastOfType => {
-            matches_generic_nth_child(element, context.shared, 0, 1, true, true)
-        },
-        Component::OnlyOfType => {
-            matches_generic_nth_child(element, context.shared, 0, 1, true, false) &&
-                matches_generic_nth_child(element, context.shared, 0, 1, true, true)
+        Component::Nth(nth_data) => {
+            if nth_data.is_function ||
+                (match nth_data.ty {
+                    NthType::Child => return matches_first_child(element, context.shared),
+                    NthType::LastChild => return matches_last_child(element, context.shared),
+                    NthType::OnlyChild => {
+                        return matches_first_child(element, context.shared) &&
+                            matches_last_child(element, context.shared)
+                    },
+                    NthType::OnlyOfType => {
+                        return matches_generic_nth_child(
+                            element,
+                            context.shared,
+                            nth_data.a,
+                            nth_data.b,
+                            true,
+                            false,
+                        ) && matches_generic_nth_child(
+                            element,
+                            context.shared,
+                            nth_data.a,
+                            nth_data.b,
+                            true,
+                            true,
+                        )
+                    },
+                    _ => true,
+                })
+            {
+                matches_generic_nth_child(
+                    element,
+                    context.shared,
+                    nth_data.a,
+                    nth_data.b,
+                    nth_data.ty == NthType::OfType || nth_data.ty == NthType::LastOfType,
+                    nth_data.ty == NthType::LastChild || nth_data.ty == NthType::LastOfType,
+                )
+            } else {
+                unreachable!()
+            }
         },
         Component::Is(ref list) | Component::Where(ref list) => context.shared.nest(|context| {
             for selector in &**list {

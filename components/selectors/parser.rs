@@ -1042,8 +1042,10 @@ impl Combinator {
 pub enum NthType {
     Child,
     LastChild,
+    OnlyChild,
     OfType,
     LastOfType,
+    OnlyOfType,
 }
 
 /// The properties that comprise an :nth- pseudoclass as of Selectors 3 (e.g.,
@@ -1053,6 +1055,7 @@ pub enum NthType {
 #[shmem(no_bounds)]
 pub struct NthSelectorData {
     pub ty: NthType,
+    pub is_function: bool,
     pub a: i32,
     pub b: i32,
 }
@@ -1099,16 +1102,10 @@ pub enum Component<Impl: SelectorImpl> {
 
     /// Pseudo-classes
     Negation(Box<[Selector<Impl>]>),
-    FirstChild,
-    LastChild,
-    OnlyChild,
     Root,
     Empty,
     Scope,
     Nth(NthSelectorData),
-    FirstOfType,
-    LastOfType,
-    OnlyOfType,
     NonTSPseudoClass(#[cfg_attr(feature = "shmem", shmem(field_bound))] Impl::NonTSPseudoClass),
     /// The ::slotted() pseudo-element:
     ///
@@ -1598,9 +1595,6 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             AttributeOther(ref attr_selector) => attr_selector.to_css(dest),
 
             // Pseudo-classes
-            FirstChild => dest.write_str(":first-child"),
-            LastChild => dest.write_str(":last-child"),
-            OnlyChild => dest.write_str(":only-child"),
             Root => dest.write_str(":root"),
             Empty => dest.write_str(":empty"),
             Scope => dest.write_str(":scope"),
@@ -1613,17 +1607,27 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 }
                 Ok(())
             },
-            FirstOfType => dest.write_str(":first-of-type"),
-            LastOfType => dest.write_str(":last-of-type"),
-            OnlyOfType => dest.write_str(":only-of-type"),
             Nth(nth_data) => {
-                match nth_data.ty {
-                    NthType::Child => dest.write_str(":nth-child(")?,
-                    NthType::LastChild => dest.write_str(":nth-last-child(")?,
-                    NthType::OfType => dest.write_str(":nth-of-type(")?,
-                    NthType::LastOfType => dest.write_str(":nth-last-of-type(")?,
+                if nth_data.is_function {
+                    match nth_data.ty {
+                        NthType::Child => dest.write_str(":nth-child("),
+                        NthType::LastChild => dest.write_str(":nth-last-child("),
+                        NthType::OfType => dest.write_str(":nth-of-type("),
+                        NthType::LastOfType => dest.write_str(":nth-last-of-type("),
+                        _ => unreachable!(),
+                    }?;
+                    write_affine(dest, nth_data.a, nth_data.b)?;
+                } else {
+                    match nth_data.ty {
+                        NthType::Child => dest.write_str(":first-child"),
+
+                        NthType::LastChild => dest.write_str(":last-child"),
+                        NthType::OnlyChild => dest.write_str(":only-child"),
+                        NthType::OfType => dest.write_str(":first-of-type"),
+                        NthType::LastOfType => dest.write_str(":last-of-type"),
+                        NthType::OnlyOfType => dest.write_str(":only-of-type"),
+                    }?;
                 }
-                write_affine(dest, nth_data.a, nth_data.b)?;
                 dest.write_char(')')
             },
             Is(ref list) | Where(ref list) | Negation(ref list) | Has(ref list) => {
@@ -2373,7 +2377,12 @@ where
         return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
     }
     let (a, b) = parse_nth(input)?;
-    Ok(Component::Nth(NthSelectorData { ty, a, b }))
+    Ok(Component::Nth(NthSelectorData {
+        ty,
+        is_function: true,
+        a,
+        b,
+    }))
 }
 
 /// Returns whether the name corresponds to a CSS2 pseudo-element that
@@ -2534,16 +2543,16 @@ where
 
     if state.allows_tree_structural_pseudo_classes() {
         match_ignore_ascii_case! { &name,
-            "first-child" => return Ok(Component::FirstChild),
-            "last-child" => return Ok(Component::LastChild),
-            "only-child" => return Ok(Component::OnlyChild),
+            "first-child" => return Ok(Component::Nth(NthSelectorData{ ty: NthType:: Child, is_function: false, a: 0, b: 1})),
+            "last-child" => return Ok(Component::Nth(NthSelectorData{ ty: NthType:: LastChild, is_function: false, a: 0, b: 1})),
+            "only-child" => return Ok(Component::Nth(NthSelectorData{ ty: NthType:: OnlyChild, is_function: false, a: 0, b: 1})),
             "root" => return Ok(Component::Root),
             "empty" => return Ok(Component::Empty),
             "scope" => return Ok(Component::Scope),
             "host" if P::parse_host(parser) => return Ok(Component::Host(None)),
-            "first-of-type" => return Ok(Component::FirstOfType),
-            "last-of-type" => return Ok(Component::LastOfType),
-            "only-of-type" => return Ok(Component::OnlyOfType),
+            "first-of-type" => return Ok(Component::Nth(NthSelectorData{ ty: NthType:: OfType, is_function: false, a: 0, b: 1})),
+            "last-of-type" => return Ok(Component::Nth(NthSelectorData{ ty: NthType:: LastOfType, is_function: false, a: 0, b: 1})),
+            "only-of-type" => return Ok(Component::Nth(NthSelectorData{ ty: NthType:: OnlyOfType, is_function: false, a: 0, b: 1})),
             _ => {},
         }
     }
