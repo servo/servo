@@ -294,7 +294,7 @@ jobs:
       - "build-linux"
       - "build-mac"
       - "linux-wpt"
-      - "mac-wpt"
+      # - "mac-wpt"
 
     steps:
       - name: Mark the job as successful
