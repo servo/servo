@@ -73,11 +73,13 @@ jobs:
           path: target.tar.gz
 
   mac-wpt:
-    needs: build-mac
+    name: Mac WPT Tests
     runs-on: macos-12
+    needs: ["build-mac"]
     env:
       max_chunk_id: 20
     strategy:
+      fail-fast: false
       matrix:
         # chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
         chunk_id: [1]
@@ -85,8 +87,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
-      - name: Download release binary
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v3
         with:
           name: release-binary-macos
       # TODO: Remove this step when the compatibility issue between mozjs and
@@ -100,7 +101,6 @@ jobs:
           ln -s pip3.9 pip3
       - name: Prep test environment
         run: |
-          brew install gnu-tar
           gtar -xzf target.tar.gz
           python3 -m pip install --upgrade pip virtualenv
           brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
@@ -109,25 +109,26 @@ jobs:
       - name: Run tests
         run: |
           python3 ./mach test-wpt \
-            --release --processes=3 --timeout-multiplier=8 \
-            --total-chunks=${{ env.max_chunk_id }} --this-chunk=${{ matrix.chunk_id }} \
-            --log-raw=test-wpt.log \
-            --log-servojson=wpt-jsonsummary.log \
-            --always-succeed | cat
-          python3 ./mach filter-intermittents wpt-jsonsummary.log \
-            --log-intermittents=intermittents.log \
-            --log-filteredsummary=filtered-wpt-summary.log \
+            --release --processes $(nproc) --timeout-multiplier 8 \
+            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
+            --log-raw test-wpt.${{ matrix.chunk_id }}.log \
+            --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
+            --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.${{ matrix.chunk_id }}.log \
+            --log-intermittents=intermittents.${{ matrix.chunk_id }}.log \
+            --log-filteredsummary=filtered-wpt-summary.${{ matrix.chunk_id }}.log \
             --tracker-api=default --reporter-api=default
 
       - name: Archive logs
         uses: actions/upload-artifact@v3
+        if: ${{ failure() }}
         with:
           name: wpt${{ matrix.chunk_id }}-logs-macos
           path: |
-            test-wpt.log
-            wpt-jsonsummary.log
-            filtered-wpt-summary.log
-            intermittents.log
+            test-wpt.${{ matrix.chunk_id }}.log
+            wpt-jsonsummary.${{ matrix.chunk_id }}.log
+            filtered-wpt-summary.${{ matrix.chunk_id }}.log
+            intermittents.${{ matrix.chunk_id }}.log
 
   build_result:
     name: homu build finished
