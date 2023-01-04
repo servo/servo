@@ -65,7 +65,7 @@ jobs:
 
   mac-wpt:
     needs: build-mac
-    runs-on: macos-10.12
+    runs-on: macos-12
     env:
       max_chunk_id: 20
     strategy:
