@@ -6839,9 +6839,12 @@ checksum = "ce607aae8ab0ab3abf3a2723a9ab6f09bb8639ed83fdd888d857b8e556c868d8"
 
 [[package]]
 name = "truetype"
-version = "0.30.1"
+version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "063aa7cf1a7e56677e639c8f180a84d30b8fd788a684cfee2460418629925730"
+checksum = "7c628aaf2721bbf3082a712649f8735d146f8752189ad5fcbeac4b8a2d9c03cd"
+dependencies = [
+ "typeface",
+]
 
 [[package]]
 name = "try-lock"
@@ -6880,6 +6883,12 @@ name = "typed-arena"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0685c84d5d54d1c26f7d3eb96cd41550adb97baed141a761cf335d3d33bcd0ae"
+
+[[package]]
+name = "typeface"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "716f008359b511ef53d91e103efe33184a417619862736dcc9725126b792ae12"
 
 [[package]]
 name = "typenum"

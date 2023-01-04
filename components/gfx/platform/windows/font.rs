@@ -65,39 +65,6 @@ fn make_tag(tag_bytes: &[u8]) -> FontTableTag {
 
 macro_rules! try_lossy(($result:expr) => ($result.map_err(|_| (()))?));
 
-// Given a set of records, figure out the string indices for the family and face
-// names.  We want name_id 1 and 2, and we need to use platform_id == 1 and
-// language_id == 0 to avoid limitations in the truetype crate.  We *could* just
-// do our own parsing here, and use the offset/length data and pull the values out
-// ourselves.
-fn get_family_face_indices(records: &[truetype::naming_table::Record]) -> Option<(usize, usize)> {
-    let mut family_name_index = None;
-    let mut face_name_index = None;
-
-    for i in 0..records.len() {
-        // the truetype crate can only decode mac platform format names
-        if records[i].platform_id != 1 {
-            continue;
-        }
-
-        if records[i].language_id != 0 {
-            continue;
-        }
-
-        if records[i].name_id == 1 {
-            family_name_index = Some(i);
-        } else if records[i].name_id == 2 {
-            face_name_index = Some(i);
-        }
-    }
-
-    if family_name_index.is_some() && face_name_index.is_some() {
-        Some((family_name_index.unwrap(), face_name_index.unwrap()))
-    } else {
-        None
-    }
-}
-
 // We need the font (DWriteFont) in order to be able to query things like
 // the family name, face name, weight, etc.  On Windows 10, the
 // DWriteFontFace3 interface provides this on the FontFace, but that's only
@@ -118,8 +85,10 @@ struct FontInfo {
 impl FontInfo {
     fn new_from_face(face: &FontFace) -> Result<FontInfo, ()> {
         use std::cmp::{max, min};
+        use std::collections::HashMap;
         use std::io::Cursor;
-        use truetype::{NamingTable, Value, WindowsMetrics};
+        use truetype::naming_table::{NameID, NamingTable};
+        use truetype::{Value, WindowsMetrics};
 
         let name_table_bytes = face.get_font_table(make_tag(b"name"));
         let os2_table_bytes = face.get_font_table(make_tag(b"OS/2"));
@@ -129,27 +98,23 @@ impl FontInfo {
 
         let mut name_table_cursor = Cursor::new(name_table_bytes.as_ref().unwrap());
         let names = try_lossy!(NamingTable::read(&mut name_table_cursor));
-        let (family, face) = match names {
-            NamingTable::Format0(ref table) => {
-                if let Some((family_index, face_index)) = get_family_face_indices(&table.records) {
-                    let strings = table.strings().unwrap();
-                    let family = strings[family_index].clone();
-                    let face = strings[face_index].clone();
-                    (family, face)
-                } else {
-                    return Err(());
-                }
-            },
-            NamingTable::Format1(ref table) => {
-                if let Some((family_index, face_index)) = get_family_face_indices(&table.records) {
-                    let strings = table.strings().unwrap();
-                    let family = strings[family_index].clone();
-                    let face = strings[face_index].clone();
-                    (family, face)
-                } else {
-                    return Err(());
-                }
-            },
+        let mut names: HashMap<_, _> = names
+            .iter()
+            .filter(|((_, language_tag), value)| {
+                value.is_some() &&
+                    language_tag
+                        .as_deref()
+                        .map_or(false, |language_tag| language_tag.starts_with("en"))
+            })
+            .map(|((name_id, _), value)| (name_id, value.unwrap()))
+            .collect();
+        let family = match names.remove(&NameID::FontFamilyName) {
+            Some(family) => family,
+            _ => return Err(()),
+        };
+        let face = match names.remove(&NameID::FontSubfamilyName) {
+            Some(face) => face,
+            _ => return Err(()),
         };
 
         let mut os2_table_cursor = Cursor::new(os2_table_bytes.as_ref().unwrap());
