@@ -925,9 +925,10 @@ CASCADE_GROUPS = {
         "-moz-min-font-size-ratio",
         # font-size depends on math-depth's computed value.
         "math-depth",
-        # Needed to compute the first available font, in order to
-        # compute font-relative units correctly.
+        # Needed to compute the first available font and its used size,
+        # in order to compute font-relative units correctly.
         "font-size",
+        "font-size-adjust",
         "font-weight",
         "font-stretch",
         "font-style",
