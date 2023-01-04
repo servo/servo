@@ -190,9 +190,9 @@ macro_rules! try_parse_one {
             % endfor
         }
 
-        fn scroll_linked_animations_enabled() -> bool {
+        fn scroll_driven_animations_enabled() -> bool {
             #[cfg(feature = "gecko")]
-            return static_prefs::pref!("layout.css.scroll-linked-animations.enabled");
+            return static_prefs::pref!("layout.css.scroll-driven-animations.enabled");
             #[cfg(feature = "servo")]
             return false;
         }
@@ -221,7 +221,7 @@ macro_rules! try_parse_one {
                 try_parse_one!(context, input, fill_mode, animation_fill_mode);
                 try_parse_one!(context, input, play_state, animation_play_state);
                 try_parse_one!(context, input, name, animation_name);
-                if scroll_linked_animations_enabled() {
+                if scroll_driven_animations_enabled() {
                     try_parse_one!(context, input, timeline, animation_timeline);
                 }
 
@@ -320,9 +320,8 @@ macro_rules! try_parse_one {
     engines="gecko"
     name="scroll-timeline"
     sub_properties="scroll-timeline-name scroll-timeline-axis"
-    gecko_pref="layout.css.scroll-linked-animations.enabled",
-    // Also in https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-shorthand
-    spec="https://github.com/w3c/csswg-drafts/issues/6674"
+    gecko_pref="layout.css.scroll-driven-animations.enabled",
+    spec="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-shorthand"
 >
     pub fn parse_value<'i>(
         context: &ParserContext,
