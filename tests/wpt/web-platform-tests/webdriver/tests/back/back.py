@@ -164,6 +164,6 @@ def test_cross_origin(session, url):
 
     assert session.url == first_page
 
-    with pytest.raises(error.StaleElementReferenceException):
+    with pytest.raises(error.NoSuchElementException):
         elem.click()
     elem = session.find.css("#delete", all=False)
