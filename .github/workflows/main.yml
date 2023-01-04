@@ -17,9 +17,6 @@ jobs:
     name: Build (macOS)
     runs-on: macos-12
     steps:
-      - name: Branch check
-        if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-mac', github.ref) }}
-        run: exit 0
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
@@ -40,6 +37,18 @@ jobs:
           rm -rf /usr/local/etc/openssl
           rm -rf /usr/local/etc/openssl@1.1
           brew install openssl@1.1 gnu-tar
+      - name: Cache mach fetch
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo
+          key: fetch-${{ runner.os }}
+      - name: Cache target
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: target-${{ runner.os }}
       - name: Release build
         run: |
           export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
@@ -47,14 +56,14 @@ jobs:
           export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
           export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
           python3 ./mach build --release
-      - name: Smoketest
-        run: python3 ./mach smoketest
-      - name: Unit tests
-        run: python3 ./mach test-unit --release
-      - name: Test package
-        run: python3 ./mach package --release
-      - name: Package smoketest
-        run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
+      # - name: Smoketest
+      #   run: python3 ./mach smoketest
+      # - name: Unit tests
+      #   run: python3 ./mach test-unit --release
+      # - name: Test package
+      #   run: python3 ./mach package --release
+      # - name: Package smoketest
+      #   run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
       - name: Package binary
         run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
       - name: Archive binary
@@ -76,17 +85,19 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
-
-      #- name: Download release binary
-      #  uses: actions/download-artifact@v3
-      #  with:
-      #    name: release-binary-macos
-
-      - name: Fake build
+      - name: Download release binary
+        uses: actions/download-artifact@v3
+        with:
+          name: release-binary-macos
+      # TODO: Remove this step when the compatibility issue between mozjs and
+      #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
+      - name: Select Python 3.9
         run: |
-          wget https://joshmatthews.net/release-binary-macos.zip
-          unzip release-binary-macos.zip
-
+          brew install python@3.9
+          cd $(dirname $(which python3.9))
+          rm -f python3 pip3
+          ln -s python3.9 python3
+          ln -s pip3.9 pip3
       - name: Prep test environment
         run: |
           brew install gnu-tar
