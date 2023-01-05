@@ -13,9 +13,31 @@ env:
   SHELL: /bin/bash
 
 jobs:
+  decision:
+    name: Decision job
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Previous successful build check
+        uses: actions/github-script@v6
+        with:
+          script: |
+            if ((await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "main.yml",
+              head_sha: context.sha,
+              status: "success",
+            })).data.workflow_runs.length > 0)
+              await github.rest.actions.cancelWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId,
+              });
+
   build-win:
     name: Build (Windows)
     runs-on: windows-2019
+    needs: ["decision"]
     steps:
       - name: Branch check
         if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
@@ -43,6 +65,7 @@ jobs:
   build-uwp-x64:
     name: Build (Windows UWP x64)
     runs-on: windows-2019
+    needs: ["decision"]
     steps:
       - name: Branch check
         if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
@@ -71,6 +94,7 @@ jobs:
   build-uwp-arm64:
     name: Build (Windows UWP arm64)
     runs-on: windows-2019
+    needs: ["decision"]
     steps:
       - name: Branch check
         if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-windows', github.ref) }}
@@ -97,6 +121,7 @@ jobs:
   build-mac:
     name: Build (macOS)
     runs-on: macos-12
+    needs: ["decision"]
     steps:
       - name: Branch check
         if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-mac', github.ref) }}
@@ -201,6 +226,7 @@ jobs:
   build-linux:
     name: Build (Linux)
     runs-on: ubuntu-20.04
+    needs: ["decision"]
     steps:
       - name: Branch check
         if: ${{ !contains('refs/heads/auto refs/heads/try refs/heads/try-linux refs/heads/try-wpt', github.ref) }}
