@@ -13,6 +13,15 @@
 <script>
 'use strict';
 
+function assert_is_equal_with_clamping_percentage(input, result) {
+  const percent = input.to('percent').value;
+
+  if (percent < 0)
+    assert_style_value_equals(result, new CSSUnitValue(0, 'percent'));
+  else
+    assert_style_value_equals(result, new CSSUnitValue(percent, 'percent'));
+}
+
 const logical = {
   axes: ['block', 'inline'],
   sides: ['block-start', 'block-end', 'inline-start', 'inline-end'],
@@ -32,7 +41,8 @@ for (const side of [...logical.sides, ...logical.axes]) {
     // TODO: Test 'auto'
     {
       syntax: '<percentage>',
-      specified: assert_is_equal_with_range_handling
+      specified: assert_is_equal_with_range_handling,
+      computed: assert_is_equal_with_clamping_percentage
     },
     {
       syntax: '<length>',

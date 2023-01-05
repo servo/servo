@@ -124,6 +124,19 @@
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus after Escape');
       await finishAnimationsAndVerifyHide(popover);
 
+      // Move focus into the popover, then hit Escape:
+      let containedButton = popover.querySelector('button');
+      if (containedButton) {
+        priorFocus.focus();
+        assert_equals(document.activeElement, priorFocus);
+        popover.showPopover();
+        containedButton.focus();
+        assert_equals(document.activeElement, containedButton);
+        await sendEscape();
+        assert_equals(document.activeElement, priorFocus, 'prior element should get focus after Escape');
+        await finishAnimationsAndVerifyHide(popover);
+      }
+
       // Change the popover type:
       priorFocus.focus();
       popover.showPopover();
@@ -165,7 +178,16 @@
       assert_true(popover.matches(':open'));
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by button.click()`);
 
+      // Make sure Escape works in the invoker case:
+      await sendEscape();
+      assert_equals(document.activeElement, priorFocus, 'prior element should get focus after Escape (via invoker)');
+      await finishAnimationsAndVerifyHide(popover);
+
       // Make sure we can directly focus the (already open) popover:
+      priorFocus.focus();
+      button.click();
+      assert_true(popover.matches(':open'));
+      assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by button.click()`);
       popover.focus();
       assert_equals(document.activeElement, popover.hasAttribute('tabindex') ? popover : expectedFocusedElement, `${testName} directly focus with popover.focus()`);
       button.click(); // Button is set to toggle the popover
@@ -187,11 +209,7 @@
       assert_true(popover.matches(':open'));
       await clickOn(button); // This will *not* light dismiss, but will "toggle" the popover.
       assert_false(popover.matches(':open'));
-      const changesFocus = !popover.hasAttribute('data-no-focus');
-      if (changesFocus)
-        assert_equals(document.activeElement, priorFocus, 'focus should return to the prior focus, if focus moved on show');
-      else
-        assert_equals(document.activeElement, button, 'focus should remain on the button, since focus didn\t move on show');
+      assert_equals(document.activeElement, priorFocus, 'focus should return to the prior focus');
       await finishAnimationsAndVerifyHide(popover);
 
       // Same thing, but the button is contained within the popover
@@ -202,14 +220,13 @@
       priorFocus.focus();
       popover.showPopover();
       assert_true(popover.matches(':open'));
+      const changesFocus = !popover.hasAttribute('data-no-focus');
       if (changesFocus) {
         assert_not_equals(document.activeElement, priorFocus, 'focus should shift for this element');
       }
       await clickOn(button);
       assert_false(popover.matches(':open'), 'clicking button should hide the popover');
-      if (changesFocus) {
-        assert_equals(document.activeElement, priorFocus, 'Contained button should return focus to the previously focused element, if focus moved on show');
-      }
+      assert_equals(document.activeElement, priorFocus, 'Contained button should return focus to the previously focused element');
       await finishAnimationsAndVerifyHide(popover);
 
       // Same thing, but the button is unrelated (no popovertoggletarget)

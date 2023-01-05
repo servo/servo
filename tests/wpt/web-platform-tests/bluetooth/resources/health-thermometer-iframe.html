@@ -17,13 +17,20 @@ function requestDeviceWithOptionsAndConnect(options) {
 window.addEventListener('message', (messageEvent) => {
   switch (messageEvent.data.type) {
     case 'GetAvailability':
-      navigator.bluetooth.getAvailability().then(
-          availability => parent.postMessage(availability, '*'));
+      navigator.bluetooth.getAvailability()
+          .then(availability => parent.postMessage(availability, '*'))
+          .catch(err => parent.postMessage(`FAIL: ${err}`, '*'));
+      break;
+    case 'GetDevices':
+      navigator.bluetooth.getDevices()
+          .then(devices => parent.postMessage('Success', '*'))
+          .catch(err => parent.postMessage(`FAIL: ${err}`, '*'));
       break;
     case 'RequestDevice':
-      test_driver.click(document.getElementsByTagName("button")[0])
-          .then(() => navigator.bluetooth
-              .requestDevice({filters: [{services: ['generic_access']}]}))
+      test_driver.click(document.getElementsByTagName('button')[0])
+          .then(
+              () => navigator.bluetooth.requestDevice(
+                  {filters: [{services: ['generic_access']}]}))
           .then(device => {
             if (device.constructor.name === 'BluetoothDevice') {
               parent.postMessage('Success', '*');
@@ -32,7 +39,22 @@ window.addEventListener('message', (messageEvent) => {
                   `FAIL: requestDevice in iframe returned ${device.name}`, '*');
             }
           })
-          .catch(err => parent.postMessage(`${err.name}: ${err.message}`, '*'));
+          .catch(err => parent.postMessage(`FAIL: ${err.name}: ${err.message}`, '*'));
+      break;
+    case 'RequestLEScan':
+      test_driver.click(document.getElementsByTagName('button')[0])
+          .then(
+              () => navigator.bluetooth.requestLEScan(
+                {filters: [{name: 'Health Thermometer'}]}))
+          .then(leScan => {
+              if (leScan.active) {
+                parent.postMessage('Success', '*');
+                leScan.stop();
+              } else {
+                parent.postMessage(`FAIL: the LE scan hasn't been initiated.`, '*');
+              }
+          })
+          .catch(err => parent.postMessage(`FAIL: ${err.name}: ${err.message}`, '*'));
       break;
     case 'RequestAndConnect':
       requestDeviceWithOptionsAndConnect(messageEvent.data.options)

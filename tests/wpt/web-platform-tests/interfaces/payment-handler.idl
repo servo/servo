@@ -41,17 +41,8 @@ partial interface ServiceWorkerGlobalScope {
 
 [Exposed=ServiceWorker]
 interface CanMakePaymentEvent : ExtendableEvent {
-  constructor(DOMString type, optional CanMakePaymentEventInit eventInitDict = {});
-  readonly attribute USVString topOrigin;
-  readonly attribute USVString paymentRequestOrigin;
-  readonly attribute FrozenArray<PaymentMethodData> methodData;
+  constructor(DOMString type);
   undefined respondWith(Promise<boolean> canMakePaymentResponse);
-};
-
-dictionary CanMakePaymentEventInit : ExtendableEventInit {
-  USVString topOrigin;
-  USVString paymentRequestOrigin;
-  sequence<PaymentMethodData> methodData;
 };
 
 partial interface ServiceWorkerGlobalScope {

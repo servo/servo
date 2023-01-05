@@ -116,6 +116,8 @@ CONSOLE: service-workers/service-worker/navigation-redirect.https.html
 CONSOLE: service-workers/service-worker/resources/clients-get-other-origin.html
 CONSOLE: webrtc/tools/*
 CONSOLE: webaudio/resources/audit.js:41
+CONSOLE: resource-timing/resources/resource-loaders.js
+CONSOLE: resource-timing/resources/entry-invariants.js
 
 # use of console in a public library - annotation-model ensures
 # it is not actually used

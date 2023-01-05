@@ -57,6 +57,7 @@
 </style>
 
 <script>
+setup({ explicit_done: true });
 window.onload = () => {
   const outsideElement = document.getElementById('outside');
   function assertPopoverVisibility(popover, isPopover, expectedVisibility, message) {
@@ -424,5 +425,7 @@ window.onload = () => {
     await finishAnimations(popover);
     assert_true(popover.matches(':closed'),':closed should match once animations finish');
   },'Exceptions are thrown even when show/hide are animated');
+
+  done();
 };
 </script>

@@ -1,5 +1,23 @@
 'use strict';
 
+async function IsSharedStorageSelectUrlAllowedByPermissionsPolicy() {
+  const errorMessage = 'The \"shared-storage-select-url\" Permissions Policy denied the usage of window.sharedStorage.selectURL().';
+  let allowedByPermissionsPolicy = true;
+  try {
+    // Run selectURL() with without addModule() and this should always fail.
+    // Check the error message to distinguish between the permissions policy
+    // error and the missing addModule() error.
+    await sharedStorage.selectURL("operation", [{url: "1.html"}]);
+    assert_unreached("did not fail");
+  } catch (e) {
+    if (e.message === errorMessage) {
+      allowedByPermissionsPolicy = false;
+    }
+  }
+
+  return allowedByPermissionsPolicy;
+}
+
 // Execute all shared storage methods and capture their errors. Return true if
 // the permissions policy allows all of them; return false if the permissions
 // policy disallows all of them. Precondition: only these two outcomes are

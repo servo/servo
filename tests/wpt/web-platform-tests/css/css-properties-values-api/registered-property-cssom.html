@@ -27,7 +27,9 @@ test(function() {
   // Nothing registered yet, whatever you specify works
   assert_equals(computedStyle.getPropertyValue('--length'), '10px');
   assert_equals(computedStyle.getPropertyValue('--color'), 'red');
+}, "Initially unregistered values from stylesheet");
 
+test(function() {
   inlineStyle.setProperty('--length', '5');
   inlineStyle.setProperty('--color', 'hello');
 

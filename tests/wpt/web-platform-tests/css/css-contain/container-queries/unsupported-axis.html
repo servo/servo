@@ -215,3 +215,14 @@
     assert_equals(getComputedStyle(target).getPropertyValue('--not-block-size'), '');
   }, 'not (block-size < 0px)');
 </script>
+
+<style>
+  @container not (orientation) {
+    #target { --not-orientation:true; }
+  }
+</style>
+<script>
+  test(function(t) {
+    assert_equals(getComputedStyle(target).getPropertyValue('--not-orientation'), '');
+  }, 'not (orientation)');
+</script>

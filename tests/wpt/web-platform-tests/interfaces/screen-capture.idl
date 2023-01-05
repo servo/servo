@@ -63,6 +63,7 @@ partial dictionary MediaTrackSettings {
   boolean logicalSurface;
   DOMString cursor;
   boolean restrictOwnAudio;
+  boolean suppressLocalAudioPlayback;
 };
 
 partial dictionary MediaTrackCapabilities {

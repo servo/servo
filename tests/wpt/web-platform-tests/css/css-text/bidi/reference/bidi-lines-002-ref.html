@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: unicode-bidi: plaintext and neutral paragraphs</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+section {
+    text-align: start;
+    font-size: 2em;
+    border: solid;
+    padding: 0 0.5ch;
+    width: 10em;
+}
+.l { color: blue; }
+.r { color: orange; }
+</style>
+
+<p>This test passes if within the box below, the two blue “!” are on the left, and the three orange ones are on the right.
+
+<section>
+<div dir=rtl><span class=r>!</span></div>
+<div dir=ltr><span class=l>!</span> Hello</div>
+<div dir=ltr><span class=l>!</span></div>
+<div dir=rtl><span class=r>!</span> سلام</div>
+<div dir=rtl><span class=r>!</span></div>
+</section>
+
