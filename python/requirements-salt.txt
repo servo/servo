@@ -3,4 +3,4 @@
 
 # For boostrapping, make sure versions match those in saltfs
 salt == 2016.3.4
-GitPython == 0.3.2
+GitPython == 3.1.30
