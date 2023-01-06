@@ -1005,7 +1005,10 @@ impl ToAnimatedValue for FontStyle {
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
         if self == Self::NORMAL {
-            return generics::FontStyle::Normal;
+            // This allows us to animate between normal and oblique values. Per spec,
+            // https://drafts.csswg.org/css-fonts-4/#font-style-prop:
+            //   Animation type: by computed value type; 'normal' animates as 'oblique 0deg'
+            return generics::FontStyle::Oblique(Angle::from_degrees(0.0))
         }
         if self == Self::ITALIC {
             return generics::FontStyle::Italic;
@@ -1018,7 +1021,13 @@ impl ToAnimatedValue for FontStyle {
         match animated {
             generics::FontStyle::Normal => Self::NORMAL,
             generics::FontStyle::Italic => Self::ITALIC,
-            generics::FontStyle::Oblique(ref angle) => Self::oblique(angle.degrees()),
+            generics::FontStyle::Oblique(ref angle) =>
+                if angle.degrees() == 0.0 {
+                    // Reverse the conversion done in to_animated_value()
+                    Self::NORMAL
+                } else {
+                    Self::oblique(angle.degrees())
+                },
         }
     }
 }
