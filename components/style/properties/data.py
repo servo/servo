@@ -445,7 +445,6 @@ class Longhand(Property):
                 "FontSizeAdjust",
                 "FontStretch",
                 "FontStyle",
-                "FontStyleAdjust",
                 "FontSynthesis",
                 "FontVariantEastAsian",
                 "FontVariantLigatures",
