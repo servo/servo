@@ -13,6 +13,7 @@ dictionary SecurePaymentConfirmationRequest {
     USVString payeeOrigin;
     AuthenticationExtensionsClientInputs extensions;
     sequence<USVString> locale;
+    boolean showOptOut;
 };
 
 partial dictionary AuthenticationExtensionsClientInputs {
@@ -52,6 +53,7 @@ dictionary PaymentCredentialInstrument {
 
 enum TransactionAutomationMode {
   "none",
-  "autoaccept",
-  "autoreject"
+  "autoAccept",
+  "autoReject",
+  "autoOptOut"
 };

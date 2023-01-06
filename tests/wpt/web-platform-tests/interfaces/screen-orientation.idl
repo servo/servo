@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: The Screen Orientation API (https://w3c.github.io/screen-orientation/)
+// Source: Screen Orientation (https://w3c.github.io/screen-orientation/)
 
 partial interface Screen {
   [SameObject] readonly attribute ScreenOrientation orientation;

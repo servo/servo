@@ -9,6 +9,10 @@ class MockPressureService {
     this.interceptor_.oninterfacerequest = e => {
       this.receiver_.$.bindHandle(e.handle);
     };
+    this.receiver_.onConnectionError.addListener(() => {
+      this.stopPlatformCollector();
+      this.observer_ = null;
+    });
     this.reset();
     this.mojomStateType_ = new Map([
       ['nominal', PressureState.kNominal], ['fair', PressureState.kFair],

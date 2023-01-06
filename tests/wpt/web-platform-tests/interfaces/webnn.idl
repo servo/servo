@@ -27,8 +27,13 @@ dictionary MLContextOptions {
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface ML {
-  MLContext createContext(optional MLContextOptions options = {});
-  MLContext createContext(GPUDevice gpuDevice);
+  Promise<MLContext> createContext(optional MLContextOptions options = {});
+  Promise<MLContext> createContext(GPUDevice gpuDevice);
+
+  [Exposed=(DedicatedWorker)]
+  MLContext createContextSync(optional MLContextOptions options = {});
+  [Exposed=(DedicatedWorker)]
+  MLContext createContextSync(GPUDevice gpuDevice);
 };
 
 typedef record<DOMString, ArrayBufferView> MLNamedArrayBufferViews;
@@ -38,12 +43,12 @@ interface MLContext {};
 
 partial interface MLContext {
   [Exposed=(DedicatedWorker)]
-  undefined compute(
+  undefined computeSync(
       MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
 };
 
 partial interface MLContext {
-  Promise<undefined> computeAsync(
+  Promise<undefined> compute(
       MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
 };
 
@@ -103,12 +108,12 @@ interface MLGraphBuilder {
   // Create a single-value operand from the specified number of the specified type.
   MLOperand constant(double value, optional MLOperandType type = "float32");
 
+  // Compile the graph up to the specified output operands asynchronously.
+  Promise<MLGraph> build(MLNamedOperands outputs);
+
   // Compile the graph up to the specified output operands synchronously.
   [Exposed=(DedicatedWorker)]
-  MLGraph build(MLNamedOperands outputs);
-
-  // Compile the graph up to the specified output operands asynchronously.
-  Promise<MLGraph> buildAsync(MLNamedOperands outputs);
+  MLGraph buildSync(MLNamedOperands outputs);
 };
 
 dictionary MLBatchNormalizationOptions {
@@ -152,11 +157,11 @@ enum MLAutoPad {
 };
 
 dictionary MLConv2dOptions {
-  sequence<long> padding;
-  sequence<long> strides;
-  sequence<long> dilations;
+  sequence<unsigned long> padding;
+  sequence<unsigned long> strides;
+  sequence<unsigned long> dilations;
   MLAutoPad autoPad = "explicit";
-  long groups = 1;
+  unsigned long groups = 1;
   MLInputOperandLayout inputLayout = "nchw";
   MLConv2dFilterOperandLayout filterLayout = "oihw";
   MLOperand bias;
@@ -174,13 +179,13 @@ enum MLConvTranspose2dFilterOperandLayout {
 };
 
 dictionary MLConvTranspose2dOptions {
-  sequence<long> padding;
-  sequence<long> strides;
-  sequence<long> dilations;
-  sequence<long> outputPadding;
-  sequence<long> outputSizes;
+  sequence<unsigned long> padding;
+  sequence<unsigned long> strides;
+  sequence<unsigned long> dilations;
+  sequence<unsigned long> outputPadding;
+  sequence<unsigned long> outputSizes;
   MLAutoPad autoPad = "explicit";
-  long groups = 1;
+  unsigned long groups = 1;
   MLInputOperandLayout inputLayout = "nchw";
   MLConvTranspose2dFilterOperandLayout filterLayout = "iohw";
   MLOperand bias;
@@ -259,7 +264,6 @@ dictionary MLGruOptions {
 
 partial interface MLGraphBuilder {
   sequence<MLOperand> gru(MLOperand input, MLOperand weight, MLOperand recurrentWeight,
-
                         long steps, long hiddenSize, optional MLGruOptions options = {});
 };
 
@@ -273,7 +277,6 @@ dictionary MLGruCellOptions {
 
 partial interface MLGraphBuilder {
   MLOperand gruCell(MLOperand input, MLOperand weight, MLOperand recurrentWeight,
-
                   MLOperand hiddenState, long hiddenSize, optional MLGruCellOptions options = {});
 };
 
@@ -301,7 +304,6 @@ dictionary MLInstanceNormalizationOptions {
 
 partial interface MLGraphBuilder {
   MLOperand instanceNormalization(MLOperand input,
-
                                 optional MLInstanceNormalizationOptions options = {});
 };
 
@@ -350,14 +352,14 @@ enum MLRoundingType {
 };
 
 dictionary MLPool2dOptions {
-  sequence<long> windowDimensions;
-  sequence<long> padding;
-  sequence<long> strides;
-  sequence<long> dilations;
+  sequence<unsigned long> windowDimensions;
+  sequence<unsigned long> padding;
+  sequence<unsigned long> strides;
+  sequence<unsigned long> dilations;
   MLAutoPad autoPad = "explicit";
   MLInputOperandLayout layout = "nchw";
   MLRoundingType roundingType = "floor";
-  sequence<long> outputSizes;
+  sequence<unsigned long> outputSizes;
 };
 
 partial interface MLGraphBuilder {
@@ -397,7 +399,7 @@ enum MLInterpolationMode {
 dictionary MLResample2dOptions {
   MLInterpolationMode mode = "nearest-neighbor";
   sequence<float> scales;
-  sequence<long> sizes;
+  sequence<unsigned long> sizes;
   sequence<long> axes;
 };
 
@@ -406,7 +408,7 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand reshape(MLOperand input, sequence<long> newShape);
+  MLOperand reshape(MLOperand input, sequence<unsigned long?> newShape);
 };
 
 partial interface MLGraphBuilder {

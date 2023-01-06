@@ -1,89 +1,34 @@
+let responseType = 'canMakePayment-true';
+self.addEventListener('message', event => {
+  responseType = event.data.responseType;
+});
+
 self.addEventListener('canmakepayment', event => {
-  if (event.methodData.length !== 1) {
-    const msg = 'Expected exactly one method data.';
+  if (event.methodData) {
+    const msg = 'Expected no method data.';
     event.respondWith(Promise.reject(new Error(msg)));
     return;
   }
 
-  const [method] = event.methodData;
-  if (!method || method.supportedMethods.length !== 1) {
-    const msg = 'Expected exactly one supported method name';
+  if (event.modifiers) {
+    const msg = 'Expected no modifiers';
     event.respondWith(Promise.reject(new Error(msg)));
     return;
   }
 
-  if (method.data.defaultParameter !== 'defaultValue') {
-    const msg = `Unexpected value for "defaultParameter": ${
-      method.data.defaultParameter
-    }`;
+  if (event.topOrigin) {
+    const msg = `Unexpected topOrigin.`;
     event.respondWith(Promise.reject(new Error(msg)));
     return;
   }
 
-  if ('defaultUnsupportedParameter' in method.data) {
-    const msg = 'Unexpected "defaultUnsupportedParameter"';
+  if (event.paymentRequestOrigin) {
+    const msg = `Unexpected iframe origin.`;
     event.respondWith(Promise.reject(new Error(msg)));
     return;
   }
 
-  if (event.modifiers.length !== 1) {
-    const msg = 'Expected exactly one modifier';
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
-  const [modifier] = event.modifiers;
-
-  if (!modifier || modifier.supportedMethods.length !== 1) {
-    const msg = 'Expected exactly one supported method name in modifier';
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
-  for (const member of [
-    'additionalDisplayItems',
-    'modifiedUnsupportedParameter',
-    'total',
-  ]) {
-    if (member in modifier) {
-      const msg = `Unexpected member "${member}" in modifier`;
-      event.respondWith(Promise.reject(new Error(msg)));
-      return;
-    }
-  }
-
-  const [methodName] = method.supportedMethods;
-  const [modifierMethodName] = modifier.supportedMethods;
-  if (modifierMethodName !== methodName) {
-    const msg = `Unexpected modifier method name: "${modifierMethodName}". Expected "${methodName}".`;
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
-  if (modifier.data.modifiedParameter !== 'modifiedValue') {
-    const msg = `Unexpected value for 'modifiedParameter': ${
-      modifier.data.modifiedParameter
-    }`;
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
-  const methodAsURL = new URL(methodName);
-  if (event.topOrigin !== methodAsURL.origin) {
-    const msg = `Unexpected event.topOrigin: "${
-      event.topOrigin
-    }". Expected "${methodAsURL.origin}".`;
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
-  if (event.paymentRequestOrigin !== methodAsURL.origin) {
-    const msg = `Unexpected iframe origin ${event.paymentRequestOrigin}`;
-    event.respondWith(Promise.reject(new Error(msg)));
-    return;
-  }
-
-  switch (methodAsURL.pathname.substr(1)) {
+  switch (responseType) {
     case 'canMakePayment-true':
       event.respondWith(true);
       break;

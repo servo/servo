@@ -30,7 +30,7 @@ async function registerApp(methodName) {
 }
 
 function buildPaymentRequest(methodName) {
-  const unsupportedMethodName = methodName + '-unsupported';
+  const unsupportedMethodName = methodName + '/unsupported';
   return new PaymentRequest(
     [
       {
@@ -105,7 +105,7 @@ function buildPaymentRequest(methodName) {
 }
 
 promise_test(async t => {
-  const methodName = window.location.origin + '/canMakePayment-true';
+  const methodName = window.location.origin;
   // Intentionally do not install the payment app.
   const request = buildPaymentRequest(methodName);
   assert_not_equals(request, undefined);
@@ -129,8 +129,10 @@ promise_test(async t => {
 }, 'If a payment handler is not installed, then the payment method is not supported.');
 
 promise_test(async t => {
-  const methodName = window.location.origin + '/canMakePayment-false';
+  const methodName = window.location.origin;
   await registerApp(methodName);
+  navigator.serviceWorker.controller.postMessage(
+      {responseType: 'canMakePayment-false'});
   const request = buildPaymentRequest(methodName);
   assert_not_equals(request, undefined);
   let paymentRequestCanMakePaymentResult;
@@ -153,8 +155,10 @@ promise_test(async t => {
 }, 'If CanMakePaymentEvent.respondWith(false) is called, then the payment method is not supported.');
 
 promise_test(async t => {
-  const methodName = window.location.origin + '/canMakePayment-promise-false';
+  const methodName = window.location.origin;
   await registerApp(methodName);
+  navigator.serviceWorker.controller.postMessage(
+      {responseType: 'canMakePayment-promise-false'});
   const request = buildPaymentRequest(methodName);
   assert_not_equals(request, undefined);
   let paymentRequestCanMakePaymentResult;
@@ -177,8 +181,10 @@ promise_test(async t => {
 }, 'If CanMakePaymentEvent.respondWith(Promise.resolve(false)) is called, then the payment method is not supported.');
 
 promise_test(async t => {
-  const methodName = window.location.origin + '/canMakePayment-true';
+  const methodName = window.location.origin;
   await registerApp(methodName);
+  navigator.serviceWorker.controller.postMessage(
+      {responseType: 'canMakePayment-true'});
   const request = buildPaymentRequest(methodName);
   assert_not_equals(request, undefined);
   let paymentRequestCanMakePaymentResult;
@@ -203,8 +209,10 @@ promise_test(async t => {
 }, 'If CanMakePaymentEvent.respondWith(true) is called, then the payment method is supported.');
 
 promise_test(async t => {
-  const methodName = window.location.origin + '/canMakePayment-promise-true';
+  const methodName = window.location.origin;
   await registerApp(methodName);
+  navigator.serviceWorker.controller.postMessage(
+      {responseType: 'canMakePayment-promise-true'});
   const request = buildPaymentRequest(methodName);
   assert_not_equals(request, undefined);
   let paymentRequestCanMakePaymentResult;
@@ -229,8 +237,10 @@ promise_test(async t => {
 }, 'If CanMakePaymentEvent.respondWith(Promise.resolve(true)) is called, then the payment method is supported.');
 
 promise_test(async t => {
-  const methodName = window.location.origin + '/canMakePayment-custom-error';
+  const methodName = window.location.origin;
   await registerApp(methodName);
+  navigator.serviceWorker.controller.postMessage(
+      {responseType: 'canMakePayment-custom-error'});
   const request = buildPaymentRequest(methodName);
   assert_not_equals(request, undefined);
   let paymentRequestCanMakePaymentResult;

@@ -36,7 +36,6 @@ interface ViewTimeline : ScrollTimeline {
 };
 
 [Exposed=Window]
-interface AnimationTimeline {
-  readonly attribute CSSNumberish? currentTime;
+partial interface AnimationTimeline {
   CSSNumericValue? getCurrentTime(optional CSSOMString rangeName);
 };

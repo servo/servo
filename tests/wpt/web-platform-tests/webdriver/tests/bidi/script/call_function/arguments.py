@@ -113,14 +113,19 @@ async def test_default_arguments(bidi_session, top_context):
             {"type": "boolean", "value": False},
         ),
         (
+            "document.createElement('div')",
+            "(node) => node.tagName",
+            {"type": "string", "value": "DIV"},
+        ),
+        (
             "window.foo = 3; window",
             "(window) => window.foo",
             {"type": "number", "value": 3},
         ),
         (
-            "document.createElement('div')",
-            "(node) => node.tagName",
-            {"type": "string", "value": "DIV"},
+            "window.url = new URL('https://example.com'); window.url",
+            "(url) => url.hostname",
+            {"type": "string", "value": "example.com"},
         ),
         (
             "({SOME_PROPERTY:'SOME_VALUE'})",

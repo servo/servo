@@ -38,5 +38,4 @@ enum PermissionState {
 dictionary PermissionSetParameters {
   required PermissionDescriptor descriptor;
   required PermissionState state;
-  boolean oneRealm = false;
 };

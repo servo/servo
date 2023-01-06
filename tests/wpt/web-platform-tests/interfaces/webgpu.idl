@@ -106,7 +106,6 @@ enum GPUFeatureName {
     "timestamp-query",
     "indirect-first-instance",
     "shader-f16",
-    "bgra8unorm-storage",
     "rg11b10ufloat-renderable"
 };
 
@@ -585,6 +584,21 @@ interface GPUCompilationInfo {
     readonly attribute FrozenArray<GPUCompilationMessage> messages;
 };
 
+[Exposed=(Window, DedicatedWorker), SecureContext, Serializable]
+interface GPUPipelineError : DOMException {
+    constructor(DOMString message, GPUPipelineErrorInit options);
+    readonly attribute GPUPipelineErrorReason reason;
+};
+
+dictionary GPUPipelineErrorInit {
+    required GPUPipelineErrorReason reason;
+};
+
+enum GPUPipelineErrorReason {
+    "validation",
+    "internal"
+};
+
 enum GPUAutoLayoutMode {
     "auto"
 };
@@ -815,6 +829,34 @@ dictionary GPUVertexAttribute {
     required GPUIndex32 shaderLocation;
 };
 
+dictionary GPUImageDataLayout {
+    GPUSize64 offset = 0;
+    GPUSize32 bytesPerRow;
+    GPUSize32 rowsPerImage;
+};
+
+dictionary GPUImageCopyBuffer : GPUImageDataLayout {
+    required GPUBuffer buffer;
+};
+
+dictionary GPUImageCopyTexture {
+    required GPUTexture texture;
+    GPUIntegerCoordinate mipLevel = 0;
+    GPUOrigin3D origin = {};
+    GPUTextureAspect aspect = "all";
+};
+
+dictionary GPUImageCopyTextureTagged : GPUImageCopyTexture {
+    PredefinedColorSpace colorSpace = "srgb";
+    boolean premultipliedAlpha = false;
+};
+
+dictionary GPUImageCopyExternalImage {
+    required (ImageBitmap or HTMLVideoElement or HTMLCanvasElement or OffscreenCanvas) source;
+    GPUOrigin2D origin = {};
+    boolean flipY = false;
+};
+
 [Exposed=(Window, DedicatedWorker), SecureContext]
 interface GPUCommandBuffer {
 };
@@ -874,34 +916,6 @@ GPUCommandEncoder includes GPUCommandsMixin;
 GPUCommandEncoder includes GPUDebugCommandsMixin;
 
 dictionary GPUCommandEncoderDescriptor : GPUObjectDescriptorBase {
-};
-
-dictionary GPUImageDataLayout {
-    GPUSize64 offset = 0;
-    GPUSize32 bytesPerRow;
-    GPUSize32 rowsPerImage;
-};
-
-dictionary GPUImageCopyBuffer : GPUImageDataLayout {
-    required GPUBuffer buffer;
-};
-
-dictionary GPUImageCopyTexture {
-    required GPUTexture texture;
-    GPUIntegerCoordinate mipLevel = 0;
-    GPUOrigin3D origin = {};
-    GPUTextureAspect aspect = "all";
-};
-
-dictionary GPUImageCopyTextureTagged : GPUImageCopyTexture {
-    PredefinedColorSpace colorSpace = "srgb";
-    boolean premultipliedAlpha = false;
-};
-
-dictionary GPUImageCopyExternalImage {
-    required (ImageBitmap or HTMLVideoElement or HTMLCanvasElement or OffscreenCanvas) source;
-    GPUOrigin2D origin = {};
-    boolean flipY = false;
 };
 
 interface mixin GPUBindingCommandsMixin {
