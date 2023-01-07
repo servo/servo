@@ -319,6 +319,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     }
 
     #[inline]
+    fn parse_nth_child_of(&self) -> bool {
+        static_prefs::pref!("layout.css.nth-child-of.enabled")
+    }
+
+    #[inline]
     fn parse_is_and_where(&self) -> bool {
         true
     }

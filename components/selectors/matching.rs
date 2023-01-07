@@ -388,7 +388,8 @@ fn hover_and_active_quirk_applies<Impl: SelectorImpl>(
         Component::PseudoElement(_) |
         Component::Negation(_) |
         Component::Empty |
-        Component::Nth(_) => false,
+        Component::Nth(_) |
+        Component::NthOf(_) => false,
         Component::NonTSPseudoClass(ref pseudo_class) => pseudo_class.is_active_or_hover(),
         _ => true,
     })
@@ -802,6 +803,10 @@ where
         },
         Component::Nth(ref nth_data) => {
             matches_generic_nth_child(element, context.shared, nth_data)
+        },
+        Component::NthOf(ref nth_of_data) => {
+            // TODO(zrhoffman, bug 1808228): Use selectors() when matching
+            matches_generic_nth_child(element, context.shared, nth_of_data.nth_data())
         },
         Component::Is(ref list) | Component::Where(ref list) => context.shared.nest(|context| {
             for selector in &**list {
