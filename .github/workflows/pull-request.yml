@@ -19,6 +19,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip virtualenv
           sudo apt update
+          sudo apt install -qy libdbus-1-dev
           python3 ./mach bootstrap
       - name: Release build
         run: python3 ./mach build --release
