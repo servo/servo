@@ -698,6 +698,7 @@ where
             Component::Is(ref list) | Component::Where(ref list) | Component::Has(ref list) => {
                 list.size_of(ops)
             },
+            Component::NthOf(ref nth_of_data) => nth_of_data.size_of(ops),
             Component::PseudoElement(ref pseudo) => (*pseudo).size_of(ops),
             Component::Combinator(..) |
             Component::ExplicitAnyNamespace |

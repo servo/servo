@@ -1918,7 +1918,8 @@ fn component_needs_revalidation(
         Component::AttributeInNoNamespace { .. } |
         Component::AttributeOther(_) |
         Component::Empty |
-        Component::Nth(..) => true,
+        Component::Nth(_) |
+        Component::NthOf(_) => true,
         Component::NonTSPseudoClass(ref p) => p.needs_cache_revalidation(),
         _ => false,
     }
