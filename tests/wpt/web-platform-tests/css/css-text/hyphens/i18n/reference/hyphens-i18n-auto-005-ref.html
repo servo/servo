@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: language specific hyphenation—Uyghur</title>
+<style>
+div {
+  font-size: 3em;
+  color: orange;
+}
+.test {
+  color: blue;
+}
+section { max-width: 20em; }
+</style>
+
+<p>Test passes if the blue text and orange text are identical (except for the color).
+<section dir=rtl lang=ug>
+<div class=test>دامي&zwj;&#x640;<br>&zwj;دى</div>
+<div>دامي&zwj;&#x640;<br>&zwj;دى</div>
+<section>

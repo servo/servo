@@ -64,15 +64,15 @@ enum RTCEncodedVideoFrameType {
 };
 
 dictionary RTCEncodedVideoFrameMetadata {
-    long long frameId;
-    sequence<long long> dependencies;
+    unsigned long long frameId;
+    sequence<unsigned long long> dependencies;
     unsigned short width;
     unsigned short height;
-    long spatialIndex;
-    long temporalIndex;
+    unsigned long spatialIndex;
+    unsigned long temporalIndex;
     unsigned long synchronizationSource;
     octet payloadType;
-    sequence<unsigned long> contributingSources;
+  sequence<unsigned long> contributingSources;
 };
 
 // New interfaces to define encoded video and audio frames. Will eventually

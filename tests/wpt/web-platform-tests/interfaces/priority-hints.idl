@@ -3,16 +3,6 @@
 // (https://github.com/w3c/webref)
 // Source: Priority Hints (https://wicg.github.io/priority-hints/)
 
-enum FetchPriority { "high", "low", "auto" };
-
-partial interface Request {
-  readonly attribute FetchPriority priority;
-};
-
-partial dictionary RequestInit {
-  FetchPriority priority;
-};
-
 partial interface HTMLImageElement {
     [CEReactions] attribute DOMString fetchPriority;
 };

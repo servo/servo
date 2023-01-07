@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: rlh invalidation</title>
+<link rel="author" title="Daniil Sakhapov" href="sakhapov@google.com">
+<link rel="help" href="https://drafts.csswg.org/css-values/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="assert" content="test rlh invalidation">
+<style>
+  @import url("/fonts/ahem.css");
+  html {
+    font-family: 'Ahem';
+    font-size: 40px;
+    line-height: 2;
+  }
+  body {
+    font-family: monospace;
+    font-size: 20px;
+    line-height: 5;
+  }
+  div {
+    width: 10rlh;
+  }
+</style>
+
+<html>
+  <body>
+    <div id="div"></div>
+  </body>
+</html>
+
+<script>
+  setup({ single_test: true });
+  let old_width = div.getBoundingClientRect().width;
+  document.documentElement.style.lineHeight = "4";
+  let new_width = div.getBoundingClientRect().width;
+  assert_not_equals(old_width, new_width, "expect rlh units to update on line-height update");
+  old_width = new_width;
+  document.documentElement.style.fontSize = "41px";
+  new_width = div.getBoundingClientRect().width;
+  assert_not_equals(old_width, new_width, "expect rlh units to update on font-size update");
+  done();
+</script>

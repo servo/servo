@@ -56,13 +56,31 @@ test_invalid_value('animation-timeline', 'scroll(abc)');
 test_invalid_value('animation-timeline', 'scroll(vertical abc)');
 test_invalid_value('animation-timeline', 'scroll("string")');
 
-// https://drafts.csswg.org/scroll-animations-1/#scroll-notation
+// https://drafts.csswg.org/scroll-animations-1/#view-notation
 test_valid_value('animation-timeline', 'view()');
 test_valid_value('animation-timeline', 'view(block)', 'view()');
 test_valid_value('animation-timeline', 'view(inline)');
 test_valid_value('animation-timeline', 'view(horizontal)');
 test_valid_value('animation-timeline', 'view(vertical)');
+test_valid_value('animation-timeline', 'view(vertical 1px 2px)');
+test_valid_value('animation-timeline', 'view(vertical 1px)');
+test_valid_value('animation-timeline', 'view(vertical auto)', 'view(vertical)');
+test_valid_value('animation-timeline', 'view(vertical auto auto)', 'view(vertical)');
+test_valid_value('animation-timeline', 'view(vertical auto 1px)');
+test_valid_value('animation-timeline', 'view(1px 2px vertical)', 'view(vertical 1px 2px)');
+test_valid_value('animation-timeline', 'view(1px vertical)', 'view(vertical 1px)');
+test_valid_value('animation-timeline', 'view(auto horizontal)', 'view(horizontal)');
+test_valid_value('animation-timeline', 'view(1px 2px)');
+test_valid_value('animation-timeline', 'view(1px)');
+test_valid_value('animation-timeline', 'view(1px 1px)', 'view(1px)');
+test_valid_value('animation-timeline', 'view(1px auto)');
+test_valid_value('animation-timeline', 'view(auto calc(1% + 1px))');
+test_valid_value('animation-timeline', 'view(auto)', 'view()');
+test_valid_value('animation-timeline', 'view(auto auto)', 'view()');
 
+test_invalid_value('animation-timeline', 'view(vertical 1px 2px 3px)');
+test_invalid_value('animation-timeline', 'view(1px vertical 3px)');
+test_invalid_value('animation-timeline', 'view(1px 2px 3px)');
 test_invalid_value('animation-timeline', 'view(abc block)');
 test_invalid_value('animation-timeline', 'view(abc)');
 test_invalid_value('animation-timeline', 'view(vertical abc)');

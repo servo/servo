@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'text-align' property</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#marker-properties">
+<link rel="help" href="https://drafts.csswg.org/css-text/#text-align-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1805603">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  direction: rtl;
+}
+ul {
+  width: 300px;
+  border: 1px solid black;
+  font-family: Ahem;
+}
+li {
+  /* Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1808393 */
+  list-style-type: "A";
+}
+</style>
+<ul class="ul">
+  <li><div style="text-align: left;">AAA</div></li>
+</ul>
+<ul class="ul">
+  <li><div style="text-align: end;">AAA</div></li>
+</ul>
+<ul class="ul">
+  <li><div style="text-align: center;">AAA</div></li>
+</ul>

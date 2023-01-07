@@ -4,19 +4,15 @@
 // Source: CSS View Transitions Module Level 1 (https://drafts.csswg.org/css-view-transitions-1/)
 
 partial interface Document {
-    ViewTransition createTransition(ViewTransitionInit init);
-};
-
-dictionary ViewTransitionInit {
-    required UpdateDOMCallback updateDOM;
+  ViewTransition startViewTransition(optional UpdateDOMCallback? callback = null);
 };
 
 callback UpdateDOMCallback = Promise<any> ();
 
 [Exposed=Window]
 interface ViewTransition {
-    undefined skipTransition();
-    readonly attribute Promise<undefined> finished;
-    readonly attribute Promise<undefined> ready;
-    readonly attribute Promise<undefined> domUpdated;
+  undefined skipTransition();
+  readonly attribute Promise<undefined> finished;
+  readonly attribute Promise<undefined> ready;
+  readonly attribute Promise<undefined> domUpdated;
 };

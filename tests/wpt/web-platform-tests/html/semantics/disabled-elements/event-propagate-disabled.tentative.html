@@ -47,9 +47,15 @@
   <input disabled type="time">
   <input disabled type="url">
   <input disabled type="week">
+  <my-control disabled>Text</my-control>
 </div>
 
 <script>
+  customElements.define('my-control', class extends HTMLElement {
+    static get formAssociated() { return true; }
+    get disabled() { return this.hasAttribute("disabled"); }
+  });
+
   /**
    * @param {Element} element
    */

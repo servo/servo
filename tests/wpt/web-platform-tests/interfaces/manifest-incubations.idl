@@ -22,18 +22,3 @@ partial interface Window {
   attribute EventHandler onappinstalled;
   attribute EventHandler onbeforeinstallprompt;
 };
-
-[Exposed=Window] interface LaunchParams {
-  readonly attribute DOMString? targetURL;
-  readonly attribute FrozenArray<FileSystemHandle> files;
-};
-
-callback LaunchConsumer = any (LaunchParams params);
-
-partial interface Window {
-  readonly attribute LaunchQueue launchQueue;
-};
-
-[Exposed=Window] interface LaunchQueue {
-  undefined setConsumer(LaunchConsumer consumer);
-};

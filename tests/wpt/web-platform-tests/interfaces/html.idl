@@ -884,7 +884,7 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions] attribute DOMString formTarget;
   [CEReactions] attribute unsigned long height;
   attribute boolean indeterminate;
-  readonly attribute HTMLElement? list;
+  readonly attribute HTMLDataListElement? list;
   [CEReactions] attribute DOMString max;
   [CEReactions] attribute long maxLength;
   [CEReactions] attribute DOMString min;

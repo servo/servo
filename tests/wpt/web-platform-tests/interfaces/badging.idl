@@ -3,14 +3,12 @@
 // (https://github.com/w3c/webref)
 // Source: Badging API (https://w3c.github.io/badging/)
 
-// Methods only exposed on documents.
 [SecureContext]
 partial interface Navigator {
   Promise<undefined> setClientBadge(optional [EnforceRange] unsigned long long contents);
   Promise<undefined> clearClientBadge();
 };
 
-// Methods exposed on both documents and service workers.
 [SecureContext]
 interface mixin NavigatorBadge {
   Promise<undefined> setAppBadge(optional [EnforceRange] unsigned long long contents);

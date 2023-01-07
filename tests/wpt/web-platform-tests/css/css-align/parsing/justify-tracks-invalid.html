@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Grid Level 3: parsing justify-tracks with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#tracks-alignment">
+<meta name="assert" content="justify-tracks supports only the grammar 'normal | <content-distribution> | <overflow-position>? [ <content-position> | left | right ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("justify-tracks", "auto");
+test_invalid_value("justify-tracks", "baseline last");
+test_invalid_value("justify-tracks", "baseline");
+test_invalid_value("justify-tracks", "center baseline");
+test_invalid_value("justify-tracks", "first baseline");
+test_invalid_value("justify-tracks", "first");
+test_invalid_value("justify-tracks", "flex-start flex-end");
+test_invalid_value("justify-tracks", "last baseline");
+test_invalid_value("justify-tracks", "last");
+test_invalid_value("justify-tracks", "legacy center");
+test_invalid_value("justify-tracks", "legacy left");
+test_invalid_value("justify-tracks", "legacy");
+test_invalid_value("justify-tracks", "normal baseline");
+test_invalid_value("justify-tracks", "right legacy");
+test_invalid_value("justify-tracks", "safe self-end");
+test_invalid_value("justify-tracks", "safe");
+test_invalid_value("justify-tracks", "self-end unsafe");
+test_invalid_value("justify-tracks", "self-start");
+test_invalid_value("justify-tracks", "start safe");
+test_invalid_value("justify-tracks", "unsafe");
+
+test_invalid_value("align-tracks", "auto, left");
+test_invalid_value("align-tracks", "foo, auto");
+test_invalid_value("align-tracks", "start, foo, end");
+test_invalid_value("align-tracks", "first, start, end");
+test_invalid_value("align-tracks", "start, end, unsafe");
+</script>
+</body>
+</html>
