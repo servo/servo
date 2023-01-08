@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Compute Pressure Level 1 (https://wicg.github.io/compute-pressure/)
+// Source: Compute Pressure Level 1 (https://w3c.github.io/compute-pressure/)
 
 enum PressureState { "nominal", "fair", "serious", "critical" };
 
@@ -24,8 +24,6 @@ interface PressureObserver {
   sequence<PressureRecord> takeRecords();
 
   [SameObject] static readonly attribute FrozenArray<PressureSource> supportedSources;
-
-  [Exposed=Window] static Promise<PermissionState> requestPermission();
 };
 
 [Exposed=(DedicatedWorker,SharedWorker,Window), SecureContext]

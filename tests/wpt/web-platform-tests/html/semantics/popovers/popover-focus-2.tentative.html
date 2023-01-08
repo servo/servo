@@ -90,6 +90,22 @@ promise_test(async t => {
 }, "Popover focus navigation");
 </script>
 
+<button id=circular0 popovertoggletarget=popover4>Invoker</button>
+<div id=popover4 popover>
+  <button id=circular1 autofocus popoverhidetarget=popover4></button>
+  <button id=circular2 popovershowtarget=popover4></button>
+  <button id=circular3 popovertoggletarget=popover4></button>
+</div>
+<button id=circular4>after</button>
+<script>
+promise_test(async t => {
+  circular0.focus();
+  await sendEnter(); // Activate the invoker
+  await verifyFocusOrder([circular0, circular1, circular2, circular3, circular4]);
+  popover4.hidePopover();
+}, "Circular reference tab navigation");
+</script>
+
 <div id=deleted>
   <button popovershowtarget=deleted1>Show popover</button>
   <div popover id=deleted1>

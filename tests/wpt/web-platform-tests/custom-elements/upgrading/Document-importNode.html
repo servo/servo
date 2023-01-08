@@ -28,29 +28,5 @@ test_with_window((w, doc) => {
   let imported = doc.importNode(original);
   assert_true(imported instanceof MyElement3);
 }, 'autonomous: document.importNode() should import "undefined" custom elements successfully');
-
-test_with_window((w, doc) => {
-  class MyDiv extends HTMLDivElement {}
-  class MyDiv2 extends w.HTMLDivElement {}
-  customElements.define('my-div', MyDiv, { extends: 'div' });
-  w.customElements.define('my-div', MyDiv2, { extends: 'div' });
-
-  let original = document.createElement('div', { is: 'my-div' });
-  assert_true(original instanceof MyDiv);
-
-  let imported = doc.importNode(original);
-  assert_true(imported instanceof MyDiv2);
-}, 'built-in: document.importNode() should import custom elements successfully');
-
-test_with_window((w, doc) => {
-  class MyDiv2 extends w.HTMLDivElement {}
-  w.customElements.define('my-div2', MyDiv2, { extends: 'div' });
-
-  let original = document.createElement('div', { is: 'my-div2' });
-  assert_equals(original.constructor, HTMLDivElement);
-
-  let imported = doc.importNode(original);
-  assert_true(imported instanceof MyDiv2);
-}, 'built-in: document.importNode() should import "undefined" custom elements successfully');
 </script>
 </body>

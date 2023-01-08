@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Test nth-child selector argument</title>
+  <link rel="author" title="Chris Burdess" href="mailto:chris@bfo.com"/>
+  <link rel="help" href="https://www.w3.org/TR/selectors-4/#the-nth-child-pseudo"/>
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht"/>
+  <style type="text/css">
+    div {
+        display: block;
+        width: 100px;
+        height: 10px;
+        background-color: red;
+    }
+    .container {
+        height: 100px;
+    }
+    .reference {
+        background-color: green;
+    }
+    div:nth-child(-n+3 of .test) { /* selects the first 3 with class test */
+        background-color: green;
+    }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="container">
+   <div class="reference"></div>
+   <div class="test"></div>
+   <div class="reference"></div>
+   <div class="test"></div>
+   <div class="reference"></div>
+   <div class="reference"></div>
+   <div class="reference"></div>
+   <div class="test"></div>
+   <div class="reference"></div>
+   <div class="reference"></div>
+  </div>
+ </body>
+</html>

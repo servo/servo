@@ -1,20 +1,26 @@
 import pytest
+
 from webdriver.client import Element, Frame, ShadowRoot, Window
 
 from tests.support.asserts import assert_error, assert_success
 from . import execute_async_script
 
 
+PAGE_DATA = """
+    <div id="deep"><p><span></span></p><br/></div>
+    <div id="text-node"><p></p>Lorem</div>
+    <br/>
+    <svg id="foo"></svg>
+    <div id="comment"><!-- Comment --></div>
+    <script>
+        var svg = document.querySelector("svg");
+        svg.setAttributeNS("http://www.w3.org/2000/svg", "svg:foo", "bar");
+    </script>
+"""
+
+
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
-def test_stale_element_reference_as_argument(session, stale_element, as_frame):
-    element = stale_element("<div>", "div", as_frame=as_frame)
-
-    result = execute_async_script(session, "arguments[0](1);", args=[element])
-    assert_error(result, "stale element reference")
-
-
-@pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
-def test_stale_element_reference_as_returned_value(session, iframe, inline, as_frame):
+def test_stale_element_reference(session, iframe, inline, as_frame):
     if as_frame:
         session.url = inline(iframe("<div>"))
         frame = session.find.css("iframe", all=False)
@@ -32,13 +38,13 @@ def test_stale_element_reference_as_returned_value(session, iframe, inline, as_f
     assert_error(result, "stale element reference")
 
 
-@pytest.mark.parametrize("expression, type, name", [
-    ("window.frames[0]", Frame, "Frame"),
-    ("document.getElementById('foo')", Element, "HTMLDivElement"),
-    ("document.getElementById('checkbox').shadowRoot", ShadowRoot, "ShadowRoot"),
-    ("window", Window, "Window")
+@pytest.mark.parametrize("expression, expected_type", [
+    ("window.frames[0]", Frame),
+    ("document.getElementById('foo')", Element),
+    ("document.getElementById('checkbox').shadowRoot", ShadowRoot),
+    ("window", Window),
 ], ids=["frame", "node", "shadow-root", "window"])
-def test_element_reference(session, iframe, inline, expression, type, name):
+def test_element_reference(session, iframe, inline, expression, expected_type):
     session.url = inline(f"""
         <style>
             custom-checkbox-element {{
@@ -62,15 +68,20 @@ def test_element_reference(session, iframe, inline, expression, type, name):
 
     result = execute_async_script(session, f"arguments[0]({expression})")
     reference = assert_success(result)
-    assert isinstance(reference, type)
-
-    result = execute_async_script(session, "arguments[1](arguments[0].constructor.name)", [reference])
-    name = assert_success(result, name)
+    assert isinstance(reference, expected_type)
 
 
-def test_document_as_object(session, inline):
-    session.url = inline("")
+@pytest.mark.parametrize("expression", [
+    (""" document.querySelector("svg").attributes[0] """),
+    (""" document.querySelector("div#text-node").childNodes[1] """),
+    (""" document.querySelector("foo").childNodes[1] """),
+    (""" document.createProcessingInstruction("xml-stylesheet", "href='foo.css'") """),
+    (""" document.querySelector("div#comment").childNodes[0] """),
+    (""" document"""),
+    (""" document.doctype"""),
+], ids=["attribute", "text", "cdata", "processing_instruction", "comment", "document", "doctype"])
+def test_non_element_nodes(session, inline, expression):
+    session.url = inline(PAGE_DATA)
 
-    # Retrieving the HTMLDocument is not possible due to cyclic references
-    result = execute_async_script(session, "arguments[0](document)")
+    result = execute_async_script(session, f"arguments[0]({expression})")
     assert_error(result, "javascript error")

@@ -36,25 +36,36 @@ def test_no_such_element_with_invalid_value(session):
     assert_error(response, "no such element")
 
 
-def test_no_such_element_from_other_window_handle(session, inline, checkbox_dom):
-    session.url = inline(checkbox_dom)
-    element = session.find.css("custom-checkbox-element", all=False)
+@pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
+def test_no_such_element_from_other_window_handle(session, inline, closed):
+    session.url = inline("<div id='parent'><p/>")
+    element = session.find.css("#parent", all=False)
 
     new_handle = session.new_window()
+
+    if closed:
+        session.window.close()
+
     session.window_handle = new_handle
 
     response = get_shadow_root(session, element.id)
     assert_error(response, "no such element")
 
 
-def test_no_such_element_from_other_frame(session, iframe, inline, checkbox_dom):
-    session.url = inline(iframe(checkbox_dom))
+@pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
+def test_no_such_element_from_other_frame(session, url, closed):
+    session.url = url("/webdriver/tests/support/html/subframe.html")
 
-    session.switch_frame(0)
-    element = session.find.css("custom-checkbox-element", all=False)
+    frame = session.find.css("#delete-frame", all=False)
+    session.switch_frame(frame)
+
+    button = session.find.css("#remove-parent", all=False)
+    if closed:
+        button.click()
+
     session.switch_frame("parent")
 
-    response = get_shadow_root(session, element.id)
+    response = get_shadow_root(session, button.id)
     assert_error(response, "no such element")
 
 

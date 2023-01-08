@@ -28,14 +28,17 @@ def fetch(bidi_session, top_context):
         if headers != None:
             headers_arg = f"headers: {json.dumps(headers)},"
 
+        # Wait for fetch() to resolve a response and for response.text() to
+        # resolve as well to make sure the request/response is completed when
+        # the helper returns.
         await bidi_session.script.evaluate(
             expression=f"""
-               fetch("{url}", {{
-                 {method_arg}
-                 {headers_arg}
-               }})""",
+                 fetch("{url}", {{
+                   {method_arg}
+                   {headers_arg}
+                 }}).then(response => response.text());""",
             target=ContextTarget(top_context["context"]),
-            await_promise=False,
+            await_promise=True,
         )
 
     return fetch

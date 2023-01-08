@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Form's lexical scope is established only for form-associated elements</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#form-associated-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#getting-the-current-value-of-the-event-handler">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id="form">
+  <input onclick="window.inputOnClickElements = elements;">
+  <img onclick="window.imgOnClickElements = elements;" alt="img">
+  <div onclick="window.divOnClickElements = elements;">div</div>
+  <x-foo onclick="window.xFooOnClickElements = elements;">x-foo</x-foo>
+</form>
+
+<script>
+"use strict";
+
+window.elements = "global_elements";
+
+test(() => {
+  const input = form.querySelector("input");
+  input.click();
+  assert_equals(window.inputOnClickElements, form.elements);
+}, "<input> has a form owner");
+
+test(() => {
+  const img = form.querySelector("img");
+  img.click();
+  assert_equals(window.imgOnClickElements, form.elements);
+}, "<img> has a form owner");
+
+test(() => {
+  const div = form.querySelector("div");
+  div.click();
+  assert_equals(window.divOnClickElements, window.elements);
+}, "<div> doesn't have a form owner");
+
+test(() => {
+  customElements.define("x-foo", class extends HTMLElement {
+    static formAssociated = true;
+  });
+
+  const xFoo = form.querySelector("x-foo");
+  xFoo.click();
+  assert_equals(window.xFooOnClickElements, form.elements);
+}, "form-associated <x-foo> has a form owner");
+</script>
