@@ -62,8 +62,15 @@ test_computed_value('animation-timeline', 'scroll(vertical root)');
 // https://drafts.csswg.org/scroll-animations-1/#view-notation
 test_computed_value('animation-timeline', 'view()');
 test_computed_value('animation-timeline', 'view(block)', 'view()');
-test_computed_value('animation-timeline', 'view(inline)');
-test_computed_value('animation-timeline', 'view(horizontal)');
-test_computed_value('animation-timeline', 'view(vertical)');
+test_computed_value('animation-timeline', 'view(inline)', 'view(inline)');
+test_computed_value('animation-timeline', 'view(horizontal)', 'view(horizontal)');
+test_computed_value('animation-timeline', 'view(vertical)', 'view(vertical)');
+test_computed_value('animation-timeline', 'view(vertical 1px)');
+test_computed_value('animation-timeline', 'view(1px auto)');
+test_computed_value('animation-timeline', 'view(auto 1px)');
+test_computed_value('animation-timeline', 'view(vertical 1px auto)');
+test_computed_value('animation-timeline', 'view(1px vertical)', 'view(vertical 1px)');
+test_computed_value('animation-timeline', 'view(vertical auto)', 'view(vertical)');
+test_computed_value('animation-timeline', 'view(vertical auto auto)', 'view(vertical)');
 
 </script>

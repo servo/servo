@@ -17,6 +17,7 @@ interface Selection {
   undefined removeRange(Range range);
   undefined removeAllRanges();
   undefined empty();
+  StaticRange getComposedRange(ShadowRoot... shadowRoots);
   undefined collapse(Node? node, optional unsigned long offset = 0);
   undefined setPosition(Node? node, optional unsigned long offset = 0);
   undefined collapseToStart();

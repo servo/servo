@@ -85,6 +85,20 @@ test(() => {
   assert_false(controls[4].i.willValidate, 'in disabled fieldset');
 }, 'willValidate after upgrade');
 
+test(t => {
+  const control = document.createElement('will-be-defined-2');
+
+  customElements.define('will-be-defined-2', class extends HTMLElement {
+    static get formAssociated() { return true; }
+  });
+
+  container.append(control);
+  t.add_cleanup(() => { container.innerHTML = ''; });
+
+  const i = control.attachInternals();
+  assert_true(i.willValidate);
+}, 'willValidate after upgrade (document.createElement)');
+
 test(() => {
   const element = new NotFormAssociatedElement();
   assert_throws_dom('NotSupportedError', () => element.i.willValidate);

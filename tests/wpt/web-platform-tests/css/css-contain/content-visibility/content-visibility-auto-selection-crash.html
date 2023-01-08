@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+    <link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+    <meta name="assert" content="Changes to selection that result in no selection do not cause a crash.">
+    <style>
+        * {
+            content-visibility: auto;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          document.documentElement.convertPointFromNode({}, marquee, {})
+          textarea.setSelectionRange(0, 0, 'forward')
+          input.setAttribute('type', 'number')
+          document.documentElement.getBoundingClientRect()
+        })
+    </script>
+</head>
+<body>
+    <marquee id='marquee'></marquee>
+    <textarea id='textarea'></textarea>
+    <input id='input'></input>
+</body>
+</html>

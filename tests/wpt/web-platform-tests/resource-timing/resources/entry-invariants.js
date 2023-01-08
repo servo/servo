@@ -467,7 +467,11 @@ const attribute_test_internal = (loader, path, validator, run_test, test_label) 
       });
 
       await loader(path, validator);
-      const entry = await(loaded_entry);
+      const timeout = new Promise(r => step_timeout(() => {
+        console.log("Timeout was reached before entry fired");
+        r();
+      }, 2000));
+      const entry = await Promise.race([loaded_entry, timeout]);
       run_test(entry);
   }, test_label);
 };

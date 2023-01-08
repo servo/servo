@@ -32,8 +32,10 @@ test(() => {
     modifiers: [],
   });
   assert_false(ev.isTrusted, 'constructed in script, so not be trusted');
-  assert_equals(ev.topOrigin, 'https://foo.com');
-  assert_equals(ev.paymentRequestOrigin, 'https://bar.com');
+  assert_equals(ev.topOrigin, undefined);
+  assert_equals(ev.paymentRequestOrigin, undefined);
+  assert_equals(ev.methodData, undefined);
+  assert_equals(ev.modifiers, undefined);
 }, 'CanMakePaymentEvent can be constructed with a CanMakePaymentEventInit, even if not trusted');
 
 test(() => {

@@ -1,5 +1,13 @@
 'use strict';
 
+test(t => {
+  const observer = new PressureObserver(() => {
+    assert_unreached('The observer callback should not be called');
+  });
+  t.add_cleanup(() => observer.disconnect());
+  observer.disconnect();
+}, 'Call disconnect() directly should not crash');
+
 promise_test(async t => {
   const observer1_changes = [];
   const observer1 = new PressureObserver(change => {

@@ -433,4 +433,102 @@ promise_test(async t => {
   assert_array_equals(scaleDownByValues, [1]);
 }, 'sRD(simulcast offer) can narrow the simulcast envelope from a previous negotiation by removing the first encoding');
 
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  let {encodings} = sender.getParameters();
+
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  encodings = sender.getParameters().encodings;
+  let rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+
+  pc1.getTransceivers()[0].direction = "inactive";
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  assert_equals(pc1.getTransceivers().length, 1);
+  encodings = sender.getParameters().encodings;
+  rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+}, 'sender renegotiation to inactive does not disable simulcast');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  let {encodings} = sender.getParameters();
+
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  encodings = sender.getParameters().encodings;
+  let rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+
+  pc1.getTransceivers()[0].direction = "recvonly";
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  assert_equals(pc1.getTransceivers().length, 1);
+  encodings = sender.getParameters().encodings;
+  rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+}, 'sender renegotiation to recvonly does not disable simulcast');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  let {encodings} = sender.getParameters();
+
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  encodings = sender.getParameters().encodings;
+  let rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+
+  pc2.getTransceivers()[0].direction = "inactive";
+  pc2.getTransceivers()[1].direction = "inactive";
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  assert_equals(pc1.getTransceivers().length, 1);
+  encodings = sender.getParameters().encodings;
+  rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+}, 'receiver renegotiation to inactive does not disable simulcast');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const {sender} = pc1.addTransceiver("video", {sendEncodings: [{rid: "foo"}, {rid: "bar"}]});
+  let {encodings} = sender.getParameters();
+
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+
+  assert_equals(pc1.getTransceivers().length, 1);
+  encodings = sender.getParameters().encodings;
+  let rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+
+  pc2.getTransceivers()[0].direction = "sendonly";
+  pc2.getTransceivers()[1].direction = "sendonly";
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ["foo", "bar"]);
+  assert_equals(pc1.getTransceivers().length, 1);
+  encodings = sender.getParameters().encodings;
+  rids = encodings.map(({rid}) => rid);
+  assert_array_equals(rids, ["foo", "bar"]);
+}, 'receiver renegotiation to sendonly does not disable simulcast');
+
 </script>

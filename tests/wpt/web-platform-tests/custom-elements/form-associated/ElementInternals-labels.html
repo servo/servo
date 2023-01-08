@@ -40,6 +40,10 @@ test(() => {
   container.innerHTML = '<my-control></my-control>';
   control = container.querySelector('my-control');
   assert_array_equals(control.i.labels, []);
+
+  container.innerHTML = '<label><x-foo></x-foo></label>';
+  label = container.querySelector('label');
+  assert_equals(label.control, null);
 }, 'LABEL association');
 
 test(() => {
