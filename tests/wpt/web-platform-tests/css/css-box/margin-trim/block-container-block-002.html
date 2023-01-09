@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS margin-trim: block trim 002</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="block should trim block start and end margins for ONLY block-level first/last children">
+<style>
+.container {
+    background-color: green;
+    width: 100px;
+    margin-trim: block;
+}
+.first {
+    margin-top: 50px;
+    height: 25px;
+}
+.second {
+    width: 100px;
+    height: 10px;
+    margin-bottom: 15px;
+}
+.third {
+    width: 100px;
+    height: 25px;
+    margin-bottom: 50px;
+}
+.outer {
+    width: 100px;
+    height: 25px;
+    background-color: green;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square.</p>
+    <div class="container">
+        <div class="first"></div>
+        <div class="second"></div>
+        <div class="third"></div>
+    </div>
+    <div class="outer"></div>
+</body>
+</html>
