@@ -1,0 +1,34 @@
+# Disabled until the previous bot is turned off.
+#name: Upstream Web Platform Test changes
+#on:
+#  pull_request:
+#    types: ['opened', 'synchronize', 'reopened', 'edited', 'closed']
+#
+#jobs:
+#  upstream:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Calculate PR fetch depth
+#        run: echo "PR_FETCH_DEPTH=$(( ${{ github.event.pull_request.commits }} + 1 ))" >> "${GITHUB_ENV}"
+#      - name: Check out shallow servo PR
+#        run: |
+#          mkdir servo
+#          cd servo
+#          git init -b main
+#          git remote add origin ${{ github.event.repository.clone_url}}
+#          git fetch origin pull/${{ github.event.pull_request.number}}/head:pr --depth ${{ env.PR_FETCH_DEPTH }}
+#          git checkout pr
+#      - name: Check out wpt
+#        uses: actions/checkout@v3
+#        with:
+#          path: wpt
+#          repository: 'web-platform-tests/wpt'
+#          token: ${{ secrets.WPT_UPSTREAM_TOKEN }}
+#      - name: Install requirements
+#        run: pip install -r servo/etc/ci/upstream-wpt-changes/requirements.txt
+#      - name: Process pull request
+#        run: servo/etc/ci/upstream-wpt-changes/upstream-wpt-changes.py
+#        env:
+#          GITHUB_CONTEXT: ${{ toJson(github) }}
+#          GITHUB_TOKEN: ${{ secrets.WPT_UPSTREAM_TOKEN }}
+#

@@ -1,0 +1,18 @@
+name: Test changes to upstream-wpt-changes
+on:
+  pull_request:
+    branches: ["**"]
+    paths: ["etc/ci/upstream-wpt-changes/**"]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade -r etc/ci/upstream-wpt-changes/requirements-dev.txt
+      - name: Running tests
+        run: |
+          python3 etc/ci/upstream-wpt-changes/test.py
