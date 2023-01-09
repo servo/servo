@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+    <meta charset="utf-8">
+    <title>text-decoration-thickness invalidation</title>
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="help" href="https://drafts.csswg.org/selectors/#the-hover-pseudo">
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-thickness-property">
+    <link rel="match" href="text-decoration-thickness-ref.html">
+    <style>
+        :link {
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+        }
+        :link:hover {
+            text-decoration-thickness: 3px;
+        }
+    </style>
+    <div style="font-size: 28px;">
+        <a href="#" id="link">Hover over this link, and check if the text-decoration-thickness increases.</a>
+    </div>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script>
+        window.addEventListener("load", async () => {
+            // Hover the link
+            await new test_driver.Actions().pointerMove(0, 0, { origin: link }).send();
+
+            document.documentElement.classList.remove("reftest-wait");
+        });
+    </script>
+</html>

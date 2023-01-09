@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS margin-trim: block container replaced block trim</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="block level replaced element should have both block-start and block-end trimmed when block is specified">
+<style>
+.container {
+    width: 100px;
+    margin-trim: block;
+}
+.outer {
+    background-color: green;
+    width: 100px;
+    height: 40px;
+}
+.child {
+    display: block;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    background-color: green;
+    padding-right: 40px;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square.</p>
+    <div class="container">
+        <img class="child" src="/css/support/60x60-green.png"/>
+    </div>
+    <div class="outer"></div>
+</body>
+</html>
