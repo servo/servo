@@ -1124,6 +1124,41 @@ impl NthSelectorData {
             b: 1,
         }
     }
+
+    /// Writes the beginning of the selector.
+    #[inline]
+    fn write_start<W: fmt::Write>(&self, dest: &mut W) -> fmt::Result {
+        dest.write_str(match self.ty {
+            NthType::Child if self.is_function => ":nth-child(",
+            NthType::Child => ":first-child",
+            NthType::LastChild if self.is_function => ":nth-last-child(",
+            NthType::LastChild => ":last-child",
+            NthType::OfType if self.is_function => ":nth-of-type(",
+            NthType::OfType => ":first-of-type",
+            NthType::LastOfType if self.is_function => ":nth-last-of-type(",
+            NthType::LastOfType => ":last-of-type",
+            NthType::OnlyChild => ":only-child",
+            NthType::OnlyOfType => ":only-of-type",
+        })
+    }
+
+    /// Serialize <an+b> (part of the CSS Syntax spec, but currently only used here).
+    /// <https://drafts.csswg.org/css-syntax-3/#serialize-an-anb-value>
+    #[inline]
+    fn write_affine<W: fmt::Write>(&self, dest: &mut W) -> fmt::Result {
+        match (self.a, self.b) {
+            (0, 0) => dest.write_char('0'),
+
+            (1, 0) => dest.write_char('n'),
+            (-1, 0) => dest.write_str("-n"),
+            (_, 0) => write!(dest, "{}n", self.a),
+
+            (0, _) => write!(dest, "{}", self.b),
+            (1, _) => write!(dest, "n{:+}", self.b),
+            (-1, _) => write!(dest, "-n{:+}", self.b),
+            (_, _) => write!(dest, "{}n{:+}", self.a, self.b),
+        }
+    }
 }
 
 /// The properties that comprise an :nth- pseudoclass as of Selectors 4 (e.g.,
@@ -1613,26 +1648,6 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
     {
         use self::Component::*;
 
-        /// Serialize <an+b> values (part of the CSS Syntax spec, but currently only used here).
-        /// <https://drafts.csswg.org/css-syntax-3/#serialize-an-anb-value>
-        fn write_affine<W>(dest: &mut W, a: i32, b: i32) -> fmt::Result
-        where
-            W: fmt::Write,
-        {
-            match (a, b) {
-                (0, 0) => dest.write_char('0'),
-
-                (1, 0) => dest.write_char('n'),
-                (-1, 0) => dest.write_str("-n"),
-                (_, 0) => write!(dest, "{}n", a),
-
-                (0, _) => write!(dest, "{}", b),
-                (1, _) => write!(dest, "n{:+}", b),
-                (-1, _) => write!(dest, "-n{:+}", b),
-                (_, _) => write!(dest, "{}n{:+}", a, b),
-            }
-        }
-
         match *self {
             Combinator(ref c) => c.to_css(dest),
             Slotted(ref selector) => {
@@ -1712,32 +1727,25 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 Ok(())
             },
             Nth(ref nth_data) => {
-                dest.write_str(match nth_data.ty {
-                    NthType::Child if nth_data.is_function => ":nth-child(",
-                    NthType::Child => ":first-child",
-                    NthType::LastChild if nth_data.is_function => ":nth-last-child(",
-                    NthType::LastChild => ":last-child",
-                    NthType::OfType if nth_data.is_function => ":nth-of-type(",
-                    NthType::OfType => ":first-of-type",
-                    NthType::LastOfType if nth_data.is_function => ":nth-last-of-type(",
-                    NthType::LastOfType => ":last-of-type",
-                    NthType::OnlyChild => ":only-child",
-                    NthType::OnlyOfType => ":only-of-type",
-                })?;
+                nth_data.write_start(dest)?;
                 if nth_data.is_function {
-                    write_affine(dest, nth_data.a, nth_data.b)?;
+                    nth_data.write_affine(dest)?;
                     dest.write_char(')')?;
                 }
                 Ok(())
             },
             NthOf(ref nth_of_data) => {
                 let nth_data = nth_of_data.nth_data();
-                dest.write_str(match nth_data.ty {
-                    NthType::Child => ":nth-child(",
-                    NthType::LastChild => ":nth-last-child(",
-                    _ => unreachable!(),
-                })?;
-                write_affine(dest, nth_data.a, nth_data.b)?;
+                nth_data.write_start(dest)?;
+                debug_assert!(
+                    nth_data.is_function,
+                    "A selector must be a function to hold An+B notation"
+                );
+                nth_data.write_affine(dest)?;
+                debug_assert!(
+                    matches!(nth_data.ty, NthType::Child | NthType::LastChild),
+                    "Only :nth-child or :nth-last-child can be of a selector list"
+                );
                 debug_assert!(
                     !nth_of_data.selectors().is_empty(),
                     "The selector list should not be empty"
