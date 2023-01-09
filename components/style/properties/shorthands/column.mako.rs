@@ -8,7 +8,6 @@
                     engines="gecko servo"
                     sub_properties="column-width column-count"
                     servo_pref="layout.columns.enabled"
-                    derive_serialize="True"
                     spec="https://drafts.csswg.org/css-multicol/#propdef-columns">
     use crate::properties::longhands::{column_count, column_width};
 
@@ -52,6 +51,20 @@
                 column_count: unwrap_or_initial!(column_count),
                 column_width: unwrap_or_initial!(column_width),
             })
+        }
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            if self.column_width.is_auto() {
+                return self.column_count.to_css(dest)
+            }
+            self.column_width.to_css(dest)?;
+            if !self.column_count.is_auto() {
+                dest.write_char(' ')?;
+                self.column_count.to_css(dest)?;
+            }
+            Ok(())
         }
     }
 </%helpers:shorthand>
