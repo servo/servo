@@ -331,7 +331,7 @@ where
                 //     specificity of a regular pseudo-class with that of its
                 //     selector argument S.
                 specificity.class_like_selectors += 1;
-                *specificity += selector_list_specificity(nth_of_data.selectors());
+                *specificity += max_selector_list_specificity(nth_of_data.selectors());
             },
             Component::Negation(ref list) | Component::Is(ref list) | Component::Has(ref list) => {
                 // https://drafts.csswg.org/selectors/#specificity-rules:
@@ -339,7 +339,7 @@ where
                 //     The specificity of an :is(), :not(), or :has() pseudo-class
                 //     is replaced by the specificity of the most specific complex
                 //     selector in its selector list argument.
-                *specificity += selector_list_specificity(list);
+                *specificity += max_selector_list_specificity(list);
             },
             Component::Where(..) |
             Component::ExplicitUniversalType |
@@ -353,7 +353,7 @@ where
     }
 
     /// Finds the maximum specificity of elements in the list and returns it.
-    fn selector_list_specificity<Impl: SelectorImpl>(list: &[Selector<Impl>]) -> Specificity {
+    fn max_selector_list_specificity<Impl: SelectorImpl>(list: &[Selector<Impl>]) -> Specificity {
         let max = list
             .iter()
             .map(|selector| selector.specificity())
