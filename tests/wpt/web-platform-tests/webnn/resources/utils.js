@@ -41,23 +41,23 @@ const loadResources = (file) => {
 };
 
 /**
- * Get exptected data from given resources with output name.
+ * Get exptected data and data type from given resources with output name.
  * @param {Array} resources - An array of expected resources
  * @param {String} outputName - An output name
- * @returns {Number[]} An expected data array
+ * @returns {Array.<[Number[], String]>} An array of expected data array and data type
  */
-const getExpectedData = (resources, outputName) => {
-  let data;
+const getExpectedDataAndType = (resources, outputName) => {
+  let ret;
   for (let subResources of resources) {
     if (subResources.name === outputName) {
-      data = subResources.data;
+      ret = [subResources.data, subResources.type];
       break;
     }
   }
-  if (data === undefined) {
-    throw new Error(`Failed to get expected data sources by ${outputName}`);
+  if (ret === undefined) {
+    throw new Error(`Failed to get expected data sources and type by ${outputName}`);
   }
-  return data;
+  return ret;
 };
 
 /**
@@ -82,6 +82,7 @@ const PrecisionMetrics = {
   sigmoid: {ULP: {float32: 32+2, float16: 3}}, // float32 (leaving a few ULP for roundoff)
   slice: {ULP: {float32: 0, float16: 0}},
   softmax: {ULP: {float32: getSoftmaxPrecisionTolerance, float16: getSoftmaxPrecisionTolerance}},
+  split: {ULP: {float32: 0, float16: 0}},
   squeeze: {ULP: {float32: 0, float16: 0}},
   tanh: {ATOL: {float32: 1/1024, float16: 1/512}},
   transpose: {ULP: {float32: 0, float16: 0}},
@@ -91,16 +92,16 @@ const PrecisionMetrics = {
  * Get precison tolerance value.
  * @param {String} operationName - An operation name
  * @param {String} metricType - Value: 'ULP', 'ATOL'
- * @param {Object} resources - Resources used for building a graph
+ * @param {String} precisionType - A precision type string, like "float32", "float16",
+ *     more types, please see:
+ *     https://webmachinelearning.github.io/webnn/#enumdef-mloperandtype
  * @returns {Number} A tolerance number
  */
-const getPrecisonTolerance = (operationName, metricType, resources) => {
-  // the outputs by split or gru is a sequence
-  const precisionType = Array.isArray(resources.expected) ? resources.expected[0].type : resources.expected.type;
+const getPrecisonTolerance = (operationName, metricType, precisionType) => {
   let tolerance = PrecisionMetrics[operationName][metricType][precisionType];
   // If the tolerance is dynamic, then evaluate the function to get the value.
   if (tolerance instanceof Function) {
-    tolerance = tolerance(resources);
+    tolerance = tolerance(resources, operationName);
   }
   return tolerance;
 };
@@ -190,21 +191,25 @@ const doAssert = (operationName, actual, expected, tolerance, operandType, metri
  */
 const checkResults = (operationName, namedOutputOperands, outputs, resources) => {
   const metricType = Object.keys(PrecisionMetrics[operationName])[0];
-  const tolerance = getPrecisonTolerance(operationName, metricType, resources);
   const expected = resources.expected;
-  const operandType = expected.type;
+  let tolerance;
+  let operandType;
   let outputData;
   let expectedData;
   if (Array.isArray(expected)) {
-    // check outputs by split or gru
+    // the outputs of split() or gru() is a sequence
     for (let operandName in namedOutputOperands) {
       outputData = outputs[operandName];
-      expectedData = getExpectedData(expected, operandName);
+      // for some operations which may have multi outputs of different types
+      [expectedData, operandType] = getExpectedDataAndType(expected, operandName);
+      tolerance = getPrecisonTolerance(operationName, metricType, operandType);
       doAssert(operationName, outputData, expectedData, tolerance, operandType, metricType)
     }
   } else {
     outputData = outputs[expected.name];
     expectedData = expected.data;
+    operandType = expected.type;
+    tolerance = getPrecisonTolerance(operationName, metricType, operandType);
     doAssert(operationName, outputData, expectedData, tolerance, operandType, metricType)
   }
 };

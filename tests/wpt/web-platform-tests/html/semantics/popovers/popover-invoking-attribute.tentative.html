@@ -34,6 +34,10 @@ function makeElementWithType(element,type) {
     return el;
   };
 }
+function setInvokingContentAttribute(invoker,attr,idref) {
+  invoker.setAttribute(attr,idref);
+  assert_equals(invoker[attr + "Element"],document.getElementById(idref));
+}
 const supportedButtonTypes = ['button','reset','submit',''].map(type => {
   return   {
     name: `<button type="${type}">`,
@@ -85,13 +89,13 @@ window.addEventListener('load', () => {
                 assert_not_equals(popover1.id,popover2.id);
                 const invoker = testcase.makeElement(test);
                 if (use_idl) {
-                  invoker.popoverToggleTarget = t===1 ? popover1.id : (t===2 ? popover2.id : null);
-                  invoker.popoverShowTarget = s===1 ? popover1.id : (s===2 ? popover2.id : null);
-                  invoker.popoverHideTarget = h===1 ? popover1.id : (h===2 ? popover2.id : null);
+                  invoker.popoverToggleTargetElement = t===1 ? popover1 : (t===2 ? popover2 : null);
+                  invoker.popoverShowTargetElement = s===1 ? popover1 : (s===2 ? popover2 : null);
+                  invoker.popoverHideTargetElement = h===1 ? popover1 : (h===2 ? popover2 : null);
                 } else {
-                  if (t) invoker.setAttribute('popovertoggletarget',t===1 ? popover1.id : popover2.id);
-                  if (s) invoker.setAttribute('popovershowtarget',s===1 ? popover1.id : popover2.id);
-                  if (h) invoker.setAttribute('popoverhidetarget',h===1 ? popover1.id : popover2.id);
+                  if (t) setInvokingContentAttribute(invoker,'popoverToggleTarget',t===1 ? popover1.id : popover2.id);
+                  if (s) setInvokingContentAttribute(invoker,'popoverShowTarget',s===1 ? popover1.id : popover2.id);
+                  if (h) setInvokingContentAttribute(invoker,'popoverHideTarget',h===1 ? popover1.id : popover2.id);
                 }
                 assert_true(!document.getElementById(popover1.id));
                 assert_true(!document.getElementById(popover2.id));

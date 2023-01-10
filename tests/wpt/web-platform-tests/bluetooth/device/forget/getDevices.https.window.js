@@ -15,4 +15,12 @@ bluetooth_test(async () => {
   assert_equals(
     devicesAfterForget.length, 0,
       'getDevices() is empty after device.forget().');
+
+  // Call forget() again getDevices() should return the same result of empty
+  // list.
+  await device.forget();
+  const devicesAfterForgetCalledAgain = await navigator.bluetooth.getDevices();
+  assert_equals(
+      devicesAfterForgetCalledAgain.length, 0,
+      'getDevices() is still empty after device.forget().');
 }, 'forget() removes devices from getDevices().');

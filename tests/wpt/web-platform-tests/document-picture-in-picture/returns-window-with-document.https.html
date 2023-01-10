@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Test that documentPictureInPicture.requestWindow()
+  returns a Window object</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+  <div id="div"></div>
+<script>
+const div = document.getElementById('div');
+
+async_test((t) => {
+  test_driver.bless('request PiP window').then(t.step_func(_ => {
+    documentPictureInPicture.requestWindow().then(t.step_func_done((pipWindow) => {
+      assert_true(!!pipWindow.document,
+          'Window should contain a document');
+      assert_true(documentPictureInPicture.window === pipWindow,
+          'DocumentPictureInPicture.window should match the current window');
+
+      // We should be able to move an element to that document.
+      assert_true(document.body.contains(div),
+          'The original document should start with the div');
+      assert_false(pipWindow.document.body.contains(div),
+          'The PiP document should not start with the div');
+      pipWindow.document.body.append(div);
+      assert_false(document.body.contains(div),
+          'The div should have moved away from the original document');
+      assert_true(pipWindow.document.body.contains(div),
+          'The div should have moved to the PiP document');
+    }));
+  }));
+});
+</script>
+</body>

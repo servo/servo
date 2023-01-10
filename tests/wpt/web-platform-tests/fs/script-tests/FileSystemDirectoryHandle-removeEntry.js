@@ -121,3 +121,15 @@ directory_test(async (t, root) => {
   await dir.removeEntry('file-to-remove');
   assert_array_equals(await getSortedDirectoryEntries(dir), ['file-to-keep']);
 }, 'removeEntry() of a directory while a containing file has an open writable fails');
+
+directory_test(async (t, root) => {
+  const handle =
+      await createFileWithContents(t, 'file-to-remove', '12345', root);
+  await root.removeEntry('file-to-remove');
+
+  await promise_rejects_dom(t, 'NotFoundError', cleanup_writable(t, handle.createWritable({keepExistingData: true})));
+
+  assert_array_equals(
+      await getSortedDirectoryEntries(root),
+      []);
+}, 'createWritable after removeEntry succeeds but doesnt recreate the file');
