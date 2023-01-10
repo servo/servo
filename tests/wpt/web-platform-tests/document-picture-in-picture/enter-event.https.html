@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Test that enter event is fired at documentPictureInPicture
+  when the PiP window in opened.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+async_test((t) => {
+  test_driver.bless('request PiP window').then(t.step_func(_ => {
+    documentPictureInPicture.onenter = t.step_func_done();
+    documentPictureInPicture.requestWindow();
+  }));
+});
+</script>
+</body>

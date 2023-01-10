@@ -63,7 +63,7 @@ window.onload = () => {
       assert_false(popover.matches(':open'));
       assert_equals(1,showCount);
       assert_equals(1,hideCount);
-    }, `Toggle event (${method}) get properly dispatched for popovers`);
+    }, `Beforetoggle event (${method}) get properly dispatched for popovers`);
   }
 
   promise_test(async t => {
@@ -86,6 +86,24 @@ window.onload = () => {
     assert_true(popover.matches(':open'));
     popover.hidePopover();
     assert_false(popover.matches(':open'));
-  }, 'Toggle event is cancelable for the "opening" transition');
+  }, 'Beforetoggle event is cancelable for the "opening" transition');
+
+  promise_test(async t => {
+    const popover = document.querySelector('[popover]');
+    const controller = new AbortController();
+    const signal = controller.signal;
+    t.add_cleanup(() => {controller.abort();});
+    popover.addEventListener('beforetoggle',(e) => {
+      assert_not_equals(e.newState,"closed",'The "beforetoggle" event was fired for the closing transition');
+    }, {signal});
+    assert_false(popover.matches(':open'));
+    popover.showPopover();
+    assert_true(popover.matches(':open'));
+    t.add_cleanup(() => {document.body.appendChild(popover);});
+    popover.remove();
+    await waitForRender(); // Check for async events also
+    await waitForRender(); // Check for async events also
+    assert_false(popover.matches(':open'));
+  }, 'Beforetoggle event is not fired for element removal');
 };
 </script>

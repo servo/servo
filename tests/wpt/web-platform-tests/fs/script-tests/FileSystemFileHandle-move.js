@@ -350,3 +350,20 @@ directory_test(async (t, root) => {
   assert_equals(await getFileContents(file), 'abc');
   assert_equals(await getFileContents(file_dest), 'abc');
 }, 'move(dir, name) can overwrite an existing file');
+
+directory_test(async (t, root) => {
+  const handle =
+      await createFileWithContents(t, 'file-to-move', '12345', root);
+  const handle2 = handle;
+
+  await handle.move('file-was-moved');
+
+  assert_equals(await getFileContents(handle), '12345');
+  assert_equals(await getFileSize(handle), 5);
+  assert_equals(await getFileContents(handle2), '12345');
+  assert_equals(await getFileSize(handle2), 5);
+
+  assert_array_equals(
+      await getSortedDirectoryEntries(root),
+      ['file-was-moved']);
+}, 'FileSystemFileHandles are references, not paths');

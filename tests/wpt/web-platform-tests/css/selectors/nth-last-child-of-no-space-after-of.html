@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>:nth-last-child with no space between "of" and the selector list</title>
+<link rel="help" href="https://w3c.github.io/csswg-drafts/selectors-4/#child-index">
+<link rel=author href="mailto:zach@zrhoffman.net" title="Zach Hoffman">
+<link rel="match" href="nth-child-of-no-space-after-of-ref.html">
+<style>
+    target {
+        color: red;
+    }
+
+    :nth-last-child(1 of/* my comment */target) {
+        color: green;
+    }
+
+    .target {
+        color: red;
+    }
+
+    :nth-last-child(1 of.target) {
+        color: green;
+    }
+
+    [target] {
+        color: red;
+    }
+
+    :nth-last-child(1 of[target]) {
+        color: green;
+    }
+</style>
+</head>
+<body>
+    <p>Testing no space between "of" and the selector list. If the test succeeded, every instance of the text "Success" should be green.</p>
+    <div></div>
+    <target>Foo</target>
+    <div></div>
+    <target>Bar</target>
+    <div></div>
+    <target>Success</target>
+    <div></div>
+    <div class=target>Foo</div>
+    <div></div>
+    <div class=target>Bar</div>
+    <div></div>
+    <div class=target>Success</div>
+    <div></div>
+    <div target>Foo</div>
+    <div></div>
+    <div target>Bar</div>
+    <div></div>
+    <div target>Success</div>
+</body>
+</html>

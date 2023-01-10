@@ -1,0 +1,25 @@
+partial interface HTMLElement {
+  undefined togglePopover(optional boolean force);
+  undefined showPopover();
+  undefined hidePopover();
+  [CEReactions] attribute DOMString? popover;
+};
+
+interface mixin PopoverTargetElement {
+  [CEReactions] attribute Element? popoverToggleTargetElement;
+  [CEReactions] attribute Element? popoverHideTargetElement;
+  [CEReactions] attribute Element? popoverShowTargetElement;
+};
+HTMLInputElement includes PopoverTargetElement;
+HTMLButtonElement includes PopoverTargetElement;
+
+interface BeforeToggleEvent : Event {
+    constructor(DOMString type, optional BeforeToggleEventInit eventInitDict = {});
+    readonly attribute DOMString currentState;
+    readonly attribute DOMString newState;
+};
+
+dictionary BeforeToggleEventInit : EventInit {
+    DOMString currentState = "";
+    DOMString newState = "";
+};
