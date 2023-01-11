@@ -51,9 +51,7 @@ impl ServoUrl {
     }
 
     pub fn into_string(self) -> String {
-        Arc::try_unwrap(self.0)
-            .unwrap_or_else(|s| (*s).clone())
-            .into_string()
+        String::from(Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()))
     }
 
     pub fn into_url(self) -> Url {

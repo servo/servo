@@ -75,6 +75,7 @@ pub struct FreeTypeLibraryHandle {
 }
 
 impl Drop for FreeTypeLibraryHandle {
+    #[allow(unused)]
     fn drop(&mut self) {
         assert!(!self.ctx.is_null());
         unsafe {
@@ -130,11 +131,7 @@ impl FontContextHandle {
             FT_Add_Default_Modules(ctx);
 
             FontContextHandle {
-                ctx: Rc::new(FreeTypeLibraryHandle {
-                    ctx: ctx,
-                    mem: mem,
-                    user: user,
-                }),
+                ctx: Rc::new(FreeTypeLibraryHandle { ctx, mem, user }),
             }
         }
     }
