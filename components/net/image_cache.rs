@@ -253,6 +253,7 @@ impl LoadKeyGenerator {
     }
 }
 
+#[derive(Debug)]
 enum LoadResult {
     Loaded(Image),
     PlaceholderLoaded(Arc<Image>),
@@ -339,6 +340,7 @@ struct ImageCacheStore {
 impl ImageCacheStore {
     // Change state of a url from pending -> loaded.
     fn complete_load(&mut self, key: LoadKey, mut load_result: LoadResult) {
+        debug!("Completed decoding for {:?}", load_result);
         let pending_load = match self.pending_loads.remove(&key) {
             Some(load) => load,
             None => return,
