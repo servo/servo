@@ -115,6 +115,7 @@ impl Deref for ServoJSPrincipalsRef<'_> {
     }
 }
 
+#[allow(unused)]
 pub unsafe extern "C" fn destroy_servo_jsprincipal(principals: *mut JSPrincipals) {
     Box::from_raw(GetRustJSPrincipalsPrivate(principals) as *mut MutableOrigin);
     DestroyRustJSPrincipals(principals);

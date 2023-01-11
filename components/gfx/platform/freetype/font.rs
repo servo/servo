@@ -68,12 +68,15 @@ struct OS2Table {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub struct FontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
     // if the font is created using FT_Memory_Face.
     font_data: Arc<FontTemplateData>,
     face: FT_Face,
-    handle: FontContextHandle,
+    // `context_handle` is unused, but here to ensure that the underlying
+    // FreeTypeLibraryHandle is not dropped.
+    context_handle: FontContextHandle,
     can_do_fast_shaping: bool,
 }
 
@@ -144,7 +147,7 @@ impl FontHandleMethods for FontHandle {
         let mut handle = FontHandle {
             face: face,
             font_data: template,
-            handle: fctx.clone(),
+            context_handle: fctx.clone(),
             can_do_fast_shaping: false,
         };
         // TODO (#11310): Implement basic support for GPOS and GSUB.
