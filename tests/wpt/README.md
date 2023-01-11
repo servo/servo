@@ -116,7 +116,7 @@ won’t report test results correctly. To fix this:
         * → `1` if you want to play with the test interactively (≈ pause-after-test)
         * → `0` if you don’t care about that (though it’s also ok to use `1` always)
     * `%(debug)s` → `true`
-4. Create a `config.json` as follows (see `tools/wave/config.default.json` for defaults):
+4. Create a `./config.json` as follows (see `tools/wave/config.default.json` for defaults):
     ```
     {"aliases": [{
         "url-path": "/resources/testharnessreport.js",
