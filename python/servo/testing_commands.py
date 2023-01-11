@@ -529,6 +529,8 @@ class MachCommands(CommandBase):
                      help='Print filtered log to file')
     @CommandArgument('--log-intermittents', default=None,
                      help='Print intermittents to file')
+    @CommandArgument('--json', dest="json_mode", default=False, action="store_true",
+                     help='Output filtered and intermittents as JSON')
     @CommandArgument('--auth', default=None,
                      help='File containing basic authorization credentials for Github API (format `username:password`)')
     @CommandArgument('--tracker-api', default=None, action='store',
@@ -539,6 +541,7 @@ class MachCommands(CommandBase):
                              summary,
                              log_filteredsummary,
                              log_intermittents,
+                             json_mode,
                              auth,
                              tracker_api,
                              reporter_api):
@@ -551,6 +554,7 @@ class MachCommands(CommandBase):
             failures = [json.loads(line) for line in file]
         actual_failures = []
         intermittents = []
+        progress = 0
         for failure in failures:
             if tracker_api:
                 if tracker_api == 'default':
@@ -576,21 +580,31 @@ class MachCommands(CommandBase):
                 data = json.load(search)
                 is_intermittent = data['total_count'] > 0
 
+            progress += 1
+            print(f" [{progress}/{len(failures)}]", file=sys.stderr, end="\r")
+
             if is_intermittent:
-                if 'output' in failure:
+                if json_mode:
+                    intermittents.append(failure)
+                elif 'output' in failure:
                     intermittents.append(failure["output"])
                 else:
                     intermittents.append("%s [expected %s] %s \n"
                                          % (failure["status"], failure["expected"], failure['test']))
             else:
-                if 'output' in failure:
+                if json_mode:
+                    actual_failures.append(failure)
+                elif 'output' in failure:
                     actual_failures.append(failure["output"])
                 else:
                     actual_failures.append("%s [expected %s] %s \n"
                                            % (failure["status"], failure["expected"], failure['test']))
 
         def format(outputs, description, file=sys.stdout):
-            formatted = "%s %s:\n%s" % (len(outputs), description, "\n".join(outputs))
+            if json_mode:
+                formatted = json.dumps(outputs)
+            else:
+                formatted = "%s %s:\n%s" % (len(outputs), description, "\n".join(outputs))
             if file == sys.stdout:
                 file.write(formatted)
             else:
