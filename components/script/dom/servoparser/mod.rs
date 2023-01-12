@@ -829,13 +829,24 @@ impl FetchResponseListener for ParserContext {
         }
 
         parser.document.set_csp_list(csp_list);
-
         self.parser = Some(Trusted::new(&*parser));
-
         self.submit_resource_timing();
 
-        match content_type {
-            Some(ref mime) if mime.type_() == mime::IMAGE => {
+        let content_type = match content_type {
+            Some(ref content_type) => content_type,
+            None => {
+                // No content-type header.
+                // Merge with #4212 when fixed.
+                return;
+            },
+        };
+
+        match (
+            content_type.type_(),
+            content_type.subtype(),
+            content_type.suffix(),
+        ) {
+            (mime::IMAGE, _, _) => {
                 self.is_synthesized_document = true;
                 let page = "<html><body></body></html>".into();
                 parser.push_string_input_chunk(page);
@@ -849,15 +860,14 @@ impl FetchResponseListener for ParserContext {
                     .AppendChild(&DomRoot::upcast::<Node>(img))
                     .expect("Appending failed");
             },
-            Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::PLAIN => {
+            (mime::TEXT, mime::PLAIN, _) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = "<pre>\n".into();
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
                 parser.tokenizer.borrow_mut().set_plaintext_state();
             },
-            Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::HTML => {
-                // Handle text/html
+            (mime::TEXT, mime::HTML, _) => {
                 if let Some((reason, bytes)) = ssl_error {
                     self.is_synthesized_document = true;
                     let page = resources::read_string(Resource::BadCertHTML);
@@ -877,28 +887,20 @@ impl FetchResponseListener for ParserContext {
                     parser.parse_sync();
                 }
             },
-            // Handle text/xml, application/xml
-            Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) => {},
-            Some(ref mime)
-                if mime.type_() == mime::APPLICATION &&
-                    mime.subtype().as_str() == "xhtml" &&
-                    mime.suffix() == Some(mime::XML) => {}, // Handle xhtml (application/xhtml+xml)
-            Some(ref mime) => {
+            (mime::TEXT, mime::XML, _) |
+            (mime::APPLICATION, mime::XML, _) |
+            (mime::APPLICATION, mime::JSON, _) => {},
+            (mime::APPLICATION, subtype, Some(mime::XML)) if subtype == "xhtml" => {},
+            (mime_type, subtype, _) => {
                 // Show warning page for unknown mime types.
                 let page = format!(
                     "<html><body><p>Unknown content type ({}/{}).</p></body></html>",
-                    mime.type_().as_str(),
-                    mime.subtype().as_str()
+                    mime_type.as_str(),
+                    subtype.as_str()
                 );
                 self.is_synthesized_document = true;
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
-            },
-            None => {
-                // No content-type header.
-                // Merge with #4212 when fixed.
             },
         }
     }
