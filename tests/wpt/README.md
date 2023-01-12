@@ -45,6 +45,39 @@ build with `mach build -r`
 and
 test with `mach test-wpt --release`
 
+Running the tests with an external WPT server
+---------------------------------------------
+
+Normally wptrunner starts its own WPT server, but occasionally you
+might want to run multiple instances of `mach test-wpt`, such as when
+debugging one test while running the full suite in the background, or
+when running a single test many times in parallel (--processes only
+works across different tests).
+
+This would lead to a “Failed to start HTTP server” errors, because you
+can only run one WPT server at a time. To fix this:
+
+1. Follow the steps in [**Running the tests manually**](#running-the-tests-manually)
+2. Add a `break` to [start_servers in serve.py](https://github.com/servo/servo/blob/ce92b7bfbd5855aac18cb4f8a8ec59048041712e/tests/wpt/web-platform-tests/tools/serve/serve.py#L745-L783) as follows:
+    ```
+    --- a/tests/wpt/web-platform-tests/tools/serve/serve.py
+    +++ b/tests/wpt/web-platform-tests/tools/serve/serve.py
+    @@ -746,6 +746,7 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
+                       mp_context, log_handlers, **kwargs):
+         servers = defaultdict(list)
+         for scheme, ports in ports.items():
+    +        break
+             assert len(ports) == {"http": 2, "https": 2}.get(scheme, 1)
+     
+             # If trying to start HTTP/2.0 server, check compatibility
+    ```
+3. Run `mach test-wpt` as many times as needed
+
+If you get unexpected TIMEOUT in testharness tests, then the custom
+testharnessreport.js may have been installed incorrectly (see
+[**Running the tests manually**](#running-the-tests-manually)
+for more details).
+
 Running the tests without mach
 ------------------------------
 
@@ -58,7 +91,8 @@ Running the tests manually
 (See also [the relevant section of the upstream README][upstream-running].)
 
 It can be useful to run a test without the interference of the test runner, for
-example when using a debugger such as `gdb`.
+example when using a debugger such as `gdb`. To do this, we need to start the
+WPT server manually, which requires some extra configuration.
 
 To do this, first add the following to the system's hosts file:
 
@@ -69,33 +103,43 @@ To do this, first add the following to the system's hosts file:
     127.0.0.1   xn--n8j6ds53lwwkrqhv28a.web-platform.test
     127.0.0.1   xn--lve-6lad.web-platform.test
 
-Then, navigate to `tests/wpt/web-platform-tests`. Next, create a directory,
-e.g. `local-resources/`, to contain a local copy of the
-`resources/testharnessreport.js` file. The version in the repository is
-actually a Python format string that has substitution done on it by
-`harness/wptrunner/environment.py` to configure test output. Then, place a
-modified copy of the `testharnessreport.js` file in that directory, removing
-the format string variable:
+Navigate to `tests/wpt/web-platform-tests` for the remainder of this section.
 
-    mkdir local-resources
-    cp resources/testharnessreport.js local-resources/
-    $EDITOR local-resources/testharnessreport.js
-    # Replace `output:%(output)d` with `output:1` or `output:0`.
+Normally wptrunner [installs Servo’s version of testharnessreport.js][environment],
+but when starting the WPT server manually, we get the default version, which
+won’t report test results correctly. To fix this:
 
-Now create a configuration file at `config.json` for the web-platform-tests
-server (configuration options you don't specify will be loaded from the
-defaults at `config.default.json`) with the following contents:
+1. Create a directory `local-resources`
+2. Copy `tools/wptrunner/wptrunner/testharnessreport-servo.js` to `local-resources/testharnessreport.js`
+3. Edit `local-resources/testharnessreport.js` to substitute the variables as follows:
+    * `%(output)d`
+        * → `1` if you want to play with the test interactively (≈ pause-after-test)
+        * → `0` if you don’t care about that (though it’s also ok to use `1` always)
+    * `%(debug)s` → `true`
+4. Create a `./config.json` as follows (see `tools/wave/config.default.json` for defaults):
+    ```
+    {"aliases": [{
+        "url-path": "/resources/testharnessreport.js",
+        "local-dir": "local-resources"
+    }]}
+    ```
 
-    {"aliases": [
-      {"url-path": "/resources/testharnessreport.js",
-       "local-dir": "local-resources"
-      }
-     ]
-    }
+[environment]: https://github.com/servo/servo/blob/ce92b7bfbd5855aac18cb4f8a8ec59048041712e/tests/wpt/web-platform-tests/tools/wptrunner/wptrunner/environment.py#L231-L237
 
-Finally, you can run `python serve` from `tests/wpt/web-platform-tests`.
-Then navigate Servo to `http://web-platform.test:8000/path/to/test` or
-`https://web-platform.test:8443/path/to/test`.
+Then start the server with `./wpt serve`. To check if `testharnessreport.js` was installed correctly:
+
+* The standard output of `curl http://web-platform.test:8000/resources/testharnessreport.js`
+  should look like [testharnessreport-servo.js], not like [the default testharnessreport.js]
+* The standard output of `target/release/servo http://web-platform.test:8000/css/css-pseudo/highlight-pseudos-computed.html`
+  (or any [testharness test]) should contain lines starting with:
+    * `TEST START`
+    * `TEST STEP`
+    * `TEST DONE`
+    * `ALERT: RESULT:`
+
+[testharnessreport-servo.js]: https://github.com/servo/servo/blob/ce92b7bfbd5855aac18cb4f8a8ec59048041712e/tests/wpt/web-platform-tests/tools/wptrunner/wptrunner/testharnessreport-servo.js
+[the default testharnessreport.js]: https://github.com/servo/servo/blob/ce92b7bfbd5855aac18cb4f8a8ec59048041712e/tests/wpt/web-platform-tests/resources/testharnessreport.js
+[testharness test]: http://web-platform-tests.org/writing-tests/testharness.html
 
 To prevent browser SSL warnings when running HTTPS tests locally,
 you will need to run Servo with `--certificate-path resources/cert-wpt-only`.
