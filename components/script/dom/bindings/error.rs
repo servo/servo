@@ -29,8 +29,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_ErrorFromException;
 use js::rust::wrappers::JS_GetPendingException;
 use js::rust::wrappers::JS_SetPendingException;
-use js::rust::HandleObject;
-use js::rust::MutableHandleValue;
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use libc::c_uint;
 use std::slice::from_raw_parts;
 
@@ -181,7 +180,7 @@ pub struct ErrorInfo {
 }
 
 impl ErrorInfo {
-    unsafe fn from_native_error(cx: *mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
+    unsafe fn from_native_error(object: HandleObject, cx: *mut JSContext) -> Option<ErrorInfo> {
         let report = JS_ErrorFromException(cx, object);
         if report.is_null() {
             return None;
@@ -209,10 +208,10 @@ impl ErrorInfo {
         };
 
         Some(ErrorInfo {
-            filename: filename,
-            message: message,
-            lineno: lineno,
-            column: column,
+            filename,
+            message,
+            lineno,
+            column,
         })
     }
 
@@ -228,6 +227,37 @@ impl ErrorInfo {
             lineno: 0,
             column: 0,
         })
+    }
+
+    unsafe fn from_object(object: HandleObject, cx: *mut JSContext) -> Option<ErrorInfo> {
+        if let Some(info) = ErrorInfo::from_native_error(object, cx) {
+            return Some(info);
+        }
+        if let Some(info) = ErrorInfo::from_dom_exception(object, cx) {
+            return Some(info);
+        }
+        return None;
+    }
+
+    unsafe fn from_value(value: HandleValue, cx: *mut JSContext) -> ErrorInfo {
+        if value.is_object() {
+            rooted!(in(cx) let object = value.to_object());
+            if let Some(info) = ErrorInfo::from_object(object.handle(), cx) {
+                return info;
+            }
+        }
+
+        match USVString::from_jsval(cx, value, ()) {
+            Ok(ConversionResult::Success(USVString(string))) => ErrorInfo {
+                message: format!("uncaught exception: {}", string),
+                filename: String::new(),
+                lineno: 0,
+                column: 0,
+            },
+            _ => {
+                panic!("uncaught exception: failed to stringify primitive");
+            },
+        }
     }
 }
 
@@ -248,29 +278,7 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool,
     }
 
     JS_ClearPendingException(cx);
-    let error_info = if value.is_object() {
-        rooted!(in(cx) let object = value.to_object());
-        ErrorInfo::from_native_error(cx, object.handle())
-            .or_else(|| ErrorInfo::from_dom_exception(object.handle(), cx))
-            .unwrap_or_else(|| ErrorInfo {
-                message: format!("uncaught exception: unknown (can't convert to string)"),
-                filename: String::new(),
-                lineno: 0,
-                column: 0,
-            })
-    } else {
-        match USVString::from_jsval(cx, value.handle(), ()) {
-            Ok(ConversionResult::Success(USVString(string))) => ErrorInfo {
-                message: format!("uncaught exception: {}", string),
-                filename: String::new(),
-                lineno: 0,
-                column: 0,
-            },
-            _ => {
-                panic!("Uncaught exception: failed to stringify primitive");
-            },
-        }
-    };
+    let error_info = ErrorInfo::from_value(value.handle(), cx);
 
     error!(
         "Error at {}:{}:{} {}",
