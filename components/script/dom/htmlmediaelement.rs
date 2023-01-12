@@ -76,7 +76,6 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::image::base::Image;
-use net_traits::image_cache::ImageResponse;
 use net_traits::request::Destination;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
@@ -1306,25 +1305,22 @@ impl HTMLMediaElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#poster-frame
-    pub fn process_poster_response(&self, image: ImageResponse) {
+    pub fn process_poster_image_loaded(&self, image: Arc<Image>) {
         if !self.show_poster.get() {
             return;
         }
 
         // Step 6.
-        if let ImageResponse::Loaded(image, _) = image {
-            self.video_renderer
-                .lock()
-                .unwrap()
-                .render_poster_frame(image);
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-            if pref!(media.testing.enabled) {
-                let window = window_from_node(self);
-                let task_source = window.task_manager().media_element_task_source();
-                task_source.queue_simple_event(self.upcast(), atom!("postershown"), &window);
-            } else {
-                return;
-            }
+        self.video_renderer
+            .lock()
+            .unwrap()
+            .render_poster_frame(image);
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+
+        if pref!(media.testing.enabled) {
+            let window = window_from_node(self);
+            let task_source = window.task_manager().media_element_task_source();
+            task_source.queue_simple_event(self.upcast(), atom!("postershown"), &window);
         }
     }
 

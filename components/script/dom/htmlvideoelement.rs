@@ -109,10 +109,6 @@ impl HTMLVideoElement {
         self.video_height.set(height);
     }
 
-    pub fn allow_load_event(&self) {
-        LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
-    }
-
     pub fn get_current_frame_data(&self) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
         let frame = self.htmlmediaelement.get_current_frame();
         if frame.is_some() {
@@ -293,7 +289,19 @@ impl ImageCacheListener for HTMLVideoElement {
     }
 
     fn process_image_response(&self, response: ImageResponse) {
-        self.htmlmediaelement.process_poster_response(response);
+        match response {
+            ImageResponse::Loaded(image, url) => {
+                debug!("Loaded poster image for video element: {:?}", url);
+                self.htmlmediaelement.process_poster_image_loaded(image);
+                LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
+            },
+            ImageResponse::MetadataLoaded(..) => {},
+            ImageResponse::PlaceholderLoaded(..) => unreachable!(),
+            ImageResponse::None => {
+                // A failed load should unblock the document load.
+                LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
+            },
+        }
     }
 }
 
@@ -351,7 +359,6 @@ impl FetchResponseListener for PosterFrameFetchContext {
     }
 
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        self.elem.root().allow_load_event();
         self.image_cache
             .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
     }
