@@ -38,7 +38,7 @@ const properties = [
   "ariaDescribedByElements",
   "ariaDetailsElements",
   "ariaDisabled",
-  "ariaErrorMessageElement",
+  "ariaErrorMessageElements",
   "ariaExpanded",
   "ariaFlowToElements",
   "ariaHasPopup",
@@ -76,4 +76,5 @@ for (const property of properties) {
     assert_inherits(element.internals, property);
   }, property + " is defined in ElementInternals");
 }
+test(() => assert_false('ariaErrorMessageElement' in element.internals), 'ariaErrorMessageElement is not defined in ElementInternals')
 </script>

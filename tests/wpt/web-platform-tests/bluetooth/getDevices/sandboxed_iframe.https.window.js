@@ -8,7 +8,6 @@
 let iframe = document.createElement('iframe');
 
 bluetooth_test(async () => {
-  await getConnectedHealthThermometerDevice();
   await new Promise(resolve => {
     iframe.src = '/bluetooth/resources/health-thermometer-iframe.html';
     iframe.sandbox.add('allow-scripts');

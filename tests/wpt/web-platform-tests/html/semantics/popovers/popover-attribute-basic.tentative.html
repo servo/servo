@@ -292,10 +292,10 @@ window.onload = () => {
     },{once: true});
     assert_true(other_popover.matches(':open'));
     assert_false(popover.matches(':open'));
-    popover.showPopover();
+    assert_throws_dom('InvalidStateError', () => popover.showPopover());
     assert_false(other_popover.matches(':open'),'unrelated popover is hidden');
     assert_false(popover.matches(':open'),'popover is not shown if its type changed during show');
-  },`Changing the popover type in a "beforetoggle" event handler should not cause problems (during showPopover())`);
+  },`Changing the popover type in a "beforetoggle" event handler should throw an exception (during showPopover())`);
 
   test((t) => {
     const popover = createPopover(t);
@@ -319,11 +319,11 @@ window.onload = () => {
     },{once: true});
     assert_true(popover.matches(':open'));
     assert_true(other_popover.matches(':open'));
-    popover.hidePopover();
+    assert_throws_dom('InvalidStateError', () => popover.hidePopover());
     assert_false(other_popover.matches(':open'),'unrelated popover is hidden');
     assert_false(popover.matches(':open'),'popover is still hidden if its type changed during hide event');
     assert_throws_dom("InvalidStateError",() => other_popover.hidePopover(),'Nested popover should already be hidden');
-  },`Changing the popover type in a "beforetoggle" event handler should not cause problems (during hidePopover())`);
+  },`Changing the popover type in a "beforetoggle" event handler should throw an exception (during hidePopover())`);
 
   function interpretedType(typeString,method) {
     if (validTypes.includes(typeString))
@@ -371,7 +371,9 @@ window.onload = () => {
               // Keeping the type the same should not hide it or fire events.
               assert_true(popover.matches(':open'),'popover should remain open when not changing the type');
               assert_false(gotEvent);
-              popover.hidePopover(); // Cleanup
+              try {
+                popover.hidePopover(); // Cleanup
+              } catch (e) {}
             } else {
               // Changing the type at all should hide the popover. The hide event
               // handler should run, set a new type, and that type should end up

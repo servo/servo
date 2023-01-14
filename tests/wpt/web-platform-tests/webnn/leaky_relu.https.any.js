@@ -7,4 +7,4 @@
 
 // https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder-leakyrelu
 
-testWebNNOperation('leakyRelu', '/webnn/resources/test_data/leaky_relu.json', buildOperationWithSingleInput);
+testWebNNOperation('leakyRelu', buildOperationWithSingleInput);

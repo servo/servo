@@ -8,8 +8,10 @@
     document.body.appendChild(childFrame)
 
     performance.mark("entry-name")
+    const loadPromise = new Promise(resolve => window.addEventListener("load", resolve))
 
-    childFrame.addEventListener('load', () => {
+    childFrame.addEventListener('load', async () => {
+        await loadPromise
         const entries = performance.getEntries(true)
         window.parent.postMessage(entries.length, "*")
     })

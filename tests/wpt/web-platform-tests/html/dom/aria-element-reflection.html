@@ -122,18 +122,22 @@
 
   <script>
   test(function(t) {
-    startTime.ariaErrorMessageElement = errorMessage;
+    startTime.ariaErrorMessageElements = [errorMessage];
     assert_equals(startTime.getAttribute("aria-errormessage"), "");
-    assert_equals(startTime.ariaErrorMessageElement, errorMessage);
+    assert_array_equals(startTime.ariaErrorMessageElements, [errorMessage]);
 
-    startTime.ariaErrorMessageElement = null;
-    assert_equals(startTime.ariaErrorMessageElement, null, "blah");
-    assert_false(startTime.hasAttribute("aria-errormessage"));
+    startTime.ariaErrorMessageElements = [];
+    assert_array_equals(startTime.ariaErrorMessageElements, []);
+    assert_equals(startTime.getAttribute("aria-errormessage"), "");
 
     startTime.setAttribute("aria-errormessage", "errorMessage");
-    assert_equals(startTime.ariaErrorMessageElement, errorMessage);
+    assert_array_equals(startTime.ariaErrorMessageElements, [errorMessage]);
 
   }, "aria-errormessage");
+
+  test(function (t) {
+      assert_false('ariaErrorMessageElement' in startTime);
+  }, 'ariaErrorMessageElement is not defined')
 
   </script>
 

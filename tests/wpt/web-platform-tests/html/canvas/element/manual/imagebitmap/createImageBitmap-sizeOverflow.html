@@ -32,7 +32,7 @@ promise_test(function() {
 
 promise_test(function(t) {
     var imgData = new ImageData(20, 20);
-    var imageBitmapOptions = {imageOrientation:'none', premultiplyAlpha:'default',
+    var imageBitmapOptions = {imageOrientation:'from-image', premultiplyAlpha:'default',
                               colorSpaceConversion:'none', resizeHeight:2122252543, resizeQuality:'high'};
     return createImageBitmap(imgData, 0, 0, 4294967295, 64)
         .then(imageBitmap => promise_rejects_dom(t, "InvalidStateError",
@@ -41,7 +41,7 @@ promise_test(function(t) {
 
 promise_test(function(t) {
     var imgData = new ImageData(20, 20);
-    var imageBitmapOptions = {imageOrientation:'none', premultiplyAlpha:'default',
+    var imageBitmapOptions = {imageOrientation:'from-image', premultiplyAlpha:'default',
                               colorSpaceConversion:'none', resizeWidth:2122252543, resizeQuality:'high'};
     return createImageBitmap(imgData, 0, 0, 4294967295, 64)
         .then(imageBitmap => promise_rejects_dom(t, "InvalidStateError",

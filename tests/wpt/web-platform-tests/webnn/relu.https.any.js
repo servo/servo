@@ -7,4 +7,4 @@
 
 // https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder-relu
 
-testWebNNOperation('relu', '/webnn/resources/test_data/relu.json', buildOperationWithSingleInput);
+testWebNNOperation('relu', buildOperationWithSingleInput);

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+  <title>View transitions: Dialog element in RTL scrollable iframe</title>
+  <link rel="help" href="https://github.com/WICG/view-transitions">
+  <link rel="author" href="mailto:bokan@chromium.org">
+  <link rel="match" href="dialog-in-rtl-iframe-ref.html">
+  <meta name=fuzzy content="dialog-in-rtl-iframe-ref.html:0-80;0-500">
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    iframe {
+      width: 50vw;
+      height: 50vh;
+    }
+  </style>
+  <script>
+    onload = () => {
+      requestAnimationFrame(()=>{requestAnimationFrame(()=> {
+        frames[0].window.startTransition();
+        frames[0].window.transition.ready.then(() => {
+          requestAnimationFrame(()=>{requestAnimationFrame(()=> {
+            takeScreenshot();
+          })});
+        });
+      })});
+    }
+  </script>
+</head>
+
+<body>
+  <iframe src="support/dialog-in-rtl-iframe-child.html">
+  </iframe>
+</body>
+</html>
