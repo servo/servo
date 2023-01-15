@@ -154,6 +154,10 @@ SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-002.html
 SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-003.html
 SET TIMEOUT: css/selectors/selector-read-write-type-change-002.html
 SET TIMEOUT: css/selectors/selector-required-type-change-002.html
+SET TIMEOUT: css/selectors/invalidation/dir-pseudo-class-in-has.html
+SET TIMEOUT: css/selectors/invalidation/lang-pseudo-class-in-has-document-element.html
+SET TIMEOUT: css/selectors/invalidation/lang-pseudo-class-in-has-xhtml.xhtml
+SET TIMEOUT: css/selectors/invalidation/lang-pseudo-class-in-has.html
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js

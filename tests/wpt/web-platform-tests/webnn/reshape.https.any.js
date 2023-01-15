@@ -16,5 +16,5 @@ const buildReshape = (operationName, builder, resources) => {
   return namedOutputOperand;
 };
 
-testWebNNOperation('reshape', '/webnn/resources/test_data/reshape.json', buildReshape);
+testWebNNOperation('reshape', buildReshape);
 

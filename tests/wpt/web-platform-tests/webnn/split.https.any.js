@@ -21,4 +21,4 @@ const buildSplit = (operationName, builder, resources) => {
   return namedOutputOperand;
 };
 
-testWebNNOperation('split', '/webnn/resources/test_data/split.json', buildSplit);
+testWebNNOperation('split', buildSplit);

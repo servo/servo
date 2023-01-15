@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title>&#x3c;use&#x3e; with a cross-origin resource</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElementHrefAttribute"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <rect width="100" height="100" fill="green"/>
+  <script>
+    const svg = document.querySelector('svg');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', location.href.replace('://', '://www1.') + '/../support/red-rect.svg#red-rect');
+    svg.appendChild(use);
+  </script>
+</svg>

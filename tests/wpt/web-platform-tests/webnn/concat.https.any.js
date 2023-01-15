@@ -19,4 +19,4 @@ const buildConcat = (operationName, builder, resources) => {
   return namedOutputOperand;
 };
 
-testWebNNOperation('concat', '/webnn/resources/test_data/concat.json', buildConcat);
+testWebNNOperation('concat', buildConcat);
