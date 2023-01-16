@@ -462,7 +462,7 @@ where
         let mut matching_context = MatchingContext::new_for_visited(
             MatchingMode::Normal,
             Some(bloom_filter),
-            Some(nth_index_cache),
+            nth_index_cache,
             visited_handling,
             self.context.shared.quirks_mode(),
             NeedsSelectorFlags::Yes,
@@ -538,7 +538,7 @@ where
         let mut matching_context = MatchingContext::<'_, E::Impl>::new_for_visited(
             MatchingMode::ForStatelessPseudoElement,
             Some(bloom_filter),
-            Some(nth_index_cache),
+            nth_index_cache,
             visited_handling,
             self.context.shared.quirks_mode(),
             NeedsSelectorFlags::Yes,

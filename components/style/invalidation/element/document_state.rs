@@ -13,6 +13,7 @@ use crate::stylist::CascadeData;
 use selectors::matching::{
     MatchingContext, MatchingMode, NeedsSelectorFlags, QuirksMode, VisitedHandlingMode,
 };
+use selectors::NthIndexCache;
 use style_traits::dom::DocumentState;
 
 /// A struct holding the members necessary to invalidate document state
@@ -43,11 +44,16 @@ pub struct DocumentStateInvalidationProcessor<'a, E: TElement, I> {
 impl<'a, E: TElement, I> DocumentStateInvalidationProcessor<'a, E, I> {
     /// Creates a new DocumentStateInvalidationProcessor.
     #[inline]
-    pub fn new(rules: I, document_states_changed: DocumentState, quirks_mode: QuirksMode) -> Self {
+    pub fn new(
+        rules: I,
+        document_states_changed: DocumentState,
+        nth_index_cache: &'a mut NthIndexCache,
+        quirks_mode: QuirksMode,
+    ) -> Self {
         let mut matching_context = MatchingContext::<'a, E::Impl>::new_for_visited(
             MatchingMode::Normal,
             None,
-            None,
+            nth_index_cache,
             VisitedHandlingMode::AllLinksVisitedAndUnvisited,
             quirks_mode,
             NeedsSelectorFlags::No,
