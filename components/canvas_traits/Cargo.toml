@@ -17,7 +17,7 @@ xr-profile = ["webxr-api/profile", "time"]
 [dependencies]
 crossbeam-channel = "0.4"
 cssparser = "0.29"
-euclid = "0.20"
+euclid = "0.22"
 ipc-channel = "0.14"
 lazy_static = "1"
 malloc_size_of = { path = "../malloc_size_of" }

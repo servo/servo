@@ -15,7 +15,7 @@ app_units = "0.7"
 atomic_refcell = "0.1"
 canvas_traits = { path = "../canvas_traits" }
 crossbeam-channel = "0.4"
-euclid = "0.20"
+euclid = "0.22"
 fxhash = "0.2"
 gfx_traits = { path = "../gfx_traits" }
 html5ever = "0.26"

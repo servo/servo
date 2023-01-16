@@ -591,7 +591,7 @@ dependencies = [
  "half",
  "ipc-channel",
  "log",
- "lyon_geom 0.14.1",
+ "lyon_geom 1.0.4",
  "num-traits",
  "pathfinder_geometry",
  "pixels",
@@ -1652,9 +1652,9 @@ dependencies = [
 
 [[package]]
 name = "euclid"
-version = "0.20.14"
+version = "0.22.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bb7ef65b3777a325d1eeefefab5b6d4959da54747e33bd6258e789640f307ad"
+checksum = "b52c2ef4a78da0ba68fbe1fd920627411096d2ac478f7f4c9f3a54ba6705bade"
 dependencies = [
  "num-traits",
  "serde",
@@ -3428,6 +3428,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "libm"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "348108ab3fba42ec82ff6e9564fc4ca0247bdccdc68dd8af9764bbc79c3c8ffb"
+
+[[package]]
 name = "libmlservo"
 version = "0.0.1"
 dependencies = [
@@ -3555,22 +3561,22 @@ dependencies = [
 
 [[package]]
 name = "lyon_geom"
-version = "0.14.1"
+version = "0.17.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca04310c9807612a311506106000b6eccb2e27bca9bfb594ce80fb8a31231f9d"
+checksum = "71d89ccbdafd83d259403e22061be27bccc3254bba65cdc5303250c4227c8c8e"
 dependencies = [
- "arrayvec 0.4.12",
+ "arrayvec 0.5.1",
  "euclid",
  "num-traits",
 ]
 
 [[package]]
 name = "lyon_geom"
-version = "0.15.0"
+version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e2a8bde54788e0eb4f1b9f072910bfa1cba95688698f7bb206d13a2f8fd06b3"
+checksum = "74df1ff0a0147282eb10699537a03baa7d31972b58984a1d44ce0624043fe8ad"
 dependencies = [
- "arrayvec 0.5.1",
+ "arrayvec 0.7.1",
  "euclid",
  "num-traits",
 ]
@@ -4304,6 +4310,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]
@@ -4613,7 +4620,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#415b9ba32648667313f6f4ce7965752285bf0b26"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -4622,7 +4629,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#415b9ba32648667313f6f4ce7965752285bf0b26"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4840,9 +4847,9 @@ checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
 
 [[package]]
 name = "plane-split"
-version = "0.15.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffe16a646a08f4b4dd74035b9ff8e378eb1a4012a74f14f5889e7001cdbece33"
+checksum = "f3f7075ec146b897b6e0faca47adeb7ed3d4f6eaa8145bf19db17311081b3f63"
 dependencies = [
  "binary-space-partition",
  "euclid",
@@ -5088,14 +5095,14 @@ checksum = "a871f1e45a3a3f0c73fb60343c811238bb5143a81642e27c2ac7aac27ff01a63"
 
 [[package]]
 name = "raqote"
-version = "0.8.1-alpha.0"
-source = "git+https://github.com/jdm/raqote?branch=fkup#5a650714ea20f44ebe14de9fce60eeef100144c1"
+version = "0.8.2"
+source = "git+https://github.com/jrmuizel/raqote#7b235e9a7721d5db6dbfd82ec69e390111653081"
 dependencies = [
  "euclid",
  "font-kit",
- "lyon_geom 0.15.0",
+ "lyon_geom 0.17.7",
  "pathfinder_geometry",
- "png 0.16.6",
+ "png 0.17.7",
  "sw-composite",
  "typed-arena",
 ]
@@ -5686,7 +5693,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
@@ -5697,8 +5704,8 @@ dependencies = [
 
 [[package]]
 name = "servo-media-audio"
-version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+version = "0.2.0"
+source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5807,7 +5814,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -5819,7 +5826,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -5828,12 +5835,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
 dependencies = [
  "boxfnonce",
  "lazy_static",
@@ -5911,7 +5918,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#f53ac0a03a1413362e15d39d1527466986d13c94"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6370,9 +6377,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.4.4"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e70e69faf378eeb7b44044ab434a06672e0bd495d32a47d84a097e69dd994985"
+checksum = "ab6e313fe157a4f6ecdaff1aa5f866a3191509bf4e1f49ededefce62ccc4a4bb"
 dependencies = [
  "bitflags",
  "cfg_aliases",
@@ -6401,9 +6408,8 @@ dependencies = [
 
 [[package]]
 name = "surfman-chains"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99e707090691623a80d36f4faaba50105cc7a611eda51b0312b53eeec36a0a25"
+version = "0.7.0"
+source = "git+https://github.com/servo/surfman-chains.git#f7b30e8736501fe3d326f1c41e7ae0a2bca4e818"
 dependencies = [
  "euclid",
  "fnv",
@@ -6427,9 +6433,9 @@ checksum = "c666f0fed8e1e20e057af770af9077d72f3d5a33157b8537c1475dd8ffd6d32b"
 
 [[package]]
 name = "sw-composite"
-version = "0.7.14"
+version = "0.7.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e39674047b1748e8bf4865142772a6637bd32d8b4b27e3c2248dd122f637808b"
+checksum = "0b8d4f1dd38540e3f62c393ae78e874c94491c403025368183b018e3fb098b1f"
 
 [[package]]
 name = "swapper"
@@ -7311,7 +7317,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#415b9ba32648667313f6f4ce7965752285bf0b26"
 dependencies = [
  "backtrace",
  "base64 0.10.1",
@@ -7355,7 +7361,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#415b9ba32648667313f6f4ce7965752285bf0b26"
 dependencies = [
  "app_units",
  "bitflags",
@@ -7376,7 +7382,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#415b9ba32648667313f6f4ce7965752285bf0b26"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7402,7 +7408,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#4eb957ac4f0e22ac5baded31eb86eea32862d687"
+source = "git+https://github.com/servo/webxr#3d82ad985764c35aaf389ce83b5f9ba909c23f53"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -7425,7 +7431,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#4eb957ac4f0e22ac5baded31eb86eea32862d687"
+source = "git+https://github.com/servo/webxr#3d82ad985764c35aaf389ce83b5f9ba909c23f53"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -7627,7 +7633,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#415b9ba32648667313f6f4ce7965752285bf0b26"
 dependencies = [
  "app_units",
  "euclid",

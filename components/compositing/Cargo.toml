@@ -19,7 +19,7 @@ gl = ["gleam", "pixels"]
 canvas = { path = "../canvas" }
 crossbeam-channel = "0.4"
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.20"
+euclid = "0.22"
 gfx_traits = { path = "../gfx_traits" }
 gleam = { version = "0.12", optional = true }
 image = "0.24"

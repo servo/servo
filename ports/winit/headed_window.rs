@@ -762,7 +762,7 @@ impl XRWindowPose {
         }
         let x: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_x(Angle::degrees(x));
         let y: Rotation3D<_, UnknownUnit, UnknownUnit> = Rotation3D::around_y(Angle::degrees(y));
-        let rotation = self.xr_rotation.get().post_rotate(&x).post_rotate(&y);
+        let rotation = self.xr_rotation.get().then(&x).then(&y);
         self.xr_rotation.set(rotation);
     }
 }

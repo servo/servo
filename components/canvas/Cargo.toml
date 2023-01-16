@@ -21,7 +21,7 @@ byteorder = "1"
 canvas_traits = { path = "../canvas_traits" }
 crossbeam-channel = "0.4"
 cssparser = "0.29"
-euclid = "0.20"
+euclid = "0.22"
 font-kit = "0.11"
 fnv = "1.0"
 gfx = { path = "../gfx" }
@@ -29,7 +29,7 @@ gleam = "0.12"
 half = "1"
 ipc-channel = "0.14"
 log = "0.4"
-lyon_geom = "0.14"
+lyon_geom = "1.0.4"
 num-traits = "0.2"
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
@@ -40,8 +40,8 @@ sparkle = "0.1.25"
 style = { path = "../style" }
 style_traits = { path = "../style_traits" }
 # NOTE: the sm-angle feature only enables angle on windows, not other platforms!
-surfman = { version = "0.4", features = ["sm-angle","sm-angle-default"] }
-surfman-chains = "0.6"
+surfman = { version = "0.5", features = ["sm-angle","sm-angle-default"] }
+surfman-chains = "0.7"
 surfman-chains-api = "0.2"
 time = { version = "0.1.41", optional = true }
 webrender = { git = "https://github.com/servo/webrender" }

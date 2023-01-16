@@ -802,7 +802,7 @@ impl BoxFragment {
             ),
             (Some(transform), None) => (transform, wr::ReferenceFrameKind::Transform),
             (Some(transform), Some(perspective)) => (
-                transform.pre_transform(&perspective),
+                perspective.then(&transform),
                 wr::ReferenceFrameKind::Perspective {
                     scrolling_relative_to: None,
                 },
@@ -861,11 +861,7 @@ impl BoxFragment {
             -transform_origin_z,
         );
 
-        Some(
-            pre_transform
-                .pre_transform(&transform)
-                .pre_transform(&post_transform),
-        )
+        Some(post_transform.then(&transform).then(&pre_transform))
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
@@ -903,9 +899,9 @@ impl BoxFragment {
                 );
 
                 Some(
-                    pre_transform
-                        .pre_transform(&perspective_matrix)
-                        .pre_transform(&post_transform),
+                    post_transform
+                        .then(&perspective_matrix)
+                        .then(&pre_transform),
                 )
             },
             Perspective::None => None,

@@ -150,7 +150,7 @@ impl XRViewerPose {
             },
         };
         let transform: RigidTransform3D<f32, Viewer, BaseSpace> =
-            to_base.pre_transform(&viewer_pose.transform);
+            viewer_pose.transform.then(&to_base);
         let transform = XRRigidTransform::new(global, cast_transform(transform));
         let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global);
 

@@ -18,7 +18,7 @@ atomic_refcell = "0.1.6"
 canvas_traits = { path = "../canvas_traits" }
 cssparser = "0.29"
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.20"
+euclid = "0.22"
 fnv = "1.0"
 fxhash = "0.2"
 gfx = { path = "../gfx" }

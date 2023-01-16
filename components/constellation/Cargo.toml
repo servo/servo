@@ -19,7 +19,7 @@ compositing = { path = "../compositing" }
 crossbeam-channel = "0.4"
 devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.20"
+euclid = "0.22"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
 http = "0.2"

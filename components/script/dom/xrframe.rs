@@ -130,7 +130,7 @@ impl XRFrameMethods for XRFrame {
         } else {
             return Ok(None);
         };
-        let pose = relative_to.inverse().pre_transform(&space);
+        let pose = space.then(&relative_to.inverse());
         Ok(Some(XRPose::new(&self.global(), pose)))
     }
 
@@ -158,7 +158,7 @@ impl XRFrameMethods for XRFrame {
         } else {
             return Ok(None);
         };
-        let pose = relative_to.inverse().pre_transform(&joint_frame.pose);
+        let pose = joint_frame.pose.then(&relative_to.inverse());
         Ok(Some(XRJointPose::new(
             &self.global(),
             pose.cast_unit(),

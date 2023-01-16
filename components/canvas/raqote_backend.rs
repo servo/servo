@@ -445,8 +445,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
             Repetition::NoRepeat,
         ));
         let transform =
-            raqote::Transform::create_translation(-dest.origin.x as f32, -dest.origin.y as f32)
-                .post_scale(
+            raqote::Transform::translation(-dest.origin.x as f32, -dest.origin.y as f32)
+                .then_scale(
                     image.width as f32 / dest.size.width as f32,
                     image.height as f32 / dest.size.height as f32,
                 );

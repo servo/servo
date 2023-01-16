@@ -181,7 +181,7 @@ impl DOMMatrixReadOnly {
         dommatrixinit_to_matrix(&other).map(|(is2D, other_matrix)| {
             // Step 2.
             let mut matrix = self.matrix.borrow_mut();
-            *matrix = other_matrix.post_transform(&matrix);
+            *matrix = other_matrix.then(&matrix);
             // Step 3.
             if !is2D {
                 self.is2D.set(false);
@@ -196,7 +196,7 @@ impl DOMMatrixReadOnly {
         dommatrixinit_to_matrix(&other).map(|(is2D, other_matrix)| {
             // Step 2.
             let mut matrix = self.matrix.borrow_mut();
-            *matrix = other_matrix.pre_transform(&matrix);
+            *matrix = matrix.then(&other_matrix);
             // Step 3.
             if !is2D {
                 self.is2D.set(false);
@@ -208,9 +208,9 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-translateself
     pub fn translate_self(&self, tx: f64, ty: f64, tz: f64) {
         // Step 1.
-        let translation = Transform3D::create_translation(tx, ty, tz);
+        let translation = Transform3D::translation(tx, ty, tz);
         let mut matrix = self.matrix.borrow_mut();
-        *matrix = translation.post_transform(&matrix);
+        *matrix = translation.then(&matrix);
         // Step 2.
         if tz != 0.0 {
             self.is2D.set(false);
@@ -234,9 +234,9 @@ impl DOMMatrixReadOnly {
         let scaleY = scaleY.unwrap_or(scaleX);
         // Step 3.
         {
-            let scale3D = Transform3D::create_scale(scaleX, scaleY, scaleZ);
+            let scale3D = Transform3D::scale(scaleX, scaleY, scaleZ);
             let mut matrix = self.matrix.borrow_mut();
-            *matrix = scale3D.post_transform(&matrix);
+            *matrix = scale3D.then(&matrix);
         }
         // Step 4.
         originX = -originX;
@@ -257,9 +257,9 @@ impl DOMMatrixReadOnly {
         self.translate_self(originX, originY, originZ);
         // Step 2.
         {
-            let scale3D = Transform3D::create_scale(scale, scale, scale);
+            let scale3D = Transform3D::scale(scale, scale, scale);
             let mut matrix = self.matrix.borrow_mut();
-            *matrix = scale3D.post_transform(&matrix);
+            *matrix = scale3D.then(&matrix);
         }
         // Step 3.
         self.translate_self(-originX, -originY, -originZ);
@@ -288,27 +288,21 @@ impl DOMMatrixReadOnly {
         }
         if rotZ != 0.0 {
             // Step 5.
-            // Beware: pass negated value until https://github.com/servo/euclid/issues/354
-            let rotation =
-                Transform3D::create_rotation(0.0, 0.0, -1.0, Angle::radians(rotZ.to_radians()));
+            let rotation = Transform3D::rotation(0.0, 0.0, 1.0, Angle::radians(rotZ.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
-            *matrix = rotation.post_transform(&matrix);
+            *matrix = rotation.then(&matrix);
         }
         if rotY != 0.0 {
             // Step 6.
-            // Beware: pass negated value until https://github.com/servo/euclid/issues/354
-            let rotation =
-                Transform3D::create_rotation(0.0, -1.0, 0.0, Angle::radians(rotY.to_radians()));
+            let rotation = Transform3D::rotation(0.0, 1.0, 0.0, Angle::radians(rotY.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
-            *matrix = rotation.post_transform(&matrix);
+            *matrix = rotation.then(&matrix);
         }
         if rotX != 0.0 {
             // Step 7.
-            // Beware: pass negated value until https://github.com/servo/euclid/issues/354
-            let rotation =
-                Transform3D::create_rotation(-1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
+            let rotation = Transform3D::rotation(1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
-            *matrix = rotation.post_transform(&matrix);
+            *matrix = rotation.then(&matrix);
         }
         // Step 8 in DOMMatrix.RotateSelf
     }
@@ -319,10 +313,9 @@ impl DOMMatrixReadOnly {
         if y != 0.0 || x < 0.0 {
             // Step 1.
             let rotZ = Angle::radians(f64::atan2(y, x));
-            // Beware: pass negated value until https://github.com/servo/euclid/issues/354
-            let rotation = Transform3D::create_rotation(0.0, 0.0, -1.0, rotZ);
+            let rotation = Transform3D::rotation(0.0, 0.0, 1.0, rotZ);
             let mut matrix = self.matrix.borrow_mut();
-            *matrix = rotation.post_transform(&matrix);
+            *matrix = rotation.then(&matrix);
         }
         // Step 2 in DOMMatrix.RotateFromVectorSelf
     }
@@ -332,14 +325,10 @@ impl DOMMatrixReadOnly {
         // Step 1.
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
         // Beware: pass negated value until https://github.com/servo/euclid/issues/354
-        let rotation = Transform3D::create_rotation(
-            -norm_x,
-            -norm_y,
-            -norm_z,
-            Angle::radians(angle.to_radians()),
-        );
+        let rotation =
+            Transform3D::rotation(norm_x, norm_y, norm_z, Angle::radians(angle.to_radians()));
         let mut matrix = self.matrix.borrow_mut();
-        *matrix = rotation.post_transform(&matrix);
+        *matrix = rotation.then(&matrix);
         // Step 2.
         if x != 0.0 || y != 0.0 {
             self.is2D.set(false);
@@ -350,18 +339,18 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewxself
     pub fn skew_x_self(&self, sx: f64) {
         // Step 1.
-        let skew = Transform3D::create_skew(Angle::radians(sx.to_radians()), Angle::radians(0.0));
+        let skew = Transform3D::skew(Angle::radians(sx.to_radians()), Angle::radians(0.0));
         let mut matrix = self.matrix.borrow_mut();
-        *matrix = skew.post_transform(&matrix);
+        *matrix = skew.then(&matrix);
         // Step 2 in DOMMatrix.SkewXSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewyself
     pub fn skew_y_self(&self, sy: f64) {
         // Step 1.
-        let skew = Transform3D::create_skew(Angle::radians(0.0), Angle::radians(sy.to_radians()));
+        let skew = Transform3D::skew(Angle::radians(0.0), Angle::radians(sy.to_radians()));
         let mut matrix = self.matrix.borrow_mut();
-        *matrix = skew.post_transform(&matrix);
+        *matrix = skew.then(&matrix);
         // Step 2 in DOMMatrix.SkewYSelf
     }
 
@@ -372,7 +361,7 @@ impl DOMMatrixReadOnly {
         *matrix = matrix.inverse().unwrap_or_else(|| {
             // Step 2.
             self.is2D.set(false);
-            Transform3D::row_major(
+            Transform3D::new(
                 f64::NAN,
                 f64::NAN,
                 f64::NAN,
@@ -628,20 +617,20 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx
     fn FlipX(&self) -> DomRoot<DOMMatrix> {
         let is2D = self.is2D.get();
-        let flip = Transform3D::row_major(
+        let flip = Transform3D::new(
             -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         );
-        let matrix = flip.post_transform(&self.matrix.borrow());
+        let matrix = flip.then(&self.matrix.borrow());
         DOMMatrix::new(&self.global(), is2D, matrix)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipy
     fn FlipY(&self) -> DomRoot<DOMMatrix> {
         let is2D = self.is2D.get();
-        let flip = Transform3D::row_major(
+        let flip = Transform3D::new(
             1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         );
-        let matrix = flip.post_transform(&self.matrix.borrow());
+        let matrix = flip.then(&self.matrix.borrow());
         DOMMatrix::new(&self.global(), is2D, matrix)
     }
 
@@ -673,7 +662,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
         let vec: Vec<f32> = self
             .matrix
             .borrow()
-            .to_row_major_array()
+            .to_array()
             .iter()
             .map(|&x| x as f32)
             .collect();
@@ -687,7 +676,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array
     #[allow(unsafe_code)]
     fn ToFloat64Array(&self, cx: JSContext) -> NonNull<JSObject> {
-        let arr = self.matrix.borrow().to_row_major_array();
+        let arr = self.matrix.borrow().to_array();
         unsafe {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             let _ = Float64Array::create(*cx, CreateWith::Slice(&arr), array.handle_mut()).unwrap();
@@ -698,7 +687,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
 // https://drafts.fxtf.org/geometry-1/#create-a-2d-matrix
 fn create_2d_matrix(entries: &[f64]) -> Transform3D<f64> {
-    Transform3D::row_major(
+    Transform3D::new(
         entries[0], entries[1], 0.0, 0.0, entries[2], entries[3], 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
         entries[4], entries[5], 0.0, 1.0,
     )
@@ -706,7 +695,7 @@ fn create_2d_matrix(entries: &[f64]) -> Transform3D<f64> {
 
 // https://drafts.fxtf.org/geometry-1/#create-a-3d-matrix
 fn create_3d_matrix(entries: &[f64]) -> Transform3D<f64> {
-    Transform3D::row_major(
+    Transform3D::new(
         entries[0],
         entries[1],
         entries[2],
@@ -794,7 +783,7 @@ pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transfor
         if is_2d.is_none() {
             is_2d = Some(true);
         }
-        let matrix = Transform3D::row_major(
+        let matrix = Transform3D::new(
             m11, m12, dict.m13, dict.m14, m21, m22, dict.m23, dict.m24, dict.m31, dict.m32,
             dict.m33, dict.m34, m41, m42, dict.m43, dict.m44,
         );
