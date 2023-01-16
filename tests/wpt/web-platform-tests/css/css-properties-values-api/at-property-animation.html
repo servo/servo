@@ -295,4 +295,47 @@ test(() => {
   });
 }, 'No transition when removing @property rule');
 
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  with_style_node(`
+    @keyframes test {
+      from { ${name}: 100px; }
+      to { ${name}: 200px; }
+    }
+    #div {
+        animation: test 100s -50s linear;
+        --unregistered: var(${name});
+    }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue('--unregistered'), '150px');
+  });
+}, 'Unregistered properties referencing animated properties update correctly.');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  with_style_node(`
+    @keyframes test {
+      from { ${name}: 100px; }
+      to { ${name}: 200px; }
+    }
+    @property --registered {
+        syntax: "<length>";
+        inherits: false;
+        initialValue: 0px;
+    }
+    #div {
+        animation: test 100s -50s linear;
+        --registered: var(${name});
+    }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue('--registered'), '150px');
+  });
+}, 'Registered properties referencing animated properties update correctly.');
+
 </script>

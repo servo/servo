@@ -12,7 +12,7 @@ test(() => {
     // Before registering the property, ${name} should reify as a
     // a token sequence.
     assert_equals(div.computedStyleMap().get(name).constructor.name, 'CSSUnparsedValue');
-    assert_equals(div.computedStyleMap().get(name).toString(), ' 100px');
+    assert_equals(div.computedStyleMap().get(name).toString(), '100px');
 
     with_at_property({
       name: name,
@@ -29,7 +29,7 @@ test(() => {
     // After @property is removed, the computed value is once again a token
     // sequence.
     assert_equals(div.computedStyleMap().get(name).constructor.name, 'CSSUnparsedValue');
-    assert_equals(div.computedStyleMap().get(name).toString(), ' 100px');
+    assert_equals(div.computedStyleMap().get(name).toString(), '100px');
   });
 }, 'Properties declared with @property reify correctly');
 

@@ -30,80 +30,65 @@
       // would not be rejected. That way, if the attribute value is ignored
       // instead of the cookie line being rejected, the test will catch it.
       for (const ctl of CTLS) {
-        // NOTE: 'expected' below is only expected in the case of the tab
-        // character. Otherwise, '' is expected.
         const controlCharacterAttributeTests = [
           {
             cookie: `test${ctl.code}domain=t; Domain=test${ctl.chr}.co; Domain=${host};`,
-            expected: `test${ctl.code}domain=t`,
             name: `Cookie with %x${ctl.code.toString(16)} in Domain attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}domain2=t; Domain=${host}${ctl.chr};`,
-            expected: `test${ctl.code}domain2=t`,
             name: `Cookie with %x${ctl.code.toString(16)} after Domain attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}path=t; Path=/te${ctl.chr}st; Path=${path}`,
-            expected: `test${ctl.code}path=t`,
             name: `Cookie with %x${ctl.code.toString(16)} in Path attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}path2=t; Path=${path}${ctl.chr};`,
-            expected: `test${ctl.code}path2=t`,
             name: `Cookie with %x${ctl.code.toString(16)} after Path attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}maxage=t; Max-Age=10${ctl.chr}00; Max-Age=1000;`,
-            expected: `test${ctl.code}maxage=t`,
             name: `Cookie with %x${ctl.code.toString(16)} in Max-Age attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}maxage2=t; Max-Age=1000${ctl.chr};`,
-            expected: `test${ctl.code}maxage2=t`,
             name: `Cookie with %x${ctl.code.toString(16)} after Max-Age attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}expires=t; Expires=Fri, 01 Jan 20${ctl.chr}38 00:00:00 GMT; ` +
               'Expires=Fri, 01 Jan 2038 00:00:00 GMT;',
-            expected: `test${ctl.code}expires=t`,
             name: `Cookie with %x${ctl.code.toString(16)} in Expires attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}expires2=t; Expires=Fri, 01 Jan 2038 00:00:00 GMT${ctl.chr};`,
-            expected: `test${ctl.code}expires2=t`,
             name: `Cookie with %x${ctl.code.toString(16)} after Expires attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}secure=t; Sec${ctl.chr}ure;`,
-            expected: `test${ctl.code}secure=t`,
             name: `Cookie with %x${ctl.code.toString(16)} in Secure attribute is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}secure2=t; Secure${ctl.chr};`,
-            expected: `test${ctl.code}secure2=t`,
             name: `Cookie with %x${ctl.code.toString(16)} after Secure attribute is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}httponly=t; Http${ctl.chr}Only;`,
-            expected: `test${ctl.code}httponly=t`,
             name: `Cookie with %x${ctl.code.toString(16)} in HttpOnly attribute is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}samesite=t; SameSite=La${ctl.chr}x; SameSite=Lax;`,
-            expected: `test${ctl.code}samesite=t`,
             name: `Cookie with %x${ctl.code.toString(16)} in SameSite attribute value is handled correctly.`,
           },
           {
             cookie: `test${ctl.code}samesite2=t; SameSite=Lax${ctl.chr};`,
-            expected: `test${ctl.code}samesite2=t`,
             name: `Cookie with %x${ctl.code.toString(16)} after SameSite attribute value is handled correctly.`,
           },
         ];
 
         for (const test of controlCharacterAttributeTests) {
           if (ctl.code === 0x09) {
-            domCookieTest(test.cookie, test.expected, test.name);
+            domCookieTest(test.cookie, test.cookie.split(";")[0], test.name);
           } else {
             domCookieTest(test.cookie, "", test.name);
           }
