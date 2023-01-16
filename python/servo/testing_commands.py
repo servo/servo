@@ -427,10 +427,10 @@ class MachCommands(CommandBase):
 
     def _test_wpt(self, android=False, **kwargs):
         self.set_run_env(android)
-        hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
-        os.environ["HOST_FILE"] = hosts_file_path
-        run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run.py"))
-        return self.wptrunner(run_file, **kwargs)
+
+        sys.path.insert(0, os.path.join(PROJECT_TOPLEVEL_PATH, 'tests', 'wpt'))
+        import servowpt
+        return servowpt.run_tests(**kwargs)
 
     # Helper to ensure all specified paths are handled, otherwise dispatch to appropriate test suite.
     def run_test_list_or_dispatch(self, requested_paths, correct_suite, correct_function, **kwargs):
@@ -447,42 +447,6 @@ class MachCommands(CommandBase):
             return correct_function(**kwargs)
         # Dispatch each test to the correct suite via test()
         Registrar.dispatch("test", context=self.context, params=requested_paths)
-
-    # Helper for test_css and test_wpt:
-    def wptrunner(self, run_file, **kwargs):
-        # By default, Rayon selects the number of worker threads
-        # based on the available CPU count. This doesn't work very
-        # well when running tests on CI, since we run so many
-        # Servo processes in parallel. The result is a lot of
-        # extra timeouts. Instead, force Rayon to assume we are
-        # running on a 2 CPU environment.
-        os.environ['RAYON_RS_NUM_CPUS'] = "2"
-
-        os.environ["RUST_BACKTRACE"] = "1"
-        kwargs["debug"] = not kwargs["release"]
-        if kwargs.pop("rr_chaos"):
-            kwargs["debugger"] = "rr"
-            kwargs["debugger_args"] = "record --chaos"
-            kwargs["repeat_until_unexpected"] = True
-            # TODO: Delete rr traces from green test runs?
-        prefs = kwargs.pop("prefs")
-        if prefs:
-            binary_args = []
-            for pref in prefs:
-                binary_args.append("--pref=" + pref)
-            kwargs["binary_args"] = binary_args
-
-        if not kwargs.get('no_default_test_types'):
-            test_types = {
-                "servo": ["testharness", "reftest", "wdspec"],
-                "servodriver": ["testharness", "reftest"],
-            }
-            product = kwargs.get("product") or "servo"
-            kwargs["test_types"] = test_types[product]
-
-        run_globals = {"__file__": run_file}
-        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
-        return run_globals["run_tests"](**kwargs)
 
     @Command('update-manifest',
              description='Run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
@@ -509,16 +473,14 @@ class MachCommands(CommandBase):
              category='testing',
              parser=updatecommandline.create_parser())
     def update_wpt(self, **kwargs):
-        run_file = path.abspath(path.join("tests", "wpt", "update.py"))
         patch = kwargs.get("patch", False)
-
         if not patch and kwargs["sync"]:
             print("Are you sure you don't want a patch?")
             return 1
 
-        run_globals = {"__file__": run_file}
-        exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
-        return run_globals["update_tests"](**kwargs)
+        sys.path.insert(0, os.path.join(PROJECT_TOPLEVEL_PATH, 'tests', 'wpt'))
+        import servowpt
+        return servowpt.update_tests(**kwargs)
 
     @Command('filter-intermittents',
              description='Given a WPT error summary file, filter out intermittents and other cruft.',
