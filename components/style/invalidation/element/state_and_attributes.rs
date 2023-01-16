@@ -65,7 +65,7 @@ impl<'a, 'b: 'a, E: TElement + 'b> StateAndAttrInvalidationProcessor<'a, 'b, E> 
         let matching_context = MatchingContext::new_for_visited(
             MatchingMode::Normal,
             None,
-            Some(nth_index_cache),
+            nth_index_cache,
             VisitedHandlingMode::AllLinksVisitedAndUnvisited,
             shared_context.quirks_mode(),
             NeedsSelectorFlags::No,

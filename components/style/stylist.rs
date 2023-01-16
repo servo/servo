@@ -1125,6 +1125,7 @@ impl Stylist {
     {
         debug_assert!(pseudo.is_lazy());
 
+        let mut nth_index_cache = Default::default();
         // No need to bother setting the selector flags when we're computing
         // default styles.
         let needs_selector_flags = if rule_inclusion == RuleInclusion::DefaultOnly {
@@ -1137,7 +1138,7 @@ impl Stylist {
         let mut matching_context = MatchingContext::<'_, E::Impl>::new(
             MatchingMode::ForStatelessPseudoElement,
             None,
-            None,
+            &mut nth_index_cache,
             self.quirks_mode,
             needs_selector_flags,
         );
@@ -1166,10 +1167,12 @@ impl Stylist {
         let mut visited_rules = None;
         if parent_style.visited_style().is_some() {
             let mut declarations = ApplicableDeclarationList::new();
+            let mut nth_index_cache = Default::default();
+
             let mut matching_context = MatchingContext::<'_, E::Impl>::new_for_visited(
                 MatchingMode::ForStatelessPseudoElement,
                 None,
-                None,
+                &mut nth_index_cache,
                 VisitedHandlingMode::RelevantLinkVisited,
                 self.quirks_mode,
                 needs_selector_flags,
@@ -1417,7 +1420,7 @@ impl Stylist {
         let mut matching_context = MatchingContext::new(
             MatchingMode::Normal,
             bloom,
-            Some(nth_index_cache),
+            nth_index_cache,
             self.quirks_mode,
             needs_selector_flags,
         );

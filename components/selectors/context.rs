@@ -4,8 +4,8 @@
 
 use crate::attr::CaseSensitivity;
 use crate::bloom::BloomFilter;
-use crate::nth_index_cache::NthIndexCache;
-use crate::parser::SelectorImpl;
+use crate::nth_index_cache::{NthIndexCache, NthIndexCacheInner};
+use crate::parser::{Selector, SelectorImpl};
 use crate::tree::{Element, OpaqueElement};
 
 /// What kind of selector matching mode we should use.
@@ -110,8 +110,8 @@ where
     matching_mode: MatchingMode,
     /// Input with the bloom filter used to fast-reject selectors.
     pub bloom_filter: Option<&'a BloomFilter>,
-    /// An optional cache to speed up nth-index-like selectors.
-    pub nth_index_cache: Option<&'a mut NthIndexCache>,
+    /// A cache to speed up nth-index-like selectors.
+    pub nth_index_cache: &'a mut NthIndexCache,
     /// The element which is going to match :scope pseudo-class. It can be
     /// either one :scope element, or the scoping element.
     ///
@@ -161,7 +161,7 @@ where
     pub fn new(
         matching_mode: MatchingMode,
         bloom_filter: Option<&'a BloomFilter>,
-        nth_index_cache: Option<&'a mut NthIndexCache>,
+        nth_index_cache: &'a mut NthIndexCache,
         quirks_mode: QuirksMode,
         needs_selector_flags: NeedsSelectorFlags,
     ) -> Self {
@@ -179,7 +179,7 @@ where
     pub fn new_for_visited(
         matching_mode: MatchingMode,
         bloom_filter: Option<&'a BloomFilter>,
-        nth_index_cache: Option<&'a mut NthIndexCache>,
+        nth_index_cache: &'a mut NthIndexCache,
         visited_handling: VisitedHandlingMode,
         quirks_mode: QuirksMode,
         needs_selector_flags: NeedsSelectorFlags,
@@ -200,6 +200,17 @@ where
             extra_data: Default::default(),
             _impl: ::std::marker::PhantomData,
         }
+    }
+
+    // Grab a reference to the appropriate cache.
+    #[inline]
+    pub fn nth_index_cache(
+        &mut self,
+        is_of_type: bool,
+        is_from_end: bool,
+        selectors: &[Selector<Impl>],
+    ) -> &mut NthIndexCacheInner {
+        self.nth_index_cache.get(is_of_type, is_from_end, selectors)
     }
 
     /// Whether we're matching a nested selector.

@@ -7,7 +7,6 @@ use crate::attr::{
     ParsedCaseSensitivity,
 };
 use crate::bloom::{BloomFilter, BLOOM_HASH_MASK};
-use crate::nth_index_cache::NthIndexCacheInner;
 use crate::parser::{AncestorHashes, Combinator, Component, LocalName, NthSelectorData};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use crate::tree::Element;
@@ -326,6 +325,21 @@ where
     let result = matches_complex_selector_internal(iter, element, context, Rightmost::Yes);
 
     matches!(result, SelectorMatchingResult::Matched)
+}
+
+/// Matches each selector of a list as a complex selector
+#[inline(always)]
+pub fn list_matches_complex_selector<E: Element>(
+    list: &[Selector<E::Impl>],
+    element: &E,
+    context: &mut MatchingContext<E::Impl>,
+) -> bool {
+    for selector in list {
+        if matches_complex_selector(selector.iter(), element, context) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Traverse all descendents of the given element and return true as soon as any of them match
@@ -802,12 +816,14 @@ where
             None => element.is_root(),
         },
         Component::Nth(ref nth_data) => {
-            matches_generic_nth_child(element, context.shared, nth_data)
+            matches_generic_nth_child(element, context.shared, nth_data, &[])
         },
-        Component::NthOf(ref nth_of_data) => {
-            // TODO(zrhoffman, bug 1808228): Use selectors() when matching
-            matches_generic_nth_child(element, context.shared, nth_of_data.nth_data())
-        },
+        Component::NthOf(ref nth_of_data) => matches_generic_nth_child(
+            element,
+            context.shared,
+            nth_of_data.nth_data(),
+            nth_of_data.selectors(),
+        ),
         Component::Is(ref list) | Component::Where(ref list) => context.shared.nest(|context| {
             for selector in &**list {
                 if matches_complex_selector(selector.iter(), element, context) {
@@ -870,6 +886,7 @@ fn matches_generic_nth_child<E>(
     element: &E,
     context: &mut MatchingContext<E::Impl>,
     nth_data: &NthSelectorData,
+    selectors: &[Selector<E::Impl>],
 ) -> bool
 where
     E: Element,
@@ -877,19 +894,44 @@ where
     if element.ignores_nth_child_selectors() {
         return false;
     }
+    /*
+     * This condition could be bound as element_matches_selectors and used in
+     * nth_child_index() as element_matches_selectors &&
+     *     list_matches_complex_selector(selectors, &curr, context)
+     * , but since element_matches_selectors would need still need to be
+     * computed in that case in order to utilize the cache, there would be no
+     * performance benefit for building up nth-{,last-}child(.. of ..) caches
+     * where the element does not match the selector list.
+     */
+    if !selectors.is_empty() && !list_matches_complex_selector(selectors, element, context) {
+        return false;
+    }
 
     let NthSelectorData { ty, a, b, .. } = *nth_data;
     let is_of_type = ty.is_of_type();
     if ty.is_only() {
-        return matches_generic_nth_child(element, context, &NthSelectorData::first(is_of_type)) &&
-            matches_generic_nth_child(element, context, &NthSelectorData::last(is_of_type));
+        debug_assert!(
+            selectors.is_empty(),
+            ":only-child and :only-of-type cannot have a selector list!"
+        );
+        return matches_generic_nth_child(
+            element,
+            context,
+            &NthSelectorData::first(is_of_type),
+            selectors,
+        ) && matches_generic_nth_child(
+            element,
+            context,
+            &NthSelectorData::last(is_of_type),
+            selectors,
+        );
     }
 
     let is_from_end = ty.is_from_end();
 
     // It's useful to know whether this can only select the first/last element
     // child for optimization purposes, see the `HAS_EDGE_CHILD_SELECTOR` flag.
-    let is_edge_child_selector = a == 0 && b == 1 && !is_of_type;
+    let is_edge_child_selector = a == 0 && b == 1 && !is_of_type && selectors.is_empty();
 
     if context.needs_selector_flags() {
         element.apply_selector_flags(if is_edge_child_selector {
@@ -912,25 +954,36 @@ where
         .is_none();
     }
 
-    // Grab a reference to the appropriate cache.
-    let mut cache = context
-        .nth_index_cache
-        .as_mut()
-        .map(|c| c.get(is_of_type, is_from_end));
-
     // Lookup or compute the index.
-    let index = if let Some(i) = cache.as_mut().and_then(|c| c.lookup(element.opaque())) {
+    let index = if let Some(i) = context
+        .nth_index_cache(is_of_type, is_from_end, selectors)
+        .lookup(element.opaque())
+    {
         i
     } else {
-        let i = nth_child_index(element, is_of_type, is_from_end, cache.as_deref_mut());
-        if let Some(c) = cache.as_mut() {
-            c.insert(element.opaque(), i)
-        }
+        let i = nth_child_index(
+            element,
+            context,
+            selectors,
+            is_of_type,
+            is_from_end,
+            /* check_cache = */ true,
+        );
+        context
+            .nth_index_cache(is_of_type, is_from_end, selectors)
+            .insert(element.opaque(), i);
         i
     };
     debug_assert_eq!(
         index,
-        nth_child_index(element, is_of_type, is_from_end, None),
+        nth_child_index(
+            element,
+            context,
+            selectors,
+            is_of_type,
+            is_from_end,
+            /* check_cache = */ false
+        ),
         "invalid cache"
     );
 
@@ -947,9 +1000,11 @@ where
 #[inline]
 fn nth_child_index<E>(
     element: &E,
+    context: &mut MatchingContext<E::Impl>,
+    selectors: &[Selector<E::Impl>],
     is_of_type: bool,
     is_from_end: bool,
-    mut cache: Option<&mut NthIndexCacheInner>,
+    check_cache: bool,
 ) -> i32
 where
     E: Element,
@@ -960,19 +1015,33 @@ where
     // siblings to the left checking the cache in the is_from_end case (this
     // matches what Gecko does). The indices-from-the-left is handled during the
     // regular look further below.
-    if let Some(ref mut c) = cache {
-        if is_from_end && !c.is_empty() {
-            let mut index: i32 = 1;
-            let mut curr = element.clone();
-            while let Some(e) = curr.prev_sibling_element() {
-                curr = e;
-                if !is_of_type || element.is_same_type(&curr) {
-                    if let Some(i) = c.lookup(curr.opaque()) {
-                        return i - index;
-                    }
-                    index += 1;
-                }
+    if check_cache &&
+        is_from_end &&
+        !context
+            .nth_index_cache(is_of_type, is_from_end, selectors)
+            .is_empty()
+    {
+        let mut index: i32 = 1;
+        let mut curr = element.clone();
+        while let Some(e) = curr.prev_sibling_element() {
+            curr = e;
+            let matches = if is_of_type {
+                element.is_same_type(&curr)
+            } else if !selectors.is_empty() {
+                list_matches_complex_selector(selectors, &curr, context)
+            } else {
+                true
+            };
+            if !matches {
+                continue;
             }
+            if let Some(i) = context
+                .nth_index_cache(is_of_type, is_from_end, selectors)
+                .lookup(curr.opaque())
+            {
+                return i - index;
+            }
+            index += 1;
         }
     }
 
@@ -987,17 +1056,28 @@ where
     };
     while let Some(e) = next(curr) {
         curr = e;
-        if !is_of_type || element.is_same_type(&curr) {
-            // If we're computing indices from the left, check each element in the
-            // cache. We handle the indices-from-the-right case at the top of this
-            // function.
-            if !is_from_end {
-                if let Some(i) = cache.as_mut().and_then(|c| c.lookup(curr.opaque())) {
-                    return i + index;
-                }
-            }
-            index += 1;
+        let matches = if is_of_type {
+            element.is_same_type(&curr)
+        } else if !selectors.is_empty() {
+            list_matches_complex_selector(selectors, &curr, context)
+        } else {
+            true
+        };
+        if !matches {
+            continue;
         }
+        // If we're computing indices from the left, check each element in the
+        // cache. We handle the indices-from-the-right case at the top of this
+        // function.
+        if !is_from_end && check_cache {
+            if let Some(i) = context
+                .nth_index_cache(is_of_type, is_from_end, selectors)
+                .lookup(curr.opaque())
+            {
+                return i + index;
+            }
+        }
+        index += 1;
     }
 
     index

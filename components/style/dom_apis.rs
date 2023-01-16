@@ -14,7 +14,7 @@ use crate::values::AtomIdent;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode, NeedsSelectorFlags};
 use selectors::parser::{Combinator, Component, LocalName, SelectorImpl};
-use selectors::{Element, NthIndexCache, SelectorList};
+use selectors::{Element, SelectorList};
 use smallvec::SmallVec;
 
 /// <https://dom.spec.whatwg.org/#dom-element-matches>
@@ -26,10 +26,12 @@ pub fn element_matches<E>(
 where
     E: Element,
 {
+    let mut nth_index_cache = Default::default();
+
     let mut context = MatchingContext::new(
         MatchingMode::Normal,
         None,
-        None,
+        &mut nth_index_cache,
         quirks_mode,
         NeedsSelectorFlags::No,
     );
@@ -47,12 +49,12 @@ pub fn element_closest<E>(
 where
     E: Element,
 {
-    let mut nth_index_cache = NthIndexCache::default();
+    let mut nth_index_cache = Default::default();
 
     let mut context = MatchingContext::new(
         MatchingMode::Normal,
         None,
-        Some(&mut nth_index_cache),
+        &mut nth_index_cache,
         quirks_mode,
         NeedsSelectorFlags::No,
     );
@@ -621,13 +623,13 @@ pub fn query_selector<E, Q>(
 {
     use crate::invalidation::element::invalidator::TreeStyleInvalidator;
 
+    let mut nth_index_cache = Default::default();
     let quirks_mode = root.owner_doc().quirks_mode();
 
-    let mut nth_index_cache = NthIndexCache::default();
     let mut matching_context = MatchingContext::new(
         MatchingMode::Normal,
         None,
-        Some(&mut nth_index_cache),
+        &mut nth_index_cache,
         quirks_mode,
         NeedsSelectorFlags::No,
     );
