@@ -70,6 +70,22 @@ impl PaperSize {
     }
 }
 
+/// Page orientation names.
+///
+/// https://drafts.csswg.org/css-page-3/#page-orientation-prop
+#[derive(
+    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
+)]
+#[repr(u8)]
+pub enum PageOrientation {
+    /// upright
+    Upright,
+    /// rotate-left (counter-clockwise)
+    RotateLeft,
+    /// rotate-right (clockwise)
+    RotateRight,
+}
+
 /// Paper orientation
 ///
 /// https://drafts.csswg.org/css-page-3/#page-size-prop
