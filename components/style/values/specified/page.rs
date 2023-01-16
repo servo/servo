@@ -11,6 +11,7 @@ use crate::values::{generics, CustomIdent};
 use cssparser::Parser;
 use style_traits::ParseError;
 
+pub use generics::page::PageOrientation;
 pub use generics::page::PageSizeOrientation;
 pub use generics::page::PaperSize;
 /// Specified value of the @page size descriptor

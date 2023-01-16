@@ -476,6 +476,7 @@ class Longhand(Property):
                 "OverflowClipBox",
                 "OverflowWrap",
                 "OverscrollBehavior",
+                "PageOrientation",
                 "Percentage",
                 "PrintColorAdjust",
                 "Resize",

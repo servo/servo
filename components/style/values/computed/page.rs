@@ -11,6 +11,7 @@ use crate::values::generics::size::Size2D;
 
 use crate::values::specified::page as specified;
 pub use generics::page::GenericPageSize;
+pub use generics::page::PageOrientation;
 pub use generics::page::PageSizeOrientation;
 pub use generics::page::PaperSize;
 pub use specified::PageName;

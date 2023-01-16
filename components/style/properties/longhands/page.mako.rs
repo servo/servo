@@ -29,3 +29,15 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-page-3/#using-named-pages",
     animation_value_type="discrete",
 )}
+
+${helpers.predefined_type(
+    "page-orientation",
+    "PageOrientation",
+    "computed::PageOrientation::Upright",
+    engines="gecko",
+    gecko_pref="layout.css.page-orientation.enabled",
+    initial_specified_value="specified::PageOrientation::Upright",
+    spec="https://drafts.csswg.org/css-page-3/#page-orientation-prop",
+    animation_value_type="none",
+    rule_types_allowed=PAGE_RULE,
+)}
