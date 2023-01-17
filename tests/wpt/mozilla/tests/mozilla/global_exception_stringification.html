@@ -1,0 +1,36 @@
+<!-- doctype html -->
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+    <div id="testOutput"></div>
+</body>
+
+<script>
+    setup({ 'allow_uncaught_exception': true });
+    promise_test(async t => {
+        function CustomError(message) {
+            this.message = message;
+        }
+        CustomError.prototype = Object.create(Error.prototype);
+
+        let message = null;
+        let waitForError = new Promise(resolve => {
+            window.onerror = (errorMessage) => {
+                message = errorMessage;
+                resolve();
+            };
+        });
+
+        setTimeout(() => {
+            throw new CustomError("An exceptional exception.");
+        }, 0);
+
+        await waitForError;
+        assert_equals(message, "uncaught exception: Error: An exceptional exception.");
+    }, "Exception is stringified properly.");
+</script>
+
