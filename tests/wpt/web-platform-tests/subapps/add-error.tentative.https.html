@@ -90,6 +90,20 @@ promise_test(async t => {
 }, 'Missing user activation.');
 
 promise_test(async t => {
+  const same_origin_url = document.location.origin + '/sub-app-';
+
+  let add_call_params = {};
+  for (let i = 0; i < 8; i++) {
+    const url = same_origin_url + i;
+    add_call_params[url] = { install_url: url };
+  }
+
+  await test_driver.bless("installing subapps", async function () {
+    await promise_rejects_dom(t, 'DataError', navigator.subApps.add(add_call_params));
+  });
+}, 'Too many subapps at once.');
+
+promise_test(async t => {
   let add_call_params = {};
 
   const url_1 = document.location.origin + '/sub-app-1';

@@ -61,24 +61,24 @@
   promise_test(async t => {
     // These tests are all based on the cover range, which has bounds
     // [600, 900] if there are no insets.
-    // rangeStart = target_pos - viewport_size + end_side_inset
-    //            = 600 + end_side_inset
-    // rangeEnd = target_pos + target_size - start_side_inset
-    //          = 900 - start_side_inset
+    // startOffset = target_pos - viewport_size + end_side_inset
+    //             = 600 + end_side_inset
+    // endOffset = target_pos + target_size - start_side_inset
+    //           = 900 - start_side_inset
     await runTimelineInsetTest(t, {
       inset: [ CSS.px(0), CSS.px(0) ],
-      rangeStart: 600,
-      rangeEnd: 900
+      startOffset: 600,
+      endOffset: 900
     }).then(anim => verifyTimelineOffsets(anim, 600, 900));
     await runTimelineInsetTest(t, {
       inset: [ CSS.px(10), CSS.px(20) ],
-      rangeStart: 620,
-      rangeEnd: 890
+      startOffset: 620,
+      endOffset: 890
     }).then(anim => verifyTimelineOffsets(anim, 620, 890));
     await runTimelineInsetTest(t, {
       inset: [ CSS.px(10) ],
-      rangeStart: 610,
-      rangeEnd: 890
+      startOffset: 610,
+      endOffset: 890
     }).then(anim => verifyTimelineOffsets(anim, 610, 890));
   }, 'View timeline with px based inset.');
 
@@ -89,18 +89,18 @@
     // test.
     await runTimelineInsetTest(t, {
       inset: [ CSS.percent(0), CSS.percent(0) ],
-      rangeStart: 600,
-      rangeEnd: 900
+      startOffset: 600,
+      endOffset: 900
     }).then(anim => verifyTimelineOffsets(anim, 600, 900));
     await runTimelineInsetTest(t, {
       inset: [ CSS.percent(10), CSS.percent(20) ],
-      rangeStart: 640,
-      rangeEnd: 880
+      startOffset: 640,
+      endOffset: 880
     }).then(anim => verifyTimelineOffsets(anim, 640, 880));
     await runTimelineInsetTest(t, {
       inset: [ CSS.percent(10) ],
-      rangeStart: 620,
-      rangeEnd: 880
+      startOffset: 620,
+      endOffset: 880
     }).then(anim => verifyTimelineOffsets(anim, 620, 880));
   }, 'View timeline with percent based inset.');
 
@@ -110,15 +110,15 @@
     });
     const anim = await runTimelineInsetTest(t, {
       inset: [ "auto", "auto" ],
-      rangeStart: 600,
-      rangeEnd: 900
+      startOffset: 600,
+      endOffset: 900
     });
     verifyTimelineOffsets(anim, 600, 900);
     container.classList.add('scroll-padded');
-    await runTimelineRangeTest(t, {
+    await runTimelineBoundsTest(t, {
       anim: anim,
-      rangeStart: 620,
-      rangeEnd: 890,
+      startOffset: 620,
+      endOffset: 890,
     }, 'Adjust for scroll-padding')
         .then(anim => verifyTimelineOffsets(anim, 620, 890));
   }, 'view timeline with inset auto.');
@@ -129,15 +129,15 @@ promise_test(async t => {
   });
   const anim = await runTimelineInsetTest(t, {
     inset: [ CSS.em(1), CSS.em(2) ],
-    rangeStart: 632,
-    rangeEnd: 884
+    startOffset: 632,
+    endOffset: 884
   });
   verifyTimelineOffsets(anim, 632, 884);
   target.classList.add('big-font');
-  await runTimelineRangeTest(t, {
+  await runTimelineBoundsTest(t, {
     anim: anim,
-    rangeStart: 640,
-    rangeEnd: 880,
+    startOffset: 640,
+    endOffset: 880,
   }, 'Adjust for font size increase')
       .then(anim => verifyTimelineOffsets(anim, 640, 880));
 }, 'view timeline with font relative inset.');
@@ -148,46 +148,46 @@ promise_test(async t => {
   const vmin = Math.min(vw, vh);
   await runTimelineInsetTest(t, {
     inset: [ CSS.vw(10), CSS.vw(20) ],
-    rangeStart: 600 + 0.2 * vw,
-    rangeEnd: 900 - 0.1 * vw
+    startOffset: 600 + 0.2 * vw,
+    endOffset: 900 - 0.1 * vw
   });
   await runTimelineInsetTest(t, {
     inset: [ CSS.vmin(10), CSS.vmin(20) ],
-    rangeStart: 600 + 0.2 * vmin,
-    rangeEnd: 900 - 0.1 * vmin
+    startOffset: 600 + 0.2 * vmin,
+    endOffset: 900 - 0.1 * vmin
   });
 }, 'view timeline with viewport relative insets.');
 
 promise_test(async t => {
   await runTimelineInsetTest(t, {
     inset: "10px",
-    rangeStart: 610,
-    rangeEnd: 890
+    startOffset: 610,
+    endOffset: 890
   });
   await runTimelineInsetTest(t, {
     inset: "10px 20px",
-    rangeStart: 620,
-    rangeEnd: 890
+    startOffset: 620,
+    endOffset: 890
   });
   await runTimelineInsetTest(t, {
     inset: "10%",
-    rangeStart: 620,
-    rangeEnd: 880
+    startOffset: 620,
+    endOffset: 880
   });
   await runTimelineInsetTest(t, {
     inset: "10% 20%",
-    rangeStart: 640,
-    rangeEnd: 880
+    startOffset: 640,
+    endOffset: 880
   });
   await runTimelineInsetTest(t, {
     inset: "auto",
-    rangeStart: 600,
-    rangeEnd: 900
+    startOffset: 600,
+    endOffset: 900
   });
   await runTimelineInsetTest(t, {
     inset: "1em 2em",
-    rangeStart: 632,
-    rangeEnd: 884
+    startOffset: 632,
+    endOffset: 884
   });
   assert_throws_js(TypeError, () => {
     new ViewTimeline({

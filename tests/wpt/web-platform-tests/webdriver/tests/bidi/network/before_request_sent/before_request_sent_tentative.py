@@ -1,5 +1,4 @@
 import asyncio
-import json
 
 import pytest
 
@@ -11,72 +10,13 @@ from .. import assert_before_request_sent_event
 
 PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
 PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
-PAGE_REDIRECT_HTTP_EQUIV = "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
+PAGE_REDIRECT_HTTP_EQUIV = (
+    "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
+)
 PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
 
 # The following tests are marked as tentative until
 # https://github.com/w3c/webdriver-bidi/pull/204 is merged.
-
-
-@pytest.fixture
-def fetch(bidi_session, top_context):
-    """Perform a fetch from the page of the top level context."""
-    async def fetch(url, method="GET", headers=None):
-        method_arg = f"method: '{method}',"
-
-        headers_arg = ""
-        if headers != None:
-            headers_arg = f"headers: {json.dumps(headers)},"
-
-        # Wait for fetch() to resolve a response and for response.text() to
-        # resolve as well to make sure the request/response is completed when
-        # the helper returns.
-        await bidi_session.script.evaluate(
-            expression=f"""
-                 fetch("{url}", {{
-                   {method_arg}
-                   {headers_arg}
-                 }}).then(response => response.text());""",
-            target=ContextTarget(top_context["context"]),
-            await_promise=True,
-        )
-
-    return fetch
-
-
-@pytest.fixture
-async def setup_network_test(bidi_session, subscribe_events, top_context, url):
-    """Navigate the current top level context to the provided url and subscribe
-    to network.beforeRequestSent.
-
-    Returns an `events` list in which the captured network events will be added.
-    """
-    remove_listener = None
-
-    async def _setup_network_test(test_url=url(PAGE_EMPTY_HTML)):
-        nonlocal remove_listener
-
-        await bidi_session.browsing_context.navigate(
-            context=top_context["context"],
-            url=test_url,
-            wait="complete",
-        )
-        events = []
-        await subscribe_events(["network.beforeRequestSent"])
-
-        async def on_event(method, data):
-            events.append(data)
-
-        remove_listener = bidi_session.add_event_listener(
-            "network.beforeRequestSent", on_event
-        )
-
-        return events
-
-    yield _setup_network_test
-
-    # cleanup
-    remove_listener()
 
 
 @pytest.mark.asyncio
@@ -85,7 +25,7 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
-        url=url("/webdriver/tests/bidi/network/support/empty.html"),
+        url=url(PAGE_EMPTY_HTML),
         wait="complete",
     )
 
@@ -105,14 +45,18 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
     await on_before_request_sent
 
     assert len(events) == 1
+    expected_request = {"method": "GET", "url": text_url}
     assert_before_request_sent_event(
-        events[0], url=text_url, method="GET", redirect_count=0, is_redirect=False
+        events[0],
+        expected_request=expected_request,
+        redirect_count=0,
+        is_redirect=False,
     )
 
     await bidi_session.session.unsubscribe(events=["network.beforeRequestSent"])
 
     # Fetch the text url again, with an additional parameter to bypass the cache
-    # check no new event is received.
+    # and check no new event is received.
     await fetch(f"{text_url}?nocache")
     await asyncio.sleep(0.5)
     assert len(events) == 1
@@ -126,7 +70,8 @@ async def test_load_page_twice(
 ):
     html_url = url(PAGE_EMPTY_HTML)
 
-    events = await setup_network_test()
+    network_events = await setup_network_test(events=["network.beforeRequestSent"])
+    events = network_events["network.beforeRequestSent"]
 
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await bidi_session.browsing_context.navigate(
@@ -137,8 +82,12 @@ async def test_load_page_twice(
     await on_before_request_sent
 
     assert len(events) == 1
+    expected_request = {"method": "GET", "url": html_url}
     assert_before_request_sent_event(
-        events[0], url=html_url, method="GET", redirect_count=0, is_redirect=False
+        events[0],
+        expected_request=expected_request,
+        redirect_count=0,
+        is_redirect=False,
     )
 
 
@@ -160,15 +109,20 @@ async def test_request_method(
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
-    events = await setup_network_test()
+    network_events = await setup_network_test(events=["network.beforeRequestSent"])
+    events = network_events["network.beforeRequestSent"]
 
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await fetch(text_url, method=method)
     await on_before_request_sent
 
     assert len(events) == 1
+    expected_request = {"method": method, "url": text_url}
     assert_before_request_sent_event(
-        events[0], url=text_url, method=method, redirect_count=0, is_redirect=False
+        events[0],
+        expected_request=expected_request,
+        redirect_count=0,
+        is_redirect=False,
     )
 
 
@@ -178,20 +132,25 @@ async def test_request_headers(
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
-    events = await setup_network_test()
+
+    network_events = await setup_network_test(events=["network.beforeRequestSent"])
+    events = network_events["network.beforeRequestSent"]
 
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await fetch(text_url, method="GET", headers={"foo": "bar"})
     await on_before_request_sent
 
     assert len(events) == 1
+    expected_request = {
+        "headers": ({"name": "foo", "value": "bar"},),
+        "method": "GET",
+        "url": text_url,
+    }
     assert_before_request_sent_event(
         events[0],
-        url=text_url,
-        method="GET",
+        expected_request=expected_request,
         redirect_count=0,
         is_redirect=False,
-        headers=({"name": "foo", "value": "bar"},),
     )
 
 
@@ -201,7 +160,9 @@ async def test_request_cookies(
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
-    events = await setup_network_test()
+
+    network_events = await setup_network_test(events=["network.beforeRequestSent"])
+    events = network_events["network.beforeRequestSent"]
 
     await bidi_session.script.evaluate(
         expression="document.cookie = 'foo=bar';",
@@ -214,13 +175,16 @@ async def test_request_cookies(
     await on_before_request_sent
 
     assert len(events) == 1
+    expected_request = {
+        "cookies": ({"name": "foo", "value": "bar"},),
+        "method": "GET",
+        "url": text_url,
+    }
     assert_before_request_sent_event(
         events[0],
-        url=text_url,
-        method="GET",
+        expected_request=expected_request,
         redirect_count=0,
         is_redirect=False,
-        cookies=({"name": "foo", "value": "bar"},),
     )
 
     await bidi_session.script.evaluate(
@@ -234,27 +198,33 @@ async def test_request_cookies(
     await on_before_request_sent
 
     assert len(events) == 2
-    assert_before_request_sent_event(
-        events[1],
-        url=text_url,
-        method="GET",
-        redirect_count=0,
-        is_redirect=False,
-        cookies=(
+
+    expected_request = {
+        "cookies": (
             {"name": "foo", "value": "bar"},
             {"name": "fuu", "value": "baz"},
         ),
+        "method": "GET",
+        "url": text_url,
+    }
+    assert_before_request_sent_event(
+        events[1],
+        expected_request=expected_request,
+        redirect_count=0,
+        is_redirect=False,
     )
 
 
 @pytest.mark.asyncio
-async def test_redirect(
-    bidi_session, wait_for_event, url, fetch, setup_network_test
-):
+async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_test):
     text_url = url(PAGE_EMPTY_TEXT)
-    redirect_url = url(f"/webdriver/tests/support/redirect.py?location={text_url}")
+    redirect_url = url(
+        f"/webdriver/tests/support/http_handlers/redirect.py?location={text_url}"
+    )
 
-    events = await setup_network_test()
+
+    network_events = await setup_network_test(events=["network.beforeRequestSent"])
+    events = network_events["network.beforeRequestSent"]
 
     await fetch(redirect_url, method="GET")
 
@@ -264,19 +234,16 @@ async def test_redirect(
     await wait.until(lambda _: len(events) >= 2)
 
     assert len(events) == 2
+    expected_request = {"method": "GET", "url": redirect_url}
     assert_before_request_sent_event(
         events[0],
-        url=redirect_url,
-        method="GET",
+        expected_request=expected_request,
         redirect_count=0,
         is_redirect=False,
     )
+    expected_request = {"method": "GET", "url": text_url}
     assert_before_request_sent_event(
-        events[1],
-        url=text_url,
-        method="GET",
-        redirect_count=1,
-        is_redirect=True,
+        events[1], expected_request=expected_request, redirect_count=1, is_redirect=True
     )
 
     # Check that both requests share the same requestId
@@ -291,7 +258,9 @@ async def test_redirect_http_equiv(
     http_equiv_url = url(PAGE_REDIRECT_HTTP_EQUIV)
     redirected_url = url(PAGE_REDIRECTED_HTML)
 
-    events = await setup_network_test()
+
+    network_events = await setup_network_test(events=["network.beforeRequestSent"])
+    events = network_events["network.beforeRequestSent"]
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
@@ -305,19 +274,19 @@ async def test_redirect_http_equiv(
     await wait.until(lambda _: len(events) >= 2)
 
     assert len(events) == 2
+    expected_request = {"method": "GET", "url": http_equiv_url}
     assert_before_request_sent_event(
         events[0],
-        url=http_equiv_url,
-        method="GET",
+        expected_request=expected_request,
         redirect_count=0,
         is_redirect=False,
     )
     # http-equiv redirect should not be considered as a redirect: redirect_count
     # should be 0 and is_redirect should be false.
+    expected_request = {"method": "GET", "url": redirected_url}
     assert_before_request_sent_event(
         events[1],
-        url=redirected_url,
-        method="GET",
+        expected_request=expected_request,
         redirect_count=0,
         is_redirect=False,
     )

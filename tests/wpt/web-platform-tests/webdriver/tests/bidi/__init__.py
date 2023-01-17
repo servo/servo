@@ -29,16 +29,34 @@ def recursive_compare(expected: Any, actual: Any) -> None:
     assert expected == actual
 
 
-def any_string(actual: Any) -> None:
-    assert isinstance(actual, str)
+def any_bool(actual: Any) -> None:
+    assert isinstance(actual, bool)
+
+
+def any_dict(actual: Any) -> None:
+    assert isinstance(actual, dict)
 
 
 def any_int(actual: Any) -> None:
     assert isinstance(actual, int)
 
 
+def any_int_or_null(actual: Any) -> None:
+    if actual is not None:
+        any_int(actual)
+
+
 def any_list(actual: Any) -> None:
     assert isinstance(actual, list)
+
+
+def any_string(actual: Any) -> None:
+    assert isinstance(actual, str)
+
+
+def any_string_or_null(actual: Any) -> None:
+    if actual is not None:
+        any_string(actual)
 
 
 def int_interval(start: int, end: int) -> Callable[[Any], None]:

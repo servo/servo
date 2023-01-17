@@ -32,13 +32,13 @@ function CreateViewTimelineOpacityAnimation(test, target, options) {
 // the animation.
 //
 // Sample call:
-// await runTimelineRangeTest(t, {
+// await runTimelineBoundsTest(t, {
 //   timeline: { inset: [ CSS.percent(0), CSS.percent(20)] },
 //   timing: { fill: 'both' }
-//   rangeStart: 600,
-//   rangeEnd: 900
+//   startOffset: 600,
+//   endOffset: 900
 // });
-async function runTimelineRangeTest(t, options, message) {
+async function runTimelineBoundsTest(t, options, message) {
   container.scrollLeft = 0;
   await waitForNextFrame();
 
@@ -52,19 +52,19 @@ async function runTimelineRangeTest(t, options, message) {
   await anim.ready;
 
   // Advance to the start offset, which triggers entry to the active phase.
-  container.scrollLeft = options.rangeStart;
+  container.scrollLeft = options.startOffset;
   await waitForNextFrame();
   assert_equals(getComputedStyle(target).opacity, '0.3',
                 `Effect at the start of the active phase: ${message}`);
 
   // Advance to the midpoint of the animation.
-  container.scrollLeft = (options.rangeStart + options.rangeEnd) / 2;
+  container.scrollLeft = (options.startOffset + options.endOffset) / 2;
   await waitForNextFrame();
   assert_equals(getComputedStyle(target).opacity,'0.5',
                 `Effect at the midpoint of the active range: ${message}`);
 
   // Advance to the end of the animation.
-  container.scrollLeft = options.rangeEnd;
+  container.scrollLeft = options.endOffset;
   await waitForNextFrame();
   assert_equals(getComputedStyle(target).opacity, '0.7',
                 `Effect is in the active phase at effect end time: ${message}`);
@@ -73,51 +73,51 @@ async function runTimelineRangeTest(t, options, message) {
   return anim;
 }
 
-// Sets the start and end delays for a view timeline and ensures that the
+// Sets the start and end range for a view timeline and ensures that the
 // range aligns with expected values.
 //
 // Sample call:
-// await runTimelineDelayTest(t, {
-//   delay: { phase: 'cover', percent: CSS.percent(0) } ,
-//   endDelay: { phase: 'cover', percent: CSS.percent(100) },
-//   rangeStart: 600,
-//   rangeEnd: 900
+// await runTimelineRangeTest(t, {
+//   rangeStart: { rangeName: 'cover', offset: CSS.percent(0) } ,
+//   rangeEnd: { rangeName: 'cover', offset: CSS.percent(100) },
+//   startOffset: 600,
+//   endOffset: 900
 // });
-async function runTimelineDelayTest(t, options) {
-  const delayToString = delay => {
+async function runTimelineRangeTest(t, options) {
+  const rangeToString = range => {
     const parts = [];
-    if (delay.phase)
-      parts.push(delay.phase);
-    if (delay.percent)
-      parts.push(`${delay.percent.value}%`);
+    if (range.rangeName)
+      parts.push(range.rangeName);
+    if (range.offset)
+      parts.push(`${range.offset.value}%`);
     return parts.join(' ');
   };
   const range =
-     `${delayToString(options.delay)} to ` +
-     `${delayToString(options.endDelay)}`;
+     `${rangeToString(options.rangeStart)} to ` +
+     `${rangeToString(options.rangeEnd)}`;
 
   options.timeline = {
     axis: 'inline'
   };
   options.timing = {
-    delay: options.delay,
-    endDelay: options.endDelay,
+    rangeStart: options.rangeStart,
+    rangeEnd: options.rangeEnd,
     // Set fill to accommodate floating point precision errors at the
     // endpoints.
     fill: 'both'
   };
 
-  return runTimelineRangeTest(t, options, range);
+  return runTimelineBoundsTest(t, options, range);
 }
 
 // Sets the Inset for a view timeline and ensures that the range aligns with
 // expected values.
 //
 // Sample call:
-// await runTimelineDelayTest(t, {
+// await runTimelineInsetTest(t, {
 //   inset: [ CSS.px(20), CSS.px(40) ]
-//   rangeStart: 600,
-//   rangeEnd: 900
+//   startOffset: 600,
+//   endOffset: 900
 // });
 async function runTimelineInsetTest(t, options) {
   options.timeline = {
@@ -133,5 +133,5 @@ async function runTimelineInsetTest(t, options) {
   const range =
       (options.inset instanceof Array) ? options.inset.join(' ')
                                        : options.inset;
-  return runTimelineRangeTest(t, options, range);
+  return runTimelineBoundsTest(t, options, range);
 }

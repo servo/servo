@@ -13,13 +13,13 @@ interface mixin PopoverTargetElement {
 HTMLInputElement includes PopoverTargetElement;
 HTMLButtonElement includes PopoverTargetElement;
 
-interface BeforeToggleEvent : Event {
-    constructor(DOMString type, optional BeforeToggleEventInit eventInitDict = {});
+interface PopoverToggleEvent : Event {
+    constructor(DOMString type, optional PopoverToggleEventInit eventInitDict = {});
     readonly attribute DOMString currentState;
     readonly attribute DOMString newState;
 };
 
-dictionary BeforeToggleEventInit : EventInit {
+dictionary PopoverToggleEventInit : EventInit {
     DOMString currentState = "";
     DOMString newState = "";
 };

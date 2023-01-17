@@ -55,10 +55,10 @@ function testDrawImageBitmap(source, args = [], flipped, { resizeWidth = 20, res
 for (let { name, factory } of imageSourceTypes) {
     promise_test(function() {
         return factory().then(function(img) {
-            const options = { imageOrientation: 'none' };
+            const options = { imageOrientation: 'from-image' };
             return testDrawImageBitmap(img, [options], false);
         });
-    }, `createImageBitmap from ${name} imageOrientation: "none", and drawImage on the created ImageBitmap`);
+    }, `createImageBitmap from ${name} imageOrientation: "from-image", and drawImage on the created ImageBitmap`);
 
     promise_test(function() {
         return factory().then(function(img) {

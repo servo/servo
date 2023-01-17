@@ -27,7 +27,11 @@
 <meta name="variant" content="?23-23">
 <meta name="variant" content="?24-24">
 <meta name="variant" content="?25-25">
-<meta name="variant" content="?26-last">
+<meta name="variant" content="?26-26">
+<meta name="variant" content="?27-27">
+<meta name="variant" content="?28-28">
+<meta name="variant" content="?29-29">
+<meta name="variant" content="?30-last">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -271,6 +275,34 @@
     noVarySearch: "",
     prefetchQuery: "",
     navigateQuery: "",
+    shouldUsePrefetch: true},
+
+   {description:"Use the prefetched URL. Non-ASCII key - 2 UTF-8 code units." +
+                " Don't vary the response on the non-ASCII key.",
+    noVarySearch: 'params=("%C2%A2")',
+    prefetchQuery: "¢=3",
+    navigateQuery: "¢=4",
+    shouldUsePrefetch: true},
+
+    {description:"Use the prefetched URL. Non-ASCII key - 2 UTF-8 code units." +
+                 " Don't vary the response on the non-ASCII key.",
+    noVarySearch: 'params=("%C2%A2")',
+    prefetchQuery: "a=2&¢=3",
+    navigateQuery: "¢=4&a=2",
+    shouldUsePrefetch: true},
+
+    {description:"Don't use the prefetched URL. Non-ASCII key - 2 UTF-8 code units." +
+                 " Vary the response on the non-ASCII key.",
+    noVarySearch: 'params, except=("%C2%A2")',
+    prefetchQuery: "¢=3",
+    navigateQuery: "¢=4",
+    shouldUsePrefetch: false},
+
+    {description:"Use the prefetched URL. Non-ASCII key - 2 UTF-8 code units." +
+                 " Vary the response on the non-ASCII key.",
+    noVarySearch: 'params, except=("%C2%A2")',
+    prefetchQuery: "¢=3&a=4",
+    navigateQuery: "a=5&¢=3",
     shouldUsePrefetch: true},
 
   ].forEach(({description, noVarySearch, prefetchQuery, navigateQuery, shouldUsePrefetch}) => {

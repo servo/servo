@@ -41,9 +41,12 @@ idl_test(
         'document.getElementById("b3")',
       ],
       BeforeToggleEvent: [
-        'new BeforeToggleEvent("beforetoggle")',
-        'new BeforeToggleEvent("beforetoggle", {currentState: "open"})',
-        'new BeforeToggleEvent("beforetoggle", {currentState: "open",newState: "open"})',
+        'new PopoverToggleEvent("beforetoggle")',
+        'new PopoverToggleEvent("beforetoggle", {currentState: "open"})',
+        'new PopoverToggleEvent("beforetoggle", {currentState: "open",newState: "open"})',
+        'new PopoverToggleEvent("aftertoggle")',
+        'new PopoverToggleEvent("aftertoggle", {currentState: "open"})',
+        'new PopoverToggleEvent("aftertoggle", {currentState: "open",newState: "open"})',
       ],
     });
   }

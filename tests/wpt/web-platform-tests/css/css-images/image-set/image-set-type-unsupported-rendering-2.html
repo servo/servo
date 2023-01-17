@@ -15,7 +15,6 @@ Spec definition:
 If all the values in the image set are of an unsupported type,
 the set should be empty.
 -->
-<script src="resources/image-set-rendering-helper.js"></script>
 <style>
   #test {
     background-image: url("/images/green.png");
@@ -23,5 +22,8 @@ the set should be empty.
       url("/images/red.png") 1x type('image/unsupported'),
       url("/images/red.png") 1x type('image/unsupported')
     );
+    width: 100px;
+    height: 100px;
   }
 </style>
+<div id="test"></div>

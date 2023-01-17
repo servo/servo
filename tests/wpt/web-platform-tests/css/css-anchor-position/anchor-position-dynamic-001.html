@@ -50,13 +50,15 @@
   height: 100px;
 }
 </style>
-<body id="container">
-  <div id="a1"></div>
-  <div id="a2"></div>
-  <div id="ref"></div>
-  <div id="target"
-       data-offset-x=200 data-offset-y=100
-       data-expected-width=300 data-expected-height=100></div>
+<body>
+  <div id="container">
+    <div id="a1"></div>
+    <div id="a2"></div>
+    <div id="ref"></div>
+    <div id="target"
+        data-offset-x=200 data-offset-y=100
+        data-expected-width=300 data-expected-height=100></div>
+  </div>
 <script>
 document.body.offsetTop;  // Force layout.
 container.classList.add('after');

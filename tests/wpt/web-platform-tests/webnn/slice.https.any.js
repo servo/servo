@@ -16,4 +16,4 @@ const buildSlice = (operationName, builder, resources) => {
   return namedOutputOperand;
 };
 
-testWebNNOperation('slice', '/webnn/resources/test_data/slice.json', buildSlice);
+testWebNNOperation('slice', buildSlice);

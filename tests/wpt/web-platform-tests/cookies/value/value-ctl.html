@@ -25,14 +25,40 @@
           domCookieTest(
             `test=${ctl.code}${ctl.chr}value`,
             `test=${ctl.code}${ctl.chr}value`,
-            `Cookie with %x${ctl.code.toString(16)} in value is accepted.`);
+            `Cookie with %x${ctl.code.toString(16)} in value is accepted (DOM).`);
         } else {
           domCookieTest(
             `test=${ctl.code}${ctl.chr}value`,
             '',
-            `Cookie with %x${ctl.code.toString(16)} in value is rejected.`);
+            `Cookie with %x${ctl.code.toString(16)} in value is rejected (DOM).`);
         }
       }
+
+      // Note that per RFC 9110, %x00, %x0A, and %x0D characters in the HTTP
+      // header MUST either cause the HTTP message to be rejected or be
+      // replaced with %x20 (space) characters. Both cases will result in a
+      // passing test here. For more info, see:
+      // https://www.rfc-editor.org/rfc/rfc9110.html#section-5.5
+      for (const ctl of CTLS) {
+        if (ctl.code === 0x09) {
+          httpCookieTest(
+            `test=${ctl.code}${ctl.chr}value`,
+            `test=${ctl.code}${ctl.chr}value`,
+            `Cookie with %x${ctl.code.toString(16)} in value is accepted (HTTP).`);
+        } else if (ctl.code === 0x00 || ctl.code === 0x0A || ctl.code === 0x0D) {
+          httpCookieTest(
+            `test${ctl.code}${ctl.chr}name=${ctl.code}`,
+            `test${ctl.code} name=${ctl.code}`,
+            `Cookie with %x${ctl.code.toString(16)} in name is rejected or modified (HTTP).`,
+            /* defaultPath */ true, /* allowFetchFailure */ true);
+        } else {
+          httpCookieTest(
+            `test=${ctl.code}${ctl.chr}value`,
+            '',
+            `Cookie with %x${ctl.code.toString(16)} in value is rejected (HTTP).`);
+        }
+      }
+
     </script>
   </body>
 </html>
