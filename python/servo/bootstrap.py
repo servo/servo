@@ -59,11 +59,13 @@ def install_linux_deps(context, pkgs_ubuntu, pkgs_fedora, pkgs_void, force):
                 install = force = True
                 break
 
-    if install:
-        print("Installing missing dependencies...")
-        run_as_root(command + pkgs, force)
+    if not install:
+        return False
 
-    return install
+    print("Installing missing dependencies...")
+    if run_as_root(command + pkgs, force) != 0:
+        raise Exception("Installation of dependencies failed.")
+    return True
 
 
 def install_salt_dependencies(context, force):

@@ -15,11 +15,10 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
-      - name: Bootstrap
-        run: |
-          python3 -m pip install --upgrade pip virtualenv
-          sudo apt update
-          python3 ./mach bootstrap
+      - name: Bootstrap Python
+        run: python3 -m pip install --upgrade pip virtualenv
+      - name: Bootstrap dependencies
+        run: sudo apt update && python3 ./mach bootstrap
       - name: Release build
         run: python3 ./mach build --release
       - name: Unit tests
