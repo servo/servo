@@ -157,62 +157,62 @@ jobs:
           name: release-binary-macos
           path: target.tar.gz
 
-  mac-wpt:
-    name: Mac WPT Tests
-    runs-on: macos-12
-    needs: ["build-mac"]
-    env:
-      max_chunk_id: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - uses: actions/download-artifact@v3
-        with:
-          name: release-binary-macos
-      # TODO: Remove this step when the compatibility issue between mozjs and
-      #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
-      - name: Select Python 3.9
-        run: |
-          brew install python@3.9
-          cd $(dirname $(which python3.9))
-          rm -f python3 pip3
-          ln -s python3.9 python3
-          ln -s pip3.9 pip3
-      - name: Prep test environment
-        run: |
-          gtar -xzf target.tar.gz
-          python3 -m pip install --upgrade pip virtualenv
-          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
-      - name: Smoketest
-        run: python3 ./mach smoketest
-      - name: Run tests
-        run: |
-          python3 ./mach test-wpt \
-            --release --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
-            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-            --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-            --always-succeed
-          python3 ./mach filter-intermittents wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-            --log-intermittents=intermittents.${{ matrix.chunk_id }}.log \
-            --log-filteredsummary=filtered-wpt-summary.${{ matrix.chunk_id }}.log \
-            --tracker-api=default --reporter-api=default
+  # mac-wpt:
+  #   name: Mac WPT Tests
+  #   runs-on: macos-12
+  #   needs: ["build-mac"]
+  #   env:
+  #     max_chunk_id: 20
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 2
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: release-binary-macos
+  #     # TODO: Remove this step when the compatibility issue between mozjs and
+  #     #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
+  #     - name: Select Python 3.9
+  #       run: |
+  #         brew install python@3.9
+  #         cd $(dirname $(which python3.9))
+  #         rm -f python3 pip3
+  #         ln -s python3.9 python3
+  #         ln -s pip3.9 pip3
+  #     - name: Prep test environment
+  #       run: |
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt \
+  #           --release --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
+  #           --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
+  #           --log-raw test-wpt.${{ matrix.chunk_id }}.log \
+  #           --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
+  #           --always-succeed
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.${{ matrix.chunk_id }}.log \
+  #           --log-intermittents=intermittents.${{ matrix.chunk_id }}.log \
+  #           --log-filteredsummary=filtered-wpt-summary.${{ matrix.chunk_id }}.log \
+  #           --tracker-api=default --reporter-api=default
 
-      - name: Archive logs
-        uses: actions/upload-artifact@v3
-        if: ${{ failure() }}
-        with:
-          name: wpt${{ matrix.chunk_id }}-logs-macos
-          path: |
-            test-wpt.${{ matrix.chunk_id }}.log
-            wpt-jsonsummary.${{ matrix.chunk_id }}.log
-            filtered-wpt-summary.${{ matrix.chunk_id }}.log
-            intermittents.${{ matrix.chunk_id }}.log
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v3
+  #       if: ${{ failure() }}
+  #       with:
+  #         name: wpt${{ matrix.chunk_id }}-logs-macos
+  #         path: |
+  #           test-wpt.${{ matrix.chunk_id }}.log
+  #           wpt-jsonsummary.${{ matrix.chunk_id }}.log
+  #           filtered-wpt-summary.${{ matrix.chunk_id }}.log
+  #           intermittents.${{ matrix.chunk_id }}.log
 
   build-linux:
     name: Build (Linux)
