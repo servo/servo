@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
 <meta charset="utf-8">
 <title>CSS Images Module Level 3: image-orientation: none</title>
@@ -28,20 +28,49 @@
     <p>This image should rotate respecting their EXIF orientation because
        image-orientation: none should be effectively ignored for opaque (cross-origin) images.</p>
     <div><img id="corsImage" src="support/exif-orientation-3-lr.jpg"/></div>
-    <script>
-        const img = document.getElementById('corsImage')
-        img.src = img.src.replace(new URL(img.src).origin, get_host_info().HTTP_REMOTE_ORIGIN)
-    </script>
+
     <p>The image should not rotate respecting their EXIF orientation because
        image-orientation: none is specified.</p>
-    <div><img id="blobImage" src="support/exif-orientation-3-lr.jpg"/></div>
-    <script>
-        fetch(img.src).then((resp) {
-          return blob;
-        }).then((blob) => {
-          const img = document.getElementById('blobImage')
-          img.src = blob;
-        });
-    </script>
+    <div><img id="blobImage"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified.</p>
+    <div><img id="dataImage"/></div>
 </body>
+<script>
+  const testImage = 'support/exif-orientation-3-lr.jpg';
+  let sPendingImagesToLoad = 3;
+
+  function pendingImageLoaded() {
+    if (!--sPendingImagesToLoad) {
+      document.documentElement.removeAttribute('class');
+    }
+  }
+
+  const img = document.getElementById('corsImage')
+  img.onload = pendingImageLoaded;
+  img.src = img.src.replace(new URL(img.src).origin, get_host_info().HTTP_REMOTE_ORIGIN)
+
+  const blobImg = document.getElementById('blobImage');
+  fetch(testImage).then((resp) => {
+    return resp.blob();
+  }).then((blob) => {
+    blobImg.onload = pendingImageLoaded;
+    blobImg.src = URL.createObjectURL(blob);
+  });
+
+  const dataImg = document.getElementById('dataImage');
+  fetch(testImage).then((resp) => {
+    return resp.blob();
+  }).then((blob) => {
+    const reader = new FileReader();
+
+    reader.addEventListener("load", () => {
+      dataImg.onload = pendingImageLoaded;
+      dataImg.src = reader.result;
+    });
+
+    reader.readAsDataURL(blob);
+  });
+</script>
 </html>
