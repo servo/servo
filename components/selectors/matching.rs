@@ -894,18 +894,6 @@ where
     if element.ignores_nth_child_selectors() {
         return false;
     }
-    /*
-     * This condition could be bound as element_matches_selectors and used in
-     * nth_child_index() as element_matches_selectors &&
-     *     list_matches_complex_selector(selectors, &curr, context)
-     * , but since element_matches_selectors would need still need to be
-     * computed in that case in order to utilize the cache, there would be no
-     * performance benefit for building up nth-{,last-}child(.. of ..) caches
-     * where the element does not match the selector list.
-     */
-    if !selectors.is_empty() && !list_matches_complex_selector(selectors, element, context) {
-        return false;
-    }
 
     let NthSelectorData { ty, a, b, .. } = *nth_data;
     let is_of_type = ty.is_of_type();
@@ -941,6 +929,10 @@ where
         } else {
             ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS
         });
+    }
+
+    if !selectors.is_empty() && !list_matches_complex_selector(selectors, element, context) {
+        return false;
     }
 
     // :first/last-child are rather trivial to match, don't bother with the
