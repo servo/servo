@@ -1,5 +1,5 @@
 # Disabled until the previous bot is turned off.
-#name: Upstream Web Platform Test changes
+#name: WPT export
 #on:
 #  pull_request:
 #    types: ['opened', 'synchronize', 'reopened', 'edited', 'closed']

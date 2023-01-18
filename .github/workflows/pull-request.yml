@@ -1,4 +1,4 @@
-name: Basic cross-platform builds and checks
+name: Pull request
 on:
   pull_request:
     branches: ["**"]
