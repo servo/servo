@@ -16,9 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::ToJSValConvertible;
-use js::glue::{
-    GetProxyHandler, GetProxyHandlerFamily, InvokeGetOwnPropertyDescriptor, RUST_SYMBOL_TO_JSID,
-};
+use js::glue::{GetProxyHandler, GetProxyHandlerFamily, InvokeGetOwnPropertyDescriptor};
 use js::glue::{GetProxyPrivate, SetProxyPrivate};
 use js::jsapi;
 use js::jsapi::GetStaticPrototype;
@@ -40,6 +38,7 @@ use js::jsapi::{jsid, GetObjectRealmOrNull, GetRealmPrincipals, JSFunctionSpec, 
 use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
 use js::jsapi::{GetWellKnownSymbol, SymbolCode};
 use js::jsapi::{JSErrNum, SetDOMProxyInformation};
+use js::jsid::SymbolId;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
@@ -686,10 +685,7 @@ unsafe fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -
 
     rooted!(in(*cx) let mut allowed_id: jsid);
     ALLOWLISTED_SYMBOL_CODES.iter().any(|&allowed_code| {
-        RUST_SYMBOL_TO_JSID(
-            GetWellKnownSymbol(*cx, allowed_code),
-            allowed_id.handle_mut().into(),
-        );
+        *allowed_id.handle_mut() = SymbolId(GetWellKnownSymbol(*cx, allowed_code));
         // `jsid`s containing `JS::Symbol *` can be compared by
         // referential equality
         allowed_id.get().asBits_ == id.asBits_
@@ -712,10 +708,7 @@ unsafe fn append_cross_origin_allowlisted_prop_keys(
     AppendToIdVector(props, id.handle());
 
     for &allowed_code in ALLOWLISTED_SYMBOL_CODES.iter() {
-        RUST_SYMBOL_TO_JSID(
-            GetWellKnownSymbol(*cx, allowed_code),
-            id.handle_mut().into(),
-        );
+        *id.handle_mut() = SymbolId(GetWellKnownSymbol(*cx, allowed_code));
         AppendToIdVector(props, id.handle());
     }
 }
