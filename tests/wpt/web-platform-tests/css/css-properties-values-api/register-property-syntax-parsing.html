@@ -41,6 +41,7 @@ assert_valid("*", "([ brackets ]) { yay (??)}");
 assert_valid("*", "yep 'this is valid too'");
 assert_valid("*", "unmatched opening bracket is valid :(");
 assert_valid("*", '"');
+assert_valid("*", "default");
 
 assert_valid("<length>", "0");
 assert_valid("<length>", "10px /*:)*/");
@@ -154,16 +155,14 @@ assert_invalid("<color>|REVert", "red");
 assert_invalid("<integer>|deFAUlt", "1");
 
 // Invalid initialValue
-// The 6 tests that follow are not clearly backed by the specification,
-// but (at least other than the one for 'default') they're probably a
-// good idea and we should change the spec.  See
+// The 5 tests that follow are not clearly backed by the specification,
+// but they're probably a good idea and we should change the spec. See
 // https://github.com/w3c/css-houdini-drafts/issues/1076 .
 assert_invalid("*", "initial");
 assert_invalid("*", "inherit");
 assert_invalid("*", "unset");
 assert_invalid("*", "revert");
 assert_invalid("*", "revert-layer");
-assert_invalid("*", "default");
 // ... end possibly-invalid tests.
 assert_invalid("<custom-ident>", "initial");
 assert_invalid("<custom-ident>", "inherit");

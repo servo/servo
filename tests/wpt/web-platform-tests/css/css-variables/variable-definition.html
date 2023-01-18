@@ -34,13 +34,13 @@
         { varName:"-var4" ,    expectedValue:"",        style:"-var4:value3",               testName:"parsing multiple dashes with one dash at start of variable"},
         { varName:"--var",     expectedValue:"value",  style:"--var: value",               testName:" leading white space (single space)"},
         { varName:"--var",     expectedValue:"value1 value2", style:"--var:value1 value2",  testName:" middle white space (single space)"},
-        { varName:"--var",     expectedValue:"value ",  style:"--var:value ",               testName:" trailing white space (single space)"},
+        { varName:"--var",     expectedValue:"value",  style:"--var:value ",               testName:" trailing white space (single space)"},
         { varName:"--var",     expectedValue:"value", style:"--var:  value",              testName:" leading white space (double space) 2"},
-        { varName:"--var",     expectedValue:"value1  value2", style:"--var:value1  value2",testName:" middle white space (double space) 2"},
-        { varName:"--var",     expectedValue:"value  ", style:"--var:value  ",              testName:" trailing white space (double space) 2"},
-        { varName:"--var",     expectedValue:"value1 ",  style:"--var:value1 !important;", testName:"!important"},
+        { varName:"--var",     expectedValue:"value1 value2", style:"--var:value1  value2",testName:" middle white space (double space) 2"},
+        { varName:"--var",     expectedValue:"value", style:"--var:value  ",              testName:" trailing white space (double space) 2"},
+        { varName:"--var",     expectedValue:"value1",  style:"--var:value1 !important;", testName:"!important"},
         { varName:"--var",     expectedValue:"value1",  style:"--var:value1!important;--var:value2;", testName:"!important 2"},
-        { varName:"--var",     expectedValue:"value1 ", style:"--var:value1 !important;--var:value2;", testName:"!important (with space)"}
+        { varName:"--var",     expectedValue:"value1", style:"--var:value1 !important;--var:value2;", testName:"!important (with space)"}
     ];
 
     templates.forEach(function (template) {

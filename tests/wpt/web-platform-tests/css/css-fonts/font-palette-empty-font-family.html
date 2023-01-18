@@ -5,7 +5,7 @@
 <title>Tests that an empty font family name is handled correctly</title>
 <link rel="help" href="https://drafts.csswg.org/css-fonts/#font-family-2-desc">
 <link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com">
-<link rel="mismatch" href="font-palette-empty-font-family-notref.html">
+<link rel="match" href="font-palette-empty-font-family-ref.html">
 <style>
 @font-face {
     font-family: "";
@@ -19,6 +19,6 @@
 </style>
 </head>
 <body>
-<div style="font: 48px ''; color-palette: --MyPalette;">A</div>
+<div style="font: 48px ''; font-palette: --MyPalette;">A</div>
 </body>
 </html>

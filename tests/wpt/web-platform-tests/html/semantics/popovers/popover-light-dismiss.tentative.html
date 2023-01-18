@@ -485,7 +485,7 @@ promise_test(async () => {
     p14.hidePopover();
   },{once:true});
   assert_true(p13.matches(':open') && p14.matches(':open') && p15.matches(':open'),'all three should be open');
-  p14.hidePopover();
+  assert_throws_dom('InvalidStateError',() => p14.hidePopover(),'should throw because the event listener has already hidden the popover');
   assert_true(p13.matches(':open'),'p13 should still be open');
   assert_false(p14.matches(':open'));
   assert_false(p15.matches(':open'));

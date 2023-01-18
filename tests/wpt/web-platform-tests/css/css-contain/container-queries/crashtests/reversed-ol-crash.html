@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Don't crash with intermediate container in reversed list</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-style">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-style">
+<link rel="help" href="https://crbug.com/1377644">
+<style>
+.container {
+  container-type: size;
+}
+
+/* Prevent double layout due to scrollbar speculation */
+html {
+  overflow: hidden;
+}
+
+@container (width > 1px) {
+  .item {
+    display: list-item;
+  }
+}
+</style>
+<ol reversed>
+  <li>A</li>
+  <div class=container>
+    <div class=item>
+      B
+    </div>
+  </div>
+</ol>

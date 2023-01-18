@@ -13,25 +13,4 @@ test_computed_value("animation-delay", "1s, 2s");
 test_computed_value("animation-delay", "1s 2s, 3s");
 test_computed_value("animation-delay", "1s, 2s 3s");
 test_computed_value("animation-delay", "1s, 2s, 3s");
-
-test_computed_value("animation-delay", "cover");
-test_computed_value("animation-delay", "contain");
-test_computed_value("animation-delay", "enter");
-test_computed_value("animation-delay", "exit");
-test_computed_value("animation-delay", "enter, exit");
-
-test_computed_value("animation-delay", "enter 0% enter 100%", "enter");
-test_computed_value("animation-delay", "exit 0% exit 100%", "exit");
-test_computed_value("animation-delay", "cover 0% cover 100%", "cover");
-test_computed_value("animation-delay", "contain 0% contain 100%", "contain");
-
-test_computed_value("animation-delay", "cover 50%");
-test_computed_value("animation-delay", "contain 50%");
-test_computed_value("animation-delay", "enter 50%");
-test_computed_value("animation-delay", "exit 50%");
-
-test_computed_value("animation-delay", "enter 50% 0s", "enter 50%");
-test_computed_value("animation-delay", "0s enter 50%");
-test_computed_value("animation-delay", "enter 50% exit 50%");
-test_computed_value("animation-delay", "cover 50% enter 50%, contain 50% exit 50%");
 </script>

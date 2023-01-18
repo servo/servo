@@ -141,7 +141,7 @@ test(function(){
     let universal = generate_property('*');
     element.style = `font-size: 10px; ${length}: 10em; ${universal}: var(${length})`;
     let computedStyle = getComputedStyle(element);
-    assert_equals(computedStyle.getPropertyValue(universal), ' 100px');
+    assert_equals(computedStyle.getPropertyValue(universal), '100px');
     element.style = '';
 }, 'Values are absolutized when substituting into properties with universal syntax');
 

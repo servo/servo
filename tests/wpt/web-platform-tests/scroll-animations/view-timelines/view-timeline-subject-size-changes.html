@@ -37,8 +37,8 @@ promise_test(async t => {
   const options = {
     axis: 'vertical',
     timing: {
-      delay: { phase: 'enter', percent: CSS.percent(0) },
-      endDelay: { phase: 'enter', percent: CSS.percent(100) },
+      rangeStart: { rangeName: 'enter', offset: CSS.percent(0) },
+      rangeEnd: { rangeName: 'enter', offset: CSS.percent(100) },
       // Set fill to accommodate floating point precision errors at the endpoints.
       fill: 'both'
     }
@@ -48,6 +48,7 @@ promise_test(async t => {
   await waitForNextFrame();
 
   const anim = CreateViewTimelineOpacityAnimation(t, target, options);
+  const timeline = anim.timeline;
   anim.effect.updateTiming(options.timing);
   await anim.ready;
 

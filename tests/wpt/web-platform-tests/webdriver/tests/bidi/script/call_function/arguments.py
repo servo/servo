@@ -313,3 +313,73 @@ async def test_remote_value_deserialization(
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=top_context["url"], wait="complete"
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "expression, function_declaration, expected",
+    [
+        (
+            "document.getElementsByTagName('span')",
+            "(collection) => collection.item(0)",
+            {
+                "type": "node",
+                "value": {
+                    "attributes": {},
+                    "childNodeCount": 0,
+                    "children": [],
+                    "localName": "span",
+                    "namespaceURI": "http://www.w3.org/1999/xhtml",
+                    "nodeType": 1
+                }
+            }
+        ),
+        (
+            "document.querySelectorAll('span')",
+            "(nodeList) => nodeList.item(0)",
+            {
+                "type": "node",
+                "value": {
+                    "attributes": {},
+                    "childNodeCount": 0,
+                    "children": [],
+                    "localName": "span",
+                    "namespaceURI": "http://www.w3.org/1999/xhtml",
+                    "nodeType": 1
+                }
+            }
+        ),
+    ], ids=[
+        "htmlcollection",
+        "nodelist"
+    ]
+)
+async def test_remote_value_dom_collection(
+    bidi_session,
+    inline,
+    top_context,
+    call_function,
+    expression,
+    function_declaration,
+    expected
+):
+    page_url = inline("""<p><span>""")
+    await bidi_session.browsing_context.navigate(
+        context=top_context['context'], url=page_url, wait="complete"
+    )
+
+    remote_value = await bidi_session.script.evaluate(
+        expression=expression,
+        result_ownership="root",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+
+    # Check that a remote value can be successfully deserialized as an "argument"
+    # parameter and the first element be extracted.
+    result = await call_function(
+        function_declaration=function_declaration,
+        arguments=[remote_value],
+    )
+
+    assert result == expected

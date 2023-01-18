@@ -5,7 +5,7 @@
 <script id="inline_script">
   'use strict'
 
-  if (window.parent !== null) {
+  if (window.parent !== null && window.parent != window) {
     window.parent.postMessage('LOADED', { targetOrigin: '*' });
   }
 

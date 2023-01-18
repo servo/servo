@@ -19,7 +19,7 @@ test(t => {
   const enc = new TextEncoder();
 
   // Fixed-length SABs should not throw
-  const sab = createBuffer('SharedArrayBuffer', 16, { maxByteLength: 1024 });
+  const sab = createBuffer('SharedArrayBuffer', 16);
   enc.encodeInto("foobar", new Uint8Array(sab));
 
   const gsab = createBuffer('SharedArrayBuffer', 16, { maxByteLength: 1024 });

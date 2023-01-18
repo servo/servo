@@ -1,4 +1,4 @@
 pygithub==1.56
 pyyaml==6.0
 requests==2.27.1
-taskcluster==44.22.1
+taskcluster==47.0.2

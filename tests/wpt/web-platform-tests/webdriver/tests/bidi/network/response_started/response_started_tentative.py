@@ -8,7 +8,7 @@ from webdriver.bidi.modules.script import ContextTarget
 from tests.support.sync import AsyncPoll
 
 from ... import any_int
-from .. import assert_response_started_event
+from .. import assert_response_event, HTTP_STATUS_AND_STATUS_TEXT
 
 PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
 PAGE_EMPTY_IMAGE = "/webdriver/tests/bidi/network/support/empty.png"
@@ -16,13 +16,15 @@ PAGE_EMPTY_SCRIPT = "/webdriver/tests/bidi/network/support/empty.js"
 PAGE_EMPTY_SVG = "/webdriver/tests/bidi/network/support/empty.svg"
 PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
 
+RESPONSE_STARTED_EVENT = "network.responseStarted"
+
 # The following tests are marked as tentative until
 # https://github.com/w3c/webdriver-bidi/pull/204 is merged.
 
 
 @pytest.mark.asyncio
 async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, fetch):
-    await bidi_session.session.subscribe(events=["network.responseStarted"])
+    await bidi_session.session.subscribe(events=[RESPONSE_STARTED_EVENT])
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
@@ -37,11 +39,11 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(
-        "network.responseStarted", on_event
+        RESPONSE_STARTED_EVENT, on_event
     )
 
     text_url = url(PAGE_EMPTY_TEXT)
-    on_response_started = wait_for_event("network.responseStarted")
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
     await fetch(text_url)
     await on_response_started
 
@@ -54,7 +56,7 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
         "status": 200,
         "statusText": "OK",
     }
-    assert_response_started_event(
+    assert_response_event(
         events[0],
         expected_request=expected_request,
         expected_response=expected_response,
@@ -62,7 +64,7 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
         is_redirect=False,
     )
 
-    await bidi_session.session.unsubscribe(events=["network.responseStarted"])
+    await bidi_session.session.unsubscribe(events=[RESPONSE_STARTED_EVENT])
 
     # Fetch the text url again, with an additional parameter to bypass the cache
     # and check no new event is received.
@@ -79,10 +81,10 @@ async def test_load_page_twice(
 ):
     html_url = url(PAGE_EMPTY_HTML)
 
-    network_events = await setup_network_test(events=["network.responseStarted"])
-    events = network_events["network.responseStarted"]
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
 
-    on_response_started = wait_for_event("network.responseStarted")
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=html_url,
@@ -100,7 +102,7 @@ async def test_load_page_twice(
         "statusText": "OK",
         "protocol": "http/1.1",
     }
-    assert_response_started_event(
+    assert_response_event(
         events[0],
         expected_request=expected_request,
         expected_response=expected_response,
@@ -111,55 +113,18 @@ async def test_load_page_twice(
 
 @pytest.mark.parametrize(
     "status, status_text",
-    [
-        (101, "Switching Protocols"),
-        (200, "OK"),
-        (201, "Created"),
-        (202, "Accepted"),
-        (203, "Non-Authoritative Information"),
-        (204, "No Content"),
-        (205, "Reset Content"),
-        (206, "Partial Content"),
-        (300, "Multiple Choices"),
-        (301, "Moved Permanently"),
-        (302, "Found"),
-        (303, "See Other"),
-        (304, "Not Modified"),
-        (305, "Use Proxy"),
-        (307, "Temporary Redirect"),
-        (400, "Bad Request"),
-        (401, "Unauthorized"),
-        (402, "Payment Required"),
-        (403, "Forbidden"),
-        (404, "Not Found"),
-        (405, "Method Not Allowed"),
-        (406, "Not Acceptable"),
-        (407, "Proxy Authentication Required"),
-        (408, "Request Timeout"),
-        (409, "Conflict"),
-        (410, "Gone"),
-        (411, "Length Required"),
-        (412, "Precondition Failed"),
-        (415, "Unsupported Media Type"),
-        (417, "Expectation Failed"),
-        (500, "Internal Server Error"),
-        (501, "Not Implemented"),
-        (502, "Bad Gateway"),
-        (503, "Service Unavailable"),
-        (504, "Gateway Timeout"),
-        (505, "HTTP Version Not Supported"),
-    ],
+    HTTP_STATUS_AND_STATUS_TEXT,
 )
 @pytest.mark.asyncio
 async def test_response_status(
     bidi_session, wait_for_event, url, fetch, setup_network_test, status, status_text
 ):
-    status_url = url(f"/webdriver/tests/support/http_handlers/status.py?status={status}")
+    status_url = url(f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={RESPONSE_STARTED_EVENT}")
 
-    network_events = await setup_network_test(events=["network.responseStarted"])
-    events = network_events["network.responseStarted"]
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
 
-    on_response_started = wait_for_event("network.responseStarted")
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
     await fetch(status_url)
     await on_response_started
 
@@ -173,7 +138,7 @@ async def test_response_status(
         "statusText": status_text,
         "protocol": "http/1.1",
     }
-    assert_response_started_event(
+    assert_response_event(
         events[0],
         expected_response=expected_response,
         redirect_count=0,
@@ -189,10 +154,10 @@ async def test_response_headers(
         "/webdriver/tests/support/http_handlers/headers.py?header=foo:bar&header=baz:biz"
     )
 
-    network_events = await setup_network_test(events=["network.responseStarted"])
-    events = network_events["network.responseStarted"]
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
 
-    on_response_started = wait_for_event("network.responseStarted")
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
     await fetch(headers_url, method="GET")
     await on_response_started
 
@@ -211,7 +176,7 @@ async def test_response_headers(
         ),
         "protocol": "http/1.1",
     }
-    assert_response_started_event(
+    assert_response_event(
         events[0],
         expected_request=expected_request,
         redirect_count=0,
@@ -233,10 +198,10 @@ async def test_response_headers(
 async def test_response_mime_type_file(
     bidi_session, url, wait_for_event, fetch, setup_network_test, page_url, mime_type
 ):
-    network_events = await setup_network_test(events=["network.responseStarted"])
-    events = network_events["network.responseStarted"]
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
 
-    on_response_started = wait_for_event("network.responseStarted")
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
     await fetch(url(page_url), method="GET")
     await on_response_started
 
@@ -244,7 +209,7 @@ async def test_response_mime_type_file(
 
     expected_request = {"method": "GET", "url": url(page_url)}
     expected_response = {"url": url(page_url), "mimeType": mime_type}
-    assert_response_started_event(
+    assert_response_event(
         events[0],
         expected_request=expected_request,
         expected_response=expected_response,
@@ -258,8 +223,8 @@ async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_
     text_url = url(PAGE_EMPTY_TEXT)
     redirect_url = url(f"/webdriver/tests/support/http_handlers/redirect.py?location={text_url}")
 
-    network_events = await setup_network_test(events=["network.responseStarted"])
-    events = network_events["network.responseStarted"]
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
 
     await fetch(redirect_url, method="GET")
 
@@ -270,14 +235,14 @@ async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_
 
     assert len(events) == 2
     expected_request = {"method": "GET", "url": redirect_url}
-    assert_response_started_event(
+    assert_response_event(
         events[0],
         expected_request=expected_request,
         redirect_count=0,
         is_redirect=False,
     )
     expected_request = {"method": "GET", "url": text_url}
-    assert_response_started_event(
+    assert_response_event(
         events[1], expected_request=expected_request, redirect_count=1, is_redirect=True
     )
 

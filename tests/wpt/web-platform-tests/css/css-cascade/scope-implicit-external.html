@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>@scope - implicit scope root (external sheet)</title>
+    <link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div class="a outside"><div>
+    <div id=root>
+      <link rel="stylesheet" href="resources/scope.css">
+      <div class=a></div>
+    </div>
+    <div class="a outside"><div>
+
+    <script>
+      test((t) => {
+        assert_equals(getComputedStyle(root).zIndex, '1');
+        assert_equals(getComputedStyle(document.querySelector('#root > .a')).zIndex, '2');
+
+        let outside = document.querySelectorAll('.outside');
+        assert_equals(outside.length, 2);
+        for (let div of outside) {
+          assert_equals(getComputedStyle(div).zIndex, 'auto');
+        }
+      }, '@scope with external stylesheet');
+    </script>
+  </body>
+</html>

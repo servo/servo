@@ -157,6 +157,7 @@ function insertDocumentRule(predicate, extra_options={}) {
   insertSpeculationRules({
     prefetch: [{
       source: 'document',
+      eagerness: 'eager',
       where: predicate,
       ...extra_options
     }]
