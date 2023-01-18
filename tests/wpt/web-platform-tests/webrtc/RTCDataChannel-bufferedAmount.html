@@ -55,6 +55,9 @@ const helloString = 'hello';
 const helloBuffer = Uint8Array.of(0x68, 0x65, 0x6c, 0x6c, 0x6f);
 const helloBlob = new Blob([helloBuffer]);
 
+const emptyBuffer = Uint8Array.of();
+const emptyBlob = new Blob([emptyBuffer]);
+
 // Unicode string with multiple code units
 const unicodeString = '世界你好';
 // UTF-8 encoded buffer representation of the string
@@ -96,6 +99,17 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
   }, `${mode} bufferedAmount should increase to byte length of encoded` +
      `unicode string sent`);
 
+  promise_test(async (t) => {
+    const [dc1, dc2] = await createDataChannelPair(t, options);
+
+    dc1.send("");
+    assert_equals(dc1.bufferedAmount, 0,
+      'Expect bufferedAmount to stay at zero after sending empty string');
+
+    await awaitMessage(dc2);
+    assert_equals(dc1.bufferedAmount, 0, 'Expect sender bufferedAmount unchanged');
+  }, `${mode} bufferedAmount should stay at zero for empty string sent`);
+
   /*
     6.2. send()
       3.  Execute the sub step that corresponds to the type of the methods argument:
@@ -116,6 +130,18 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
       'Expect sender bufferedAmount to be reduced after message is sent');
   }, `${mode} bufferedAmount should increase to byte length of buffer sent`);
 
+  promise_test(async (t) => {
+    const [dc1, dc2] = await createDataChannelPair(t, options);
+
+    dc1.send(emptyBuffer.buffer);
+    assert_equals(dc1.bufferedAmount, 0,
+      'Expect bufferedAmount to stay at zero after sending empty buffer');
+
+    await awaitMessage(dc2);
+    assert_equals(dc1.bufferedAmount, 0,
+                  'Expect sender bufferedAmount unchanged');
+  }, `${mode} bufferedAmount should stay at zero for empty buffer sent`);
+
   /*
     6.2. send()
       3.  Execute the sub step that corresponds to the type of the methods argument:
@@ -134,6 +160,18 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     assert_equals(dc1.bufferedAmount, 0,
       'Expect sender bufferedAmount to be reduced after message is sent');
   }, `${mode} bufferedAmount should increase to size of blob sent`);
+
+  promise_test(async (t) => {
+    const [dc1, dc2] = await createDataChannelPair(t, options);
+
+    dc1.send(emptyBlob);
+    assert_equals(dc1.bufferedAmount, 0,
+      'Expect bufferedAmount to stay at zero after sending empty blob');
+
+    await awaitMessage(dc2);
+    assert_equals(dc1.bufferedAmount, 0,
+      'Expect sender bufferedAmount unchanged');
+  }, `${mode} bufferedAmount should stay at zero for empty blob sent`);
 
   // Test sending 3 messages: helloBuffer, unicodeString, helloBlob
   promise_test(async (t) => {

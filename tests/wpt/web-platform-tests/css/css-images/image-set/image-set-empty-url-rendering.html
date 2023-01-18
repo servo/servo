@@ -5,12 +5,14 @@
 <link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
 <link rel="match" href="reference/image-set-rendering-ref.html">
 <meta name="assert" content="image-set rendering when 2x url is empty">
-<script src="resources/image-set-rendering-helper.js"></script>
 <style>
   #test {
     background-image: image-set(
       url("/images/green.png") 1x,
       url("") 2x
     );
+    width: 100px;
+    height: 100px;
   }
 </style>
+<div id="test"></div>

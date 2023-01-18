@@ -51,15 +51,15 @@
       allowElements: [ "div", "p" ],
       blockElements: [ "test" ],
       dropElements: [ "test" ],
-      allowAttributes: { "id": ["*"]},
-      dropAttributes: { "bla": ["blubb"]},
+      allowAttributes: [{ name: "id", elements: "*"}],
+      dropAttributes: [{ name: "bla", elements: ["blubb"]}],
     };
     const should_modify = {
       allowElements: [ "div", "span" ],
       blockElements: [ "div" ],
       dropElements: [ "p" ],
-      allowAttributes: { "id": ["p"]},
-      dropAttributes: { "id": ["div"]},
+      allowAttributes: [{ name: "id", elements: ["p"] }],
+      dropAttributes: [{ name: "id", elements: ["div"] }],
     };
 
     assert_array_equals(Object.keys(should_stay_the_same), Object.keys(should_modify));

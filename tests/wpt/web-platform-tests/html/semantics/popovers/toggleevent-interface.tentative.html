@@ -7,200 +7,200 @@
 
 <script>
 test(function() {
-  var event = new BeforeToggleEvent("");
-  assert_true(event instanceof window.BeforeToggleEvent);
-}, "the event is an instance of BeforeToggleEvent");
+  var event = new PopoverToggleEvent("");
+  assert_true(event instanceof window.PopoverToggleEvent);
+}, "the event is an instance of PopoverToggleEvent");
 
 test(function() {
-  var event = new BeforeToggleEvent("");
+  var event = new PopoverToggleEvent("");
   assert_true(event instanceof window.Event);
 }, "the event inherts from Event");
 
 test(function() {
   assert_throws_js(TypeError, function() {
-    new BeforeToggleEvent();
+    new PopoverToggleEvent();
   }, 'First argument (type) is required, so was expecting a TypeError.');
 }, 'Missing type argument');
 
 test(function() {
-  var event = new BeforeToggleEvent("test");
+  var event = new PopoverToggleEvent("test");
   assert_equals(event.type, "test");
 }, "type argument is string");
 
 test(function() {
-  var event = new BeforeToggleEvent(null);
+  var event = new PopoverToggleEvent(null);
   assert_equals(event.type, "null");
 }, "type argument is null");
 
 test(function() {
-  var event = new BeforeToggleEvent(undefined);
+  var event = new PopoverToggleEvent(undefined);
   assert_equals(event.type, "undefined");
 }, "event type set to undefined");
 
 test(function() {
-  var event = new BeforeToggleEvent("test");
+  var event = new PopoverToggleEvent("test");
   assert_equals(event.currentState, "");
 }, "currentState has default value of empty string");
 
 test(function() {
-  var event = new BeforeToggleEvent("test");
+  var event = new PopoverToggleEvent("test");
   assert_readonly(event, "currentState", "readonly attribute value");
 }, "currentState is readonly");
 
 test(function() {
-  var event = new BeforeToggleEvent("test");
+  var event = new PopoverToggleEvent("test");
   assert_equals(event.newState, "");
 }, "newState has default value of empty string");
 
 test(function() {
-  var event = new BeforeToggleEvent("test");
+  var event = new PopoverToggleEvent("test");
   assert_readonly(event, "newState", "readonly attribute value");
 }, "newState is readonly");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", null);
+  var event = new PopoverToggleEvent("test", null);
   assert_equals(event.currentState, "");
   assert_equals(event.newState, "");
-}, "BeforeToggleEventInit argument is null");
+}, "PopoverToggleEventInit argument is null");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", undefined);
+  var event = new PopoverToggleEvent("test", undefined);
   assert_equals(event.currentState, "");
   assert_equals(event.newState, "");
-}, "BeforeToggleEventInit argument is undefined");
+}, "PopoverToggleEventInit argument is undefined");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {});
+  var event = new PopoverToggleEvent("test", {});
   assert_equals(event.currentState, "");
   assert_equals(event.newState, "");
-}, "BeforeToggleEventInit argument is empty dictionary");
+}, "PopoverToggleEventInit argument is empty dictionary");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: "sample"});
+  var event = new PopoverToggleEvent("test", {currentState: "sample"});
   assert_equals(event.currentState, "sample");
 }, "currentState set to 'sample'");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: undefined});
+  var event = new PopoverToggleEvent("test", {currentState: undefined});
   assert_equals(event.currentState, "");
 }, "currentState set to undefined");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: null});
+  var event = new PopoverToggleEvent("test", {currentState: null});
   assert_equals(event.currentState, "null");
 }, "currentState set to null");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: false});
+  var event = new PopoverToggleEvent("test", {currentState: false});
   assert_equals(event.currentState, "false");
 }, "currentState set to false");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: true});
+  var event = new PopoverToggleEvent("test", {currentState: true});
   assert_equals(event.currentState, "true");
 }, "currentState set to true");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: 0.5});
+  var event = new PopoverToggleEvent("test", {currentState: 0.5});
   assert_equals(event.currentState, "0.5");
 }, "currentState set to a number");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: []});
+  var event = new PopoverToggleEvent("test", {currentState: []});
   assert_equals(event.currentState, "");
 }, "currentState set to []");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: [1, 2, 3]});
+  var event = new PopoverToggleEvent("test", {currentState: [1, 2, 3]});
   assert_equals(event.currentState, "1,2,3");
 }, "currentState set to [1, 2, 3]");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {currentState: {sample: 0.5}});
+  var event = new PopoverToggleEvent("test", {currentState: {sample: 0.5}});
   assert_equals(event.currentState, "[object Object]");
 }, "currentState set to an object");
 
 test(function() {
-  var event = new BeforeToggleEvent("test",
+  var event = new PopoverToggleEvent("test",
       {currentState: {valueOf: function () { return 'sample'; }}});
   assert_equals(event.currentState, "[object Object]");
 }, "currentState set to an object with a valueOf function");
 
 test(function() {
   var eventInit = {currentState: "sample",newState: "sample2"};
-  var event = new BeforeToggleEvent("test", eventInit);
+  var event = new PopoverToggleEvent("test", eventInit);
   assert_equals(event.currentState, "sample");
   assert_equals(event.newState, "sample2");
-}, "BeforeToggleEventInit properties set value");
+}, "PopoverToggleEventInit properties set value");
 
 test(function() {
   var eventInit = {currentState: "open",newState: "closed"};
-  var event = new BeforeToggleEvent("beforetoggle", eventInit);
+  var event = new PopoverToggleEvent("beforetoggle", eventInit);
   assert_equals(event.currentState, "open");
   assert_equals(event.newState, "closed");
-}, "BeforeToggleEventInit properties set value 2");
+}, "PopoverToggleEventInit properties set value 2");
 
 test(function() {
   var eventInit = {currentState: "closed",newState: "open"};
-  var event = new BeforeToggleEvent("beforetoggle", eventInit);
+  var event = new PopoverToggleEvent("aftertoggle", eventInit);
   assert_equals(event.currentState, "closed");
   assert_equals(event.newState, "open");
-}, "BeforeToggleEventInit properties set value 3");
+}, "PopoverToggleEventInit properties set value 3");
 
 test(function() {
   var eventInit = {currentState: "open",newState: "open"};
-  var event = new BeforeToggleEvent("beforetoggle", eventInit);
+  var event = new PopoverToggleEvent("beforetoggle", eventInit);
   assert_equals(event.currentState, "open");
   assert_equals(event.newState, "open");
-}, "BeforeToggleEventInit properties set value 4");
+}, "PopoverToggleEventInit properties set value 4");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: "sample"});
+  var event = new PopoverToggleEvent("test", {newState: "sample"});
   assert_equals(event.newState, "sample");
 }, "newState set to 'sample'");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: undefined});
+  var event = new PopoverToggleEvent("test", {newState: undefined});
   assert_equals(event.newState, "");
 }, "newState set to undefined");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: null});
+  var event = new PopoverToggleEvent("test", {newState: null});
   assert_equals(event.newState, "null");
 }, "newState set to null");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: false});
+  var event = new PopoverToggleEvent("test", {newState: false});
   assert_equals(event.newState, "false");
 }, "newState set to false");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: true});
+  var event = new PopoverToggleEvent("test", {newState: true});
   assert_equals(event.newState, "true");
 }, "newState set to true");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: 0.5});
+  var event = new PopoverToggleEvent("test", {newState: 0.5});
   assert_equals(event.newState, "0.5");
 }, "newState set to a number");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: []});
+  var event = new PopoverToggleEvent("test", {newState: []});
   assert_equals(event.newState, "");
 }, "newState set to []");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: [1, 2, 3]});
+  var event = new PopoverToggleEvent("test", {newState: [1, 2, 3]});
   assert_equals(event.newState, "1,2,3");
 }, "newState set to [1, 2, 3]");
 
 test(function() {
-  var event = new BeforeToggleEvent("test", {newState: {sample: 0.5}});
+  var event = new PopoverToggleEvent("test", {newState: {sample: 0.5}});
   assert_equals(event.newState, "[object Object]");
 }, "newState set to an object");
 
 test(function() {
-  var event = new BeforeToggleEvent("test",
+  var event = new PopoverToggleEvent("test",
       {newState: {valueOf: function () { return 'sample'; }}});
   assert_equals(event.newState, "[object Object]");
 }, "newState set to an object with a valueOf function");

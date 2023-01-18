@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API multi IDP get after abort test.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+  import {
+    set_fedcm_cookie,
+    set_alt_fedcm_cookie,
+    default_request_options,
+    default_alt_request_options
+  } from '../support/fedcm-helper.sub.js';
+
+  let cookies_promise = Promise.all([set_fedcm_cookie(), set_alt_fedcm_cookie()]);
+
+  promise_test(async t => {
+    let first_controller = new AbortController();
+    let first_test_options = default_request_options();
+    first_test_options.signal = first_controller.signal;
+    const first_cred = navigator.credentials.get(first_test_options);
+
+    let second_controller = new AbortController();
+    let second_test_options = default_alt_request_options();
+    second_test_options.signal = second_controller.signal;
+    const second_cred = navigator.credentials.get(second_test_options);
+
+    await cookies_promise;
+    second_controller.abort();
+    await Promise.all([
+      promise_rejects_dom(t, 'AbortError', first_cred),
+      promise_rejects_dom(t, 'AbortError', second_cred)
+    ]);
+
+    const third_cred = navigator.credentials.get(default_request_options());
+    const fourth_cred = navigator.credentials.get(default_alt_request_options());
+
+    // NetworkError is returned when another IDP is selected.
+    await promise_rejects_dom(t, 'NetworkError', fourth_cred);
+    const cred = await third_cred;
+    assert_equals(cred.token, "token");
+  }, "Multiple gets after aborting a multi IDP request should work");
+</script>

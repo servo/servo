@@ -24,7 +24,8 @@ test(t => {
 test(t => {
   d = document.createElement("div")
   d.setHTML("<b hello='1' world>", { sanitizer:
-      new Sanitizer({allowAttributes: {"hello": ["*"], "world": ["*"]}}) });
+      new Sanitizer({allowAttributes: [{name: "hello", elements: "*"},
+        {name: "world", elements: "*"}]}) });
   assert_equals(d.innerHTML, "<b></b>");
 }, "Unknown attributes names get blocked without allowUnknownMarkup.");
 
@@ -32,7 +33,11 @@ test(t => {
   d = document.createElement("div")
   d.setHTML("<b hello='1' world>", { sanitizer:
       new Sanitizer({allowUnknownMarkup: true,
-                     allowAttributes: {"hello": ["*"], "world": ["*"]}}) });
+                     allowAttributes: [
+                        {name: "hello", elements: "*"},
+                        {name: "world", elements: "*"}
+                    ]})
+    });
   assert_equals(d.innerHTML, `<b hello="1" world=""></b>`);
 }, "Unknown attribute names pass with allowUnknownMarkup.");
 </script>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>@scope - implicit scope root</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<main id=main></main>
+
+<template id=test_basic>
+  <div>
+    <style>
+      @scope {
+        .a { z-index:1; }
+      }
+    </style>
+    <div id=inner class=a></div>
+  </div>
+  <div id=outer class=a></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_basic.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(inner).zIndex, '1');
+  assert_equals(getComputedStyle(outer).zIndex, 'auto');
+}, '@scope without prelude implicitly scopes to parent of owner node');
+</script>
+
+<template id=test_scope_pseudo>
+  <div>
+    <div></div>
+  </div>
+  <div>
+    <div id=root>
+      <style>
+        @scope {
+          :scope { z-index:1; }
+        }
+      </style>
+      <div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_scope_pseudo.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(root).zIndex, '1');
+
+  // Only #root should be affected.
+  for (let div of main.querySelectorAll('div:not(#root)')) {
+    assert_equals(getComputedStyle(div).zIndex, 'auto');
+  }
+}, ':scope can style implicit root');
+</script>
+
+<template id=test_duplicate>
+  <div>
+    <style>
+      @scope {
+        .a { z-index:1; }
+      }
+    </style>
+    <div id=first class=a></div>
+  </div>
+  <div>
+    <style>
+      @scope {
+        .a { z-index:1; }
+      }
+    </style>
+    <div id=second class=a></div>
+  </div>
+  <div id=outer class=a></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_duplicate.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+  assert_equals(getComputedStyle(outer).zIndex, 'auto');
+}, '@scope works with two identical stylesheets');
+</script>

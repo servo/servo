@@ -2853,4 +2853,17 @@ var browserTests = [
     [true,true,true],
     {}],
 
+// <font> element should be reused when the font-size is change for new text.
+["<font size=7>{}<br></font>",
+    [["stylewithcss","false"],["fontsize","4"],["insertText","a"]],
+    ["<font size=\"4\">a[]<br></font>",
+     "<font size=\"4\">a[]</font>"],
+    [true,true,true],
+    {"fontsize":[false,false,"7",false,false,"4"]}],
+["<span style=font-weight:bold>{}<br></span></b>",
+    [["stylewithcss","true"],["italic",""],["insertText","a"]],
+    ["<span style=\"font-weight:bold; font-style:italic\">a[]<br></span>",
+     "<span style=\"font-weight:bold; font-style:italic\">a[]</span>"],
+    [true,true,true],
+    {}],
 ]

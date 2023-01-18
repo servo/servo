@@ -1,6 +1,7 @@
 import pytest
-
 from tests.support.sync import AsyncPoll
+
+from ... import int_interval
 from .. import assert_navigation_info
 
 pytestmark = pytest.mark.asyncio
@@ -43,7 +44,25 @@ async def test_subscribe(bidi_session, subscribe_events, inline, new_tab, wait_f
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url)
     event = await on_entry
 
-    assert_navigation_info(event, new_tab["context"], url)
+    assert_navigation_info(event, {"context": new_tab["context"], "url": url})
+
+
+async def test_timestamp(bidi_session, current_time, subscribe_events, inline, new_tab, wait_for_event):
+    await subscribe_events(events=[DOM_CONTENT_LOADED_EVENT])
+
+    time_start = await current_time()
+
+    on_entry = wait_for_event(DOM_CONTENT_LOADED_EVENT)
+    url = inline("<div>foo</div>")
+    await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url)
+    event = await on_entry
+
+    time_end = await current_time()
+
+    assert_navigation_info(
+        event,
+        {"context": new_tab["context"], "timestamp": int_interval(time_start, time_end)}
+    )
 
 
 async def test_iframe(bidi_session, subscribe_events, new_tab, test_page, test_page_same_origin_frame):
@@ -82,8 +101,11 @@ async def test_iframe(bidi_session, subscribe_events, new_tab, test_page, test_p
     root_event = events[0] if first_is_root else events[1]
     child_event = events[1] if first_is_root else events[0]
 
-    assert_navigation_info(root_event, root_info["context"], test_page_same_origin_frame)
-    assert_navigation_info(child_event, child_info["context"], test_page)
+    assert_navigation_info(
+        root_event,
+        {"context": root_info["context"], "url": test_page_same_origin_frame}
+    )
+    assert_navigation_info(child_event, {"context": child_info["context"], "url": test_page})
 
     remove_listener()
 
@@ -96,4 +118,4 @@ async def test_new_context(bidi_session, subscribe_events, wait_for_event, type_
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
     event = await on_entry
 
-    assert_navigation_info(event, new_context["context"], "about:blank")
+    assert_navigation_info(event, {"context": new_context["context"], "url": "about:blank"})

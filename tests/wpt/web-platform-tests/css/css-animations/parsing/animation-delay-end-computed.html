@@ -9,15 +9,4 @@ test_computed_value("animation-delay-start", "initial", "0s");
 test_computed_value("animation-delay-start", "-500ms", "-0.5s");
 test_computed_value("animation-delay-start", "calc(2 * 3s)", "6s");
 test_computed_value("animation-delay-start", "20s, 10s");
-
-test_computed_value("animation-delay-start", "cover 0%");
-test_computed_value("animation-delay-start", "COVER 0%", "cover 0%");
-test_computed_value("animation-delay-start", "cover 100%");
-test_computed_value("animation-delay-start", "cover 120%");
-test_computed_value("animation-delay-start", "cover 42%");
-test_computed_value("animation-delay-start", "cover -42%");
-test_computed_value("animation-delay-start", "contain 42%");
-test_computed_value("animation-delay-start", "exit 42%");
-test_computed_value("animation-delay-start", "exit calc(41% + 1%)", "exit 42%");
-test_computed_value("animation-delay-start", "exit 1%, cover 2%, contain 100%");
 </script>

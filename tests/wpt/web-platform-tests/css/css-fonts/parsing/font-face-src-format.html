@@ -13,6 +13,12 @@
     { src: 'url("foo.ttf"), url("bar.ttf")', valid: true },
     // Empty format() is not valid
     { src: 'url("foo.ttf") format()', valid: false },
+    // Garbage data instead of format() is not valid
+    { src: 'url("foo.ttf") dummy()', valid: false },
+    // Garbage data following valid format() is not valid
+    { src: 'url("foo.ttf") format("woff") dummy()', valid: false },
+    // Garbage data preceding valid format() is not valid
+    { src: 'url("foo.ttf") dummy() format("woff")', valid: false },
     // Quoted strings in format()
     { src: 'url("foo.ttf") format("collection")', valid: true },
     { src: 'url("foo.ttf") format("opentype")', valid: true },

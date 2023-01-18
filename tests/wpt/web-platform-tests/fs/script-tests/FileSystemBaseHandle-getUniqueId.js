@@ -72,7 +72,7 @@ directory_test(async (t, root_dir) => {
   const id_before = await handle.getUniqueId();
 
   // Write to the file. The unique ID should not change.
-  const writable = await handle.createWritable();
+  const writable = await cleanup_writable(t, await handle.createWritable());
   await writable.write("blah");
   await writable.close();
 

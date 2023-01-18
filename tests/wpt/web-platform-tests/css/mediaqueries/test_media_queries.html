@@ -704,6 +704,31 @@ setup({ "explicit_done": true });
     should_not_apply("not ((width) and (not (height)))");
     query_should_not_be_parseable("not (width) and not (height)");
     query_should_not_be_parseable("not not (width)");
+    query_should_be_parseable("not unknown(width) ");
+
+    testGroup = "three-valued logic"
+    should_not_apply("(unknown)");
+    should_not_apply("not (unknown)");
+    should_not_apply("((unknown) and (width))");
+    should_not_apply("not ((unknown) and (width))");
+    should_not_apply("((unknown) and (height))");
+    should_apply("not ((unknown) and (height))");
+    should_apply("((unknown) or (width))");
+    should_not_apply("not ((unknown) or (width))");
+    should_not_apply("((unknown) or (height))");
+    should_not_apply("not ((unknown) or (height))");
+    should_apply("(width) or (not ((unknown) and (width)))");
+    should_not_apply("(width) and (not ((unknown) and (width)))");
+    should_apply("(width) or (not ((unknown) or (width)))");
+    should_not_apply("(width) and (not ((unknown) or (width)))");
+    should_apply("(width) or (not ((unknown) and (height)))");
+    should_apply("(width) and (not ((unknown) and (height)))");
+    should_apply("(width) or (not ((unknown) or (height)))");
+    should_not_apply("(width) and (not ((unknown) or (height)))");
+    should_not_apply("unknown(width)");
+    should_not_apply("not unknown(width)");
+    should_apply("not (unknown(width) and (height))");
+    should_not_apply("not (unknown(width) or (height))");
 
     testGroup = ""
     done();

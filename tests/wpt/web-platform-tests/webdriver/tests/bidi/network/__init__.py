@@ -22,9 +22,7 @@ def assert_cookies(request_cookies, expected_cookies):
         return True
 
     for cookie in expected_cookies:
-        assert (
-            next(c for c in request_cookies if match_cookie(c, cookie)) is not None
-        )
+        assert next(c for c in request_cookies if match_cookie(c, cookie)) is not None
 
 
 def assert_headers(request_headers, expected_headers):
@@ -170,7 +168,7 @@ def assert_response_data(response_data, expected_response):
     recursive_compare(expected_response, response_data)
 
 
-def assert_response_started_event(
+def assert_response_event(
     event,
     context=None,
     is_redirect=None,
@@ -191,3 +189,42 @@ def assert_response_started_event(
         redirect_count=redirect_count,
         expected_request=expected_request,
     )
+
+# Array of status and status text expected to be available in network events
+HTTP_STATUS_AND_STATUS_TEXT = [
+    (101, "Switching Protocols"),
+    (200, "OK"),
+    (201, "Created"),
+    (202, "Accepted"),
+    (203, "Non-Authoritative Information"),
+    (204, "No Content"),
+    (205, "Reset Content"),
+    (206, "Partial Content"),
+    (300, "Multiple Choices"),
+    (301, "Moved Permanently"),
+    (302, "Found"),
+    (303, "See Other"),
+    (305, "Use Proxy"),
+    (307, "Temporary Redirect"),
+    (400, "Bad Request"),
+    (401, "Unauthorized"),
+    (402, "Payment Required"),
+    (403, "Forbidden"),
+    (404, "Not Found"),
+    (405, "Method Not Allowed"),
+    (406, "Not Acceptable"),
+    (407, "Proxy Authentication Required"),
+    (408, "Request Timeout"),
+    (409, "Conflict"),
+    (410, "Gone"),
+    (411, "Length Required"),
+    (412, "Precondition Failed"),
+    (415, "Unsupported Media Type"),
+    (417, "Expectation Failed"),
+    (500, "Internal Server Error"),
+    (501, "Not Implemented"),
+    (502, "Bad Gateway"),
+    (503, "Service Unavailable"),
+    (504, "Gateway Timeout"),
+    (505, "HTTP Version Not Supported"),
+]

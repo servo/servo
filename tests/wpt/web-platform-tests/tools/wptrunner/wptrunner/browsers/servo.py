@@ -93,19 +93,20 @@ class ServoBrowser(NullBrowser):
 
 class ServoWdspecBrowser(WebDriverBrowser):
     # TODO: could share an implemenation with servodriver.py, perhaps
-    def __init__(self, logger, binary="servo", webdriver_args=None,
-                 binary_args=None, host="127.0.0.1", env=None, port=None):
+    def __init__(self, logger, binary="servo", webdriver_binary="servo",
+                 binary_args=None, webdriver_args=None, env=None, port=None,
+                 **kwargs):
 
         env = os.environ.copy() if env is None else env
         env["RUST_BACKTRACE"] = "1"
 
         super().__init__(logger,
-                         binary,
-                         None,
+                         binary=binary,
+                         webdriver_binary=webdriver_binary,
                          webdriver_args=webdriver_args,
-                         host=host,
                          port=port,
-                         env=env)
+                         env=env,
+                         **kwargs)
         self.binary_args = binary_args
 
     def make_command(self):

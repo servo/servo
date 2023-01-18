@@ -75,8 +75,6 @@ const invariants = {
     assert_positive_(entry, [
       "fetchStart",
       "transferSize",
-      "encodedBodySize",
-      "decodedBodySize",
     ]);
   },
 
@@ -98,8 +96,6 @@ const invariants = {
       "secureConnectionStart",
       "redirectStart",
       "redirectEnd",
-      "encodedBodySize",
-      "decodedBodySize",
     ]);
 
     assert_not_negative_(entry, [
@@ -139,8 +135,6 @@ const invariants = {
     assert_positive_(entry, [
       "fetchStart",
       "transferSize",
-      "encodedBodySize",
-      "decodedBodySize",
     ]);
   },
 
@@ -172,8 +166,6 @@ const invariants = {
     assert_positive_(entry, [
       "fetchStart",
       "transferSize",
-      "encodedBodySize",
-      "decodedBodySize",
     ]);
   },
 
@@ -196,8 +188,6 @@ const invariants = {
       "secureConnectionStart",
       "redirectStart",
       "redirectEnd",
-      "encodedBodySize",
-      "decodedBodySize",
     ]);
 
     assert_not_negative_(entry, [
@@ -229,8 +219,6 @@ const invariants = {
       "workerStart",
       "redirectStart",
       "redirectEnd",
-      "encodedBodySize",
-      "decodedBodySize",
     ]);
 
     assert_not_negative_(entry, [
@@ -405,8 +393,6 @@ const invariants = {
       "requestStart",
       "responseStart",
       "transferSize",
-      "encodedBodySize",
-      "decodedBodySize",
     ]);
 
     assert_ordered_(entry, [
@@ -440,8 +426,6 @@ const invariants = {
       "requestStart",
       "responseStart",
       "transferSize",
-      "encodedBodySize",
-      "decodedBodySize",
     ]);
   }
 
@@ -469,9 +453,10 @@ const attribute_test_internal = (loader, path, validator, run_test, test_label) 
       await loader(path, validator);
       const timeout = new Promise(r => step_timeout(() => {
         console.log("Timeout was reached before entry fired");
-        r();
+        r(null);
       }, 2000));
       const entry = await Promise.race([loaded_entry, timeout]);
+      assert_not_equals(entry, null, 'No entry was recieved');
       run_test(entry);
   }, test_label);
 };
