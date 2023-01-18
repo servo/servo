@@ -824,22 +824,12 @@ where
             nth_of_data.nth_data(),
             nth_of_data.selectors(),
         ),
-        Component::Is(ref list) | Component::Where(ref list) => context.shared.nest(|context| {
-            for selector in &**list {
-                if matches_complex_selector(selector.iter(), element, context) {
-                    return true;
-                }
-            }
-            false
-        }),
-        Component::Negation(ref list) => context.shared.nest_for_negation(|context| {
-            for selector in &**list {
-                if matches_complex_selector(selector.iter(), element, context) {
-                    return false;
-                }
-            }
-            true
-        }),
+        Component::Is(ref list) | Component::Where(ref list) => context
+            .shared
+            .nest(|context| list_matches_complex_selector(list, element, context)),
+        Component::Negation(ref list) => context
+            .shared
+            .nest_for_negation(|context| !list_matches_complex_selector(list, element, context)),
         Component::Has(ref list) => context
             .shared
             .nest(|context| has_children_matching(list, element, context)),
