@@ -903,7 +903,7 @@ impl BlockFlow {
     ///   10.6.7.
     ///
     /// For absolute flows, we store the calculated content block-size for the flow. We defer the
-    /// calculation of the other values until a later traversal.
+    /// calculation of the other values until a later traversal at root flow.
     ///
     /// When `fragmentation_context` is given (not `None`), this should fit as much of the content
     /// as possible within the available block size.
@@ -1200,6 +1200,8 @@ impl BlockFlow {
                 .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
             {
                 self.propagate_early_absolute_position_info_to_children();
+                // Return early until the absolute flow tree traversal at root flow.
+                // Assigning block size for absolute flow will happen in `traverse_absolute_flows` below.
                 return None;
             }
 
