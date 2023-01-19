@@ -39,8 +39,7 @@ use servo_arc::{Arc, RawOffsetArc, UniqueArc};
 use std::mem::{forget, MaybeUninit};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, KeyframesName};
-use crate::values::computed::{Percentage, TransitionProperty};
-use crate::values::computed::BorderStyle;
+use crate::values::computed::{BorderStyle, Percentage, Time, TransitionProperty};
 use crate::values::computed::font::FontSize;
 use crate::values::generics::column::ColumnCount;
 
@@ -1038,14 +1037,13 @@ fn static_assert() {
 
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = input_len as u32;
         for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
-            gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
+            gecko.m${gecko_ffi_name} = servo;
         }
     }
     #[allow(non_snake_case)]
     pub fn ${type}_${ident}_at(&self, index: usize)
         -> longhands::${type}_${ident}::computed_value::SingleComputedValue {
-        use crate::values::computed::Time;
-        Time::from_seconds(self.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name} / 1000.)
+        self.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name}
     }
     ${impl_animation_or_transition_count(type, ident, gecko_ffi_name)}
     ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
@@ -1772,10 +1770,12 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
     ${impl_transition_time_value('duration', 'Duration')}
     ${impl_animation_or_transition_timing_function('transition')}
 
-    pub fn transition_combined_duration_at(&self, index: usize) -> f32 {
+    pub fn transition_combined_duration_at(&self, index: usize) -> Time {
         // https://drafts.csswg.org/css-transitions/#transition-combined-duration
-        self.gecko.mTransitions[index % self.gecko.mTransitionDurationCount as usize].mDuration.max(0.0)
-            + self.gecko.mTransitions[index % self.gecko.mTransitionDelayCount as usize].mDelay
+        Time::from_seconds(
+            self.transition_duration_at(index).seconds().max(0.0) +
+            self.transition_delay_at(index).seconds()
+        )
     }
 
     pub fn set_transition_property<I>(&mut self, v: I)
@@ -1818,7 +1818,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         use crate::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties;
         if self.gecko.mTransitionPropertyCount == 1 &&
             self.gecko.mTransitions[0].mProperty == eCSSPropertyExtra_all_properties &&
-            self.transition_combined_duration_at(0) <= 0.0f32 {
+            self.transition_combined_duration_at(0).seconds() <= 0.0f32 {
             return false;
         }
 

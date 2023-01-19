@@ -858,7 +858,7 @@ impl<'le> GeckoElement<'le> {
     fn needs_transitions_update_per_property(
         &self,
         longhand_id: LonghandId,
-        combined_duration: f32,
+        combined_duration_seconds: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
         existing_transitions: &FxHashMap<LonghandId, Arc<AnimationValue>>,
@@ -884,7 +884,7 @@ impl<'le> GeckoElement<'le> {
 
         debug_assert_eq!(to.is_some(), from.is_some());
 
-        combined_duration > 0.0f32 &&
+        combined_duration_seconds > 0.0f32 &&
             from != to &&
             from.unwrap()
                 .animate(
@@ -1533,7 +1533,7 @@ impl<'le> TElement for GeckoElement<'le> {
             transitions_to_keep.insert(physical_longhand);
             if self.needs_transitions_update_per_property(
                 physical_longhand,
-                after_change_ui_style.transition_combined_duration_at(transition_property.index),
+                after_change_ui_style.transition_combined_duration_at(transition_property.index).seconds(),
                 before_change_style,
                 after_change_style,
                 &existing_transitions,
