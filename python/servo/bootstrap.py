@@ -6,14 +6,11 @@ from __future__ import absolute_import, print_function
 
 from distutils.spawn import find_executable
 from distutils.version import LooseVersion
-import json
 import os
 import distro
-import shutil
 import subprocess
 import six
 import six.moves.urllib as urllib
-from six.moves import input
 from subprocess import PIPE
 from zipfile import BadZipfile
 
@@ -66,14 +63,6 @@ def install_linux_deps(context, pkgs_ubuntu, pkgs_fedora, pkgs_void, force):
     if run_as_root(command + pkgs, force) != 0:
         raise Exception("Installation of dependencies failed.")
     return True
-
-
-def install_salt_dependencies(context, force):
-    pkgs_apt = ['build-essential', 'libssl-dev', 'libffi-dev', 'python-dev']
-    pkgs_dnf = ['gcc', 'libffi-devel', 'python-devel', 'openssl-devel']
-    pkgs_xbps = ['gcc', 'libffi-devel', 'python-devel']
-    if not install_linux_deps(context, pkgs_apt, pkgs_dnf, pkgs_xbps, force):
-        print("Dependencies are already installed")
 
 
 def gstreamer(context, force=False):
@@ -133,130 +122,6 @@ def linux(context, force=False):
         print("Dependencies were already installed!")
 
     return 0
-
-
-def salt(context, force=False):
-    # Ensure Salt dependencies are installed
-    install_salt_dependencies(context, force)
-    # Ensure Salt is installed in the virtualenv
-    # It's not installed globally because it's a large, non-required dependency,
-    # and the installation fails on Windows
-    print("Checking Salt installation...", end='')
-    reqs_path = os.path.join(context.topdir, 'python', 'requirements-salt.txt')
-    process = subprocess.Popen(
-        ["pip", "install", "-q", "-I", "-r", reqs_path],
-        stdout=PIPE,
-        stderr=PIPE
-    )
-    process.wait()
-    if process.returncode:
-        out, err = process.communicate()
-        print('failed to install Salt via pip:')
-        print('Output: {}\nError: {}'.format(out, err))
-        return 1
-    print("done")
-
-    salt_root = os.path.join(context.sharedir, 'salt')
-    config_dir = os.path.join(salt_root, 'etc', 'salt')
-    pillar_dir = os.path.join(config_dir, 'pillars')
-
-    # In order to allow `mach bootstrap` to work from any CWD,
-    # the `root_dir` must be an absolute path.
-    # We place it under `context.sharedir` because
-    # Salt caches data (e.g. gitfs files) in its `var` subdirectory.
-    # Hence, dynamically generate the config with an appropriate `root_dir`
-    # and serialize it as JSON (which is valid YAML).
-    config = {
-        'hash_type': 'sha384',
-        'master': 'localhost',
-        'root_dir': salt_root,
-        'state_output': 'changes',
-        'state_tabular': True,
-    }
-    if 'SERVO_SALTFS_ROOT' in os.environ:
-        config.update({
-            'fileserver_backend': ['roots'],
-            'file_roots': {
-                'base': [os.path.abspath(os.environ['SERVO_SALTFS_ROOT'])],
-            },
-        })
-    else:
-        config.update({
-            'fileserver_backend': ['git'],
-            'gitfs_env_whitelist': 'base',
-            'gitfs_provider': 'gitpython',
-            'gitfs_remotes': [
-                'https://github.com/servo/saltfs.git',
-            ],
-        })
-
-    if not os.path.exists(config_dir):
-        os.makedirs(config_dir, mode=0o700)
-    with open(os.path.join(config_dir, 'minion'), 'w') as config_file:
-        config_file.write(json.dumps(config) + '\n')
-
-    # Similarly, the pillar data is created dynamically
-    # and temporarily serialized to disk.
-    # This dynamism is not yet used, but will be in the future
-    # to enable Android bootstrapping by using
-    # context.sharedir as a location for Android packages.
-    pillar = {
-        'top.sls': {
-            'base': {
-                '*': ['bootstrap'],
-            },
-        },
-        'bootstrap.sls': {
-            'fully_managed': False,
-        },
-    }
-    if os.path.exists(pillar_dir):
-        shutil.rmtree(pillar_dir)
-    os.makedirs(pillar_dir, mode=0o700)
-    for filename in pillar:
-        with open(os.path.join(pillar_dir, filename), 'w') as pillar_file:
-            pillar_file.write(json.dumps(pillar[filename]) + '\n')
-
-    cmd = [
-        # sudo escapes from the venv, need to use full path
-        find_executable('salt-call'),
-        '--local',
-        '--config-dir={}'.format(config_dir),
-        '--pillar-root={}'.format(pillar_dir),
-        'state.apply',
-        'servo-build-dependencies',
-    ]
-
-    if not force:
-        print('Running bootstrap in dry-run mode to show changes')
-        # Because `test=True` mode runs each state individually without
-        # considering how required/previous states affect the system,
-        # it will often report states with requisites as failing due
-        # to the requisites not actually being run,
-        # even though these are spurious and will succeed during
-        # the actual highstate.
-        # Hence `--retcode-passthrough` is not helpful in dry-run mode,
-        # so only detect failures of the actual salt-call binary itself.
-        retcode = run_as_root(cmd + ['test=True'])
-        if retcode != 0:
-            print('Something went wrong while bootstrapping')
-            return retcode
-
-        proceed = input(
-            'Proposed changes are above, proceed with bootstrap? [y/N]: '
-        )
-        if proceed.lower() not in ['y', 'yes']:
-            return 0
-
-        print('')
-
-    print('Running Salt bootstrap')
-    retcode = run_as_root(cmd + ['--retcode-passthrough'])
-    if retcode == 0:
-        print('Salt bootstrapping complete')
-    else:
-        print('Salt bootstrapping encountered errors')
-    return retcode
 
 
 def windows_msvc(context, force=False):
@@ -326,7 +191,6 @@ def windows_msvc(context, force=False):
 
 
 LINUX_SPECIFIC_BOOTSTRAPPERS = {
-    "salt": salt,
     "gstreamer": bootstrap_gstreamer,
 }
 
