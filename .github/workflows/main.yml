@@ -39,6 +39,11 @@ jobs:
     runs-on: windows-2019
     needs: ["decision"]
     steps:
+      # FIXME LLVM 15 breaks Windows builds https://github.com/servo/servo/issues/29269
+      - name: LLVM 14
+        run: |
+          $llvmVersion = Get-LatestChocoPackageVersion -TargetVersion 14 -PackageName llvm
+          Choco-Install -PackageName llvm -ArgumentList '--allow-downgrade', '--version', $llvmVersion
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
@@ -64,6 +69,11 @@ jobs:
     runs-on: windows-2019
     needs: ["decision"]
     steps:
+      # FIXME LLVM 15 breaks Windows builds https://github.com/servo/servo/issues/29269
+      - name: LLVM 14
+        run: |
+          $llvmVersion = Get-LatestChocoPackageVersion -TargetVersion 14 -PackageName llvm
+          Choco-Install -PackageName llvm -ArgumentList '--allow-downgrade', '--version', $llvmVersion
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
@@ -90,6 +100,11 @@ jobs:
     runs-on: windows-2019
     needs: ["decision"]
     steps:
+      # FIXME LLVM 15 breaks Windows builds https://github.com/servo/servo/issues/29269
+      - name: LLVM 14
+        run: |
+          $llvmVersion = Get-LatestChocoPackageVersion -TargetVersion 14 -PackageName llvm
+          Choco-Install -PackageName llvm -ArgumentList '--allow-downgrade', '--version', $llvmVersion
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
