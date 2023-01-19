@@ -6,8 +6,7 @@
 
 use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::length::{LengthPercentage, NonNegativeLength};
-use crate::values::computed::{Context, Integer, Number, ToComputedValue};
-use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
+use crate::values::computed::{Context, Integer, ToComputedValue};
 use crate::values::generics::box_::{
     GenericContainIntrinsicSize, GenericLineClamp, GenericPerspective, GenericVerticalAlign,
 };
@@ -22,11 +21,59 @@ pub use crate::values::specified::box_::{
     WillChange,
 };
 
+use std::fmt::{self, Write};
+use style_traits::{ToCss, CssWriter};
+
 /// A computed value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
 
 /// A computed value for the `animation-iteration-count` property.
-pub type AnimationIterationCount = GenericAnimationIterationCount<Number>;
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
+#[repr(C)]
+pub struct AnimationIterationCount(pub f32);
+
+impl ToComputedValue for specified::AnimationIterationCount {
+    type ComputedValue = AnimationIterationCount;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        AnimationIterationCount(match *self {
+            specified::AnimationIterationCount::Number(n) => n.to_computed_value(context).0,
+            specified::AnimationIterationCount::Infinite => std::f32::INFINITY,
+        })
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        use crate::values::specified::NonNegativeNumber;
+        if computed.0.is_infinite() {
+            specified::AnimationIterationCount::Infinite
+        } else {
+            specified::AnimationIterationCount::Number(NonNegativeNumber::new(computed.0))
+        }
+    }
+}
+
+impl AnimationIterationCount {
+    /// Returns the value `1.0`.
+    #[inline]
+    pub fn one() -> Self {
+        Self(1.0)
+    }
+}
+
+impl ToCss for AnimationIterationCount {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.0.is_infinite() {
+            dest.write_str("infinite")
+        } else {
+            self.0.to_css(dest)
+        }
+    }
+}
 
 /// A computed value for the `contain-intrinsic-size` property.
 pub type ContainIntrinsicSize = GenericContainIntrinsicSize<NonNegativeLength>;
@@ -44,14 +91,6 @@ impl Animate for LineClamp {
             return Ok(Self::none());
         }
         Ok(Self(self.0.animate(&other.0, procedure)?.max(1)))
-    }
-}
-
-impl AnimationIterationCount {
-    /// Returns the value `1.0`.
-    #[inline]
-    pub fn one() -> Self {
-        GenericAnimationIterationCount::Number(1.0)
     }
 }
 
