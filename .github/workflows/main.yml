@@ -43,7 +43,7 @@ jobs:
       - name: LLVM 14
         run: |
           $llvmVersion = Get-LatestChocoPackageVersion -TargetVersion 14 -PackageName llvm
-          Choco-Install -PackageName llvm -ArgumentList '--version', $llvmVersion
+          Choco-Install -PackageName llvm -ArgumentList '--allow-downgrade', '--version', $llvmVersion
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
@@ -73,7 +73,7 @@ jobs:
       - name: LLVM 14
         run: |
           $llvmVersion = Get-LatestChocoPackageVersion -TargetVersion 14 -PackageName llvm
-          Choco-Install -PackageName llvm -ArgumentList '--version', $llvmVersion
+          Choco-Install -PackageName llvm -ArgumentList '--allow-downgrade', '--version', $llvmVersion
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
@@ -104,7 +104,7 @@ jobs:
       - name: LLVM 14
         run: |
           $llvmVersion = Get-LatestChocoPackageVersion -TargetVersion 14 -PackageName llvm
-          Choco-Install -PackageName llvm -ArgumentList '--version', $llvmVersion
+          Choco-Install -PackageName llvm -ArgumentList '--allow-downgrade', '--version', $llvmVersion
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
