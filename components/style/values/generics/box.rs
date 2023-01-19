@@ -171,27 +171,6 @@ impl<I: crate::Zero + ToCss> ToCss for LineClamp<I> {
     }
 }
 
-/// https://drafts.csswg.org/css-animations/#animation-iteration-count
-#[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-pub enum GenericAnimationIterationCount<Number> {
-    /// A `<number>` value.
-    Number(Number),
-    /// The `infinite` keyword.
-    Infinite,
-}
-
-pub use self::GenericAnimationIterationCount as AnimationIterationCount;
-
 /// A generic value for the `perspective` property.
 #[derive(
     Animate,

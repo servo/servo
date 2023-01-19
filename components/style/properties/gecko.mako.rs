@@ -1949,9 +1949,6 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         I: IntoIterator<Item = values::computed::AnimationIterationCount>,
         I::IntoIter: ExactSizeIterator + Clone
     {
-        use std::f32;
-        use crate::values::generics::box_::AnimationIterationCount;
-
         let v = v.into_iter();
 
         debug_assert_ne!(v.len(), 0);
@@ -1960,10 +1957,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
 
         self.gecko.mAnimationIterationCountCount = input_len as u32;
         for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
-            match servo {
-                AnimationIterationCount::Number(n) => gecko.mIterationCount = n,
-                AnimationIterationCount::Infinite => gecko.mIterationCount = f32::INFINITY,
-            }
+            gecko.mIterationCount = servo;
         }
     }
 
@@ -1971,13 +1965,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
         &self,
         index: usize,
     ) -> values::computed::AnimationIterationCount {
-        use crate::values::generics::box_::AnimationIterationCount;
-
-        if self.gecko.mAnimations[index].mIterationCount.is_infinite() {
-            AnimationIterationCount::Infinite
-        } else {
-            AnimationIterationCount::Number(self.gecko.mAnimations[index].mIterationCount)
-        }
+        self.gecko.mAnimations[index].mIterationCount
     }
 
     ${impl_animation_count('iteration_count', 'IterationCount')}
