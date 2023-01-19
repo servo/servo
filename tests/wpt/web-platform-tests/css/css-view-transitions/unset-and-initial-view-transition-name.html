@@ -38,7 +38,7 @@ promise_test(async t => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition();
-    await transition.domUpdated;
+    await transition.updateCallbackDone;
 
     // Elements with view-transition-name: initial and unset don't have
     // containment. Because they are ignored they don't cause the transition to

@@ -10,6 +10,20 @@ async function waitForScrollendEvent(test, target, timeoutMs = 500) {
   });
 }
 
+async function verifyScrollStopped(test, target_div) {
+  const unscaled_pause_time_in_ms = 100;
+  const x = target_div.scrollLeft;
+  const y = target_div.scrollTop;
+  return new Promise(resolve => {
+    test.step_timeout(() => {
+      assert_equals(x, target_div.scrollLeft);
+      assert_equals(y, target_div.scrollTop);
+      resolve();
+    }, unscaled_pause_time_in_ms);
+  });
+}
+
+
 const MAX_FRAME = 700;
 const MAX_UNCHANGED_FRAMES = 20;
 
@@ -44,6 +58,19 @@ function waitForCompositorCommit() {
     });
   });
 }
+function waitForNextFrame() {
+  const startTime = performance.now();
+  return new Promise(resolve => {
+    window.requestAnimationFrame((frameTime) => {
+      if (frameTime < startTime) {
+        window.requestAnimationFrame(resolve);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 
 // TODO(crbug.com/1400399): Deprecate as frame rates may vary greatly in
 // different test environments.

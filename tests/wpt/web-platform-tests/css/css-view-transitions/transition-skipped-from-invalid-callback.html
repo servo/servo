@@ -35,7 +35,7 @@ promise_test(async t => {
     transition.ready.then(reject, () => { readyRejected = true; });
 
     let domUpdateRejected = false;
-    transition.domUpdated.then(reject, () => { domUpdateRejected = true; });
+    transition.updateCallbackDone.then(reject, () => { domUpdateRejected = true; });
     transition.finished.then(reject, () => {
       assert_true(readyRejected, "ready not rejected");
       assert_true(domUpdateRejected, "dom update not rejected");

@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<title>view-timelime-name and tree-scoped references</title>
+<title>view-timeline-name and and shadow trees</title>
 <link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#view-timelines-named">
-<link rel="help" src="https://drafts.csswg.org/css-scoping-1/#shadow-names">
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/8135">
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/8192">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
@@ -60,8 +61,8 @@
     assert_equals(target.getAnimations().length, 1);
     let anim = target.getAnimations()[0];
     assert_not_equals(anim.timeline, null);
-    assert_equals(anim.timeline.axis, 'horizontal');
-  }, 'Outer animation can not see view timeline defined by :host');
+    assert_equals(anim.timeline.axis, 'vertical');
+  }, 'Outer animation can see view timeline defined by :host');
 </script>
 
 
@@ -98,8 +99,8 @@
     assert_equals(target.getAnimations().length, 1);
     let anim = target.getAnimations()[0];
     assert_not_equals(anim.timeline, null);
-    assert_equals(anim.timeline.axis, 'horizontal');
-  }, 'Outer animation can not see view timeline defined by ::slotted');
+    assert_equals(anim.timeline.axis, 'vertical');
+  }, 'Outer animation can see view timeline defined by ::slotted');
 </script>
 
 
@@ -142,4 +143,44 @@
     assert_not_equals(anim.timeline, null);
     assert_equals(anim.timeline.axis, 'horizontal');
   }, 'Inner animation can see view timeline defined by ::part');
+</script>
+
+
+<template id=view_timeline_shadow>
+  <style>
+    .target {
+      animation: anim 10s linear;
+      animation-timeline: timeline;
+    }
+    .host {
+      view-timeline: timeline horizontal;
+    }
+  </style>
+  <div class=scroller>
+    <div class=host>
+      <template shadowroot=open>
+        <style>
+          div {
+            view-timeline: timeline vertical;
+          }
+        </style>
+        <div>
+          <slot></slot>
+        </div>
+      </template>
+      <div class=target></div>
+    </div>
+  </div>
+  <style>
+  </style>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, view_timeline_shadow);
+    let target = main.querySelector('.target');
+    assert_equals(target.getAnimations().length, 1);
+    let anim = target.getAnimations()[0];
+    assert_not_equals(anim.timeline, null);
+    assert_equals(anim.timeline.axis, 'vertical');
+  }, 'Slotted element can see view timeline within the shadow');
 </script>

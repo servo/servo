@@ -10,6 +10,6 @@
   ],
   "serviceworker": {
     "src": "app-change-payment-method.js",
-    "scope": "payment-app/"
+    "scope": "change-payment-method-manual-payment-app/"
   }
 }

@@ -32,15 +32,15 @@ promise_test(async t => {
     transition.ready.then(reject, () => {readyRejected = true;});
 
     // The domUpdate promise resolves (since there is no callback).
-    let domUpdatedResolved = false;
-    transition.domUpdated.then(() => {
-      assert_true(readyRejected, "ready not rejected before domUpdated");
-      domUpdatedResolved = true;
+    let updateCallbackDoneResolved = false;
+    transition.updateCallbackDone.then(() => {
+      assert_true(readyRejected, "ready not rejected before updateCallbackDone");
+      updateCallbackDoneResolved = true;
     }, reject);
 
     // Finally finish resolves.
     transition.finished.then(() => {
-      assert_true(domUpdatedResolved, "domUpdated not resolved before finish");
+      assert_true(updateCallbackDoneResolved, "updateCallbackDone not resolved before finish");
       resolve();
     }, reject);
   });

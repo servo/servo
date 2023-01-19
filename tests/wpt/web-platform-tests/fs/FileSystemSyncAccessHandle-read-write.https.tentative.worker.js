@@ -195,8 +195,7 @@ sync_access_handle_test((t, handle) => {
 
   const bufferLength = expected.length;
   const readBuffer = new Uint8Array(expected.length);
-  // No options parameter provided, should read at offset 0.
-  const readBytes = handle.read(readBuffer);
+  const readBytes = handle.read(readBuffer, {at: 0});
   assert_equals(expected.length, readBytes, 'Check that all bytes were read');
   const actual = new TextDecoder().decode(readBuffer);
   assert_equals(
@@ -241,5 +240,60 @@ sync_access_handle_test((t, handle) => {
   const readBytes = handle.read(readBuffer, {at: 0});
   assert_equals(0, readBytes, 'Check that no bytes were written');
 }, 'Test writing at a negative offset fails.');
+
+sync_access_handle_test((t, handle) => {
+  const text = 'foobar';
+  const writeBuffer = new TextEncoder().encode(text);
+  let writtenBytes = handle.write(writeBuffer);
+  assert_equals(
+      writeBuffer.byteLength, writtenBytes,
+      'Check that all bytes were written.');
+
+  // This should double the file size, not overwrite the existing bytes.
+  writtenBytes = handle.write(writeBuffer);
+  assert_equals(
+      writeBuffer.byteLength, writtenBytes,
+      'Check that all bytes were written.');
+
+  // Reading at the cursor will read zero bytes at the end of the file.
+  const expectedFileSize = text.length * 2;
+  const readBuffer = new Uint8Array(expectedFileSize);
+  let readBytes = handle.read(readBuffer);
+  assert_equals(0, readBytes, 'Check that no bytes were read');
+
+  // Reading from the start of the file.
+  readBytes = handle.read(readBuffer, {at: 0});
+  assert_equals(expectedFileSize, readBytes, 'Check that all bytes were read');
+}, 'Test that writing moves the file position cursor');
+
+sync_access_handle_test((t, handle) => {
+  const decoder = new TextDecoder();
+
+  const text = 'foobar';
+  const writeBuffer = new TextEncoder().encode(text);
+  let writtenBytes = handle.write(writeBuffer);
+  assert_equals(
+      writeBuffer.byteLength, writtenBytes,
+      'Check that all bytes were written.');
+
+  // Read the first half of the file.
+  let expected = 'foo';
+  const readBuffer = new Uint8Array(3);
+  let readBytes = handle.read(readBuffer, {at: 0});
+  assert_equals(3, readBytes, 'Check that all bytes were read');
+  let actual = decoder.decode(readBuffer);
+  assert_equals(
+      expected, actual,
+      `Expected to read ${expected} but the actual value was ${actual}.`);
+
+  // Read the second half of the file, without specifying an offset.
+  expected = 'bar';
+  readBytes = handle.read(readBuffer);
+  assert_equals(3, readBytes, 'Check that all bytes were read');
+  actual = decoder.decode(readBuffer);
+  assert_equals(
+      expected, actual,
+      `Expected to read ${expected} but the actual value was ${actual}.`);
+}, 'Test that reading moves the file position cursor');
 
 done();

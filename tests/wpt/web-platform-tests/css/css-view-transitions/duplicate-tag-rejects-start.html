@@ -29,14 +29,14 @@ promise_test(async t => {
       second.style = "view-transition-name: target";
     });
 
-    // First domUpdated resolves since the callback runs successfully.
-    let domUpdatedResolved = false;
-    transition.domUpdated.then(() => { domUpdatedResolved = true; }, reject);
+    // First updateCallbackDone resolves since the callback runs successfully.
+    let updateCallbackDoneResolved = false;
+    transition.updateCallbackDone.then(() => { updateCallbackDoneResolved = true; }, reject);
 
-    // Then finished resolves since domUpdated was already resolved.
+    // Then finished resolves since updateCallbackDone was already resolved.
     let finishResolved = false;
-    transition.domUpdated.then(() => {
-      assert_true(domUpdatedResolved, "domUpdated not resolved before finish");
+    transition.updateCallbackDone.then(() => {
+      assert_true(updateCallbackDoneResolved, "updateCallbackDone not resolved before finish");
       finishResolved = true;
     }, reject);
 
