@@ -60,25 +60,6 @@ Servo contributors frequent the [Servo Zulip chat](https://servo.zulipchat.com/)
 
 ## Technical Steering Committee
 
-Technical oversight of the Servo Project is provided by the Technical Steering Committee,
-comprised of:
+Technical oversight of the Servo Project is provided by the
+[Technical Steering Committee](https://github.com/servo/project/blob/master/governance/tsc/README.md).
 
-- [Alan Jeffrey](https://github.com/asajeffrey)
-- [Anthony Ramine](https://github.com/nox)
-- [Connor Brewster](https://github.com/cbrewster)
-- [Cheng-You Bai](https://github.com/cybai)
-- [Diane Hosfelt](https://github.com/avadacatavra)
-- [Dzmitry Malyshau](https://github.com/kvark)
-- [Emilio Cobos Álvarez](https://github.com/emilio)
-- [Fernando Jiménez Moreno](https://github.com/ferjm)
-- [Gregory Terzian](https://github.com/gterzian)
-- [Jack Moffitt](https://github.com/metajack)
-- [James Graham](https://github.com/jgraham)
-- [Josh Matthews](https://github.com/jdm)
-- [Keith Yeung](https://github.com/KiChjang)
-- [Lars Bergstrom](https://github.com/larsbergstrom)
-- [Manish Goregaokar](https://github.com/Manishearth)
-- [Martin Robinson](https://github.com/mrobinson)
-- [Patrick Walton](https://github.com/pcwalton)
-- [Paul Rouget](https://github.com/paulrouget)
-- [Simon Sapin](https://github.com/SimonSapin)
