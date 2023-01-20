@@ -46,15 +46,6 @@ class MachCommands(CommandBase):
         # it can install dependencies without needing mach's dependencies
         return bootstrap.bootstrap(self.context, force=force)
 
-    @Command('bootstrap-salt',
-             description='Install and set up the salt environment.',
-             category='bootstrap')
-    @CommandArgument('--force', '-f',
-                     action='store_true',
-                     help='Boostrap without confirmation')
-    def bootstrap_salt(self, force=False):
-        return bootstrap.bootstrap(self.context, force=force, specific="salt")
-
     @Command('bootstrap-gstreamer',
              description='Set up a local copy of the gstreamer libraries (linux only).',
              category='bootstrap')

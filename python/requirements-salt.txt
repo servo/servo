@@ -1,6 +1,0 @@
-# Ensure all versions are pinned for repeatability,
-# since `--system-site-packages` is enabled
-
-# For boostrapping, make sure versions match those in saltfs
-salt == 2016.3.4
-GitPython == 0.3.2
