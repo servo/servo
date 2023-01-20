@@ -8,7 +8,6 @@
 
 use super::animate_multiplicative_factor;
 use super::{Animate, Procedure, ToAnimatedZero};
-use crate::properties::animated_properties::ListAnimation;
 use crate::values::computed::transform::Rotate as ComputedRotate;
 use crate::values::computed::transform::Scale as ComputedScale;
 use crate::values::computed::transform::Transform as ComputedTransform;
@@ -947,7 +946,7 @@ impl Animate for ComputedTransform {
 impl ComputeSquaredDistance for ComputedTransform {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        let squared_dist = self.0.squared_distance_with_zero(&other.0);
+        let squared_dist = super::lists::with_zero::squared_distance(&self.0, &other.0);
 
         // Roll back to matrix interpolation if there is any Err(()) in the
         // transform lists, such as mismatched transform functions.

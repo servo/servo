@@ -81,18 +81,8 @@ impl Animate for generics::TrackRepeat<LengthPercentage, Integer> {
             (_, _) => return Err(()),
         }
 
-        // The length of track_sizes should be matched.
-        if self.track_sizes.len() != other.track_sizes.len() {
-            return Err(());
-        }
-
         let count = self.count;
-        let track_sizes = self
-            .track_sizes
-            .iter()
-            .zip(other.track_sizes.iter())
-            .map(|(a, b)| a.animate(b, procedure))
-            .collect::<Result<Vec<_>, _>>()?;
+        let track_sizes = super::lists::by_computed_value::animate(&self.track_sizes, &other.track_sizes, procedure)?;
 
         // The length of |line_names| is always 0 or N+1, where N is the length
         // of |track_sizes|. Besides, <line-names> is always discrete.
@@ -101,7 +91,7 @@ impl Animate for generics::TrackRepeat<LengthPercentage, Integer> {
         Ok(generics::TrackRepeat {
             count,
             line_names,
-            track_sizes: track_sizes.into(),
+            track_sizes,
         })
     }
 }
@@ -130,18 +120,14 @@ impl Animate for TrackList {
             return Err(());
         }
 
-        let values = self
-            .values
-            .iter()
-            .zip(other.values.iter())
-            .map(|(a, b)| a.animate(b, procedure))
-            .collect::<Result<Vec<_>, _>>()?;
+        let values = super::lists::by_computed_value::animate(&self.values, &other.values, procedure)?;
+
         // The length of |line_names| is always 0 or N+1, where N is the length
         // of |track_sizes|. Besides, <line-names> is always discrete.
         let line_names = discrete(&self.line_names, &other.line_names, procedure)?;
 
         Ok(TrackList {
-            values: values.into(),
+            values,
             line_names,
             auto_repeat_index: self.auto_repeat_index,
         })

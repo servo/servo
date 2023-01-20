@@ -21,6 +21,7 @@ use std::cmp;
 
 pub mod color;
 pub mod effects;
+pub mod lists;
 mod font;
 mod grid;
 mod svg;
