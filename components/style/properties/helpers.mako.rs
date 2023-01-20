@@ -263,8 +263,7 @@
                 Sorry, this is stupid but needed for now.
             % endif
 
-            use crate::properties::animated_properties::ListAnimation;
-            use crate::values::animated::{Animate, ToAnimatedZero, Procedure};
+            use crate::values::animated::{Animate, ToAnimatedZero, Procedure, lists};
             use crate::values::distance::{SquaredDistance, ComputeSquaredDistance};
 
             // FIXME(emilio): For some reason rust thinks that this alias is
@@ -301,7 +300,7 @@
                     procedure: Procedure,
                 ) -> Result<Self, ()> {
                     Ok(OwnedList(
-                        self.0.animate_${vector_animation_type}(&other.0, procedure)?
+                        lists::${vector_animation_type}::animate(&self.0, &other.0, procedure)?
                     ))
                 }
             }
@@ -310,7 +309,7 @@
                     &self,
                     other: &Self,
                 ) -> Result<SquaredDistance, ()> {
-                    self.0.squared_distance_${vector_animation_type}(&other.0)
+                    lists::${vector_animation_type}::squared_distance(&self.0, &other.0)
                 }
             }
             % endif

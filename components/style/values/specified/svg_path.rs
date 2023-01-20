@@ -5,7 +5,7 @@
 //! Specified types for SVG Path.
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
+use crate::values::animated::{Animate, Procedure, ToAnimatedZero, lists};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::CSSFloat;
 use cssparser::Parser;
@@ -52,13 +52,8 @@ impl SVGPathData {
             subpath_start: CoordPair::new(0.0, 0.0),
             pos: CoordPair::new(0.0, 0.0),
         };
-        let result = self
-            .0
-            .iter()
-            .map(|seg| seg.normalize(&mut state))
-            .collect::<Vec<_>>();
-
-        SVGPathData(crate::ArcSlice::from_iter(result.into_iter()))
+        let iter = self.0.iter().map(|seg| seg.normalize(&mut state));
+        SVGPathData(crate::ArcSlice::from_iter(iter))
     }
 
     // FIXME: Bug 1714238, we may drop this once we use the same data structure for both SVG and
@@ -220,15 +215,11 @@ impl Animate for SVGPathData {
         // FIXME(emilio): This allocates three copies of the path, that's not
         // great! Specially, once we're normalized once, we don't need to
         // re-normalize again.
-        let result = self
-            .normalize()
-            .0
-            .iter()
-            .zip(other.normalize().0.iter())
-            .map(|(a, b)| a.animate(&b, procedure))
-            .collect::<Result<Vec<_>, _>>()?;
+        let left = self.normalize();
+        let right = other.normalize();
 
-        Ok(SVGPathData(crate::ArcSlice::from_iter(result.into_iter())))
+        let items: Vec<_> = lists::by_computed_value::animate(&left.0, &right.0, procedure)?;
+        Ok(SVGPathData(crate::ArcSlice::from_iter(items.into_iter())))
     }
 }
 
@@ -237,12 +228,9 @@ impl ComputeSquaredDistance for SVGPathData {
         if self.0.len() != other.0.len() {
             return Err(());
         }
-        self.normalize()
-            .0
-            .iter()
-            .zip(other.normalize().0.iter())
-            .map(|(this, other)| this.compute_squared_distance(&other))
-            .sum()
+        let left = self.normalize();
+        let right = other.normalize();
+        lists::by_computed_value::squared_distance(&left.0, &right.0)
     }
 }
 

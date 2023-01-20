@@ -5,7 +5,7 @@
 //! CSS handling for the [`basic-shape`](https://drafts.csswg.org/css-shapes/#typedef-basic-shape)
 //! types that are generic over their `ToCss` implementations.
 
-use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
+use crate::values::animated::{Animate, Procedure, ToAnimatedZero, lists};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::border::GenericBorderRadius;
 use crate::values::generics::position::GenericPosition;
@@ -320,7 +320,9 @@ pub use self::GenericPolygon as Polygon;
 
 /// Coordinates for Polygon.
 #[derive(
+    Animate,
     Clone,
+    ComputeSquaredDistance,
     Debug,
     MallocSizeOf,
     PartialEq,
@@ -477,21 +479,7 @@ where
         if self.fill != other.fill {
             return Err(());
         }
-        if self.coordinates.len() != other.coordinates.len() {
-            return Err(());
-        }
-        let coordinates = self
-            .coordinates
-            .iter()
-            .zip(other.coordinates.iter())
-            .map(|(this, other)| {
-                Ok(PolygonCoord(
-                    this.0.animate(&other.0, procedure)?,
-                    this.1.animate(&other.1, procedure)?,
-                ))
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .into();
+        let coordinates = lists::by_computed_value::animate(&self.coordinates, &other.coordinates, procedure)?;
         Ok(Polygon {
             fill: self.fill,
             coordinates,
@@ -507,18 +495,7 @@ where
         if self.fill != other.fill {
             return Err(());
         }
-        if self.coordinates.len() != other.coordinates.len() {
-            return Err(());
-        }
-        self.coordinates
-            .iter()
-            .zip(other.coordinates.iter())
-            .map(|(this, other)| {
-                let d1 = this.0.compute_squared_distance(&other.0)?;
-                let d2 = this.1.compute_squared_distance(&other.1)?;
-                Ok(d1 + d2)
-            })
-            .sum()
+        lists::by_computed_value::squared_distance(&self.coordinates, &other.coordinates)
     }
 }
 

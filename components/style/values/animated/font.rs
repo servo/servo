@@ -7,7 +7,6 @@
 use super::{Animate, Procedure, ToAnimatedZero};
 use crate::values::computed::font::FontVariationSettings;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::font::FontSettings as GenericFontSettings;
 
 /// <https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def>
 ///
@@ -17,31 +16,15 @@ use crate::values::generics::font::FontSettings as GenericFontSettings;
 impl Animate for FontVariationSettings {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        if self.0.len() == other.0.len() {
-            self.0
-                .iter()
-                .zip(other.0.iter())
-                .map(|(st, ot)| st.animate(&ot, procedure))
-                .collect::<Result<Vec<_>, ()>>()
-                .map(|v| GenericFontSettings(v.into_boxed_slice()))
-        } else {
-            Err(())
-        }
+        let result: Vec<_> = super::lists::by_computed_value::animate(&self.0, &other.0, procedure)?;
+        Ok(Self(result.into_boxed_slice()))
     }
 }
 
 impl ComputeSquaredDistance for FontVariationSettings {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        if self.0.len() == other.0.len() {
-            self.0
-                .iter()
-                .zip(other.0.iter())
-                .map(|(st, ot)| st.compute_squared_distance(&ot))
-                .sum()
-        } else {
-            Err(())
-        }
+        super::lists::by_computed_value::squared_distance(&self.0, &other.0)
     }
 }
 
