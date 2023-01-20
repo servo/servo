@@ -107,5 +107,16 @@ promise_test(async t => {
                       iframeAudioContext.setSinkId('some_random_device_id'));
 },'setSinkId() should fail with InvalidStateError when calling from a' +
   'detached document');
+
+// Pending setSinkId() promises should be rejected with a
+// DOMException of InvalidStateError when the context is closed.
+// See: crbug.com/1408376
+promise_test(async t => {
+  const audioContext = new AudioContext();
+  promise_rejects_dom(t, 'InvalidStateError',
+                      audioContext.setSinkId('some_random_device_id'));
+  await audioContext.close();
+},'pending setSinkId() should be rejected with InvalidStateError when' +
+  'AudioContext is closed');
 </script>
 </html>

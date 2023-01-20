@@ -11,13 +11,18 @@ promise_test(async t => {
     mockSubAppsService = null;
   });
 
-  const url_1 = document.location.origin + '/sub-app-1';
-  const url_2 = document.location.origin + '/sub-app-2';
-  const mocked_response = [{ unhashedAppId: url_1, appName: "App 1" }, { unhashedAppId: url_2, appName: "App 2" }];
+  const url_1 = '/sub-app-1';
+  const url_2 = '/sub-app-2';
 
-  let expected_results = {};
-  expected_results[url_1] = { "app_name": "App 1" };
-  expected_results[url_2] = { "app_name": "App 2" };
+  const mocked_response = [
+    { unhashedAppIdPath: url_1, appName: "App 1" },
+    { unhashedAppIdPath: url_2, appName: "App 2" },
+  ];
+
+  let expected_results = {
+    [url_1]: { "app_name": "App 1" },
+    [url_2]: { "app_name": "App 2" },
+  };
 
   await createMockSubAppsService(Status.SUCCESS, [], mocked_response);
 

@@ -8,19 +8,4 @@ test_valid_value("animation-delay-start", "-5ms");
 test_valid_value("animation-delay-start", "0s");
 test_valid_value("animation-delay-start", "10s");
 test_valid_value("animation-delay-start", "20s, 10s");
-
-// https://drafts.csswg.org/scroll-animations-1/#view-timelines-ranges
-test_valid_value("animation-delay-start", "cover 0%");
-test_valid_value("animation-delay-start", "cover 100%");
-test_valid_value("animation-delay-start", "cover 120%");
-test_valid_value("animation-delay-start", "cover 42%");
-test_valid_value("animation-delay-start", "cover -42%");
-test_valid_value("animation-delay-start", "contain 42%");
-test_valid_value("animation-delay-start", "exit 42%");
-test_valid_value("animation-delay-start", "exit 1%, cover 2%, contain 100%");
-
-// There's an open issue in the spec about "enter" vs "entry".
-//
-// https://drafts.csswg.org/scroll-animations-1/#valdef-animation-timeline-range-entry
-test_valid_value("animation-delay-start", "enter 42%");
 </script>

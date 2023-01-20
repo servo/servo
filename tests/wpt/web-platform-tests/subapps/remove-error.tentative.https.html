@@ -35,6 +35,12 @@ promise_test(async t => {
 }, "API is only supported in top-level browsing contexts.");
 
 promise_test(async t => {
+  const full_url = document.location.origin + '/sub-app';
+
+  await promise_rejects_dom(t, 'NotSupportedError', navigator.subApps.remove(full_url));
+}, 'API supports only root-relative paths.');
+
+promise_test(async t => {
   t.add_cleanup(async () => {
       await mockSubAppsService.reset();
       mockSubAppsService = null;

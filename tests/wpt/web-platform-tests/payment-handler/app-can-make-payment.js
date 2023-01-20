@@ -1,7 +1,4 @@
 let responseType = 'canMakePayment-true';
-self.addEventListener('message', event => {
-  responseType = event.data.responseType;
-});
 
 self.addEventListener('canmakepayment', event => {
   if (event.methodData) {
@@ -51,8 +48,10 @@ self.addEventListener('canmakepayment', event => {
   }
 });
 
-// Respond 'true' to the 'abortpayment' event to allow tests to use abort() to
-// close an ongoing PaymentRequest.
-self.addEventListener('abortpayment', event => {
-  event.respondWith(true);
+self.addEventListener('paymentrequest', event => {
+  responseType = event.methodData[0].data.responseType;
+  event.respondWith({
+    methodName: event.methodData[0].supportedMethods,
+    details: {status: 'success'},
+  });
 });

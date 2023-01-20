@@ -10,6 +10,7 @@
 @font-face {
   font-family: ExTestNoSpace;
   src: url(resources/ExTest-NoSpace.woff);
+  unicode-range: U+0021-00FF;
 }
 div {
   height: 10px;
@@ -27,8 +28,8 @@ div {
 </style>
 <p>The test passes if there are two blue rectangles of equal length.</p>
 <!-- ExTest is a font whose OS/2 table's sxHeight field is set to an
-     eighth of the font's units per em, but it does not support the
-     <space> character and therefore is not valid as "first available font"
+     eighth of the font's units per em, but the space character is excluded
+     by unicode-range and therefore it is not valid as "first available font"
      per CSS Fonts, and must NOT be used as the basis of the 'ex' unit. -->
 <div class="test"></div>
 <div class="ref"></div>

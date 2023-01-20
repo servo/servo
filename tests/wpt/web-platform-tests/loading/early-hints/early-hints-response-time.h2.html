@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    const params = new URLSearchParams();
+    const delays = [200, 100, 150];
+    params.set("delay1", delays[0]);
+    params.set("delay2", delays[1]);
+
+    iframe.src = `resources/early-hints-delay.h2.py?${params.toString()}`;
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    await new Promise(resolve => iframe.addEventListener("load", resolve));
+    const [entry] = iframe.contentWindow.performance.getEntriesByType("navigation");
+    assert_greater_than(entry.firstInterimResponseStart, entry.requestStart + delays[0]);
+    assert_greater_than(entry.responseStart, entry.firstInterimResponseStart + delays[1]);
+}, `Interim response times should correspond to delays (h2)`);
+</script>
+</body>

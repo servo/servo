@@ -33,7 +33,7 @@ promise_test(async t => {
     });
 
     let dom_updated_resolved = false;
-    transition.domUpdated.then(() => {
+    transition.updateCallbackDone.then(() => {
       if (!dom_change_ran)
         reject();
       // If there's a rAF before ready resolves, we fail.
@@ -47,5 +47,5 @@ promise_test(async t => {
       resolve();
     });
   });
-}, "domUpdated resolves, then ready resolves with no rAF in between");
+}, "updateCallbackDone resolves, then ready resolves with no rAF in between");
 </script>

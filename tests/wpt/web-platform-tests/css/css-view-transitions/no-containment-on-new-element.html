@@ -30,11 +30,11 @@ promise_test(async t => {
     let readyRejected = false;
     transition.ready.then(reject, () => { readyRejected = true; });
 
-    let domUpdated = false;
-    transition.domUpdated.then(() => { domUpdated = true; }, reject);
+    let updateCallbackDone = false;
+    transition.updateCallbackDone.then(() => { updateCallbackDone = true; }, reject);
     transition.finished.then(() => {
       assert_true(readyRejected, "ready not rejected");
-      assert_true(domUpdated, "dom not updated");
+      assert_true(updateCallbackDone, "dom not updated");
 
       if (window.getComputedStyle(first).contain == "none")
         resolve();

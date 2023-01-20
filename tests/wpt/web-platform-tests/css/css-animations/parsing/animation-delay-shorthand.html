@@ -5,10 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/shorthand-testcommon.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
-</head>
-<body>
 <script>
-
 test_valid_value("animation-delay", "1s");
 test_valid_value("animation-delay", "-1s");
 test_valid_value("animation-delay", "1s 2s");
@@ -16,27 +13,6 @@ test_valid_value("animation-delay", "1s, 2s");
 test_valid_value("animation-delay", "1s 2s, 3s");
 test_valid_value("animation-delay", "1s, 2s 3s");
 test_valid_value("animation-delay", "1s, 2s, 3s");
-
-test_valid_value("animation-delay", "cover");
-test_valid_value("animation-delay", "contain");
-test_valid_value("animation-delay", "enter");
-test_valid_value("animation-delay", "exit");
-test_valid_value("animation-delay", "enter, exit");
-
-test_valid_value("animation-delay", "enter 0% enter 100%", "enter");
-test_valid_value("animation-delay", "exit 0% exit 100%", "exit");
-test_valid_value("animation-delay", "cover 0% cover 100%", "cover");
-test_valid_value("animation-delay", "contain 0% contain 100%", "contain");
-
-test_valid_value("animation-delay", "cover 50%");
-test_valid_value("animation-delay", "contain 50%");
-test_valid_value("animation-delay", "enter 50%");
-test_valid_value("animation-delay", "exit 50%");
-
-test_valid_value("animation-delay", "enter 50% 0s", "enter 50%");
-test_valid_value("animation-delay", "0s enter 50%");
-test_valid_value("animation-delay", "enter 50% exit 50%");
-test_valid_value("animation-delay", "cover 50% enter 50%, contain 50% exit 50%");
 
 test_invalid_value("animation-delay", "1s 2s 3s");
 test_invalid_value("animation-delay", "0s, 1s 2s 3s");
@@ -61,21 +37,6 @@ test_shorthand_value('animation-delay', '1s', {
   'animation-delay-end': '0s',
 });
 
-test_shorthand_value('animation-delay', 'cover', {
-  'animation-delay-start': 'cover 0%',
-  'animation-delay-end': 'cover 100%',
-});
-
-test_shorthand_value('animation-delay', 'contain', {
-  'animation-delay-start': 'contain 0%',
-  'animation-delay-end': 'contain 100%',
-});
-
-test_shorthand_value('animation-delay', 'enter 10% exit 20%', {
-  'animation-delay-start': 'enter 10%',
-  'animation-delay-end': 'exit 20%',
-});
-
 test_shorthand_value('animation-delay', '1s 2s, 3s 4s', {
   'animation-delay-start': '1s, 3s',
   'animation-delay-end': '2s, 4s',
@@ -84,20 +45,5 @@ test_shorthand_value('animation-delay', '1s 2s, 3s 4s', {
 test_shorthand_value('animation-delay', '1s 2s, 3s, 4s 5s', {
   'animation-delay-start': '1s, 3s, 4s',
   'animation-delay-end': '2s, 0s, 5s',
-});
-
-test_shorthand_value('animation-delay', 'enter, exit', {
-  'animation-delay-start': 'enter 0%, exit 0%',
-  'animation-delay-end': 'enter 100%, exit 100%',
-});
-
-test_shorthand_value('animation-delay', 'enter 0%, exit', {
-  'animation-delay-start': 'enter 0%, exit 0%',
-  'animation-delay-end': '0s, exit 100%',
-});
-
-test_shorthand_value('animation-delay', 'enter 0% 1s, 2s exit 50%', {
-  'animation-delay-start': 'enter 0%, 2s',
-  'animation-delay-end': '1s, exit 50%',
 });
 </script>

@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>CSS margin-trim: block end trim 002</title>
+<title>margin-trim: block-container-block-end-002</title>
 <link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
 <link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
 <link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
 <meta name="assert" content="block-end should trim block end margin for ONLY block-level first child">
 <style>
 .container {
-    width: 100px;
+    width: min-content;
     margin-trim: block-end;
     background-color: green;
 }
@@ -18,13 +18,13 @@
     background-color: green;
 }
 .first {
-    width: 100%;
+    width: 100px;
     margin-bottom: 25px;
     height: 25px;
 }
 .second {
     margin-bottom: 100px;
-    width: 100%;
+    width: 100px;
     height: 10px;
 }
 </style>

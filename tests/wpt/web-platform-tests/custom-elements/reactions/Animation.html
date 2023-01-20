@@ -21,7 +21,7 @@ test(function () {
     document.body.appendChild(instance);
     assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
 
-    const animation = instance.animate([{'borderColor': 'rgb(0, 0, 255)'}]);
+    const animation = instance.animate([{'borderColor': 'rgb(0, 0, 255)'}], 1);
     animation.commitStyles();
 
     const logEntries = element.takeLog();
@@ -35,7 +35,7 @@ test(function () {
     const instance = document.createElement(element.name);
     document.body.appendChild(instance);
 
-    let animation = instance.animate([{'borderColor': 'rgb(0, 0, 255)'}]);
+    let animation = instance.animate([{'borderColor': 'rgb(0, 0, 255)'}], 1);
     animation.commitStyles();
 
     assert_array_equals(element.takeLog().types(), ['constructed', 'connected', 'attributeChanged']);
@@ -55,7 +55,7 @@ test(function () {
     document.body.appendChild(instance);
     assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
 
-    const animation = instance.animate([{'borderColor': 'rgb(0, 0, 255)'}]);
+    const animation = instance.animate([{'borderColor': 'rgb(0, 0, 255)'}], 1);
     animation.commitStyles();
 
     assert_array_equals(element.takeLog().types(), []);

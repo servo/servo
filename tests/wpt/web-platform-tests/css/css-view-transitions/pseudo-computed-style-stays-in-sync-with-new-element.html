@@ -24,7 +24,7 @@ promise_test(async t => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition();
-    await transition.domUpdated;
+    await transition.updateCallbackDone;
     await transition.ready;
 
     let viewbox = window.getComputedStyle(
