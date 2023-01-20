@@ -28,29 +28,34 @@ Servo.app
 /glfw
 capture_webrender/
 /screenshots
-# Editors
 
-# IntelliJ
+# Editors
+## IntelliJ
 .idea
 *.iws
 *.iml
 
-#Gradle
+## Gradle
 .gradle
 
-# VSCode
+## VSCode
 .vscode
 !/.vscode/extensions.json
 !/.vscode/settings.json
 
-# Emacs
+## Emacs
 *~
-*#*
+.#*
+\#*
+\#*\#
+
+## Vim
+Session.vim
+Sessionx.vim
 
 /unminified-js
 
 # Hololens artifacts
-
 support/hololens/x64/
 support/hololens/ARM/
 support/hololens/ARM64/
