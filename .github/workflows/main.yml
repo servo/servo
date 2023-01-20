@@ -1,4 +1,4 @@
-name: CI
+name: Merge queue and try
 
 on:
   # Triggers the workflow on push events but only for the master branch

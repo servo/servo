@@ -1,4 +1,4 @@
-name: Synchronize WPT Nightly
+name: WPT import
 
 on:
   schedule:

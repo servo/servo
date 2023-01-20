@@ -1,4 +1,4 @@
-name: Test changes to upstream-wpt-changes
+name: WPT exporter test
 on:
   pull_request:
     branches: ["**"]

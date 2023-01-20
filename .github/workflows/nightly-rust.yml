@@ -1,4 +1,4 @@
-name: Nightly rustc build
+name: Test with nightly rustc
 
 on:
   schedule:
