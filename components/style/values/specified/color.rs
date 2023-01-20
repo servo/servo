@@ -98,18 +98,291 @@ impl ColorMix {
     }
 }
 
+/// A color space representation in the CSS specification.
+///
+/// https://w3c.github.io/csswg-drafts/css-color-4/#color-type
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[repr(u8)]
+pub enum ColorSpace {
+    /// A color specified in the Lab color format, e.g.
+    /// "lab(29.2345% 39.3825 20.0664)".
+    /// https://w3c.github.io/csswg-drafts/css-color-4/#lab-colors
+    Lab,
+    /// A color specified in the Lch color format, e.g.
+    /// "lch(29.2345% 44.2 27)".
+    /// https://w3c.github.io/csswg-drafts/css-color-4/#lch-colors
+    Lch,
+    /// A color specified in the Oklab color format, e.g.
+    /// "oklab(40.101% 0.1147 0.0453)".
+    /// https://w3c.github.io/csswg-drafts/css-color-4/#lab-colors
+    Oklab,
+    /// A color specified in the Oklch color format, e.g.
+    /// "oklch(40.101% 0.12332 21.555)".
+    /// https://w3c.github.io/csswg-drafts/css-color-4/#lch-colors
+    Oklch,
+    /// A color specified with the color(..) function and the "srgb" color
+    /// space, e.g. "color(srgb 0.691 0.139 0.259)".
+    Srgb,
+    /// A color specified with the color(..) function and the "srgb-linear"
+    /// color space, e.g. "color(srgb-linear 0.435 0.017 0.055)".
+    SrgbLinear,
+    /// A color specified with the color(..) function and the "display-p3"
+    /// color space, e.g. "color(display-p3 0.84 0.19 0.72)".
+    DisplayP3,
+    /// A color specified with the color(..) function and the "a98-rgb" color
+    /// space, e.g. "color(a98-rgb 0.44091 0.49971 0.37408)".
+    A98Rgb,
+    /// A color specified with the color(..) function and the "prophoto-rgb"
+    /// color space, e.g. "color(prophoto-rgb 0.36589 0.41717 0.31333)".
+    ProphotoRgb,
+    /// A color specified with the color(..) function and the "rec2020" color
+    /// space, e.g. "color(rec2020 0.42210 0.47580 0.35605)".
+    Rec2020,
+    /// A color specified with the color(..) function and the "xyz-d50" color
+    /// space, e.g. "color(xyz-d50 0.2005 0.14089 0.4472)".
+    XyzD50,
+    /// A color specified with the color(..) function and the "xyz-d65" or "xyz"
+    /// color space, e.g. "color(xyz-d65 0.21661 0.14602 0.59452)".
+    XyzD65,
+}
+
+bitflags! {
+    #[derive(Default, MallocSizeOf, ToShmem)]
+    #[repr(C)]
+    struct SerializationFlags : u8 {
+        const AS_COLOR_FUNCTION = 0x01;
+    }
+}
+
+/// The 3 components that make up a color.  (Does not include the alpha component)
+#[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+struct ColorComponents(f32, f32, f32);
+
+/// An absolutely specified color, using either rgb(), rgba(), lab(), lch(),
+/// oklab(), oklch() or color().
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[repr(C)]
+pub struct AbsoluteColor {
+    components: ColorComponents,
+    alpha: f32,
+    color_space: ColorSpace,
+    flags: SerializationFlags,
+}
+
+macro_rules! color_components_as {
+    ($c:expr, $t:ty) => {{
+        // This macro is not an inline function, because we can't use the
+        // generic  type ($t) in a constant expression as per:
+        // https://github.com/rust-lang/rust/issues/76560
+        const_assert_eq!(std::mem::size_of::<$t>(), std::mem::size_of::<[f32; 4]>());
+        const_assert_eq!(std::mem::align_of::<$t>(), std::mem::align_of::<[f32; 4]>());
+        const_assert!(std::mem::size_of::<AbsoluteColor>() >= std::mem::size_of::<$t>());
+        const_assert_eq!(
+            std::mem::align_of::<AbsoluteColor>(),
+            std::mem::align_of::<$t>()
+        );
+
+        std::mem::transmute::<&ColorComponents, &$t>(&$c.components)
+    }};
+}
+
+impl AbsoluteColor {
+    /// Create a new [AbsoluteColor] with the given [ColorSpace] and components.
+    pub fn new(color_space: ColorSpace, c1: f32, c2: f32, c3: f32, alpha: f32) -> Self {
+        Self {
+            components: ColorComponents(c1, c2, c3),
+            alpha,
+            color_space,
+            flags: SerializationFlags::empty(),
+        }
+    }
+
+    /// Convenience function to create a color in the sRGB color space.
+    pub fn from_rgba(rgba: RGBA) -> Self {
+        let red = rgba.red as f32 / 255.0;
+        let green = rgba.green as f32 / 255.0;
+        let blue = rgba.blue as f32 / 255.0;
+
+        Self::new(ColorSpace::Srgb, red, green, blue, rgba.alpha)
+    }
+
+    /// Return the alpha component.
+    #[inline]
+    pub fn alpha(&self) -> f32 {
+        self.alpha
+    }
+
+    /// Convert the color to sRGB color space and return it in the RGBA struct.
+    pub fn to_rgba(&self) -> RGBA {
+        let rgba = self.to_color_space(ColorSpace::Srgb);
+
+        let red = (rgba.components.0 * 255.0).round() as u8;
+        let green = (rgba.components.1 * 255.0).round() as u8;
+        let blue = (rgba.components.2 * 255.0).round() as u8;
+
+        RGBA::new(red, green, blue, rgba.alpha)
+    }
+
+    /// Convert this color to the specified color space.
+    pub fn to_color_space(&self, color_space: ColorSpace) -> Self {
+        use crate::values::animated::color::{AnimatedRGBA, LABA, LCHA, OKLABA, OKLCHA};
+        use ColorSpace::*;
+
+        if self.color_space == color_space {
+            return self.clone();
+        }
+
+        match (self.color_space, color_space) {
+            (Lab, Srgb) => {
+                let laba = unsafe { color_components_as!(self, LABA) };
+                let rgba = AnimatedRGBA::from(*laba);
+                Self::new(Srgb, rgba.red, rgba.green, rgba.blue, rgba.alpha)
+            },
+
+            (Oklab, Srgb) => {
+                let oklaba: &OKLABA = unsafe { color_components_as!(self, OKLABA) };
+                let rgba = AnimatedRGBA::from(*oklaba);
+                Self::new(Srgb, rgba.red, rgba.green, rgba.blue, rgba.alpha)
+            },
+
+            (Lch, Srgb) => {
+                let lcha: &LCHA = unsafe { color_components_as!(self, LCHA) };
+                let rgba = AnimatedRGBA::from(*lcha);
+                Self::new(Srgb, rgba.red, rgba.green, rgba.blue, rgba.alpha)
+            },
+
+            (Oklch, Srgb) => {
+                let oklcha: &OKLCHA = unsafe { color_components_as!(self, OKLCHA) };
+                let rgba = AnimatedRGBA::from(*oklcha);
+                Self::new(Srgb, rgba.red, rgba.green, rgba.blue, rgba.alpha)
+            },
+
+            _ => {
+                // Conversion to other color spaces is not implemented yet.
+                log::warn!(
+                    "Can not convert from {:?} to {:?}!",
+                    self.color_space,
+                    color_space
+                );
+                Self::from_rgba(RGBA::new(0, 0, 0, 1.0))
+            },
+        }
+    }
+}
+
+impl From<cssparser::AbsoluteColor> for AbsoluteColor {
+    fn from(f: cssparser::AbsoluteColor) -> Self {
+        match f {
+            cssparser::AbsoluteColor::Rgba(rgba) => Self::from_rgba(rgba),
+
+            cssparser::AbsoluteColor::Lab(lab) => {
+                Self::new(ColorSpace::Lab, lab.lightness, lab.a, lab.b, lab.alpha)
+            },
+
+            cssparser::AbsoluteColor::Lch(lch) => Self::new(
+                ColorSpace::Lch,
+                lch.lightness,
+                lch.chroma,
+                lch.hue,
+                lch.alpha,
+            ),
+
+            cssparser::AbsoluteColor::Oklab(oklab) => Self::new(
+                ColorSpace::Oklab,
+                oklab.lightness,
+                oklab.a,
+                oklab.b,
+                oklab.alpha,
+            ),
+
+            cssparser::AbsoluteColor::Oklch(oklch) => Self::new(
+                ColorSpace::Oklch,
+                oklch.lightness,
+                oklch.chroma,
+                oklch.hue,
+                oklch.alpha,
+            ),
+        }
+    }
+}
+
+impl ToCss for AbsoluteColor {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        match self.color_space {
+            ColorSpace::Srgb if !self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION) => {
+                cssparser::ToCss::to_css(
+                    &cssparser::RGBA::from_floats(
+                        self.components.0,
+                        self.components.1,
+                        self.components.2,
+                        self.alpha(),
+                    ),
+                    dest,
+                )
+            },
+            ColorSpace::Lab => cssparser::ToCss::to_css(
+                unsafe { color_components_as!(self, cssparser::Lab) },
+                dest,
+            ),
+            ColorSpace::Lch => cssparser::ToCss::to_css(
+                unsafe { color_components_as!(self, cssparser::Lch) },
+                dest,
+            ),
+            ColorSpace::Oklab => cssparser::ToCss::to_css(
+                unsafe { color_components_as!(self, cssparser::Oklab) },
+                dest,
+            ),
+            ColorSpace::Oklch => cssparser::ToCss::to_css(
+                unsafe { color_components_as!(self, cssparser::Oklch) },
+                dest,
+            ),
+            // Other color spaces are not implemented yet. See:
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1128204
+            ColorSpace::Srgb |
+            ColorSpace::SrgbLinear |
+            ColorSpace::DisplayP3 |
+            ColorSpace::A98Rgb |
+            ColorSpace::ProphotoRgb |
+            ColorSpace::Rec2020 |
+            ColorSpace::XyzD50 |
+            ColorSpace::XyzD65 => todo!(),
+        }
+    }
+}
+
+/// Container holding an absolute color and the text specified by an author.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+pub struct Absolute {
+    /// The specified color.
+    pub color: AbsoluteColor,
+    /// Authored representation.
+    pub authored: Option<Box<str>>,
+}
+
+impl ToCss for Absolute {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if let Some(ref authored) = self.authored {
+            dest.write_str(authored)
+        } else {
+            self.color.to_css(dest)
+        }
+    }
+}
+
 /// Specified color value
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum Color {
     /// The 'currentColor' keyword
     CurrentColor,
-    /// A specific RGBA color
-    Numeric {
-        /// Parsed RGBA color
-        parsed: RGBA,
-        /// Authored representation
-        authored: Option<Box<str>>,
-    },
+    /// An absolute color.
+    /// https://w3c.github.io/csswg-drafts/css-color-4/#typedef-absolute-color-function
+    Absolute(Box<Absolute>),
     /// A system color.
     #[cfg(feature = "gecko")]
     System(SystemColor),
@@ -477,16 +750,24 @@ impl Color {
                 let authored = input.expect_ident_cloned().ok();
                 input.reset(&start);
                 authored
-            }
+            },
         };
 
         let compontent_parser = ColorComponentParser(&*context);
         match input.try_parse(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
             Ok(value) => Ok(match value {
                 CSSParserColor::CurrentColor => Color::CurrentColor,
-                CSSParserColor::RGBA(rgba) => Color::Numeric {
-                    parsed: rgba,
-                    authored: authored.map(|s| s.to_ascii_lowercase().into_boxed_str()),
+                CSSParserColor::Absolute(absolute) => {
+                    let enabled = matches!(absolute, cssparser::AbsoluteColor::Rgba(_)) ||
+                        static_prefs::pref!("layout.css.more_color_4.enabled");
+                    if !enabled {
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    }
+
+                    Color::Absolute(Box::new(Absolute {
+                        color: absolute.into(),
+                        authored: authored.map(|s| s.to_ascii_lowercase().into_boxed_str()),
+                    }))
                 },
             }),
             Err(e) => {
@@ -497,7 +778,8 @@ impl Color {
                     }
                 }
 
-                if let Ok(mix) = input.try_parse(|i| ColorMix::parse(context, i, preserve_authored)) {
+                if let Ok(mix) = input.try_parse(|i| ColorMix::parse(context, i, preserve_authored))
+                {
                     return Ok(Color::ColorMix(Box::new(mix)));
                 }
 
@@ -515,7 +797,9 @@ impl Color {
 
     /// Returns whether a given color is valid for authors.
     pub fn is_valid(context: &ParserContext, input: &mut Parser) -> bool {
-        input.parse_entirely(|input| Self::parse_internal(context, input, PreserveAuthored::No)).is_ok()
+        input
+            .parse_entirely(|input| Self::parse_internal(context, input, PreserveAuthored::No))
+            .is_ok()
     }
 
     /// Tries to parse a color and compute it with a given device.
@@ -526,9 +810,8 @@ impl Color {
     ) -> Option<ComputedColor> {
         use crate::error_reporting::ContextualParseError;
         let start = input.position();
-        let result = input.parse_entirely(|input| {
-            Self::parse_internal(context, input, PreserveAuthored::No)
-        });
+        let result = input
+            .parse_entirely(|input| Self::parse_internal(context, input, PreserveAuthored::No));
 
         let specified = match result {
             Ok(s) => s,
@@ -545,14 +828,11 @@ impl Color {
                 // default and not available on OffscreenCanvas anyways...
                 if let ParseErrorKind::Custom(StyleParseErrorKind::ValueError(..)) = e.kind {
                     let location = e.location.clone();
-                    let error = ContextualParseError::UnsupportedValue(
-                        input.slice_from(start),
-                        e,
-                    );
+                    let error = ContextualParseError::UnsupportedValue(input.slice_from(start), e);
                     context.log_css_error(location, error);
                 }
                 return None;
-            }
+            },
         };
 
         match device {
@@ -572,14 +852,8 @@ impl ToCss for Color {
         W: Write,
     {
         match *self {
-            Color::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
-            Color::Numeric {
-                authored: Some(ref authored),
-                ..
-            } => dest.write_str(authored),
-            Color::Numeric {
-                parsed: ref rgba, ..
-            } => rgba.to_css(dest),
+            Color::CurrentColor => cssparser::ToCss::to_css(&CSSParserColor::CurrentColor, dest),
+            Color::Absolute(ref absolute) => absolute.to_css(dest),
             Color::ColorMix(ref mix) => mix.to_css(dest),
             #[cfg(feature = "gecko")]
             Color::System(system) => system.to_css(dest),
@@ -587,18 +861,6 @@ impl ToCss for Color {
             Color::InheritFromBodyQuirk => Ok(()),
         }
     }
-}
-
-/// A wrapper of cssparser::Color::parse_hash.
-///
-/// That function should never return CurrentColor, so it makes no sense to
-/// handle a cssparser::Color here. This should really be done in cssparser
-/// directly rather than here.
-fn parse_hash_color(value: &[u8]) -> Result<RGBA, ()> {
-    CSSParserColor::parse_hash(value).map(|color| match color {
-        CSSParserColor::RGBA(rgba) => rgba,
-        CSSParserColor::CurrentColor => unreachable!("parse_hash should never return currentcolor"),
-    })
 }
 
 impl Color {
@@ -610,7 +872,7 @@ impl Color {
             Color::CurrentColor => true,
             #[cfg(feature = "gecko")]
             Color::System(..) => true,
-            Color::Numeric { ref parsed, .. } => allow_transparent && parsed.alpha == 0,
+            Color::Absolute(ref absolute) => allow_transparent && absolute.color.alpha() == 0.0,
             Color::ColorMix(ref mix) => {
                 mix.left.honored_in_forced_colors_mode(allow_transparent) &&
                     mix.right.honored_in_forced_colors_mode(allow_transparent)
@@ -631,13 +893,13 @@ impl Color {
         Color::rgba(RGBA::transparent())
     }
 
-    /// Returns a numeric RGBA color value.
+    /// Returns an absolute RGBA color value.
     #[inline]
     pub fn rgba(rgba: RGBA) -> Self {
-        Color::Numeric {
-            parsed: rgba,
+        Color::Absolute(Box::new(Absolute {
+            color: AbsoluteColor::from_rgba(rgba),
             authored: None,
-        }
+        }))
     }
 
     /// Parse a color, with quirks.
@@ -677,7 +939,7 @@ impl Color {
                 if ident.len() != 3 && ident.len() != 6 {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-                return parse_hash_color(ident.as_bytes()).map_err(|()| {
+                return RGBA::parse_hash(ident.as_bytes()).map_err(|()| {
                     location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
                 });
             },
@@ -722,7 +984,7 @@ impl Color {
                 .unwrap();
         }
         debug_assert_eq!(written, 6);
-        parse_hash_color(&serialization)
+        RGBA::parse_hash(&serialization)
             .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
@@ -735,7 +997,7 @@ impl Color {
     pub fn to_computed_color(&self, context: Option<&Context>) -> Option<ComputedColor> {
         Some(match *self {
             Color::CurrentColor => ComputedColor::CurrentColor,
-            Color::Numeric { ref parsed, .. } => ComputedColor::Numeric(*parsed),
+            Color::Absolute(ref absolute) => ComputedColor::Numeric(absolute.color.to_rgba()),
             Color::ColorMix(ref mix) => {
                 use crate::values::computed::percentage::Percentage;
 

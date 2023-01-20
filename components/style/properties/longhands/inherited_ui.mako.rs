@@ -78,7 +78,6 @@ ${helpers.predefined_type(
     engines="gecko",
     spec="https://drafts.csswg.org/css-ui/#caret-color",
     animation_value_type="CaretColor",
-    boxed=True,
     ignored_when_colors_disabled=True,
 )}
 
@@ -90,7 +89,6 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-ui-4/#widget-accent",
     gecko_pref="layout.css.accent-color.enabled",
     animation_value_type="ColorOrAuto",
-    boxed=True,
     ignored_when_colors_disabled=True,
     has_effect_on_gecko_scrollbars=False,
 )}

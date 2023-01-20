@@ -30,7 +30,7 @@ impl ToCss for Color {
     {
         match *self {
             Self::Numeric(ref c) => c.to_css(dest),
-            Self::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
+            Self::CurrentColor => cssparser::ToCss::to_css(&CSSParserColor::CurrentColor, dest),
             Self::ColorMix(ref m) => m.to_css(dest),
         }
     }
@@ -44,12 +44,12 @@ impl Color {
 
     /// Returns opaque black.
     pub fn black() -> Color {
-        Color::rgba(RGBA::new(0, 0, 0, 255))
+        Color::rgba(RGBA::new(0, 0, 0, 1.0))
     }
 
     /// Returns opaque white.
     pub fn white() -> Color {
-        Color::rgba(RGBA::new(255, 255, 255, 255))
+        Color::rgba(RGBA::new(255, 255, 255, 1.0))
     }
 
     /// Combine this complex color with the given foreground color into

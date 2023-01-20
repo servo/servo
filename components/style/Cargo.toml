@@ -41,7 +41,7 @@ arrayvec = "0.7"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
-cssparser = "0.29"
+cssparser = "0.30"
 derive_more = { version = "0.99", default-features = false, features = ["add", "add_assign", "deref", "from"] }
 encoding_rs = { version = "0.8", optional = true }
 euclid = "0.22"
