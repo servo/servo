@@ -47,8 +47,8 @@ impl Parse for FontPaletteOverrideColor {
         let location = input.current_source_location();
         let color = SpecifiedColor::parse(context, input)?;
         // Only absolute colors are accepted here.
-        if let SpecifiedColor::Numeric { parsed: _, authored: _ } = color {
-            Ok(FontPaletteOverrideColor{ index, color })
+        if let SpecifiedColor::Absolute { .. } = color {
+            Ok(FontPaletteOverrideColor { index, color })
         } else {
             Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
@@ -183,11 +183,10 @@ impl FontPaletteValuesRule {
                 }
             }
             for c in &self.override_colors {
-                if let SpecifiedColor::Numeric { parsed, authored: _ } = &c.color {
+                if let SpecifiedColor::Absolute(ref absolute) = c.color {
+                    let rgba = absolute.color.to_rgba();
                     unsafe {
-                        Gecko_SetFontPaletteOverride(palette_values,
-                                                     c.index.0.value(),
-                                                     *parsed);
+                        Gecko_SetFontPaletteOverride(palette_values, c.index.0.value(), rgba);
                     }
                 }
             }

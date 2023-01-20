@@ -168,6 +168,13 @@ impl Color {
             rgba.alpha *= alpha_multiplier;
         }
 
+        // FIXME: In rare cases we end up with 0.999995 in the alpha channel,
+        //        so we reduce the precision to avoid serializing to
+        //        rgba(?, ?, ?, 1).  This is not ideal, so we should look into
+        //        ways to avoid it. Maybe pre-multiply all color components and
+        //        then divide after calculations?
+        rgba.alpha = (rgba.alpha * 1000.0).round() / 1000.0;
+
         rgba
     }
 }
@@ -424,28 +431,55 @@ struct XYZD50A {
 
 impl_lerp!(XYZD50A, None);
 
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-struct LABA {
-    lightness: f32,
-    a: f32,
-    b: f32,
-    alpha: f32,
+pub struct LABA {
+    pub lightness: f32,
+    pub a: f32,
+    pub b: f32,
+    pub alpha: f32,
 }
 
 impl_lerp!(LABA, None);
 
 /// An animated LCHA colour.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-struct LCHA {
-    lightness: f32,
-    chroma: f32,
-    hue: f32,
-    alpha: f32,
+pub struct LCHA {
+    pub lightness: f32,
+    pub chroma: f32,
+    pub hue: f32,
+    pub alpha: f32,
 }
 
 impl_lerp!(LCHA, Some(2));
+
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct OKLABA {
+    pub lightness: f32,
+    pub a: f32,
+    pub b: f32,
+    pub alpha: f32,
+}
+
+impl_lerp!(OKLABA, None);
+
+/// An animated OKLCHA colour.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct OKLCHA {
+    pub lightness: f32,
+    pub chroma: f32,
+    pub hue: f32,
+    pub alpha: f32,
+}
+
+impl_lerp!(OKLCHA, Some(2));
 
 /// An animated hwb() color.
 #[derive(Clone, Copy, Debug)]
@@ -604,6 +638,7 @@ impl From<XYZD65A> for XYZD50A {
             -0.05019222954313557,  -0.01707382502938514,   0.7518742899580008,    0.,
              0.,                    0.,                    0.,                    1.,
         );
+
         let d50 = BRADFORD.transform_vector3d(Vector3D::new(d65.x, d65.y, d65.z));
         Self {
             x: d50.x,
@@ -747,6 +782,22 @@ impl From<LABA> for LCHA {
     }
 }
 
+impl From<OKLABA> for OKLCHA {
+    /// Convert an OKLAB color to OKLCH as specified in [1].
+    ///
+    /// [1]: https://drafts.csswg.org/css-color/#color-conversion-code
+    fn from(oklaba: OKLABA) -> Self {
+        let hue = oklaba.b.atan2(oklaba.a) * DEG_PER_RAD;
+        let chroma = (oklaba.a * oklaba.a + oklaba.b * oklaba.b).sqrt();
+        OKLCHA {
+            lightness: oklaba.lightness,
+            chroma,
+            hue,
+            alpha: oklaba.alpha,
+        }
+    }
+}
+
 impl From<LCHA> for LABA {
     /// Convert a LCH color to LAB as specified in [1].
     ///
@@ -760,6 +811,23 @@ impl From<LCHA> for LABA {
             a,
             b,
             alpha: lcha.alpha,
+        }
+    }
+}
+
+impl From<OKLCHA> for OKLABA {
+    /// Convert a OKLCH color to OKLAB as specified in [1].
+    ///
+    /// [1]: https://drafts.csswg.org/css-color/#color-conversion-code
+    fn from(oklcha: OKLCHA) -> Self {
+        let hue_radians = oklcha.hue * RAD_PER_DEG;
+        let a = oklcha.chroma * hue_radians.cos();
+        let b = oklcha.chroma * hue_radians.sin();
+        OKLABA {
+            lightness: oklcha.lightness,
+            a,
+            b,
+            alpha: oklcha.alpha,
         }
     }
 }
@@ -804,6 +872,78 @@ impl From<LABA> for XYZD50A {
     }
 }
 
+impl From<XYZD65A> for OKLABA {
+    fn from(xyza: XYZD65A) -> Self {
+        // https://drafts.csswg.org/css-color-4/#color-conversion-code
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        const XYZ_TO_LMS: Transform3D<f32> = Transform3D::new(
+             0.8190224432164319,  0.0329836671980271,  0.048177199566046255, 0.,
+             0.3619062562801221,  0.9292868468965546,  0.26423952494422764,  0.,
+            -0.12887378261216414, 0.03614466816999844, 0.6335478258136937,   0.,
+             0.,                  0.,                  0.,                   1.,
+        );
+
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        const LMS_TO_OKLAB: Transform3D<f32> = Transform3D::new(
+             0.2104542553,  1.9779984951,  0.0259040371, 0.,
+             0.7936177850, -2.4285922050,  0.7827717662, 0.,
+            -0.0040720468,  0.4505937099, -0.8086757660, 0.,
+             0.,            0.,            0.,           1.,
+        );
+
+        let lms = XYZ_TO_LMS.transform_vector3d(Vector3D::new(xyza.x, xyza.y, xyza.z));
+        let lab = LMS_TO_OKLAB.transform_vector3d(Vector3D::new(
+            lms.x.cbrt(),
+            lms.y.cbrt(),
+            lms.z.cbrt(),
+        ));
+
+        Self {
+            lightness: lab.x,
+            a: lab.y,
+            b: lab.z,
+            alpha: xyza.alpha,
+        }
+    }
+}
+
+impl From<OKLABA> for XYZD65A {
+    fn from(oklaba: OKLABA) -> Self {
+        // https://drafts.csswg.org/css-color-4/#color-conversion-code
+        // Given OKLab, convert to XYZ relative to D65
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        const LMS_TO_XYZ: Transform3D<f32> = Transform3D::new(
+             1.2268798733741557,  -0.04057576262431372, -0.07637294974672142, 0.,
+            -0.5578149965554813,   1.1122868293970594,  -0.4214933239627914,  0.,
+             0.28139105017721583, -0.07171106666151701,  1.5869240244272418,  0.,
+             0.,                   0.,                   0.,                  1.,
+        );
+
+        #[cfg_attr(rustfmt, rustfmt_skip)]
+        const OKLAB_TO_LMS: Transform3D<f32> = Transform3D::new(
+            0.99999999845051981432,  1.0000000088817607767,    1.0000000546724109177,   0.,
+            0.39633779217376785678, -0.1055613423236563494,   -0.089484182094965759684, 0.,
+            0.21580375806075880339, -0.063854174771705903402, -1.2914855378640917399,   0.,
+            0.,                      0.,                       0.,                      1.,
+        );
+
+        let lms =
+            OKLAB_TO_LMS.transform_vector3d(Vector3D::new(oklaba.lightness, oklaba.a, oklaba.b));
+        let xyz = LMS_TO_XYZ.transform_vector3d(Vector3D::new(
+            lms.x.powf(3.0),
+            lms.y.powf(3.0),
+            lms.z.powf(3.0),
+        ));
+
+        Self {
+            x: xyz.x,
+            y: xyz.y,
+            z: xyz.z,
+            alpha: oklaba.alpha,
+        }
+    }
+}
+
 impl From<XYZD50A> for RGBA {
     fn from(d50: XYZD50A) -> Self {
         Self::from(XYZD65A::from(d50))
@@ -828,6 +968,18 @@ impl From<LABA> for RGBA {
     }
 }
 
+impl From<OKLABA> for RGBA {
+    fn from(oklaba: OKLABA) -> Self {
+        Self::from(XYZD65A::from(oklaba))
+    }
+}
+
+impl From<RGBA> for OKLABA {
+    fn from(rgba: RGBA) -> Self {
+        Self::from(XYZD65A::from(rgba))
+    }
+}
+
 impl From<RGBA> for LCHA {
     fn from(rgba: RGBA) -> Self {
         Self::from(LABA::from(rgba))
@@ -837,5 +989,17 @@ impl From<RGBA> for LCHA {
 impl From<LCHA> for RGBA {
     fn from(lcha: LCHA) -> Self {
         Self::from(LABA::from(lcha))
+    }
+}
+
+impl From<OKLCHA> for RGBA {
+    fn from(oklcha: OKLCHA) -> Self {
+        Self::from(OKLABA::from(oklcha))
+    }
+}
+
+impl From<RGBA> for OKLCHA {
+    fn from(rgba: RGBA) -> Self {
+        Self::from(OKLABA::from(rgba))
     }
 }
