@@ -38,6 +38,8 @@ def authenticated(sync: WPTSync, method, url, json=None) -> requests.Response:
         "Authorization": f"Bearer {sync.github_api_token}",
         "User-Agent": USER_AGENT,
     }
+    import pprint
+    pprint.pprint(headers)
 
     url = urllib.parse.urljoin(sync.github_api_url, url)
     response = requests.request(
