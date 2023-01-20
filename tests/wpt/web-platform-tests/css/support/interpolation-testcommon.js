@@ -461,4 +461,5 @@
   window.test_composition = test_composition;
   window.neutralKeyframe = neutralKeyframe;
   window.roundNumbers = roundNumbers;
+  window.normalizeValue = normalizeValue;
 })();

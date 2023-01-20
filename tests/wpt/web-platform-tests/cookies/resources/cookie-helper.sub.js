@@ -41,11 +41,16 @@ function navigateTo(origin, url) {
   return origin + "/cookies/resources/navigate.html?location=" + encodeURIComponent(url);
 }
 
+// Returns whether a cookie with name `name` with value `value` is in the cookie
+// string (presumably obtained via document.cookie).
+function cookieStringHasCookie(name, value, cookieString) {
+  return new RegExp(`(?:^|; )${name}=${value}(?:$|;)`).test(cookieString);
+}
+
 // Asserts that `document.cookie` contains or does not contain (according to
 // the value of |present|) a cookie named |name| with a value of |value|.
 function assert_dom_cookie(name, value, present) {
-  var re = new RegExp("(?:^|; )" + name + "=" + value + "(?:$|;)");
-  assert_equals(re.test(document.cookie), present, "`" + name + "=" + value + "` in `document.cookie`");
+  assert_equals(cookieStringHasCookie(name, value, document.cookie), present, "`" + name + "=" + value + "` in `document.cookie`");
 }
 
 function assert_cookie(origin, obj, name, value, present) {

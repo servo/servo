@@ -340,6 +340,50 @@ function test10() {
   return helper.start();
 }
 
+function test11() {
+  let t = createAndAppendElement("div");
+  t.style.display = "none";
+
+  let helper = new ResizeTestHelper(
+    "test11: display:none element should be notified",
+    [
+      {
+        setup: observer => {
+          observer.observe(t);
+        },
+        notify: entries => {
+          assert_equals(entries.length, 1, "1 pending notification");
+          assert_equals(entries[0].target, t, "target is t");
+          assert_equals(entries[0].contentRect.width, 0, "target width");
+          assert_equals(entries[0].contentRect.height, 0, "target height");
+        }
+      }
+    ]);
+  return helper.start(() => t.remove());
+}
+
+function test12() {
+  let t = createAndAppendElement("div");
+  t.style.width = "0px";
+
+  let helper = new ResizeTestHelper(
+    "test12: element sized 0x0 should be notified",
+    [
+      {
+        setup: observer => {
+          observer.observe(t);
+        },
+        notify: entries => {
+          assert_equals(entries.length, 1, "1 pending notification");
+          assert_equals(entries[0].target, t, "target is t");
+          assert_equals(entries[0].contentRect.width, 0, "target width");
+          assert_equals(entries[0].contentRect.height, 0, "target height");
+        }
+      }
+    ]);
+  return helper.start(() => t.remove());
+}
+
 let guard;
 test(_ => {
   assert_own_property(window, "ResizeObserver");
@@ -357,6 +401,8 @@ test0()
   .then(() => { return test8(); })
   .then(() => { return test9(); })
   .then(() => { return test10(); })
+  .then(() => { return test11(); })
+  .then(() => { return test12(); })
   .then(() => { guard.done(); });
 
 </script>

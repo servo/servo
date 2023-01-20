@@ -1,3 +1,7 @@
+self.addEventListener('canmakepayment', event => {
+  event.respondWith(true);
+});
+
 self.addEventListener('paymentrequest', event => {
   const expectedId = 'test-payment-request-identifier';
   if (event.paymentRequestId !== expectedId) {
@@ -17,11 +21,16 @@ self.addEventListener('paymentrequest', event => {
   }
 
   const methodData = event.methodData[0];
-  const expectedMethodName = window.location.origin + '/payment-handler/payment-app/';
-  if (methodData.supportedMethods !== expectedMethodName) {
-    const msg = `Expected payment method name "${expectedMethodName}", but got "${
-      methodData.supportedMethods
-    }"`;
+  const expectedMethodNamePrefix = 'http';
+  if (!methodData.supportedMethods.startsWith(expectedMethodNamePrefix)) {
+    const msg = `Expected payment method name "${methodData.supportedMethods}" to start with ${expectedMethodNamePrefix}"`;
+    event.respondWith(Promise.reject(new Error(msg)));
+    return;
+  }
+
+  const expectedMethodNameSuffix = '/payment-handler/payment-request-event-manual-manifest.json';
+  if (!methodData.supportedMethods.endsWith(expectedMethodNameSuffix)) {
+    const msg = `Expected payment method name "${methodData.supportedMethods}" to end with ${expectedMethodNameSuffix}"`;
     event.respondWith(Promise.reject(new Error(msg)));
     return;
   }
@@ -69,6 +78,7 @@ self.addEventListener('paymentrequest', event => {
   }
 
   event.respondWith({
-    methodName: expectedMethodName,
+    methodName: methodData.supportedMethods,
+    details: {status: 'success'},
   });
 });

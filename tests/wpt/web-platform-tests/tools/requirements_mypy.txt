@@ -4,7 +4,7 @@ toml==0.10.2
 typed-ast==1.5.4
 types-atomicwrites==1.4.5
 types-python-dateutil==2.8.19
-types-PyYAML==6.0.9
+types-PyYAML==6.0.12.3
 types-requests==2.28.11.5
 types-setuptools==63.2.3
 types-six==1.16.19

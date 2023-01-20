@@ -39,19 +39,6 @@ async function resetTargetScrollState(test) {
   }
 }
 
-async function verifyScrollStopped(test) {
-  const unscaled_pause_time_in_ms = 100;
-  const x = target_div.scrollLeft;
-  const y = target_div.scrollTop;
-  return new Promise(resolve => {
-    test.step_timeout(() => {
-      assert_equals(x, target_div.scrollLeft);
-      assert_equals(y, target_div.scrollTop);
-      resolve();
-    }, unscaled_pause_time_in_ms);
-  });
-}
-
 async function verifyNoScrollendOnDocument(test) {
   const callback =
       test.unreached_func("window got unexpected scrollend event.");
@@ -94,7 +81,7 @@ function runTest() {
     await targetScrollendPromise;
 
     assert_true(target_div.scrollTop > 0);
-    await verifyScrollStopped(t);
+    await verifyScrollStopped(t, target_div);
   }, 'Tests that the target_div gets scrollend event when touch dragging.');
 
   promise_test(async (t) => {
@@ -123,7 +110,7 @@ function runTest() {
 
     await targetScrollendPromise;
     assert_true(target_div.scrollTop > 0);
-    await verifyScrollStopped(t);
+    await verifyScrollStopped(t, target_div);
   }, 'Tests that the target_div gets scrollend event when clicking ' +
      'scrollbar.');
 
@@ -154,7 +141,7 @@ function runTest() {
 
     await targetScrollendPromise;
     assert_true(target_div.scrollTop > 0);
-    await verifyScrollStopped(t);
+    await verifyScrollStopped(t, target_div);
   }, 'Tests that the target_div gets scrollend event when dragging the ' +
       'scrollbar thumb.');
 
@@ -174,7 +161,7 @@ function runTest() {
 
     await targetScrollendPromise;
     assert_true(target_div.scrollTop > 0);
-    await verifyScrollStopped(t);
+    await verifyScrollStopped(t, target_div);
   }, 'Tests that the target_div gets scrollend event when mouse wheel ' +
      'scrolling.');
 
@@ -190,7 +177,7 @@ function runTest() {
 
     await targetScrollendPromise;
     assert_true(target_div.scrollTop > 0);
-    await verifyScrollStopped(t);
+    await verifyScrollStopped(t, target_div);
   }, 'Tests that the target_div gets scrollend event when sending DOWN key ' +
      'to the target.');
 }

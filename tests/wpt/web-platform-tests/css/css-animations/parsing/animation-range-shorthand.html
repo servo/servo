@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>animation-range shorthand</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#propdef-animation-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_value("animation-range", "cover");
+test_valid_value("animation-range", "contain");
+test_valid_value("animation-range", "enter");
+test_valid_value("animation-range", "exit");
+test_valid_value("animation-range", "enter, exit");
+
+test_valid_value("animation-range", "enter 0% enter 100%", "enter");
+test_valid_value("animation-range", "exit 0% exit 100%", "exit");
+test_valid_value("animation-range", "cover 0% cover 100%", "cover");
+test_valid_value("animation-range", "contain 0% contain 100%", "contain");
+
+test_valid_value("animation-range", "cover 50%");
+test_valid_value("animation-range", "contain 50%");
+test_valid_value("animation-range", "enter 50%");
+test_valid_value("animation-range", "exit 50%");
+
+test_valid_value("animation-range", "enter 50% exit 50%");
+test_valid_value("animation-range", "cover 50% enter 50%, contain 50% exit 50%");
+
+test_invalid_value("animation-range", "enter 50% 0s", "enter 50%");
+test_invalid_value("animation-range", "0s enter 50%");
+test_invalid_value("animation-range", "1s");
+test_invalid_value("animation-range", "-1s");
+test_invalid_value("animation-range", "1s 2s");
+test_invalid_value("animation-range", "1s, 2s");
+test_invalid_value("animation-range", "1s 2s, 3s");
+test_invalid_value("animation-range", "1s, 2s 3s");
+test_invalid_value("animation-range", "1s, 2s, 3s");
+test_invalid_value("animation-range", "1s 2s 3s");
+test_invalid_value("animation-range", "0s, 1s 2s 3s");
+test_invalid_value("animation-range", "1s / 2s");
+test_invalid_value("animation-range", "1s, 2px");
+test_invalid_value("animation-range", "#ff0000");
+test_invalid_value("animation-range", "red");
+test_invalid_value("animation-range", "thing");
+test_invalid_value("animation-range", "thing 0%");
+test_invalid_value("animation-range", "thing 42%");
+test_invalid_value("animation-range", "thing 100%");
+test_invalid_value("animation-range", "thing 100px");
+test_invalid_value("animation-range", "100% thing");
+
+test_shorthand_value('animation-range', 'cover', {
+  'animation-range-start': 'cover 0%',
+  'animation-range-end': 'cover 100%',
+});
+
+test_shorthand_value('animation-range', 'contain', {
+  'animation-range-start': 'contain 0%',
+  'animation-range-end': 'contain 100%',
+});
+
+test_shorthand_value('animation-range', 'enter 10% exit 20%', {
+  'animation-range-start': 'enter 10%',
+  'animation-range-end': 'exit 20%',
+});
+
+test_shorthand_value('animation-range', 'enter, exit', {
+  'animation-range-start': 'enter 0%, exit 0%',
+  'animation-range-end': 'enter 100%, exit 100%',
+});
+
+test_shorthand_value('animation-range', 'enter 0%, exit', {
+  'animation-range-start': 'enter 0%, exit 0%',
+  'animation-range-end': 'auto, exit 100%',
+});
+</script>

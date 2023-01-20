@@ -37,4 +37,23 @@ sync_access_handle_test((t, handle) => {
   assert_array_equals(expected, readBuffer);
 }, 'test SyncAccessHandle.truncate after SyncAccessHandle.write');
 
+sync_access_handle_test((t, handle) => {
+  // The cursor will be at the end of the file after this write.
+  const writeBuffer = new Uint8Array(4);
+  writeBuffer.set([0, 1, 2, 3]);
+  handle.write(writeBuffer);
+
+  // Extending the file should not move the cursor.
+  handle.truncate(6);
+  let readBuffer = new Uint8Array(2);
+  let expected = new Uint8Array(2);
+  expected.set([0, 0]);
+  assert_equals(2, handle.read(readBuffer));
+  assert_array_equals(expected, readBuffer);
+
+  // Shortening the file should move the cursor to the new end.
+  handle.truncate(2);
+  assert_equals(0, handle.read(readBuffer));
+}, 'test SyncAccessHandle.truncate resets the file position cursor');
+
 done();

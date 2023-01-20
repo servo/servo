@@ -11,6 +11,13 @@
 function test_valid_value_variants(property, value, serializedValue) {
   if (!serializedValue) serializedValue = value;
   test_valid_value(property, value, serializedValue);
+
+  // The '-webkit-' prefixed 'image-set' is expected to serialize to the same
+  // value as standard 'image-set'.
+  // https://drafts.csswg.org/css-images-4/#deprecated
+  // "Implementations must accept -webkit-image-set() as a parse-time alias of
+  // image-set(). (It’s a valid value, with identical arguments to image-set(),
+  // and is turned into image-set() during parsing.)"
   test_valid_value(property, "-webkit-" + value, serializedValue);
 }
 

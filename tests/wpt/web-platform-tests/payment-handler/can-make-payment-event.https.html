@@ -2,34 +2,25 @@
 <meta charset="utf-8">
 <title>Tests for CanMakePaymentEvent</title>
 <link rel="help" href="https://w3c.github.io/payment-handler/#the-canmakepaymentevent">
-<link rel="manifest" href="manifest.json">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
-const instrumentKey = 'instrument-key';
+const DEFAULT_METHOD_NAME = window.location.origin + '/payment-handler/'
+    + 'can-make-payment-event-manifest.json';
 
-async function registerApp(methodName) {
-  await navigator.serviceWorker.register('app-can-make-payment.js');
-  const registration = await navigator.serviceWorker.ready;
-  if (!registration.paymentManager) {
-    return;
-  }
-  if (registration.paymentManager.requestPermission) {
-    const permission = await registration.paymentManager.requestPermission();
-    if (permission !== 'granted') {
-      return;
-    }
-  }
-  await registration.paymentManager.instruments.set(instrumentKey, {
-    name: 'Test Payment Method',
-    method: methodName,
-  });
-  return registration;
+async function registerApp(responseType = 'canMakePayment-true') {
+  const request = new PaymentRequest(
+    [{supportedMethods: DEFAULT_METHOD_NAME, data: {responseType}}],
+    {total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}}});
+  const response = await test_driver.bless('installing a payment app', () =>
+    request.show()
+  );
+  return response.complete('success');
 }
 
-function buildPaymentRequest(methodName) {
+function buildPaymentRequest(methodName = DEFAULT_METHOD_NAME) {
   const unsupportedMethodName = methodName + '/unsupported';
   return new PaymentRequest(
     [
@@ -105,87 +96,8 @@ function buildPaymentRequest(methodName) {
 }
 
 promise_test(async t => {
-  const methodName = window.location.origin;
   // Intentionally do not install the payment app.
-  const request = buildPaymentRequest(methodName);
-  assert_not_equals(request, undefined);
-  let paymentRequestCanMakePaymentResult;
-  try {
-    paymentRequestCanMakePaymentResult = await request.canMakePayment();
-  } catch (err) {
-    assert_equals(
-      err.name,
-      'NotAllowedError',
-      'If it throws, then it must be NotAllowedError',
-    );
-  }
-  assert_false(
-    paymentRequestCanMakePaymentResult,
-    'canMakePayment() must return false.',
-  );
-
-  await test_driver.bless('PaymentRequest.show() requires user activation');
-  await promise_rejects_dom(t, 'NotSupportedError', request.show());
-}, 'If a payment handler is not installed, then the payment method is not supported.');
-
-promise_test(async t => {
-  const methodName = window.location.origin;
-  await registerApp(methodName);
-  navigator.serviceWorker.controller.postMessage(
-      {responseType: 'canMakePayment-false'});
-  const request = buildPaymentRequest(methodName);
-  assert_not_equals(request, undefined);
-  let paymentRequestCanMakePaymentResult;
-  try {
-    paymentRequestCanMakePaymentResult = await request.canMakePayment();
-  } catch (err) {
-    assert_equals(
-      err.name,
-      'NotAllowedError',
-      'If it throws, then it must be NotAllowedError',
-    );
-  }
-  assert_false(
-    paymentRequestCanMakePaymentResult,
-    'canMakePayment() must return false.',
-  );
-
-  await test_driver.bless('PaymentRequest.show() requires user activation');
-  await promise_rejects_dom(t, 'NotSupportedError', request.show());
-}, 'If CanMakePaymentEvent.respondWith(false) is called, then the payment method is not supported.');
-
-promise_test(async t => {
-  const methodName = window.location.origin;
-  await registerApp(methodName);
-  navigator.serviceWorker.controller.postMessage(
-      {responseType: 'canMakePayment-promise-false'});
-  const request = buildPaymentRequest(methodName);
-  assert_not_equals(request, undefined);
-  let paymentRequestCanMakePaymentResult;
-  try {
-    paymentRequestCanMakePaymentResult = await request.canMakePayment();
-  } catch (err) {
-    assert_equals(
-      err.name,
-      'NotAllowedError',
-      'If it throws, then it must be NotAllowedError',
-    );
-  }
-  assert_false(
-    paymentRequestCanMakePaymentResult,
-    'canMakePayment() must return false.',
-  );
-
-  await test_driver.bless('PaymentRequest.show() requires user activation');
-  await promise_rejects_dom(t, 'NotSupportedError', request.show());
-}, 'If CanMakePaymentEvent.respondWith(Promise.resolve(false)) is called, then the payment method is not supported.');
-
-promise_test(async t => {
-  const methodName = window.location.origin;
-  await registerApp(methodName);
-  navigator.serviceWorker.controller.postMessage(
-      {responseType: 'canMakePayment-true'});
-  const request = buildPaymentRequest(methodName);
+  const request = buildPaymentRequest();
   assert_not_equals(request, undefined);
   let paymentRequestCanMakePaymentResult;
   try {
@@ -202,46 +114,15 @@ promise_test(async t => {
     'canMakePayment() must return true.',
   );
 
-  await test_driver.bless('PaymentRequest.show() requires user activation');
-  const acceptPromise = request.show();
-  await request.abort();
-  await promise_rejects_dom(t, 'AbortError', acceptPromise);
-}, 'If CanMakePaymentEvent.respondWith(true) is called, then the payment method is supported.');
+  await test_driver.bless('installing a payment app just-in-time');
+  const response = await request.show();
+  assert_equals('success', response.details.status);
+  return response.complete('success');
+}, 'If a payment handler is not installed, but can be installed just-in-time, then the payment method is supported.');
 
 promise_test(async t => {
-  const methodName = window.location.origin;
-  await registerApp(methodName);
-  navigator.serviceWorker.controller.postMessage(
-      {responseType: 'canMakePayment-promise-true'});
-  const request = buildPaymentRequest(methodName);
-  assert_not_equals(request, undefined);
-  let paymentRequestCanMakePaymentResult;
-  try {
-    paymentRequestCanMakePaymentResult = await request.canMakePayment();
-  } catch (err) {
-    assert_equals(
-      err.name,
-      'NotAllowedError',
-      'If it throws, then it must be NotAllowedError',
-    );
-  }
-  assert_true(
-    paymentRequestCanMakePaymentResult,
-    'canMakePayment() must return true.',
-  );
-
-  await test_driver.bless('PaymentRequest.show() requires user activation');
-  const acceptPromise = request.show();
-  await request.abort();
-  await promise_rejects_dom(t, 'AbortError', acceptPromise);
-}, 'If CanMakePaymentEvent.respondWith(Promise.resolve(true)) is called, then the payment method is supported.');
-
-promise_test(async t => {
-  const methodName = window.location.origin;
-  await registerApp(methodName);
-  navigator.serviceWorker.controller.postMessage(
-      {responseType: 'canMakePayment-custom-error'});
-  const request = buildPaymentRequest(methodName);
+  // Intentionally do not install the payment app.
+  const request = buildPaymentRequest(DEFAULT_METHOD_NAME + '/non-existent');
   assert_not_equals(request, undefined);
   let paymentRequestCanMakePaymentResult;
   try {
@@ -258,7 +139,132 @@ promise_test(async t => {
     'canMakePayment() must return false.',
   );
 
-  await test_driver.bless('PaymentRequest.show() requires user activation');
+  const response = await test_driver.bless('invoking a payemnt app');
   await promise_rejects_dom(t, 'NotSupportedError', request.show());
-}, 'If CanMakePaymentEvent.respondWith(Promise.reject(error)) is called, then the payment method is not supported.');
+}, 'If a payment handler is not installed and cannot be installed just-in-time, then the payment method is not supported.');
+
+promise_test(async t => {
+  await registerApp('canMakePayment-false');
+  const request = buildPaymentRequest();
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true.',
+  );
+
+  await test_driver.bless('invoking a payment app');
+  const response = await request.show();
+  assert_equals('success', response.details.status);
+  return response.complete('success');
+}, 'If CanMakePaymentEvent.respondWith(false) is called, then canMakePayment() still returns true and the app can still be invoked.');
+
+promise_test(async t => {
+  await registerApp('canMakePayment-promise-false');
+  const request = buildPaymentRequest();
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true.',
+  );
+
+  await test_driver.bless('invoking a payment app');
+  const response = await request.show();
+  assert_equals('success', response.details.status);
+  return response.complete('success');
+}, 'If CanMakePaymentEvent.respondWith(Promise.resolve(false)) is called, then canMakePayment() still returns true and the app can still be invoked.');
+
+promise_test(async t => {
+  await registerApp('canMakePayment-true');
+  const request = buildPaymentRequest();
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true.',
+  );
+
+  await test_driver.bless('invoking a payment app');
+  const response = await request.show();
+  assert_equals('success', response.details.status);
+  return response.complete('success');
+}, 'If CanMakePaymentEvent.respondWith(true) is called, then canMakePayment() returns true and the app can be invoked.');
+
+promise_test(async t => {
+  await registerApp('canMakePayment-promise-true');
+  const request = buildPaymentRequest();
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true.',
+  );
+
+  await test_driver.bless('invoking a payment app');
+  const response = await request.show();
+  assert_equals('success', response.details.status);
+  return response.complete('success');
+}, 'If CanMakePaymentEvent.respondWith(Promise.resolve(true)) is called, then canMakePayment() returns true and the app can be invoked.');
+
+promise_test(async t => {
+  await registerApp('canMakePayment-custom-error');
+  const request = buildPaymentRequest();
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true.',
+  );
+
+  await test_driver.bless('invoking a payment app');
+  const response = await request.show();
+  assert_equals('success', response.details.status);
+  return response.complete('success');
+}, 'If CanMakePaymentEvent.respondWith(Promise.reject(error)) is called, then canMakePayment() still returns true and the app can still be invoked.');
 </script>

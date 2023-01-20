@@ -1,4 +1,4 @@
-// META: global=window,worker
+// META: global=window,sharedworker,dedicatedworker
 // META: script=/common/get-host-info.sub.js
 
 const authorizationValue = "Basic " + btoa("user:pass");

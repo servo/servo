@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>CSS margin-trim: block container replaced block-end trim</title>
+<title>margin-trim: block-container-replaced-block-end</title>
 <link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
 <link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
 <link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
 <meta name="assert" content="block level replaced element should have block-end trimmed">
 <style>
 .container {
-   width: 100px;
+   width: min-content;
    margin-trim: block-end;
 }
 .outer {

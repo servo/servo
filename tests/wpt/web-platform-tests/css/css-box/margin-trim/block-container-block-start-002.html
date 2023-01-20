@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>CSS margin-trim: block start trim 002</title>
+<title>margin-trim: block-container-block-start-002</title>
 <link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
 <link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
 <link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
@@ -9,7 +9,7 @@
 <style>
 .container {
     background-color: green;
-    width: 100px;
+    width: min-content;
     margin-trim: block-start;
 }
 .outer {
@@ -19,12 +19,12 @@
 }
 .first {
     margin-top: 50px;
-    width: 100%;
+    width: 100px;
     height: 40px;
 }
 .second {
     margin-top: 10px;
-    width: 100%;
+    width: 100px;
     height: 40px;
 }
 </style>

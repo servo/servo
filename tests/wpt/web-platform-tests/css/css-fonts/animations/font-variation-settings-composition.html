@@ -11,6 +11,14 @@
 <body></body>
 
 <script>
+function compareVariationSettings(actual, expected) {
+  // The order of <axis, value> pairs in the variation-settings list is arbitrary,
+  // so we sort the pairs before attempting to compare. (We only need to use this
+  // when multiple settings are expected, otherwise the default comparison is OK.)
+  assert_equals(normalizeValue(actual).split(", ").sort().join(", "),
+                normalizeValue(expected).split(", ").sort().join(", "));
+};
+
 test_composition({
   property: 'font-variation-settings',
   underlying: "'test' 50",
@@ -68,6 +76,7 @@ test_composition({
   underlying: "'aaaa' 100, 'bbbb' 200",
   addFrom: "'aaaa' 20, 'bbbb' 50",
   addTo: "'aaaa' 30, 'bbbb' 100",
+  comparisonFunction: compareVariationSettings,
 }, [
   {at: -0.3, expect: "'aaaa' 117, 'bbbb' 235"},
   {at: 0, expect: "'aaaa' 120, 'bbbb' 250"},
@@ -81,6 +90,7 @@ test_composition({
   underlying: "'test' 100",
   addFrom: "'aaaa' 20, 'bbbb' 50",
   addTo: "'aaaa' 30, 'bbbb' 100",
+  comparisonFunction: compareVariationSettings,
 }, [
   {at: -0.3, expect: "'aaaa' 17, 'bbbb' 35"},
   {at: 0, expect: "'aaaa' 20, 'bbbb' 50"},

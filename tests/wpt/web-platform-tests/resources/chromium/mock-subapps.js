@@ -30,7 +30,7 @@ self.SubAppsServiceTest = (() => {
       return Promise.resolve({
         result: {
           code: testInternal.serviceResultCode,
-          subApps: testInternal.listCallReturnValue,
+          subAppsList: testInternal.listCallReturnValue,
         }
       });
     }

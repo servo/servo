@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>CSS margin-trim: block trim 001</title>
+<title>margin-trim: block-container-block-001</title>
 <link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
 <link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
 <link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
@@ -9,7 +9,7 @@
 <style>
 .container {
     background-color: green;
-    width: 100px;
+    width: min-content;
     margin-trim: block;
 }
 .outer {
@@ -20,6 +20,7 @@
 .child {
     margin-top: 50px;
     margin-bottom: 50px;
+    width: 100px;
     height: 50px;
 }
 </style>

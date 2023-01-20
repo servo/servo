@@ -21,6 +21,6 @@ promise_test(async test => {
 }, "getAuthorizationHeaderValue - same origin redirection");
 
 promise_test(async (test) => {
-  const result = await getAuthorizationHeaderValue(get_host_info().HTTP_REMOTE_ORIGIN + "/fetch/api/resources/redirect.py?allow_headers=Authorization&location=" + encodeURIComponent(get_host_info().HTTP_ORIGIN + "/fetch/api/resources/dump-authorization-header.py"));
+  const result = await getAuthorizationHeaderValue(get_host_info().HTTPS_REMOTE_ORIGIN + "/fetch/api/resources/redirect.py?allow_headers=Authorization&location=" + encodeURIComponent(get_host_info().HTTPS_ORIGIN + "/fetch/api/resources/dump-authorization-header.py"));
   assert_equals(result, "none");
 }, "getAuthorizationHeaderValue - cross origin redirection");
