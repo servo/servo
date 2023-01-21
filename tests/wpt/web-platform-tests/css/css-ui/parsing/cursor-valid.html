@@ -49,13 +49,60 @@ test_valid_value("cursor", "all-scroll");
 test_valid_value("cursor", "zoom-in");
 test_valid_value("cursor", "zoom-out");
 
-test_valid_value("cursor", 'url("https://example.com/"), alias', ['url("https://example.com/"), alias', 'url(https://example.com/), alias']);
-test_valid_value("cursor", 'url("https://example.com/") 1 calc(2 + 0), copy', ['url("https://example.com/") 1 calc(2), copy', 'url("https://example.com/") 1 2, copy', 'url(https://example.com/) 1 2, copy']);
-test_valid_value("cursor", 'url("https://example.com/"), url("https://example.com/") 3 -4, move', ['url("https://example.com/"), url("https://example.com/") 3 -4, move', 'url(https://example.com/), url(https://example.com/) 3 -4, move']);
-test_valid_value("cursor", 'url("https://example.com/") 5 6, grab', ['url("https://example.com/") 5 6, grab', 'url(https://example.com/) 5 6, grab']);
+test_valid_value(
+  "cursor",
+  'url("https://example.com/"), alias',
+  [
+    'url("https://example.com/"), alias',
+    'url(https://example.com/), alias'
+  ]
+);
 
-test_valid_value("cursor", 'image-set("https://example.com/" 1x) 5 6, grab', ['image-set("https://example.com/" 1x) 5 6, grab', 'image-set("https://example.com/" 1x) 5 6, grab']);
-test_valid_value("cursor", 'image-set("https://example.com/" 1x, "https://example.com/highres" 2x) 5 6, grab', ['image-set("https://example.com/" 1x, "https://example.com/highres" 2x) 5 6, grab', 'image-set("https://example.com/" 1x, "https://example.com/highres" 2x) 5 6, grab']);
+test_valid_value(
+  "cursor",
+  'url("https://example.com/") 1 calc(2 + 0), copy',
+  [
+    'url("https://example.com/") 1 calc(2), copy',
+    'url("https://example.com/") 1 2, copy',
+    'url(https://example.com/) 1 2, copy'
+  ]
+);
+
+test_valid_value(
+  "cursor",
+  'url("https://example.com/"), url("https://example.com/") 3 -4, move',
+  [
+    'url("https://example.com/"), url("https://example.com/") 3 -4, move',
+    'url(https://example.com/), url(https://example.com/) 3 -4, move'
+  ]
+);
+
+test_valid_value(
+  "cursor",
+  'url("https://example.com/") 5 6, grab',
+  [
+    'url("https://example.com/") 5 6, grab',
+    'url(https://example.com/) 5 6, grab'
+  ]
+);
+
+test_valid_value(
+  "cursor",
+  'image-set("https://example.com/" 1x) 5 6, grab',
+  [
+    'image-set(url("https://example.com/") 1x) 5 6, grab',
+    'image-set(url(https://example.com/) 1x) 5 6, grab'
+  ]
+);
+
+test_valid_value(
+  "cursor",
+  'image-set("https://example.com/" 1x, "https://example.com/highres" 2x) 5 6, grab',
+  [
+    'image-set(url("https://example.com/") 1x, url("https://example.com/highres") 2x) 5 6, grab',
+    'image-set(url(https://example.com/) 1x, url(https://example.com/highres) 2x) 5 6, grab'
+  ]
+);
 </script>
 </body>
 </html>

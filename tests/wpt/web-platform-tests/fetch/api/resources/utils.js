@@ -57,7 +57,8 @@ function validateBufferFromString(buffer, expectedValue, message)
 }
 
 function validateStreamFromString(reader, expectedValue, retrievedArrayBuffer) {
-  return reader.read().then(function(data) {
+  // Passing Uint8Array for byte streams; non-byte streams will simply ignore it
+  return reader.read(new Uint8Array(64)).then(function(data) {
     if (!data.done) {
       assert_true(data.value instanceof Uint8Array, "Fetch ReadableStream chunks should be Uint8Array");
       var newBuffer;
@@ -75,7 +76,8 @@ function validateStreamFromString(reader, expectedValue, retrievedArrayBuffer) {
 }
 
 function validateStreamFromPartialString(reader, expectedValue, retrievedArrayBuffer) {
-  return reader.read().then(function(data) {
+  // Passing Uint8Array for byte streams; non-byte streams will simply ignore it
+  return reader.read(new Uint8Array(64)).then(function(data) {
     if (!data.done) {
       assert_true(data.value instanceof Uint8Array, "Fetch ReadableStream chunks should be Uint8Array");
       var newBuffer;

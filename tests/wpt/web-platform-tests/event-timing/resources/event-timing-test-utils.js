@@ -327,7 +327,7 @@ function addListeners(element, events) {
 
 // The testdriver.js, testdriver-vendor.js and testdriver-actions.js need to be
 // included to use this function.
-function tap(element) {
+async function tap(element) {
   return new test_driver.Actions()
     .addPointer("touchPointer", "touch")
     .pointerMove(0, 0, { origin: element })
@@ -351,8 +351,9 @@ async function addListenersAndPress(element, key, events) {
 
 // The testdriver.js, testdriver-vendor.js need to be included to use this
 // function.
-function addListenersAndClick(element) {
-  addListeners(element, ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click']);
+async function addListenersAndClick(element) {
+  addListeners(element,
+    ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click']);
   return test_driver.click(element);
 }
 
@@ -366,20 +367,22 @@ function filterAndAddToMap(events, map) {
   }
 }
 
-function createPerformanceObserverPromise(observeTypes, callback, readyToResolve) {
+async function createPerformanceObserverPromise(observeTypes, callback, readyToResolve
+) {
   return new Promise(resolve => {
     new PerformanceObserver(entryList => {
       callback(entryList);
 
-      if (readyToResolve())
+      if (readyToResolve()) {
         resolve();
+      }
     }).observe({ entryTypes: observeTypes });
   });
 }
 
 // The testdriver.js, testdriver-vendor.js need to be included to use this
 // function.
-function interactAndObserve(interactionType, element, observerPromise) {
+async function interactAndObserve(interactionType, element, observerPromise) {
   let interactionPromise;
   switch (interactionType) {
     case 'tap': {
@@ -388,10 +391,47 @@ function interactAndObserve(interactionType, element, observerPromise) {
       break;
     }
     case 'click': {
-      addListeners(element, ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click']);
+      addListeners(element,
+        ['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click']);
       interactionPromise = test_driver.click(element);
       break;
     }
   }
   return Promise.all([interactionPromise, observerPromise]);
+}
+
+async function interact(interactionType, element, key = '') {
+  switch (interactionType) {
+    case 'click': {
+      return test_driver.click(element);
+    }
+    case 'tap': {
+      return tap(element);
+    }
+    case 'key': {
+      return test_driver.send_keys(element, key);
+    }
+  }
+}
+
+async function verifyInteractionCount(t, expectedCount) {
+  await t.step_wait(() => {
+    return performance.interactionCount >= expectedCount;
+  }, 'interactionCount did not increase enough', 10000, 5);
+  assert_equals(performance.interactionCount, expectedCount,
+    'interactionCount increased more than expected');
+}
+
+function interactionCount_test(interactionType, elements, key = '') {
+  return promise_test(async t => {
+    assert_implements(window.PerformanceEventTiming,
+      'Event Timing is not supported');
+    assert_equals(performance.interactionCount, 0, 'Initial count is not 0');
+
+    let expectedCount = 1;
+    for (let element of elements) {
+      await interact(interactionType, element, key);
+      await verifyInteractionCount(t, expectedCount++);
+    }
+  }, `EventTiming: verify interactionCount for ${interactionType} interaction`);
 }

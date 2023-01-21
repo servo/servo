@@ -82,13 +82,13 @@ promise_test(async t => {
   };
 
   let mocked_response = [
-    { unhashedAppIdPath: url_1, resultCode: AddCallResultCode.EXPECTED_APP_ID_CHECK_FAILED },
-    { unhashedAppIdPath: url_2, resultCode: AddCallResultCode.INSTALL_URL_INVALID }
+    { unhashedAppIdPath: url_1, resultCode: Status.FAILURE },
+    { unhashedAppIdPath: url_2, resultCode: Status.FAILURE }
   ];
 
   let expected_results = {
-    [url_1]: "expected-app-id-check-failed",
-    [url_2]: "install-url-invalid",
+    [url_1]: "failure",
+    [url_2]: "failure",
   };
 
   await test_driver.bless("installing a subapp", async function () {
@@ -106,13 +106,13 @@ promise_test(async t => {
   };
 
   let mocked_response = [
-    { unhashedAppIdPath: url_1, resultCode: AddCallResultCode.SUCCESS_NEW_INSTALL },
-    { unhashedAppIdPath: url_2, resultCode: AddCallResultCode.EXPECTED_APP_ID_CHECK_FAILED }
+    { unhashedAppIdPath: url_1, resultCode: Status.SUCCESS },
+    { unhashedAppIdPath: url_2, resultCode: Status.FAILURE }
   ];
 
   let expected_results = {
-    [url_1]: "success-new-install",
-    [url_2]: "expected-app-id-check-failed",
+    [url_1]: "success",
+    [url_2]: "failure",
   };
 
   await test_driver.bless("installing a subapp", async function () {

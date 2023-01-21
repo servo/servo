@@ -80,6 +80,16 @@ export class MockFederatedAuthRequest {
     this.pendingPromiseResolve_ = null;
   }
 
+  // Implements
+  //   RequestUserInfo(IdentityProviderGetParameters idp_get_param) =>
+  //                    (RequestUserInfoStatus status, array<IdentityUserInfo>? user_info);
+  async requestUserInfo(idp_get_param) {
+    return Promise.resolve({
+      status: "",
+      user_info: ""
+    });
+  }
+
   async logoutRps(logout_endpoints) {
     return Promise.resolve({
       status: this.logoutRpsStatus_

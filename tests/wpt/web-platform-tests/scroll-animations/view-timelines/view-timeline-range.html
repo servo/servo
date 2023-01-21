@@ -86,6 +86,9 @@
       startOffset: 650,
       endOffset: 800
     });
+  }, 'View timeline with range as <name> <percent> pair.' );
+
+  promise_test(async t => {
     await runTimelineRangeTest(t, {
       rangeStart: { rangeName: 'enter' },
       rangeEnd: { rangeName: 'exit' },
@@ -98,6 +101,52 @@
       startOffset: 600,
       endOffset: 900
     });
+  }, 'View timeline with range and inferred name or offset.' );
 
-  }, 'View timeline with range set via delays.' );
+  promise_test(async t => {
+    await runTimelineRangeTest(t, {
+      rangeStart: { rangeName: 'cover', offset: CSS.px(20) } ,
+      rangeEnd: { rangeName: 'cover', offset: CSS.px(100) },
+      startOffset: 620,
+      endOffset: 700
+    });
+
+    await runTimelineRangeTest(t, {
+      rangeStart: { rangeName: 'contain', offset: CSS.px(20) } ,
+      rangeEnd: { rangeName: 'contain', offset: CSS.px(100) },
+      startOffset: 720,
+      endOffset: 800
+    });
+
+    await runTimelineRangeTest(t, {
+      rangeStart: { rangeName: 'enter', offset: CSS.px(20) } ,
+      rangeEnd: { rangeName: 'enter', offset: CSS.px(100) },
+      startOffset: 620,
+      endOffset: 700
+    });
+
+    await runTimelineRangeTest(t, {
+      rangeStart: { rangeName: 'exit', offset: CSS.px(20) } ,
+      rangeEnd: { rangeName: 'exit', offset: CSS.px(80) },
+      startOffset: 820,
+      endOffset: 880
+    });
+
+  }, 'View timeline with range as <name> <px> pair.' );
+
+  promise_test(async t => {
+    await runTimelineRangeTest(t, {
+      rangeStart: {
+        rangeName: 'contain',
+        offset: new CSSMathSum(CSS.percent(0), CSS.px(20))
+      },
+      rangeEnd: {
+        rangeName: 'contain',
+        offset: new CSSMathSum(CSS.percent(100), CSS.px(-10))
+      },
+      startOffset: 720,
+      endOffset: 790
+    });
+
+  }, 'View timeline with range as <name> <percent+px> pair.' );
 </script>

@@ -20,35 +20,37 @@ var blob = new Blob([textData], { "type" : "text/plain" });
 var urlSearchParamsData = "name=value";
 var urlSearchParams = new URLSearchParams(urlSearchParamsData);
 
-promise_test(function(test) {
-    var response = new Response(blob);
-    return validateStreamFromString(response.body.getReader(), textData);
-}, "Read blob response's body as readableStream");
+for (const mode of [undefined, "byob"]) {
+    promise_test(function(test) {
+        var response = new Response(blob);
+        return validateStreamFromString(response.body.getReader({ mode }), textData);
+    }, `Read blob response's body as readableStream with mode=${mode}`);
 
-promise_test(function(test) {
-    var response = new Response(textData);
-    return validateStreamFromString(response.body.getReader(), textData);
-}, "Read text response's body as readableStream");
+    promise_test(function(test) {
+        var response = new Response(textData);
+        return validateStreamFromString(response.body.getReader({ mode }), textData);
+    }, `Read text response's body as readableStream with mode=${mode}`);
 
-promise_test(function(test) {
-    var response = new Response(urlSearchParams);
-    return validateStreamFromString(response.body.getReader(), urlSearchParamsData);
-}, "Read URLSearchParams response's body as readableStream");
+    promise_test(function(test) {
+        var response = new Response(urlSearchParams);
+        return validateStreamFromString(response.body.getReader({ mode }), urlSearchParamsData);
+    }, `Read URLSearchParams response's body as readableStream with mode=${mode}`);
 
-promise_test(function(test) {
-    var arrayBuffer = new ArrayBuffer(textData.length);
-    var int8Array = new Int8Array(arrayBuffer);
-    for (var cptr = 0; cptr < textData.length; cptr++)
-        int8Array[cptr] = textData.charCodeAt(cptr);
+    promise_test(function(test) {
+        var arrayBuffer = new ArrayBuffer(textData.length);
+        var int8Array = new Int8Array(arrayBuffer);
+        for (var cptr = 0; cptr < textData.length; cptr++)
+            int8Array[cptr] = textData.charCodeAt(cptr);
 
-    return validateStreamFromString(new Response(arrayBuffer).body.getReader(), textData);
-}, "Read array buffer response's body as readableStream");
+        return validateStreamFromString(new Response(arrayBuffer).body.getReader({ mode }), textData);
+    }, `Read array buffer response's body as readableStream with mode=${mode}`);
 
-promise_test(function(test) {
-    var response = new Response(formData);
-    return validateStreamFromPartialString(response.body.getReader(),
-      "Content-Disposition: form-data; name=\"name\"\r\n\r\nvalue");
-}, "Read form data response's body as readableStream");
+    promise_test(function(test) {
+        var response = new Response(formData);
+        return validateStreamFromPartialString(response.body.getReader({ mode }),
+        "Content-Disposition: form-data; name=\"name\"\r\n\r\nvalue");
+    }, `Read form data response's body as readableStream with mode=${mode}`);
+}
 
 test(function() {
     assert_equals(Response.error().body, null);

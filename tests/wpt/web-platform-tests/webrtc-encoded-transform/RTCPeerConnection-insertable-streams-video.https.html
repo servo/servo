@@ -133,6 +133,16 @@ promise_test(async t => {
   return testVideoFlow(t, exchangeOfferAnswerReverse);
 }, 'Frames flow correctly using insertable streams when receiver starts negotiation');
 
+promise_test(async t => {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const track = stream.getTracks()[0];
+  t.add_cleanup(() => track.stop());
+  const sender = caller.addTrack(track)
+  sender.createEncodedStreams();
+  assert_throws_dom("InvalidStateError", () => sender.createEncodedStreams());
+}, 'Creating streams twice throws');
 
 </script>
 </body>

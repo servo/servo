@@ -20,7 +20,7 @@ interface mixin ARIAMixin {
   [CEReactions] attribute DOMString? ariaDescription;
   [CEReactions] attribute FrozenArray<Element>? ariaDetailsElements;
   [CEReactions] attribute DOMString? ariaDisabled;
-  [CEReactions] attribute Element? ariaErrorMessageElement;
+  [CEReactions] attribute FrozenArray<Element>? ariaErrorMessageElements;
   [CEReactions] attribute DOMString? ariaExpanded;
   [CEReactions] attribute FrozenArray<Element>? ariaFlowToElements;
   [CEReactions] attribute DOMString? ariaHasPopup;
