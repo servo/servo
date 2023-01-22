@@ -38,7 +38,9 @@ export function makeCleanup(
 ) {
   return async () => {
     if (initialOrientation) {
-      await screen.orientation.lock(initialOrientation);
+      try {
+        await screen.orientation.lock(initialOrientation);
+      } catch {}
     }
     screen.orientation.unlock();
     requestAnimationFrame(async () => {

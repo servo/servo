@@ -12,6 +12,7 @@ def main(request, response):
     output = b"HTTP/1.1 200 OK\r\n"
     output += b"Content-Length: " + isomorphic_encode(str(len(content))) + b"\r\n"
     output += b"Content-Type: " + request.GET.first(b"type") + b"\r\n"
+    output += b"Connection: close\r\n"
     output += b"\r\n"
     output += content
     response.writer.write(output)

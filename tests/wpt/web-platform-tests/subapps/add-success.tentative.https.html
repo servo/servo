@@ -16,11 +16,11 @@ promise_test(async t => {
   };
 
   let mocked_response = [
-    { unhashedAppIdPath: install_url, resultCode: AddCallResultCode.SUCCESS_NEW_INSTALL }
+    { unhashedAppIdPath: install_url, resultCode: Status.SUCCESS }
   ];
 
   let expected_results = {
-    [install_url]: "success-new-install"
+    [install_url]: "success"
   };
 
   await test_driver.bless("installing a subapp", async function () {
@@ -38,13 +38,13 @@ promise_test(async t => {
   };
 
   let mocked_response = [
-    { unhashedAppIdPath: url_1, resultCode: AddCallResultCode.SUCCESS_NEW_INSTALL },
-    { unhashedAppIdPath: url_2, resultCode: AddCallResultCode.SUCCESS_NEW_INSTALL }
+    { unhashedAppIdPath: url_1, resultCode: Status.SUCCESS },
+    { unhashedAppIdPath: url_2, resultCode: Status.SUCCESS }
   ];
 
   let expected_results = {
-    [url_1]: "success-new-install",
-    [url_2]: "success-new-install",
+    [url_1]: "success",
+    [url_2]: "success",
   };
 
 

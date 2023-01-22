@@ -27,7 +27,8 @@ promise_test(async t => {
         headers: [],
       });
 
-  const redirectUrl = `${ORIGIN}/common/redirect.py?location=${encodeURIComponent(saveUrl)}`;
+  const redirectUrl =
+      `${ORIGIN}/common/redirect.py?location=${encodeURIComponent(saveUrl)}`;
   // Replace the history state.
   await rc1.executeScript((url) => {
     window.history.replaceState(null, '', url);
@@ -43,8 +44,7 @@ promise_test(async t => {
     return performance.getEntriesByType('navigation')[0];
   });
   assert_equals(
-    navigation_entry.redirectCount, 1,
-    'Expected redirectCount is 1.');
+      navigation_entry.redirectCount, 1, 'Expected redirectCount is 1.');
   // Becauase of the redirect, notRestoredReasons is reset.
   assert_equals(
       navigation_entry.notRestoredReasons, null,

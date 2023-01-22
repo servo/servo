@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: view-transition-name non-none value is a backdrop filter root (ref)</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+.background {
+  background: cyan;
+  width: 200px;
+  height: 200px;
+}
+.shared {
+  background: blue;
+  position: relative;
+  left: 50px;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+  will-change: opacity;
+}
+.filter {
+  backdrop-filter: invert(1);
+  position: relative;
+  left: -50px;
+  top: 30px;
+  width: 200px;
+  height: 40px;
+}
+</style>
+
+<div class=background>
+  <div class=shared>
+    <div class=filter></div>
+  </div>
+</div>
+

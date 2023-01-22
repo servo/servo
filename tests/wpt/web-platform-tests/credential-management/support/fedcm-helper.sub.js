@@ -1,4 +1,4 @@
-const alt_manifest_origin = 'https://{{hosts[alt][]}}:{{ports[https][0]}}';
+export const alt_manifest_origin = 'https://{{hosts[alt][]}}:{{ports[https][0]}}';
 
 // Set the identity provider cookie.
 export function set_fedcm_cookie(host) {

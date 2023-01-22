@@ -8,21 +8,12 @@
 
 let mockSubAppsService = null;
 
+// TODO(crbug.com/1408101): Figure out how to export SubAppsServiceResult (and
+// get rid of this).
 const Status = {
   SUCCESS: 0,
   FAILURE: 1,
 };
-
-const AddCallResultCode = {
-  SUCCESS_NEW_INSTALL: 0,
-  SUCCESS_ALREADY_INSTALLED: 1,
-  USER_INSTALL_DECLINED: 2,
-  EXPECTED_APP_ID_CHECK_FAILED: 3,
-  PARENT_APP_UNINSTALLED: 4,
-  INSTALL_URL_INVALID: 5,
-  NOT_VALID_MANIFEST_FOR_WEB_APP: 6,
-  FAILURE: 7,
-}
 
 async function createMockSubAppsService(service_result_code, add_call_return_value, list_call_return_value) {
   if (typeof SubAppsServiceTest === 'undefined') {
@@ -70,14 +61,14 @@ async function subapps_add_expect_reject_with_result(t, add_call_params, mocked_
   });
 
   await createMockSubAppsService(Status.FAILURE, mocked_response, []);
-  await navigator.subApps.add(add_call_params)
-    .then(result => {
-      assert_unreached("Should have rejected.");
-    })
-    .catch(result => {
+  await navigator.subApps.add(add_call_params).then(
+    result => {
+      assert_unreached("Should have rejected: ", result);
+    },
+    error => {
       for (const app_id in expected_results) {
-        assert_own_property(result, app_id, "Return results are missing entry for subapp.")
-        assert_equals(result[app_id], expected_results[app_id], "Return results are not as expected.")
+        assert_own_property(error, app_id, "Return results are missing entry for subapp.")
+        assert_equals(error[app_id], expected_results[app_id], "Return results are not as expected.")
       }
     });
 }
@@ -89,11 +80,10 @@ async function subapps_add_expect_success_with_result(t, add_call_params, mocked
   });
 
   await createMockSubAppsService(Status.SUCCESS, mocked_response);
-  await navigator.subApps.add(add_call_params)
-    .then(result => {
-      for (const app_id in expected_results) {
-        assert_own_property(result, app_id, "Return results are missing entry for subapp.")
-        assert_equals(result[app_id], expected_results[app_id], "Return results are not as expected.")
-      }
-    })
+  await navigator.subApps.add(add_call_params).then(result => {
+    for (const app_id in expected_results) {
+      assert_own_property(result, app_id, "Return results are missing entry for subapp.")
+      assert_equals(result[app_id], expected_results[app_id], "Return results are not as expected.")
+    }
+  });
 }
