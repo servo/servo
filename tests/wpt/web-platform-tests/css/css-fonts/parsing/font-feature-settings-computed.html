@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <title>CSS Fonts Module Level 3: getComputedStyle().fontFeatureSettings</title>
 <link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
-<meta name="assert" content="font-feature-settings computed value is as specified.">
+<meta name="assert" content="The computed value of font-feature-settings is a map, so any duplicates in the specified value must not be preserved.">
+<!-- Note that this conflicts with the computed value being "as specified", which the summary shows.
+     See https://github.com/w3c/csswg-drafts/issues/8296#issuecomment-1377622802 -->
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
@@ -18,11 +20,13 @@ test_computed_value('font-feature-settings', '"dlig"');
 test_computed_value('font-feature-settings', '"smcp"');
 test_computed_value('font-feature-settings', '"c2sc"');
 test_computed_value('font-feature-settings', '"liga" 0');
-test_computed_value('font-feature-settings', '"tnum", "hist"');
+test_computed_value('font-feature-settings', '"tnum", "hist"',
+                    ['"tnum", "hist"', '"hist", "tnum"']);
 
 test_computed_value('font-feature-settings', '"PKRN"');
 
-test_computed_value('font-feature-settings', '"dlig", "smcp", "dlig" 0');
+test_computed_value('font-feature-settings', '"dlig", "smcp", "dlig" 0',
+                    ['"smcp", "dlig" 0', '"dlig" 0, "smcp"']);
 </script>
 </body>
 </html>

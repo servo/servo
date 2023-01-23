@@ -8,7 +8,8 @@
 <body>
 
 <script type="module">
-import {default_request_options,
+import {alt_manifest_origin,
+        default_request_options,
         default_alt_request_options,
         fedcm_test,
         select_manifest,
@@ -21,6 +22,16 @@ function loadUrlInIframe(url) {
     iframe.onload = function() { resolve(iframe); };
     document.body.appendChild(iframe);
   });
+}
+
+async function createIframeWithPermissionPolicyAndWaitForMessage(test, iframeUrl) {
+    const messageWatcher = new EventWatcher(test, window, "message");
+    let iframe = document.createElement("iframe");
+    iframe.src = iframeUrl;
+    iframe.allow = "identity-credentials-get";
+    document.body.appendChild(iframe);
+    const message = await messageWatcher.wait_for("message");
+    return message.data;
 }
 
 fedcm_test(async t => {
@@ -188,5 +199,45 @@ fedcm_test(async t => {
   let query_sw_iframe2 = await loadUrlInIframe(query_sw_intercepts_url + "?2");
   assert_equals(query_sw_iframe2.contentDocument.body.textContent, "1");
 }, 'Test that service worker cannot observe fetches performed by FedCM API');
+
+fedcm_test(async t => {
+  const cred = await navigator.credentials.get(default_alt_request_options());
+  assert_equals(cred.token, "token");
+
+  const iframe_in_idp_scope = `${alt_manifest_origin}/\
+credential-management/support/fedcm/userinfo-iframe.html`;
+  const message = await createIframeWithPermissionPolicyAndWaitForMessage(t, iframe_in_idp_scope);
+  assert_equals(message.result, "Pass");
+  assert_equals(message.numAccounts, 1);
+  assert_equals(message.firstAccountEmail, "john_doe@idp.example");
+}, 'Test basic User InFo API flow');
+
+fedcm_test(async t => {
+  const cred = await navigator.credentials.get(default_alt_request_options());
+  assert_equals(cred.token, "token");
+
+  const iframe_in_idp_scope = `support/fedcm/userinfo-iframe.html`;
+  const message = await createIframeWithPermissionPolicyAndWaitForMessage(t, iframe_in_idp_scope);
+  assert_equals(message.result, "Fail");
+}, 'Test that User Info API only works when invoked from iframe that is same origin as the IDP');
+
+fedcm_test(async t => {
+  const cred = await navigator.credentials.get(default_alt_request_options());
+  assert_equals(cred.token, "token");
+
+  try {
+   const manifest_path = `${alt_manifest_origin}/\
+credential-management/support/fedcm/manifest.py`;
+    const user_info = await IdentityProvider.getUserInfo({
+      configURL: manifest_path,
+      // Approved client
+      clientId: '123',
+    });
+    assert_unreached("Failure message");
+  } catch (error) {
+    assert_equals(error.message, "UserInfo request must be initiated from a frame that is the same origin with the provider.");
+    // Expect failure
+  }
+}, 'Test that User Info API does not work in the top frame');
 
 </script>

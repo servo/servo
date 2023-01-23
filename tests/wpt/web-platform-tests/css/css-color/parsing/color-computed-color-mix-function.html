@@ -81,13 +81,6 @@
     test_computed_value(`color`, `color-mix(in hsl decreasing hue, hsl(20deg 50% 50%), hsl(320deg 50% 50%))`, canonicalize(`hsl(350deg 50% 50%)`));
     test_computed_value(`color`, `color-mix(in hsl decreasing hue, hsl(320deg 50% 50%), hsl(20deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
 
-    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
-    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, canonicalize(`hsl(50deg 50% 50%)`));
-    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(50deg 50% 50%), hsl(330deg 50% 50%))`, canonicalize(`hsl(190deg 50% 50%)`));
-    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(330deg 50% 50%), hsl(50deg 50% 50%))`, canonicalize(`hsl(190deg 50% 50%)`));
-    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(20deg 50% 50%), hsl(320deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
-    test_computed_value(`color`, `color-mix(in hsl specified hue, hsl(320deg 50% 50%), hsl(20deg 50% 50%))`, canonicalize(`hsl(170deg 50% 50%)`));
-
     test_computed_value(`color`, `color-mix(in hsl, hsl(none none none), hsl(none none none))`, canonicalize(`hsl(none none none)`));
     test_computed_value(`color`, `color-mix(in hsl, hsl(none none none), hsl(30deg 40% 80%))`, canonicalize(`hsl(30deg 40% 80%)`));
     test_computed_value(`color`, `color-mix(in hsl, hsl(120deg 20% 40%), hsl(none none none))`, canonicalize(`hsl(120deg 20% 40%)`));
@@ -165,13 +158,6 @@
     test_computed_value(`color`, `color-mix(in hwb decreasing hue, hwb(20deg 30% 40%), hwb(320deg 30% 40%))`, canonicalize(`hwb(350deg 30% 40%)`));
     test_computed_value(`color`, `color-mix(in hwb decreasing hue, hwb(320deg 30% 40%), hwb(20deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
 
-    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(40deg 30% 40%), hwb(60deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
-    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(60deg 30% 40%), hwb(40deg 30% 40%))`, canonicalize(`hwb(50deg 30% 40%)`));
-    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(50deg 30% 40%), hwb(330deg 30% 40%))`, canonicalize(`hwb(190deg 30% 40%)`));
-    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(330deg 30% 40%), hwb(50deg 30% 40%))`, canonicalize(`hwb(190deg 30% 40%)`));
-    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(20deg 30% 40%), hwb(320deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
-    test_computed_value(`color`, `color-mix(in hwb specified hue, hwb(320deg 30% 40%), hwb(20deg 30% 40%))`, canonicalize(`hwb(170deg 30% 40%)`));
-
     test_computed_value(`color`, `color-mix(in hwb, hwb(none none none), hwb(none none none))`, canonicalize(`hwb(none none none)`));
     test_computed_value(`color`, `color-mix(in hwb, hwb(none none none), hwb(30deg 30% 40%))`, canonicalize(`hwb(30deg 30% 40%)`));
     test_computed_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%), hwb(none none none))`, canonicalize(`hwb(120deg 10% 20%)`));
@@ -247,13 +233,6 @@
         test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100 0 330deg), ${colorSpace}(100 0 50deg))`, `${colorSpace}(100 0 190)`);
         test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100 0 20deg), ${colorSpace}(100 0 320deg))`, `${colorSpace}(100 0 350)`);
         test_computed_value(`color`, `color-mix(in ${colorSpace} decreasing hue, ${colorSpace}(100 0 320deg), ${colorSpace}(100 0 20deg))`, `${colorSpace}(100 0 170)`);
-
-        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100 0 40deg), ${colorSpace}(100 0 60deg))`, `${colorSpace}(100 0 50)`);
-        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100 0 60deg), ${colorSpace}(100 0 40deg))`, `${colorSpace}(100 0 50)`);
-        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100 0 50deg), ${colorSpace}(100 0 330deg))`, `${colorSpace}(100 0 190)`);
-        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100 0 330deg), ${colorSpace}(100 0 50deg))`, `${colorSpace}(100 0 190)`);
-        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100 0 20deg), ${colorSpace}(100 0 320deg))`, `${colorSpace}(100 0 170)`);
-        test_computed_value(`color`, `color-mix(in ${colorSpace} specified hue, ${colorSpace}(100 0 320deg), ${colorSpace}(100 0 20deg))`, `${colorSpace}(100 0 170)`);
 
         test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(none none none), ${colorSpace}(none none none))`, `${colorSpace}(none none none)`);
         test_computed_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(none none none), ${colorSpace}(50 60 70deg))`, `${colorSpace}(50 60 70)`);
