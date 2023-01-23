@@ -2,12 +2,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import grouping_formatter
+import json
 import os
 import sys
+import urllib.parse
+import urllib.request
 
-import grouping_formatter
 import mozlog
+import mozlog.formatters
 import multiprocessing
+
+from typing import List
+from grouping_formatter import UnexpectedResult
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
@@ -15,8 +22,12 @@ WPT_TOOLS_PATH = os.path.join(SCRIPT_PATH, "web-platform-tests", "tools")
 CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
 
 sys.path.insert(0, WPT_TOOLS_PATH)
-import update  # noqa: F401,E402
 import localpaths  # noqa: F401,E402
+import update  # noqa: F401,E402
+
+TRACKER_API = "https://build.servo.org/intermittent-tracker"
+TRACKER_API_ENV_VAR = "INTERMITTENT_TRACKER_API"
+GITHUB_API_TOKEN_ENV_VAR = "INTERMITTENT_TRACKER_GITHUB_API_TOKEN"
 
 
 def determine_build_type(kwargs: dict, target_dir: str):
@@ -109,16 +120,14 @@ def run_tests(**kwargs):
         product = kwargs.get("product") or "servo"
         kwargs["test_types"] = test_types[product]
 
+    filter_intermittents_output = kwargs.pop("filter_intermittents", None)
+
     wptcommandline.check_args(kwargs)
     update_args_for_layout_2020(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
         grouping_formatter.ServoFormatter,
         "Servo's grouping output formatter",
-    )
-    mozlog.commandline.log_formatters["servojson"] = (
-        grouping_formatter.ServoJsonFormatter,
-        "Servo's JSON logger of unexpected results",
     )
 
     use_mach_logging = False
@@ -128,12 +137,22 @@ def run_tests(**kwargs):
             use_mach_logging = True
 
     if use_mach_logging:
-        wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
+        logger = wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
     else:
-        wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
+        logger = wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
 
-    success = wptrunner.run_tests(**kwargs)
-    return 0 if success else 1
+    handler = grouping_formatter.ServoHandler()
+    logger.add_handler(handler)
+
+    wptrunner.run_tests(**kwargs)
+    if handler.unexpected_results and filter_intermittents_output:
+        all_filtered = filter_intermittents(
+            handler.unexpected_results,
+            filter_intermittents_output,
+        )
+        return 0 if all_filtered else 1
+    else:
+        return 0 if not handler.unexpected_results else 1
 
 
 def update_tests(**kwargs):
@@ -148,6 +167,81 @@ def update_tests(**kwargs):
     logger = update.setup_logging(kwargs, {"mach": sys.stdout})
     return_value = update.run_update(logger, **kwargs)
     return 1 if return_value is update.exit_unclean else 0
+
+
+class TrackerFilter():
+    def __init__(self):
+        self.url = os.environ.get(TRACKER_API_ENV_VAR, TRACKER_API)
+        if self.url.endswith("/"):
+            self.url = self.url[0:-1]
+
+    def is_failure_intermittent(self, test_name):
+        query = urllib.parse.quote(test_name, safe='')
+        request = urllib.request.Request("%s/query.py?name=%s" % (self.url, query))
+        search = urllib.request.urlopen(request)
+        return len(json.load(search)) > 0
+
+
+class GitHubQueryFilter():
+    def __init__(self, token):
+        self.token = token
+
+    def is_failure_intermittent(self, test_name):
+        url = "https://api.github.com/search/issues?q="
+        query = "repo:servo/servo+" + \
+            "label:I-intermittent+" + \
+            "type:issue+" + \
+            "state:open+" + \
+            test_name
+
+        # we want `/` to get quoted, but not `+` (github's API doesn't like
+        # that), so we set `safe` to `+`
+        url += urllib.parse.quote(query, safe="+")
+
+        request = urllib.request.Request(url)
+        request.add_header("Authorization", f"Bearer: {self.token}")
+        request.add_header("Accept", "application/vnd.github+json")
+        return json.load(
+            urllib.request.urlopen(request)
+        )["total_count"] > 0
+
+
+def filter_intermittents(
+    unexpected_results: List[UnexpectedResult],
+    output_file: str
+) -> bool:
+    print(80 * "=")
+    print(f"Filtering {len(unexpected_results)} unexpected "
+          "results for known intermittents")
+    if GITHUB_API_TOKEN_ENV_VAR in os.environ:
+        filter = GitHubQueryFilter(os.environ.get(GITHUB_API_TOKEN_ENV_VAR))
+    else:
+        filter = TrackerFilter()
+
+    intermittents = []
+    actually_unexpected = []
+    for i, result in enumerate(unexpected_results):
+        print(f" [{i}/{len(unexpected_results)}]", file=sys.stderr, end="\r")
+        if filter.is_failure_intermittent(result.test_name):
+            intermittents.append(result)
+        else:
+            actually_unexpected.append(result)
+
+    output = "\n".join([
+        f"{len(intermittents)} known-intermittent unexpected result",
+        *[result.output.strip() for result in intermittents],
+        "",
+        f"{len(actually_unexpected)} unexpected results that are NOT known-intermittents",
+        *[result.output.strip() for result in actually_unexpected],
+    ])
+
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as file:
+            file.write(output)
+
+    print(output)
+    print(80 * "=")
+    return not actually_unexpected
 
 
 def main():

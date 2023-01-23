@@ -17,9 +17,6 @@ import os.path as path
 import copy
 from collections import OrderedDict
 import time
-import json
-import six.moves.urllib as urllib
-import base64
 import shutil
 import subprocess
 from xml.etree.ElementTree import XML
@@ -47,6 +44,9 @@ SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
+
+sys.path.insert(0, os.path.join(PROJECT_TOPLEVEL_PATH, 'tests', 'wpt'))
+import servowpt  # noqa: E402
 
 CLANGFMT_CPP_DIRS = ["support/hololens/"]
 CLANGFMT_VERSION = "14"
@@ -83,7 +83,10 @@ def create_parser_wpt():
     parser.add_argument('--always-succeed', default=False, action="store_true",
                         help="Always yield exit code of zero")
     parser.add_argument('--no-default-test-types', default=False, action="store_true",
-                        help="Run all of the test types provided by wptrunner or specified explicitly by --test-types"),
+                        help="Run all of the test types provided by wptrunner or specified explicitly by --test-types")
+    parser.add_argument('--filter-intermittents', default=None, action="store",
+                        help="Filter intermittents against known intermittents "
+                             "and save the filtered output to the given file.")
     return parser
 
 
@@ -427,9 +430,6 @@ class MachCommands(CommandBase):
 
     def _test_wpt(self, android=False, **kwargs):
         self.set_run_env(android)
-
-        sys.path.insert(0, os.path.join(PROJECT_TOPLEVEL_PATH, 'tests', 'wpt'))
-        import servowpt
         return servowpt.run_tests(**kwargs)
 
     # Helper to ensure all specified paths are handled, otherwise dispatch to appropriate test suite.
@@ -477,114 +477,7 @@ class MachCommands(CommandBase):
         if not patch and kwargs["sync"]:
             print("Are you sure you don't want a patch?")
             return 1
-
-        sys.path.insert(0, os.path.join(PROJECT_TOPLEVEL_PATH, 'tests', 'wpt'))
-        import servowpt
         return servowpt.update_tests(**kwargs)
-
-    @Command('filter-intermittents',
-             description='Given a WPT error summary file, filter out intermittents and other cruft.',
-             category='testing')
-    @CommandArgument('summary',
-                     help="Error summary log to take in")
-    @CommandArgument('--log-filteredsummary', default=None,
-                     help='Print filtered log to file')
-    @CommandArgument('--log-intermittents', default=None,
-                     help='Print intermittents to file')
-    @CommandArgument('--json', dest="json_mode", default=False, action="store_true",
-                     help='Output filtered and intermittents as JSON')
-    @CommandArgument('--auth', default=None,
-                     help='File containing basic authorization credentials for Github API (format `username:password`)')
-    @CommandArgument('--tracker-api', default=None, action='store',
-                     help='The API endpoint for tracking known intermittent failures.')
-    @CommandArgument('--reporter-api', default=None, action='store',
-                     help='The API endpoint for reporting tracked intermittent failures.')
-    def filter_intermittents(self,
-                             summary,
-                             log_filteredsummary,
-                             log_intermittents,
-                             json_mode,
-                             auth,
-                             tracker_api,
-                             reporter_api):
-        encoded_auth = None
-        if auth:
-            with open(auth, "r") as file:
-                encoded_auth = base64.encodestring(file.read().strip()).replace('\n', '')
-        failures = []
-        with open(summary, "r") as file:
-            failures = [json.loads(line) for line in file]
-        actual_failures = []
-        intermittents = []
-        progress = 0
-        for failure in failures:
-            if tracker_api:
-                if tracker_api == 'default':
-                    tracker_api = "https://build.servo.org/intermittent-tracker"
-                elif tracker_api.endswith('/'):
-                    tracker_api = tracker_api[0:-1]
-
-                if 'test' not in failure:
-                    continue
-                query = urllib.parse.quote(failure['test'], safe='')
-                request = urllib.request.Request("%s/query.py?name=%s" % (tracker_api, query))
-                search = urllib.request.urlopen(request)
-                data = json.load(search)
-                is_intermittent = len(data) > 0
-            else:
-                qstr = "repo:servo/servo+label:I-intermittent+type:issue+state:open+%s" % failure['test']
-                # we want `/` to get quoted, but not `+` (github's API doesn't like that), so we set `safe` to `+`
-                query = urllib.parse.quote(qstr, safe='+')
-                request = urllib.request.Request("https://api.github.com/search/issues?q=%s" % query)
-                if encoded_auth:
-                    request.add_header("Authorization", "Basic %s" % encoded_auth)
-                search = urllib.request.urlopen(request)
-                data = json.load(search)
-                is_intermittent = data['total_count'] > 0
-
-            progress += 1
-            print(f" [{progress}/{len(failures)}]", file=sys.stderr, end="\r")
-
-            if is_intermittent:
-                if json_mode:
-                    intermittents.append(failure)
-                elif 'output' in failure:
-                    intermittents.append(failure["output"])
-                else:
-                    intermittents.append("%s [expected %s] %s \n"
-                                         % (failure["status"], failure["expected"], failure['test']))
-            else:
-                if json_mode:
-                    actual_failures.append(failure)
-                elif 'output' in failure:
-                    actual_failures.append(failure["output"])
-                else:
-                    actual_failures.append("%s [expected %s] %s \n"
-                                           % (failure["status"], failure["expected"], failure['test']))
-
-        def format(outputs, description, file=sys.stdout):
-            if json_mode:
-                formatted = json.dumps(outputs)
-            else:
-                formatted = "%s %s:\n%s" % (len(outputs), description, "\n".join(outputs))
-            if file == sys.stdout:
-                file.write(formatted)
-            else:
-                file.write(formatted.encode("utf-8"))
-
-        if log_intermittents:
-            with open(log_intermittents, "wb") as file:
-                format(intermittents, "known-intermittent unexpected results", file)
-
-        description = "unexpected results that are NOT known-intermittents"
-        if log_filteredsummary:
-            with open(log_filteredsummary, "wb") as file:
-                format(actual_failures, description, file)
-
-        if actual_failures:
-            format(actual_failures, description)
-
-        return bool(actual_failures)
 
     @Command('test-android-startup',
              description='Extremely minimal testing of Servo for Android',
