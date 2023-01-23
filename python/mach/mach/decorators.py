@@ -112,7 +112,7 @@ def CommandProvider(cls):
 
     isfunc = inspect.ismethod if sys.version_info < (3, 0) else inspect.isfunction
     if isfunc(cls.__init__):
-        spec = inspect.getargspec(cls.__init__)
+        spec = inspect.getfullargspec(cls.__init__)
 
         if len(spec.args) > 2:
             msg = 'Mach @CommandProvider class %s implemented incorrectly. ' + \
