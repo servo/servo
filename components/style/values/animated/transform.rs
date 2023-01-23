@@ -257,22 +257,18 @@ impl Animate for Matrix {
         let other = Matrix3D::from(*other);
         let this = MatrixDecomposed2D::from(this);
         let other = MatrixDecomposed2D::from(other);
-        Ok(Matrix3D::from(this.animate(&other, procedure)?).into_2d()?)
+        Matrix3D::from(this.animate(&other, procedure)?).into_2d()
     }
 
     #[cfg(feature = "gecko")]
     // Gecko doesn't exactly follow the spec here; we use a different procedure
     // to match it
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let from = decompose_2d_matrix(&(*self).into());
-        let to = decompose_2d_matrix(&(*other).into());
-        match (from, to) {
-            (Ok(from), Ok(to)) => Matrix3D::from(from.animate(&to, procedure)?).into_2d(),
-            // Matrices can be undecomposable due to couple reasons, e.g.,
-            // non-invertible matrices. In this case, we should report Err here,
-            // and let the caller do the fallback procedure.
-            _ => Err(()),
-        }
+        let this = Matrix3D::from(*self);
+        let other = Matrix3D::from(*other);
+        let from = decompose_2d_matrix(&this)?;
+        let to = decompose_2d_matrix(&other)?;
+        Matrix3D::from(from.animate(&to, procedure)?).into_2d()
     }
 }
 
@@ -780,17 +776,14 @@ impl Animate for Matrix3D {
     // to match it
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let (from, to) = if self.is_3d() || other.is_3d() {
-            (decompose_3d_matrix(*self), decompose_3d_matrix(*other))
+            (decompose_3d_matrix(*self)?, decompose_3d_matrix(*other)?)
         } else {
-            (decompose_2d_matrix(self), decompose_2d_matrix(other))
+            (decompose_2d_matrix(self)?, decompose_2d_matrix(other)?)
         };
-        match (from, to) {
-            (Ok(from), Ok(to)) => Ok(Matrix3D::from(from.animate(&to, procedure)?)),
-            // Matrices can be undecomposable due to couple reasons, e.g.,
-            // non-invertible matrices. In this case, we should report Err here,
-            // and let the caller do the fallback procedure.
-            _ => Err(()),
-        }
+        // Matrices can be undecomposable due to couple reasons, e.g.,
+        // non-invertible matrices. In this case, we should report Err here,
+        // and let the caller do the fallback procedure.
+        Ok(Matrix3D::from(from.animate(&to, procedure)?))
     }
 }
 
@@ -1124,10 +1117,9 @@ impl ComputedTransformOperation {
     ) -> Result<Self, ()> {
         let (left, _left_3d) = Transform::components_to_transform_3d_matrix(left, None)?;
         let (right, _right_3d) = Transform::components_to_transform_3d_matrix(right, None)?;
-        ComputedTransformOperation::Matrix3D(left.into()).animate(
-            &ComputedTransformOperation::Matrix3D(right.into()),
-            procedure,
-        )
+        Ok(Self::Matrix3D(
+            Matrix3D::from(left).animate(&Matrix3D::from(right), procedure)?,
+        ))
     }
 
     fn animate_mismatched_transforms(
