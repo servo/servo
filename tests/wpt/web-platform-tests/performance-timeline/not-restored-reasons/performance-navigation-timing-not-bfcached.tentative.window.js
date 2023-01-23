@@ -28,9 +28,9 @@ promise_test(async t => {
       rc1,
       /*blocked=*/ true,
       /*url=*/ rc1_url,
-      /*src=*/ '',
-      /*id=*/ '',
-      /*name=*/ '',
+      /*src=*/ null,
+      /*id=*/ null,
+      /*name=*/ null,
       /*reasons=*/['WebSocket'],
       /*children=*/[]);
 });

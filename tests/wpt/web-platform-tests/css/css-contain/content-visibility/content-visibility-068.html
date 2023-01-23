@@ -48,7 +48,7 @@ async_test((t) => {
     });
 
     focusable.focus();
-    requestAnimationFrame(step2);
+    step_timeout(step2, 0);
   }
   // After focusing the subtree, the container should be somewhere closer than
   // 3000px (scrolled into view) and the height should be 10px, since it no

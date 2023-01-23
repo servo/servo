@@ -195,6 +195,17 @@ promise_test(async t => {
       streams.readable.pipeThrough(transformer).pipeTo(streams.writable));
 }, 'Enqueuing the same frame twice fails');
 
+promise_test(async t => {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const track = stream.getTracks()[0];
+  t.add_cleanup(() => track.stop());
+  const sender = caller.addTrack(track)
+  sender.createEncodedStreams();
+  assert_throws_dom("InvalidStateError", () => sender.createEncodedStreams());
+}, 'Creating streams twice throws');
+
 </script>
 </body>
 </html>
