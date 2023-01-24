@@ -29,7 +29,7 @@ var height = 'height=402,';
       e.source.close();
       assert_equals(data.width, 401);
     }));
-    var win = window.open(prefixedMessage.url(windowURL), '', height + features);
+    var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerWidth=401', '', height + features);
   }, `${format_value(features)} should set width of opened window`);
 });
 
@@ -46,7 +46,7 @@ var height = 'height=402,';
       e.source.close();
       assert_equals(data.height, 402);
     }));
-    var win = window.open(prefixedMessage.url(windowURL), '', width + features);
+    var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerHeight=402', '', width + features);
   }, `${format_value(features)} should set height of opened window`);
 });
 
@@ -64,7 +64,7 @@ var height = 'height=402,';
       assert_equals(data.height, 402);
       assert_equals(data.width, 401)
     }));
-    var win = window.open(prefixedMessage.url(windowURL), '', features);
+    var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerHeight=402&expected_innerWidth=401', '', features);
   }, `${format_value(features)} should set height and width of opened window`);
 });
 

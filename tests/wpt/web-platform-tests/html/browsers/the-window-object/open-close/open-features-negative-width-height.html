@@ -50,7 +50,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.width, baselineDimensions.width, `"${feature} is negative and should result in a minimally-wide window"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerWidth=' + baselineDimensions.width, '', featureString);
     }, `features "${feature}" should NOT set "width=404"`);
   });
 
@@ -67,7 +67,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.height, baselineDimensions.height, `"${feature} is negative and should result in a minimal-height window"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerHeight=' + baselineDimensions.height, '', featureString);
     }, `features "${feature}" should NOT set "height=404"`);
   });
 }

@@ -2,9 +2,12 @@
 <title>MediaStreamTrack transfer to iframe</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 promise_test(async () => {
   const iframe = document.createElement("iframe");
+  await test_driver.bless('getDisplayMedia');
   const stream = await navigator.mediaDevices.getDisplayMedia({video: true});
   const track = stream.getVideoTracks()[0];
   const cloned_track = track.clone();

@@ -44,7 +44,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.height, baselineDimensions.height, `"${feature} begins with an invalid character and should be ignored"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerHeight=' + baselineDimensions.height, '', featureString);
     }, `features "${feature}" should NOT set "height=404"`);
   });
 
@@ -67,7 +67,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.height, 405, `"${featureString} value after first non-digit will be ignored"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+      var win = window.open(prefixedMessage.url(windowURL) + "&expected_innerHeight=405", '', featureString);
     }, `features "${feature}" should set "height=405"`);
   });
 

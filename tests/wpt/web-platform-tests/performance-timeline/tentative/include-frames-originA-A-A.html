@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src=/common/get-host-info.sub.js></script>
+</head>
+
+<body>
+  <script>
+    const loadChildFrame = () => {
+      return new Promise(resolve => {
+
+        const childFrame = document.createElement('iframe');
+
+        window.addEventListener("message", (e) => {
+          resolve(e.data)
+        });
+
+        childFrame.src = "../resources/include-frames-subframe.html?origin=" + get_host_info().ORIGIN;
+
+        document.body.appendChild(childFrame);
+      });
+    }
+
+    promise_test(async () => {
+      performance.clearResourceTimings();
+
+      // Load a child frame. The child frame upon loading would load a child frame of its own.
+      childFrameEntrySize = await loadChildFrame();
+
+      // Verify the number of performance entries in the child frame.
+      assert_equals(childFrameEntrySize, 6, 'Child Frame should have 6 entries.');
+
+      const entries = performance.getEntries(true);
+
+      const navigationEntries = performance.getEntriesByType('navigation', true);
+
+      const markedEntries = performance.getEntriesByName('entry-name', undefined, true);
+
+
+      // 3 entries for parent, 4 for child, 2 for grandchild.
+      assert_equals(entries.length, 9, 'Total entries should be 9.');
+
+      // 1 entry for parent, 1 for child, 1 for grandchild.
+      assert_equals(navigationEntries.length, 3, 'Navigation entries should be 3.');
+
+      // 1 entry for child, 1 for grandchild.
+      assert_equals(markedEntries.length, 2, 'Mark entries should be 2.');
+
+    }, 'GetEntries of a document of origin A, its child frame of origin B and \
+    its grandchild frame of origin A.');
+  </script>
+</body>
