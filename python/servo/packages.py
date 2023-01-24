@@ -4,7 +4,7 @@
 
 WINDOWS_MSVC = {
     "cmake": "3.14.3",
-    "llvm": "14.0.6",
+    "llvm": "15.0.5",
     "moztools": "3.2",
     "ninja": "1.7.1",
     "nuget": "08-08-2019",
