@@ -96,31 +96,16 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
 
     /// Consumes the builder, producing a Selector.
     #[inline(always)]
-    pub fn build(
-        &mut self,
-        parsed_pseudo: bool,
-        parsed_slotted: bool,
-        parsed_part: bool,
-    ) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
+    pub fn build(&mut self) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
         // Compute the specificity and flags.
-        let specificity = specificity(self.simple_selectors.iter());
-        let mut flags = SelectorFlags::empty();
-        if parsed_pseudo {
-            flags |= SelectorFlags::HAS_PSEUDO;
-        }
-        if parsed_slotted {
-            flags |= SelectorFlags::HAS_SLOTTED;
-        }
-        if parsed_part {
-            flags |= SelectorFlags::HAS_PART;
-        }
-        self.build_with_specificity_and_flags(SpecificityAndFlags { specificity, flags })
+        let sf = specificity_and_flags(self.simple_selectors.iter());
+        self.build_with_specificity_and_flags(sf)
     }
 
     /// Builds with an explicit SpecificityAndFlags. This is separated from build() so
     /// that unit tests can pass an explicit specificity.
     #[inline(always)]
-    pub fn build_with_specificity_and_flags(
+    pub(crate) fn build_with_specificity_and_flags(
         &mut self,
         spec: SpecificityAndFlags,
     ) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
@@ -203,6 +188,7 @@ bitflags! {
         const HAS_PSEUDO = 1 << 0;
         const HAS_SLOTTED = 1 << 1;
         const HAS_PART = 1 << 2;
+        const HAS_PARENT = 1 << 3;
     }
 }
 
@@ -228,6 +214,11 @@ impl SpecificityAndFlags {
     }
 
     #[inline]
+    pub fn has_parent_selector(&self) -> bool {
+        self.flags.intersects(SelectorFlags::HAS_PARENT)
+    }
+
+    #[inline]
     pub fn is_slotted(&self) -> bool {
         self.flags.intersects(SelectorFlags::HAS_SLOTTED)
     }
@@ -241,7 +232,7 @@ impl SpecificityAndFlags {
 const MAX_10BIT: u32 = (1u32 << 10) - 1;
 
 #[derive(Add, AddAssign, Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-struct Specificity {
+pub(crate) struct Specificity {
     id_selectors: u32,
     class_like_selectors: u32,
     element_selectors: u32,
@@ -268,31 +259,40 @@ impl From<Specificity> for u32 {
     }
 }
 
-fn specificity<Impl>(iter: slice::Iter<Component<Impl>>) -> u32
+pub(crate) fn specificity_and_flags<Impl>(iter: slice::Iter<Component<Impl>>) -> SpecificityAndFlags
 where
     Impl: SelectorImpl,
 {
-    complex_selector_specificity(iter).into()
+    complex_selector_specificity_and_flags(iter).into()
 }
 
-fn complex_selector_specificity<Impl>(iter: slice::Iter<Component<Impl>>) -> Specificity
+fn complex_selector_specificity_and_flags<Impl>(
+    iter: slice::Iter<Component<Impl>>,
+) -> SpecificityAndFlags
 where
     Impl: SelectorImpl,
 {
-    fn simple_selector_specificity<Impl>(
+    fn component_specificity<Impl>(
         simple_selector: &Component<Impl>,
         specificity: &mut Specificity,
+        flags: &mut SelectorFlags,
     ) where
         Impl: SelectorImpl,
     {
         match *simple_selector {
-            Component::Combinator(..) => {
-                unreachable!("Found combinator in simple selectors vector?");
-            },
-            Component::Part(..) | Component::PseudoElement(..) | Component::LocalName(..) => {
+            Component::Combinator(..) => {},
+            Component::ParentSelector => flags.insert(SelectorFlags::HAS_PARENT),
+            Component::Part(..) => {
+                flags.insert(SelectorFlags::HAS_PART);
                 specificity.element_selectors += 1
             },
+            Component::PseudoElement(..) => {
+                flags.insert(SelectorFlags::HAS_PSEUDO);
+                specificity.element_selectors += 1
+            },
+            Component::LocalName(..) => specificity.element_selectors += 1,
             Component::Slotted(ref selector) => {
+                flags.insert(SelectorFlags::HAS_SLOTTED);
                 specificity.element_selectors += 1;
                 // Note that due to the way ::slotted works we only compete with
                 // other ::slotted rules, so the above rule doesn't really
@@ -301,12 +301,18 @@ where
                 //
                 // See: https://github.com/w3c/csswg-drafts/issues/1915
                 *specificity += Specificity::from(selector.specificity());
+                if selector.has_parent_selector() {
+                    flags.insert(SelectorFlags::HAS_PARENT);
+                }
             },
             Component::Host(ref selector) => {
                 specificity.class_like_selectors += 1;
                 if let Some(ref selector) = *selector {
                     // See: https://github.com/w3c/csswg-drafts/issues/1915
                     *specificity += Specificity::from(selector.specificity());
+                    if selector.has_parent_selector() {
+                        flags.insert(SelectorFlags::HAS_PARENT);
+                    }
                 }
             },
             Component::ID(..) => {
@@ -331,17 +337,25 @@ where
                 //     specificity of a regular pseudo-class with that of its
                 //     selector argument S.
                 specificity.class_like_selectors += 1;
-                *specificity += max_selector_list_specificity(nth_of_data.selectors());
+                let sf = selector_list_specificity_and_flags(nth_of_data.selectors());
+                *specificity += Specificity::from(sf.specificity);
+                flags.insert(sf.flags);
             },
-            Component::Negation(ref list) | Component::Is(ref list) | Component::Has(ref list) => {
+            Component::Where(ref list) |
+            Component::Negation(ref list) |
+            Component::Is(ref list) |
+            Component::Has(ref list) => {
                 // https://drafts.csswg.org/selectors/#specificity-rules:
                 //
                 //     The specificity of an :is(), :not(), or :has() pseudo-class
                 //     is replaced by the specificity of the most specific complex
                 //     selector in its selector list argument.
-                *specificity += max_selector_list_specificity(list);
+                let sf = selector_list_specificity_and_flags(list);
+                if !matches!(*simple_selector, Component::Where(..)) {
+                    *specificity += Specificity::from(sf.specificity);
+                }
+                flags.insert(sf.flags);
             },
-            Component::Where(..) |
             Component::ExplicitUniversalType |
             Component::ExplicitAnyNamespace |
             Component::ExplicitNoNamespace |
@@ -352,19 +366,28 @@ where
         }
     }
 
-    /// Finds the maximum specificity of elements in the list and returns it.
-    fn max_selector_list_specificity<Impl: SelectorImpl>(list: &[Selector<Impl>]) -> Specificity {
-        let max = list
-            .iter()
-            .map(|selector| selector.specificity())
-            .max()
-            .unwrap_or(0);
-        Specificity::from(max)
-    }
-
     let mut specificity = Default::default();
+    let mut flags = Default::default();
     for simple_selector in iter {
-        simple_selector_specificity(&simple_selector, &mut specificity);
+        component_specificity(&simple_selector, &mut specificity, &mut flags);
     }
-    specificity
+    SpecificityAndFlags {
+        specificity: specificity.into(),
+        flags,
+    }
+}
+
+/// Finds the maximum specificity of elements in the list and returns it.
+pub(crate) fn selector_list_specificity_and_flags<Impl: SelectorImpl>(
+    list: &[Selector<Impl>],
+) -> SpecificityAndFlags {
+    let mut specificity = 0;
+    let mut flags = SelectorFlags::empty();
+    for selector in list.iter() {
+        specificity = std::cmp::max(specificity, selector.specificity());
+        if selector.has_parent_selector() {
+            flags.insert(SelectorFlags::HAS_PARENT);
+        }
+    }
+    SpecificityAndFlags { specificity, flags }
 }
