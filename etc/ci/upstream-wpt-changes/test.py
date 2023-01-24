@@ -268,9 +268,12 @@ class TestFullSyncRun(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        assert cls.server is not None
         cls.server.shutdown()
 
     def tearDown(self):
+        assert SYNC is not None
+
         # Clean up any old files.
         first_commit_hash = SYNC.local_servo_repo.run("rev-list", "HEAD").splitlines()[
             -1
@@ -286,9 +289,9 @@ class TestFullSyncRun(unittest.TestCase):
                 return [diff, "tmp author", "tmp@tmp.com", "tmp commit message"]
             return diff
 
-        commits = [make_commit_data(diff) for diff in diffs]
-
         # Apply each commit to the repository.
+        orig_sha = SYNC.local_servo_repo.run("rev-parse", "HEAD").strip()
+        commits = [make_commit_data(diff) for diff in diffs]
         for commit in commits:
             patch_file, author, email, message = commit
             SYNC.local_servo_repo.run("apply", os.path.join(TESTS_DIR, patch_file))
@@ -306,6 +309,12 @@ class TestFullSyncRun(unittest.TestCase):
                 },
             )
 
+        # Reset the repository to the original hash, but the commits are still
+        # available until the next `git gc`.
+        last_commit_sha = SYNC.local_servo_repo.run("rev-parse", "HEAD").strip()
+        SYNC.local_servo_repo.run("reset", "--hard", orig_sha)
+        return last_commit_sha
+
     def run_test(
         self, payload_file: str, diffs: list, existing_prs: list[MockPullRequest] = []
     ):
@@ -313,7 +322,8 @@ class TestFullSyncRun(unittest.TestCase):
             payload = json.loads(file.read())
 
         logging.info("Mocking application of PR to servo.")
-        self.mock_servo_repository_state(diffs)
+        last_commit_sha = self.mock_servo_repository_state(diffs)
+        payload["pull_request"]["head"]["sha"] = last_commit_sha
 
         logging.info("Resetting server state")
         assert self.server is not None
@@ -618,4 +628,7 @@ def tearDownModule():
 
 
 if __name__ == "__main__":
+    # Uncomment this line to enable verbose logging.
+    # logging.getLogger().setLevel(logging.INFO)
+
     unittest.main()

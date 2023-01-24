@@ -169,7 +169,8 @@ class WPTSync:
                 logging.info(
                     "  → Detected existing upstream PR %s", upstream_pr)
 
-            run = SyncRun(self, servo_pr, AsyncValue(upstream_pr), step_callback)
+            run = SyncRun(self, servo_pr, AsyncValue(
+                upstream_pr), step_callback)
 
             pull_data = payload["pull_request"]
             if payload["action"] in ["opened", "synchronize", "reopened"]:
@@ -189,10 +190,12 @@ class WPTSync:
             return False
 
     def handle_new_pull_request_contents(self, run: SyncRun, pull_data: dict):
+        num_commits = pull_data["commits"]
+        head_sha = pull_data["head"]["sha"]
         is_upstreamable = (
             len(
                 self.local_servo_repo.run(
-                    "diff", f"HEAD~{pull_data['commits']}", "--", UPSTREAMABLE_PATH
+                    "diff", head_sha, f"{head_sha}~{num_commits}", "--", UPSTREAMABLE_PATH
                 )
             )
             > 0
@@ -245,7 +248,8 @@ class WPTSync:
         logging.info("Changing upstream PR title")
         if run.upstream_pr.has_value():
             run.add_step(ChangePRStep(
-                run.upstream_pr.value(), "open", pull_data["title"], pull_data["body"]
+                run.upstream_pr.value(
+                ), "open", pull_data["title"], pull_data["body"]
             ))
             run.add_step(CommentStep(
                 run.servo_pr, UPDATED_TITLE_IN_EXISTING_UPSTREAM_PR))
@@ -258,7 +262,8 @@ class WPTSync:
         if pull_data["merged"]:
             # Since the upstreamable changes have now been merged locally, merge the
             # corresponding upstream PR.
-            run.add_step(MergePRStep(run.upstream_pr.value(), ["do not merge yet"]))
+            run.add_step(MergePRStep(
+                run.upstream_pr.value(), ["do not merge yet"]))
         else:
             # If a PR with upstreamable changes is closed without being merged, we
             # don't want to merge the changes upstream either.

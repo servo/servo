@@ -99,8 +99,9 @@ class CreateOrUpdateBranchForPRStep(Step):
     def _get_upstreamable_commits_from_local_servo_repo(self, sync: WPTSync):
         local_servo_repo = sync.local_servo_repo
         number_of_commits = self.pull_data["commits"]
+        pr_head = self.pull_data["head"]["sha"]
         commit_shas = local_servo_repo.run(
-            "log", "--pretty=%H", f"-{number_of_commits}"
+            "log", "--pretty=%H", pr_head, f"-{number_of_commits}"
         ).splitlines()
 
         filtered_commits = []
