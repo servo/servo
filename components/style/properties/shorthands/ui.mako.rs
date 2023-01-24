@@ -332,7 +332,7 @@ macro_rules! try_parse_one {
 
         let mut name = None;
         let mut axis = None;
-        // FIXME: Bug 1804573: The order of |name| and |axis| should be fixed.
+        // FIXME: Bug 1809005: The order of |name| and |axis| should be fixed.
         loop {
             // Note: When parsing positionally-ambiguous keywords in a property value, a
             // <custom-ident> production can only claim the keyword if no other unfulfilled
