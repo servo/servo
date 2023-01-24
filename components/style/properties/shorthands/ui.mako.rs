@@ -332,6 +332,7 @@ macro_rules! try_parse_one {
 
         let mut name = None;
         let mut axis = None;
+        // FIXME: Bug 1804573: The order of |name| and |axis| should be fixed.
         loop {
             // Note: When parsing positionally-ambiguous keywords in a property value, a
             // <custom-ident> production can only claim the keyword if no other unfulfilled
@@ -383,6 +384,70 @@ macro_rules! try_parse_one {
                 self.scroll_timeline_name.to_css(dest)?;
             }
 
+            Ok(())
+        }
+    }
+</%helpers:shorthand>
+
+// Note: view-timeline shorthand doesn't take view-timeline-inset into account.
+<%helpers:shorthand
+    engines="gecko"
+    name="view-timeline"
+    sub_properties="view-timeline-name view-timeline-axis"
+    gecko_pref="layout.css.scroll-driven-animations.enabled",
+    spec="https://drafts.csswg.org/scroll-animations-1/#view-timeline-shorthand"
+>
+    pub fn parse_value<'i>(
+        context: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        use crate::properties::longhands::{view_timeline_axis, view_timeline_name};
+
+        let mut names = Vec::with_capacity(1);
+        let mut axes = Vec::with_capacity(1);
+        input.parse_comma_separated(|input| {
+            let name = view_timeline_name::single_value::parse(context, input)?;
+            let axis = input.try_parse(|i| view_timeline_axis::single_value::parse(context, i));
+
+            names.push(name);
+            axes.push(axis.unwrap_or_default());
+
+            Ok(())
+        })?;
+
+        Ok(expanded! {
+            view_timeline_name: view_timeline_name::SpecifiedValue(names.into()),
+            view_timeline_axis: view_timeline_axis::SpecifiedValue(axes.into()),
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            let len = self.view_timeline_name.0.len();
+            // There should be at least one declared value
+            if len == 0 {
+                return Ok(());
+            }
+
+            // If any value list length is differs then we don't do a shorthand serialization
+            // either.
+            if len != self.view_timeline_axis.0.len() {
+                return Ok(());
+            }
+
+            for i in 0..len {
+                if i != 0 {
+                    dest.write_str(", ")?;
+                }
+
+                self.view_timeline_name.0[i].to_css(dest)?;
+
+                if self.view_timeline_axis.0[i] != Default::default() {
+                    dest.write_char(' ')?;
+                    self.view_timeline_axis.0[i].to_css(dest)?;
+                }
+
+            }
             Ok(())
         }
     }
