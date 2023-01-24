@@ -733,9 +733,11 @@ impl Default for Scroller {
     }
 }
 
-/// A value for the <Axis> used in scroll().
+/// A value for the <Axis> used in scroll(), or a value for {scroll|view}-timeline-axis.
 ///
-/// https://drafts.csswg.org/scroll-animations-1/rewrite#typedef-axis
+/// https://drafts.csswg.org/scroll-animations-1/#typedef-axis
+/// https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-axis
+/// https://drafts.csswg.org/scroll-animations-1/#view-timeline-axis
 #[derive(
     Clone,
     Debug,
@@ -862,7 +864,7 @@ impl Parse for AnimationTimeline {
 /// Note: The spec doesn't mention `auto` for scroll-timeline-name. However, `auto` is a keyword in
 /// animation-timeline, so we reject `auto` for scroll-timeline-name now.
 ///
-/// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-name
+/// https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-name
 #[derive(
     Clone,
     Debug,

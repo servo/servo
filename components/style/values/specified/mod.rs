@@ -100,7 +100,7 @@ pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{BoolInteger, Cursor, UserSelect};
+pub use self::ui::{BoolInteger, Cursor, UserSelect, ViewTimelineInset};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]

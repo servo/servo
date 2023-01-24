@@ -104,7 +104,7 @@ pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{BoolInteger, Cursor, UserSelect};
+pub use self::ui::{BoolInteger, Cursor, UserSelect, ViewTimelineInset};
 pub use super::specified::TextTransform;
 pub use super::specified::ViewportVariant;
 pub use super::specified::{BorderStyle, TextDecorationLine};
