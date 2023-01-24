@@ -811,6 +811,9 @@ where
                         .nest(|context| matches_complex_selector(selector.iter(), element, context))
                 })
         },
+        // These should only work at parse time, should be replaced with :is() at CascadeData build
+        // time.
+        Component::ParentSelector => false,
         Component::Scope => match context.shared.scope_element {
             Some(ref scope_element) => element.opaque() == *scope_element,
             None => element.is_root(),
