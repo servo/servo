@@ -352,3 +352,29 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-axis",
     rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
+
+${helpers.predefined_type(
+    "view-timeline-name",
+    "ScrollTimelineName",
+    "computed::ScrollTimelineName::none()",
+    vector=True,
+    need_index=True,
+    engines="gecko",
+    animation_value_type="none",
+    gecko_pref="layout.css.scroll-driven-animations.enabled",
+    spec="https://drafts.csswg.org/scroll-animations-1/#view-timeline-name",
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
+)}
+
+${helpers.predefined_type(
+    "view-timeline-axis",
+    "ScrollAxis",
+    "computed::ScrollAxis::default()",
+    vector=True,
+    need_index=True,
+    engines="gecko",
+    animation_value_type="none",
+    gecko_pref="layout.css.scroll-driven-animations.enabled",
+    spec="https://drafts.csswg.org/scroll-animations-1/#view-timeline-axis",
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
+)}

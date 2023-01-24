@@ -6,8 +6,9 @@
 
 use crate::gecko_bindings::bindings::Gecko_EnsureStyleAnimationArrayLength;
 use crate::gecko_bindings::bindings::Gecko_EnsureStyleTransitionArrayLength;
+use crate::gecko_bindings::bindings::Gecko_EnsureStyleViewTimelineArrayLength;
 use crate::gecko_bindings::structs::nsStyleAutoArray;
-use crate::gecko_bindings::structs::{StyleAnimation, StyleTransition};
+use crate::gecko_bindings::structs::{StyleAnimation, StyleTransition, StyleViewTimeline};
 use std::iter::{once, Chain, IntoIterator, Once};
 use std::ops::{Index, IndexMut};
 use std::slice::{Iter, IterMut};
@@ -69,6 +70,18 @@ impl nsStyleAutoArray<StyleTransition> {
         unsafe {
             Gecko_EnsureStyleTransitionArrayLength(
                 self as *mut nsStyleAutoArray<StyleTransition> as *mut _,
+                len,
+            );
+        }
+    }
+}
+
+impl nsStyleAutoArray<StyleViewTimeline> {
+    /// Ensures that the array has length at least the given length.
+    pub fn ensure_len(&mut self, len: usize) {
+        unsafe {
+            Gecko_EnsureStyleViewTimelineArrayLength(
+                self as *mut nsStyleAutoArray<StyleViewTimeline> as *mut _,
                 len,
             );
         }
