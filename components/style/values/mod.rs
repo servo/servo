@@ -614,13 +614,6 @@ impl TimelineOrKeyframesName {
 
 impl Eq for TimelineOrKeyframesName {}
 
-/// A trait that returns whether a given type is the `auto` value or not. So far
-/// only needed for background-size serialization, which special-cases `auto`.
-pub trait IsAuto {
-    /// Returns whether the value is the `auto` value.
-    fn is_auto(&self) -> bool;
-}
-
 /// The typedef of <timeline-name>.
 #[repr(transparent)]
 #[derive(
@@ -673,6 +666,7 @@ impl ToCss for TimelineName {
 }
 
 /// The typedef of <keyframes-name>.
+#[repr(transparent)]
 #[derive(
     Clone,
     Debug,
