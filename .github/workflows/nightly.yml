@@ -111,34 +111,3 @@ jobs:
         run: python mach upload-nightly windows-msvc --secret-from-environment
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-
-  upload-uwp:
-    name: Upload nightly (UWP)
-    runs-on: windows-2019
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Copy to C drive
-        run: cp D:\a C:\ -Recurse
-      - name: Bootstrap
-        working-directory: "C:\\a\\servo\\servo"
-        run: |
-          python -m pip install --upgrade pip virtualenv
-          python mach fetch
-      - name: Release build (x64)
-        working-directory: "C:\\a\\servo\\servo"
-        run: python mach build --release --target=x86_64-uwp-windows-msvc
-      - name: Release build (arm64)
-        working-directory: "C:\\a\\servo\\servo"
-        run: python mach build --release --target=aarch64-uwp-windows-msvc
-      - name: Package
-        working-directory: "C:\\a\\servo\\servo"
-        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64
-        env:
-          CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
-      - name: Upload
-        working-directory: "C:\\a\\servo\\servo"
-        run: python mach upload-nightly uwp --secret-from-environment
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
