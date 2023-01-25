@@ -29,7 +29,7 @@ var height = 'height=402,';
       e.source.close();
       assert_equals(data.left, 141);
     }));
-    var win = window.open(prefixedMessage.url(windowURL), '', width + height + features);
+    var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenX=141', '', width + height + features);
   }, `"${features}" should set left position of opened window`);
 });
 
@@ -46,7 +46,7 @@ var height = 'height=402,';
       e.source.close();
       assert_equals(data.top, 142);
     }));
-    var win = window.open(prefixedMessage.url(windowURL), '', width + height + features);
+    var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenY=142', '', width + height + features);
   }, `${format_value(features)} should set top position of opened window`);
 });
 
@@ -62,7 +62,7 @@ var height = 'height=402,';
       assert_equals(data.top, 152);
       assert_equals(data.left, 152);
     }));
-    var win = window.open(prefixedMessage.url(windowURL), '', width + height + features);
+    var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenX=152&expected_screenY=152', '', width + height + features);
   }, `${format_value(features)} should set top and left position of opened window`);
 });
 

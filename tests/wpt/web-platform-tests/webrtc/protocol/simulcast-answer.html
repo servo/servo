@@ -64,8 +64,9 @@ promise_test(async t => {
   t.add_cleanup(() => pc.close());
   const expected_rids = ['foo', 'bar', 'baz'];
 
-  // Try to disable the `bar` encoding by prefixing it with the `~` character.
-  await pc.setRemoteDescription({type: 'offer', sdp: offer_sdp.replace('bar', '~bar')});
+  // Try to disable the `bar` encoding in a=simulcast by prefixing it with the
+  // `~` character.
+  await pc.setRemoteDescription({type: 'offer', sdp: offer_sdp.replace(/(a=simulcast:.*)bar/, '$1~bar')});
   const transceiver = pc.getTransceivers()[0];
   transceiver.direction = 'sendonly';
   await pc.setLocalDescription();

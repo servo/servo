@@ -40,7 +40,7 @@
     });
 
     // Cause track removal due to rollback.
-    await pc2.setLocalDescription({type:'rollback'});
+    await pc2.setRemoteDescription({type:'rollback'});
     // The track was removed.
     await onRemoveTrackPromise;
 
@@ -90,7 +90,7 @@
     assert_not_equals(remoteTrack, null);
 
     // Cause track removal due to rollback.
-    await pc2.setLocalDescription({type:'rollback'});
+    await pc2.setRemoteDescription({type:'rollback'});
     // There's nothing equivalent to stream.onremovetrack when you don't have a
     // stream, but the track should become muted (if it isn't already).
     if (!remoteTrack.muted) {
@@ -151,7 +151,7 @@
 
     // Rolling back the offer revives the track, causing ontrack to fire again.
     remoteStreamViaOnTrackPromise = getRemoteStreamViaOnTrackPromise(pc2);
-    await pc2.setLocalDescription({type:'rollback'});
+    await pc2.setRemoteDescription({type:'rollback'});
     const revivedRemoteStream = await remoteStreamViaOnTrackPromise;
     // This test only expects IDs to be the same. The same stream object should
     // also be used, but this should be covered by separate tests.
@@ -201,7 +201,7 @@
 
     // Rolling back the offer revives the track, causing ontrack to fire again.
     remoteTrackPromise = getTrackViaOnTrackPromise(pc2);
-    await pc2.setLocalDescription({type:'rollback'});
+    await pc2.setRemoteDescription({type:'rollback'});
     const revivedRemoteTrack = await remoteTrackPromise;
     // We can be sure the same track is used, because the same transceiver is
     // used (and transciever.receiver.track has same lifetime as transceiver).

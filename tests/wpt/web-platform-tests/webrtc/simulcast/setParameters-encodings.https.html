@@ -12,12 +12,6 @@
 <script src="../../mediacapture-streams/permission-helper.js"></script>
 <script>
 
-async function queueAWebrtcTask() {
-  const pc = new RTCPeerConnection();
-  pc.addTransceiver('audio');
-  await new Promise(r => pc.onnegotiationneeded = r);
-}
-
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());

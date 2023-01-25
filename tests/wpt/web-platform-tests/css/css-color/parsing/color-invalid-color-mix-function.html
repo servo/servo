@@ -42,6 +42,7 @@
     test_invalid_value(`color`, `color-mix(in hwb, hwb(120deg 10% 20%) hwb(30deg 30% 40%))`); // Missing comma between colors.
     test_invalid_value(`color`, `color-mix(hwb(120deg 10% 20%), hwb(30deg 30% 40%), in hwb)`); // Interpolation method not at the beginning.
     test_invalid_value(`color`, `color-mix(hwb(120deg 10% 20%), hwb(30deg 30% 40%))`); // Missing interpolation method.
+    test_invalid_value(`color`, `color-mix(in srgb, red, blue blue)`); // Too many parameters.
 
     for (const colorSpace of [ "lch", "oklch" ]) {
         test_invalid_value(`color`, `color-mix(in ${colorSpace}, ${colorSpace}(10% 20 30deg) -10%, ${colorSpace}(50% 60 70deg))`); // Percentages less than 0 are not valid.

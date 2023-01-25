@@ -6,19 +6,10 @@
 
 (async function() {
   // This is on the www subdomain, so it's cross-origin from the current document.
-  const wwwHost = "https://{{domains[www]}}:{{ports[https][0]}}";
-
-  // Set up storage access rules
-  try {
-    await test_driver.set_storage_access(wwwHost + "/", "*", "blocked");
-  } catch (e) {
-    // Ignore, can be unimplemented if the platform blocks cross-site cookies
-    // by default. If this failed without default blocking we'll notice it later
-    // in the test.
-  }
+  const wwwAlt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
 
   promise_test(async (t) => {
-    const responder_html = `${wwwHost}/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js`;
+    const responder_html = `${wwwAlt}/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js`;
     const frame = await CreateFrame(responder_html);
 
     t.add_cleanup(async () => {
@@ -27,8 +18,13 @@
     });
 
     await SetPermissionInFrame(frame, [{ name: 'storage-access' }, 'granted']);
-    await fetch(`${wwwHost}/cookies/resources/set.py?cookie=monster;Secure;SameSite=None;Path=/`,
-      { mode: "no-cors", credentials: "include" });
+    await fetch(`${wwwAlt}/cookies/resources/set.py?cookie=monster;Secure;SameSite=None;Path=/`,
+      { mode: "no-cors", credentials: "include" }).then((resp) => resp.text());
+
+    await MaybeSetStorageAccess(wwwAlt + "/", "*", "blocked");
+    t.add_cleanup(async () => {
+      await MaybeSetStorageAccess(wwwAlt + "/", "*", "allowed");
+    });
 
     assert_false(await FrameHasStorageAccess(frame), "frame initially does not have storage access.");
     assert_false(cookieStringHasCookie("cookie", "monster", await GetJSCookiesFromFrame(frame)), "frame cannot access cookies via JS.");

@@ -25,7 +25,7 @@
       ["style(--foo: )", "Empty declaration value"],
       ["STyle(--foo)", "Missing declaration value"],
       ["style((--FOO: BAR) or ( prop: val ))", "Unknown CSS property after 'or'"],
-      ["(--foo: bar)", "Not a style function with space before '('"]
+      ["style (--foo: bar)", "Not a style function with space before '('"]
   ].map((e, i) => [testSheet.sheet.cssRules[i], ...e]);
 
   tests.forEach((t) => {

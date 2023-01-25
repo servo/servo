@@ -1,8 +1,6 @@
 # mypy: allow-untyped-defs
 
-import os
 from collections import deque
-from urllib.parse import urljoin
 
 from .wptmanifest.backends import static
 from .wptmanifest.backends.base import ManifestItem
@@ -222,26 +220,22 @@ def fuzzy_prop(node):
 
 
 class ExpectedManifest(ManifestItem):
-    def __init__(self, node, test_path, url_base):
+    def __init__(self, node, test_path):
         """Object representing all the tests in a particular manifest
 
         :param name: Name of the AST Node associated with this object.
                      Should always be None since this should always be associated with
                      the root node of the AST.
         :param test_path: Path of the test file associated with this manifest.
-        :param url_base: Base url for serving the tests in this manifest
         """
         name = node.data
         if name is not None:
             raise ValueError("ExpectedManifest should represent the root node")
         if test_path is None:
             raise ValueError("ExpectedManifest requires a test path")
-        if url_base is None:
-            raise ValueError("ExpectedManifest requires a base url")
         ManifestItem.__init__(self, node)
         self.child_map = {}
         self.test_path = test_path
-        self.url_base = url_base
 
     def append(self, child):
         """Add a test to the manifest"""
@@ -258,11 +252,6 @@ class ExpectedManifest(ManifestItem):
 
         :param test_id: ID of the test to return."""
         return self.child_map.get(test_id)
-
-    @property
-    def url(self):
-        return urljoin(self.url_base,
-                       "/".join(self.test_path.split(os.path.sep)))
 
     @property
     def disabled(self):
@@ -413,7 +402,7 @@ class TestNode(ManifestItem):
 
     @property
     def id(self):
-        return urljoin(self.parent.url, self.name)
+        return self.name
 
     @property
     def disabled(self):
@@ -503,13 +492,12 @@ class SubtestNode(TestNode):
         return True
 
 
-def get_manifest(metadata_root, test_path, url_base, run_info):
+def get_manifest(metadata_root, test_path, run_info):
     """Get the ExpectedManifest for a particular test path, or None if there is no
     metadata stored for that test path.
 
     :param metadata_root: Absolute path to the root of the metadata directory
     :param test_path: Path to the test(s) relative to the test root
-    :param url_base: Base url for serving the tests in this manifest
     :param run_info: Dictionary of properties of the test run for which the expectation
                      values should be computed.
     """
@@ -519,8 +507,7 @@ def get_manifest(metadata_root, test_path, url_base, run_info):
             return static.compile(f,
                                   run_info,
                                   data_cls_getter=data_cls_getter,
-                                  test_path=test_path,
-                                  url_base=url_base)
+                                  test_path=test_path)
     except OSError:
         return None
 

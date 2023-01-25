@@ -44,8 +44,8 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.left, baselineDimensions.left, `"${feature} begins with an invalid character and should be ignored"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
-    }, `features "${feature}" should NOT set "left=104"`);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenX=' + baselineDimensions.left, '', featureString);
+    }, `features "${feature}" should NOT set "screenx=104"`);
   });
 
   // Codepoints that are valid ASCII digits should be collected
@@ -67,8 +67,8 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.left, 105, `"${featureString} value after first non-digit will be ignored"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
-    }, `features "${feature}" should set "left=105"`);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenX=105', '', featureString);
+    }, `features "${feature}" should set "screenx=105"`);
   });
 }
 

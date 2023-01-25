@@ -79,6 +79,6 @@ promise_test(async t => {
 
   // Expected value computed based on GetVideoSignal code, which takes green pixel data
   // with coefficient 0.72.
-  assert_approx_equals(pixelValue, 0.72*255, 2);
+  assert_approx_equals(pixelValue, 0.72*255, 3);
   }, "Two PeerConnections relaying a canvas source");
 </script>

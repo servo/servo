@@ -267,7 +267,7 @@ class TestLoader:
     def get_test(self, manifest_file, manifest_test, inherit_metadata, test_metadata):
         if test_metadata is not None:
             inherit_metadata.append(test_metadata)
-            test_metadata = test_metadata.get_test(manifest_test.id)
+            test_metadata = test_metadata.get_test(manifest_test.id.rpartition('/')[-1])
 
         return wpttest.from_manifest(manifest_file, manifest_test, inherit_metadata, test_metadata)
 
@@ -287,7 +287,7 @@ class TestLoader:
     def load_metadata(self, test_manifest, metadata_path, test_path):
         inherit_metadata = self.load_dir_metadata(test_manifest, metadata_path, test_path)
         test_metadata = manifestexpected.get_manifest(
-            metadata_path, test_path, test_manifest.url_base, self.run_info)
+            metadata_path, test_path, self.run_info)
         return inherit_metadata, test_metadata
 
     def iter_tests(self):

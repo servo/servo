@@ -27,7 +27,7 @@
     }
   };
 
-  function onIceConnectionStateChange(done, failed) {
+  function onIceConnectionStateChange(done, failed, event) {
     try {
       assert_equals(event.type, 'iceconnectionstatechange');
       assert_not_equals(gFirstConnection.iceConnectionState, "failed",
@@ -59,14 +59,14 @@
       gFirstConnection.onicecandidate =
           (event) => onIceCandidate(gSecondConnection, event, reject);
       gFirstConnection.oniceconnectionstatechange =
-          () => onIceConnectionStateChange(resolve, reject);
+          (event) => onIceConnectionStateChange(resolve, reject, event);
 
       gSecondConnection = new RTCPeerConnection(null);
       test.add_cleanup(() => gSecondConnection.close());
       gSecondConnection.onicecandidate =
           (event) => onIceCandidate(gFirstConnection, event, reject);
       gSecondConnection.oniceconnectionstatechange =
-          () => onIceConnectionStateChange(resolve, reject);
+          (event) => onIceConnectionStateChange(resolve, reject, event);
 
       const offer = await generateVideoReceiveOnlyOffer(gFirstConnection);
 

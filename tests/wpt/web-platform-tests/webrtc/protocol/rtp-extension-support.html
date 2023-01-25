@@ -10,7 +10,11 @@
 async function setup() {
   const pc1 = new RTCPeerConnection();
   pc1.addTransceiver('audio');
-  pc1.addTransceiver('video');
+  // Make sure there is more than one rid, since there's no reason to use
+  // rtp-stream-id/repaired-rtp-stream-id otherwise. Some implementations
+  // may use them for unicast anyway, which isn't a spec violation, just
+  // a little silly.
+  pc1.addTransceiver('video', {sendEncodings: [{rid: '0'}, {rid: '1'}]});
   const offer = await pc1.createOffer();
   pc1.close();
   return offer.sdp;

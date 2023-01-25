@@ -82,4 +82,26 @@ promise_test(async (test) => {
     await new Promise(r => test.step_timeout(r, 100));
   }
 }, "No RTCInboundRtpStreamStats exist until packets have been received");
+
+promise_test(async (test) => {
+  const localPc = createPeerConnectionWithCleanup(test);
+  const remotePc = createPeerConnectionWithCleanup(test);
+
+  localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "audio"));
+  exchangeIceCandidates(localPc, remotePc);
+  await exchangeOfferAnswer(localPc, remotePc);
+  const start = performance.now();
+  while (true) {
+    const report = await remotePc.getStats();
+    const audioPlayout =
+      [...report.values()].filter(({type}) => type == "audio-playout");
+    if (audioPlayout.length == 1) {
+      break;
+    }
+    if (performance.now() > start + 5000) {
+      assert_unreached("Audio playout stats should become available");
+    }
+    await new Promise(r => test.step_timeout(r, 100));
+  }
+}, "RTCAudioPlayoutStats should be present");
 </script>

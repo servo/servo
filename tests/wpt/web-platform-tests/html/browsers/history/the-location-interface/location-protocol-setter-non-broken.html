@@ -9,7 +9,7 @@ self.onload = () => {
   [
     'x',
     'data',
-    // 'mailto' opens an email client in Firefox...
+    // 'mailto' opens an email client in Chrome and Firefox and then ends up passing anyway...
     'file',
     'ftp',
     'http+x'
@@ -17,6 +17,7 @@ self.onload = () => {
     async_test((t) => {
       // HTTP URL <iframe>
       const frame = document.createElement("iframe")
+      t.add_cleanup(() => frame.remove())
       frame.src = "/common/blank.html"
       frame.onload = t.step_func(() => {
         frame.contentWindow.location.protocol = val
@@ -25,7 +26,9 @@ self.onload = () => {
           assert_equals(frame.contentWindow.location.host, location.host)
           assert_equals(frame.contentWindow.location.port, location.port)
           t.done()
-        }, 500)
+          // Matches the timeout from location-protocol-setter-non-broken-weird.html which suggests
+          // that 4 seconds is enough for a navigation to complete.
+        }, 4000)
       })
       document.body.appendChild(frame)
     }, "Set HTTP URL frame location.protocol to " + val)
@@ -33,6 +36,7 @@ self.onload = () => {
     async_test((t) => {
       // data URL <iframe>
       const dataFrame = document.createElement("iframe")
+      t.add_cleanup(() => dataFrame.remove())
       const channel = new MessageChannel()
       dataFrame.src = `data:text/html,<script>
 onmessage = (e) => {
@@ -42,7 +46,7 @@ onmessage = (e) => {
   } catch(e) {
     result = true
   }
-  setTimeout(() => e.ports[0].postMessage([result, location.protocol]), 100)
+  setTimeout(() => e.ports[0].postMessage([result, location.protocol]), 4000)
 }
 <\/script>`
       dataFrame.onload = t.step_func(() => {

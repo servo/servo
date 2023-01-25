@@ -22,6 +22,7 @@
     height: 100px;
     z-index: -1;
     background-color: green;
+    font-size: 10px;
   }
 </style>
 <main id=main>
@@ -142,4 +143,47 @@
     startOffset: 600,
     endOffset: 900
   });
+
+  test_animation_delay({
+    rangeStart: 'cover 20px',
+    rangeEnd: 'cover 100px',
+    startOffset: 620,
+    endOffset: 700
+  });
+
+  test_animation_delay({
+    rangeStart: 'contain 20px',
+    rangeEnd: 'contain 100px',
+    startOffset: 720,
+    endOffset: 800
+  });
+
+  test_animation_delay({
+    rangeStart: 'enter 20px',
+    rangeEnd: 'enter 100px',
+    startOffset: 620,
+    endOffset: 700
+  });
+
+  test_animation_delay({
+    rangeStart: 'exit 20px',
+    rangeEnd: 'exit 80px',
+    startOffset: 820,
+    endOffset: 880
+  });
+
+  test_animation_delay({
+    rangeStart: 'contain 20px',
+    rangeEnd: 'contain calc(100px - 10%)',
+    startOffset: 720,
+    endOffset: 790
+  });
+
+    test_animation_delay({
+    rangeStart: 'exit 2em',
+    rangeEnd: 'exit 8em',
+    startOffset: 820,
+    endOffset: 880
+  });
+
 </script>

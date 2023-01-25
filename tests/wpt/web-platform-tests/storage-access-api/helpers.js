@@ -132,3 +132,14 @@ function SetPermissionInFrame(frame, args = []) {
 function FrameInitiatedReload(frame) {
   return PostMessageAndAwait({ command: "reload" }, frame.contentWindow, ReloadPromise(frame));
 }
+
+// Tries to set storage access policy, ignoring any errors.
+async function MaybeSetStorageAccess(origin, embedding_origin, value) {
+  try {
+    await test_driver.set_storage_access(origin, embedding_origin, value);
+  } catch (e) {
+    // Ignore, can be unimplemented if the platform blocks cross-site cookies
+    // by default. If this failed without default blocking we'll notice it later
+    // in the test.
+  }
+}

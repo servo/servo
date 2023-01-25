@@ -88,6 +88,33 @@ assert_valid("<image>", "url(a)");
 assert_valid("<image>", "linear-gradient(yellow, blue)");
 assert_valid("<url>", "url(a)");
 
+assert_valid("<color>+", "yellow blue");
+assert_valid("<color>+ | <color>", "yellow blue");
+assert_valid("<color> | <color>+", "yellow blue");
+assert_valid("<color># | <color>", "yellow, blue");
+assert_valid("<color> | <color>#", "yellow, blue");
+assert_valid("<color># | <color>+", "yellow blue");
+assert_valid("<color>+ | <color>#", "yellow, blue");
+assert_valid("<color>+ | yellow", "yellow blue");
+assert_valid("yellow", "yellow");
+assert_valid("yellow | <color>+", "yellow blue");
+assert_valid("<color># | yellow", "yellow, blue");
+assert_valid("yellow | <color>#", "yellow, blue");
+assert_valid("<transform-list> | <transform-function> ", "scale(2) rotate(90deg)");
+assert_valid("<transform-function> | <transform-list>", "scale(2) rotate(90deg)");
+assert_valid("<transform-list> | <transform-function>+ ", "scale(2) rotate(90deg)");
+assert_valid("<transform-function>+ | <transform-list>", "scale(2) rotate(90deg)");
+assert_valid("<transform-list> | <transform-function># ", "scale(2) rotate(90deg)");
+assert_valid("<transform-function># | <transform-list>", "scale(2) rotate(90deg)");
+assert_valid("<transform-list> | <transform-function># ", "scale(2), rotate(90deg)");
+assert_valid("<transform-function># | <transform-list>", "scale(2), rotate(90deg)");
+assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1");
+assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1 1");
+assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1%");
+assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1% 1%");
+assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1px");
+assert_valid("<integer>+ | <percentage>+ | <length>+ ", "1px 1px");
+
 assert_valid("banana", "banana");
 assert_valid("bAnAnA", "bAnAnA");
 assert_valid("ba-na-nya", "ba-na-nya");
@@ -141,6 +168,13 @@ assert_invalid("foo § bar", "foo § bar");
 assert_invalid("foo \\1F914 bar", "foo \\1F914 bar");
 assert_invalid("<length> <number>", "0px 0");
 assert_invalid("<length> <length> <length>", "0px 0px 0px");
+
+assert_invalid("<integer>+ | <percentage>+ | <length>+ ", "1 1%");
+assert_invalid("<integer>+ | <percentage>+ | <length>+ ", "1% 1");
+assert_invalid("<integer>+ | <percentage>+ | <length>+ ", "1px 1");
+assert_invalid("<integer>+ | <percentage>+ | <length>+ ", "1 1px");
+assert_invalid("<integer>+ | <percentage>+ | <length>+ ", "1px 1%");
+assert_invalid("<integer>+ | <percentage>+ | <length>+ ", "1% 1px");
 
 assert_invalid("initial", "initial");
 assert_invalid("inherit", "inherit");

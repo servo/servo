@@ -26,9 +26,11 @@ function assert_permissions_policy_supported() {
 //      https://github.com/w3c/webappsec-permissions-policy/blob/main/features.md
 //    allow_attribute: Optional argument, only used for testing fullscreen or
 //      payment: either "allowfullscreen" or "allowpaymentrequest" is passed.
+//    is_promise_test: Optional argument, true if this call should return a
+//    promise. Used by test_feature_availability_with_post_message_result()
 function test_feature_availability(
     feature_description, test, src, expect_feature_available, feature_name,
-    allow_attribute) {
+    allow_attribute, is_promise_test = false) {
   let frame = document.createElement('iframe');
   frame.src = src;
 
@@ -40,16 +42,26 @@ function test_feature_availability(
     frame.setAttribute(allow_attribute, true);
   }
 
-  window.addEventListener('message', test.step_func(evt => {
+  function expectFeatureAvailable(evt) {
     if (evt.source === frame.contentWindow &&
         evt.data.type === 'availability-result') {
       expect_feature_available(evt.data, feature_description);
       document.body.removeChild(frame);
       test.done();
     }
-  }));
+  }
 
+  if (!is_promise_test) {
+    window.addEventListener('message', test.step_func(expectFeatureAvailable));
+    document.body.appendChild(frame);
+    return;
+  }
+
+  const promise = new Promise((resolve) => {
+                    window.addEventListener('message', resolve);
+                  }).then(expectFeatureAvailable);
   document.body.appendChild(frame);
+  return promise;
 }
 
 // Default helper functions to test a feature's availability:
@@ -76,7 +88,8 @@ function test_feature_availability_with_post_message_result(
   const test_result = ({ name, message }, feature_description) => {
     assert_equals(name, expected_result, message + '.');
   };
-  test_feature_availability(null, test, src, test_result, allow_attribute);
+  return test_feature_availability(
+      null, test, src, test_result, allow_attribute, undefined, true);
 }
 
 // If this page is intended to test the named feature (according to the URL),
@@ -163,9 +176,9 @@ function run_all_fp_tests_allow_self(
 
   // 2. Allowed in same-origin iframe.
   const same_origin_frame_pathname = same_origin_url(feature_name);
-  async_test(
+  promise_test(
       t => {
-        test_feature_availability_with_post_message_result(
+        return test_feature_availability_with_post_message_result(
             t, same_origin_frame_pathname, '#OK');
       },
       'Default "' + feature_name +
@@ -173,29 +186,29 @@ function run_all_fp_tests_allow_self(
 
   // 3. Blocked in cross-origin iframe.
   const cross_origin_frame_url = cross_origin_url(cross_origin, feature_name);
-  async_test(
+  promise_test(
       t => {
-        test_feature_availability_with_post_message_result(
+        return test_feature_availability_with_post_message_result(
             t, cross_origin_frame_url, error_name);
       },
       'Default "' + feature_name +
           '" permissions policy ["self"] disallows cross-origin iframes.');
 
   // 4. Allowed in cross-origin iframe with "allow" attribute.
-  async_test(
+  promise_test(
       t => {
-        test_feature_availability_with_post_message_result(
+        return test_feature_availability_with_post_message_result(
             t, cross_origin_frame_url, '#OK', feature_name);
       },
       'permissions policy "' + feature_name +
           '" can be enabled in cross-origin iframes using "allow" attribute.');
 
   // 5. Blocked in same-origin iframe with "allow" attribute set to 'none'.
-  async_test(
+  promise_test(
       t => {
-        test_feature_availability_with_post_message_result(
+        return test_feature_availability_with_post_message_result(
             t, same_origin_frame_pathname, error_name,
-            feature_name + " 'none'");
+            feature_name + ' \'none\'');
       },
       'permissions policy "' + feature_name +
           '" can be disabled in same-origin iframes using "allow" attribute.');
@@ -246,9 +259,9 @@ function run_all_fp_tests_allow_all(
 
   // 2. Allowed in same-origin iframe.
   const same_origin_frame_pathname = same_origin_url(feature_name);
-  async_test(
+  promise_test(
       t => {
-        test_feature_availability_with_post_message_result(
+        return test_feature_availability_with_post_message_result(
             t, same_origin_frame_pathname, '#OK');
       },
       'Default "' + feature_name +
@@ -256,30 +269,29 @@ function run_all_fp_tests_allow_all(
 
   // 3. Allowed in cross-origin iframe.
   const cross_origin_frame_url = cross_origin_url(cross_origin, feature_name);
-  async_test(
+  promise_test(
       t => {
-        test_feature_availability_with_post_message_result(
+        return test_feature_availability_with_post_message_result(
             t, cross_origin_frame_url, '#OK');
       },
       'Default "' + feature_name +
           '" permissions policy ["*"] allows cross-origin iframes.');
 
   // 4. Blocked in cross-origin iframe with "allow" attribute set to 'none'.
-  async_test(
+  promise_test(
       t => {
-        test_feature_availability_with_post_message_result(
-            t, cross_origin_frame_url, error_name,
-            feature_name + " 'none'");
+        return test_feature_availability_with_post_message_result(
+            t, cross_origin_frame_url, error_name, feature_name + ' \'none\'');
       },
       'permissions policy "' + feature_name +
           '" can be disabled in cross-origin iframes using "allow" attribute.');
 
   // 5. Blocked in same-origin iframe with "allow" attribute set to 'none'.
-  async_test(
+  promise_test(
       t => {
-        test_feature_availability_with_post_message_result(
+        return test_feature_availability_with_post_message_result(
             t, same_origin_frame_pathname, error_name,
-            feature_name + " 'none'");
+            feature_name + ' \'none\'');
       },
       'permissions policy "' + feature_name +
           '" can be disabled in same-origin iframes using "allow" attribute.');

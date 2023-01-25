@@ -117,6 +117,14 @@
     });
   }, `setLocalDescription(rollback) after setting answer description should reject with InvalidStateError`);
 
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const offer = await generateAudioReceiveOnlyOffer(pc);
+    await pc.setRemoteDescription(offer);
+    await promise_rejects_dom(t, 'InvalidStateError', pc.setLocalDescription({ type: 'rollback' }));
+  }, `setLocalDescription(rollback) after setting a remote offer should reject with InvalidStateError`);
+
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
