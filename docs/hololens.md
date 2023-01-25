@@ -1,5 +1,7 @@
 # Using Servo on HoloLens 2
 
+**NOTE: HoloLens is no longer a [supported platform](https://github.com/servo/project/blob/master/governance/tsc/tsc-2023-01-23.md#supported-platforms)**
+
 To build Servo for the HoloLens 2, see [the wiki](https://github.com/servo/servo/wiki/Building-for-UWP).
 
 ## Web development workflow
