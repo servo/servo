@@ -11,15 +11,15 @@
     var feature_name = 'permissions policy "payment"';
     var header = 'allow="payment" attribute';
 
-    async_test(t => {
-      test_feature_availability_with_post_message_result(
+    promise_test(t => {
+      return test_feature_availability_with_post_message_result(
           t, cross_origin_src, "NotSupportedError#The 'payment' feature is not " +
           "enabled in this document. Permissions Policy may be used to " +
           "delegate Web Payment capabilities to cross-origin child frames.");
     }, feature_name + ' is not supported in cross-origin iframe without ' + header);
 
-    async_test(t => {
-      test_feature_availability_with_post_message_result(
+    promise_test(t => {
+      return test_feature_availability_with_post_message_result(
           t, cross_origin_src, 'OK', 'payment');
     }, feature_name + ' can be enabled in cross-origin iframe using ' + header);
   </script>

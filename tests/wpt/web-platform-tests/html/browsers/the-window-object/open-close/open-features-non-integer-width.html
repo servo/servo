@@ -43,7 +43,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.width, baselineDimensions.width);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', feature);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerWidth=' + baselineDimensions.width, '', feature);
     }, `${feature}: absence of feature "width" should be treated same as "width=0"`);
   });
 
@@ -60,7 +60,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.width, baselineDimensions.width, `"${feature} begins with an invalid character and should be ignored"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_innerWidth=' + baselineDimensions.width, '', featureString);
     }, `features "${feature}" should NOT set "width=404"`);
   });
 
@@ -83,7 +83,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.width, 405, `"${featureString} value after first non-digit will be ignored"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+      var win = window.open(prefixedMessage.url(windowURL) + "&expected_innerWidth=405", '', featureString);
     }, `features "${feature}" should set "width=405"`);
   });
 }

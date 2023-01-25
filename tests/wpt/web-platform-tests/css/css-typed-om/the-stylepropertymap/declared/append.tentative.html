@@ -61,4 +61,9 @@ test(t => {
       [CSS.s(5), CSS.s(10), CSS.s(1), CSS.s(2)]);
 }, 'StylePropertyMap.append is case-insensitive');
 
+test(t => {
+  let styleMap = createDeclaredStyleMap(t, 'transition-duration: var(--a)');
+  assert_throws_js(TypeError, () => styleMap.append('transition-duration', CSS.s(1)));
+}, 'Appending to a list containing a variable reference should throw');
+
 </script>

@@ -46,6 +46,7 @@ scratch
 /css/dist
 /css/dist_last
 /css/tools/cache
+/url/tools/IdnaTestV2.txt
 /webaudio/idl/*
 
 # w3c-test.org PR-branch mirroring

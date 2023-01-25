@@ -103,7 +103,14 @@
       pc.setRemoteDescription({type: 'rollback'}));
   }, `setRemoteDescription(rollback) from stable state should reject with InvalidStateError`);
 
-  promise_test(t => {
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    await pc.setLocalDescription();
+    await promise_rejects_dom(t, 'InvalidStateError', pc.setRemoteDescription({ type: 'rollback' }));
+  }, `setRemoteDescription(rollback) after setting a local offer should reject with InvalidStateError`);
+
+   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     return generateAudioReceiveOnlyOffer(pc)

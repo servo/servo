@@ -40,7 +40,7 @@ promise_test(async t => {
 
   // Assert (almost) no new frames are received on the first encoding.
   // Without any action we would expect to have received around 30fps.
-  await new Promise(resolve => t.step_timeout(resolve, 100)); // Wait a bit.
+  await new Promise(resolve => t.step_timeout(resolve, 200)); // Wait a bit.
   const initialStats = await queryReceiverStats(pc2);
   await new Promise(resolve => t.step_timeout(resolve, 1000)); // Wait more.
   const subsequentStats = await queryReceiverStats(pc2);
@@ -65,7 +65,7 @@ promise_test(async t => {
 
   // Assert (almost) no new frames are received on the second encoding.
   // Without any action we would expect to have received around 30fps.
-  await new Promise(resolve => t.step_timeout(resolve, 100)); // Wait a bit.
+  await new Promise(resolve => t.step_timeout(resolve, 200)); // Wait a bit.
   const initialStats = await queryReceiverStats(pc2);
   await new Promise(resolve => t.step_timeout(resolve, 1000)); // Wait more.
   const subsequentStats = await queryReceiverStats(pc2);
@@ -92,7 +92,7 @@ promise_test(async t => {
 
   // Assert (almost) no new frames are received.
   // Without any action we would expect to have received around 30fps.
-  await new Promise(resolve => t.step_timeout(resolve, 100)); // Wait a bit.
+  await new Promise(resolve => t.step_timeout(resolve, 200)); // Wait a bit.
   const initialStats = await queryReceiverStats(pc2);
   await new Promise(resolve => t.step_timeout(resolve, 1000)); // Wait more.
   const subsequentStats = await queryReceiverStats(pc2);

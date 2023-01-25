@@ -44,7 +44,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.top, baselineDimensions.top, `"${feature} is negative and should be set to 0"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenY=' + baselineDimensions.top, '', featureString);
     }, `features "${feature}" should NOT set "top=204"`);
   });
 
@@ -60,7 +60,7 @@ function runWindowTests (baselineDimensions) {
         e.source.close();
         assert_equals(data.left, baselineDimensions.left, `"${feature} is negative and should be set to 0"`);
       }));
-      var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenX=' + baselineDimensions.left, '', featureString);
     }, `features "${feature}" should NOT set "left=204"`);
   });
 }

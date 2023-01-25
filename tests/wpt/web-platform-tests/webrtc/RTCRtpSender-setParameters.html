@@ -3,6 +3,7 @@
 <title>RTCRtpSender.prototype.setParameters</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -27,15 +28,25 @@
       sender.setParameters(param));
   }, `setParameters() when transceiver is stopped should reject with InvalidStateError`);
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const sender = pc.addTransceiver('audio').sender;
     const param = sender.getParameters();
     sender.setParameters(param);
+    await sender.setParameters(param);
+  }, `setParameters() with already used parameters should work if the event loop has not been relinquished`);
 
-    return promise_rejects_dom(t, 'InvalidStateError',
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const sender = pc.addTransceiver('audio').sender;
+    const param = sender.getParameters();
+    sender.setParameters(param);
+    await queueAWebrtcTask();
+
+    await promise_rejects_dom(t, 'InvalidStateError',
       sender.setParameters(param));
-  }, `setParameters() with already used parameters should reject with InvalidStateError`);
+  }, `setParameters() with already used parameters should reject with InvalidStateError if the event loop has been relinquished`);
 
 </script>

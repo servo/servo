@@ -16,11 +16,15 @@ test_valid_value("animation-range", "enter 0% enter 100%", "enter");
 test_valid_value("animation-range", "exit 0% exit 100%", "exit");
 test_valid_value("animation-range", "cover 0% cover 100%", "cover");
 test_valid_value("animation-range", "contain 0% contain 100%", "contain");
+test_valid_value("animation-range", "enter calc(10% - 10%) enter calc(50% + 50%)", "enter");
 
 test_valid_value("animation-range", "cover 50%");
 test_valid_value("animation-range", "contain 50%");
 test_valid_value("animation-range", "enter 50%");
 test_valid_value("animation-range", "exit 50%");
+
+test_valid_value("animation-range", "enter 50px exit 100px");
+test_valid_value("animation-range", "exit calc(10% + 50px)");
 
 test_valid_value("animation-range", "enter 50% exit 50%");
 test_valid_value("animation-range", "cover 50% enter 50%, contain 50% exit 50%");
@@ -60,6 +64,11 @@ test_shorthand_value('animation-range', 'contain', {
 test_shorthand_value('animation-range', 'enter 10% exit 20%', {
   'animation-range-start': 'enter 10%',
   'animation-range-end': 'exit 20%',
+});
+
+test_shorthand_value('animation-range', 'enter calc(10% + 10px) exit 20px', {
+  'animation-range-start': 'enter calc(10% + 10px)',
+  'animation-range-end': 'exit 20px',
 });
 
 test_shorthand_value('animation-range', 'enter, exit', {

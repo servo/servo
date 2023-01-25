@@ -108,11 +108,10 @@ def make_test_object(test_name,
     test_metadata = manifestexpected.static.compile(BytesIO(test_name),
                                                     condition,
                                                     data_cls_getter=manifestexpected.data_cls_getter,
-                                                    test_path=test_path,
-                                                    url_base="/")
+                                                    test_path=test_path)
 
     test = next(iter(tests[index][2])) if iterate else tests[index][2].pop()
-    return wpttest.from_manifest(tests, test, inherit_metadata, test_metadata.get_test(test.id))
+    return wpttest.from_manifest(tests, test, inherit_metadata, test_metadata.get_test(test.id.rpartition('/')[-1]))
 
 
 def test_run_info():
@@ -222,11 +221,10 @@ def test_metadata_fuzzy():
     test_metadata = manifestexpected.static.compile(BytesIO(test_fuzzy),
                                                     {},
                                                     data_cls_getter=manifestexpected.data_cls_getter,
-                                                    test_path="a/fuzzy.html",
-                                                    url_base="/")
+                                                    test_path="a/fuzzy.html")
 
     test = next(manifest.iterpath(to_os_path("a/fuzzy.html")))
-    test_obj = wpttest.from_manifest(manifest, test, [], test_metadata.get_test(test.id))
+    test_obj = wpttest.from_manifest(manifest, test, [], test_metadata.get_test(test.id.rpartition('/')[-1]))
 
     assert test_obj.fuzzy == {('/a/fuzzy.html', '/a/fuzzy-ref.html', '=='): [[2, 3], [10, 15]]}
     assert test_obj.fuzzy_override == {'/a/fuzzy-ref.html': ((1, 1), (200, 200))}

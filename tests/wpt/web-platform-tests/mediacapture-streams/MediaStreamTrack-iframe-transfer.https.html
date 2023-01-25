@@ -2,12 +2,14 @@
 <title>MediaStreamTrack transfer to iframe</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 promise_test(async () => {
   const iframe = document.createElement("iframe");
+  await test_driver.bless('getDisplayMedia');
   const stream = await navigator.mediaDevices.getDisplayMedia({video: true});
   const track = stream.getVideoTracks()[0];
-  const cloned_track = track.clone();
   const iframeLoaded = new Promise((resolve) => {iframe.onload = resolve});
 
   iframe.src = "support/iframe-MediaStreamTrack-transfer.html";
@@ -22,7 +24,6 @@ promise_test(async () => {
   assert_not_equals(track.readyState, "ended");
   iframe.contentWindow.postMessage(track);
   assert_equals(track.readyState, "ended");
-  assert_equals(cloned_track.readyState, "live");
 
   const message = await nextMessage;
   assert_not_equals(message.data.result, 'Failure', 'Failed: ' + message.data.error);

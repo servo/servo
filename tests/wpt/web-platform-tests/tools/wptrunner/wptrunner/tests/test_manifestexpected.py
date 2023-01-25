@@ -31,6 +31,5 @@ def test_fuzzy(fuzzy, expected):
     manifest = manifestexpected.static.compile(f,
                                                {},
                                                data_cls_getter=manifestexpected.data_cls_getter,
-                                               test_path="test/test.html",
-                                               url_base="/")
-    assert manifest.get_test("/test/test.html").fuzzy == expected
+                                               test_path="test/test.html")
+    assert manifest.get_test("test.html").fuzzy == expected

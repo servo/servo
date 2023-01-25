@@ -3964,6 +3964,16 @@
     "base": "http://other.com/",
     "failure": true
   },
+  {
+    "input": "http://[::%31]",
+    "base": "http://other.com/",
+    "failure": true
+  },
+  {
+    "input": "http://%5B::1]",
+    "base": "http://other.com/",
+    "failure": true
+  },
   "Misc Unicode",
   {
     "input": "http://foo:💩@example.com/bar",
