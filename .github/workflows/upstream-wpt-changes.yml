@@ -1,6 +1,6 @@
 name: WPT export
 on:
-  pull_request:
+  pull_request_target:
     types: ['opened', 'synchronize', 'reopened', 'edited', 'closed']
 
 jobs:
@@ -16,7 +16,8 @@ jobs:
           git init -b main
           git remote add origin ${{ github.event.repository.clone_url}}
           git fetch origin pull/${{ github.event.pull_request.number}}/head:pr --depth ${{ env.PR_FETCH_DEPTH }}
-          git checkout pr
+          git fetch origin master:master --depth 1
+          git checkout master
       - name: Check out wpt
         uses: actions/checkout@v3
         with:
