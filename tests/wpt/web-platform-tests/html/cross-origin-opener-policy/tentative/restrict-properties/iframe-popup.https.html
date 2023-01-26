@@ -20,25 +20,26 @@
 
 // This document has COOP: restrict-properties. The popup has COOP:
 // restrict-properties. Opening from an iframe should not be different from
-// opening from the main frame and the opener should be severed.
+// opening from the main frame and the opener should be restricted if
+// cross-origin.
 [
   {
     "title": "same origin iframe, same origin popup",
     "iframeOrigin": SAME_ORIGIN,
     "popupOrigin": SAME_ORIGIN,
-    "opener": "restricted"
+    "opener": "preserved"
   },
   {
     "title": "same site iframe, same origin popup",
     "iframeOrigin": SAME_SITE,
     "popupOrigin": SAME_ORIGIN,
-    "opener": "restricted"
+    "opener": "preserved"
   },
   {
     "title": "cross origin iframe, same origin popup",
     "iframeOrigin": CROSS_ORIGIN,
     "popupOrigin": SAME_ORIGIN,
-    "opener": "restricted"
+    "opener": "preserved"
   },
   {
     "title": "same origin iframe, same site popup",

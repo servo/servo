@@ -1,3 +1,19 @@
+const await_with_timeout = async (delay, message, promise, cleanup = ()=>{}) => {
+  let timeout_id;
+  const timeout = new Promise((_, reject) => {
+    timeout_id = step_timeout(() =>
+      reject(new DOMException(message, "TimeoutError")), delay)
+  });
+  let result = null;
+  try {
+    result = await Promise.race([promise, timeout]);
+    clearTimeout(timeout_id);
+  } finally {
+    cleanup();
+  }
+  return result;
+};
+
 // Asserts that the given attributes are present in 'entry' and hold equal
 // values.
 const assert_all_equal_ = (entry, attributes) => {
@@ -451,12 +467,10 @@ const attribute_test_internal = (loader, path, validator, run_test, test_label) 
       });
 
       await loader(path, validator);
-      const timeout = new Promise(r => step_timeout(() => {
-        console.log("Timeout was reached before entry fired");
-        r(null);
-      }, 2000));
-      const entry = await Promise.race([loaded_entry, timeout]);
-      assert_not_equals(entry, null, 'No entry was recieved');
+      const entry = await await_with_timeout(2000,
+        "Timeout was reached before entry fired",
+        loaded_entry);
+      assert_not_equals(entry, null, 'No entry was received');
       run_test(entry);
   }, test_label);
 };

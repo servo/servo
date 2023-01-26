@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html class="reftest-wait foo">
 <title>View transitions: ensure :only-child is supported on view-transition-image-pair</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
@@ -8,6 +8,22 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <style>
+::view-transition {
+  background-color: black;
+}
+html:only-child {
+  background-color: black;
+}
+:root:only-child {
+  background-color: black;
+}
+:only-child {
+  background-color: black;
+}
+.foo:only-child {
+  background-color: black;
+}
+
 ::view-transition-image-pair(root):only-child {
   background-color: red;
 }

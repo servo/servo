@@ -1,6 +1,22 @@
 const image_delay = 1000;
 const delay_pipe_value = image_delay / 1000;
 
+const await_with_timeout = async (delay, message, promise, cleanup = ()=>{}) => {
+  let timeout_id;
+  const timeout = new Promise((_, reject) => {
+    timeout_id = step_timeout(() =>
+      reject(new DOMException(message, "TimeoutError")), delay)
+  });
+  let result = null;
+  try {
+    result = await Promise.race([promise, timeout]);
+    clearTimeout(timeout_id);
+  } finally {
+    cleanup();
+  }
+  return result;
+};
+
 // Receives an image LargestContentfulPaint |entry| and checks |entry|'s attribute values.
 // The |timeLowerBound| parameter is a lower bound on the loadTime value of the entry.
 // The |options| parameter may contain some string values specifying the following:

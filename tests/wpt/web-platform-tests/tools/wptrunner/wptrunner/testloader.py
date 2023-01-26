@@ -11,6 +11,7 @@ from collections import defaultdict, deque, namedtuple
 
 from . import manifestinclude
 from . import manifestexpected
+from . import manifestupdate
 from . import mpcontext
 from . import wpttest
 from mozlog import structured
@@ -267,7 +268,7 @@ class TestLoader:
     def get_test(self, manifest_file, manifest_test, inherit_metadata, test_metadata):
         if test_metadata is not None:
             inherit_metadata.append(test_metadata)
-            test_metadata = test_metadata.get_test(manifest_test.id.rpartition('/')[-1])
+            test_metadata = test_metadata.get_test(manifestupdate.get_test_name(manifest_test.id))
 
         return wpttest.from_manifest(manifest_file, manifest_test, inherit_metadata, test_metadata)
 

@@ -9,7 +9,6 @@ partial interface ServiceWorkerRegistration {
 
 [SecureContext, Exposed=(Window,Worker)]
 interface PaymentManager {
-  [SameObject] readonly attribute PaymentInstruments instruments;
   attribute DOMString userHint;
   Promise<undefined> enableDelegations(sequence<PaymentDelegation> delegations);
 };
@@ -19,28 +18,6 @@ enum PaymentDelegation {
   "payerName",
   "payerPhone",
   "payerEmail"
-};
-
-[SecureContext, Exposed=(Window,Worker)]
-interface PaymentInstruments {
-  Promise<boolean> delete(DOMString instrumentKey);
-  Promise<any> get(DOMString instrumentKey);
-  Promise<sequence<DOMString>>  keys();
-  Promise<boolean> has(DOMString instrumentKey);
-  Promise<undefined> set(DOMString instrumentKey, PaymentInstrument details);
-  Promise<undefined> clear();
-};
-
-dictionary PaymentInstrument {
-  required DOMString name;
-  sequence<ImageObject> icons;
-  DOMString method;
-};
-
-dictionary ImageObject {
-    required USVString src;
-    DOMString sizes;
-    DOMString type;
 };
 
 partial interface ServiceWorkerGlobalScope {
