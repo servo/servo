@@ -633,7 +633,15 @@ class PackageCommands(CommandBase):
                 aws_access_key_id=aws_access_key,
                 aws_secret_access_key=aws_secret_access_key
             )
+
+            cloudfront = boto3.client(
+                'cloudfront',
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_access_key
+            )
+
             BUCKET = 'servo-builds2'
+            DISTRIBUTION_ID = 'EJ8ZWSJKFCJS2'
 
             nightly_dir = 'nightly/{}'.format(platform)
             filename = nightly_filename(package, timestamp)
@@ -652,7 +660,7 @@ class PackageCommands(CommandBase):
                     sha256_digest.update(data)
             package_hash = sha256_digest.hexdigest()
             package_hash_fileobj = io.BytesIO(package_hash.encode('utf-8'))
-            latest_hash_upload_key = '{}/servo-latest.{}.sha256'.format(nightly_dir, extension)
+            latest_hash_upload_key = f'{latest_upload_key}.sha256'
 
             s3.upload_file(package, BUCKET, package_upload_key)
 
@@ -663,6 +671,21 @@ class PackageCommands(CommandBase):
             s3.copy(copy_source, BUCKET, latest_upload_key)
             s3.upload_fileobj(
                 package_hash_fileobj, BUCKET, latest_hash_upload_key, ExtraArgs={'ContentType': 'text/plain'}
+            )
+
+            # Invalidate previous "latest" nightly files from
+            # CloudFront edge caches
+            cloudfront.create_invalidation(
+                DistributionId=DISTRIBUTION_ID,
+                InvalidationBatch={
+                    'CallerReference': f'{latest_upload_key}-{timestamp}',
+                    'Paths': {
+                        'Quantity': 1,
+                        'Items': [
+                            f'/{latest_upload_key}*'
+                        ]
+                    }
+                }
             )
 
         def update_maven(directory):
