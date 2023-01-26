@@ -1721,6 +1721,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
                           animation-timing-function animation-composition animation-timeline
                           transition-duration transition-delay
                           transition-timing-function transition-property
+                          scroll-timeline-name scroll-timeline-axis
                           view-timeline-name view-timeline-axis view-timeline-inset""" %>
 
 <%self:impl_trait style_struct_name="UI" skip_longhands="${skip_ui_longhands}">
@@ -1904,6 +1905,9 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
     ${impl_coordinated_property('animation', 'iteration_count', 'IterationCount')}
     ${impl_coordinated_property('animation', 'timeline', 'Timeline')}
     ${impl_coordinated_property('animation', 'timing_function', 'TimingFunction')}
+
+    ${impl_coordinated_property('scroll_timeline', 'name', 'Name')}
+    ${impl_coordinated_property('scroll_timeline', 'axis', 'Axis')}
 
     ${impl_coordinated_property('view_timeline', 'name', 'Name')}
     ${impl_coordinated_property('view_timeline', 'axis', 'Axis')}
