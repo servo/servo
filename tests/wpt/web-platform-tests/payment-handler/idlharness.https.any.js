@@ -20,7 +20,6 @@ idl_test(
       idl_array.add_objects({
         ServiceWorkerRegistration: ['registration'],
         PaymentManager: ['paymentManager'],
-        PaymentInstruments: ['instruments'],
       });
     }
     if (isServiceWorker) {
@@ -41,7 +40,6 @@ idl_test(
     }
     if (hasRegistration) {
       self.paymentManager = self.registration.paymentManager;
-      self.instruments = self.paymentManager.instruments;
     }
   }
 );

@@ -135,7 +135,7 @@ const load = {
   // object.
   object: async (path, type) => {
     const object = document.createElement("object");
-    const loaded = new Promise(resolve => {
+    const object_load_settled = new Promise(resolve => {
       object.onload = object.onerror = resolve;
     });
     object.data = load.cache_bust(path);
@@ -143,12 +143,11 @@ const load = {
       object.type = type;
     }
     document.body.appendChild(object);
-    const timeout = new Promise(r => step_timeout(() => {
-      console.log("Timeout was reached before load or error events fired");
-      r();
-    }, 2000));
-    await Promise.race([loaded, timeout]);
-    document.body.removeChild(object);
+    await await_with_timeout(2000,
+      "Timeout was reached before load or error events fired",
+      object_load_settled,
+      () => { document.body.removeChild(object) }
+    );
   },
 
   // Returns a promise that settles once the given path has been fetched

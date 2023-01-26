@@ -24,6 +24,10 @@ const load_image_object = async path => {
   return load.object(path, "image/png");
 }
 
+const load_frame_object = async path => {
+  return load.object(path, "text/html");
+}
+
 const load_null_object = async path => {
   return load.object(path, null);
 }
@@ -38,6 +42,7 @@ for(const loader of [
   load.xhr_async,
   load.iframe,
   load_image_object,
+  load_frame_object,
   load_null_object
 ]) {
   for(const status of status_codes) {
@@ -88,6 +93,7 @@ for(const loader of [
   load.stylesheet,
   load.iframe,
   load_image_object,
+  load_frame_object,
   load_null_object
 ]) {
   for(const tao of [false, true]) {
@@ -113,6 +119,7 @@ for(const loader of [
 // Same-Origin => Cross-Origin => Same-Origin => Same-Origin redirect chain
 for(const loader of [
   load.iframe,
+  load_frame_object,
   load_null_object
 ]) {
   for(const status of status_codes) {
@@ -136,6 +143,7 @@ for(const loader of [
 // Response status for iframes is exposed for same origin redirects
 for(const loader of [
   load.iframe,
+  load_frame_object,
   load_null_object
 ]) {
   for(const status of status_codes) {

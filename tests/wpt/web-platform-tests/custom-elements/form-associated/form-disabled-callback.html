@@ -110,5 +110,27 @@ test(() => {
   container.innerHTML = '<fieldset disabled><my-control>';
   assert_array_equals(container.querySelector('my-control').disabledHistory(), [true]);
 }, 'Upgrading an element with disabled content attribute');
+
+test(() => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  container.innerHTML = '<fieldset disabled><my-control></my-control></fieldset>';
+
+  const control = container.querySelector('my-control');
+  control.setAttribute('disabled', '');
+  control.removeAttribute('disabled');
+  assert_array_equals(control.disabledHistory(), [true]);
+}, 'Toggling "disabled" attribute on a custom element inside disabled <fieldset> does not trigger a callback');
+
+test(() => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  container.innerHTML = '<fieldset><my-control disabled></my-control></fieldset>';
+
+  const fieldset = container.firstElementChild;
+  fieldset.disabled = true;
+  fieldset.disabled = false;
+  assert_array_equals(container.querySelector('my-control').disabledHistory(), [true]);
+}, 'Toggling "disabled" attribute on a <fieldset> does not trigger a callback on disabled custom element descendant');
 </script>
 </body>

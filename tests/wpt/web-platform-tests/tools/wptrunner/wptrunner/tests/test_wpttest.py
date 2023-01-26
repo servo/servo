@@ -7,7 +7,7 @@ from manifest import manifest as wptmanifest
 from manifest.item import TestharnessTest, RefTest
 from manifest.utils import to_os_path
 from . test_update import tree_and_sourcefile_mocks
-from .. import manifestexpected, wpttest
+from .. import manifestexpected, manifestupdate, wpttest
 
 
 dir_ini_0 = b"""\
@@ -111,7 +111,8 @@ def make_test_object(test_name,
                                                     test_path=test_path)
 
     test = next(iter(tests[index][2])) if iterate else tests[index][2].pop()
-    return wpttest.from_manifest(tests, test, inherit_metadata, test_metadata.get_test(test.id.rpartition('/')[-1]))
+    return wpttest.from_manifest(tests, test, inherit_metadata,
+                                 test_metadata.get_test(manifestupdate.get_test_name(test.id)))
 
 
 def test_run_info():
@@ -224,7 +225,8 @@ def test_metadata_fuzzy():
                                                     test_path="a/fuzzy.html")
 
     test = next(manifest.iterpath(to_os_path("a/fuzzy.html")))
-    test_obj = wpttest.from_manifest(manifest, test, [], test_metadata.get_test(test.id.rpartition('/')[-1]))
+    test_obj = wpttest.from_manifest(manifest, test, [],
+                                     test_metadata.get_test(manifestupdate.get_test_name(test.id)))
 
     assert test_obj.fuzzy == {('/a/fuzzy.html', '/a/fuzzy-ref.html', '=='): [[2, 3], [10, 15]]}
     assert test_obj.fuzzy_override == {'/a/fuzzy-ref.html': ((1, 1), (200, 200))}

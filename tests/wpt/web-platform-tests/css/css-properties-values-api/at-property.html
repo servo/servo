@@ -148,6 +148,11 @@ test_not_applied('gandalf', 'grey', false);
 test_not_applied('<color>', 'notacolor', false);
 test_not_applied('<length>', '10em', false);
 
+test_not_applied('<transform-function>', 'translateX(1em)', false);
+test_not_applied('<transform-function>', 'translateY(1lh)', false);
+test_not_applied('<transform-list>', 'rotate(10deg) translateX(1em)', false);
+test_not_applied('<transform-list>', 'rotate(10deg) translateY(1lh)', false);
+
 // Inheritance
 
 test_with_at_property({

@@ -25,7 +25,6 @@
     `.foo {\n  .bar > & { color: green; }\n}`,
     `.foo, .bar {\n  & + .baz, &.qux { color: green; }\n}`,
     `.foo {\n  & .bar & .baz & .qux { color: green; }\n}`,
-    `.foo {\n  @media (min-width: 50px) {\n  & { color: green; }\n}\n}`,
     `.foo {\n  @media (min-width: 50px) { color: green; }\n}`,
     `main {\n  & > section, & > article {\n  & > header { color: green; }\n}\n}`,
   ]

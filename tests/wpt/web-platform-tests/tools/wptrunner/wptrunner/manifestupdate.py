@@ -60,6 +60,10 @@ def data_cls_getter(output_node, visited_node):
     else:
         raise ValueError
 
+def get_test_name(test_id):
+    # test name is base name of test path + query string + frament
+    return test_id[len(urlsplit(test_id).path.rsplit("/", 1)[0]) + 1:]
+
 
 class UpdateProperties:
     def __init__(self, manifest, **kwargs):
@@ -218,7 +222,7 @@ class TestNode(ManifestItem):
 
         :param test_type: The type of the test
         :param test_id: The id of the test"""
-        name = test_id[len(urlsplit(test_id).path.rsplit("/", 1)[0]) + 1:]
+        name = get_test_name(test_id)
         node = DataNode(name)
         self = cls(node)
 

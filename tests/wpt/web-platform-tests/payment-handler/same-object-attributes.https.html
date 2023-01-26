@@ -13,7 +13,6 @@ promise_test(async t => {
   await wait_for_state(t, registration.installing, 'activated');
 
   assert_equals(registration.paymentManager, registration.paymentManager);
-  assert_equals(registration.paymentManager.instruments, registration.paymentManager.instruments);
 });
 
 </script>

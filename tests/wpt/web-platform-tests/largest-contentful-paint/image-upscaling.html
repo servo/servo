@@ -29,15 +29,18 @@
         applyStyle(image, imageStyle);
         applyStyle(container, containerStyle);
         image.id = token();
+        container.id = token();
         const entryReported = new Promise(resolve => new popup.PerformanceObserver(entryList => {
             entryList.getEntries().forEach(entry => {
-                if (entry.id === image.id)
+                if (entry.id === image.id || entry.id === container.id)
                     resolve(entry.size);
             });
         }).observe({type: 'largest-contentful-paint'}));
         popup.document.body.appendChild(container);
-        const timeout = new Promise(resolve => t.step_timeout(() => resolve('not reported'), 1000));
-        return {lcpSize: (await Promise.any([entryReported, timeout])), naturalSize};
+        return {
+            lcpSize: (await await_with_timeout(1000, 'not reported', entryReported)),
+            naturalSize
+        };
     }
 
     // We set the image to display: none when testing background, so that only the background is reported
