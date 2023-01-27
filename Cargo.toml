@@ -27,7 +27,7 @@ compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"
 crossbeam-channel = "0.5"
-cssparser = { version = "0.30", git = "https://github.com/servo/rust-cssparser", rev = "722b30d2f1634714befab967ecae627813fa4cf0" }
+cssparser = { version = "0.30", git = "https://github.com/servo/rust-cssparser", rev = "d3670a89bae26ba3a8db4758eb7976616113987d" }
 darling = { version = "0.14", default-features = false }
 data-url = "0.1.0"
 devtools_traits = { path = "components/shared/devtools" }

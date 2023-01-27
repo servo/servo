@@ -13,6 +13,10 @@ use crate::values::generics::color::{
 use euclid::default::{Transform3D, Vector3D};
 use std::f32::consts::PI;
 
+// TODO(tlouw): The code does not use the new color conversions that were added
+// for new color spaces and needs to be refectored, see:
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1812545
+
 /// An animated RGBA color.
 ///
 /// Unlike in computed values, each component value may exceed the
