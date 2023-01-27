@@ -80,6 +80,7 @@ pub mod attr;
 pub mod author_styles;
 pub mod bezier;
 pub mod bloom;
+pub mod color;
 #[path = "properties/computed_value_flags.rs"]
 pub mod computed_value_flags;
 pub mod context;

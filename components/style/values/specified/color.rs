@@ -5,6 +5,7 @@
 //! Specified color values.
 
 use super::AllowQuirks;
+use crate::color::ColorComponents;
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
@@ -162,10 +163,6 @@ bitflags! {
     }
 }
 
-/// The 3 components that make up a color.  (Does not include the alpha component)
-#[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
-struct ColorComponents(f32, f32, f32);
-
 /// An absolutely specified color, using either rgb(), rgba(), lab(), lch(),
 /// oklab(), oklch() or color().
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
@@ -196,9 +193,9 @@ macro_rules! color_components_as {
 
 impl AbsoluteColor {
     /// Create a new [AbsoluteColor] with the given [ColorSpace] and components.
-    pub fn new(color_space: ColorSpace, c1: f32, c2: f32, c3: f32, alpha: f32) -> Self {
+    pub fn new(color_space: ColorSpace, components: ColorComponents, alpha: f32) -> Self {
         Self {
-            components: ColorComponents(c1, c2, c3),
+            components,
             alpha,
             color_space,
             flags: SerializationFlags::empty(),
@@ -211,7 +208,11 @@ impl AbsoluteColor {
         let green = rgba.green as f32 / 255.0;
         let blue = rgba.blue as f32 / 255.0;
 
-        Self::new(ColorSpace::Srgb, red, green, blue, rgba.alpha)
+        Self::new(
+            ColorSpace::Srgb,
+            ColorComponents(red, green, blue),
+            rgba.alpha,
+        )
     }
 
     /// Return the alpha component.
@@ -233,47 +234,58 @@ impl AbsoluteColor {
 
     /// Convert this color to the specified color space.
     pub fn to_color_space(&self, color_space: ColorSpace) -> Self {
-        use crate::values::animated::color::{AnimatedRGBA, LABA, LCHA, OKLABA, OKLCHA};
+        use crate::color::convert;
         use ColorSpace::*;
 
         if self.color_space == color_space {
             return self.clone();
         }
 
-        match (self.color_space, color_space) {
-            (Lab, Srgb) => {
-                let laba = unsafe { color_components_as!(self, LABA) };
-                let rgba = AnimatedRGBA::from(*laba);
-                Self::new(Srgb, rgba.red, rgba.green, rgba.blue, rgba.alpha)
-            },
+        let (xyz, white_point) = match self.color_space {
+            Lab => convert::to_xyz::<convert::Lab>(&self.components),
+            Lch => convert::to_xyz::<convert::Lch>(&self.components),
+            Oklab => convert::to_xyz::<convert::Oklab>(&self.components),
+            Oklch => convert::to_xyz::<convert::Oklch>(&self.components),
+            Srgb => convert::to_xyz::<convert::Srgb>(&self.components),
+            SrgbLinear => convert::to_xyz::<convert::SrgbLinear>(&self.components),
+            DisplayP3 => convert::to_xyz::<convert::DisplayP3>(&self.components),
+            A98Rgb => convert::to_xyz::<convert::A98Rgb>(&self.components),
+            ProphotoRgb => convert::to_xyz::<convert::ProphotoRgb>(&self.components),
+            Rec2020 => convert::to_xyz::<convert::Rec2020>(&self.components),
+            XyzD50 => convert::to_xyz::<convert::XyzD50>(&self.components),
+            XyzD65 => convert::to_xyz::<convert::XyzD65>(&self.components),
+        };
 
-            (Oklab, Srgb) => {
-                let oklaba: &OKLABA = unsafe { color_components_as!(self, OKLABA) };
-                let rgba = AnimatedRGBA::from(*oklaba);
-                Self::new(Srgb, rgba.red, rgba.green, rgba.blue, rgba.alpha)
-            },
+        let result = match color_space {
+            Lab => convert::from_xyz::<convert::Lab>(&xyz, white_point),
+            Lch => convert::from_xyz::<convert::Lch>(&xyz, white_point),
+            Oklab => convert::from_xyz::<convert::Oklab>(&xyz, white_point),
+            Oklch => convert::from_xyz::<convert::Oklch>(&xyz, white_point),
+            Srgb => convert::from_xyz::<convert::Srgb>(&xyz, white_point),
+            SrgbLinear => convert::from_xyz::<convert::SrgbLinear>(&xyz, white_point),
+            DisplayP3 => convert::from_xyz::<convert::DisplayP3>(&xyz, white_point),
+            A98Rgb => convert::from_xyz::<convert::A98Rgb>(&xyz, white_point),
+            ProphotoRgb => convert::from_xyz::<convert::ProphotoRgb>(&xyz, white_point),
+            Rec2020 => convert::from_xyz::<convert::Rec2020>(&xyz, white_point),
+            XyzD50 => convert::from_xyz::<convert::XyzD50>(&xyz, white_point),
+            XyzD65 => convert::from_xyz::<convert::XyzD65>(&xyz, white_point),
+        };
 
-            (Lch, Srgb) => {
-                let lcha: &LCHA = unsafe { color_components_as!(self, LCHA) };
-                let rgba = AnimatedRGBA::from(*lcha);
-                Self::new(Srgb, rgba.red, rgba.green, rgba.blue, rgba.alpha)
-            },
+        Self::new(color_space, result, self.alpha)
+    }
+}
 
-            (Oklch, Srgb) => {
-                let oklcha: &OKLCHA = unsafe { color_components_as!(self, OKLCHA) };
-                let rgba = AnimatedRGBA::from(*oklcha);
-                Self::new(Srgb, rgba.red, rgba.green, rgba.blue, rgba.alpha)
-            },
-
-            _ => {
-                // Conversion to other color spaces is not implemented yet.
-                log::warn!(
-                    "Can not convert from {:?} to {:?}!",
-                    self.color_space,
-                    color_space
-                );
-                Self::from_rgba(RGBA::new(0, 0, 0, 1.0))
-            },
+impl From<cssparser::PredefinedColorSpace> for ColorSpace {
+    fn from(value: cssparser::PredefinedColorSpace) -> Self {
+        match value {
+            cssparser::PredefinedColorSpace::Srgb => ColorSpace::Srgb,
+            cssparser::PredefinedColorSpace::SrgbLinear => ColorSpace::SrgbLinear,
+            cssparser::PredefinedColorSpace::DisplayP3 => ColorSpace::DisplayP3,
+            cssparser::PredefinedColorSpace::A98Rgb => ColorSpace::A98Rgb,
+            cssparser::PredefinedColorSpace::ProphotoRgb => ColorSpace::ProphotoRgb,
+            cssparser::PredefinedColorSpace::Rec2020 => ColorSpace::Rec2020,
+            cssparser::PredefinedColorSpace::XyzD50 => ColorSpace::XyzD50,
+            cssparser::PredefinedColorSpace::XyzD65 => ColorSpace::XyzD65,
         }
     }
 }
@@ -283,33 +295,43 @@ impl From<cssparser::AbsoluteColor> for AbsoluteColor {
         match f {
             cssparser::AbsoluteColor::Rgba(rgba) => Self::from_rgba(rgba),
 
-            cssparser::AbsoluteColor::Lab(lab) => {
-                Self::new(ColorSpace::Lab, lab.lightness, lab.a, lab.b, lab.alpha)
-            },
+            cssparser::AbsoluteColor::Lab(lab) => Self::new(
+                ColorSpace::Lab,
+                ColorComponents(lab.lightness, lab.a, lab.b),
+                lab.alpha,
+            ),
 
             cssparser::AbsoluteColor::Lch(lch) => Self::new(
                 ColorSpace::Lch,
-                lch.lightness,
-                lch.chroma,
-                lch.hue,
+                ColorComponents(lch.lightness, lch.chroma, lch.hue),
                 lch.alpha,
             ),
 
             cssparser::AbsoluteColor::Oklab(oklab) => Self::new(
                 ColorSpace::Oklab,
-                oklab.lightness,
-                oklab.a,
-                oklab.b,
+                ColorComponents(oklab.lightness, oklab.a, oklab.b),
                 oklab.alpha,
             ),
 
             cssparser::AbsoluteColor::Oklch(oklch) => Self::new(
                 ColorSpace::Oklch,
-                oklch.lightness,
-                oklch.chroma,
-                oklch.hue,
+                ColorComponents(oklch.lightness, oklch.chroma, oklch.hue),
                 oklch.alpha,
             ),
+
+            cssparser::AbsoluteColor::ColorFunction(c) => {
+                let mut result = AbsoluteColor::new(
+                    c.color_space.into(),
+                    ColorComponents(c.c1, c.c2, c.c3),
+                    c.alpha,
+                );
+
+                if matches!(c.color_space, cssparser::PredefinedColorSpace::Srgb) {
+                    result.flags |= SerializationFlags::AS_COLOR_FUNCTION;
+                }
+
+                result
+            },
         }
     }
 }
@@ -347,16 +369,38 @@ impl ToCss for AbsoluteColor {
                 unsafe { color_components_as!(self, cssparser::Oklch) },
                 dest,
             ),
-            // Other color spaces are not implemented yet. See:
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1128204
-            ColorSpace::Srgb |
-            ColorSpace::SrgbLinear |
-            ColorSpace::DisplayP3 |
-            ColorSpace::A98Rgb |
-            ColorSpace::ProphotoRgb |
-            ColorSpace::Rec2020 |
-            ColorSpace::XyzD50 |
-            ColorSpace::XyzD65 => todo!(),
+            _ => {
+                let color_space = match self.color_space {
+                    ColorSpace::Lab | ColorSpace::Lch | ColorSpace::Oklab | ColorSpace::Oklch => {
+                        unreachable!("Handle these in the wrapping match case!!")
+                    },
+                    ColorSpace::Srgb => {
+                        debug_assert!(
+                            self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION),
+                             "The case without this flag should be handled in the wrapping match case!!"
+                          );
+
+                        cssparser::PredefinedColorSpace::Srgb
+                    },
+                    ColorSpace::SrgbLinear => cssparser::PredefinedColorSpace::SrgbLinear,
+                    ColorSpace::DisplayP3 => cssparser::PredefinedColorSpace::DisplayP3,
+                    ColorSpace::A98Rgb => cssparser::PredefinedColorSpace::A98Rgb,
+                    ColorSpace::ProphotoRgb => cssparser::PredefinedColorSpace::ProphotoRgb,
+                    ColorSpace::Rec2020 => cssparser::PredefinedColorSpace::Rec2020,
+                    ColorSpace::XyzD50 => cssparser::PredefinedColorSpace::XyzD50,
+                    ColorSpace::XyzD65 => cssparser::PredefinedColorSpace::XyzD65,
+                };
+
+                let color_function = cssparser::ColorFunction {
+                    color_space,
+                    c1: self.components.0,
+                    c2: self.components.1,
+                    c3: self.components.2,
+                    alpha: self.alpha,
+                };
+                let color = cssparser::AbsoluteColor::ColorFunction(color_function);
+                cssparser::ToCss::to_css(&color, dest)
+            },
         }
     }
 }
