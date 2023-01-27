@@ -444,6 +444,13 @@ pub struct FamilyName {
     pub syntax: FontFamilyNameSyntax,
 }
 
+impl FamilyName {
+    fn is_known_icon_font_family(&self) -> bool {
+        use crate::gecko_bindings::bindings;
+        unsafe { bindings::Gecko_IsKnownIconFontFamily(self.name.as_ptr()) }
+    }
+}
+
 impl ToCss for FamilyName {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -706,26 +713,56 @@ impl FontFamilyList {
     }
 
     /// If there's a generic font family on the list which is suitable for user
-    /// font prioritization, then move it to the front of the list. Otherwise,
-    /// prepend the default generic.
+    /// font prioritization, then move it ahead of the other families in the list,
+    /// except for any families known to be ligature-based icon fonts, where using a
+    /// generic instead of the site's specified font may cause substantial breakage.
+    /// If no suitable generic is found in the list, insert the default generic ahead
+    /// of all the listed families except for known ligature-based icon fonts.
     #[cfg(feature = "gecko")]
     pub(crate) fn prioritize_first_generic_or_prepend(&mut self, generic: GenericFontFamily) {
-        let index_of_first_generic = self.iter().position(|f| match *f {
-            SingleFontFamily::Generic(f) => f.valid_for_user_font_prioritization(),
-            _ => false,
-         });
+        let mut index_of_first_generic = None;
+        let mut target_index = None;
 
-        if let Some(0) = index_of_first_generic {
-            return; // Already first
+        for (i, f) in self.iter().enumerate() {
+            match &*f {
+                SingleFontFamily::Generic(f) => {
+                    if index_of_first_generic.is_none() && f.valid_for_user_font_prioritization() {
+                        // If we haven't found a target position, there's nothing to do;
+                        // this entry is already ahead of everything except any whitelisted
+                        // icon fonts.
+                        if target_index.is_none() {
+                            return;
+                        }
+                        index_of_first_generic = Some(i);
+                        break;
+                    }
+                    // A non-prioritized generic (e.g. cursive, fantasy) becomes the target
+                    // position for prioritization, just like arbitrary named families.
+                    if target_index.is_none() {
+                        target_index = Some(i);
+                    }
+                },
+                SingleFontFamily::FamilyName(fam) => {
+                    // Target position for the first generic is in front of the first
+                    // non-whitelisted icon font family we find.
+                    if target_index.is_none() && !fam.is_known_icon_font_family() {
+                        target_index = Some(i);
+                    }
+                },
+            }
         }
 
         let mut new_list = self.list.iter().cloned().collect::<Vec<_>>();
-        let element_to_prepend = match index_of_first_generic {
+        let first_generic = match index_of_first_generic {
             Some(i) => new_list.remove(i),
             None => SingleFontFamily::Generic(generic),
         };
 
-        new_list.insert(0, element_to_prepend);
+        if let Some(i) = target_index {
+            new_list.insert(i, first_generic);
+        } else {
+            new_list.push(first_generic);
+        }
         self.list = crate::ArcSlice::from_iter(new_list.into_iter());
     }
 
