@@ -147,12 +147,7 @@ jobs:
   #           --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
   #           --log-raw test-wpt.${{ matrix.chunk_id }}.log \
   #           --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-  #           --always-succeed
-  #         python3 ./mach filter-intermittents wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-  #           --log-intermittents=intermittents.${{ matrix.chunk_id }}.log \
-  #           --log-filteredsummary=filtered-wpt-summary.${{ matrix.chunk_id }}.log \
-  #           --tracker-api=default --reporter-api=default
-
+  #           --filter-intermittents=filtered-wpt-summary.${{ matrix.chunk_id }}.log
   #     - name: Archive logs
   #       uses: actions/upload-artifact@v3
   #       if: ${{ failure() }}
@@ -162,7 +157,6 @@ jobs:
   #           test-wpt.${{ matrix.chunk_id }}.log
   #           wpt-jsonsummary.${{ matrix.chunk_id }}.log
   #           filtered-wpt-summary.${{ matrix.chunk_id }}.log
-  #           intermittents.${{ matrix.chunk_id }}.log
 
   build-linux:
     name: Build (Linux)
@@ -225,11 +219,7 @@ jobs:
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-            --always-succeed
-          python3 ./mach filter-intermittents wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-            --log-intermittents=intermittents.${{ matrix.chunk_id }}.log \
-            --log-filteredsummary=filtered-wpt-summary.${{ matrix.chunk_id }}.log \
-            --tracker-api=default --reporter-api=default
+            --filter-intermittents=filtered-wpt-summary.${{ matrix.chunk_id }}.log
       - name: Archive logs
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
@@ -239,7 +229,6 @@ jobs:
             test-wpt.${{ matrix.chunk_id }}.log
             wpt-jsonsummary.${{ matrix.chunk_id }}.log
             filtered-wpt-summary.${{ matrix.chunk_id }}.log
-            intermittents.${{ matrix.chunk_id }}.log
 
   build_result:
     name: homu build finished

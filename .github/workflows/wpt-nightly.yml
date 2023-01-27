@@ -80,8 +80,6 @@ jobs:
           path: |
             test-wpt.${{ matrix.chunk_id }}.log
             wpt-jsonsummary.${{ matrix.chunk_id }}.log
-            filtered-wpt-summary.${{ matrix.chunk_id }}.log
-            intermittents.${{ matrix.chunk_id }}.log
 
   sync:
     name: Synchronize WPT Nightly
