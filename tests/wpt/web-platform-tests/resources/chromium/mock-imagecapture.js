@@ -153,7 +153,7 @@ self.ImageCaptureTest = (() => {
       return Promise.resolve(newState);
     }
 
-    async setOptions(source_id, settings) {
+    async setPhotoOptions(source_id, settings) {
       const isAllowedToControlPanTiltZoom = await this.isPanTiltZoomPermissionGranted();
       if (!isAllowedToControlPanTiltZoom &&
           (settings.hasPan || settings.hasTilt || settings.hasZoom)) {

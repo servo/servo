@@ -53,7 +53,10 @@
     //   900 px cover end, exit end
     const anim =
         CreateViewTimelineOpacityAnimation(t, target,
-                                           { axis: 'inline', fill: 'both' });
+                                           {
+                                             timeline: { axis: 'inline' },
+                                             animation: { fill: 'both' }
+                                           });
     let timeline = anim.timeline;
 
     container.scrollLeft = 600;
