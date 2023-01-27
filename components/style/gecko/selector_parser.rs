@@ -443,6 +443,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                     return Ok(pseudo);
                 }
             }
+        } else if name.eq_ignore_ascii_case("highlight") {
+            let pseudo = PseudoElement::Highlight(AtomIdent::from(parser.expect_ident()?.as_ref()));
+            if self.is_pseudo_element_enabled(&pseudo) {
+                return Ok(pseudo);
+            }
         }
         Err(
             parser.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(
