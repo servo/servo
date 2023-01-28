@@ -18,20 +18,37 @@ var ctx = canvas.getContext('2d');
 
 ctx.lineWidth = 1.5;
 _assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
+
 ctx.lineWidth = 1.5;
 ctx.lineWidth = 0;
 _assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
+
 ctx.lineWidth = 1.5;
 ctx.lineWidth = -1;
 _assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
+
 ctx.lineWidth = 1.5;
 ctx.lineWidth = Infinity;
 _assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
+
 ctx.lineWidth = 1.5;
 ctx.lineWidth = -Infinity;
 _assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
+
 ctx.lineWidth = 1.5;
 ctx.lineWidth = NaN;
+_assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
+
+ctx.lineWidth = 1.5;
+ctx.lineWidth = 'string';
+_assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
+
+ctx.lineWidth = 1.5;
+ctx.lineWidth = true;
+_assertSame(ctx.lineWidth, 1, "ctx.lineWidth", "1");
+
+ctx.lineWidth = 1.5;
+ctx.lineWidth = false;
 _assertSame(ctx.lineWidth, 1.5, "ctx.lineWidth", "1.5");
 t.done();
 

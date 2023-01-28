@@ -35,6 +35,8 @@ promise_test(async t => {
                 'spatialIndex');
   assert_equals(cloneMetadata.temporalIndex, metadata.temporalIndex,
                 'temporalIndex');
+  assert_equals(cloneMetadata.frameType, metadata.frameType,
+                'frameType');
   // RTCEncodedVideoFrameAdditionalMetadata-only fields.
   assert_array_equals(cloneMetadata.decodeTargetIndications,
                       metadata.decodeTargetIndications,

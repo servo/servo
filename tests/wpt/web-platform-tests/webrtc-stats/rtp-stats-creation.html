@@ -94,7 +94,7 @@ promise_test(async (test) => {
   while (true) {
     const report = await remotePc.getStats();
     const audioPlayout =
-      [...report.values()].filter(({type}) => type == "audio-playout");
+      [...report.values()].filter(({type}) => type == "media-playout");
     if (audioPlayout.length == 1) {
       break;
     }

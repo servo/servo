@@ -26,7 +26,7 @@ function test_computed_value(property, specified, computed, titleExtra) {
       assert_in_array(readValue, computed);
     } else {
       if (property == "color")
-        colorValuesAlmostEqual(readValue, computed, 0.0001);
+        colorValuesAlmostEqual(readValue, computed, 0.0001, 1);
       else
         assert_equals(readValue, computed);
     }
@@ -39,7 +39,9 @@ function test_computed_value(property, specified, computed, titleExtra) {
   }, `Property ${property} value '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
 }
 
-function colorValuesAlmostEqual(color1, color2, epsilon) {
+function colorValuesAlmostEqual(color1, color2, float_epsilon, integer_epsilon) {
+  // Legacy color formats use integers in [0, 255] and thus will have wider epsilons
+  const epsilon = getNonNumbers(color1).startsWith("rgb") ? integer_epsilon : float_epsilon;
   // Colors can be split by spaces, commas or the '(' character.
   const colorElementDividers = /( |\(|,)/;
   // Return the string stripped of numbers.

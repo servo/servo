@@ -41,7 +41,7 @@
     <div class="target" style="width: anchor-size(--a2 width)" data-expected-width=5></div>
   </div>
 <script>
-checkLayout('.target');
+checkLayout('.target', false);
 container.classList.add('after');
 for (const element of document.getElementsByClassName('target')) {
   if (element.dataset.offsetX === '5')
@@ -49,6 +49,6 @@ for (const element of document.getElementsByClassName('target')) {
   if (element.dataset.expectedWidth === '5')
     element.dataset.expectedWidth = '10';
 }
-checkLayout('.after .target');
+checkLayout('.after .target', true);
 </script>
 </body>

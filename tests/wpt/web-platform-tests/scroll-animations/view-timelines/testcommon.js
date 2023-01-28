@@ -8,20 +8,26 @@ function assert_px_equals(observed, expected, description) {
 }
 
 function CreateViewTimelineOpacityAnimation(test, target, options) {
-  const viewTimelineOptions = {
+  const timeline_options = {
     subject: target,
     axis: 'block'
   };
-  if (options) {
-    for (let key in options) {
-      viewTimelineOptions[key] = options[key];
+  if (options && 'timeline' in options) {
+    for (let key in options.timeline) {
+      timeline_options[key] = options.timeline[key];
+    }
+  }
+  const animation_options = {
+    timeline: new ViewTimeline(timeline_options)
+  };
+  if (options && 'animation' in options) {
+    for (let key in options.animation) {
+      animation_options[key] = options.animation[key];
     }
   }
 
   const anim =
-      target.animate(
-          { opacity: [0.3, 0.7] },
-          { timeline: new ViewTimeline(viewTimelineOptions) });
+      target.animate({ opacity: [0.3, 0.7] }, animation_options);
   test.add_cleanup(() => {
     anim.cancel();
   });
@@ -44,7 +50,7 @@ async function runTimelineBoundsTest(t, options, message) {
 
   const anim =
       options.anim ||
-      CreateViewTimelineOpacityAnimation(t, target, options.timeline);
+      CreateViewTimelineOpacityAnimation(t, target, options);
   if (options.timing)
     anim.effect.updateTiming(options.timing);
 
@@ -99,9 +105,11 @@ async function runTimelineRangeTest(t, options) {
   options.timeline = {
     axis: 'inline'
   };
-  options.timing = {
+  options.animation = {
     rangeStart: options.rangeStart,
     rangeEnd: options.rangeEnd,
+  };
+  options.timing = {
     // Set fill to accommodate floating point precision errors at the
     // endpoints.
     fill: 'both'

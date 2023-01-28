@@ -19,10 +19,10 @@ test_math_used('calc(e - exp(1))', '0', {type:'number', approx:0.1});
 
 //General calculations
 test_math_used('calc(log( 1 + 1 + 2 /2 - 2) )', '0', {type:'number', approx:0.1});
-test_math_used('calc(log(1) + exp(0))', '1'), {type:'number', approx:0.1};
-test_math_used('calc(exp(log(1) + exp(0)*2))', '7.4'), {type:'number', approx:0.1};
-test_math_used('calc(log(log(1) + exp(0)*10))', '2.3'), {type:'number', approx:0.1};
-test_math_used('calc(log(log(1) + exp(0)*20, 10))', '1.3'), {type:'number', approx:0.1};
+test_math_used('calc(log(1) + exp(0))', '1', {type:'number', approx:0.1});
+test_math_used('calc(exp(log(1) + exp(0)*2))', '7.4', {type:'number', approx:0.1});
+test_math_used('calc(log(log(1) + exp(0)*10))', '2.3', {type:'number', approx:0.1});
+test_math_used('calc(log(log(1) + exp(0)*20, 10))', '1.3', {type:'number', approx:0.1});
 test_math_used('calc(log(e)  / log(e) + exp(0)*2 * log(e))', '3', {type:'number', approx:0.1});
 test_math_used('calc(log((1 + 1) /2)  / log(e) + exp(0*1)*2 * log(e))', '2', {type:'number', approx:0.1});
 test_math_used('calc(log((3 + 1) /2, 2)  / log(e) + exp(0*1)*2 * log(e))', '3', {type:'number', approx:0.1});

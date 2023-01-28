@@ -171,18 +171,24 @@ def createGlyphFromValue(aFont, aCodePoint):
     g.width = 5 * em / 2
     g.stroke("circular", em / 10, "square", "miter", "cleanup")
 
-def createSizeVariants(aFont, aUsePUA = False):
+def createSizeVariants(aFont, aUsePUA = False, aCenterOnBaseline = False):
     if aUsePUA:
         codePoint = PUA_startCodePoint
     else:
         codePoint = -1
     for size in (0, 1, 2, 3):
         g = aFont.createChar(codePoint, "v%d" % size)
-        drawRectangleGlyph(g, em, (size + 1) * em, 0)
+        if aCenterOnBaseline:
+            drawRectangleGlyph(g, em, (size + 1) * em / 2, (size + 1) * em / 2)
+        else:
+            drawRectangleGlyph(g, em, (size + 1) * em, 0)
         if aUsePUA:
             codePoint += 1
         g = aFont.createChar(codePoint, "h%d" % size)
-        drawRectangleGlyph(g, (size + 1) * em, em, 0)
+        if aCenterOnBaseline:
+            drawRectangleGlyph(g, (size + 1) * em, em/2, em/2)
+        else:
+            drawRectangleGlyph(g, (size + 1) * em, em, 0)
         if aUsePUA:
             codePoint += 1
 

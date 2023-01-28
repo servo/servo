@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<script>
+  addEventListener('message', (event) => {
+    if (event.data == 'report baseURI')
+      event.source.postMessage(document.baseURI, event.origin);
+  });
+  parent.postMessage('loaded', '*');
+</script>

@@ -28,7 +28,7 @@ font.math.OverbarExtraAscender = 0
 horizontalArrow = 0x295A # LEFTWARDS HARPOON WITH BARB UP FROM BAR
 verticalArrow = 0x295C # UPWARDS HARPOON WITH BARB RIGHT FROM BAR
 
-mathfont.createSizeVariants(font)
+mathfont.createSizeVariants(font, aUsePUA = True, aCenterOnBaseline = False)
 
 # Add stretchy vertical and horizontal constructions for the horizontal arrow.
 mathfont.createSquareGlyph(font, horizontalArrow)

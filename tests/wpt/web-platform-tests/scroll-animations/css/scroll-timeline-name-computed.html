@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6674">
-<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-name">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-name">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
@@ -19,7 +18,11 @@ test_computed_value('scroll-timeline-name', 'unset', 'none');
 test_computed_value('scroll-timeline-name', 'revert', 'none');
 test_computed_value('scroll-timeline-name', 'none');
 test_computed_value('scroll-timeline-name', 'test');
-test_computed_value('scroll-timeline-name', 'tEst');
+test_computed_value('scroll-timeline-name', 'foo, bar');
+test_computed_value('scroll-timeline-name', 'bar, foo');
+test_computed_value('scroll-timeline-name', 'a, b, c, D, e');
+test_computed_value('scroll-timeline-name', 'none, none');
+test_computed_value('scroll-timeline-name', 'a, b, c, none, d, e');
 
 test(() => {
   let style = getComputedStyle(document.getElementById('target'));

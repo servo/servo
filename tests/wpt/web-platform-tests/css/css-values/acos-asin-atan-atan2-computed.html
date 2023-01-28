@@ -28,7 +28,7 @@ test_math_used('calc(atan(e - 2.7182818284590452354) )', '0deg', {type:'angle', 
 
 // General calculations
 test_math_used('calc(asin(sin(30deg + 1.0471967rad ) ))', '90deg', {type:'angle', approx:0.1});
-test_math_used('calc(acos(cos(30deg - 0.523599rad ) ))', '0deg'), {type:'angle', approx:0.1};
+test_math_used('calc(acos(cos(30deg - 0.523599rad ) ))', '0deg', {type:'angle', approx:0.1});
 test_math_used('calc(asin(sin(3.14159 / 2 + 1 - 1) ))', '90deg', {type:'angle', approx:0.1});
 test_math_used('calc(asin(sin(100grad) ))', '90deg', {type:'angle', approx:0.1});
 test_math_used('calc(acos(cos(0 / 2 + 1 - 1) ))', '0deg', {type:'angle', approx:0.1});

@@ -370,9 +370,13 @@ var browserTests = [
     "foo{<font color=\"#0000ff\">bar}</font>baz",
     [true,true],
     {"stylewithcss":[false,true,"",false,false,""],"forecolor":[false,false,"rgb(0, 0, 255)",false,false,"rgb(0, 0, 255)"]}],
+// Once the inner <span> style is updated, it has same style as the outer one.
+// Therefore, it may be okay to use the outer one is the only container of the
+// text nodes or it may be okay to split the outer one and keep 3 <span>s.
 ["<span style=\"color: blue\">foo<span style=\"color: brown\">[bar]</span>baz</span>",
     [["stylewithcss","true"],["forecolor","#0000FF"]],
-    "<span style=\"color:rgb(0, 0, 255)\">foo</span><span style=\"color:rgb(0, 0, 255)\">bar</span><span style=\"color:rgb(0, 0, 255)\">baz</span>",
+    ["<span style=\"color:rgb(0, 0, 255)\">foo</span><span style=\"color:rgb(0, 0, 255)\">bar</span><span style=\"color:rgb(0, 0, 255)\">baz</span>",
+     "<span style=\"color:rgb(0, 0, 255)\">foo[bar]baz</span>"],
     [true,true],
     {"stylewithcss":[false,false,"",false,true,""],"forecolor":[false,false,"rgb(165, 42, 42)",false,false,"rgb(0, 0, 255)"]}],
 ["<span style=\"color: blue\">foo<span style=\"color: brown\">[bar]</span>baz</span>",
@@ -410,9 +414,12 @@ var browserTests = [
     "<span style=\"color:rgb(0, 0, 255)\">foo[bar]baz</span>",
     [true,true],
     {"stylewithcss":[false,true,"",false,false,""],"forecolor":[false,false,"rgb(165, 42, 42)",false,false,"rgb(0, 0, 255)"]}],
+// Use the inner <font> for the `style` attribute container.  Then, the outer
+// <font> should be split and may be serialized.
 ["<font color=blue>foo<font color=brown>[bar]</font>baz</font>",
     [["stylewithcss","true"],["forecolor","#0000FF"]],
-    "<font color=\"blue\">foo[bar]baz</font>",
+    ["<span style=\"color:rgb(0, 0, 255)\">foo</span><font style=\"color:rgb(0, 0, 255)\">bar</font><span style=\"color:rgb(0, 0, 255)\">baz</span>",
+     "<font color=\"blue\">foo</font><span style=\"color:rgb(0, 0, 255)\">bar</span><font color=\"blue\">baz</font>"],
     [true,true],
     {"stylewithcss":[false,false,"",false,true,""],"forecolor":[false,false,"rgb(165, 42, 42)",false,false,"rgb(0, 0, 255)"]}],
 ["<font color=blue>foo<font color=brown>[bar]</font>baz</font>",

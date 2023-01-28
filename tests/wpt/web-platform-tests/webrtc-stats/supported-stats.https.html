@@ -107,7 +107,8 @@ async function getAllStats(t, pc) {
     // `roundTripTime` is missing in this test, but awaiting for any
     // remote-outbound-rtp avoids flaky failures.
     const hasRemoteOutbound = remoteOutboundAudio || remoteOutboundVideo;
-    if (hasRemoteInbound && hasRemoteOutbound) {
+    const hasMediaPlayout = values.find(({type}) => type == "media-playout") != undefined;
+    if (hasRemoteInbound && hasRemoteOutbound && hasMediaPlayout) {
       return stats;
     }
     await new Promise(r => t.step_timeout(r, 1000));

@@ -45,8 +45,8 @@ async function verifyNoScrollendOnDocument(test) {
   window.addEventListener('scrollend', callback);
 }
 
-async function createScrollendPromise(test) {
-  return waitForScrollendEvent(test, target_div).then(evt => {
+async function createScrollendPromise(test, timeoutMs = 500) {
+  return waitForScrollendEvent(test, target_div, timeoutMs).then(evt => {
       assert_false(evt.cancelable, 'Event is not cancelable');
       assert_false(evt.bubbles, 'Event targeting element does not bubble');
   });
@@ -60,10 +60,20 @@ function runTest() {
       return;
 
     await resetTargetScrollState(t);
-    await waitForCompositorCommit();
+    await waitForCompositorReady();
 
-    const targetScrollendPromise = createScrollendPromise(t);
+    const timeout = 1000; // Because we have two pauses we need longer timeout
+    const targetScrollendPromise = createScrollendPromise(t, timeout);
     verifyNoScrollendOnDocument(t);
+
+    let scrollend_count = 0;
+    const scrollend_listener = () => {
+      scrollend_count += 1;
+    };
+    target_div.addEventListener("scrollend", scrollend_listener);
+    t.add_cleanup(() => {
+      target_div.removeEventListener('scrollend', scrollend_listener);
+    });
 
     // Perform a touch drag on target div and wait for target_div to get
     // a scrollend event.
@@ -75,6 +85,9 @@ function runTest() {
         .pointerMove(0, -40, {origin: target_div}) //  Drag up to move down.
         .addTick()
         .pause(200) //  Prevent inertial scroll.
+        .pointerMove(0, -60, {origin: target_div})
+        .addTick()
+        .pause(200) //  Prevent inertial scroll.
         .pointerUp()
         .send();
 
@@ -82,6 +95,7 @@ function runTest() {
 
     assert_true(target_div.scrollTop > 0);
     await verifyScrollStopped(t, target_div);
+    assert_equals(scrollend_count, 1);
   }, 'Tests that the target_div gets scrollend event when touch dragging.');
 
   promise_test(async (t) => {
@@ -92,7 +106,7 @@ function runTest() {
       return;
 
     await resetTargetScrollState(t);
-    await waitForCompositorCommit();
+    await waitForCompositorReady();
 
     const targetScrollendPromise = createScrollendPromise(t);
     verifyNoScrollendOnDocument(t);
@@ -122,7 +136,9 @@ function runTest() {
     if (scrollbar_width == 0)
       return;
 
-    resetTargetScrollState(t);
+    await resetTargetScrollState(t);
+    await waitForCompositorReady();
+
     const targetScrollendPromise = createScrollendPromise(t);
     verifyNoScrollendOnDocument(t);
 
@@ -146,7 +162,9 @@ function runTest() {
       'scrollbar thumb.');
 
   promise_test(async (t) => {
-    resetTargetScrollState(t);
+    await resetTargetScrollState(t);
+    await waitForCompositorReady();
+
     const targetScrollendPromise = createScrollendPromise(t);
     verifyNoScrollendOnDocument(t);
 
@@ -167,7 +185,7 @@ function runTest() {
 
   promise_test(async (t) => {
     await resetTargetScrollState(t);
-    await waitForCompositorCommit();
+    await waitForCompositorReady();
 
     verifyNoScrollendOnDocument(t);
     const targetScrollendPromise = createScrollendPromise(t);

@@ -75,20 +75,27 @@ function RunCallbackWithGesture(callback) {
   return test_driver.bless('run callback with user gesture', callback);
 }
 
-// Sends a message to the given target window, and waits for the provided
-// promise to resolve.
-function PostMessageAndAwait(message, targetWindow, promise) {
-  targetWindow.postMessage(message, "*");
-  return promise;
+// Sends a message to the given target window and returns a promise that
+// resolves when a reply was sent.
+function PostMessageAndAwaitReply(message, targetWindow) {
+  const timestamp = window.performance.now();
+  const reply = ReplyPromise(timestamp);
+  targetWindow.postMessage({timestamp, ...message}, "*");
+  return reply;
 }
 
 // Returns a promise that resolves when the next "reply" is received via
-// postMessage.
-function ReplyPromise() {
+// postMessage. Takes a "timestamp" argument to validate that the received
+// message belongs to its original counterpart.
+function ReplyPromise(timestamp) {
   return new Promise((resolve) => {
-    window.addEventListener("message", (event) => {
-      resolve(event.data);
-    }, { once: true });
+    const listener = (event) => {
+      if (event.data.timestamp == timestamp) {
+        window.removeEventListener("message", listener);
+        resolve(event.data.data);
+      }
+    };
+    window.addEventListener("message", listener);
   });
 }
 
@@ -103,34 +110,48 @@ function ReloadPromise(frame) {
 
 // Reads cookies via document.cookie in the given frame.
 function GetJSCookiesFromFrame(frame) {
-  return PostMessageAndAwait({ command: "document.cookie" }, frame.contentWindow, ReplyPromise());
+  return PostMessageAndAwaitReply(
+      { command: "document.cookie" }, frame.contentWindow);
 }
 
 // Reads cookies via the `httpCookies` variable in the given frame.
 function GetHTTPCookiesFromFrame(frame) {
-  return PostMessageAndAwait({ command: "httpCookies" }, frame.contentWindow, ReplyPromise());
+  return PostMessageAndAwaitReply(
+      { command: "httpCookies" }, frame.contentWindow);
 }
 
 // Executes document.hasStorageAccess in the given frame.
 function FrameHasStorageAccess(frame) {
-  return PostMessageAndAwait({ command: "hasStorageAccess" }, frame.contentWindow, ReplyPromise());
+  return PostMessageAndAwaitReply(
+      { command: "hasStorageAccess" }, frame.contentWindow);
 }
 
 // Executes document.requestStorageAccess in the given frame.
 function RequestStorageAccessInFrame(frame) {
-  return PostMessageAndAwait({ command: "requestStorageAccess" }, frame.contentWindow, ReplyPromise());
+  return PostMessageAndAwaitReply(
+      { command: "requestStorageAccess" }, frame.contentWindow);
 }
 
 // Executes test_driver.set_permission in the given frame, with the provided
 // arguments.
 function SetPermissionInFrame(frame, args = []) {
-  return PostMessageAndAwait({ command: "set_permission", args }, frame.contentWindow, ReplyPromise());
+  return PostMessageAndAwaitReply(
+      { command: "set_permission", args }, frame.contentWindow);
+}
+
+// Waits for a storage-access permission change and resolves with the current
+// state.
+function ObservePermissionChange(frame, args = []) {
+  return PostMessageAndAwaitReply(
+      { command: "observe_permission_change", args }, frame.contentWindow);
 }
 
 // Executes `location.reload()` in the given frame. The returned promise
 // resolves when the frame has finished reloading.
 function FrameInitiatedReload(frame) {
-  return PostMessageAndAwait({ command: "reload" }, frame.contentWindow, ReloadPromise(frame));
+  const reload = ReloadPromise(frame);
+  frame.contentWindow.postMessage({ command: "reload" }, "*");
+  return reload;
 }
 
 // Tries to set storage access policy, ignoring any errors.

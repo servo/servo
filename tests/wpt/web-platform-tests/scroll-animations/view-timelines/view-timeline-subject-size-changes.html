@@ -35,11 +35,12 @@
 <script type="text/javascript">
 promise_test(async t => {
   const options = {
-    axis: 'vertical',
-    timing: {
+    timeline: { axis: 'vertical' },
+    animation: {
       rangeStart: { rangeName: 'enter', offset: CSS.percent(0) },
       rangeEnd: { rangeName: 'enter', offset: CSS.percent(100) },
-      // Set fill to accommodate floating point precision errors at the endpoints.
+      // Set fill to accommodate floating point precision errors at the
+      // endpoints.
       fill: 'both'
     }
   };
