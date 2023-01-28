@@ -10,14 +10,14 @@
 <script>
 
 // Identity tests
-test_math_used('pow(1,1)', '1', {type:'number'});
-test_math_used('sqrt(1)', '1', {type:'number'});
-test_math_used('hypot(1)', '1', {type:'number'});
+test_math_used('pow(1,1)', '1', {type:'integer'});
+test_math_used('sqrt(1)', '1', {type:'integer'});
+test_math_used('hypot(1)', '1', {type:'integer'});
 
 // Nestings
-test_math_used('sqrt(pow(1,1))', '1');
-test_math_used('hypot(pow(1, sqrt(1)))', '1');
-test_math_used('calc(hypot(pow((1 + sqrt(1)) / 2, sqrt(1))))', '1');
+test_math_used('sqrt(pow(1,1))', '1', {type:'integer'});
+test_math_used('hypot(pow(1, sqrt(1)))', '1', {type:'integer'});
+test_math_used('calc(hypot(pow((1 + sqrt(1)) / 2, sqrt(1))))', '1', {type:'integer'});
 
 // General calculations
 test_math_used('calc(100px * pow(2, pow(2, 2)))','1600px');

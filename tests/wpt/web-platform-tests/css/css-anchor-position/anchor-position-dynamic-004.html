@@ -27,7 +27,7 @@
   background: lime;
 }
 </style>
-<body onload="run_test()">
+<body>
   <div class="cb">
     <div style="contain: strict; height: 50px">
       <div class="spacer" style="height: 10px"></div>
@@ -39,9 +39,7 @@
          data-expected-width=30 data-expected-height=20></div>
   </div>
 <script>
-function run_test() {
-  document.body.classList.add('after');
-  checkLayout('.target');
-}
+document.body.classList.add('after');
+checkLayout('.target');
 </script>
 </body>

@@ -58,6 +58,17 @@ function waitForCompositorCommit() {
     });
   });
 }
+
+// Please don't remove this. This is necessary for chromium-based browsers.
+// This shouldn't be necessary if the test harness deferred running the tests
+// until after paint holding. This can be a no-op on user-agents that do not
+// have a separate compositor thread.
+async function waitForCompositorReady() {
+  const animation =
+      document.body.animate({ opacity: [ 1, 1 ] }, {duration: 1 });
+  return animation.finished;
+}
+
 function waitForNextFrame() {
   const startTime = performance.now();
   return new Promise(resolve => {
@@ -70,7 +81,6 @@ function waitForNextFrame() {
     });
   });
 }
-
 
 // TODO(crbug.com/1400399): Deprecate as frame rates may vary greatly in
 // different test environments.

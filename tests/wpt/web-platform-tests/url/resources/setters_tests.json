@@ -273,11 +273,19 @@
         {
             "comment": "Tab and newline are stripped",
             "href": "http://test/",
-            "new_value": "h\u000A\u000Att\u0009ps",
+            "new_value": "h\u000D\u000Att\u0009ps",
             "expected": {
               "href": "https://test/",
               "protocol": "https:",
               "port": ""
+            }
+        },
+        {
+            "href": "http://test/",
+            "new_value": "https\u000D",
+            "expected": {
+              "href": "https://test/",
+              "protocol": "https:"
             }
         },
         {
@@ -299,7 +307,7 @@
         },
         {
             "href": "http://test/",
-            "new_value": "https\u000D",
+            "new_value": "https\u000E",
             "expected": {
               "href": "http://test/",
               "protocol": "http:"

@@ -13,7 +13,6 @@
 2d.strokeRect:                        "drawing-rectangles-to-the-canvas"
 2d.drawImage:                         "drawing-images-to-the-canvas"
 2d.imageData:                         "pixel-manipulation"
-2d.line:                              "line-styles"
 2d.path:                              "path-objects"
 2d.text:                              "text"
 2d.coordinatespace:                   "conformance-requirements"

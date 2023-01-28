@@ -91,7 +91,7 @@ for (const element of document.getElementsByClassName('target')) {
   element.dataset.expectedWidth = '50';
   element.dataset.expectedHeight = '70';
 }
-checkLayout('.target');
+checkLayout('.target', false);
 
 document.body.classList.add('after');
 for (const element of document.getElementsByClassName('target')) {
@@ -100,6 +100,6 @@ for (const element of document.getElementsByClassName('target')) {
   element.dataset.expectedWidth = '70';
   element.dataset.expectedHeight = '50';
 }
-checkLayout('.after .target');
+checkLayout('.after .target', true);
 </script>
 </body>

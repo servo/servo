@@ -27,7 +27,6 @@ test_invalid_number('hypot(1 * )');
 test_invalid_number('hypot(1 / )');
 test_invalid_number('hypot(1 2)');
 test_invalid_number('hypot(1, , 2)');
-test_invalid_number('hypot(1, 2)');
 test_invalid_number('sqrt()');
 test_invalid_number('sqrt( )');
 test_invalid_number('sqrt(,)');
@@ -50,7 +49,6 @@ test_invalid_number('pow(1 * )');
 test_invalid_number('pow(1 / )');
 test_invalid_number('pow(1 2)');
 test_invalid_number('pow(1, , 2)');
-test_invalid_number('pow(1, 2)');
 
 // General tests
 test_invalid_length('calc(1px * pow(1))');
@@ -59,10 +57,12 @@ test_invalid_length('calc(sqrt(100px)');
 test_invalid_length('hypot(2px, 40%)');
 test_invalid_length('hypot(2px, 3)');
 test_invalid_length('hypot(3, ,4)');
+test_invalid_length('hypot(1, 2)');
 test_invalid_length('calc(1px * pow(2 3))');
 test_invalid_length('hypot()');
 test_invalid_length('calc(pow(2))');
 test_invalid_length('pow())');
+test_invalid_length('pow(1, 2)');
 test_invalid_length('calc(sqrt())');
 test_invalid_length('calc(sqrt(100, 200))');
 </script>

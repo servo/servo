@@ -1,12 +1,9 @@
 <!DOCTYPE html>
-<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6674">
-<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-name">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-name">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
-</head>
 <div id="target"></div>
-
 <script>
 
 test_valid_value('scroll-timeline-name', 'initial');
@@ -18,6 +15,10 @@ test_valid_value('scroll-timeline-name', 'none');
 test_valid_value('scroll-timeline-name', 'abc');
 test_valid_value('scroll-timeline-name', '  abc', 'abc');
 test_valid_value('scroll-timeline-name', 'aBc');
+test_valid_value('scroll-timeline-name', 'foo, bar');
+test_valid_value('scroll-timeline-name', 'bar, foo');
+test_valid_value('scroll-timeline-name', 'none, none');
+test_valid_value('scroll-timeline-name', 'a, none, b');
 test_valid_value('scroll-timeline-name', 'auto');
 
 test_invalid_value('scroll-timeline-name', 'default');

@@ -299,7 +299,7 @@ GENERATE_TESTS: mediacapture-image/MediaStreamTrack-applyConstraints-reject.http
 GENERATE_TESTS: mediacapture-image/MediaStreamTrack-getCapabilities.https.html
 GENERATE_TESTS: mediacapture-image/MediaStreamTrack-getConstraints.https.html
 GENERATE_TESTS: mediacapture-image/MediaStreamTrack-getSettings.https.html
-GENERATE_TESTS: mediacapture-image/setOptions-reject.html
+GENERATE_TESTS: mediacapture-image/takePhoto-reject.html
 GENERATE_TESTS: html/semantics/scripting-1/the-template-element/template-element/template-as-a-descendant.html
 GENERATE_TESTS: html/syntax/parsing/Document.getElementsByTagName-foreign-01.html
 GENERATE_TESTS: html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-body-context.html

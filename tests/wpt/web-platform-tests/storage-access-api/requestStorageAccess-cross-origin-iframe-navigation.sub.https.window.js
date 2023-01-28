@@ -5,7 +5,7 @@
 'use strict';
 
 (async function() {
-  // This is on the www subdomain, so it's cross-origin from the current document.
+  // This is cross-domain from the current document.
   const wwwAlt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
 
   promise_test(async (t) => {
