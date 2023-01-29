@@ -154,7 +154,7 @@ macro_rules! try_parse_one {
                     self.transition_property.0[i].to_css(dest)?;
                 }
                 % for name in "duration timing_function delay".split():
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     self.transition_${name}.0[i].to_css(dest)?;
                 % endfor
             }
@@ -289,7 +289,7 @@ macro_rules! try_parse_one {
 
                 % for name in props[2:]:
                     self.animation_${name}.0[i].to_css(dest)?;
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                 % endfor
 
                 self.animation_name.0[i].to_css(dest)?;

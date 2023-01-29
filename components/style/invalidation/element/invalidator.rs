@@ -14,6 +14,7 @@ use selectors::parser::{Combinator, Component};
 use selectors::OpaqueElement;
 use smallvec::SmallVec;
 use std::fmt;
+use std::fmt::Write;
 
 /// A trait to abstract the collection of invalidations for a given pass.
 pub trait InvalidationProcessor<'a, E>
@@ -257,7 +258,7 @@ impl<'a> fmt::Debug for Invalidation<'a> {
             }
             component.to_css(f)?;
         }
-        f.write_str(")")
+        f.write_char(')')
     }
 }
 

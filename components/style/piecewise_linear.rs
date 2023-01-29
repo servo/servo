@@ -39,7 +39,7 @@ impl ToCss for PiecewiseLinearFunctionEntry {
         W: fmt::Write,
     {
         self.y.to_css(dest)?;
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         Percentage(self.x).to_css(dest)
     }
 }

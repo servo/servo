@@ -40,7 +40,7 @@ impl ToCss for Percentage {
         serialize_percentage(self.value, dest)?;
 
         if self.calc_clamping_mode.is_some() {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
         }
         Ok(())
     }

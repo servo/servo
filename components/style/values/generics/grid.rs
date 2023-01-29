@@ -109,14 +109,14 @@ where
 
         if !self.line_num.is_zero() {
             if self.is_span {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
             self.line_num.to_css(dest)?;
         }
 
         if self.ident != atom!("") {
             if self.is_span || !self.line_num.is_zero() {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
             CustomIdent(self.ident.clone()).to_css(dest)?;
         }
@@ -341,12 +341,12 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 min.to_css(dest)?;
                 dest.write_str(", ")?;
                 max.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             TrackSize::FitContent(ref lp) => {
                 dest.write_str("fit-content(")?;
                 lp.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
         }
     }
@@ -493,7 +493,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
             .enumerate()
         {
             if i > 0 {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
 
             concat_serialize_idents("[", "] ", names, " ", dest)?;
@@ -504,7 +504,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
             concat_serialize_idents(" [", "]", line_names_last, " ", dest)?;
         }
 
-        dest.write_str(")")?;
+        dest.write_char(')')?;
 
         Ok(())
     }
@@ -615,7 +615,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
             match values_iter.next() {
                 Some(value) => {
                     if !names.is_empty() {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                     }
 
                     value.to_css(dest)?;
@@ -627,7 +627,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
                 line_names_iter.peek().map_or(false, |v| !v.is_empty()) ||
                 (idx + 1 == self.auto_repeat_index)
             {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
         }
 
@@ -753,14 +753,14 @@ impl ToCss for LineNameList {
             if let Some((ref first, rest)) = names.split_first() {
                 first.to_css(dest)?;
                 for name in rest {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     name.to_css(dest)?;
                 }
             }
 
-            dest.write_str("]")?;
+            dest.write_char(']')?;
             if fill_len > 0 && i == fill_start + fill_len - 1 {
-                dest.write_str(")")?;
+                dest.write_char(')')?;
             }
         }
 

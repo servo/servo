@@ -50,12 +50,12 @@ where
         }
         self.name.to_css(dest)?;
         if self.is_reversed {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
             if self.value == i32::min_value() {
                 return Ok(());
             }
         }
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.value.to_css(dest)
     }
 }

@@ -40,6 +40,6 @@ impl ToCss for Time {
         W: Write,
     {
         self.seconds().to_css(dest)?;
-        dest.write_str("s")
+        dest.write_char('s')
     }
 }

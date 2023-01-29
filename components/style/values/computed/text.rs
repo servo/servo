@@ -161,7 +161,7 @@ impl ToCss for TextOverflow {
             self.second.to_css(dest)?;
         } else {
             self.first.to_css(dest)?;
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.second.to_css(dest)?;
         }
         Ok(())

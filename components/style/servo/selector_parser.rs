@@ -337,7 +337,7 @@ impl ToCss for NonTSPseudoClass {
         if let Lang(ref lang) = *self {
             dest.write_str(":lang(")?;
             serialize_identifier(lang, dest)?;
-            return dest.write_str(")");
+            return dest.write_char(')');
         }
 
         dest.write_str(match *self {

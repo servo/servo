@@ -129,7 +129,7 @@ where
     T: Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("[")?;
+        f.write_char('[')?;
         let mut first = true;
         for entry in self.entries.iter() {
             if !first {
@@ -138,7 +138,7 @@ where
             first = false;
             entry.fmt(f)?;
         }
-        f.write_str("]")
+        f.write_char(']')
     }
 }
 

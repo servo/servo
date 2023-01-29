@@ -110,17 +110,17 @@ where
         if same_vertical && same_horizontal && self.0 == self.1 {
             return Ok(());
         }
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.1.to_css(dest)?;
         if same_vertical && same_horizontal {
             return Ok(());
         }
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.2.to_css(dest)?;
         if same_horizontal {
             return Ok(());
         }
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.3.to_css(dest)
     }
 }

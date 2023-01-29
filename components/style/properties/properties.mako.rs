@@ -134,10 +134,10 @@ pub mod shorthands {
         width.to_css(dest)?;
         // FIXME(emilio): Should we really serialize the border style if it's
         // `solid`?
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         style.to_css(dest)?;
         if *color != Color::CurrentColor {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             color.to_css(dest)?;
         }
         Ok(())

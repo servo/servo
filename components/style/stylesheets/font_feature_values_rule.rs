@@ -46,7 +46,7 @@ impl<T: ToCss> ToCss for FFVDeclaration<T> {
         serialize_atom_identifier(&self.name, dest)?;
         dest.write_str(": ")?;
         self.value.to_css(dest)?;
-        dest.write_str(";")
+        dest.write_char(';')
     }
 }
 
@@ -335,7 +335,7 @@ macro_rules! font_feature_values_blocks {
                 self.family_names.to_css(&mut CssWriter::new(dest))?;
                 dest.write_str(" {\n")?;
                 self.value_to_css(&mut CssWriter::new(dest))?;
-                dest.write_str("}")
+                dest.write_char('}')
             }
         }
 

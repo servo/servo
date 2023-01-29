@@ -167,7 +167,7 @@
 
                 if *image != background_image::single_value::get_initial_specified_value() {
                     if wrote_value {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                     }
                     image.to_css(dest)?;
                     wrote_value = true;
@@ -180,7 +180,7 @@
                     *size != background_size::single_value::get_initial_specified_value()
                 {
                     if wrote_value {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                     }
 
                     Position {
@@ -199,7 +199,7 @@
                 % for name in "repeat attachment".split():
                     if *${name} != background_${name}::single_value::get_initial_specified_value() {
                         if wrote_value {
-                            dest.write_str(" ")?;
+                            dest.write_char(' ')?;
                         }
                         ${name}.to_css(dest)?;
                         wrote_value = true;
@@ -208,11 +208,11 @@
 
                 if *origin != Origin::PaddingBox || *clip != Clip::BorderBox {
                     if wrote_value {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                     }
                     origin.to_css(dest)?;
                     if *clip != From::from(*origin) {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                         clip.to_css(dest)?;
                     }
 
