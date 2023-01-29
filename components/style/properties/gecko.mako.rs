@@ -837,7 +837,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <% skip_font_longhands = """font-family font-size font-size-adjust font-weight
-                            font-style font-stretch font-synthesis -x-lang
+                            font-style font-stretch -x-lang
                             font-variant-alternates font-variant-east-asian
                             font-variant-ligatures font-variant-numeric
                             font-language-override font-feature-settings
@@ -908,8 +908,6 @@ fn static_assert() {
     ${impl_simple('font_weight', 'mFont.weight')}
     ${impl_simple('font_stretch', 'mFont.stretch')}
     ${impl_simple('font_style', 'mFont.style')}
-
-    ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}
 
     ${impl_simple("font_variant_alternates", "mFont.variantAlternates")}
 

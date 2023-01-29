@@ -81,12 +81,36 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "font-synthesis",
+    "font-synthesis-weight",
     "FontSynthesis",
     engines="gecko",
-    initial_value="specified::FontSynthesis::get_initial_value()",
+    initial_value="computed::FontSynthesis::Auto",
+    initial_specified_value="specified::FontSynthesis::Auto",
+    gecko_ffi_name="mFont.synthesisWeight",
     animation_value_type="discrete",
-    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis",
+    spec="https://drafts.csswg.org/css-fonts-4/#font-synthesis-weight",
+)}
+
+${helpers.predefined_type(
+    "font-synthesis-style",
+    "FontSynthesis",
+    engines="gecko",
+    initial_value="computed::FontSynthesis::Auto",
+    initial_specified_value="specified::FontSynthesis::Auto",
+    gecko_ffi_name="mFont.synthesisStyle",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-fonts-4/#font-synthesis-style",
+)}
+
+${helpers.predefined_type(
+    "font-synthesis-small-caps",
+    "FontSynthesis",
+    engines="gecko",
+    initial_value="computed::FontSynthesis::Auto",
+    initial_specified_value="specified::FontSynthesis::Auto",
+    gecko_ffi_name="mFont.synthesisSmallCaps",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-fonts-4/#font-synthesis-small-caps",
 )}
 
 ${helpers.predefined_type(

@@ -456,3 +456,84 @@
         }
     }
 </%helpers:shorthand>
+
+<%helpers:shorthand name="font-synthesis"
+                    engines="gecko"
+                    flags="SHORTHAND_IN_GETCS"
+                    sub_properties="font-synthesis-weight font-synthesis-style font-synthesis-small-caps"
+                    derive_value_info="False"
+                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-variant">
+    <% sub_properties = ["weight", "style", "small_caps"] %>
+
+    use crate::values::specified::FontSynthesis;
+
+    pub fn parse_value<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+    % for prop in sub_properties:
+        let mut ${prop} = FontSynthesis::None;
+    % endfor
+
+        if input.try_parse(|input| input.expect_ident_matching("none")).is_ok() {
+            // Leave all the individual values as None
+        } else {
+            let mut has_custom_value = false;
+            while !input.is_exhausted() {
+                try_match_ident_ignore_ascii_case! { input,
+                % for prop in sub_properties:
+                    "${prop.replace('_', '-')}" if ${prop} == FontSynthesis::None => {
+                        has_custom_value = true;
+                        ${prop} = FontSynthesis::Auto;
+                        continue;
+                    },
+                % endfor
+                }
+            }
+            if !has_custom_value {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            }
+        }
+
+        Ok(expanded! {
+        % for prop in sub_properties:
+            font_synthesis_${prop}: ${prop},
+        % endfor
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            let mut has_any = false;
+
+        % for prop in sub_properties:
+            if self.font_synthesis_${prop} == &FontSynthesis::Auto {
+                if has_any {
+                    dest.write_char(' ')?;
+                }
+                has_any = true;
+                dest.write_str("${prop.replace('_', '-')}")?;
+            }
+        % endfor
+
+            if !has_any {
+                dest.write_str("none")?;
+            }
+
+            Ok(())
+        }
+    }
+
+    // The shorthand takes the sub-property names of the longhands, and not the
+    // 'auto' keyword like they do, so we can't automatically derive this.
+    impl SpecifiedValueInfo for Longhands {
+        fn collect_completion_keywords(f: KeywordsCollectFn) {
+            f(&[
+                "none",
+            % for prop in sub_properties:
+                "${prop.replace('_', '-')}",
+            % endfor
+            ]);
+        }
+    }
+</%helpers:shorthand>

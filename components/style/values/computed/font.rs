@@ -26,8 +26,8 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
-pub use crate::values::specified::font::FontPalette;
-pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
+pub use crate::values::specified::font::{FontPalette, FontSynthesis};
+pub use crate::values::specified::font::MozScriptSizeMultiplier;
 pub use crate::values::specified::font::{
     FontVariantAlternates, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, XLang,
     XTextZoom,
