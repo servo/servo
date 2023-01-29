@@ -418,7 +418,7 @@ where
             dest.write_str(" round ")?;
             self.round.to_css(dest)?;
         }
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 
@@ -434,11 +434,11 @@ where
         dest.write_str("circle(")?;
         if self.radius != Default::default() {
             self.radius.to_css(dest)?;
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
         }
         dest.write_str("at ")?;
         self.position.to_css(dest)?;
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 
@@ -454,13 +454,13 @@ where
         dest.write_str("ellipse(")?;
         if self.semiaxis_x != Default::default() || self.semiaxis_y != Default::default() {
             self.semiaxis_x.to_css(dest)?;
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.semiaxis_y.to_css(dest)?;
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
         }
         dest.write_str("at ")?;
         self.position.to_css(dest)?;
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 

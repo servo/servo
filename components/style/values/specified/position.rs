@@ -224,12 +224,12 @@ impl ToCss for Position {
             ) => {
                 dest.write_str("left ")?;
                 x_lp.to_css(dest)?;
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
                 y_pos.to_css(dest)
             },
             (x_pos, y_pos) => {
                 x_pos.to_css(dest)?;
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
                 y_pos.to_css(dest)
             },
         }

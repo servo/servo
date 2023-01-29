@@ -865,7 +865,7 @@
 
             first.to_css(dest)?;
             if first != second {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
                 second.to_css(dest)?;
             }
             Ok(())

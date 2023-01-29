@@ -227,13 +227,13 @@
             % for name in "style variant_caps weight".split():
                 if self.font_${name} != &font_${name}::get_initial_specified_value() {
                     self.font_${name}.to_css(dest)?;
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                 }
             % endfor
 
             if font_stretch != FontStretchKeyword::Normal {
                 font_stretch.to_css(dest)?;
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
 
             self.font_size.to_css(dest)?;
@@ -243,7 +243,7 @@
                 self.line_height.to_css(dest)?;
             }
 
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.font_family.to_css(dest)?;
 
             Ok(())
@@ -443,7 +443,7 @@
             % endif
                     if value != &font_variant_${prop}::get_initial_specified_value() {
                         if has_any {
-                            dest.write_str(" ")?;
+                            dest.write_char(' ')?;
                         }
                         has_any = true;
                         value.to_css(dest)?;

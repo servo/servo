@@ -11,6 +11,7 @@ use servo_arc::Arc;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::{fmt, mem, ptr};
+use std::fmt::Write;
 
 /// Trait for all objects that have Addref() and Release
 /// methods and can be placed inside RefPtr<T>
@@ -35,7 +36,7 @@ impl<T: RefCounted> fmt::Debug for RefPtr<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("RefPtr { ")?;
         self.ptr.fmt(f)?;
-        f.write_str("}")
+        f.write_char('}')
     }
 }
 

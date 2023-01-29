@@ -53,7 +53,7 @@ impl ToCss for Position {
         W: Write,
     {
         self.horizontal.to_css(dest)?;
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.vertical.to_css(dest)
     }
 }

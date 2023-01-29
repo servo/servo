@@ -360,7 +360,7 @@ where
     W: Write,
 {
     (value * 100.).to_css(dest)?;
-    dest.write_str("%")
+    dest.write_char('%')
 }
 
 /// Convenience void type to disable some properties and values through types.

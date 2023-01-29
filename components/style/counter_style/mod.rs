@@ -244,7 +244,7 @@ macro_rules! counter_style_descriptors {
                         dest.write_str("; ")?;
                     }
                 )+
-                dest.write_str("}")
+                dest.write_char('}')
             }
         }
     }

@@ -1078,7 +1078,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         }
 
         if write_closing_paren {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
         }
         Ok(())
     }

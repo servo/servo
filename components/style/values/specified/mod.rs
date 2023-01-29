@@ -319,7 +319,7 @@ impl ToCss for Number {
         }
         self.value.to_css(dest)?;
         if self.calc_clamping_mode.is_some() {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
         }
         Ok(())
     }
@@ -702,7 +702,7 @@ impl ToCss for Integer {
         }
         self.value.to_css(dest)?;
         if self.was_calc {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
         }
         Ok(())
     }
@@ -950,9 +950,9 @@ impl ToCss for Attr {
         dest.write_str("attr(")?;
         if !self.namespace_prefix.is_empty() {
             serialize_atom_identifier(&self.namespace_prefix, dest)?;
-            dest.write_str("|")?;
+            dest.write_char('|')?;
         }
         serialize_atom_identifier(&self.attribute, dest)?;
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }

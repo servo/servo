@@ -296,9 +296,9 @@ impl ToCss for SupportsCondition {
                 cond.to_css(dest)
             },
             SupportsCondition::Parenthesized(ref cond) => {
-                dest.write_str("(")?;
+                dest.write_char('(')?;
                 cond.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::And(ref vec) => {
                 let mut first = true;
@@ -323,31 +323,31 @@ impl ToCss for SupportsCondition {
                 Ok(())
             },
             SupportsCondition::Declaration(ref decl) => {
-                dest.write_str("(")?;
+                dest.write_char('(')?;
                 decl.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::Selector(ref selector) => {
                 dest.write_str("selector(")?;
                 selector.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::MozBoolPref(ref name) => {
                 dest.write_str("-moz-bool-pref(")?;
                 let name =
                     str::from_utf8(name.as_bytes()).expect("Should be parsed from valid UTF-8");
                 name.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FontFormat(ref kw) => {
                 dest.write_str("font-format(")?;
                 kw.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FontTech(ref flag) => {
                 dest.write_str("font-tech(")?;
                 flag.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FutureSyntax(ref s) => dest.write_str(&s),
         }

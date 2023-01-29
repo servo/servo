@@ -373,7 +373,7 @@ impl ToCss for TextTransform {
         if self.case_ != TextTransformCase::None {
             self.case_.to_css(dest)?;
             if !self.other_.is_empty() {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
         }
 

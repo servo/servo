@@ -80,7 +80,7 @@ where
         self.width.to_css(dest)?;
 
         if self.height != self.width {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.height.to_css(dest)?;
         }
 

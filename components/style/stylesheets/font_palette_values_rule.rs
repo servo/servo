@@ -61,7 +61,7 @@ impl ToCss for FontPaletteOverrideColor {
         W: fmt::Write,
     {
         self.index.to_css(dest)?;
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.color.to_css(dest)
     }
 }
@@ -200,7 +200,7 @@ impl ToCssWithGuard for FontPaletteValuesRule {
         self.name.to_css(&mut CssWriter::new(dest))?;
         dest.write_str(" { ")?;
         self.value_to_css(&mut CssWriter::new(dest))?;
-        dest.write_str("}")
+        dest.write_char('}')
     }
 }
 

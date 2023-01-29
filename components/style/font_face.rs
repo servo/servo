@@ -306,7 +306,7 @@ macro_rules! impl_range {
             {
                 self.0.to_css(dest)?;
                 if self.0 != self.1 {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     self.1.to_css(dest)?;
                 }
                 Ok(())
@@ -714,7 +714,7 @@ impl ToCssWithGuard for FontFaceRuleData {
     fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@font-face { ")?;
         self.decl_to_css(dest)?;
-        dest.write_str("}")
+        dest.write_char('}')
     }
 }
 

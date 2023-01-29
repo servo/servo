@@ -230,16 +230,16 @@ impl<Color: ToCss, Percentage: ToCss + ToPercentage> ToCss for ColorMix<Color, P
         dest.write_str(", ")?;
         self.left.to_css(dest)?;
         if !can_omit(&self.left_percentage, &self.right_percentage, true) {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.left_percentage.to_css(dest)?;
         }
         dest.write_str(", ")?;
         self.right.to_css(dest)?;
         if !can_omit(&self.right_percentage, &self.left_percentage, false) {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.right_percentage.to_css(dest)?;
         }
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 

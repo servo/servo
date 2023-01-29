@@ -79,9 +79,9 @@ impl<Image: ToCss, Number: ToCss> ToCss for CursorImage<Image, Number> {
     {
         self.image.to_css(dest)?;
         if self.has_hotspot {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.hotspot_x.to_css(dest)?;
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.hotspot_y.to_css(dest)?;
         }
         Ok(())

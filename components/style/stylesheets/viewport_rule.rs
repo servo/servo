@@ -108,7 +108,7 @@ macro_rules! declare_viewport_descriptor_inner {
                         },
                     )*
                 }
-                dest.write_str(";")
+                dest.write_char(';')
             }
         }
     };
@@ -504,7 +504,7 @@ impl ToCssWithGuard for ViewportRule {
         let mut iter = self.declarations.iter();
         iter.next().unwrap().to_css(&mut CssWriter::new(dest))?;
         for declaration in iter {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             declaration.to_css(&mut CssWriter::new(dest))?;
         }
         dest.write_str(" }")

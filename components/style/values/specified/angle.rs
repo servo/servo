@@ -97,7 +97,7 @@ impl ToCss for Angle {
         }
         self.value.to_css(dest)?;
         if self.was_calc {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
         }
         Ok(())
     }

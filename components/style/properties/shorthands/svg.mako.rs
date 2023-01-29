@@ -150,7 +150,7 @@
                 image.to_css(dest)?;
 
                 if *mode != mask_mode::single_value::get_initial_specified_value() {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     mode.to_css(dest)?;
                 }
 
@@ -158,7 +158,7 @@
                     *position_y != PositionComponent::zero() ||
                     *size != mask_size::single_value::get_initial_specified_value()
                 {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     Position {
                         horizontal: position_x.clone(),
                         vertical: position_y.clone()
@@ -171,21 +171,21 @@
                 }
 
                 if *repeat != mask_repeat::single_value::get_initial_specified_value() {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     repeat.to_css(dest)?;
                 }
 
                 if *origin != Origin::BorderBox || *clip != Clip::BorderBox {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     origin.to_css(dest)?;
                     if *clip != From::from(*origin) {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                         clip.to_css(dest)?;
                     }
                 }
 
                 if *composite != mask_composite::single_value::get_initial_specified_value() {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     composite.to_css(dest)?;
                 }
             }

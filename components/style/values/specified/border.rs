@@ -278,7 +278,7 @@ impl ToCss for BorderImageRepeat {
     {
         self.0.to_css(dest)?;
         if self.0 != self.1 {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.1.to_css(dest)?;
         }
         Ok(())

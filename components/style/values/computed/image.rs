@@ -177,7 +177,7 @@ impl generic::LineDirection for LineDirection {
                     dest.write_str("to ")?;
                 }
                 x.to_css(dest)?;
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
                 y.to_css(dest)
             },
         }

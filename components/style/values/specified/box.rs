@@ -400,11 +400,11 @@ impl ToCss for Display {
                     if self.is_list_item() {
                         if outside != DisplayOutside::Block {
                             outside.to_css(dest)?;
-                            dest.write_str(" ")?;
+                            dest.write_char(' ')?;
                         }
                         if inside != DisplayInside::Flow {
                             inside.to_css(dest)?;
-                            dest.write_str(" ")?;
+                            dest.write_char(' ')?;
                         }
                         dest.write_str("list-item")
                     } else {
@@ -969,7 +969,7 @@ impl ToCss for ScrollSnapType {
         }
         self.axis.to_css(dest)?;
         if self.strictness != ScrollSnapStrictness::Proximity {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.strictness.to_css(dest)?;
         }
         Ok(())
@@ -1054,7 +1054,7 @@ impl ToCss for ScrollSnapAlign {
     {
         self.block.to_css(dest)?;
         if self.block != self.inline {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.inline.to_css(dest)?;
         }
         Ok(())
