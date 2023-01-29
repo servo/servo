@@ -1717,155 +1717,6 @@ impl Parse for FontVariantNumeric {
 /// This property provides low-level control over OpenType or TrueType font features.
 pub type FontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
-)]
-/// Whether user agents are allowed to synthesize bold or oblique font faces
-/// when a font family lacks those faces, or a small-caps variant when this is
-/// not supported by the face.
-pub struct FontSynthesis {
-    /// If a `font-weight` is requested that the font family does not contain,
-    /// the user agent may synthesize the requested weight from the weights
-    /// that do exist in the font family.
-    pub weight: bool,
-    /// If a font-style is requested that the font family does not contain,
-    /// the user agent may synthesize the requested style from the normal face in the font family.
-    pub style: bool,
-    /// This bit controls whether the user agent is allowed to synthesize small caps variant
-    /// when a font face lacks it.
-    pub small_caps: bool,
-}
-
-impl FontSynthesis {
-    #[inline]
-    /// Get the default value of font-synthesis
-    pub fn get_initial_value() -> Self {
-        FontSynthesis {
-            weight: true,
-            style: true,
-            small_caps: true,
-        }
-    }
-    #[inline]
-    /// Get the 'none' value of font-synthesis
-    pub fn none() -> Self {
-        FontSynthesis {
-            weight: false,
-            style: false,
-            small_caps: false,
-        }
-    }
-    #[inline]
-    /// Return true if this is the 'none' value
-    pub fn is_none(&self) -> bool {
-        *self == Self::none()
-    }
-}
-
-#[inline]
-fn allow_font_synthesis_small_caps() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
-impl Parse for FontSynthesis {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<FontSynthesis, ParseError<'i>> {
-        let mut result = Self::none();
-        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
-            match_ignore_ascii_case! { &ident,
-                "none" if result.is_none() => return Ok(result),
-                "weight" if !result.weight => result.weight = true,
-                "style" if !result.style => result.style = true,
-                "small-caps" if !result.small_caps && allow_font_synthesis_small_caps()
-                                    => result.small_caps = true,
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident))),
-            }
-        }
-        if !result.is_none() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
-impl ToCss for FontSynthesis {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_none() {
-            return dest.write_str("none");
-        }
-
-        let mut need_space = false;
-        if self.weight {
-            dest.write_str("weight")?;
-            need_space = true;
-        }
-        if self.style {
-            if need_space {
-                dest.write_str(" ")?;
-            }
-            dest.write_str("style")?;
-            need_space = true;
-        }
-        if self.small_caps {
-            if need_space {
-                dest.write_str(" ")?;
-            }
-            dest.write_str("small-caps")?;
-        }
-        Ok(())
-    }
-}
-
-impl SpecifiedValueInfo for FontSynthesis {
-    fn collect_completion_keywords(f: KeywordsCollectFn) {
-        f(&["none", "weight", "style"]);
-        if allow_font_synthesis_small_caps() {
-            f(&["small-caps"]);
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<u8> for FontSynthesis {
-    fn from(bits: u8) -> FontSynthesis {
-        use crate::gecko_bindings::structs;
-
-        FontSynthesis {
-            weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
-            style: bits & structs::NS_FONT_SYNTHESIS_STYLE as u8 != 0,
-            small_caps: bits & structs::NS_FONT_SYNTHESIS_SMALL_CAPS as u8 != 0,
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<FontSynthesis> for u8 {
-    fn from(v: FontSynthesis) -> u8 {
-        use crate::gecko_bindings::structs;
-
-        let mut bits: u8 = 0;
-        if v.weight {
-            bits |= structs::NS_FONT_SYNTHESIS_WEIGHT as u8;
-        }
-        if v.style {
-            bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
-        }
-        if v.small_caps {
-            bits |= structs::NS_FONT_SYNTHESIS_SMALL_CAPS as u8;
-        }
-        bits
-    }
-}
-
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
 /// Allows authors to explicitly specify the language system of the font,
 /// overriding the language system implied by the content language
@@ -1936,6 +1787,29 @@ impl Parse for FontLanguageOverride {
     }
 }
 
+/// A value for any of the font-synthesis-{weight,style,small-caps} properties.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub enum FontSynthesis {
+    /// This attribute may be synthesized if not supported by a face.
+    Auto,
+    /// Do not attempt to synthesis this style attribute.
+    None,
+}
+
 #[derive(
     Clone,
     Debug,
@@ -1992,7 +1866,6 @@ impl ToCss for FontPalette {
 /// This property provides low-level control over OpenType or TrueType font
 /// variations.
 pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
-
 
 fn parse_one_feature_value<'i, 't>(
     context: &ParserContext,

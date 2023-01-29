@@ -869,12 +869,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if !is_legacy_marker {
             return;
         }
-        if !self
-            .style
-            .flags
-            .get()
-            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY)
-        {
+        let flags = self.style.flags.get();
+        if !flags.contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY) {
             self.style
                 .mutate_font()
                 .set_font_family(FontFamily::moz_bullet().clone());
@@ -882,33 +878,23 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             // FIXME(mats): We can remove this if support for font-synthesis is added to @font-face rules.
             // Then we can add it to the @font-face rule in html.css instead.
             // https://github.com/w3c/csswg-drafts/issues/6081
-            if !self
-                .style
-                .flags
-                .get()
-                .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS)
-            {
+            if !flags.contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_WEIGHT) {
                 self.style
                     .mutate_font()
-                    .set_font_synthesis(FontSynthesis::none());
+                    .set_font_synthesis_weight(FontSynthesis::None);
+            }
+            if !flags.contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_STYLE) {
+                self.style
+                    .mutate_font()
+                    .set_font_synthesis_style(FontSynthesis::None);
             }
         }
-        if !self
-            .style
-            .flags
-            .get()
-            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING)
-        {
+        if !flags.contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING) {
             self.style
                 .mutate_inherited_text()
                 .set_letter_spacing(LetterSpacing::normal());
         }
-        if !self
-            .style
-            .flags
-            .get()
-            .contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING)
-        {
+        if !flags.contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING) {
             self.style
                 .mutate_inherited_text()
                 .set_word_spacing(WordSpacing::normal());

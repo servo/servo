@@ -90,28 +90,34 @@ bitflags! {
         /// Whether there are author-specified rules for `font-family`.
         const HAS_AUTHOR_SPECIFIED_FONT_FAMILY = 1 << 16;
 
-        /// Whether there are author-specified rules for `font-synthesis`.
-        const HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS = 1 << 17;
+        /// Whether there are author-specified rules for `font-synthesis-weight`.
+        const HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_WEIGHT = 1 << 17;
+
+        /// Whether there are author-specified rules for `font-synthesis-style`.
+        const HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_STYLE = 1 << 18;
+
+        // (There's also font-synthesis-small-caps, but we don't currently need to
+        // keep track of that.)
 
         /// Whether there are author-specified rules for `letter-spacing`.
-        const HAS_AUTHOR_SPECIFIED_LETTER_SPACING = 1 << 18;
+        const HAS_AUTHOR_SPECIFIED_LETTER_SPACING = 1 << 19;
 
         /// Whether there are author-specified rules for `word-spacing`.
-        const HAS_AUTHOR_SPECIFIED_WORD_SPACING = 1 << 19;
+        const HAS_AUTHOR_SPECIFIED_WORD_SPACING = 1 << 20;
 
         /// Whether the style depends on viewport units.
-        const USES_VIEWPORT_UNITS = 1 << 20;
+        const USES_VIEWPORT_UNITS = 1 << 21;
 
         /// Whether the style depends on viewport units on container queries.
         ///
         /// This needs to be a separate flag from `USES_VIEWPORT_UNITS` because
         /// it causes us to re-match the style (rather than re-cascascading it,
         /// which is enough for other uses of viewport units).
-        const USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES = 1 << 21;
+        const USES_VIEWPORT_UNITS_ON_CONTAINER_QUERIES = 1 << 22;
 
         /// A flag used to mark styles which have `container-type` of `size` or
         /// `inline-size`, or under one.
-        const SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE = 1 << 22;
+        const SELF_OR_ANCESTOR_HAS_SIZE_CONTAINER_TYPE = 1 << 23;
     }
 }
 

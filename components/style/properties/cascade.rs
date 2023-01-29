@@ -809,33 +809,26 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND);
         }
 
-        if self
-            .author_specified
-            .contains(LonghandId::FontFamily)
-        {
+        if self.author_specified.contains(LonghandId::FontFamily) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY);
         }
 
-        if self
-            .author_specified
-            .contains(LonghandId::LetterSpacing)
-        {
+        if self.author_specified.contains(LonghandId::LetterSpacing) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING);
         }
 
-        if self
-            .author_specified
-            .contains(LonghandId::WordSpacing)
-        {
+        if self.author_specified.contains(LonghandId::WordSpacing) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING);
         }
 
         #[cfg(feature = "gecko")]
-        if self
-            .author_specified
-            .contains(LonghandId::FontSynthesis)
-        {
-            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS);
+        if self.author_specified.contains(LonghandId::FontSynthesisWeight) {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_WEIGHT);
+        }
+
+        #[cfg(feature = "gecko")]
+        if self.author_specified.contains(LonghandId::FontSynthesisStyle) {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_STYLE);
         }
 
         #[cfg(feature = "servo")]
