@@ -583,7 +583,7 @@ dependencies = [
  "canvas_traits",
  "crossbeam-channel 0.4.4",
  "cssparser",
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "font-kit",
  "gfx",
@@ -619,7 +619,7 @@ version = "0.0.1"
 dependencies = [
  "crossbeam-channel 0.4.4",
  "cssparser",
- "euclid",
+ "euclid 0.20.14",
  "ipc-channel",
  "lazy_static",
  "malloc_size_of",
@@ -875,7 +875,7 @@ dependencies = [
  "canvas",
  "crossbeam-channel 0.4.4",
  "embedder_traits",
- "euclid",
+ "euclid 0.20.14",
  "gfx_traits",
  "gleam 0.12.1",
  "image 0.24.5",
@@ -919,7 +919,7 @@ dependencies = [
  "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
- "euclid",
+ "euclid 0.20.14",
  "gaol",
  "gfx",
  "gfx_traits",
@@ -1661,6 +1661,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "euclid"
+version = "0.22.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b52c2ef4a78da0ba68fbe1fd920627411096d2ac478f7f4c9f3a54ba6705bade"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "exr"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2032,7 +2041,7 @@ dependencies = [
  "core-graphics 0.22.0",
  "core-text",
  "dwrote",
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "fontsan",
  "freetype",
@@ -3161,7 +3170,7 @@ dependencies = [
  "bitflags",
  "canvas_traits",
  "embedder_traits",
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "gfx",
  "gfx_traits",
@@ -3206,7 +3215,7 @@ dependencies = [
  "canvas_traits",
  "cssparser",
  "embedder_traits",
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "fxhash",
  "gfx",
@@ -3244,7 +3253,7 @@ dependencies = [
  "atomic_refcell",
  "crossbeam-channel 0.4.4",
  "embedder_traits",
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "fxhash",
  "gfx",
@@ -3289,7 +3298,7 @@ dependencies = [
  "atomic_refcell",
  "crossbeam-channel 0.4.4",
  "embedder_traits",
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "fxhash",
  "gfx",
@@ -3457,7 +3466,7 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "env_logger",
- "euclid",
+ "euclid 0.20.14",
  "gaol",
  "gfx",
  "gfx_traits",
@@ -3560,7 +3569,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca04310c9807612a311506106000b6eccb2e27bca9bfb594ce80fb8a31231f9d"
 dependencies = [
  "arrayvec 0.4.12",
- "euclid",
+ "euclid 0.20.14",
  "num-traits",
 ]
 
@@ -3571,7 +3580,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e2a8bde54788e0eb4f1b9f072910bfa1cba95688698f7bb206d13a2f8fd06b3"
 dependencies = [
  "arrayvec 0.5.1",
- "euclid",
+ "euclid 0.20.14",
  "num-traits",
 ]
 
@@ -3608,7 +3617,7 @@ dependencies = [
  "content-security-policy",
  "crossbeam-channel 0.4.4",
  "cssparser",
- "euclid",
+ "euclid 0.20.14",
  "hashglobe",
  "http",
  "hyper_serde",
@@ -3679,7 +3688,7 @@ checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 name = "media"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "ipc-channel",
  "lazy_static",
@@ -4615,7 +4624,7 @@ name = "peek-poke"
 version = "0.2.0"
 source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "peek-poke-derive",
 ]
 
@@ -4826,7 +4835,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "pixels"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "malloc_size_of",
  "malloc_size_of_derive",
  "serde",
@@ -4845,7 +4854,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffe16a646a08f4b4dd74035b9ff8e378eb1a4012a74f14f5889e7001cdbece33"
 dependencies = [
  "binary-space-partition",
- "euclid",
+ "euclid 0.20.14",
  "log",
  "num-traits",
 ]
@@ -5091,7 +5100,7 @@ name = "raqote"
 version = "0.8.1-alpha.0"
 source = "git+https://github.com/jdm/raqote?branch=fkup#5a650714ea20f44ebe14de9fce60eeef100144c1"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "font-kit",
  "lyon_geom 0.15.0",
  "pathfinder_geometry",
@@ -5334,7 +5343,7 @@ dependencies = [
  "embedder_traits",
  "encoding_rs",
  "enum-iterator",
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "fxhash",
  "headers",
@@ -5414,7 +5423,7 @@ dependencies = [
  "atomic_refcell",
  "canvas_traits",
  "crossbeam-channel 0.4.4",
- "euclid",
+ "euclid 0.20.14",
  "fxhash",
  "gfx_traits",
  "html5ever",
@@ -5453,7 +5462,7 @@ dependencies = [
 name = "script_tests"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "keyboard-types",
  "script",
  "servo_url",
@@ -5470,7 +5479,7 @@ dependencies = [
  "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
- "euclid",
+ "euclid 0.20.14",
  "gfx_traits",
  "headers",
  "http",
@@ -5617,7 +5626,7 @@ dependencies = [
  "backtrace",
  "cc",
  "clipboard",
- "euclid",
+ "euclid 0.20.14",
  "getopts",
  "image 0.24.5",
  "keyboard-types",
@@ -5663,7 +5672,7 @@ name = "servo-gst-plugin"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel 0.4.4",
- "euclid",
+ "euclid 0.20.14",
  "glib",
  "gst-plugin-version-helper",
  "gstreamer",
@@ -5686,7 +5695,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
@@ -5697,12 +5706,12 @@ dependencies = [
 
 [[package]]
 name = "servo-media-audio"
-version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+version = "0.2.0"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
- "euclid",
+ "euclid 0.22.7",
  "log",
  "num-complex",
  "num-traits",
@@ -5720,7 +5729,7 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "boxfnonce",
  "ipc-channel",
@@ -5735,7 +5744,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5771,7 +5780,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -5781,7 +5790,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5794,7 +5803,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5807,7 +5816,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -5819,7 +5828,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -5828,12 +5837,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "boxfnonce",
  "lazy_static",
@@ -5873,7 +5882,7 @@ version = "0.0.1"
 dependencies = [
  "dirs-next",
  "embedder_traits",
- "euclid",
+ "euclid 0.20.14",
  "getopts",
  "lazy_static",
  "log",
@@ -5902,7 +5911,7 @@ name = "servo_geometry"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "euclid",
+ "euclid 0.20.14",
  "malloc_size_of",
  "malloc_size_of_derive",
  "webrender_api",
@@ -5911,7 +5920,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#1ccb9c7ce0acc2637c84f31a1204b1d5798993b9"
+source = "git+https://github.com/servo/media#e13613b3749f2d00adc45d44dd7a12ca33761d94"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6269,7 +6278,7 @@ dependencies = [
  "cssparser",
  "derive_more",
  "encoding_rs",
- "euclid",
+ "euclid 0.20.14",
  "fallible",
  "fxhash",
  "hashglobe",
@@ -6332,7 +6341,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "cssparser",
- "euclid",
+ "euclid 0.20.14",
  "html5ever",
  "rayon",
  "selectors",
@@ -6354,7 +6363,7 @@ dependencies = [
  "app_units",
  "bitflags",
  "cssparser",
- "euclid",
+ "euclid 0.20.14",
  "lazy_static",
  "malloc_size_of",
  "malloc_size_of_derive",
@@ -6380,7 +6389,7 @@ dependencies = [
  "cocoa 0.19.1",
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
- "euclid",
+ "euclid 0.20.14",
  "gl_generator 0.14.0",
  "io-surface",
  "lazy_static",
@@ -6405,7 +6414,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99e707090691623a80d36f4faaba50105cc7a611eda51b0312b53eeec36a0a25"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "fnv",
  "log",
  "sparkle",
@@ -7269,7 +7278,7 @@ dependencies = [
  "compositing",
  "cookie",
  "crossbeam-channel 0.4.4",
- "euclid",
+ "euclid 0.20.14",
  "headers",
  "http",
  "image 0.24.5",
@@ -7294,7 +7303,7 @@ name = "webgpu"
 version = "0.0.1"
 dependencies = [
  "arrayvec 0.7.1",
- "euclid",
+ "euclid 0.20.14",
  "ipc-channel",
  "log",
  "malloc_size_of",
@@ -7325,7 +7334,7 @@ dependencies = [
  "core-text",
  "cstr",
  "dwrote",
- "euclid",
+ "euclid 0.20.14",
  "freetype",
  "fxhash",
  "gleam 0.12.1",
@@ -7363,7 +7372,7 @@ dependencies = [
  "core-foundation 0.9.0",
  "core-graphics 0.22.0",
  "derive_more",
- "euclid",
+ "euclid 0.20.14",
  "malloc_size_of_derive",
  "peek-poke",
  "serde",
@@ -7386,7 +7395,7 @@ dependencies = [
 name = "webrender_surfman"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "surfman",
  "surfman-chains",
 ]
@@ -7395,7 +7404,7 @@ dependencies = [
 name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "webrender_api",
 ]
 
@@ -7407,7 +7416,7 @@ dependencies = [
  "android_injected_glue",
  "bindgen",
  "crossbeam-channel 0.4.4",
- "euclid",
+ "euclid 0.20.14",
  "gl_generator 0.13.1",
  "gvr-sys",
  "log",
@@ -7427,7 +7436,7 @@ name = "webxr-api"
 version = "0.0.1"
 source = "git+https://github.com/servo/webxr#4eb957ac4f0e22ac5baded31eb86eea32862d687"
 dependencies = [
- "euclid",
+ "euclid 0.20.14",
  "ipc-channel",
  "log",
  "serde",
@@ -7630,7 +7639,7 @@ version = "0.0.1"
 source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
 dependencies = [
  "app_units",
- "euclid",
+ "euclid 0.20.14",
 ]
 
 [[package]]
