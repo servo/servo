@@ -14,7 +14,7 @@ function GreenFrameWebGL(width, height) {
   const canvas =
       Object.assign(document.createElement('canvas'), {width, height});
   const ctx = canvas.getContext('webgl');
-  if (ctx === null) return;
+  assert_not_equals(ctx, null, "webgl is a prerequisite for this test");
   requestAnimationFrame(function draw () {
     ctx.clearColor(0.0, 1.0, 0.0, 1.0);
     ctx.clear(ctx.COLOR_BUFFER_BIT);

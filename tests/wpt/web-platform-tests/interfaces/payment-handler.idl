@@ -7,7 +7,7 @@ partial interface ServiceWorkerRegistration {
   [SameObject] readonly attribute PaymentManager paymentManager;
 };
 
-[SecureContext, Exposed=(Window,Worker)]
+[SecureContext, Exposed=(Window)]
 interface PaymentManager {
   attribute DOMString userHint;
   Promise<undefined> enableDelegations(sequence<PaymentDelegation> delegations);

@@ -7,11 +7,13 @@
 <link rel="stylesheet" href="support/test-common.css">
 <style type="text/css">
   @counter-style a {
+    /* Negative and zero values cannot be represented, and will use fallback style (decimal). */
     system: additive;
     additive-symbols: 6 \2685, 5 \2684, 4 \2683, 3 \2682, 2 \2681, 1 \2680;
     suffix: "";
   }
   @counter-style b {
+    /* Negative values cannot be represented, and will use fallback style (decimal). */
     system: additive;
     additive-symbols: 7 \2630, 6 \2631, 5 \2632, 4 \2633, 3 \2634, 2 \2635, 1 \2636, 0 \2637;
     suffix: "";

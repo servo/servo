@@ -3,7 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: CSSOM View Module (https://drafts.csswg.org/cssom-view-1/)
 
-enum ScrollBehavior { "auto", "smooth" };
+enum ScrollBehavior { "auto", "instant", "smooth" };
 
 dictionary ScrollOptions {
     ScrollBehavior behavior = "auto";
