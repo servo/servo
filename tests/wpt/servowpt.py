@@ -13,8 +13,9 @@ import mozlog
 import mozlog.formatters
 import multiprocessing
 
-from typing import List
-from grouping_formatter import UnexpectedResult
+from typing import List, NamedTuple
+from wptrunner import wptrunner
+from wptrunner import wptcommandline
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
@@ -42,6 +43,10 @@ def determine_build_type(kwargs: dict, target_dir: str):
     return "debug"
 
 
+def print_vertical_rule():
+    print("=" * 80)
+
+
 def set_if_none(args: dict, key: str, value):
     if key not in args or args[key] is None:
         args[key] = value
@@ -61,9 +66,6 @@ def update_args_for_layout_2020(kwargs: dict):
 
 
 def run_tests(**kwargs):
-    from wptrunner import wptrunner
-    from wptrunner import wptcommandline
-
     # By default, Rayon selects the number of worker threads based on the
     # available CPU count. This doesn't work very well when running tests on CI,
     # since we run so many Servo processes in parallel. The result is a lot of
@@ -140,19 +142,19 @@ def run_tests(**kwargs):
         logger = wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
     else:
         logger = wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
-
     handler = grouping_formatter.ServoHandler()
     logger.add_handler(handler)
 
     wptrunner.run_tests(**kwargs)
-    if handler.unexpected_results and filter_intermittents_output:
-        all_filtered = filter_intermittents(
-            handler.unexpected_results,
-            filter_intermittents_output,
-        )
-        return 0 if all_filtered else 1
-    else:
+    if not handler.unexpected_results or not filter_intermittents_output:
         return 0 if not handler.unexpected_results else 1
+
+    results = filter_intermittents(
+        handler,
+        kwargs,
+        filter_intermittents_output,
+    )
+    return 0 if not results.new_intermittents and not results.unexpected else 1
 
 
 def update_tests(**kwargs):
@@ -206,42 +208,81 @@ class GitHubQueryFilter():
         )["total_count"] > 0
 
 
+class FilteredIntermittents(NamedTuple):
+    known_intermittents: List[grouping_formatter.UnexpectedResult]
+    new_intermittents: List[grouping_formatter.UnexpectedResult]
+    unexpected: List[grouping_formatter.UnexpectedResult]
+
+
 def filter_intermittents(
-    unexpected_results: List[UnexpectedResult],
+    handler: grouping_formatter.ServoHandler,
+    kwargs: dict,
     output_file: str
-) -> bool:
-    print(80 * "=")
-    print(f"Filtering {len(unexpected_results)} unexpected "
-          "results for known intermittents")
+) -> FilteredIntermittents:
+    unexpected_results = list(handler.unexpected_results)
+    print_vertical_rule()
+    print(f"Rerunning {len(unexpected_results)} tests with "
+          "unexpected result to detect intermittents.")
+
+    unexpected_test_names = [result.test_name for result in unexpected_results]
+    kwargs['processes'] = 1
+    kwargs['include'] = unexpected_test_names
+    kwargs['test_list'] = unexpected_test_names
+    kwargs['pause_after_test'] = False
+    wptrunner.run_tests(**kwargs)
+
+    print_vertical_rule()
+    print("Filtering results for known intermittents")
+
+    rerun_unexpected_results = list(handler.unexpected_results)
+    intermittents = [result for result in unexpected_results
+                     if result not in rerun_unexpected_results]
+    unexpected = [result for result in unexpected_results
+                  if result in rerun_unexpected_results]
+
     if GITHUB_API_TOKEN_ENV_VAR in os.environ:
         filter = GitHubQueryFilter(os.environ.get(GITHUB_API_TOKEN_ENV_VAR))
     else:
         filter = TrackerFilter()
 
-    intermittents = []
-    actually_unexpected = []
-    for i, result in enumerate(unexpected_results):
+    known_intermittents = []
+    new_intermittents = []
+    for i, result in enumerate(intermittents):
         print(f" [{i}/{len(unexpected_results)}]", file=sys.stderr, end="\r")
         if filter.is_failure_intermittent(result.test_name):
-            intermittents.append(result)
+            known_intermittents.append(result)
         else:
-            actually_unexpected.append(result)
+            new_intermittents.append(result)
 
-    output = "\n".join([
-        f"{len(intermittents)} known-intermittent unexpected result",
-        *[result.output.strip() for result in intermittents],
-        "",
-        f"{len(actually_unexpected)} unexpected results that are NOT known-intermittents",
-        *[result.output.strip() for result in actually_unexpected],
-    ])
+    output = ""
+    if known_intermittents:
+        output += "\n".join([
+            f"{len(known_intermittents)} known-intermittent unexpected results",
+            *[result.output.strip() for result in known_intermittents],
+            "\n"])
+    if new_intermittents:
+        output += "\n".join([
+            f"{len(new_intermittents)} new intermittent unexpected results",
+            *[result.output.strip() for result in new_intermittents],
+            "\n"])
+    if unexpected:
+        output += "\n".join([
+            f"{len(unexpected)} stable unexpected results",
+            *[result.output.strip() for result in unexpected],
+            "\n"])
 
     if output_file:
         with open(output_file, "w", encoding="utf-8") as file:
             file.write(output)
 
     print(output)
-    print(80 * "=")
-    return not actually_unexpected
+    print_vertical_rule()
+
+    return FilteredIntermittents(
+        known_intermittents=known_intermittents,
+        new_intermittents=new_intermittents,
+        unexpected=unexpected
+    )
 
 
 def main():
