@@ -182,6 +182,7 @@ dictionary RTCVideoSourceStats : RTCMediaSourceStats {
 };
 
 dictionary RTCAudioPlayoutStats : RTCStats {
+             required DOMString kind;
              double             synthesizedSamplesDuration;
              unsigned long      synthesizedSamplesEvents;
              double             totalSamplesDuration;

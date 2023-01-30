@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="support/test-common.css">
 <style type="text/css">
   @counter-style a {
+    /* Note that upper-roman has a range of (1, 3999), so negative or zero values
+       will use the fallback style. */
     system: extends upper-roman;
     prefix: "Appendix ";
   }

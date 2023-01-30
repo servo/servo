@@ -6,7 +6,3 @@
 partial dictionary RTCRtpEncodingParameters {
              DOMString scalabilityMode;
 };
-
-partial dictionary RTCRtpCodecCapability {
-             sequence<DOMString> scalabilityModes;
-};
