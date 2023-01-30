@@ -39,7 +39,7 @@
     use crate::properties::longhands::font_size;
     use crate::properties::longhands::font_variant_caps;
     use crate::values::specified::text::LineHeight;
-    use crate::values::specified::FontSize;
+    use crate::values::specified::{FontSize, FontWeight};
     use crate::values::specified::font::{FontStretch, FontStretchKeyword};
     #[cfg(feature = "gecko")]
     use crate::values::specified::font::SystemFont;
@@ -224,12 +224,21 @@
                 return Ok(());
             }
 
-            % for name in "style variant_caps weight".split():
+            % for name in "style variant_caps".split():
                 if self.font_${name} != &font_${name}::get_initial_specified_value() {
                     self.font_${name}.to_css(dest)?;
                     dest.write_char(' ')?;
                 }
             % endfor
+
+            // The initial specified font-weight value of 'normal' computes as a number (400),
+            // not to the keyword, so we need to check for that as well in order to properly
+            // serialize the computed style.
+            if self.font_weight != &FontWeight::normal() &&
+               self.font_weight != &FontWeight::from_gecko_keyword(400)  {
+                self.font_weight.to_css(dest)?;
+                dest.write_char(' ')?;
+            }
 
             if font_stretch != FontStretchKeyword::Normal {
                 font_stretch.to_css(dest)?;
