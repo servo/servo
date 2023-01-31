@@ -146,7 +146,6 @@ jobs:
   #           --release --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
   #           --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
   #           --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-  #           --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
   #           --filter-intermittents=filtered-wpt-summary.${{ matrix.chunk_id }}.log
   #     - name: Archive logs
   #       uses: actions/upload-artifact@v3
@@ -155,7 +154,6 @@ jobs:
   #         name: wpt${{ matrix.chunk_id }}-logs-macos
   #         path: |
   #           test-wpt.${{ matrix.chunk_id }}.log
-  #           wpt-jsonsummary.${{ matrix.chunk_id }}.log
   #           filtered-wpt-summary.${{ matrix.chunk_id }}.log
 
   build-linux:
@@ -218,8 +216,14 @@ jobs:
             --release --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-            --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
-            --filter-intermittents=filtered-wpt-summary.${{ matrix.chunk_id }}.log
+            --filter-intermittents=filtered-wpt-results.${{ matrix.chunk_id }}.json
+      - name: Archive filtered results
+        uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: wpt-filtered-results-linux
+          path: |
+            filtered-wpt-results.${{ matrix.chunk_id }}.json
       - name: Archive logs
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
@@ -227,15 +231,33 @@ jobs:
           name: wpt-logs-linux
           path: |
             test-wpt.${{ matrix.chunk_id }}.log
-            wpt-jsonsummary.${{ matrix.chunk_id }}.log
-            filtered-wpt-summary.${{ matrix.chunk_id }}.log
+            filtered-wpt-results.${{ matrix.chunk_id }}.json
+
+  report_test_results:
+    name: Reporting test results
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - "linux-wpt"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v3
+        with:
+          name: wpt-filtered-results-linux
+          path: wpt-filtered-results-linux
+      - name: Comment on PR with results
+        run: etc/ci/report_aggregated_expected_results.py wpt-filtered-results-linux/*
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build_result:
     name: homu build finished
     runs-on: ubuntu-latest
     needs:
       - "build-win"
-      - "build-linux"
       - "build-mac"
       - "linux-wpt"
       # - "mac-wpt"
