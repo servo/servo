@@ -336,12 +336,11 @@
                                     ${'font-variant-numeric' if engine == 'gecko' else ''}
                                     ${'font-variant-position' if engine == 'gecko' else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-variant">
-    <% gecko_sub_properties = "alternates east_asian emoji ligatures numeric position".split() %>
-    <%
-        sub_properties = ["caps"]
-        if engine == "gecko":
-            sub_properties += gecko_sub_properties
-    %>
+% if engine == 'gecko':
+    <% sub_properties = "ligatures caps alternates numeric east_asian position emoji".split() %>
+% else:
+    <% sub_properties = ["caps"] %>
+% endif
 
 % for prop in sub_properties:
     use crate::properties::longhands::font_variant_${prop};
