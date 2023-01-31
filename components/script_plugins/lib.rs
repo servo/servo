@@ -24,10 +24,11 @@ use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_driver::plugin::Registry;
 use rustc_hir::def_id::DefId;
 use rustc_hir::intravisit as visit;
-use rustc_hir::{self as hir, ExprKind, HirId};
+use rustc_hir::{self as hir, ExprKind};
 use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
 use rustc_middle::ty;
 use rustc_session::declare_lint;
+use rustc_span::def_id::LocalDefId;
 use rustc_span::source_map;
 use rustc_span::source_map::{ExpnKind, MacroKind, Span};
 use rustc_span::symbol::sym;
@@ -215,8 +216,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
             for ref field in def.fields() {
-                let def_id = cx.tcx.hir().local_def_id(field.hir_id);
-                if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
+                let field_type = cx.tcx.type_of(field.def_id);
+                if is_unrooted_ty(&self.symbols, cx, field_type, false) {
                     cx.lint(
                         UNROOTED_MUST_ROOT,
                         "Type must be rooted, use #[unrooted_must_root_lint::must_root] \
@@ -238,8 +239,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {
-                        let def_id = cx.tcx.hir().local_def_id(field.hir_id);
-                        if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
+                        let field_type = cx.tcx.type_of(field.def_id);
+                        if is_unrooted_ty(&self.symbols, cx, field_type, false) {
                             cx.lint(
                                 UNROOTED_MUST_ROOT,
                                 "Type must be rooted, \
@@ -262,7 +263,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         decl: &'tcx hir::FnDecl,
         body: &'tcx hir::Body,
         span: source_map::Span,
-        id: HirId,
+        def_id: LocalDefId,
     ) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _) | visit::FnKind::Method(n, _) => {
@@ -272,7 +273,6 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         };
 
         if !in_derive_expn(span) {
-            let def_id = cx.tcx.hir().local_def_id(id);
             let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
