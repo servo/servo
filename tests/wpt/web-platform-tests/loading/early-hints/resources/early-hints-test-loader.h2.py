@@ -18,6 +18,12 @@ def handle_headers(frame, request, response):
     for encoded_preload in request.GET.get_list(b"preloads"):
         preload = json.loads(encoded_preload.decode("utf-8"))
         header = "<{}>; rel=preload; as={}".format(preload["url"], preload["as_attr"])
+        if "crossorigin_attr" in preload:
+            crossorigin = preload["crossorigin_attr"]
+            if crossorigin:
+                header += "; crossorigin={}".format(crossorigin)
+            else:
+                header += "; crossorigin"
         preload_headers.append(header.encode())
 
     # Send a 103 response.

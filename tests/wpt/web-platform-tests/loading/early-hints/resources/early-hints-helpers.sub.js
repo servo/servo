@@ -14,6 +14,8 @@ const CROSS_ORIGIN_RESOURCES_URL = CROSS_ORIGIN + RESOURCES_PATH;
  * @property {string} url - A URL to preload. Note: This is relative to the
  *     `test_url` parameter of `navigateToTestWithEarlyHints()`.
  * @property {string} as_attr - `as` attribute of this preload.
+ * @property {string} [crossorigin_attr] - `crossorigin` attribute of this
+ *     preload.
  *
  * @param {string} test_url - URL of a test after the Early Hints response.
  * @param {Array<Preload>} preloads  - Preloads included in the Early Hints response.

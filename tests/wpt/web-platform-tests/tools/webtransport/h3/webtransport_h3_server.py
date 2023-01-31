@@ -186,8 +186,8 @@ class WebTransportH3Protocol(QuicConnectionProtocol):
 
     def _send_error_response(self, stream_id: int, status_code: int) -> None:
         assert self._http is not None
-        headers = [(b"server", SERVER_NAME.encode()),
-                   (b":status", str(status_code).encode())]
+        headers = [(b":status", str(status_code).encode()),
+                   (b"server", SERVER_NAME.encode())]
         self._http.send_headers(stream_id=stream_id,
                                 headers=headers,
                                 end_stream=True)
@@ -221,9 +221,11 @@ class WebTransportH3Protocol(QuicConnectionProtocol):
         for name, value in response_headers:
             if name == b":status":
                 status_code = value
+                response_headers.remove((b":status", status_code))
+                response_headers.insert(0, (b":status", status_code))
                 break
         if not status_code:
-            response_headers.append((b":status", b"200"))
+            response_headers.insert(0, (b":status", b"200"))
         self._http.send_headers(stream_id=event.stream_id,
                                 headers=response_headers)
 

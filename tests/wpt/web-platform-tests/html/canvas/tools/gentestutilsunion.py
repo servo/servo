@@ -31,12 +31,12 @@
 from typing import List, Mapping
 
 import re
-import codecs
 import collections
 import dataclasses
 import enum
 import importlib
 import os
+import pathlib
 import sys
 
 try:
@@ -317,26 +317,28 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
 
     # Create test cases for canvas and offscreencanvas.
     if html_canvas_cfg.enabled:
-        f = codecs.open(f'{canvas_path}.html', 'w', 'utf-8')
-        f.write(templates['w3ccanvas'] % template_params)
+        pathlib.Path(f'{canvas_path}.html').write_text(
+            templates['w3ccanvas'] % template_params, 'utf-8')
     if offscreen_canvas_cfg.enabled:
-        f_html = codecs.open(f'{offscreen_path}.html', 'w', 'utf-8')
-        f_worker = codecs.open(f'{offscreen_path}.worker.js', 'w', 'utf-8')
         if ('then(t_pass, t_fail);' in code_canvas):
             temp_offscreen = templates['w3coffscreencanvas'].replace(
                 't.done();\n', '')
             temp_worker = templates['w3cworker'].replace('t.done();\n', '')
-            f_html.write(temp_offscreen % template_params)
+            pathlib.Path(f'{offscreen_path}.html').write_text(
+                temp_offscreen % template_params, 'utf-8')
             timeout = ('// META: timeout=%s\n' %
                        test['timeout'] if 'timeout' in test else '')
             template_params['timeout'] = timeout
-            f_worker.write(temp_worker % template_params)
+            pathlib.Path(f'{offscreen_path}.worker.js').write_text(
+                temp_worker % template_params, 'utf-8')
         else:
-            f_html.write(templates['w3coffscreencanvas'] % template_params)
+            pathlib.Path(f'{offscreen_path}.html').write_text(
+                templates['w3coffscreencanvas'] % template_params, 'utf-8')
             timeout = ('// META: timeout=%s\n' %
                        test['timeout'] if 'timeout' in test else '')
             template_params['timeout'] = timeout
-            f_worker.write(templates['w3cworker'] % template_params)
+            pathlib.Path(f'{offscreen_path}.worker.js').write_text(
+                templates['w3cworker'] % template_params, 'utf-8')
 
 
 def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:
@@ -351,8 +353,8 @@ def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:
         doctest.testmod()
         sys.exit()
 
-    templates = yaml.safe_load(open(TEMPLATEFILE, 'r').read())
-    name_to_sub_dir = yaml.safe_load(open(NAME2DIRFILE, 'r').read())
+    templates = yaml.safe_load(pathlib.Path(TEMPLATEFILE).read_text())
+    name_to_sub_dir = yaml.safe_load(pathlib.Path(NAME2DIRFILE).read_text())
 
     tests = []
     test_yaml_directory = 'yaml-new'
@@ -360,8 +362,8 @@ def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:
         os.path.join(test_yaml_directory, f)
         for f in os.listdir(test_yaml_directory) if f.endswith('.yaml')
     ]
-    for t in sum([yaml.safe_load(open(f, 'r').read()) for f in TESTSFILES],
-                 []):
+    for t in sum(
+        [yaml.safe_load(pathlib.Path(f).read_text()) for f in TESTSFILES], []):
         if 'DISABLED' in t:
             continue
         if 'meta' in t:
