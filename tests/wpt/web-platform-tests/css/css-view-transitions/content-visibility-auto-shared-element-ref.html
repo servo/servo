@@ -19,13 +19,16 @@ body { background: pink }
   border: 1px solid black;
   box-sizing: border-box;
 }
-.hidden {
+.vis-hidden {
   visibility: hidden;
+}
+.cv-hidden {
+  content-visibility: hidden;
 }
 </style>
 
 <div class=flex>
- <div class="box hidden">ancestor c-v</div>
- <div class=box>self c-v</div>
- <div class=box>descendant c-v</div>
+ <div class="box vis-hidden">ancestor c-v</div>
+ <div class="box cv-hidden">self c-v</div>
+ <div class="box cv-hidden">descendant c-v</div>
 </div>

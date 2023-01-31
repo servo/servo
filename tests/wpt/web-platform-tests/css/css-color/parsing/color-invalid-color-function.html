@@ -20,6 +20,13 @@ for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophot
     test_invalid_value("color", `color(${colorSpace} 0% 0 0deg)`);
     test_invalid_value("color", `color(${colorSpace} 0% 0% 0deg)`);
     test_invalid_value("color", `color(${colorSpace} 40% 0 0deg)`);
+    // Missing parameters should not parse
+    test_invalid_value("color", `color(${colorSpace} 50% -200)`);
+    test_invalid_value("color", `color(${colorSpace} 50%)`);
+    test_invalid_value("color", `color(${colorSpace})`);
+    test_invalid_value("color", `color(${colorSpace} 50% -200 / 0.5)`);
+    test_invalid_value("color", `color(${colorSpace} 50% / 0.5)`);
+    test_invalid_value("color", `color(${colorSpace} / 0.5)`);
 }
 
 for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
@@ -30,6 +37,13 @@ for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
     test_invalid_value("color", `color(${colorSpace} 0% 0 0deg)`);
     test_invalid_value("color", `color(${colorSpace} 0% 0% 0deg)`);
     test_invalid_value("color", `color(${colorSpace} 40% 0 0deg)`);
+    // Missing parameters should not parse
+    test_invalid_value("color", `color(${colorSpace} 1 1)`);
+    test_invalid_value("color", `color(${colorSpace} 1)`);
+    test_invalid_value("color", `color(${colorSpace})`);
+    test_invalid_value("color", `color(${colorSpace} 1 1 / .5)`);
+    test_invalid_value("color", `color(${colorSpace} 1 / 0.5)`);
+    test_invalid_value("color", `color(${colorSpace} / 50%)`);
 }
 
 test_invalid_value("color", "color()");  // Empty

@@ -31,9 +31,9 @@
 from typing import List, Mapping
 
 import re
-import codecs
 import importlib
 import os
+import pathlib
 import sys
 
 try:
@@ -287,16 +287,16 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
         test_path += '-manual'
 
     if is_offscreen_canvas:
-        f = codecs.open(f'{test_path}.html', 'w', 'utf-8')
-        f.write(templates['w3coffscreencanvas'] % template_params)
+        pathlib.Path(f'{test_path}.html').write_text(
+            templates['w3coffscreencanvas'] % template_params, 'utf-8')
         timeout = ('// META: timeout=%s\n' %
                    test['timeout'] if 'timeout' in test else '')
         template_params['timeout'] = timeout
-        f = codecs.open(f'{test_path}.worker.js', 'w', 'utf-8')
-        f.write(templates['w3cworker'] % template_params)
+        pathlib.Path(f'{test_path}.worker.js').write_text(
+            templates['w3cworker'] % template_params, 'utf-8')
     else:
-        f = codecs.open(f'{test_path}.html', 'w', 'utf-8')
-        f.write(templates['w3ccanvas'] % template_params)
+        pathlib.Path(f'{test_path}.html').write_text(
+            templates['w3ccanvas'] % template_params, 'utf-8')
 
 
 def genTestUtils(TESTOUTPUTDIR: str, IMAGEOUTPUTDIR: str, TEMPLATEFILE: str,
@@ -307,8 +307,8 @@ def genTestUtils(TESTOUTPUTDIR: str, IMAGEOUTPUTDIR: str, TEMPLATEFILE: str,
         doctest.testmod()
         sys.exit()
 
-    templates = yaml.safe_load(open(TEMPLATEFILE, 'r').read())
-    name_to_sub_dir = yaml.safe_load(open(NAME2DIRFILE, 'r').read())
+    templates = yaml.safe_load(pathlib.Path(TEMPLATEFILE).read_text())
+    name_to_sub_dir = yaml.safe_load(pathlib.Path(NAME2DIRFILE).read_text())
 
     tests = []
     test_yaml_directory = 'yaml/element'
@@ -318,8 +318,8 @@ def genTestUtils(TESTOUTPUTDIR: str, IMAGEOUTPUTDIR: str, TEMPLATEFILE: str,
         os.path.join(test_yaml_directory, f)
         for f in os.listdir(test_yaml_directory) if f.endswith('.yaml')
     ]
-    for t in sum([yaml.safe_load(open(f, 'r').read()) for f in TESTSFILES],
-                 []):
+    for t in sum(
+        [yaml.safe_load(pathlib.Path(f).read_text()) for f in TESTSFILES], []):
         if 'DISABLED' in t:
             continue
         if 'meta' in t:
