@@ -1122,7 +1122,15 @@ impl Parse for FontVariantAlternates {
             return Ok(Default::default());
         }
 
-        let mut alternates = Vec::new();
+        let mut stylistic = None;
+        let mut historical = None;
+        let mut styleset = None;
+        let mut character_variant = None;
+        let mut swash = None;
+        let mut ornaments = None;
+        let mut annotation = None;
+
+        // Parse values for the various alternate types in any order.
         let mut parsed_alternates = VariantAlternatesParsingFlags::empty();
         macro_rules! check_if_parsed(
             ($input:expr, $flag:path) => (
@@ -1135,7 +1143,7 @@ impl Parse for FontVariantAlternates {
         while let Ok(_) = input.try_parse(|input| match *input.next()? {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
                 check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
-                alternates.push(VariantAlternates::HistoricalForms);
+                historical = Some(VariantAlternates::HistoricalForms);
                 Ok(())
             },
             Token::Function(ref name) => {
@@ -1146,28 +1154,28 @@ impl Parse for FontVariantAlternates {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::SWASH);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Swash(ident));
+                            swash = Some(VariantAlternates::Swash(ident));
                             Ok(())
                         },
                         "stylistic" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::STYLISTIC);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Stylistic(ident));
+                            stylistic = Some(VariantAlternates::Stylistic(ident));
                             Ok(())
                         },
                         "ornaments" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::ORNAMENTS);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Ornaments(ident));
+                            ornaments = Some(VariantAlternates::Ornaments(ident));
                             Ok(())
                         },
                         "annotation" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::ANNOTATION);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Annotation(ident));
+                            annotation = Some(VariantAlternates::Annotation(ident));
                             Ok(())
                         },
                         "styleset" => {
@@ -1176,7 +1184,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::Styleset(idents.into()));
+                            styleset = Some(VariantAlternates::Styleset(idents.into()));
                             Ok(())
                         },
                         "character-variant" => {
@@ -1185,7 +1193,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::CharacterVariant(idents.into()));
+                            character_variant = Some(VariantAlternates::CharacterVariant(idents.into()));
                             Ok(())
                         },
                         _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
@@ -1198,6 +1206,24 @@ impl Parse for FontVariantAlternates {
         if parsed_alternates.is_empty() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
+
+        // Collect the parsed values in canonical order, so that we'll serialize correctly.
+        let mut alternates = Vec::new();
+        macro_rules! push_if_some(
+            ($value:expr) => (
+                if let Some(v) = $value {
+                    alternates.push(v);
+                }
+            )
+        );
+        push_if_some!(stylistic);
+        push_if_some!(historical);
+        push_if_some!(styleset);
+        push_if_some!(character_variant);
+        push_if_some!(swash);
+        push_if_some!(ornaments);
+        push_if_some!(annotation);
+
         Ok(FontVariantAlternates(alternates.into()))
     }
 }
