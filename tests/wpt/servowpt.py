@@ -222,17 +222,17 @@ def filter_intermittents(
     actually_unexpected = []
     for i, result in enumerate(unexpected_results):
         print(f" [{i}/{len(unexpected_results)}]", file=sys.stderr, end="\r")
-        if filter.is_failure_intermittent(result.test_name):
+        if filter.is_failure_intermittent(result.path):
             intermittents.append(result)
         else:
             actually_unexpected.append(result)
 
     output = "\n".join([
         f"{len(intermittents)} known-intermittent unexpected result",
-        *[result.output.strip() for result in intermittents],
+        *[str(result) for result in intermittents],
         "",
         f"{len(actually_unexpected)} unexpected results that are NOT known-intermittents",
-        *[result.output.strip() for result in actually_unexpected],
+        *[str(result) for result in actually_unexpected],
     ])
 
     if output_file:
