@@ -34,6 +34,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.need_to_erase_last_line = False
         self.running_tests: Dict[str, str] = {}
         self.test_output = collections.defaultdict(str)
+        self.test_failures = []
         self.subtest_failures = collections.defaultdict(list)
         self.tests_with_failing_subtests = []
         self.unexpected_results: List[UnexpectedResult] = []
@@ -162,6 +163,7 @@ class ServoHandler(mozlog.reader.LogHandler):
 
         output = ""
         if had_unexpected_test_result:
+            self.test_failures.append(data)
             self.unexpected_tests[test_status].append(data)
             lines = self.get_lines_for_unexpected_result(
                 test_name,
