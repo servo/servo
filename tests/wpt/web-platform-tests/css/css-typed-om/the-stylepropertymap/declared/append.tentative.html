@@ -66,4 +66,9 @@ test(t => {
   assert_throws_js(TypeError, () => styleMap.append('transition-duration', CSS.s(1)));
 }, 'Appending to a list containing a variable reference should throw');
 
+test(t => {
+  let styleMap = createDeclaredStyleMap(t, 'transition: var(--a)');
+  assert_throws_js(TypeError, () => styleMap.append('transition-duration', CSS.s(1)));
+}, 'Appending to a longhand list containing a variable reference should throw');
+
 </script>

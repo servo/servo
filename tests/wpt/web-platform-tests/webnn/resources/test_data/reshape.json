@@ -202,7 +202,7 @@
       }
     },
     {
-      "name": "reshape float32 tensor to a new shape (one dimension being the special value -1)",
+      "name": "reshape float32 tensor to a new shape (one dimension being the special value of null)",
       "inputs": {
         "input": {
           "shape": [3, 2, 2, 2],
@@ -235,7 +235,7 @@
           "type": "float32"
         }
       },
-      "newShape": [4, -1, 3, 1],
+      "newShape": [4, null, 3, 1],
       "expected": {
         "name": "output",
         "shape": [4, 2, 3, 1],
@@ -336,7 +336,7 @@
       }
     },
     {
-      "name": "reshape float32 tensor to 1D tensor newShape=[-1]",
+      "name": "reshape float32 tensor to 1D tensor newShape=[null]",
       "inputs": {
         "input": {
           "shape": [3, 2, 2, 2],
@@ -369,7 +369,7 @@
           "type": "float32"
         }
       },
-      "newShape": [-1],
+      "newShape": [null],
       "expected": {
         "name": "output",
         "shape": [24],

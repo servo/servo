@@ -25,7 +25,7 @@
 
     const param = sender.getParameters();
     validateSenderRtpParameters(param);
-    const encoding = getFirstEncoding(param);
+    const encoding = param.encodings[0];
 
     assert_equals(encoding.active, false);
     assert_equals(encoding.priority, 'low');

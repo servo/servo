@@ -445,8 +445,13 @@ const createMultiInputOperands = (builder, resources) => {
   let inputOperands = [];
   const inputOperandNameArray = Object.keys(resources.inputs);
   inputOperandNameArray.forEach(inputOperandName => {
-    const inputOperand = createSingleInputOperand(builder, resources, inputOperandName);
-    inputOperands.push(inputOperand);
+    let operand;
+    if (resources.inputs[inputOperandName].hasOwnProperty('constant') && resources.inputs[inputOperandName]['constant']) {
+      operand = createConstantOperand(builder, resources.inputs[inputOperandName]);
+    } else {
+      operand = createSingleInputOperand(builder, resources, inputOperandName);
+    }
+    inputOperands.push(operand);
   });
   return inputOperands;
 };
@@ -498,12 +503,16 @@ const buildGraph = (operationName, builder, resources, buildFunc) => {
   if (Array.isArray(resources.inputs)) {
     // the inputs of concat() is a sequence
     for (let subInput of resources.inputs) {
-      inputs[subInput.name] = new TypedArrayDict[subInput.type](subInput.data);
+      if (!subInput.hasOwnProperty('constant') || !subInput.constant) {
+        inputs[subInput.name] = new TypedArrayDict[subInput.type](subInput.data);
+      }
     }
   } else {
     for (let inputName in resources.inputs) {
       const subTestByName = resources.inputs[inputName];
-      inputs[inputName] = new TypedArrayDict[subTestByName.type](subTestByName.data);
+      if (!subTestByName.hasOwnProperty('constant') || !subTestByName.constant) {
+        inputs[inputName] = new TypedArrayDict[subTestByName.type](subTestByName.data);
+      }
     }
   }
   let outputs = {};

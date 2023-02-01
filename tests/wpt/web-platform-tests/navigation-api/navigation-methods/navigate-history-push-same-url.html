@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation due to onload not having completed.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  assert_equals(navigation.entries().length, 1);
+
+
+  let navigateEventType;
+  navigation.onnavigate = e => {
+    navigateEventType = e.navigationType;
+    e.intercept();
+  }
+  navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
+
+  await navigation.navigate(location.href, { history: "push" }).finished;
+  assert_equals(navigateEventType, "push");
+  assert_equals(navigation.entries().length, 2);
+  assert_equals(navigation.currentEntry.index, 1);
+}, "navigate() to the current URL with history: 'push' and intercept so it remains same-document");
+</script>

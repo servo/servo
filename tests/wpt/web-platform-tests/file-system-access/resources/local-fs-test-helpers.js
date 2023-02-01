@@ -7,6 +7,10 @@
 // fs/resources/sandboxed-fs-test-helpers.js, where that version uses the
 // sandboxed file system instead.
 
+function getFileSystemType() {
+  return 'local';
+}
+
 const directory_promise = (async () => {
   await new Promise(resolve => {
     window.addEventListener('DOMContentLoaded', resolve);
