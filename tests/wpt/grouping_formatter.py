@@ -144,7 +144,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         test_status = data["status"]
         test_name = data["test"]
         had_unexpected_test_result = "expected" in data
-        subtest_failures = self.subtest_failures.pop(test_name, [])
+        subtest_failures = self.subtest_failures.get(test_name, [])
 
         del self.running_tests[data['thread']]
 
