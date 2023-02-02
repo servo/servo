@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html class=test-wait>
+<style type="text/css">
+</style>
+<div id="container">
+    <div id="div" style="transform:translateX(100px);"></div>
+</div>
+<script>
+  function runTest() {
+    document.getElementById('div').style = 'transform:translateX(200px)';
+    var forceLayout = document.body.offsetWidth;
+    document.getElementById('container').style = 'content-visibility: hidden;';
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        document.documentElement.classList.remove('test-wait');
+      });
+    });
+  }
+  onload = runTest;
+</script>
+</html>

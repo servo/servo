@@ -7,6 +7,10 @@
 // file-system-access/local-fs-test-helpers.js, where that version uses the
 // local file system instead.
 
+function getFileSystemType() {
+  return 'sandboxed';
+}
+
 async function cleanupSandboxedFileSystem() {
   const dir = await navigator.storage.getDirectory();
   for await (let entry of dir.values())

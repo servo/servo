@@ -14,8 +14,6 @@
 <meta name="timeout" content="long">
 <title>multitest - HTML editing conformance tests</title>
 
-<p id=timing></p>
-
 <div id=log></div>
 
 <div id=test-container></div>
@@ -31,8 +29,6 @@
 "use strict";
 
 (function() {
-    var startTime = Date.now();
-
     // Make document.body.innerHTML more tidy by removing unnecessary things.
     [].forEach.call(document.querySelectorAll("script"), function(node) {
         node.parentNode.removeChild(node);
@@ -53,11 +49,5 @@
 
     document.getElementById("test-container").parentNode
         .removeChild(document.getElementById("test-container"));
-
-    var elapsed = Math.round(Date.now() - startTime)/1000;
-    document.getElementById("timing").textContent =
-        "Time elapsed: " + Math.floor(elapsed/60) + ":"
-        + ((elapsed % 60) < 10 ? "0" : "")
-        + (elapsed % 60).toFixed(3) + " min.";
 })();
 </script>

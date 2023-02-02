@@ -142,4 +142,16 @@
   .c div.b &, div & { color: blue; }
 }`, 'one rule is kept unchanged, the other is changed');
   });
+
+  // Rules that are dropped in forgiving parsing but that contain &,
+  // must still be serialized out as they were.
+  test(() => {
+    const text = '.a { :is(!& .foo, .b) { color: green; } }';
+    document.getElementById('ss').innerHTML = text;
+    let [ss] = document.styleSheets;
+    assert_equals(ss.cssRules[0].cssText,
+`.a {
+  :is(!& .foo, .b) { color: green; }
+}`, 'invalid rule containing ampersand is kept in serialization');
+  });
 </script>

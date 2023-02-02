@@ -44,7 +44,7 @@
         tests.append( {
             "name": "size.attributes.parse.%s" % name,
             "desc": "Parsing of non-negative integers",
-            "canvas": 'width="%s" height="%s"' % (htmlString, htmlString),
+            "size": '%s, %s' % (htmlString, htmlString),
             "code": code,
             "expected": expected
         } )
@@ -55,7 +55,7 @@
         tests.append( {
             "name": "size.attributes.setAttribute.%s" % name,
             "desc": "Parsing of non-negative integers in setAttribute",
-            "canvas": 'width="50" height="50"',
+            "size": '50, 50',
             "code": code,
             "expected": expected
         } )

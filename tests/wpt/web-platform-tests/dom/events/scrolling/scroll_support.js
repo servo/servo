@@ -1,12 +1,38 @@
-async function waitForScrollendEvent(test, target, timeoutMs = 500) {
+async function waitForEvent(eventName, test, target, timeoutMs = 500) {
   return new Promise((resolve, reject) => {
     const timeoutCallback = test.step_timeout(() => {
-      reject(`No Scrollend event received for target ${target}`);
+      reject(`No ${eventName} event received for target ${target}`);
     }, timeoutMs);
-    target.addEventListener('scrollend', (evt) => {
+    target.addEventListener(eventName, (evt) => {
       clearTimeout(timeoutCallback);
       resolve(evt);
     }, { once: true });
+  });
+}
+
+async function waitForScrollendEvent(test, target, timeoutMs = 500) {
+  return waitForEvent("scrollend", test, target, timeoutMs);
+}
+
+async function waitForPointercancelEvent(test, target, timeoutMs = 500) {
+  return waitForEvent("pointercancel", test, target, timeoutMs);
+}
+
+async function createScrollendPromiseForTarget(test,
+                                               target_div,
+                                               timeoutMs = 500) {
+  return waitForScrollendEvent(test, target_div, timeoutMs).then(evt => {
+    assert_false(evt.cancelable, 'Event is not cancelable');
+    assert_false(evt.bubbles, 'Event targeting element does not bubble');
+  });
+}
+
+function verifyNoScrollendOnDocument(test) {
+  const callback =
+      test.unreached_func("window got unexpected scrollend event.");
+  window.addEventListener('scrollend', callback);
+  test.add_cleanup(() => {
+    window.removeEventListener('scrollend', callback);
   });
 }
 
@@ -107,6 +133,10 @@ function waitForAnimationEnd(getValue) {
 }
 
 // Scrolls in target according to move_path with pauses in between
+// The move_path should contains coordinates that are within target boundaries.
+// Keep in mind that 0,0 is the center of the target element and is also
+// the pointerDown position.
+// pointerUp() is fired after sequence of moves.
 function touchScrollInTargetSequentiallyWithPause(target, move_path, pause_time_in_ms = 100) {
   const test_driver_actions = new test_driver.Actions()
     .addPointer("pointer1", "touch")
@@ -125,7 +155,7 @@ function touchScrollInTargetSequentiallyWithPause(target, move_path, pause_time_
       y += step_y;
       test_driver_actions.pointerMove(x, y, {origin: target});
     }
-    test_driver_actions.pause(pause_time_in_ms);
+    test_driver_actions.pause(pause_time_in_ms); // To prevent inertial scroll
   }
 
   return test_driver_actions.pointerUp().send();

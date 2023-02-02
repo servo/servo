@@ -18,15 +18,14 @@ var makePromiseTest = function(getConstraint) {
     let stream = await navigator.mediaDevices.getUserMedia({video: true});
     let videoTrack = stream.getVideoTracks()[0];
 
+    const constraint = getConstraint(imageCaptureTest.mockImageCapture().state());
     try {
-      const constraints = {
-        advanced : [ getConstraint(imageCaptureTest.mockImageCapture().state()) ]
-      };
-
+      const constraints = { advanced : [constraint] };
       await videoTrack.applyConstraints(constraints);
       assert_unreached('expected applyConstraints to reject');
     } catch (error) {
       assert_equals(error.name, 'OverconstrainedError');
+      assert_equals(error.constraint, Object.keys(constraint)[0]);
     }
   });
 };

@@ -21,7 +21,7 @@
     });
 
     const param = sender.getParameters();
-    const encoding = getFirstEncoding(param);
+    const encoding = param.encodings[0];
 
     assert_equals(encoding.scalabilityMode, 'L1T3');
 
@@ -29,28 +29,18 @@
     await sender.setParameters(param);
 
     const updatedParam = sender.getParameters();
-    const updatedEncoding = getFirstEncoding(updatedParam);
+    const updatedEncoding = updatedParam.encodings[0];
 
     assert_equals(updatedEncoding.scalabilityMode, 'L1T2');
   }, `Setting and updating scalabilityMode to a legal value should be accepted`);
-
-  promise_test(async t => {
-    const capabilities = RTCRtpSender.getCapabilities('video');
-    var svcSupported = false;
-    for (const codec of capabilities.codecs) {
-      if ('scalabilityModes' in codec && codec.scalabilityModes.length > 0) {
-        svcSupported = true;
-      }
-    }
-    assert_true(svcSupported);
-  }, `Sender capabilities should include at least some scalability modes`);
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('video');
     const param = sender.getParameters();
-    assert_equals(param.encodings.length, 0);
+    const encoding = param.encodings[0];
+    assert_true(!('scalabilityMode' in encoding));
   }, 'Not setting sendEncodings results in no mode info before negotiation');
 
   promise_test(async t => {
@@ -60,28 +50,9 @@
       sendEncodings: [{}],
     });
     const param = sender.getParameters();
-    const encoding = getFirstEncoding(param);
-
+    const encoding = param.encodings[0];
     assert_true(!('scalabilityMode' in encoding));
   }, 'Not setting a scalability mode results in no mode set before negotiation');
-
-  promise_test(async t => {
-    const pc1 = new RTCPeerConnection();
-    const pc2 = new RTCPeerConnection();
-    t.add_cleanup(() => pc1.close());
-    t.add_cleanup(() => pc2.close());
-    const { sender } = pc1.addTransceiver('video', {
-      sendEncodings: [{}],
-    });
-    const param = sender.getParameters();
-    const encoding = getFirstEncoding(param);
-
-    exchangeIceCandidates(pc1, pc2);
-    await exchangeOfferAnswer(pc1, pc2);
-    const param2 = sender.getParameters();
-    const encoding2 = getFirstEncoding(param);
-    assert_true('scalabilityMode' in encoding2);
-  }, 'Not setting a scalability mode results in some mode set after negotiation');
 
   promise_test(async t => {
       const pc = new RTCPeerConnection();
@@ -105,7 +76,7 @@
     });
     // Before negotiation, the mode should be preserved.
     const param = transceiver.sender.getParameters();
-    const encoding = getFirstEncoding(param);
+    const encoding = param.encodings[0];
     assert_true('scalabilityMode' in encoding);
     // If L3T3 is not supported at all, abort test.
     assert_implements_optional(encoding.scalabilityMode === 'L3T3');

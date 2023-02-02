@@ -19,7 +19,7 @@ self.DirectSocketsServiceTest = (() => {
       this.interceptor_.stop();
     }
 
-    openTcpSocket(
+    openTCPSocket(
       options,
       receiver,
       observer) {
@@ -29,7 +29,7 @@ self.DirectSocketsServiceTest = (() => {
       });
     }
 
-    openUdpSocket(
+    openUDPSocket(
       options,
       receiver,
       listener) {

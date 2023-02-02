@@ -14,7 +14,7 @@ promise_test(async () => {
   input.autofocus = true;
   document.body.insertBefore(input, dialog);
   await waitUntilStableAutofocusState();
-  assert_equals(document.activeElement, document.body,
+  assert_not_equals(document.activeElement, input,
       'Non-dialog autofocus processing should be skipped.');
 }, 'After showing a dialog, non-dialog autofocus processing won\'t work.');
 </script>

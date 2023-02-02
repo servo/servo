@@ -39,19 +39,6 @@ async function resetTargetScrollState(test) {
   }
 }
 
-async function verifyNoScrollendOnDocument(test) {
-  const callback =
-      test.unreached_func("window got unexpected scrollend event.");
-  window.addEventListener('scrollend', callback);
-}
-
-async function createScrollendPromise(test, timeoutMs = 500) {
-  return waitForScrollendEvent(test, target_div, timeoutMs).then(evt => {
-      assert_false(evt.cancelable, 'Event is not cancelable');
-      assert_false(evt.bubbles, 'Event targeting element does not bubble');
-  });
-}
-
 function runTest() {
   promise_test(async (t) => {
     // Skip the test on a Mac as they do not support touch screens.
@@ -63,7 +50,7 @@ function runTest() {
     await waitForCompositorReady();
 
     const timeout = 1000; // Because we have two pauses we need longer timeout
-    const targetScrollendPromise = createScrollendPromise(t, timeout);
+    const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div, timeout);
     verifyNoScrollendOnDocument(t);
 
     let scrollend_count = 0;
@@ -108,7 +95,7 @@ function runTest() {
     await resetTargetScrollState(t);
     await waitForCompositorReady();
 
-    const targetScrollendPromise = createScrollendPromise(t);
+    const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div);
     verifyNoScrollendOnDocument(t);
 
     const bounds = target_div.getBoundingClientRect();
@@ -139,7 +126,7 @@ function runTest() {
     await resetTargetScrollState(t);
     await waitForCompositorReady();
 
-    const targetScrollendPromise = createScrollendPromise(t);
+    const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div);
     verifyNoScrollendOnDocument(t);
 
     const bounds = target_div.getBoundingClientRect();
@@ -165,7 +152,7 @@ function runTest() {
     await resetTargetScrollState(t);
     await waitForCompositorReady();
 
-    const targetScrollendPromise = createScrollendPromise(t);
+    const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div);
     verifyNoScrollendOnDocument(t);
 
     const x = 0;
@@ -188,7 +175,7 @@ function runTest() {
     await waitForCompositorReady();
 
     verifyNoScrollendOnDocument(t);
-    const targetScrollendPromise = createScrollendPromise(t);
+    const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div);
 
     target_div.focus();
     window.test_driver.send_keys(target_div, '\ue015');

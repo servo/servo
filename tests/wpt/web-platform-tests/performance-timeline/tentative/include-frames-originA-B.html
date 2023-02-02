@@ -28,11 +28,12 @@
 
       await loadCrossOriginChildFrame();
 
-      const entries = performance.getEntries(true);
+      const entries = performance.getEntries({ includeChildFrames: true });
 
-      const navigationEntries = performance.getEntriesByType("navigation", true);
+      const navigationEntries = performance.getEntries({ entryType: "navigation", includeChildFrames: true });
 
-      const markedEntries = performance.getEntriesByName('entry-name', undefined, true);
+      const markedEntries = performance.getEntries(
+        { name: 'entry-name', includeChildFrames: true });
 
       // 3 entries for parent, 0 for child.
       assert_equals(entries.length, 3, 'Total entries should be 3.');

@@ -7,6 +7,11 @@
 <script src="/resources/testharnessreport.js"></script>
 </head>
 <body id="body" tabindex="1">
+<style>
+dialog {
+  outline: none;
+}
+</style>
 <dialog id="top-dialog" tabindex="1" style="width: 100px; top: 30px"><button id="top-dialog-button">I get focus</button></dialog>
 <dialog id="bottom-dialog" tabindex="-1" style="width: 100px; bottom: 30px"><button id="bottom-dialog-button">I don't get focus.</button></dialog>
 <div id="container">

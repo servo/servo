@@ -104,7 +104,8 @@
 
 - name: 2d.scaled
   desc: CSS-scaled canvases get drawn correctly
-  canvas: 'width="50" height="25" style="width: 100px; height: 50px"'
+  size: 50, 25
+  canvas: 'style="width: 100px; height: 50px"'
   manual:
   code: |
     ctx.fillStyle = '#00f';

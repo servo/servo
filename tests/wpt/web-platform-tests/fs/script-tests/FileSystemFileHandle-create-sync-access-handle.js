@@ -5,10 +5,11 @@
 //    /fs/resources/test-helpers.js
 
 directory_test(async (t, root_dir) => {
+  const fileSystemType = getFileSystemType();
   assert_true(
-      file_system_type == 'sandboxed' || file_system_type == 'local',
+      fileSystemType == 'sandboxed' || fileSystemType == 'local',
       'File system type should be sandboxed or local.');
-  const expect_success = file_system_type == 'sandboxed';
+  const expect_success = fileSystemType == 'sandboxed';
 
   const dedicated_worker =
       create_dedicated_worker(t, kDedicatedWorkerMessageTarget);

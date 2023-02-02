@@ -1,4 +1,4 @@
-import {FillLightMode, ImageCapture, ImageCaptureReceiver, MeteringMode, RedEyeReduction} from '/gen/media/capture/mojom/image_capture.mojom.m.js';
+import {BackgroundBlurMode, FillLightMode, ImageCapture, ImageCaptureReceiver, MeteringMode, RedEyeReduction} from '/gen/media/capture/mojom/image_capture.mojom.m.js';
 
 self.ImageCaptureTest = (() => {
   // Class that mocks ImageCapture interface defined in
@@ -129,6 +129,12 @@ self.ImageCaptureTest = (() => {
             step: 3.0
           },
           fillLightMode: [FillLightMode.AUTO, FillLightMode.FLASH],
+
+          supportedBackgroundBlurModes: [
+              BackgroundBlurMode.OFF,
+              BackgroundBlurMode.BLUR
+          ],
+          backgroundBlurMode: BackgroundBlurMode.OFF,
         }
       };
       this.panTiltZoomPermissionStatus_ = null;
@@ -217,6 +223,9 @@ self.ImageCaptureTest = (() => {
       if (settings.hasTorch)
         this.state_.state.torch = settings.torch;
 
+      if (settings.hasBackgroundBlurMode)
+        this.state_.state.backgroundBlurMode = [settings.backgroundBlurMode];
+
       return Promise.resolve({
         success: true
       });
@@ -243,6 +252,19 @@ self.ImageCaptureTest = (() => {
 
     state() {
       return this.state_.state;
+    }
+
+    turnOffBackgroundBlurMode() {
+      this.state_.state.backgroundBlurMode = BackgroundBlurMode.OFF;
+    }
+    turnOnBackgroundBlurMode() {
+      this.state_.state.backgroundBlurMode = BackgroundBlurMode.BLUR;
+    }
+    turnOffSupportedBackgroundBlurModes() {
+      this.state_.state.supportedBackgroundBlurModes = [BackgroundBlurMode.OFF];
+    }
+    turnOnSupportedBackgroundBlurModes() {
+      this.state_.state.supportedBackgroundBlurModes = [BackgroundBlurMode.BLUR];
     }
 
     options() {

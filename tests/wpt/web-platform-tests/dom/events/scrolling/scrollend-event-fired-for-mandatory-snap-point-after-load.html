@@ -70,15 +70,8 @@
   function runTests() {
     const root_div = document.getElementById("root");
 
-    async function createScrollendPromise(test) {
-      return waitForScrollendEvent(test, root_div).then(evt => {
-        assert_false(evt.cancelable, 'Event is not cancelable');
-        assert_false(evt.bubbles, 'Event targeting element does not bubble');
-      });
-    }
-
     promise_test(async (t) => {
-      const targetScrollendPromise = createScrollendPromise(t);
+      const targetScrollendPromise = createScrollendPromiseForTarget(t, root_div);
 
       await waitForNextFrame();
       root_div.classList.remove("hidden");

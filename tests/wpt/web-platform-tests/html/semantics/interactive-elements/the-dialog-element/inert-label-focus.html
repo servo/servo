@@ -39,12 +39,15 @@ promise_test(async () => {
   document.querySelector('#text').focus();
 
   label = document.querySelector('label');
+  submit = document.querySelector('#submit');
   label.focus();
-  assert_equals(document.activeElement, document.querySelector('#submit'),
+  assert_equals(document.activeElement, submit,
     'label.focus() should send focus to the target.');
 
   await clickOn(label);
-  assert_equals(document.activeElement, document.body,
-    'Clicking the label should be the same as clicking the document body.');
+  assert_not_equals(document.activeElement, label,
+    'Clicking the label should not focus the label.');
+  assert_not_equals(document.activeElement, submit,
+    'Clicking the label should not focus the submit input.');
 }, 'Tests focusing of an inert label for a non-inert target.');
 </script>

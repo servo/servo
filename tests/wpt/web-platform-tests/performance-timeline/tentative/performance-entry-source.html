@@ -8,7 +8,7 @@
 <script>
 promise_test(() => {
     return new Promise(resolve => {
-        const navigationEntries = performance.getEntriesByType("navigation")
+      const navigationEntries = performance.getEntries({ type: 'navigation' })
         const parentEntry = navigationEntries[0]
 
         // Parent NavigationTiming source is current window.
@@ -20,7 +20,9 @@ promise_test(() => {
         document.body.appendChild(childFrame)
 
         childFrame.addEventListener('load', () => {
-            const markedEntries = performance.getEntriesByName("entry-name", undefined, true)
+          const markedEntries = performance.getEntries(
+            { name: 'entry-name', includeChildFrames: true });
+
             const childEntry = markedEntries[0]
 
             // Child PerformanceMark source is the child's Window.
