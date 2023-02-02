@@ -1743,55 +1743,8 @@ impl Parse for FontVariantNumeric {
 /// This property provides low-level control over OpenType or TrueType font features.
 pub type FontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-/// Allows authors to explicitly specify the language system of the font,
-/// overriding the language system implied by the content language
-pub enum FontLanguageOverride {
-    /// When rendering with OpenType fonts,
-    /// the content language of the element is
-    /// used to infer the OpenType language system
-    Normal,
-    /// Single three-letter case-sensitive OpenType language system tag,
-    /// specifies the OpenType language system to be used instead of
-    /// the language system implied by the language of the element
-    Override(Box<str>),
-}
-
-impl FontLanguageOverride {
-    #[inline]
-    /// Get default value with `normal`
-    pub fn normal() -> FontLanguageOverride {
-        FontLanguageOverride::Normal
-    }
-
-    /// The ToComputedValue implementation for non-system-font
-    /// FontLanguageOverride, used for @font-face descriptors.
-    #[inline]
-    pub fn compute_non_system(&self) -> computed::FontLanguageOverride {
-        match *self {
-            FontLanguageOverride::Normal => computed::FontLanguageOverride::zero(),
-            FontLanguageOverride::Override(ref lang) => {
-                computed::FontLanguageOverride::from_str(lang)
-            },
-        }
-    }
-}
-
-impl ToComputedValue for FontLanguageOverride {
-    type ComputedValue = computed::FontLanguageOverride;
-
-    #[inline]
-    fn to_computed_value(&self, _: &Context) -> computed::FontLanguageOverride {
-        self.compute_non_system()
-    }
-    #[inline]
-    fn from_computed_value(computed: &computed::FontLanguageOverride) -> Self {
-        if *computed == computed::FontLanguageOverride::zero() {
-            return FontLanguageOverride::Normal;
-        }
-        FontLanguageOverride::Override(computed.to_str(&mut [0; 4]).into())
-    }
-}
+/// For font-language-override, use the same representation as the computed value.
+pub use crate::values::computed::font::FontLanguageOverride;
 
 impl Parse for FontLanguageOverride {
     /// normal | <string>
@@ -1803,13 +1756,23 @@ impl Parse for FontLanguageOverride {
             .try_parse(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontLanguageOverride::Normal);
+            return Ok(FontLanguageOverride::normal());
         }
 
         let string = input.expect_string()?;
-        Ok(FontLanguageOverride::Override(
-            string.as_ref().to_owned().into_boxed_str(),
-        ))
+
+        // The OpenType spec requires tags to be 1 to 4 ASCII characters:
+        // https://learn.microsoft.com/en-gb/typography/opentype/spec/otff#data-types
+        if string.is_empty() || string.len() > 4 || !string.is_ascii() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        let mut bytes = [b' '; 4];
+        for (byte, str_byte) in bytes.iter_mut().zip(string.as_bytes()) {
+            *byte = *str_byte;
+        }
+
+        Ok(FontLanguageOverride(u32::from_be_bytes(bytes)))
     }
 }
 
