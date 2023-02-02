@@ -224,7 +224,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
         with:
-          name: wpt${{ matrix.chunk_id }}-logs-linux
+          name: wpt-logs-linux
           path: |
             test-wpt.${{ matrix.chunk_id }}.log
             wpt-jsonsummary.${{ matrix.chunk_id }}.log

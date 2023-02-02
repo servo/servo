@@ -31,7 +31,7 @@ function main() {
     for n in $(seq 1 "${MAX_CHUNK_ID}")
     do
         code=""
-        update_metadata "wpt${n}-logs-linux/test-wpt.${n}.log" || \
+        update_metadata "wpt-logs-linux/test-wpt.${n}.log" || \
             code="${?}"
         if [[ "${code}" != "" ]]; then
             return "${code}"
