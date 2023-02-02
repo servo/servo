@@ -9,21 +9,21 @@
   We focus this one between each test, to ensure that for non-modal dialogs,
   if there is no focus delegate, it stays focused (instead of causing focus to reset to the body).
 -->
-<button tabindex="-1" id="focus-between-tests">Focus between tests</button>
+<button id="focus-between-tests">Focus between tests</button>
 
 <dialog data-description="No autofocus, no delegatesFocus, no siblings">
   <template class="turn-into-shadow-tree">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="No autofocus, no delegatesFocus, sibling before">
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
   <template class="turn-into-shadow-tree">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
@@ -31,25 +31,25 @@
 <dialog data-description="No autofocus, no delegatesFocus, sibling after">
   <template class="turn-into-shadow-tree">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
 </dialog>
 
 <dialog data-description="No autofocus, yes delegatesFocus, no siblings">
   <template class="turn-into-shadow-tree delegates-focus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1" class="focus-me">Focusable</button>
+    <button class="focus-me">Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="No autofocus, yes delegatesFocus, sibling before">
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
   <template class="turn-into-shadow-tree delegates-focus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
@@ -57,26 +57,26 @@
 <dialog data-description="No autofocus, yes delegatesFocus, sibling after">
   <template class="turn-into-shadow-tree delegates-focus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1" class="focus-me">Focusable</button>
+    <button class="focus-me">Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
-  <button tabindex="-1">Focusable</button>
+  <button>Focusable</button>
 </dialog>
 
 <dialog data-description="Autofocus before, no delegatesFocus">
-  <button tabindex="-1" autofocus class="focus-me">Focusable</button>
+  <button autofocus class="focus-me">Focusable</button>
   <template class="turn-into-shadow-tree">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="Autofocus before, yes delegatesFocus">
-  <button tabindex="-1" autofocus class="focus-me">Focusable</button>
+  <button autofocus class="focus-me">Focusable</button>
   <template class="turn-into-shadow-tree delegates-focus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
@@ -84,34 +84,34 @@
 <dialog data-description="Autofocus after, no delegatesFocus">
   <template class="turn-into-shadow-tree">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
-  <button tabindex="-1" autofocus class="focus-me">Focusable</button>
+  <button autofocus class="focus-me">Focusable</button>
 </dialog>
 
 <dialog data-description="Autofocus after, yes delegatesFocus">
   <template class="turn-into-shadow-tree delegates-focus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
-  <button tabindex="-1" autofocus class="focus-me">Focusable</button>
+  <button autofocus class="focus-me">Focusable</button>
 </dialog>
 
 <dialog data-description="Autofocus on shadow host, yes delegatesFocus, no siblings">
   <template class="turn-into-shadow-tree delegates-focus autofocus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1" class="focus-me">Focusable</button>
+    <button class="focus-me">Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="Autofocus on shadow host, yes delegatesFocus, sibling before">
-  <button tabindex="-1">Focusable</button>
+  <button>Focusable</button>
   <template class="turn-into-shadow-tree delegates-focus autofocus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1" class="focus-me">Focusable</button>
+    <button class="focus-me">Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
@@ -119,25 +119,25 @@
 <dialog data-description="Autofocus on shadow host, yes delegatesFocus, sibling after">
   <template class="turn-into-shadow-tree delegates-focus autofocus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1" class="focus-me">Focusable</button>
+    <button class="focus-me">Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
-  <button tabindex="-1">Focusable</button>
+  <button>Focusable</button>
 </dialog>
 
 <dialog data-description="Autofocus on shadow host, no delegatesFocus, no siblings">
   <template class="turn-into-shadow-tree autofocus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="Autofocus on shadow host, no delegatesFocus, sibling before">
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
   <template class="turn-into-shadow-tree autofocus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
@@ -145,91 +145,91 @@
 <dialog data-description="Autofocus on shadow host, no delegatesFocus, sibling after">
   <template class="turn-into-shadow-tree autofocus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
 </dialog>
 
 <dialog data-description="Autofocus inside shadow tree, yes delegatesFocus, no siblings">
   <template class="turn-into-shadow-tree delegates-focus">
-    <button tabindex="-1">Focusable</button>
-    <button tabindex="-1" autofocus class="focus-me">Focusable</button>
+    <button>Focusable</button>
+    <button autofocus class="focus-me">Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="Autofocus inside shadow tree, yes delegatesFocus, sibling before">
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
   <template class="turn-into-shadow-tree delegates-focus">
-    <button tabindex="-1">Focusable</button>
-    <button tabindex="-1" autofocus>Focusable</button>
+    <button>Focusable</button>
+    <button autofocus>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="Autofocus inside shadow tree, yes delegatesFocus, sibling after">
   <template class="turn-into-shadow-tree delegates-focus">
-    <button tabindex="-1">Focusable</button>
-    <button tabindex="-1" autofocus class="focus-me">Focusable</button>
+    <button>Focusable</button>
+    <button autofocus class="focus-me">Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
-  <button tabindex="-1">Focusable</button>
+  <button>Focusable</button>
 </dialog>
 
 <dialog data-description="Autofocus inside shadow tree, no delegatesFocus, no siblings">
   <template class="turn-into-shadow-tree">
-    <button tabindex="-1">Focusable</button>
-    <button tabindex="-1" autofocus>Focusable</button>
+    <button>Focusable</button>
+    <button autofocus>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="Autofocus inside shadow tree, no delegatesFocus, sibling before">
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
   <template class="turn-into-shadow-tree">
-    <button tabindex="-1">Focusable</button>
-    <button tabindex="-1" autofocus>Focusable</button>
+    <button>Focusable</button>
+    <button autofocus>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="Autofocus inside shadow tree, no delegatesFocus, sibling after">
   <template class="turn-into-shadow-tree">
-    <button tabindex="-1">Focusable</button>
-    <button tabindex="-1" autofocus>Focusable</button>
+    <button>Focusable</button>
+    <button autofocus>Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
 </dialog>
 
 <dialog data-description="Two shadow trees, both delegatesFocus, first tree doesn't have autofocus element, second does">
   <template class="turn-into-shadow-tree delegates-focus">
     <button disabled>Non-focusable</button>
-    <button tabindex="-1" class="focus-me">Focusable</button>
+    <button class="focus-me">Focusable</button>
     <button disabled>Non-focusable</button>
   </template>
   <template class="turn-into-shadow-tree delegates-focus">
-    <button tabindex="-1" autofocus>Focusable</button>
+    <button autofocus>Focusable</button>
   </template>
 </dialog>
 
 <dialog data-description="No autofocus, no delegatesFocus, slotted target">
   <template class="turn-into-shadow-tree">
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
     <slot></slot>
-    <button tabindex="-1">Focusable</button>
+    <button>Focusable</button>
   </template>
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
 </dialog>
 
 <dialog data-description="Shadowroot on child, no autofocus, no delegatesFocus">
   <div>
     <template class="turn-into-shadow-tree">
-      <button tabindex="-1">Focusable</button>
+      <button>Focusable</button>
     </template>
   </div>
-  <button tabindex="-1" class="focus-me">Focusable</button>
+  <button class="focus-me">Focusable</button>
 </dialog>
 
 <script>
@@ -264,12 +264,8 @@ for (const dialog of document.querySelectorAll("dialog")) {
           assert_equals(document.activeElement, shadowHost);
           assert_equals(shadowHost.shadowRoot.activeElement, expectedFocusInsideShadowTree);
         } else {
-          // There is no focus delegate. Expected result depends on show() vs. showModal().
-          if (method === "show") {
-            assert_equals(document.activeElement, focusBetweenTests);
-          } else {
-            assert_equals(document.activeElement, document.body);
-          }
+          // There is no focus delegate. The dialog element should be focused.
+          assert_equals(document.activeElement, dialog);
         }
       }
     }, `${method}: ${dialog.dataset.description}`);

@@ -1,5 +1,4 @@
 function make_audio_data(timestamp, channels, sampleRate, frames) {
-
   let data = new Float32Array(frames*channels);
 
   // This generates samples in a planar format.
@@ -206,4 +205,31 @@ function isFrameClosed(frame) {
          frame.codedHeight == 0 && frame.displayWidth == 0 &&
          frame.displayHeight == 0 && frame.codedRect == null &&
          frame.visibleRect == null;
+}
+
+function testImageBitmapToAndFromVideoFrame(
+    width, height, expectedPixel, canvasOptions, imageBitmapOptions,
+    imageSetting) {
+  let canvas = new OffscreenCanvas(width, height);
+  let ctx = canvas.getContext('2d', canvasOptions);
+  ctx.fillStyle = 'rgb(50, 100, 150)';
+  ctx.fillRect(0, 0, width, height);
+  testCanvas(ctx, width, height, expectedPixel, imageSetting, assert_equals);
+
+  return createImageBitmap(canvas, imageBitmapOptions)
+      .then((fromImageBitmap) => {
+        let videoFrame = new VideoFrame(fromImageBitmap, {timestamp: 0});
+        return createImageBitmap(videoFrame, imageBitmapOptions);
+      })
+      .then((toImageBitmap) => {
+        let myCanvas = new OffscreenCanvas(width, height);
+        let myCtx = myCanvas.getContext('2d', canvasOptions);
+        myCtx.drawImage(toImageBitmap, 0, 0);
+        let tolerance = 2;
+        testCanvas(
+            myCtx, width, height, expectedPixel, imageSetting,
+            (actual, expected) => {
+              assert_approx_equals(actual, expected, tolerance);
+            });
+      });
 }

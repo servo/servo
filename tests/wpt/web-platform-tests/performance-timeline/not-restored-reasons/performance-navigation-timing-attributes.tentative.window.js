@@ -34,7 +34,7 @@ promise_test(async t => {
     return location.href;
   });
   // Check the BFCache result and the reported reasons.
-  await assertBFCache(rc1, /*shouldRestoreFromBFCache=*/ false);
+  await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
   await assertNotRestoredReasonsEquals(
       rc1,
       /*blocked=*/ true,

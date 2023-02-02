@@ -15,7 +15,7 @@ promise_test(async t => {
       /*config=*/ null, /*options=*/ {features: 'noopener'});
 
   await createIndexedDBForTesting(rc1, 'test_idb', 1);
-  await assertBFCache(rc1, /*shouldRestoreFromBFCache=*/ true);
+  await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ true);
 
   // The page is ensured to be eligible for BFCache even with open connection,
   // otherwise the previous assertion will fail with PRECONDITION_FAILED.
@@ -26,6 +26,9 @@ promise_test(async t => {
   // Create an IndexedDB database with higher version.
   await createIndexedDBForTesting(rc2, 'test_idb_2', 2);
   await rc2.historyBack();
-  // The previous page receiving versionchange event should be evicted.
-  await assert_not_bfcached(rc1);
+  // The previous page receiving versionchange event should be evicted with the
+  // correct reason.
+  // `kIgnoreEventAndEvict` will be reported as "Internal error".
+  // See `NotRestoredReasonToReportString()`.
+  await assertNotRestoredFromBFCache(rc1, ['Internal error']);
 });

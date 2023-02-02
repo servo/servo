@@ -31,6 +31,7 @@
     height:  100px;
     width:  100px;
     display:  inline-block;
+    font-size: 10px;
   }
 </style>
 <body>
@@ -149,4 +150,37 @@
     });
 
   }, 'View timeline with range as <name> <percent+px> pair.' );
+
+  promise_test(async t => {
+    await runTimelineRangeTest(t, {
+      rangeStart: "contain -50%",
+      rangeEnd: "enter 200%",
+      startOffset: 650,
+      endOffset: 800
+    });
+
+    await runTimelineRangeTest(t, {
+      rangeStart: "contain 20px",
+      rangeEnd: "contain 100px",
+      startOffset: 720,
+      endOffset: 800
+    });
+
+    await runTimelineRangeTest(t, {
+      rangeStart: "contain calc(0% + 20px)",
+      rangeEnd: "contain calc(100% - 10px)",
+      startOffset: 720,
+      endOffset: 790
+    });
+
+    await runTimelineRangeTest(t, {
+      rangeStart: "exit 2em",
+      rangeEnd: "exit 8em",
+      startOffset: 820,
+      endOffset: 880
+    });
+
+
+  }, 'View timeline with range as strings.');
+
 </script>

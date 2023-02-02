@@ -21,8 +21,7 @@ promise_test(async () => {
   // Detach the child frame
   document.body.removeChild(childFrame);
 
-  const entries = childWindow.performance.getEntries(true);
-  const parent_entries = performance.getEntries(true);
+  const entries = childWindow.performance.getEntries({ includeChildFrames: true });
+  const parent_entries = performance.getEntries({ includeChildFrames: true });
 }, "GetEntries of a detached parent frame does not crash");
 </script>
-

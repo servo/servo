@@ -58,6 +58,7 @@ promise_test(async function(t) {
     await videoTrack.applyConstraints({advanced : [ {torch : true} ]});
   } catch (error) {
     assert_equals(error.name, 'OverconstrainedError');
+    assert_equals(error.constraint, 'torch');
     return;
   }
   assert_unreached('expected applyConstraints to reject');

@@ -14,7 +14,7 @@
 This tests that a modal dialog's containing block is in the initial containing block and that it is unaffected by
 ancestor elements with overflow or opacity.
 <div style="position: absolute; top: 400px; opacity: 0.3">
-    <dialog id="opaqueDialog" style="position: absolute; top: 250px; left: 0px; background-color: magenta">
+    <dialog id="opaqueDialog" style="position: absolute; top: 250px; left: 0px; background-color: magenta; outline: none">
         This dialog should be unaffected by its ancestor with opacity.
     </dialog>
 </div>

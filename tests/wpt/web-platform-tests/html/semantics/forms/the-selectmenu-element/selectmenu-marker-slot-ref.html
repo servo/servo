@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="support/fake-selectmenu.js"></script>
+<body>
+<script>
+  const selectmenu = createFakeSelectmenu('hello world');
+  document.body.appendChild(selectmenu);
+
+  const oldMarker = selectmenu.querySelector('.fake-selectmenu-internal-selectmenu-button-icon');
+  const newMarker = document.createElement('div');
+  newMarker.textContent = 'marker';
+
+  const button = selectmenu.querySelector('.fake-selectmenu-internal-selectmenu-button');
+  button.replaceChild(newMarker, oldMarker);
+</script>

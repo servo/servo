@@ -22,7 +22,7 @@ promise_test(async t => {
   });
 
   // Check the BFCache result and the reported reasons.
-  await assertBFCache(rc1, /*shouldRestoreFromBFCache=*/ false);
+  await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
   await assertNotRestoredReasonsEquals(
       rc1,
       /*blocked=*/ true,
@@ -35,7 +35,7 @@ promise_test(async t => {
 
   // This time no blocking feature is used, so the page is restored
   // from BFCache. Ensure that the previous reasons stay there.
-  await assertBFCache(rc1, /*shouldRestoreFromBFCache=*/ true);
+  await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ true);
   await assertNotRestoredReasonsEquals(
       rc1,
       /*blocked=*/ true,

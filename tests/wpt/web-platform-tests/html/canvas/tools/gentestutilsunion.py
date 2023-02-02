@@ -194,6 +194,21 @@ class TestConfig:
     enabled: bool
 
 
+_CANVAS_SIZE_REGEX = re.compile(r'(?P<width>.*), (?P<height>.*)',
+                                re.MULTILINE | re.DOTALL)
+
+
+def _get_canvas_size(test: Mapping[str, str]):
+    size = test.get('size', '100, 50')
+    match = _CANVAS_SIZE_REGEX.match(size)
+    if not match:
+        raise InvalidTestDefinitionError(
+            'Invalid canvas size "%s" in test %s. Expected a string matching '
+            'this pattern: "%%s, %%s" %% (width, height)' %
+            (size, test['name']))
+    return match.group('width'), match.group('height')
+
+
 def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
                    sub_dir: str, html_canvas_cfg: TestConfig,
                    offscreen_canvas_cfg: TestConfig) -> None:
@@ -241,16 +256,15 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
                 '<img src="%s" class="output expected" id="expected" '
                 'alt="">' % expected_img)
 
-    canvas = test.get('canvas', 'width="100" height="50"')
+    canvas = ' ' + test['canvas'] if 'canvas' in test else ''
+    width, height = _get_canvas_size(test)
 
     notes = '<p class="notes">%s' % test['notes'] if 'notes' in test else ''
 
     timeout = ('\n<meta name="timeout" content="%s">' %
                test['timeout'] if 'timeout' in test else '')
-
-    scripts = ''
-    for s in test.get('scripts', []):
-        scripts += '<script src="%s"></script>\n' % (s)
+    timeout_js = ('// META: timeout=%s\n' % test['timeout']
+                  if 'timeout' in test else '')
 
     images = ''
     for src in test.get('images', []):
@@ -300,10 +314,12 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
         'fonts': fonts,
         'fonthack': fonthack,
         'timeout': timeout,
+        'timeout_js': timeout_js,
         'canvas': canvas,
+        'width': width,
+        'height': height,
         'expected': expectation_html,
         'code': code_canvas,
-        'scripts': scripts,
         'fallback': fallback,
         'attributes': attributes,
         'context_args': context_args
@@ -319,26 +335,18 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
     if html_canvas_cfg.enabled:
         pathlib.Path(f'{canvas_path}.html').write_text(
             templates['w3ccanvas'] % template_params, 'utf-8')
+
     if offscreen_canvas_cfg.enabled:
+        offscreen_template = templates['w3coffscreencanvas']
+        worker_template = templates['w3cworker']
         if ('then(t_pass, t_fail);' in code_canvas):
-            temp_offscreen = templates['w3coffscreencanvas'].replace(
-                't.done();\n', '')
-            temp_worker = templates['w3cworker'].replace('t.done();\n', '')
-            pathlib.Path(f'{offscreen_path}.html').write_text(
-                temp_offscreen % template_params, 'utf-8')
-            timeout = ('// META: timeout=%s\n' %
-                       test['timeout'] if 'timeout' in test else '')
-            template_params['timeout'] = timeout
-            pathlib.Path(f'{offscreen_path}.worker.js').write_text(
-                temp_worker % template_params, 'utf-8')
-        else:
-            pathlib.Path(f'{offscreen_path}.html').write_text(
-                templates['w3coffscreencanvas'] % template_params, 'utf-8')
-            timeout = ('// META: timeout=%s\n' %
-                       test['timeout'] if 'timeout' in test else '')
-            template_params['timeout'] = timeout
-            pathlib.Path(f'{offscreen_path}.worker.js').write_text(
-                templates['w3cworker'] % template_params, 'utf-8')
+            offscreen_template = offscreen_template.replace('t.done();\n', '')
+            worker_template = worker_template.replace('t.done();\n', '')
+
+        pathlib.Path(f'{offscreen_path}.html').write_text(
+            offscreen_template % template_params, 'utf-8')
+        pathlib.Path(f'{offscreen_path}.worker.js').write_text(
+            worker_template % template_params, 'utf-8')
 
 
 def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:

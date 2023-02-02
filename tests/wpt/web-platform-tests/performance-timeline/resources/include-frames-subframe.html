@@ -29,7 +29,7 @@
         const childFrame = document.createElement('iframe');
 
         childFrame.addEventListener('load', async () => {
-          const entries = performance.getEntries(true);
+          const entries = performance.getEntries({ includeChildFrames: true });
 
           // Report number of performance entries to the parent.
           window.parent.postMessage(entries.length, "*");

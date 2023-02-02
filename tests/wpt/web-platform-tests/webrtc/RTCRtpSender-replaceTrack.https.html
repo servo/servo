@@ -275,33 +275,64 @@
               1.  If connection's [[isClosed]] slot is true, abort these steps.
   */
 
-promise_test(async t => {
-  const v = document.createElement('video');
-  v.autoplay = true;
-  const pc1 = new RTCPeerConnection();
-  t.add_cleanup(() => pc1.close());
-  const pc2 = new RTCPeerConnection();
-  t.add_cleanup(() => pc2.close());
-  const stream1 = await getNoiseStream({video: {signal: 20}});
-  t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
-  const [track1] = stream1.getTracks();
-  const stream2 = await getNoiseStream({video: {signal: 250}});
-  t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
-  const [track2] = stream2.getTracks();
-  const sender = pc1.addTrack(track1);
-  pc2.ontrack = (e) => {
-    v.srcObject = new MediaStream([e.track]);
-  };
-  const metadataToBeLoaded = new Promise((resolve) => {
-    v.addEventListener('loadedmetadata', () => {
-      resolve();
+  promise_test(async t => {
+    const v = document.createElement('video');
+    v.autoplay = true;
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const stream1 = await getNoiseStream({video: {signal: 20}});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await getNoiseStream({video: {signal: 250}});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream2.getTracks();
+    const sender = pc1.addTrack(track1);
+    pc2.ontrack = (e) => {
+      v.srcObject = new MediaStream([e.track]);
+    };
+    const metadataToBeLoaded = new Promise((resolve) => {
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
     });
-  });
-  exchangeIceCandidates(pc1, pc2);
-  exchangeOfferAnswer(pc1, pc2);
-  await metadataToBeLoaded;
-  await detectSignal(t, v, 20);
-  await sender.replaceTrack(track2);
-  await detectSignal(t, v, 250);
-}, 'ReplaceTrack transmits the new track not the old track');
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
+    await metadataToBeLoaded;
+    await detectSignal(t, v, 20);
+    await sender.replaceTrack(track2);
+    await detectSignal(t, v, 250);
+  }, 'ReplaceTrack transmits the new track not the old track');
+
+  promise_test(async t => {
+    const v = document.createElement('video');
+    v.autoplay = true;
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const stream1 = await getNoiseStream({video: {signal: 20}});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await getNoiseStream({video: {signal: 250}});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream2.getTracks();
+    const sender = pc1.addTrack(track1);
+    pc2.ontrack = (e) => {
+      v.srcObject = new MediaStream([e.track]);
+    };
+    const metadataToBeLoaded = new Promise((resolve) => {
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
+    });
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
+    await metadataToBeLoaded;
+    await detectSignal(t, v, 20);
+    await sender.replaceTrack(null);
+    await sender.replaceTrack(track2);
+    await detectSignal(t, v, 250);
+  }, 'ReplaceTrack null -> new track transmits the new track');
 </script>

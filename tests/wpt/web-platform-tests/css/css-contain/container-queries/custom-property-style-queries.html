@@ -281,6 +281,9 @@
   @container style(--reg-length: 10px) {
     #reg-px { color: green; }
   }
+  @container style(--reg-length: initial) {
+    #reg-px-initial { color: green; }
+  }
 
   #reg-container-font-relative {
     --reg-length: 10px;
@@ -303,10 +306,21 @@
   @container style(--reg-length: 50cqi) {
     #reg-container-relative { color: green; }
   }
+
+  #reg-container-initial {
+    --reg-length: 10px;
+  }
+  @container style(--reg-length: 10px) {
+    #reg-initial-value { color: green; }
+  }
+  @container style(--reg-length: initial) {
+    #reg-initial-keyword { color: green; }
+  }
 </style>
 <div id="registered">
   <div id="reg-container-px">
     <div id="reg-px"></div>
+    <div id="reg-px-initial"></div>
   </div>
   <div id="reg-container-font-relative">
     <div id="reg-font-relative"></div>
@@ -317,11 +331,19 @@
   <div id="reg-container-container-relative">
     <div id="reg-container-relative"></div>
   </div>
+  <div id="reg-container-initial">
+    <div id="reg-initial-value"></div>
+    <div id="reg-initial-keyword"></div>
+  </div>
 </div>
 <script>
   test(() => {
     assert_equals(getComputedStyle(document.querySelector("#reg-px")).color, green);
   }, "Match registered <length> custom property with px.");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#reg-px-initial")).color, green);
+  }, "Match registered <length> custom property with px via initial keyword.");
 
   test(() => {
     assert_equals(getComputedStyle(document.querySelector("#reg-font-relative")).color, green);
@@ -334,4 +356,12 @@
   test(() => {
     assert_equals(getComputedStyle(document.querySelector("#reg-container-relative")).color, green);
   }, "Match registered <length> custom property with cqi unit.");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#reg-initial-value")).color, green);
+  }, "Match registered <length> custom property with initial value.");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#reg-initial-keyword")).color, green);
+  }, "Match registered <length> custom property with initial value via initial keyword.");
 </script>

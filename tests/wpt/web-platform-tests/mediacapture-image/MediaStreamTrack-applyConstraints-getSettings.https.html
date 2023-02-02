@@ -107,6 +107,7 @@ image_capture_test(async t => {
       await videoTrack.applyConstraints({ advanced: [constraint] });
     } catch (error) {
       assert_equals(error.name, 'OverconstrainedError');
+      assert_equals(error.constraint, Object.keys(constraint)[0]);
       return;
     }
     assert_unreached(

@@ -9,11 +9,12 @@
 <body>
 <script>
   const verifyPerformanceEntries = () => {
-    const entries = performance.getEntries(true);
+    const entries = performance.getEntries({ includeChildFrames: true });
 
-    const navigationEntries = performance.getEntriesByType( 'navigation', true);
+    const navigationEntries = performance.getEntries({ entryType: "navigation", includeChildFrames: true });
 
-    const markedEntries = performance.getEntriesByName('entry-name',  undefined, true );
+    const markedEntries = performance.getEntries(
+      { name: 'entry-name', includeChildFrames: true });
 
     // 4 entries for parent, 2 for each child
     assert_equals(entries.length, 8,'Total entries should be 8.');
