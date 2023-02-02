@@ -223,7 +223,7 @@ ${helpers.predefined_type(
     "font-language-override",
     "FontLanguageOverride",
     engines="gecko",
-    initial_value="computed::FontLanguageOverride::zero()",
+    initial_value="computed::FontLanguageOverride::normal()",
     initial_specified_value="specified::FontLanguageOverride::normal()",
     animation_value_type="discrete",
     extra_prefixes="moz:layout.css.prefixes.font-features",

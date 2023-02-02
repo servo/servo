@@ -855,18 +855,30 @@ where
     }
 }
 
-/// font-language-override can only have a single three-letter
+/// font-language-override can only have a single 1-4 ASCII character
 /// OpenType "language system" tag, so we should be able to compute
 /// it and store it as a 32-bit integer
 /// (see http://www.microsoft.com/typography/otspec/languagetags.htm).
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToResolvedValue)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem
+)]
 #[repr(C)]
+#[value_info(other_values = "normal")]
 pub struct FontLanguageOverride(pub u32);
 
 impl FontLanguageOverride {
     #[inline]
     /// Get computed default value of `font-language-override` with 0
-    pub fn zero() -> FontLanguageOverride {
+    pub fn normal() -> FontLanguageOverride {
         FontLanguageOverride(0)
     }
 
@@ -874,30 +886,13 @@ impl FontLanguageOverride {
     #[inline]
     pub(crate) fn to_str(self, storage: &mut [u8; 4]) -> &str {
         *storage = u32::to_be_bytes(self.0);
-        // Safe because we ensure it's ASCII during computing
+        // Safe because we ensure it's ASCII during parsing
         let slice = if cfg!(debug_assertions) {
             std::str::from_utf8(&storage[..]).unwrap()
         } else {
             unsafe { std::str::from_utf8_unchecked(&storage[..]) }
         };
         slice.trim_end()
-    }
-
-    /// Parses a str, return `Self::zero()` if the input isn't a valid OpenType
-    /// "language system" tag.
-    #[inline]
-    pub fn from_str(lang: &str) -> Self {
-        if lang.is_empty() || lang.len() > 4 {
-            return Self::zero();
-        }
-        let mut bytes = [b' '; 4];
-        for (byte, lang_byte) in bytes.iter_mut().zip(lang.as_bytes()) {
-            if !lang_byte.is_ascii() {
-                return Self::zero();
-            }
-            *byte = *lang_byte;
-        }
-        Self(u32::from_be_bytes(bytes))
     }
 
     /// Unsafe because `Self::to_str` requires the value to represent a UTF-8
