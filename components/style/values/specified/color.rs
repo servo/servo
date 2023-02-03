@@ -1146,7 +1146,7 @@ impl SpecifiedValueInfo for Color {
             f(&["color-mix"]);
         }
         if allow_more_color_4() {
-            f(&["lab", "lch", "oklab", "oklch"]);
+            f(&["color", "lab", "lch", "oklab", "oklch"]);
         }
     }
 }
