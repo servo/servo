@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <title>Image set computed value</title>
 <link rel="help" href="https://drafts.csswg.org/css-images-4/#serialization">
+<link rel="help" href="https://www.w3.org/TR/cssom-1/#serializing-css-values">
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#canonical-unit">
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#resolution">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
@@ -13,6 +16,8 @@ function test_computed_value_variants(property, specified, computed) {
   test_computed_value(property, "-webkit-" + specified, computed);
 }
 
+// The resolution unit is expected to be converted to the canonical unit 'dppx'
+// for computed style.
 test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) 1x)", 'image-set(url("http://{{host}}/example.png") 1dppx)');
 test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) 1x, 'http://{{host}}/example.png' 2x)", 'image-set(url("http://{{host}}/example.png") 1dppx, url("http://{{host}}/example.png") 2dppx)');
 test_computed_value_variants('background-image', 'image-set(url("http://{{host}}/example.png") 1dppx)');

@@ -49,6 +49,13 @@ async function verifyScrollStopped(test, target_div) {
   });
 }
 
+async function resetTargetScrollState(test, target_div) {
+  if (target_div.scrollTop != 0 || target_div.scrollLeft != 0) {
+    target_div.scrollTop = 0;
+    target_div.scrollLeft = 0;
+    return waitForScrollendEvent(test, target_div);
+  }
+}
 
 const MAX_FRAME = 700;
 const MAX_UNCHANGED_FRAMES = 20;
