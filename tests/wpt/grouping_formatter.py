@@ -2,6 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+# This allows using types that are defined later in the file.
+from __future__ import annotations
+
 import collections
 import os
 import sys
@@ -9,17 +12,99 @@ import mozlog
 import mozlog.formatters.base
 import mozlog.reader
 
-from typing import Dict, List, NamedTuple
-from six import itervalues, iteritems
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Any
+from six import itervalues
 
 DEFAULT_MOVE_UP_CODE = u"\x1b[A"
 DEFAULT_CLEAR_EOL_CODE = u"\x1b[K"
 
 
-class UnexpectedResult(NamedTuple):
-    test_name: str
-    test_status: str
-    output: str
+@dataclass
+class UnexpectedSubtestResult():
+    path: str
+    subtest: str
+    actual: str
+    expected: str
+    message: str
+    time: int
+    stack: Optional[str]
+
+
+@dataclass
+class UnexpectedResult():
+    path: str
+    actual: str
+    expected: str
+    message: str
+    time: int
+    stack: Optional[str]
+    unexpected_subtest_results: list[UnexpectedSubtestResult] = field(
+        default_factory=list)
+
+    def __str__(self):
+        output = ""
+        if self.expected != self.actual:
+            lines = UnexpectedResult.to_lines(self)
+            output += UnexpectedResult.wrap_and_indent_lines(lines, "  ")
+
+        if self.unexpected_subtest_results:
+            def make_subtests_failure(result, subtest_results):
+                # Test names sometimes contain control characters, which we want
+                # to be printed in their raw form, and not their interpreted form.
+                path = result.path.encode('unicode-escape')
+                lines = [f"Unexpected subtest result in {path}:"]
+                for subtest in subtest_results[:-1]:
+                    lines += UnexpectedResult.to_lines(
+                        subtest, print_stack=False)
+                lines += UnexpectedResult.to_lines(subtest_results[-1])
+                return self.wrap_and_indent_lines(lines, "  ")
+
+            # Organize the failures by stack trace so we don't print the same stack trace
+            # more than once. They are really tall and we don't want to flood the screen
+            # with duplicate information.
+            results_by_stack = collections.defaultdict(list)
+            for subtest_result in self.unexpected_subtest_results:
+                results_by_stack[subtest_result.stack].append(subtest_result)
+
+            # Print stackless results first. They are all separate.
+            if None in results_by_stack:
+                output = make_subtests_failure(
+                    self, results_by_stack.pop(None))
+            for subtest_results in results_by_stack.values():
+                output += make_subtests_failure(self, subtest_results)
+        return output
+
+    @staticmethod
+    def wrap_and_indent_lines(lines, indent):
+        if not lines:
+            return ""
+
+        output = indent + u"\u25B6 %s\n" % lines[0]
+        for line in lines[1:-1]:
+            output += indent + u"\u2502 %s\n" % line
+        if len(lines) > 1:
+            output += indent + u"\u2514 %s\n" % lines[-1]
+        return output
+
+    @staticmethod
+    def to_lines(result: Any[UnexpectedSubtestResult, UnexpectedResult], print_stack=True):
+        if result.expected != result.actual:
+            expected_text = f" [expected {result.expected}]"
+        else:
+            expected_text = u""
+
+        # Test names sometimes contain control characters, which we want
+        # to be printed in their raw form, and not their interpreted form.
+        path = result.path.encode('unicode-escape')
+        lines = [f"{result.actual}{expected_text} {path}"]
+        if result.message:
+            for message_line in result.message.splitlines():
+                lines.append(f"  \u2192 {message_line}")
+        if print_stack and result.stack:
+            lines.append("")
+            lines.extend(result.stack.splitlines())
+        return lines
 
 
 class ServoHandler(mozlog.reader.LogHandler):
@@ -34,7 +119,6 @@ class ServoHandler(mozlog.reader.LogHandler):
         self.need_to_erase_last_line = False
         self.running_tests: Dict[str, str] = {}
         self.test_output = collections.defaultdict(str)
-        self.test_failures = []
         self.subtest_failures = collections.defaultdict(list)
         self.tests_with_failing_subtests = []
         self.unexpected_results: List[UnexpectedResult] = []
@@ -71,84 +155,14 @@ class ServoHandler(mozlog.reader.LogHandler):
     def test_start(self, data):
         self.running_tests[data['thread']] = data['test']
 
-    def wrap_and_indent_lines(self, lines, indent):
-        assert(len(lines) > 0)
-
-        output = indent + u"\u25B6 %s\n" % lines[0]
-        for line in lines[1:-1]:
-            output += indent + u"\u2502 %s\n" % line
-        if len(lines) > 1:
-            output += indent + u"\u2514 %s\n" % lines[-1]
-        return output
-
-    def get_lines_for_unexpected_result(self,
-                                        test_name,
-                                        status,
-                                        expected,
-                                        message,
-                                        stack):
-        # Test names sometimes contain control characters, which we want
-        # to be printed in their raw form, and not their interpreted form.
-        test_name = test_name.encode('unicode-escape')
-
-        if expected:
-            expected_text = f" [expected {expected}]"
-        else:
-            expected_text = u""
-
-        lines = [f"{status}{expected_text} {test_name}"]
-        if message:
-            for message_line in message.splitlines():
-                lines.append(f"  \u2192 {message_line}")
-        if stack:
-            lines.append("")
-            lines.extend(stack.splitlines())
-        return lines
-
-    def get_output_for_unexpected_subtests(self, test_name, unexpected_subtests):
-        if not unexpected_subtests:
-            return ""
-
-        def add_subtest_failure(lines, subtest, stack=None):
-            lines += self.get_lines_for_unexpected_result(
-                subtest.get('subtest', None),
-                subtest.get('status', None),
-                subtest.get('expected', None),
-                subtest.get('message', None),
-                stack)
-
-        def make_subtests_failure(test_name, subtests, stack=None):
-            lines = [u"Unexpected subtest result in %s:" % test_name]
-            for subtest in subtests[:-1]:
-                add_subtest_failure(lines, subtest, None)
-            add_subtest_failure(lines, subtests[-1], stack)
-            return self.wrap_and_indent_lines(lines, "  ")
-
-        # Organize the failures by stack trace so we don't print the same stack trace
-        # more than once. They are really tall and we don't want to flood the screen
-        # with duplicate information.
-        output = ""
-        failures_by_stack = collections.defaultdict(list)
-        for failure in unexpected_subtests:
-            # Print stackless results first. They are all separate.
-            if 'stack' not in failure:
-                output += make_subtests_failure(test_name, [failure], None)
-            else:
-                failures_by_stack[failure['stack']].append(failure)
-
-        for (stack, failures) in iteritems(failures_by_stack):
-            output += make_subtests_failure(test_name, failures, stack)
-        return output
-
-    def test_end(self, data):
+    def test_end(self, data: dict) -> Optional[UnexpectedResult]:
         self.completed_tests += 1
         test_status = data["status"]
-        test_name = data["test"]
-        had_unexpected_test_result = "expected" in data
-        subtest_failures = self.subtest_failures.get(test_name, [])
-
+        test_path = data["test"]
         del self.running_tests[data['thread']]
 
+        had_unexpected_test_result = "expected" in data
+        subtest_failures = self.subtest_failures.pop(test_path, [])
         if not had_unexpected_test_result and not subtest_failures:
             self.expected[test_status] += 1
             return None
@@ -156,34 +170,41 @@ class ServoHandler(mozlog.reader.LogHandler):
         # If the test crashed or timed out, we also include any process output,
         # because there is a good chance that the test produced a stack trace
         # or other error messages.
+        stack = data.get("stack", None)
         if test_status in ("CRASH", "TIMEOUT"):
-            stack = self.test_output[test_name] + data.get('stack', "")
-        else:
-            stack = data.get('stack', None)
+            stack = f"\n{stack}" if stack else ""
+            stack = f"{self.test_output[test_path]}{stack}"
 
-        output = ""
+        result = UnexpectedResult(
+            test_path,
+            test_status,
+            data.get("expected", test_status),
+            data.get("message", ""),
+            data["time"],
+            stack,
+            subtest_failures
+        )
+
         if had_unexpected_test_result:
-            self.test_failures.append(data)
-            self.unexpected_tests[test_status].append(data)
-            lines = self.get_lines_for_unexpected_result(
-                test_name,
-                test_status,
-                data.get('expected', None),
-                data.get('message', None),
-                stack)
-            output += self.wrap_and_indent_lines(lines, "  ")
-
+            self.unexpected_tests[result.actual].append(data)
         if subtest_failures:
-            self.tests_with_failing_subtests.append(test_name)
-            output += self.get_output_for_unexpected_subtests(test_name,
-                                                              subtest_failures)
-        self.unexpected_results.append(
-            UnexpectedResult(test_name, test_status, output))
-        return output
+            self.tests_with_failing_subtests.append(data)
 
-    def test_status(self, data):
-        if "expected" in data:
-            self.subtest_failures[data["test"]].append(data)
+        self.unexpected_results.append(result)
+        return result
+
+    def test_status(self, data: dict):
+        if "expected" not in data:
+            return
+        self.subtest_failures[data["test"]].append(UnexpectedSubtestResult(
+            data["test"],
+            data["subtest"],
+            data["status"],
+            data["expected"],
+            data.get("message", ""),
+            data["time"],
+            data.get('stack', None),
+        ))
 
     def process_output(self, data):
         if data['thread'] not in self.running_tests:
@@ -267,15 +288,15 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
             return self.generate_output(new_display=self.build_status_line())
 
     def test_end(self, data):
-        output_for_unexpected_test = ServoHandler.test_end(self, data)
-        if not output_for_unexpected_test:
+        unexpected_result = ServoHandler.test_end(self, data)
+        if not unexpected_result:
             if self.interactive:
                 return self.generate_output(new_display=self.build_status_line())
             else:
                 return self.generate_output(text="%s%s\n" % (self.test_counter(), data["test"]))
 
         # Surround test output by newlines so that it is easier to read.
-        output_for_unexpected_test = f"{output_for_unexpected_test}\n"
+        output_for_unexpected_test = f"{unexpected_result}\n"
         return self.generate_output(text=output_for_unexpected_test,
                                     new_display=self.build_status_line())
 
@@ -318,7 +339,8 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         # non-interactive version prints all the test names.
         if not self.interactive and self.unexpected_results:
             output += u"Tests with unexpected results:\n"
-            output += "".join([result.output for result in self.unexpected_results])
+            output += "".join([str(result)
+                              for result in self.unexpected_results])
 
         return self.generate_output(text=output, new_display="")
 
