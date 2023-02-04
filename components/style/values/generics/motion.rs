@@ -73,7 +73,6 @@ pub struct RayFunction<Angle> {
 /// The offset-path value.
 ///
 /// https://drafts.fxtf.org/motion-1/#offset-path-property
-/// cbindgen:private-default-tagged-enum-constructor=false
 #[derive(
     Animate,
     Clone,

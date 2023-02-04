@@ -779,7 +779,6 @@ fn is_default<T: Default + PartialEq>(value: &T) -> bool {
 /// A value for the <single-animation-timeline>.
 ///
 /// https://drafts.csswg.org/css-animations-2/#typedef-single-animation-timeline
-/// cbindgen:private-default-tagged-enum-constructor=false
 #[derive(
     Clone,
     Debug,
