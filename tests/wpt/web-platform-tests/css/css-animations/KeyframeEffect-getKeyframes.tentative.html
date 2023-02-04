@@ -860,12 +860,14 @@ test(t => {
 
   const frames = getKeyframes(div);
 
+  // Implicit initial and final keyframes should be replace as per sections
+  // 7 and 8 of https://drafts.csswg.org/css-animations-2/#keyframes
   const expected = [
     { offset: 0,   computedOffset: 0,   easing: "linear", composite: "auto" },
-    { offset: 0,   computedOffset: 0,   easing: "ease",   composite: "auto", left: "auto" },
+    { offset: 0,   computedOffset: 0,   easing: "ease",   composite: "replace", left: "auto" },
     { offset: 0.5, computedOffset: 0.5, easing: "ease",   composite: "auto", left: "10px" },
     { offset: 1,   computedOffset: 1,   easing: "linear", composite: "auto" },
-    { offset: 1,   computedOffset: 1,   easing: "ease",   composite: "auto", left: "auto" }
+    { offset: 1,   computedOffset: 1,   easing: "ease",   composite: "replace", left: "auto" }
   ];
   assert_frame_lists_equal(frames, expected);
 }, 'KeyframeEffect.getKeyframes() returns expected values for ' +

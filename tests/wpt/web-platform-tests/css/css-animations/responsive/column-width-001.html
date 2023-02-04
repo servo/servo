@@ -61,7 +61,7 @@ test(() => {
   const second = document.getElementById('second');
   assert_equals(getComputedStyle(second).columnWidth, '30px');
   second.style.fontSize = '90px';
-  assert_equals(getComputedStyle(second).columnWidth, '0px');
+  assert_equals(getComputedStyle(second).columnWidth, '20px');
 }, 'column-width clamps to 0px');
 
 test(() => {

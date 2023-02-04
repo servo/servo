@@ -56,6 +56,7 @@ async function testAudioFlow(t, negotiationFunction) {
             // frames are not passed correctly between sender and receiver.
             assert_unreached("Incorrect frame received");
           }
+          assert_not_equals(result.value.getMetadata().sequenceNumber, undefined);
 
           if (numVerifiedFrames == numFramesToSend)
             resolve();

@@ -570,8 +570,8 @@ const run = async (operationName, context, builder, resources, buildFunc) => {
   // asynchronously compile the graph up to the output operand
   const graph = await builder.build(namedOutputOperands);
   // asynchronously execute the compiled graph
-  await context.compute(graph, inputs, outputs);
-  checkResults(operationName, namedOutputOperands, outputs, resources);
+  const result = await context.compute(graph, inputs, outputs);
+  checkResults(operationName, namedOutputOperands, result.outputs, resources);
 };
 
 /**

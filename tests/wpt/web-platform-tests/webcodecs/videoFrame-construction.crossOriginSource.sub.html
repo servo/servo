@@ -110,7 +110,11 @@ const TESTS = [
         image.setAttribute('href', CROSSORIGIN_BASE + '/webcodecs/four-colors.jpg?pipe=header(Access-Control-Allow-Origin,*)');
       });
     },
-    should_throw: false,
+    should_throw: () => {
+      // SVGImageElement.crossOrigin is not standardized.
+      const image = document.createElementNS('http://www.w3.org/2000/svg','image');
+      return !('crossOrigin' in image);
+    },
   },
   // HTMLVideoElement
   {
@@ -118,7 +122,7 @@ const TESTS = [
     factory: () => {
       return new Promise((resolve, reject) => {
         const video = document.createElement('video');
-        video.onloadeddata = () => resolve(video);
+        on_frame_available(video, () => resolve(video));
         video.onerror = reject;
         video.src = SAMEORIGIN_BASE + '/webcodecs/av1.mp4';
       });
@@ -130,7 +134,7 @@ const TESTS = [
     factory: () => {
       return new Promise((resolve, reject) => {
         const video = document.createElement('video');
-        video.onloadeddata = () => resolve(video);
+        on_frame_available(video, () => resolve(video));
         video.onerror = reject;
         video.src = CROSSORIGIN_BASE + '/webcodecs/av1.mp4';
       });
@@ -142,7 +146,7 @@ const TESTS = [
     factory: () => {
       return new Promise((resolve, reject) => {
         const video = document.createElement('video');
-        video.onloadeddata = () => resolve(video);
+        on_frame_available(video, () => resolve(video));
         video.onerror = reject;
         video.src = CROSSORIGIN_BASE + '/webcodecs/av1.mp4?pipe=header(Access-Control-Allow-Origin,*)';
       });
@@ -154,7 +158,7 @@ const TESTS = [
     factory: () => {
       return new Promise((resolve, reject) => {
         const video = document.createElement('video');
-        video.onloadeddata = () => resolve(video);
+        on_frame_available(video, () => resolve(video));
         video.onerror = reject;
         video.crossOrigin = 'anonymous';
         video.src = CROSSORIGIN_BASE + '/webcodecs/av1.mp4?pipe=header(Access-Control-Allow-Origin,*)';
@@ -180,6 +184,13 @@ function run_test(test) {
 function create_frame(img) {
   let frame = new VideoFrame(img, {timestamp: 0});
   frame.close();
+}
+
+function on_frame_available(video, callback) {
+  if ('requestVideoFrameCallback' in video)
+    video.requestVideoFrameCallback(callback);
+  else
+    video.onloadeddata = callback;
 }
 
 </script>
