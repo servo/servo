@@ -67,7 +67,6 @@ pub trait PositionComponent {
 /// A generic type for representing an `Auto | <position>`.
 /// This is used by <offset-anchor> for now.
 /// https://drafts.fxtf.org/motion-1/#offset-anchor-property
-/// cbindgen:private-default-tagged-enum-constructor=false
 #[derive(
     Animate,
     Clone,
