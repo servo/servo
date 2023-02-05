@@ -8,6 +8,9 @@
 //! unless otherwise specified:
 //!
 //! https://drafts.csswg.org/csswg-drafts/css-color-4/#color-conversion-code
+//!
+//! NOTE: Matrices has to be transposed from the examples in the spec for use
+//! with the `euclid` library.
 
 use crate::color::ColorComponents;
 use std::f32::consts::PI;
@@ -223,6 +226,14 @@ impl DisplayP3 {
         0.1982172852343625,  0.079286914093745,   1.0439443689009757,   0.0,
         0.0,                 0.0,                 0.0,                  1.0,
     );
+
+    #[rustfmt::skip]
+    const FROM_XYZ: Transform = Transform::new(
+         2.4934969119414245,  -0.829488969561575,    0.035845830243784335, 0.0,
+        -0.9313836179191236,   1.7626640603183468,  -0.07617238926804171,  0.0,
+        -0.40271078445071684,  0.02362468584194359,  0.9568845240076873,   0.0,
+         0.0,                  0.0,                  0.0,                  1.0,
+    );
 }
 
 impl ColorSpaceConversion for DisplayP3 {
@@ -236,12 +247,12 @@ impl ColorSpaceConversion for DisplayP3 {
         transform(from, &Self::TO_XYZ)
     }
 
-    fn from_xyz(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn from_xyz(from: &ColorComponents) -> ColorComponents {
+        transform(from, &Self::FROM_XYZ)
     }
 
-    fn to_gamma_encoded(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn to_gamma_encoded(from: &ColorComponents) -> ColorComponents {
+        Srgb::to_gamma_encoded(from)
     }
 }
 
@@ -257,30 +268,34 @@ impl A98Rgb {
         0.18822864623499472, 0.07529145849399789, 0.9913375368376389,   0.0,
         0.0,                 0.0,                 0.0,                  1.0,
     );
+
+    #[rustfmt::skip]
+    const FROM_XYZ: Transform = Transform::new(
+         2.041587903810746,  -0.9692436362808798,   0.013444280632031024, 0.0,
+        -0.5650069742788596,  1.8759675015077206,  -0.11836239223101824,  0.0,
+        -0.3447313507783295,  0.04155505740717561,  1.0151749943912054,   0.0,
+         0.0,                 0.0,                  0.0,                  1.0,
+    );
 }
 
 impl ColorSpaceConversion for A98Rgb {
     const WHITE_POINT: WhitePoint = WhitePoint::D65;
 
     fn to_linear_light(from: &ColorComponents) -> ColorComponents {
-        #[inline]
-        fn map(value: f32) -> f32 {
-            value.signum() * value.abs().powf(2.19921875)
-        }
-
-        ColorComponents(map(from.0), map(from.1), map(from.2))
+        from.clone().map(|v| v.signum() * v.abs().powf(2.19921875))
     }
 
     fn to_xyz(from: &ColorComponents) -> ColorComponents {
         transform(from, &Self::TO_XYZ)
     }
 
-    fn from_xyz(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn from_xyz(from: &ColorComponents) -> ColorComponents {
+        transform(from, &Self::FROM_XYZ)
     }
 
-    fn to_gamma_encoded(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn to_gamma_encoded(from: &ColorComponents) -> ColorComponents {
+        from.clone()
+            .map(|v| v.signum() * v.abs().powf(0.4547069271758437))
     }
 }
 
@@ -295,6 +310,14 @@ impl ProphotoRgb {
         0.13518583717574031, 0.7118432178101014,     0.0,                0.0,
         0.0313493495815248,  0.00008565396060525902, 0.8251046025104601, 0.0,
         0.0,                 0.0,                    0.0,                1.0,
+    );
+
+    #[rustfmt::skip]
+    const FROM_XYZ: Transform = Transform::new(
+         1.3457989731028281,  -0.5446224939028347,  0.0,                0.0,
+        -0.25558010007997534,  1.5082327413132781,  0.0,                0.0,
+        -0.05110628506753401,  0.02053603239147973, 1.2119675456389454, 0.0,
+         0.0,                  0.0,                 0.0,                1.0,
     );
 }
 
@@ -319,12 +342,21 @@ impl ColorSpaceConversion for ProphotoRgb {
         transform(from, &Self::TO_XYZ)
     }
 
-    fn from_xyz(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn from_xyz(from: &ColorComponents) -> ColorComponents {
+        transform(from, &Self::FROM_XYZ)
     }
 
-    fn to_gamma_encoded(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn to_gamma_encoded(from: &ColorComponents) -> ColorComponents {
+        const ET: f32 = 1.0 / 512.0;
+
+        from.clone().map(|v| {
+            let abs = v.abs();
+            if abs >= ET {
+                v.signum() * abs.powf(1.0 / 1.8)
+            } else {
+                16.0 * v
+            }
+        })
     }
 }
 
@@ -333,12 +365,23 @@ impl ColorSpaceConversion for ProphotoRgb {
 pub struct Rec2020;
 
 impl Rec2020 {
+    const ALPHA: f32 = 1.09929682680944;
+    const BETA: f32 = 0.018053968510807;
+
     #[rustfmt::skip]
     const TO_XYZ: Transform = Transform::new(
         0.6369580483012913,  0.26270021201126703,  0.0,                  0.0,
         0.14461690358620838, 0.677998071518871,    0.028072693049087508, 0.0,
         0.16888097516417205, 0.059301716469861945, 1.0609850577107909,   0.0,
         0.0,                 0.0,                  0.0,                  1.0,
+    );
+
+    #[rustfmt::skip]
+    const FROM_XYZ: Transform = Transform::new(
+         1.7166511879712676, -0.666684351832489,    0.017639857445310915, 0.0,
+        -0.3556707837763924,  1.616481236634939,   -0.042770613257808655, 0.0,
+        -0.2533662813736598,  0.01576854581391113,  0.942103121235474,    0.0,
+         0.0,                 0.0,                  0.0,                  1.0,
     );
 }
 
@@ -347,15 +390,12 @@ impl ColorSpaceConversion for Rec2020 {
 
     fn to_linear_light(from: &ColorComponents) -> ColorComponents {
         from.clone().map(|value| {
-            const ALPHA: f32 = 1.09929682680944;
-            const BETA: f32 = 0.018053968510807;
-
             let abs = value.abs();
 
-            if abs < BETA * 4.5 {
+            if abs < Self::BETA * 4.5 {
                 value / 4.5
             } else {
-                value.signum() * ((abs + ALPHA - 1.0) / ALPHA).powf(1.0 / 0.45)
+                value.signum() * ((abs + Self::ALPHA - 1.0) / Self::ALPHA).powf(1.0 / 0.45)
             }
         })
     }
@@ -364,12 +404,20 @@ impl ColorSpaceConversion for Rec2020 {
         transform(from, &Self::TO_XYZ)
     }
 
-    fn from_xyz(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn from_xyz(from: &ColorComponents) -> ColorComponents {
+        transform(from, &Self::FROM_XYZ)
     }
 
-    fn to_gamma_encoded(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn to_gamma_encoded(from: &ColorComponents) -> ColorComponents {
+        from.clone().map(|v| {
+            let abs = v.abs();
+
+            if abs > Self::BETA {
+                v.signum() * (Self::ALPHA * abs.powf(0.45) - (Self::ALPHA - 1.0))
+            } else {
+                4.5 * v
+            }
+        })
     }
 }
 
@@ -388,12 +436,12 @@ impl ColorSpaceConversion for XyzD50 {
         from.clone()
     }
 
-    fn from_xyz(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn from_xyz(from: &ColorComponents) -> ColorComponents {
+        from.clone()
     }
 
-    fn to_gamma_encoded(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn to_gamma_encoded(from: &ColorComponents) -> ColorComponents {
+        from.clone()
     }
 }
 
@@ -412,12 +460,12 @@ impl ColorSpaceConversion for XyzD65 {
         from.clone()
     }
 
-    fn from_xyz(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn from_xyz(from: &ColorComponents) -> ColorComponents {
+        from.clone()
     }
 
-    fn to_gamma_encoded(_from: &ColorComponents) -> ColorComponents {
-        todo!()
+    fn to_gamma_encoded(from: &ColorComponents) -> ColorComponents {
+        from.clone()
     }
 }
 
