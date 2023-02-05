@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint:dynamically appended image with different
+    dimensions but same src triggers new entry.</title>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/largest-contentful-paint-helpers.js"></script>
+  <img src='/images/black-rectangle.png' id='image_id' width="50" />
+  <script>
+    async_test(function (t) {
+      assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+      let beforeLoad = performance.now();
+      let beforeSecondImageLoad = performance.now();
+      let firstCallback = true;
+      // black-rectangle.png is 50 x 25.
+      const original_rect_size = 50 * 25;
+      // The bigger black rectangle is 100 x 50, but defined with width="50".
+      const bigger_rect_size = 100 * 50;
+      const observer = new PerformanceObserver(
+        t.step_func(function (entryList) {
+          assert_equals(entryList.getEntries().length, 1);
+          const entry = entryList.getEntries()[0];
+          const url = window.location.origin + '/images/black-rectangle.png';
+          if (firstCallback) {
+            // Checks the original black rectangle.
+            // TODO(https://crbug.com/1411616): we're testing approximated values.
+            checkImage(entry, url, 'image_id', original_rect_size,
+              beforeLoad, ["approximateSize"]);
+            // Creates a new bigger black rectangle.
+            const img = document.createElement('img');
+            img.id = 'new_image_id';
+            img.src = url;
+            img.width = 100;
+            beforeSecondImageLoad = performance.now();
+            firstCallback = false;
+            document.body.appendChild(img);
+          } else {
+            // Checks the new black rectangle.
+            checkImage(entry, url, 'new_image_id', bigger_rect_size, beforeSecondImageLoad);
+            t.done();
+          }
+        })
+      );
+      observer.observe({ type: 'largest-contentful-paint', buffered: true });
+    }, 'Largest Contentful Paint:dynamically appended image with different ' +
+    'dimensions but same src triggers new entry.');
+  </script>
+</body>

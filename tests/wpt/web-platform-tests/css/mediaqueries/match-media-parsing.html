@@ -5,11 +5,25 @@
 
 <script>
 function test_parsing(query, expected) {
+    if(expected === undefined)
+        expected = query;
+
     test(() => {
         const match = window.matchMedia(query);
         assert_equals(match.media, expected)
     }, "Test parsing '" + query + "' with matchMedia");
 }
+
+function test_resolution_parsing() {
+    test_parsing("(min-resolution: 1x)");
+    test_parsing("(resolution: 2x)");
+    test_parsing("(max-resolution: 7x)");
+
+    test_parsing("(resolution: 2dppx)");
+    test_parsing("(resolution: 600dpi)");
+    test_parsing("(resolution: 77dpcm)");
+}
+
 test_parsing("", "");
 test_parsing(" ", "");
 test_parsing("all", "all");
@@ -31,4 +45,6 @@ test_parsing(" , ", "not all, not all");
 test_parsing(",,", "not all, not all, not all");
 test_parsing("  ,  ,  ", "not all, not all, not all");
 test_parsing(" foo,", "foo, not all");
+
+test_resolution_parsing();
 </script>

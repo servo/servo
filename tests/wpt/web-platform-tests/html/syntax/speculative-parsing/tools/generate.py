@@ -2,7 +2,7 @@
 
 # Usage: python3 generate.py
 #
-# This will remove all existing files in the generated directories and generate new tests.
+# This will remove all existing .html files in the generated directories and generate new tests.
 
 
 # Notes on potential confusion with the 3 string substitution features in different layers:
@@ -164,6 +164,62 @@ tentative_tests = [
       u'template-script-src',
       u'utf-8',
       u'<template><script src="{}"></script></template>',
+      None,
+      u'false',
+      u'true'
+    ),
+    (
+      u'template-link-stylesheet',
+      u'utf-8',
+      u'<template><link rel=stylesheet href="{}"></template>',
+      None,
+      u'false',
+      u'true'
+    ),
+    (
+      u'template-img-src',
+      u'utf-8',
+      u'<template><img src="{}"></template>',
+      None,
+      u'false',
+      u'true'
+    ),
+    (
+      u'template-shadowrootmode-script-src',
+      u'utf-8',
+      u'<div><template shadowrootmode="closed"><script src="{}"></script></template></div>',
+      None,
+      u'true',
+      u'true'
+    ),
+    (
+      u'template-shadowrootmode-link-stylesheet',
+      u'utf-8',
+      u'<div><template shadowrootmode="closed"><link rel=stylesheet href="{}"></template></div>',
+      None,
+      u'true',
+      u'true'
+    ),
+    (
+      u'template-shadowrootmode-img-src',
+      u'utf-8',
+      u'<div><template shadowrootmode="closed"><img src="{}"></template></div>',
+      None,
+      u'true',
+      u'true'
+    ),
+    (
+      u'nested-template-shadowrootmode-1',
+      u'utf-8',
+      u'<template><div><template shadowrootmode="closed"><script src="{}"></script></template></div></template>',
+      None,
+      u'false',
+      u'true'
+    ),
+    (
+      u'nested-template-shadowrootmode-2',
+      u'utf-8',
+      u'<div><template shadowrootmode="closed"><template><script src="{}"></script></template></template></div>',
       None,
       u'false',
       u'true'
@@ -593,9 +649,14 @@ template_prerender_linked = u"""{preamble}
 
 # Generate tests
 
-# wipe target_dir
+# wipe target_dir of HTML files
 if os.path.isdir(target_dir):
-    shutil.rmtree(target_dir)
+  for root, dirs, files in os.walk(target_dir):
+    for name in files:
+      if name.endswith('.html'):
+        path = os.path.join(root, name)
+        if os.path.isfile(path):
+          os.remove(path)
 
 def write_file(path, content):
     path = os.path.join(target_dir, path)

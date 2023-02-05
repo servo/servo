@@ -59,6 +59,13 @@ test(function(){
 }, "Explicitly inheriting from a parent with no value results in initial value.");
 
 test(function(){
+    CSS.registerProperty({name: '--initial-length-3', syntax: '<length>', initialValue: '0px', inherits: false});
+    outer.style = '--initial-length-3: 100px';
+    inner.style = '--initial-length-3: inherit';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--initial-length-3'), '100px');
+}, "Explicitly inheriting from a parent with a value results in that value.");
+
+test(function(){
     CSS.registerProperty({name: '--inherited-length-4', syntax: '<length>', initialValue: '0px', inherits: true});
     outer.style = '--inherited-length-4: 42px';
     inner.style = '--inherited-length-4: var(--undefined)';

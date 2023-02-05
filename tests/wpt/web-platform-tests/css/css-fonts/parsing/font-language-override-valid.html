@@ -12,7 +12,14 @@
 <body>
 <script>
 test_valid_value('font-language-override', 'normal');
-test_valid_value('font-language-override', '"ksw"');
+test_valid_value('font-language-override', '"KSW"');
+test_valid_value('font-language-override', '"APPH"');
+test_valid_value('font-language-override', '"ENG "', '"ENG"');  // Shortest serialization strips trailing spaces.
+test_valid_value('font-language-override', '"ksw"');  // Will not match the registered (uppercase) tag, but valid grammar.
+test_valid_value('font-language-override', '"tr"');
+test_valid_value('font-language-override', '"en  "', '"en"');
+test_valid_value('font-language-override', '" en "', '" en"');  // Leading space is not trimmed
+test_valid_value('font-language-override', '"1 %"');
 </script>
 </body>
 </html>
