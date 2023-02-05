@@ -35,6 +35,10 @@ idl_test(
   async idlArray => {
     self.imageBody = await fetch('four-colors.png').then(response => response.arrayBuffer());
 
+    let decoder = new ImageDecoder({data: self.imageBody, type: 'image/png'});
+    await decoder.tracks.ready;
+    self.imageTracks = decoder.tracks.selectedTrack;
+
     idlArray.add_objects({
       AudioDecoder: [`new AudioDecoder(defaultCodecInit)`],
       VideoDecoder: [`new VideoDecoder(defaultCodecInit)`],
@@ -47,7 +51,7 @@ idl_test(
       VideoColorSpace: [`new VideoColorSpace()`],
       ImageDecoder: [`new ImageDecoder({data: self.imageBody, type: 'image/png'})`],
       ImageTrackList: [`new ImageDecoder({data: self.imageBody, type: 'image/png'}).tracks`],
-      ImageTrack: [`new ImageDecoder({data: self.imageBody, type: 'image/png'}).tracks[0]`],
+      ImageTrack: [`self.imageTracks`],
     });
   }
 );

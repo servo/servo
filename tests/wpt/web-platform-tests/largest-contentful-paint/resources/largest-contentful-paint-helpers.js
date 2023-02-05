@@ -24,6 +24,8 @@ const await_with_timeout = async (delay, message, promise, cleanup = ()=>{}) => 
 //     When not present, the renderTime should not be 0 (image passes the checks).
 // * 'sizeLowerBound': the |expectedSize| is only a lower bound on the size attribute value.
 //     When not present, |expectedSize| must be exactly equal to the size attribute value.
+// * 'approximateSize': the |expectedSize| is only approximate to the size attribute value.
+//     This option is mutually exclusive to 'sizeLowerBound'.
 function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound, options = []) {
   assert_equals(entry.name, '', "Entry name should be the empty string");
   assert_equals(entry.entryType, 'largest-contentful-paint',
@@ -54,9 +56,12 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   }
   if (options.includes('sizeLowerBound')) {
     assert_greater_than(entry.size, expectedSize);
-  } else {
+  } else if (options.includes('approximateSize')) {
+    assert_approx_equals(entry.size, expectedSize, 1);
+  } else{
     assert_equals(entry.size, expectedSize);
   }
+
   if (options.includes('animated')) {
     assert_greater_than(entry.loadTime, entry.firstAnimatedFrameTime,
       'firstAnimatedFrameTime should be smaller than loadTime');

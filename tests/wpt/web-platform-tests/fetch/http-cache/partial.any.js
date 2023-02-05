@@ -91,6 +91,27 @@ var tests = [
     ]
   },
   {
+    name: "HTTP cache stores complete response and serves smaller ranges from it with only-if-cached",
+    requests: [
+      {
+        response_headers: [
+          ["Cache-Control", "max-age=3600"]
+        ],
+        response_body: "01234567890"
+      },
+      {
+        request_headers: [
+          ['Range', "bytes=0-1"]
+        ],
+        mode: "same-origin",
+        cache: "only-if-cached",
+        expected_type: "cached",
+        expected_status: 206,
+        expected_response_text: "01"
+      },
+    ]
+  },
+  {
     name: "HTTP cache stores partial response and serves smaller ranges from it (byte-range-spec)",
     requests: [
       {

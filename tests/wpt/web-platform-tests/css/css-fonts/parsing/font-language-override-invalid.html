@@ -15,8 +15,10 @@
 test_invalid_value('font-language-override', 'auto');
 test_invalid_value('font-language-override', 'normal "ksw"');
 
-test_invalid_value('font-language-override', '"tr"');
-test_invalid_value('font-language-override', '"1 %"');
+test_invalid_value('font-language-override', '"turkish"');  // overlong string
+test_invalid_value('font-language-override', '"xøx"');  // non-ASCII character
+test_invalid_value('font-language-override', '""');  // empty string
+test_invalid_value('font-language-override', '"ENG  "');  // too much padding
 </script>
 </body>
 </html>

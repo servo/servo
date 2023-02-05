@@ -80,6 +80,14 @@
     background-color: green !important;
   }
 
+  /* & at top level counts as :scope, i.e. the root element here */
+  & .test-12 {
+    background-color: green;
+  }
+  & > .test-12 {
+    background-color: red !important;
+  }
+
   body * + * {
     margin-top: 8px;
   }
@@ -100,4 +108,5 @@
   <div class="test test-9 t9-- t9-"><div></div></div>
   <div class="test test-10"><div></div></div>
   <div class="test test-11"><div></div></div>
+  <div class="test test-12"></div>
 </body>
