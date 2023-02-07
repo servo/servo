@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import dataclasses
 import grouping_formatter
 import json
 import os
@@ -218,30 +219,34 @@ def filter_intermittents(
     else:
         filter = TrackerFilter()
 
-    intermittents = []
-    actually_unexpected = []
+    known_intermittents: List[UnexpectedResult] = []
+    unexpected: List[UnexpectedResult] = []
     for i, result in enumerate(unexpected_results):
         print(f" [{i}/{len(unexpected_results)}]", file=sys.stderr, end="\r")
         if filter.is_failure_intermittent(result.path):
-            intermittents.append(result)
+            known_intermittents.append(result)
         else:
-            actually_unexpected.append(result)
-
-    output = "\n".join([
-        f"{len(intermittents)} known-intermittent unexpected result",
-        *[str(result) for result in intermittents],
-        "",
-        f"{len(actually_unexpected)} unexpected results that are NOT known-intermittents",
-        *[str(result) for result in actually_unexpected],
-    ])
+            unexpected.append(result)
 
     if output_file:
         with open(output_file, "w", encoding="utf-8") as file:
-            file.write(output)
+            file.write(json.dumps({
+                "known_intermittents":
+                    [dataclasses.asdict(result) for result in known_intermittents],
+                "unexpected":
+                    [dataclasses.asdict(result) for result in unexpected],
+            }))
 
+    output = "\n".join([
+        f"{len(known_intermittents)} known-intermittent unexpected result",
+        *[str(result) for result in known_intermittents],
+        "",
+        f"{len(unexpected)} unexpected results that are NOT known-intermittents",
+        *[str(result) for result in unexpected],
+    ])
     print(output)
     print(80 * "=")
-    return not actually_unexpected
+    return not unexpected
 
 
 def main():
