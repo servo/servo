@@ -76,11 +76,11 @@ export function fedcm_test(test_func, test_name) {
 
 function select_manifest_impl(manifest_url) {
   const url_query = (manifest_url === undefined)
-      ? '' : '?manifest_url=${manifest_url}';
+      ? '' : `?manifest_url=${manifest_url}`;
 
   return new Promise(resolve => {
     const img = document.createElement('img');
-    img.src = 'support/fedcm/select_manifest_in_root_manifest.py?${url_query}';
+    img.src = `support/fedcm/select_manifest_in_root_manifest.py${url_query}`;
     img.addEventListener('error', resolve);
     document.body.appendChild(img);
   });
