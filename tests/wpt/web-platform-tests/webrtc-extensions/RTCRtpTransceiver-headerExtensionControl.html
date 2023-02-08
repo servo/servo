@@ -27,11 +27,6 @@ test(function(t) {
              capability.direction != "stopped";
   });
   assert_not_equals(capability, undefined);
-  capability = capabilities.find((capability) => {
-      return capability.uri == "urn:3gpp:video-orientation" &&
-             capability.direction != "stopped";
-  });
-  assert_not_equals(capability, undefined);
 }, `the video transceiver.headerExtensionsToOffer() includes mandatory extensions`);
 
 test(function(t) {
@@ -129,8 +124,7 @@ promise_test(async t => {
   const capabilities = transceiver.headerExtensionsToOffer;
   const selected_capability = capabilities.find((capability) => {
       return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.uri != "urn:3gpp:video-orientation";
+             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
   });
   selected_capability.direction = "stopped";
   transceiver.setOfferedRtpHeaderExtensions(capabilities);
@@ -160,8 +154,7 @@ promise_test(async t => {
   const capabilities = transceiver.headerExtensionsToOffer;
   const selected_capability = capabilities.find((capability) => {
       return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.uri != "urn:3gpp:video-orientation";
+             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
   });
   selected_capability.direction = "stopped";
   transceiver.setOfferedRtpHeaderExtensions(capabilities);
@@ -193,8 +186,7 @@ promise_test(async t => {
   const capabilities = transceiver.headerExtensionsToOffer;
   const selected_capability = capabilities.find((capability) => {
       return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.uri != "urn:3gpp:video-orientation";
+             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
   });
   selected_capability.direction = "stopped";
   transceiver.setOfferedRtpHeaderExtensions(capabilities);

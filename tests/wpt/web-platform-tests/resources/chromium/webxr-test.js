@@ -334,6 +334,7 @@ class MockRuntime {
     'depth-sensing': vrMojom.XRSessionFeature.DEPTH,
     'secondary-views': vrMojom.XRSessionFeature.SECONDARY_VIEWS,
     'camera-access': vrMojom.XRSessionFeature.CAMERA_ACCESS,
+    'layers': vrMojom.XRSessionFeature.LAYERS,
   };
 
   static _sessionModeToMojoMap = {

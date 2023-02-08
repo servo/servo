@@ -29,29 +29,33 @@ var defaultVideoChunkInit = {
   data: new Uint8Array([9, 10, 11, 12])
 };
 
-idl_test(
-  ['webcodecs'],
-  ['webidl'],
-  async idlArray => {
-    self.imageBody = await fetch('four-colors.png').then(response => response.arrayBuffer());
+idl_test(['webcodecs'], ['dom', 'html', 'webidl'], async idlArray => {
+  self.imageBody =
+      await fetch('four-colors.png').then(response => response.arrayBuffer());
 
-    let decoder = new ImageDecoder({data: self.imageBody, type: 'image/png'});
-    await decoder.tracks.ready;
-    self.imageTracks = decoder.tracks.selectedTrack;
+  let decoder = new ImageDecoder({data: self.imageBody, type: 'image/png'});
+  await decoder.tracks.ready;
+  self.imageTracks = decoder.tracks.selectedTrack;
 
-    idlArray.add_objects({
-      AudioDecoder: [`new AudioDecoder(defaultCodecInit)`],
-      VideoDecoder: [`new VideoDecoder(defaultCodecInit)`],
-      AudioEncoder: [`new AudioEncoder(defaultCodecInit)`],
-      VideoEncoder: [`new VideoEncoder(defaultCodecInit)`],
-      EncodedAudioChunk: [`new EncodedAudioChunk(defaultAudioChunkInit)`],
-      EncodedVideoChunk: [`new EncodedVideoChunk(defaultVideoChunkInit)`],
-      AudioData: [`make_audio_data(1234, 2, 8000, 100)`],
-      VideoFrame: [`new VideoFrame(makeImageBitmap(32,16), {timestamp:100, duration:33})`],
-      VideoColorSpace: [`new VideoColorSpace()`],
-      ImageDecoder: [`new ImageDecoder({data: self.imageBody, type: 'image/png'})`],
-      ImageTrackList: [`new ImageDecoder({data: self.imageBody, type: 'image/png'}).tracks`],
-      ImageTrack: [`self.imageTracks`],
-    });
-  }
-);
+  idlArray.add_objects({
+    AudioDecoder: [`new AudioDecoder(defaultCodecInit)`],
+    VideoDecoder: [`new VideoDecoder(defaultCodecInit)`],
+    AudioEncoder: [`new AudioEncoder(defaultCodecInit)`],
+    VideoEncoder: [`new VideoEncoder(defaultCodecInit)`],
+    EncodedAudioChunk: [`new EncodedAudioChunk(defaultAudioChunkInit)`],
+    EncodedVideoChunk: [`new EncodedVideoChunk(defaultVideoChunkInit)`],
+    AudioData: [`make_audio_data(1234, 2, 8000, 100)`],
+    VideoFrame: [
+      `new VideoFrame(makeImageBitmap(32, 16), {timestamp: 100, duration: 33})`
+    ],
+    VideoColorSpace: [
+      `new VideoColorSpace()`,
+      `new VideoColorSpace({primaries: 'bt709', transfer: 'bt709', matrix: 'bt709', fullRange: true})`,
+    ],
+    ImageDecoder:
+        [`new ImageDecoder({data: self.imageBody, type: 'image/png'})`],
+    ImageTrackList:
+        [`new ImageDecoder({data: self.imageBody, type: 'image/png'}).tracks`],
+    ImageTrack: [`self.imageTracks`],
+  });
+});
