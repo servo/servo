@@ -12,7 +12,7 @@ path = "lib.rs"
 
 [dependencies]
 arrayvec = { version = "0.7", features = ["serde"] }
-euclid = "0.20"
+euclid = "0.22"
 ipc-channel = "0.14"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }

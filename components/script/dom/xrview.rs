@@ -57,7 +57,7 @@ impl XRView {
         viewport_index: usize,
         to_base: &BaseTransform,
     ) -> DomRoot<XRView> {
-        let transform: RigidTransform3D<f32, V, BaseSpace> = to_base.pre_transform(&view.transform);
+        let transform: RigidTransform3D<f32, V, BaseSpace> = view.transform.then(&to_base);
         let transform = XRRigidTransform::new(global, cast_transform(transform));
 
         reflect_dom_object(
@@ -92,7 +92,7 @@ impl XRViewMethods for XRView {
         if self.proj.get().is_null() {
             let cx = self.global().get_cx();
             // row_major since euclid uses row vectors
-            let proj = self.view.projection.to_row_major_array();
+            let proj = self.view.projection.to_array();
             create_typed_array(cx, &proj, &self.proj);
         }
         NonNull::new(self.proj.get()).unwrap()

@@ -248,7 +248,7 @@ impl PaintWorkletGlobalScope {
         arguments: &[String],
     ) -> DrawAPaintImageResult {
         debug!(
-            "Invoking a paint callback {}({},{}) at {}.",
+            "Invoking a paint callback {}({},{}) at {:?}.",
             name, size_in_px.width, size_in_px.height, device_pixel_ratio
         );
 

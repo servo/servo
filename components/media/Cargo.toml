@@ -11,7 +11,7 @@ name = "media"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.20"
+euclid = "0.22"
 fnv = "1.0"
 ipc-channel = "0.14"
 lazy_static = "1"

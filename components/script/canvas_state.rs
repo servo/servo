@@ -1495,14 +1495,9 @@ impl CanvasState {
 
         let (sin, cos) = (angle.sin(), angle.cos());
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.pre_transform(&Transform2D::row_major(
-            cos as f32,
-            sin as f32,
-            -sin as f32,
-            cos as f32,
-            0.0,
-            0.0,
-        ));
+        self.state.borrow_mut().transform =
+            Transform2D::new(cos as f32, sin as f32, -sin as f32, cos as f32, 0.0, 0.0)
+                .then(&transform);
         self.update_transform()
     }
 
@@ -1530,9 +1525,9 @@ impl CanvasState {
         }
 
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.pre_transform(&Transform2D::row_major(
-            a as f32, b as f32, c as f32, d as f32, e as f32, f as f32,
-        ));
+        self.state.borrow_mut().transform =
+            Transform2D::new(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32)
+                .then(&transform);
         self.update_transform()
     }
 
@@ -1558,7 +1553,7 @@ impl CanvasState {
         }
 
         self.state.borrow_mut().transform =
-            Transform2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32);
+            Transform2D::new(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32);
         self.update_transform()
     }
 

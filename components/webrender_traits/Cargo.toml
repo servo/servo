@@ -11,6 +11,6 @@ name = "webrender_traits"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.20"
+euclid = "0.22"
 webrender_api = { git = "https://github.com/servo/webrender" }
 

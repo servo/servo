@@ -15,7 +15,7 @@ use crate::opaque_node::OpaqueNodeMethods;
 use crate::sequential;
 use crate::wrapper::LayoutNodeLayoutData;
 use app_units::Au;
-use euclid::default::{Point2D, Rect, Size2D, Vector2D};
+use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
 use euclid::Size2D as TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -532,7 +532,35 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
                     Point2D::new(left_margin, top_margin),
                     Size2D::new(right_margin, bottom_margin),
                 );
-                self.union_rect = self.union_rect.union(&margin).union(&padding);
+
+                // This is a workaround because euclid does not support unioning empty
+                // rectangles.
+                // TODO: The way that this iterator is calculating scroll area is very
+                // suspect and the code below is a workaround until it can be written
+                // in a better way.
+                self.union_rect = Box2D::new(
+                    Point2D::new(
+                        min(
+                            padding.min_x(),
+                            min(margin.min_x(), self.union_rect.min_x()),
+                        ),
+                        min(
+                            padding.min_y(),
+                            min(margin.min_y(), self.union_rect.min_y()),
+                        ),
+                    ),
+                    Point2D::new(
+                        max(
+                            padding.max_x(),
+                            max(margin.max_x(), self.union_rect.max_x()),
+                        ),
+                        max(
+                            padding.max_y(),
+                            max(margin.max_y(), self.union_rect.max_y()),
+                        ),
+                    ),
+                )
+                .to_rect();
             },
             None => {
                 self.level = Some(level);

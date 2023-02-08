@@ -73,7 +73,7 @@ impl XRReferenceSpace {
 impl XRReferenceSpaceMethods for XRReferenceSpace {
     /// https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace
     fn GetOffsetReferenceSpace(&self, new: &XRRigidTransform) -> DomRoot<Self> {
-        let offset = self.offset.transform().pre_transform(&new.transform());
+        let offset = new.transform().then(&self.offset.transform());
         let offset = XRRigidTransform::new(&self.global(), offset);
         Self::new_offset(
             &self.global(),
@@ -106,7 +106,7 @@ impl XRReferenceSpace {
         // offset is a transform from offset space to unoffset space,
         // we want a transform from unoffset space to native space,
         // which is pose * offset in column vector notation
-        Some(pose.pre_transform(&offset))
+        Some(offset.then(&pose))
     }
 
     /// Gets pose represented by this space

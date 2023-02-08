@@ -136,10 +136,10 @@ impl XRRayMethods for XRRay {
             let translation = self.ray.origin;
             // Step 7
             // According to the spec all matrices are column-major,
-            // however euclid uses row vectors so we use .to_row_major_array()
+            // however euclid uses row vectors so we use .to_array()
             let arr = RigidTransform3D::new(rotation, translation)
                 .to_transform()
-                .to_row_major_array();
+                .to_array();
             create_typed_array(cx, &arr, &self.matrix);
         }
         NonNull::new(self.matrix.get()).unwrap()

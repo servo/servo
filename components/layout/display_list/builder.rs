@@ -834,7 +834,7 @@ impl Fragment {
             index,
         );
 
-        if placement.tile_size.is_empty_or_negative() {
+        if placement.tile_size.is_empty() {
             return;
         }
 
@@ -2321,7 +2321,7 @@ impl BlockFlow {
             .fragment
             .perspective_matrix(&border_box)
             .unwrap_or(LayoutTransform::identity());
-        let transform = transform.pre_transform(&perspective).inverse();
+        let transform = perspective.then(&transform).inverse();
 
         let origin = border_box.origin;
         let transform_clip = |clip: Rect<Au>| {
@@ -2346,7 +2346,7 @@ impl BlockFlow {
                         clip.size.height.to_f32_px(),
                     );
 
-                    let clip = transform.transform_rect(&clip).unwrap();
+                    let clip = transform.outer_transformed_rect(&clip).unwrap();
 
                     rect(
                         Au::from_f32_px(clip.origin.x),

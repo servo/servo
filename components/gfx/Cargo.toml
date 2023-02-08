@@ -16,7 +16,7 @@ doctest = false
 [dependencies]
 app_units = "0.7"
 bitflags = "1.0"
-euclid = "0.20"
+euclid = "0.22"
 fnv = "1.0"
 fontsan = { git = "https://github.com/servo/fontsan" }
 gfx_traits = { path = "../gfx_traits" }
