@@ -19,7 +19,7 @@
   <div id='nested1'>
     <template data-mode='open'>
       <input id='inner-before'>
-      <button id='button'><slot></slot></button>
+      <div id='inner-div' tabindex='0'><slot></slot></div>
       <input id='inner-after'>
     </template>
     <div id='dummy2'></div>
@@ -46,7 +46,7 @@ promise_test(async () => {
     'i0',
     'outer/outer-before',
     'nested1/inner-before',
-    'nested1/button',
+    'nested1/inner-div',
     'nested2/innermost-before',
     'innermost1',
     'innermost2',

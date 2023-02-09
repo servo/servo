@@ -42,6 +42,14 @@ test(() => {
 }, 'FormData construction should allow a null submitter'); // the use case here is so web developers can avoid null checks, e.g. `new FormData(e.target, e.submitter)`
 
 test(() => {
+  assertFormDataEntries(new FormData(undefined, undefined), []);
+}, 'FormData construction should allow an undefined form and an undefined submitter');
+
+test(() => {
+  assertFormDataEntries(new FormData(undefined, null), []);
+}, 'FormData construction should allow an undefined form and a null submitter');
+
+test(() => {
   assert_throws_js(TypeError, () => new FormData(form, document.querySelector('[name=n1]')));
 }, 'FormData construction should throw a TypeError if a non-null submitter is not a submit button');
 

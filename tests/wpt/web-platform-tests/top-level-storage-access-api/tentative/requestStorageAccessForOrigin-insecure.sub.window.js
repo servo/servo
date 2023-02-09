@@ -87,7 +87,7 @@ if (topLevelDocument) {
   // This will validate that calls to requestStorageAccessForOrigin are rejected
   // in non-top-level contexts.
   RunTestsInIFrame(
-      './resources/requestStorageAccessForOrigin-iframe.https.html?testCase=secure-frame-on-insecure-page&rootdocument=false');
+      './resources/requestStorageAccessForOrigin-iframe.html?testCase=frame-on-insecure-page&rootdocument=false');
 
   promise_test(
       async t => {

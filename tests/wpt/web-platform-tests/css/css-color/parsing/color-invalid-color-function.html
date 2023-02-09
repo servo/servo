@@ -50,9 +50,8 @@ test_invalid_value("color", "color()");  // Empty
 test_invalid_value("color", "color(banana 1 1 1)");  // Bad color space
 test_invalid_value("color", "color(displayp3 1 1 1)");  // Bad Display P3 color space
 test_invalid_value("color", "color(1 1 1)");  // No color space
-test_invalid_value("color", "color(srgb 1 1)", "color(srgb 1 1 0)");  // One missing component
-test_invalid_value("color", "color(srgb 1)", "color(srgb 1 0 0)");  // Two missing components
-test_invalid_value("color", "color(srgb)", "color(srgb 0 0 0)");  // All components missing
+test_invalid_value("color", "color(srgb 1 1)");  // One missing component
+test_invalid_value("color", "color(srgb 1)");  // Two missing components
 
 test_invalid_value("color", "color(srgb 1 1 1 1)");  // Too many parameters
 test_invalid_value("color", "color(srgb 1 1 1 1 1)");  // Way too many parameters
