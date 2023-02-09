@@ -7408,7 +7408,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#3d82ad985764c35aaf389ce83b5f9ba909c23f53"
+source = "git+https://github.com/servo/webxr#3d482b2a5de0c2c9c105d5d5cb96bb2250f9bac4"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -7431,7 +7431,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#3d82ad985764c35aaf389ce83b5f9ba909c23f53"
+source = "git+https://github.com/servo/webxr#3d482b2a5de0c2c9c105d5d5cb96bb2250f9bac4"
 dependencies = [
  "euclid",
  "ipc-channel",
