@@ -65,6 +65,17 @@ credential-management/support/fedcm/${manifest_filename}`;
   };
 }
 
+// Returns FedCM CredentialRequestOptions with auto re-authentication.
+// succeeds.
+export function request_options_with_auto_reauthn(manifest_filename) {
+  let options = default_request_options(manifest_filename);
+  // Approved client
+  options.identity.providers[0].clientId = '123';
+  options.identity.autoReauthn = true;
+
+  return options;
+}
+
 // Test wrapper which does FedCM-specific setup.
 export function fedcm_test(test_func, test_name) {
   promise_test(async t => {
@@ -76,11 +87,11 @@ export function fedcm_test(test_func, test_name) {
 
 function select_manifest_impl(manifest_url) {
   const url_query = (manifest_url === undefined)
-      ? '' : '?manifest_url=${manifest_url}';
+      ? '' : `?manifest_url=${manifest_url}`;
 
   return new Promise(resolve => {
     const img = document.createElement('img');
-    img.src = 'support/fedcm/select_manifest_in_root_manifest.py?${url_query}';
+    img.src = `support/fedcm/select_manifest_in_root_manifest.py${url_query}`;
     img.addEventListener('error', resolve);
     document.body.appendChild(img);
   });

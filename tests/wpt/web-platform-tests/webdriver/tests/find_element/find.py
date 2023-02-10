@@ -28,35 +28,14 @@ def test_no_browsing_context(session, closed_frame):
 
 
 @pytest.mark.parametrize(
-    "value",
-    ["#same1", "#frame", "#shadow"],
-    ids=["not-existent", "existent-other-frame", "existent-shadow-dom"],
+    "selector",
+    ["#same1", "#in-frame", "#in-shadow-root"],
+    ids=["not-existent", "existent-other-frame", "existent-inside-shadow-root"],
 )
-def test_no_such_element_with_invalid_value(session, iframe, inline, value):
-    session.url = inline(f"""
-        <style>
-            custom-checkbox-element {{
-                display:block; width:20px; height:20px;
-            }}
-        </style>
-        <script>
-            customElements.define('custom-checkbox-element',
-                class extends HTMLElement {{
-                    constructor() {{
-                        super();
-                        this.attachShadow({{mode: 'open'}}).innerHTML = `
-                            <div id="shadow"><input type="checkbox"/></div>
-                        `;
-                    }}
-                }});
-        </script>
-        <div id="top">
-            <div id="same"/>
-            {iframe("<div id='frame'>")}
-            <custom-checkbox-element id='checkbox'></custom-checkbox-element>
-        </div>""")
+def test_no_such_element_with_unknown_selector(session, get_test_page, selector):
+    session.url = get_test_page()
 
-    response = find_element(session, "css selector", value)
+    response = find_element(session, "css selector", selector)
     assert_error(response, "no such element")
 
 

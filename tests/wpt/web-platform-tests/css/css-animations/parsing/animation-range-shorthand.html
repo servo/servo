@@ -8,29 +8,37 @@
 <script>
 test_valid_value("animation-range", "cover");
 test_valid_value("animation-range", "contain");
-test_valid_value("animation-range", "enter");
+test_valid_value("animation-range", "entry");
+test_valid_value("animation-range", "entry-crossing");
 test_valid_value("animation-range", "exit");
-test_valid_value("animation-range", "enter, exit");
+test_valid_value("animation-range", "exit-crossing");
+test_valid_value("animation-range", "entry, exit");
 
-test_valid_value("animation-range", "enter 0% enter 100%", "enter");
+test_valid_value("animation-range", "entry 0% entry 100%", "entry");
+test_valid_value("animation-range", "entry-crossing 0% entry-crossing 100%",
+                 "entry-crossing");
 test_valid_value("animation-range", "exit 0% exit 100%", "exit");
+test_valid_value("animation-range", "exit-crossing 0% exit-crossing 100%",
+                 "exit-crossing");
 test_valid_value("animation-range", "cover 0% cover 100%", "cover");
 test_valid_value("animation-range", "contain 0% contain 100%", "contain");
-test_valid_value("animation-range", "enter calc(10% - 10%) enter calc(50% + 50%)", "enter");
-
+test_valid_value("animation-range",
+                 "entry calc(10% - 10%) entry calc(50% + 50%)", "entry");
 test_valid_value("animation-range", "cover 50%");
 test_valid_value("animation-range", "contain 50%");
-test_valid_value("animation-range", "enter 50%");
+test_valid_value("animation-range", "entry 50%");
+test_valid_value("animation-range", "entry-crossing 50%");
 test_valid_value("animation-range", "exit 50%");
-
-test_valid_value("animation-range", "enter 50px exit 100px");
+test_valid_value("animation-range", "exit-crossing 50%");
+test_valid_value("animation-range", "entry 50px exit 100px");
 test_valid_value("animation-range", "exit calc(10% + 50px)");
 
-test_valid_value("animation-range", "enter 50% exit 50%");
-test_valid_value("animation-range", "cover 50% enter 50%, contain 50% exit 50%");
+test_valid_value("animation-range", "entry 50% exit 50%");
+test_valid_value("animation-range",
+                 "cover 50% entry 50%, contain 50% exit 50%");
 
-test_invalid_value("animation-range", "enter 50% 0s", "enter 50%");
-test_invalid_value("animation-range", "0s enter 50%");
+test_invalid_value("animation-range", "entry 50% 0s", "entry 50%");
+test_invalid_value("animation-range", "0s entry 50%");
 test_invalid_value("animation-range", "1s");
 test_invalid_value("animation-range", "-1s");
 test_invalid_value("animation-range", "1s 2s");
@@ -61,23 +69,23 @@ test_shorthand_value('animation-range', 'contain', {
   'animation-range-end': 'contain 100%',
 });
 
-test_shorthand_value('animation-range', 'enter 10% exit 20%', {
-  'animation-range-start': 'enter 10%',
+test_shorthand_value('animation-range', 'entry 10% exit 20%', {
+  'animation-range-start': 'entry 10%',
   'animation-range-end': 'exit 20%',
 });
 
-test_shorthand_value('animation-range', 'enter calc(10% + 10px) exit 20px', {
-  'animation-range-start': 'enter calc(10% + 10px)',
+test_shorthand_value('animation-range', 'entry calc(10% + 10px) exit 20px', {
+  'animation-range-start': 'entry calc(10% + 10px)',
   'animation-range-end': 'exit 20px',
 });
 
-test_shorthand_value('animation-range', 'enter, exit', {
-  'animation-range-start': 'enter 0%, exit 0%',
-  'animation-range-end': 'enter 100%, exit 100%',
+test_shorthand_value('animation-range', 'entry, exit', {
+  'animation-range-start': 'entry 0%, exit 0%',
+  'animation-range-end': 'entry 100%, exit 100%',
 });
 
-test_shorthand_value('animation-range', 'enter 0%, exit', {
-  'animation-range-start': 'enter 0%, exit 0%',
+test_shorthand_value('animation-range', 'entry 0%, exit', {
+  'animation-range-start': 'entry 0%, exit 0%',
   'animation-range-end': 'auto, exit 100%',
 });
 </script>

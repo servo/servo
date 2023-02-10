@@ -1,0 +1,5 @@
+.c {
+  /* This { needs to be there to send Chromium into a different path. */
+  color: red;
+  color: green
+}

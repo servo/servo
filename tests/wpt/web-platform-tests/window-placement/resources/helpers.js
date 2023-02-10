@@ -28,7 +28,7 @@ async function setUpWindowManagement(setUpTest, setUpButton) {
     log(`WARNING: Run via 'wpt serve'; file URLs lack permission support`);
 
   try {  // Support manual testing where test_driver is not running.
-    await test_driver.set_permission({ name: 'window-placement' }, 'granted');
+    await test_driver.set_permission({ name: 'window-management' }, 'granted');
   } catch {
   }
   const setUpWatcher = new EventWatcher(setUpTest, setUpButton, ['click']);

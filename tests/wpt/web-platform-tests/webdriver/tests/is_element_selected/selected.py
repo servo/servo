@@ -55,6 +55,15 @@ def test_no_such_element_with_invalid_value(session):
     assert_error(response, "no such element")
 
 
+def test_no_such_element_with_shadow_root(session, get_test_page):
+    session.url = get_test_page()
+
+    element = session.find.css("custom-element", all=False)
+
+    result = is_element_selected(session, element.shadow_root.id)
+    assert_error(result, "no such element")
+
+
 @pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
 def test_no_such_element_from_other_window_handle(session, inline, closed):
     session.url = inline("<div id='parent'><p/>")
@@ -72,25 +81,26 @@ def test_no_such_element_from_other_window_handle(session, inline, closed):
 
 
 @pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
-def test_no_such_element_from_other_frame(session, url, closed):
-    session.url = url("/webdriver/tests/support/html/subframe.html")
+def test_no_such_element_from_other_frame(session, get_test_page, closed):
+    session.url = get_test_page(as_frame=True)
 
-    frame = session.find.css("#delete-frame", all=False)
+    frame = session.find.css("iframe", all=False)
     session.switch_frame(frame)
 
-    button = session.find.css("#remove-parent", all=False)
-    if closed:
-        button.click()
+    element = session.find.css("input#text", all=False)
 
     session.switch_frame("parent")
 
-    response = is_element_selected(session, button.id)
+    if closed:
+        session.execute_script("arguments[0].remove();", args=[frame])
+
+    response = is_element_selected(session, element.id)
     assert_error(response, "no such element")
 
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, check_doc, as_frame):
-    element = stale_element(check_doc, "#checked", as_frame=as_frame)
+    element = stale_element("input#checkbox", as_frame=as_frame)
 
     result = is_element_selected(session, element.id)
     assert_error(result, "stale element reference")
