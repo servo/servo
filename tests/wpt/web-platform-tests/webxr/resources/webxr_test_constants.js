@@ -142,6 +142,7 @@ const ALL_FEATURES = [
   'depth-sensing',
   'secondary-views',
   'camera-access',
+  'layers'
 ];
 
 const TRACKED_IMMERSIVE_DEVICE = {

@@ -163,6 +163,7 @@ def run_test_iteration(test_status, test_loader, test_source_kwargs, test_source
     tests_by_type = defaultdict(list)
     for test_type in test_loader.test_types:
         tests_by_type[test_type].extend(test_loader.tests[test_type])
+        tests_by_type[test_type].extend(test_loader.disabled_tests[test_type])
 
     try:
         test_groups = test_source_cls.tests_by_group(

@@ -747,8 +747,10 @@ const gCSSProperties2 = {
     types: [ 'color' ]
   },
   'line-height': {
-    // https://drafts.csswg.org/css21/visudet.html#propdef-line-height
+    // https://w3c.github.io/csswg-drafts/css-inline/#line-height-property
     types: [
+        { type: 'discrete', options: [ [ 'normal', '10px' ],
+                                       [ 'normal', '10', 'normal', '100px' ] ] }
     ]
   },
   'list-style-image': {

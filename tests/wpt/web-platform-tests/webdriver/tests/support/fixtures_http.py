@@ -153,24 +153,114 @@ def create_frame(session):
 
 
 @pytest.fixture
-def stale_element(current_session, iframe, inline):
+def stale_element(current_session, get_test_page):
     """Create a stale element reference
 
-    The given document will be loaded in the top-level or child browsing context.
-    Before the requested element is returned it is removed from the document's DOM.
+    The document will be loaded in the top-level or child browsing context.
+    Before the requested element or its shadow root is returned the element
+    is removed from the document's DOM.
     """
-    def stale_element(doc, css_value, as_frame=False):
+    def stale_element(css_value, as_frame=False, want_shadow_root=False):
+        current_session.url = get_test_page(as_frame=as_frame)
+
         if as_frame:
-            current_session.url = inline(iframe(doc))
             frame = current_session.find.css("iframe", all=False)
             current_session.switch_frame(frame)
-        else:
-            current_session.url = inline(doc)
 
         element = current_session.find.css(css_value, all=False)
+        shadow_root = element.shadow_root if want_shadow_root else None
 
         current_session.execute_script("arguments[0].remove();", args=[element])
 
-        return element
+        return shadow_root if want_shadow_root else element
 
     return stale_element
+
+
+@pytest.fixture
+def get_test_page(iframe, inline):
+    def get_test_page(
+        as_frame=False,
+        frame_doc=None,
+        shadow_doc=None,
+        nested_shadow_dom=False
+    ):
+        if frame_doc is None:
+            frame_doc = """<div id="in-frame"><input type="checkbox"/></div>"""
+
+        if shadow_doc is None:
+            shadow_doc = """
+                <div id="in-shadow-dom">
+                    <input type="checkbox"/>
+                </div>
+            """
+
+        definition_inner_shadow_dom = ""
+        if nested_shadow_dom:
+            definition_inner_shadow_dom = f"""
+                customElements.define('inner-custom-element',
+                    class extends HTMLElement {{
+                        constructor() {{
+                            super();
+                            this.attachShadow({{mode: "open"}}).innerHTML = `
+                                {shadow_doc}
+                            `;
+                        }}
+                    }}
+                );
+            """
+            shadow_doc = """
+                <style>
+                    inner-custom-element {
+                        display:block; width:20px; height:20px;
+                    }
+                </style>
+                <div id="in-nested-shadow-dom">
+                    <inner-custom-element></inner-custom-element>
+                </div>
+                """
+
+        page_data = f"""
+            <style>
+                custom-element {{
+                    display:block; width:20px; height:20px;
+                }}
+            </style>
+            <div id="with-children"><p><span></span></p><br/></div>
+            <div id="with-text-node">Lorem</div>
+            <div id="with-comment"><!-- Comment --></div>
+
+            <input id="button" type="button"/>
+            <input id="checkbox" type="checkbox"/>
+            <input id="file" type="file"/>
+            <input id="hidden" type="hidden"/>
+            <input id="text" type="text"/>
+
+            {iframe(frame_doc)}
+
+            <svg></svg>
+
+            <custom-element id="custom-element"></custom-element>
+            <script>
+                var svg = document.querySelector("svg");
+                svg.setAttributeNS("http://www.w3.org/2000/svg", "svg:foo", "bar");
+
+                customElements.define("custom-element",
+                    class extends HTMLElement {{
+                        constructor() {{
+                            super();
+                            this.attachShadow({{mode: "open"}}).innerHTML = `
+                                {shadow_doc}
+                            `;
+                        }}
+                    }}
+                );
+                {definition_inner_shadow_dom}
+            </script>"""
+
+        if as_frame:
+            return inline(iframe(page_data))
+        else:
+            return inline(page_data)
+
+    return get_test_page

@@ -59,10 +59,16 @@
       endOffset: 1000
     });
     await runTimelineRangeTest(t, {
-      rangeStart: { rangeName: 'enter', offset: CSS.percent(0) },
-      rangeEnd: { rangeName: 'enter', offset: CSS.percent(100) },
+      rangeStart: { rangeName: 'entry', offset: CSS.percent(0) },
+      rangeEnd: { rangeName: 'entry', offset: CSS.percent(100) },
       startOffset: 600,
       endOffset: 800
+    });
+    await runTimelineRangeTest(t, {
+      rangeStart: { rangeName: 'entry-crossing', offset: CSS.percent(0) },
+      rangeEnd: { rangeName: 'entry-crossing', offset: CSS.percent(100) },
+      startOffset: 600,
+      endOffset: 1000
     });
     await runTimelineRangeTest(t, {
       rangeStart:  { rangeName: 'exit', offset: CSS.percent(0) },
@@ -71,13 +77,19 @@
       endOffset: 1200
     });
     await runTimelineRangeTest(t, {
+      rangeStart:  { rangeName: 'exit-crossing', offset: CSS.percent(0) },
+      rangeEnd: { rangeName: 'exit-crossing', offset: CSS.percent(100) },
+      startOffset: 800,
+      endOffset: 1200
+    });
+    await runTimelineRangeTest(t, {
       rangeStart: { rangeName: 'contain', offset: CSS.percent(-50) },
-      rangeEnd: { rangeName: 'enter', offset: CSS.percent(200) },
+      rangeEnd: { rangeName: 'entry', offset: CSS.percent(200) },
       startOffset: 700,
       endOffset: 1000
     });
     await runTimelineRangeTest(t, {
-      rangeStart: { rangeName: 'enter' },
+      rangeStart: { rangeName: 'entry' },
       rangeEnd: { rangeName: 'exit' },
       startOffset: 600,
       endOffset: 1200

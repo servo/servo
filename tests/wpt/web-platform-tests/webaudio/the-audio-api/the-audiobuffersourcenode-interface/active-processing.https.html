@@ -62,12 +62,12 @@
             .then(renderedBuffer => {
               let output = renderedBuffer.getChannelData(0);
 
-              // Find the first time the number of channels changes to 1.
-              let countChangeIndex = output.findIndex(x => x == 1);
+              // Find the first time the number of channels changes to 0.
+              let countChangeIndex = output.findIndex(x => x == 0);
 
               // Verify that the count did change.  If it didn't there's a bug
-              // in the imploementation, or it takes longer than the render
-              // length to change.  for the latter case, increase the render
+              // in the implementation, or it takes longer than the render
+              // length to change.  For the latter case, increase the render
               // length, but it can't be arbitrarily large.  The change needs to
               // happen at some reasonable time after the source stops.
               should(countChangeIndex >= 0, 'Number of channels changed')
@@ -84,11 +84,11 @@
                   .beConstantValueOf(numberOfChannels);
 
               // Verify that after the source has stopped, the number of
-              // channels is 1.
+              // channels is 0.
               should(
                   output.slice(countChangeIndex),
                   `Number of channels in input[${countChangeIndex}:]`)
-                  .beConstantValueOf(1);
+                  .beConstantValueOf(0);
             })
             .then(() => task.done());
       });

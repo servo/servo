@@ -9,8 +9,8 @@
 <script src="support/testcommon.js"></script>
 <style>
   @keyframes fade-in-out {
-    enter 0% { opacity: 0; }
-    enter 100% { opacity: 1; }
+    entry 0% { opacity: 0; }
+    entry 100% { opacity: 1; }
     exit 0% { opacity: 1; }
     exit 100% { opacity: 0; }
   }
@@ -102,11 +102,11 @@ promise_test(async t => {
   div.style.animationTimeline = "view()";
 
   await scrollTop(container, 200);
-  assert_equals(getComputedStyle(div).opacity, '0', 'At enter 0%');
+  assert_equals(getComputedStyle(div).opacity, '0', 'At entry 0%');
   await scrollTop(container, 250);
-  assert_equals(getComputedStyle(div).opacity, '0.5', 'At enter 50%');
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At entry 50%');
   await scrollTop(container, 300);
-  assert_equals(getComputedStyle(div).opacity, '1', 'At enter 100%');
+  assert_equals(getComputedStyle(div).opacity, '1', 'At entry 100%');
 
   await scrollTop(container, 400);
   assert_equals(getComputedStyle(div).opacity, '1', 'At exit 0%');
@@ -122,12 +122,12 @@ promise_test(async t => {
   div.style.animationTimeline = "view(50px)";
 
   await scrollTop(container, 250);
-  assert_equals(getComputedStyle(div).opacity, '0', 'At enter 0%');
+  assert_equals(getComputedStyle(div).opacity, '0', 'At entry 0%');
   await scrollTop(container, 300);
-  assert_equals(getComputedStyle(div).opacity, '0.5', 'At enter 50%');
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At entry 50%');
 
   await scrollTop(container, 350);
-  assert_equals(getComputedStyle(div).opacity, '1', 'At enter 100% & exit 0%');
+  assert_equals(getComputedStyle(div).opacity, '1', 'At entry 100% & exit 0%');
 
   await scrollTop(container, 400);
   assert_equals(getComputedStyle(div).opacity, '0.5', 'At exit 50%');
@@ -141,11 +141,11 @@ promise_test(async t => {
   div.style.animationTimeline = "view(auto 50px)";
 
   await scrollTop(container, 250);
-  assert_equals(getComputedStyle(div).opacity, '0', 'At enter 0%');
+  assert_equals(getComputedStyle(div).opacity, '0', 'At entry 0%');
   await scrollTop(container, 300);
-  assert_equals(getComputedStyle(div).opacity, '0.5', 'At enter 50%');
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'At entry 50%');
   await scrollTop(container, 350);
-  assert_equals(getComputedStyle(div).opacity, '1', 'At enter 100%');
+  assert_equals(getComputedStyle(div).opacity, '1', 'At entry 100%');
 
   await scrollTop(container, 400);
   assert_equals(getComputedStyle(div).opacity, '1', 'At exit 0%');

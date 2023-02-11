@@ -22,6 +22,6 @@ promise_test(async t => {
   assert_true(await rc1.executeScript(() => {
     let reasons =
         performance.getEntriesByType('navigation')[0].notRestoredReasons;
-    return reasons == null;
+    return reasons === null;
   }));
 });

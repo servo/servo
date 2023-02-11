@@ -32,6 +32,17 @@
   <div id=popover4 popover=manual anchor=anchor4 defaultopen></div>
 </div>
 
+<!-- Example using an implicit anchor which is not the default anchor -->
+<div class=ex>
+  <div class=anchor id=anchor5></div>
+  <div id=popover5 popover=manual anchor=anchor5 defaultopen></div>
+</div>
+
+<!-- Example using a default anchor which is not the implicit anchor -->
+<div class=ex>
+  <div class=anchor id=anchor6></div>
+  <div id=popover6 popover=manual anchor=anchor1 defaultopen></div>
+</div>
 
 <script>
 showDefaultopenPopoversOnLoad();
@@ -39,11 +50,11 @@ showDefaultopenPopoversOnLoad();
 
 <style>
   .ex {
-    margin: 25px;
+    margin: 15px;
   }
   .ex div {
-    width: 100px;
-    height: 100px;
+    width: 50px;
+    height: 50px;
   }
   .anchor {
     background: orange;
@@ -74,11 +85,24 @@ showDefaultopenPopoversOnLoad();
   }
   #anchor4 {
     font-family: Ahem;
-    font-size: 100px;
+    font-size: 50px;
     color: orange;
   }
   #popover4 {
     left: anchor(right);
+    top: anchor(top);
+  }
+  #popover5 {
+    anchor-default: --anchor1; /* shouldn't be used */
+    left: anchor(implicit right);
+    top: anchor(implicit top);
+  }
+  #anchor6 {
+    anchor-name: --anchor6;
+  }
+  #popover6 {
+    anchor-default: --anchor6;
+    left: anchor(right); /* shouldn't use the implicit anchor */
     top: anchor(top);
   }
 </style>

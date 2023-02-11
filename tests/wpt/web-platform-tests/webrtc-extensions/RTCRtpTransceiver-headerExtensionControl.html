@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/webrtc/dictionary-helper.js"></script>
 <script src="/webrtc/RTCRtpParameters-helper.js"></script>
+<script src="/webrtc/third_party/sdp/sdp.js"></script>
 <script>
 'use strict';
 
@@ -24,11 +25,6 @@ test(function(t) {
   const capabilities = transceiver.headerExtensionsToOffer;
   let capability = capabilities.find((capability) => {
       return capability.uri == "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.direction != "stopped";
-  });
-  assert_not_equals(capability, undefined);
-  capability = capabilities.find((capability) => {
-      return capability.uri == "urn:3gpp:video-orientation" &&
              capability.direction != "stopped";
   });
   assert_not_equals(capability, undefined);
@@ -129,8 +125,7 @@ promise_test(async t => {
   const capabilities = transceiver.headerExtensionsToOffer;
   const selected_capability = capabilities.find((capability) => {
       return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.uri != "urn:3gpp:video-orientation";
+             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
   });
   selected_capability.direction = "stopped";
   transceiver.setOfferedRtpHeaderExtensions(capabilities);
@@ -160,8 +155,7 @@ promise_test(async t => {
   const capabilities = transceiver.headerExtensionsToOffer;
   const selected_capability = capabilities.find((capability) => {
       return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.uri != "urn:3gpp:video-orientation";
+             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
   });
   selected_capability.direction = "stopped";
   transceiver.setOfferedRtpHeaderExtensions(capabilities);
@@ -193,8 +187,7 @@ promise_test(async t => {
   const capabilities = transceiver.headerExtensionsToOffer;
   const selected_capability = capabilities.find((capability) => {
       return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.uri != "urn:3gpp:video-orientation";
+             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
   });
   selected_capability.direction = "stopped";
   transceiver.setOfferedRtpHeaderExtensions(capabilities);
@@ -215,5 +208,35 @@ promise_test(async t => {
     }
   }
 }, `the set of negotiated extensions is the set of unstopped extensions`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const t1 = pc.addTransceiver('video');
+  const t2 = pc.addTransceiver('video');
+  const extensionUri = 'urn:3gpp:video-orientation';
+
+  assert_true(!!t1.headerExtensionsToOffer.find(ext => ext.uri === extensionUri));
+  const ext1 = t1.headerExtensionsToOffer;
+  ext1.find(ext => ext.uri === extensionUri).direction = 'stopped';
+  t1.setOfferedRtpHeaderExtensions(ext1);
+
+  assert_true(!!t2.headerExtensionsToOffer.find(ext => ext.uri === extensionUri));
+  const ext2 = t2.headerExtensionsToOffer;
+  ext2.find(ext => ext.uri === extensionUri).direction = 'sendrecv';
+  t2.setOfferedRtpHeaderExtensions(ext2);
+
+  const offer = await pc.createOffer();
+  const sections = SDPUtils.splitSections(offer.sdp);
+  sections.shift();
+  const extensions = sections.map(section => {
+    return SDPUtils.matchPrefix(section, 'a=extmap:')
+      .map(SDPUtils.parseExtmap);
+  });
+  assert_equals(extensions.length, 2);
+  assert_false(!!extensions[0].find(extension => extension.uri === extensionUri));
+  assert_true(!!extensions[1].find(extension => extension.uri === extensionUri));
+}, 'Extensions can be deactivated on a per-mline basis');
 
 </script>

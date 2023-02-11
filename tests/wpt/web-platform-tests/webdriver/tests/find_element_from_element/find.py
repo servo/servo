@@ -33,37 +33,25 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
-@pytest.mark.parametrize(
-    "value",
-    ["#doesNotExist", "#frame", "#shadow"],
-    ids=["not-existent", "existent-other-frame", "existent-shadow-dom"],
-)
-def test_no_such_element_with_invalid_value(session, iframe, inline, value):
-    session.url = inline(f"""
-        <style>
-            custom-checkbox-element {{
-                display:block; width:20px; height:20px;
-            }}
-        </style>
-        <script>
-            customElements.define('custom-checkbox-element',
-                class extends HTMLElement {{
-                    constructor() {{
-                        super();
-                        this.attachShadow({{mode: 'open'}}).innerHTML = `
-                            <div id="shadow"><input type="checkbox"/></div>
-                        `;
-                    }}
-                }});
-        </script>
-        <div id="top">
-            <div id="same"/>
-            {iframe("<div id='frame'>")}
-            <custom-checkbox-element id='checkbox'></custom-checkbox-element>
-        </div>""")
+def test_no_such_element_with_shadow_root(session, get_test_page):
+    session.url = get_test_page()
 
-    from_element = session.find.css("#top", all=False)
-    response = find_element(session, from_element.id, "css selector", value)
+    element = session.find.css("custom-element", all=False)
+
+    result = find_element(session, element.shadow_root.id, "css selector", "#in-shadow-dom")
+    assert_error(result, "no such element")
+
+
+@pytest.mark.parametrize(
+    "selector",
+    ["#same1", "#in-frame", "#in-shadow-dom"],
+    ids=["not-existent", "existent-other-frame", "existent-inside-shadow-root"],
+)
+def test_no_such_element_with_unknown_selector(session, get_test_page, selector):
+    session.url = get_test_page()
+
+    from_element = session.find.css(":root", all=False)
+    response = find_element(session, from_element.id, "css selector", selector)
     assert_error(response, "no such element")
 
 
@@ -91,7 +79,7 @@ def test_no_such_element_with_startnode_from_other_frame(session, iframe, inline
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, as_frame):
-    element = stale_element("<div><p>foo</p></div>", "div", as_frame=as_frame)
+    element = stale_element("div#with-children", as_frame=as_frame)
 
     response = find_element(session, element.id, "css selector", "p")
     assert_error(response, "stale element reference")
