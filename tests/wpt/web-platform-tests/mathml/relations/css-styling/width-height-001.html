@@ -10,6 +10,11 @@
 <script src="/mathml/support/feature-detection.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
 <script src="/mathml/support/box-comparison.js"></script>
+<style>
+  /* Revert style specified in the UA style sheet that changes box size. */
+  merror { border: 0; }
+  mfrac { padding: 0; }
+</style>
 <script>
   var epsilon = 1;
 
@@ -19,28 +24,32 @@
   function runTests() {
 
     for (tag in MathMLFragments) {
-        if (!FragmentHelper.isValidChildOfMrow(tag) || tag === "mtable")
+        if (!FragmentHelper.isValidChildOfMrow(tag))
             continue;
+
+        document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;"><math><mrow>${MathMLFragments[tag]}</mrow></math></div>`);
+        let div = document.body.lastElementChild;
+        let element = FragmentHelper.element(div.firstElementChild);
 
         test(function() {
             assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
-            var style = "width: 500px; height: 400px;";
-            var s = compareSizeWithAndWithoutStyle(tag, style);
-            assert_approx_equals(s.width_delta, 0, epsilon, "width");
-            assert_approx_equals(s.height_delta, 0, epsilon, "height");
-            assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
-            assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+            var style = `width: 500px; height: 400px;`;
+            element.setAttribute("style", style);
+            let box = element.getBoundingClientRect();
+            assert_approx_equals(box.width, 500, epsilon, "width");
+            assert_approx_equals(box.height, 400, epsilon, "height");
         }, `width and height properties on ${tag}`);
 
         test(function() {
             assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
-            var style = "inline-size: 500px; block-size: 400px;";
-            var s = compareSizeWithAndWithoutStyle(tag, style);
-            assert_approx_equals(s.width_delta, 0, epsilon, "width");
-            assert_approx_equals(s.height_delta, 0, epsilon, "height");
-            assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
-            assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+            var style = `inline-size: 600px; block-size: 700px;`;
+            element.setAttribute("style", style);
+            let box = element.getBoundingClientRect();
+            assert_approx_equals(box.width, 600, epsilon, "width");
+            assert_approx_equals(box.height, 700, epsilon, "height");
         }, `inline-size and block-size properties on ${tag}`);
+
+        div.style = "display: none;"; // Hide the div after measurement.
     }
 
     done();

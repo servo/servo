@@ -40,13 +40,13 @@ let test_cases = [
   ["TEXT/HTML", false],
 ];
 
-for (var test_case of test_cases) {
+for (const [mimeType, isScriptType] of test_cases) {
   test(t => {
-    let import_url = "/workers/support/imported_script.py?mime=" + test_case[0];
-    if (test_case[1]) {
+    let import_url = "/workers/support/imported_script.py?mime=" + mimeType;
+    if (isScriptType) {
       assert_equals(undefined, importScripts(import_url));
     } else {
       assert_throws_dom("NetworkError", _ => { importScripts(import_url) })
     }
-  }, "importScripts() requires scripty MIME types: " + test_case[0] + " is " + (test_case[1] ? "allowed" : "blocked") + ".");
+  }, "importScripts() requires scripty MIME types: " + mimeType + " is " + (isScriptType ? "allowed" : "blocked") + ".");
 }

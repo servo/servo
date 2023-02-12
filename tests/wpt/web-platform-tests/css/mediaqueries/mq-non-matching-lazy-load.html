@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+    <meta charset=utf-8>
+    <link rel="help" href="https://www.w3.org/TR/CSS2/cascade.html#at-import" />
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+    <script>
+      const start_fetching_time = performance.now();
+    </script>
+    <style type="text/css">
+      @import "./resources/mq-non-matching-lazy-load-style.css?pipe=trickle(d1)" print;
+    </style>
+    <script>
+      const end_fetching_time = performance.now();
+      const total_time_elapsed = (end_fetching_time - start_fetching_time);
+      test(() =>
+        assert_less_than(total_time_elapsed, 1000)
+        ,"Ensure browser renders the page without waiting for non matching @import style");
+    </script>

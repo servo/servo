@@ -37,8 +37,8 @@ promise_test(async t => {
   const options = {
     timeline: { axis: 'vertical' },
     animation: {
-      rangeStart: { rangeName: 'enter', offset: CSS.percent(0) },
-      rangeEnd: { rangeName: 'enter', offset: CSS.percent(100) },
+      rangeStart: { rangeName: 'entry', offset: CSS.percent(0) },
+      rangeEnd: { rangeName: 'entry', offset: CSS.percent(100) },
       // Set fill to accommodate floating point precision errors at the
       // endpoints.
       fill: 'both'

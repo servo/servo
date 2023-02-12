@@ -36,7 +36,7 @@
             { style: "oblique calc(50deg)",         expectedResult: true,   message: "'oblique' followed by calc is valid",                         expectedValue: "oblique 50deg" },
             { style: "oblique calc(-120deg)",       expectedResult: true,   message: "'oblique' followed by calc is valid even if it must be clamped (no computation)",     expectedValue: "oblique -90deg" },
             { style: "oblique calc(6 * 20deg)",     expectedResult: true,   message: "'oblique' followed by calc is valid even if it must be clamped (with computation)",   expectedValue: "oblique 90deg" },
-            { style: "oblique calc(10grad + 5deg)", expectedResult: true,   message: "'oblique' followed by calc is valid even if it mixes units (with computation)",       expectedValue: "oblique 14deg" }
+            { style: "oblique calc(10grad + 5deg)", expectedResult: true,   message: "'oblique' followed by calc is valid even if it mixes units (with computation)",       expectedValue: "oblique" }
         ];
 
         testFontStyle.forEach(function (testCase) {

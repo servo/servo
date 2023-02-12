@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 .cb {
   position: relative;
@@ -38,8 +39,8 @@
          data-offset-x=50 data-offset-y=10
          data-expected-width=30 data-expected-height=20></div>
   </div>
-<script>
+<script type="module">
 document.body.classList.add('after');
-checkLayout('.target');
+await checkLayoutForAnchorPos('.target');
 </script>
 </body>

@@ -40,7 +40,7 @@ promise_test(async t => {
   const same_origin_url = document.location.origin + '/sub-app';
 
   let subapp = {
-    [same_origin_url]: { install_url: same_origin_url }
+    [same_origin_url]: { installURL: same_origin_url }
   };
 
   await promise_rejects_dom(t, 'NotAllowedError', navigator.subApps.add(subapp));
@@ -52,7 +52,7 @@ promise_test(async t => {
   let add_call_params = {};
   for (let i = 0; i < 8; i++) {
     const url = same_origin_url + i;
-    add_call_params[url] = { install_url: url };
+    add_call_params[url] = { installURL: url };
   }
 
   await test_driver.bless("installing subapps", async function () {
@@ -64,7 +64,7 @@ promise_test(async t => {
   const full_url = document.location.origin + '/sub-app';
 
   let add_call_params = {
-    [full_url]: {"install_url": full_url},
+    [full_url]: { installURL: full_url },
   };
 
   await test_driver.bless("installing subapps", async function () {
@@ -77,8 +77,8 @@ promise_test(async t => {
   const url_2 = '/sub-app-2';
 
   let add_call_params = {
-    [url_1]: {"install_url": url_1},
-    [url_2]: {"install_url": url_2},
+    [url_1]: {installURL: url_1},
+    [url_2]: {installURL: url_2},
   };
 
   let mocked_response = [
@@ -101,8 +101,8 @@ promise_test(async t => {
   const url_2 = '/sub-app-2';
 
   let add_call_params = {
-    [url_1]: {"install_url": url_1},
-    [url_2]: {"install_url": url_2},
+    [url_1]: {installURL: url_1},
+    [url_2]: {installURL: url_2},
   };
 
   let mocked_response = [

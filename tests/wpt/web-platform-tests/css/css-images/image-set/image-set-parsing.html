@@ -119,6 +119,10 @@ function test_image_set_parsing() {
   test_invalid_value_variants('background-image', "image-set(type('image/png') url(example.png) 1x)");
   test_invalid_value_variants('cursor', "image-set(linear-gradient(black, white) 1x)");
 
+  test_invalid_value_variants('background-image', "image-set(url(example.png) 1x url(example.jpeg))");
+  test_invalid_value_variants('background-image', "image-set(url(example.png) 1x 2x)");
+  test_invalid_value_variants('background-image', "image-set(image-set(url(example.png)) 2x)");
+
   test_default_resolution_parsing();
   test_resolution_units_parsing();
 }

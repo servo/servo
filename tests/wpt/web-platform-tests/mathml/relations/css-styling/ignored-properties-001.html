@@ -29,9 +29,6 @@
               "align-content: end; justify-content: end;",
               "align-self: end; justify-self: end;",
           ];
-          if (tag !== "mtable") {
-              ignoredProperties.push("width: 100px !important; height: 200px !important;");
-          }
 
           ignoredProperties.forEach(ignoredStyle => {
               document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\

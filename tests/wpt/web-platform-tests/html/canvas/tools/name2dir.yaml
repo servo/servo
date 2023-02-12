@@ -20,6 +20,7 @@
 2d.reset:                             "reset"
 2d.shadow:                            "shadows"
 2d.filter:                            "filters"
+2d.layer:                             "layers"
 2d.text.align:                        "text-styles"
 2d.text.baseline:                     "text-styles"
 2d.text.font:                         "text-styles"

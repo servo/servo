@@ -8,6 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
 </head>
 <body>
 <script>
@@ -59,6 +60,27 @@ test_valid_value('mask', 'intersect no-clip space round 1px 2px / contain view-b
 // Earlier versions of the mask shorthand always required a <mask-reference>.
 // To avoid unnecessarily losing test coverage, keep one of the test cases from back then.
 test_valid_value('mask', 'none alpha', 'alpha');
+
+test_shorthand_value('mask', 'none', {
+    'mask-image': 'none',
+    'mask-position': '0%',
+    'mask-size': 'auto',
+    'mask-repeat': 'repeat',
+    'mask-origin': 'border-box',
+    'mask-clip': 'border-box',
+    'mask-composite': 'add',
+    'mask-mode': 'match-source',
+})
+test_shorthand_value('mask', 'none, linear-gradient(to left bottom, red, blue) padding-box', {
+    'mask-image': 'none, linear-gradient(to left bottom, red, blue)',
+    'mask-position': '0%, 0%',
+    'mask-size': 'auto, auto',
+    'mask-repeat': 'repeat, repeat',
+    'mask-origin': 'border-box, padding-box',
+    'mask-clip': 'border-box, padding-box',
+    'mask-composite': 'add, add',
+    'mask-mode': 'match-source, match-source',
+})
 
 </script>
 </body>
