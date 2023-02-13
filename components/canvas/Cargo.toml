@@ -33,7 +33,7 @@ lyon_geom = "1.0.4"
 num-traits = "0.2"
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
-raqote = { git = "https://github.com/jrmuizel/raqote" }
+raqote = "0.8.2"
 servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
 sparkle = "0.1.25"
