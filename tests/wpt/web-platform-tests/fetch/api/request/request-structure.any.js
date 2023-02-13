@@ -26,7 +26,11 @@ var attributes = ["method",
                   "duplex",
                   //Request implements Body
                   "bodyUsed"
-                  ];
+                 ];
+var internalAttributes = ["priority",
+                          "internalpriority",
+                          "blocking"
+                         ];
 
 function isReadOnly(request, attributeToCheck) {
   var defaultValue = undefined;
@@ -130,4 +134,10 @@ for (var idx in attributes) {
     assert_true(attributes[idx] in request, "request has " + attributes[idx] + " attribute");
     isReadOnly(request, attributes[idx]);
   }, "Check " + attributes[idx] + " attribute");
+}
+
+for (var idx in internalAttributes) {
+  test(function() {
+    assert_false(internalAttributes[idx] in request, "request does not expose " + internalAttributes[idx] + " attribute");
+  }, "Request does not expose " + internalAttributes[idx] + " attribute");
 }

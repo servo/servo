@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 .relpos {
   position: relative;
@@ -25,7 +26,7 @@
   background: lime;
 }
 </style>
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <!-- In-flow and out-of-flow boxes in a containing block. -->
   <div class="relpos">
     <div>

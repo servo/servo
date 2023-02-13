@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>Tests that 'anchor-default' property value is tree-scoped</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-default">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="anchor-default-ref.html">
+<style>
+.anchor {
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+
+.target {
+  position: fixed;
+  background: lime;
+  position-fallback: --pf;
+}
+
+@position-fallback --pf {
+  @try {
+    top: anchor(bottom, 0px);
+    left: anchor(left, 0px);
+    width: anchor-size(width, 0px);
+    height: anchor-size(height, 0px);
+  }
+}
+
+body {
+  margin: 0;
+}
+
+#fake-anchor {
+  anchor-name: --a;
+}
+
+#anchor1 {
+  margin-left: 100px;
+}
+
+#anchor2 {
+  margin-left: 300px;
+  margin-top: 100px;
+}
+
+</style>
+
+<div id="fake-anchor"></div>
+
+<div id="anchor1" class="anchor">
+  anchor1
+  <div id="target1" class="target">target1</div>
+</div>
+
+<div id="anchor2" class="anchor">
+  anchor2
+  <div id="target2" class="target">target2</div>
+</div>
+
+<script>
+for (let host of document.querySelectorAll('.anchor')) {
+  let shadow = host.attachShadow({mode: 'open'});
+  shadow.innerHTML = `
+    <style>
+      :host { anchor-name: --a; }
+      ::slotted(.target) { anchor-default: --a; }
+    </style>
+    <slot></slot>
+  `;
+}
+</script>

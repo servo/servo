@@ -75,6 +75,15 @@ def test_frame_id_invalid_types(session, value):
     assert_error(response, "invalid argument")
 
 
+def test_frame_id_shadow_root(session, get_test_page):
+    session.url = get_test_page()
+
+    element = session.find.css("custom-element", all=False)
+
+    result = switch_to_frame(session, element.shadow_root)
+    assert_error(result, "invalid argument")
+
+
 def test_frame_id_null(session, inline, iframe):
     session.url = inline(iframe("{}<div>foo".format(iframe("<p>bar"))))
 

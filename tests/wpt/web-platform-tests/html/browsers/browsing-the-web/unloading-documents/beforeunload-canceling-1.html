@@ -7,8 +7,12 @@
 <script>
 "use strict";
 
-window.runTest = (t, { valueToReturn, expectCancelation, setReturnValue, expectedReturnValue }) => {
+window.runTest = (t, { valueToReturn, expectCancelation, setReturnValue, expectedReturnValue, cancel }) => {
   window.onbeforeunload = t.step_func(e => {
+    if (cancel) {
+      e.preventDefault();
+    }
+
     if (setReturnValue !== undefined) {
       e.returnValue = setReturnValue;
     }

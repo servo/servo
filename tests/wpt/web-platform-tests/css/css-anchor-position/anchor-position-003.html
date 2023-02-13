@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 .cb {
   position: relative;
@@ -33,7 +34,7 @@
   order.
   https://drafts.csswg.org/css-anchor-1/#determining
 -->
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <div class="cb">
     <div class="anchor1 size5x7"></div>
     <div class="anchor1 size9x11"></div>

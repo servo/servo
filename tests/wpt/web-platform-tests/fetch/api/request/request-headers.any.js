@@ -59,6 +59,7 @@ var invalidRequestNoCorsHeaders = [
   ["proxya", "KO"],
   ["sec", "KO"],
   ["secb", "KO"],
+  ["Empty-Value", ""],
 ];
 
 validRequestHeaders.forEach(function(header) {

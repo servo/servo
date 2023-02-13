@@ -48,6 +48,15 @@ def test_no_such_element_with_invalid_value(session):
     assert_error(response, "no such element")
 
 
+def test_no_such_element_with_shadow_root(session, get_test_page):
+    session.url = get_test_page()
+
+    element = session.find.css("custom-element", all=False)
+
+    result = element_click(session, element.shadow_root)
+    assert_error(result, "no such element")
+
+
 @pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
 def test_no_such_element_from_other_window_handle(session, inline, closed):
     session.url = inline("<div id='parent'><p/>")
@@ -65,25 +74,26 @@ def test_no_such_element_from_other_window_handle(session, inline, closed):
 
 
 @pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
-def test_no_such_element_from_other_frame(session, url, closed):
-    session.url = url("/webdriver/tests/support/html/subframe.html")
+def test_no_such_element_from_other_frame(session, get_test_page, closed):
+    session.url = get_test_page(as_frame=True)
 
-    frame = session.find.css("#delete-frame", all=False)
+    frame = session.find.css("iframe", all=False)
     session.switch_frame(frame)
 
-    button = session.find.css("#remove-parent", all=False)
-    if closed:
-        button.click()
+    element = session.find.css("input#text", all=False)
 
     session.switch_frame("parent")
 
-    response = element_click(session, button)
+    if closed:
+        session.execute_script("arguments[0].remove();", args=[frame])
+
+    response = element_click(session, element)
     assert_error(response, "no such element")
 
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, as_frame):
-    element = stale_element("<div>", "div", as_frame=as_frame)
+    element = stale_element("input#text", as_frame=as_frame)
 
     response = element_click(session, element)
     assert_error(response, "stale element reference")

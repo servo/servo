@@ -16,9 +16,12 @@ test_computed_value("animation-range-end", "cover -42%");
 test_computed_value("animation-range-end", "contain 42%");
 test_computed_value("animation-range-end", "exit 42%");
 test_computed_value("animation-range-end", "exit calc(41% + 1%)", "exit 42%");
+test_computed_value("animation-range-end", "exit-crossing 42%");
 test_computed_value("animation-range-end", "exit 1%, cover 2%, contain 100%");
-test_computed_value("animation-range-end", "enter 42px");
+test_computed_value("animation-range-end", "entry 42px");
+test_computed_value("animation-range-end", "entry-crossing 42px");
+
 test_computed_value("animation-range-end", "contain calc(10% + 10px)");
-test_computed_value("animation-range-end", "enter 1em", "enter 10px");
+test_computed_value("animation-range-end", "entry 1em", "entry 10px");
 test_computed_value("animation-range-end", "exit calc(1em + 10px)", "exit 20px");
 </script>

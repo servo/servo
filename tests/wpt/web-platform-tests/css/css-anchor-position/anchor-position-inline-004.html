@@ -6,6 +6,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
 body > div {
@@ -50,7 +51,7 @@ body > div {
   height: anchor-size(--a1 height);
 }
 </style>
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <!-- The inline anchor appear in a single line inline containing block. -->
   <div class="cb">
     <div>spacer</div>

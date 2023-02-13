@@ -1,0 +1,19 @@
+<!doctype html>
+<body>
+  <script>
+    var current_url = window.location.href;
+    var fetch_url = current_url.substring(0, current_url.lastIndexOf("/")) + '/check-topics-request-header.py'
+
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data.topicsHeader === 'NO_TOPICS_HEADER') {
+        window.opener.postMessage({testResult: 'Topics fetch initiated from service worker did not include the topics header'}, '*');
+      } else {
+        window.opener.postMessage({testResult: 'Topics fetch initiated from service worker included the topics header'}, '*');
+      }
+    });
+
+    navigator.serviceWorker.controller.postMessage({
+      fetchUrl: fetch_url
+    });
+  </script>
+</body>

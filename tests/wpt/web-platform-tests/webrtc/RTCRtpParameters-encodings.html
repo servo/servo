@@ -425,6 +425,32 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('video');
+
+    const param = sender.getParameters();
+
+    param.encodings = [];
+
+    return promise_rejects_dom(t, 'InvalidModificationError',
+      sender.setParameters(param));
+  }, `sender.setParameters() with empty encodings should reject with InvalidModificationError (video)`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+
+    const param = sender.getParameters();
+
+    param.encodings = [];
+
+    return promise_rejects_dom(t, 'InvalidModificationError',
+      sender.setParameters(param));
+  }, `sender.setParameters() with empty encodings should reject with InvalidModificationError (audio)`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('video', {
       sendEncodings: [{ rid: 'foo' }, { rid: 'baz' }],
     });

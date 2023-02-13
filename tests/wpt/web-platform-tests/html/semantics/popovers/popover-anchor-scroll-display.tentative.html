@@ -15,6 +15,22 @@
   <div id=popover1 popover=manual anchor=anchor1></div>
 </div>
 
+<!-- Example using a default anchor that is not the implicit anchor -->
+<div class=ex>
+  <div class=anchor id=anchor2></div>
+  <div id=popover2 popover=manual anchor=fake-anchor></div>
+</div>
+
+<!-- Example using an implicit anchor that is not the default anchor -->
+<div class=ex>
+  <div class=anchor id=anchor3></div>
+  <div id=popover3 popover=manual anchor=anchor3></div>
+</div>
+
+<!-- A position:fixed fake anchor. Any popover anchored to it won't move when
+     the document is scrolled. -->
+<div id=fake-anchor></div>
+
 <div class=spacer style="height: 200vh"></div>
 
 <style>
@@ -37,6 +53,25 @@
     left: anchor(right);
     top: anchor(top);
   }
+  #fake-anchor {
+    position: fixed;
+    anchor-name: --fake-anchor;
+  }
+  #anchor2 {
+    anchor-name: --anchor2;
+  }
+  #popover2 {
+    anchor-default: --anchor2;
+    left: anchor(right);
+    top: anchor(top);
+    anchor-scroll: default;
+  }
+  #popover3 {
+    anchor-default: --fake-anchor;
+    left: anchor(implicit right);
+    top: anchor(implicit top);
+    anchor-scroll: implicit;
+  }
 </style>
 
 <script>
@@ -45,7 +80,8 @@ function raf() {
 }
 
 async function runTest() {
-  popover1.showPopover();
+  document.querySelectorAll('[popover]').forEach(
+      popover => popover.showPopover());
 
   // Render a frame at the intial scroll position.
   await raf();

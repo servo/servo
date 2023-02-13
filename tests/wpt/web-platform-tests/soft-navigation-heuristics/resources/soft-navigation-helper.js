@@ -85,9 +85,14 @@ const runEntryValidations = async preClickLcp => {
   validatePaintEntries('first-contentful-paint');
   validatePaintEntries('first-paint');
   const postClickLcp = await getLcpEntries();
+  const postClickLcpWithoutSoftNavs = await getLcpEntriesWithoutSoftNavs();
   assert_greater_than(
       postClickLcp.length, preClickLcp.length,
       'Soft navigation should have triggered at least an LCP entry');
+  assert_equals(
+      postClickLcpWithoutSoftNavs.length, preClickLcp.length,
+      'Soft navigation should not have triggered an LCP entry when the ' +
+      'observer did not opt in');
   assert_not_equals(
       postClickLcp[postClickLcp.length - 1].size,
       preClickLcp[preClickLcp.length - 1].size,
@@ -174,6 +179,11 @@ const validatePaintEntries = async (type, entries_number = 2) => {
   const entries = await new Promise(resolve => {
     (new PerformanceObserver(list => resolve(
       list.getEntriesByName(type)))).observe(
+      {type: 'paint', buffered: true, includeSoftNavigationObservations: true});
+    });
+  const entries_without_softnavs = await new Promise(resolve => {
+    (new PerformanceObserver(list => resolve(
+      list.getEntriesByName(type)))).observe(
       {type: 'paint', buffered: true});
     });
   // TODO(crbug/1372997): investigate why this is not failing when multiple
@@ -181,6 +191,8 @@ const validatePaintEntries = async (type, entries_number = 2) => {
   // required clicks, instead of counting on double rAF.
   assert_equals(entries.length, entries_number,
     `There are ${entries_number} entries for ${type}`);
+  assert_equals(entries_without_softnavs.length, 1,
+    `There is one non-softnav entry for ${type}`);
   if (entries_number > 1) {
     assert_not_equals(entries[0].startTime, entries[1].startTime,
       "Entries have different timestamps for " + type);
@@ -188,6 +200,16 @@ const validatePaintEntries = async (type, entries_number = 2) => {
 };
 
 const getLcpEntries = async () => {
+  const entries = await new Promise(resolve => {
+    (new PerformanceObserver(list => resolve(
+      list.getEntries()))).observe(
+      {type: 'largest-contentful-paint', buffered: true,
+       includeSoftNavigationObservations: true});
+    });
+  return entries;
+};
+
+const getLcpEntriesWithoutSoftNavs = async () => {
   const entries = await new Promise(resolve => {
     (new PerformanceObserver(list => resolve(
       list.getEntries()))).observe(
@@ -229,6 +251,6 @@ const waitOnPaintEntriesPromise = () => {
       } else if (paint_entries.length > 2) {
         reject();
       }
-    }).observe({type: 'paint'});
+    }).observe({type: 'paint', includeSoftNavigationObservations: true});
   });
 };
