@@ -41,6 +41,13 @@ class Item:
             title = f"{actual} [expected {expected}] {title_prefix}{title}"
         else:
             title = f"{actual} {title_prefix}{title}"
+
+        issue_url = "http://github.com/servo/servo/issues/"
+        if "issues" in result and result["issues"]:
+            issues = ", ".join([f"[#{issue}]({issue_url}{issue})"
+                                for issue in result["issues"]])
+            title += f" ({issues})"
+
         stack = result["stack"] if result["stack"] and print_stack else ""
         body = f"{result['message']}\n{stack}".strip()
 
