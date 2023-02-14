@@ -42,7 +42,7 @@ pub enum GenericColor<RGBA, Percentage> {
     ToShmem,
 )]
 #[repr(u8)]
-pub enum ColorSpace {
+pub enum InterpolationColorSpace {
     /// The sRGB color space.
     Srgb,
     /// The linear-sRGB color space.
@@ -63,7 +63,7 @@ pub enum ColorSpace {
     // TODO: Oklab, Lch
 }
 
-impl ColorSpace {
+impl InterpolationColorSpace {
     /// Returns whether this is a `<polar-color-space>`.
     pub fn is_polar(self) -> bool {
         match self {
@@ -120,7 +120,7 @@ pub enum HueInterpolationMethod {
 #[repr(C)]
 pub struct ColorInterpolationMethod {
     /// The color-space the interpolation should be done in.
-    pub space: ColorSpace,
+    pub space: InterpolationColorSpace,
     /// The hue interpolation method.
     pub hue: HueInterpolationMethod,
 }
@@ -129,7 +129,7 @@ impl ColorInterpolationMethod {
     /// Returns the srgb interpolation method.
     pub fn srgb() -> Self {
         Self {
-            space: ColorSpace::Srgb,
+            space: InterpolationColorSpace::Srgb,
             hue: HueInterpolationMethod::Shorter,
         }
     }
@@ -141,7 +141,7 @@ impl Parse for ColorInterpolationMethod {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_ident_matching("in")?;
-        let space = ColorSpace::parse(input)?;
+        let space = InterpolationColorSpace::parse(input)?;
         // https://drafts.csswg.org/css-color-4/#hue-interpolation
         //     Unless otherwise specified, if no specific hue interpolation
         //     algorithm is selected by the host syntax, the default is shorter.
