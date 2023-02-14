@@ -70,13 +70,25 @@ use uuid::Uuid;
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
 const MIN_GC_THRESHOLD: u32 = 1_000_000;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableField {
+    worklet_id: WorkletId,
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        let script_thread = ScriptThread::worklet_thread_pool();
+        script_thread.exit_worklet(self.worklet_id);
+    }
+}
+
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#worklet>
 pub struct Worklet {
     reflector: Reflector,
     window: Dom<Window>,
-    worklet_id: WorkletId,
     global_type: WorkletGlobalScopeType,
+    droppable_field: DroppableField,
 }
 
 impl Worklet {
@@ -84,8 +96,10 @@ impl Worklet {
         Worklet {
             reflector: Reflector::new(),
             window: Dom::from_ref(window),
-            worklet_id: WorkletId::new(),
             global_type: global_type,
+            droppable_field: DroppableField {
+                worklet_id: WorkletId::new(),
+            },
         }
     }
 
@@ -98,7 +112,7 @@ impl Worklet {
     }
 
     pub fn worklet_id(&self) -> WorkletId {
-        self.worklet_id
+        self.droppable_field.worklet_id
     }
 
     #[allow(dead_code)]
@@ -138,7 +152,7 @@ impl WorkletMethods for Worklet {
 
         pool.fetch_and_invoke_a_worklet_script(
             global.pipeline_id(),
-            self.worklet_id,
+            self.droppable_field.worklet_id,
             self.global_type,
             self.window.origin().immutable().clone(),
             global.api_base_url(),
@@ -151,13 +165,6 @@ impl WorkletMethods for Worklet {
         // Step 5.
         debug!("Returning promise.");
         promise
-    }
-}
-
-impl Drop for Worklet {
-    fn drop(&mut self) {
-        let script_thread = ScriptThread::worklet_thread_pool();
-        script_thread.exit_worklet(self.worklet_id);
     }
 }
 
