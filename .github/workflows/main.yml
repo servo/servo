@@ -216,14 +216,16 @@ jobs:
             --release --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-            --filter-intermittents=filtered-wpt-results.${{ matrix.chunk_id }}.json
+            --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
+            --filter-intermittents filtered-test-wpt.${{ matrix.chunk_id }}.json
       - name: Archive filtered results
         uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
           name: wpt-filtered-results-linux
           path: |
-            filtered-wpt-results.${{ matrix.chunk_id }}.json
+            filtered-test-wpt.${{ matrix.chunk_id }}.json
+            unexpected-test-wpt.${{ matrix.chunk_id }}.log
       - name: Archive logs
         uses: actions/upload-artifact@v3
         if: ${{ failure() }}
@@ -247,8 +249,16 @@ jobs:
         with:
           name: wpt-filtered-results-linux
           path: wpt-filtered-results-linux
+      - name: Create aggregated unexpected results
+        run: cat wpt-filtered-results-linux/*.log > unexpected-test-wpt.log
+      - name: Archive aggregate results
+        uses: actions/upload-artifact@v3
+        with:
+          name: wpt-filtered-results-linux
+          path: |
+            unexpected-test-wpt.log
       - name: Comment on PR with results
-        run: etc/ci/report_aggregated_expected_results.py wpt-filtered-results-linux/*
+        run: etc/ci/report_aggregated_expected_results.py wpt-filtered-results-linux/*.json
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

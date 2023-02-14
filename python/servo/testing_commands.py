@@ -87,6 +87,9 @@ def create_parser_wpt():
     parser.add_argument('--filter-intermittents', default=None, action="store",
                         help="Filter intermittents against known intermittents "
                              "and save the filtered output to the given file.")
+    parser.add_argument('--log-raw-unexpected', default=None, action="store",
+                        help="Raw structured log messages for unexpected results."
+                             " '--log-raw' Must also be passed in order to use this.")
     return parser
 
 

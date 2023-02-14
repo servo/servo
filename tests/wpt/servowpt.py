@@ -122,6 +122,8 @@ def run_tests(**kwargs):
         kwargs["test_types"] = test_types[product]
 
     filter_intermittents_output = kwargs.pop("filter_intermittents", None)
+    unexpected_raw_log_output_file = kwargs.pop("log_raw_unexpected", None)
+    raw_log_outputs = kwargs.get("log_raw", [])
 
     wptcommandline.check_args(kwargs)
     update_args_for_layout_2020(kwargs)
@@ -146,14 +148,28 @@ def run_tests(**kwargs):
     logger.add_handler(handler)
 
     wptrunner.run_tests(**kwargs)
+    return_value = 0 if not handler.unexpected_results else 1
+
+    # Filter intermittents if that was specified on the command-line.
     if handler.unexpected_results and filter_intermittents_output:
         all_filtered = filter_intermittents(
             handler.unexpected_results,
-            filter_intermittents_output,
+            filter_intermittents_output
         )
-        return 0 if all_filtered else 1
-    else:
-        return 0 if not handler.unexpected_results else 1
+        return_value = 0 if all_filtered else 1
+
+    # Write the unexpected-only raw log if that was specified on the command-line.
+    if unexpected_raw_log_output_file:
+        if not raw_log_outputs:
+            print("'--log-raw-unexpected' not written without '--log-raw'.")
+        else:
+            write_unexpected_only_raw_log(
+                handler.unexpected_results,
+                raw_log_outputs[0].name,
+                unexpected_raw_log_output_file
+            )
+
+    return return_value
 
 
 def update_tests(**kwargs):
@@ -228,15 +244,6 @@ def filter_intermittents(
         else:
             unexpected.append(result)
 
-    if output_file:
-        with open(output_file, "w", encoding="utf-8") as file:
-            file.write(json.dumps({
-                "known_intermittents":
-                    [dataclasses.asdict(result) for result in known_intermittents],
-                "unexpected":
-                    [dataclasses.asdict(result) for result in unexpected],
-            }))
-
     output = "\n".join([
         f"{len(known_intermittents)} known-intermittent unexpected result",
         *[str(result) for result in known_intermittents],
@@ -246,7 +253,35 @@ def filter_intermittents(
     ])
     print(output)
     print(80 * "=")
+
+    if output_file:
+        print(f"Writing filtered results to {output_file}")
+        with open(output_file, "w", encoding="utf-8") as file:
+            file.write(json.dumps({
+                "known_intermittents":
+                    [dataclasses.asdict(result) for result in known_intermittents],
+                "unexpected":
+                    [dataclasses.asdict(result) for result in unexpected],
+            }))
+
     return not unexpected
+
+
+def write_unexpected_only_raw_log(
+    unexpected_results: List[UnexpectedResult],
+    raw_log_file: str,
+    filtered_raw_log_file: str
+):
+    tests = [result.path for result in unexpected_results]
+    print(f"Writing unexpected-only raw log to {filtered_raw_log_file}")
+
+    with open(filtered_raw_log_file, "w", encoding="utf-8") as output:
+        with open(raw_log_file) as input:
+            for line in input.readlines():
+                data = json.loads(line)
+                if data["action"] in ["suite_start", "suite_end"] or \
+                        ("test" in data and data["test"] in tests):
+                    output.write(line)
 
 
 def main():
