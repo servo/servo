@@ -61,7 +61,7 @@ class Item:
 
     def to_html(self, level: int = 0) -> ElementTree.Element:
         if level == 0:
-            title = result = ElementTree.Element("div")
+            title = result = ElementTree.Element("span")
         elif level == 1:
             result = ElementTree.Element("details")
             title = ElementTree.SubElement(result, "summary")
@@ -97,6 +97,9 @@ def get_results() -> Optional[Item]:
             unexpected += data["unexpected"]
             known_intermittents += data["known_intermittents"]
 
+    unexpected.sort(key=lambda result: result["path"])
+    known_intermittents.sort(key=lambda result: result["path"])
+
     children = []
     if unexpected:
         children.append(
@@ -109,7 +112,24 @@ def get_results() -> Optional[Item]:
                  f"({len(known_intermittents)})", "",
                  [Item.from_result(result) for result in known_intermittents])
         )
-    return Item("Results from try job:", "", children) if children else None
+
+    run_url = get_github_run_url()
+    if run_url:
+        text = f"Results from try job ({run_url}):"
+    else:
+        text = "Results from try job:"
+    return Item(text, "", children) if children else None
+
+
+def get_github_run_url() -> Optional[str]:
+    github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
+    if "repository" not in github_context:
+        return None
+    if "run_id" not in github_context:
+        return None
+    repository = github_context['repository']
+    run_id = github_context['run_id']
+    return f"[#{run_id}](https://github.com/{repository}/actions/runs/{run_id})"
 
 
 def get_pr_number() -> Optional[str]:
