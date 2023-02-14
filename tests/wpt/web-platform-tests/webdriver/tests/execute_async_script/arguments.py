@@ -54,9 +54,106 @@ def test_object(session):
     assert actual[1] == value
 
 
+def test_no_such_element_with_invalid_value(session):
+    element = Element("foo", session)
+
+    result = execute_async_script(session, """
+        arguments[1](true);
+        """, args=[element])
+    assert_error(result, "no such element")
+
+
+@pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
+def test_no_such_element_from_other_window_handle(session, inline, closed):
+    session.url = inline("<div id='parent'><p/>")
+    element = session.find.css("#parent", all=False)
+
+    new_handle = session.new_window()
+
+    if closed:
+        session.window.close()
+
+    session.window_handle = new_handle
+
+    result = execute_async_script(session, """
+        arguments[1](true);
+        """, args=[element])
+    assert_error(result, "no such element")
+
+
+@pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
+def test_no_such_element_from_other_frame(session, get_test_page, closed):
+    session.url = get_test_page(as_frame=True)
+
+    frame = session.find.css("iframe", all=False)
+    session.switch_frame(frame)
+
+    element = session.find.css("div", all=False)
+
+    session.switch_frame("parent")
+
+    if closed:
+        session.execute_script("arguments[0].remove();", args=[frame])
+
+    result = execute_async_script(session, """
+        arguments[1](true);
+        """, args=[element])
+    assert_error(result, "no such element")
+
+
+def test_no_such_shadow_root_with_unknown_shadow_root(session):
+    shadow_root = ShadowRoot(session, "foo")
+
+    result = execute_async_script(session, """
+        arguments[1](true);
+        """, args=[shadow_root])
+    assert_error(result, "no such shadow root")
+
+
+@pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
+def test_no_such_shadow_root_from_other_window_handle(session, get_test_page, closed):
+    session.url = get_test_page()
+
+    element = session.find.css("custom-element", all=False)
+    shadow_root = element.shadow_root
+
+    new_handle = session.new_window()
+
+    if closed:
+        session.window.close()
+
+    session.window_handle = new_handle
+
+    result = execute_async_script(session, """
+        arguments[1](true);
+        """, args=[shadow_root])
+    assert_error(result, "no such shadow root")
+
+
+@pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
+def test_no_such_shadow_root_from_other_frame(session, get_test_page, closed):
+    session.url = get_test_page(as_frame=True)
+
+    frame = session.find.css("iframe", all=False)
+    session.switch_frame(frame)
+
+    element = session.find.css("custom-element", all=False)
+    shadow_root = element.shadow_root
+
+    session.switch_frame("parent")
+
+    if closed:
+        session.execute_script("arguments[0].remove();", args=[frame])
+
+    result = execute_async_script(session, """
+        arguments[1](true);
+        """, args=[shadow_root])
+    assert_error(result, "no such shadow root")
+
+
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, as_frame):
-    element = stale_element("<div>", "div", as_frame=as_frame)
+    element = stale_element("input#text", as_frame=as_frame)
 
     result = execute_async_script(session, "arguments[1](1);", args=[element])
     assert_error(result, "stale element reference")
@@ -64,31 +161,12 @@ def test_stale_element_reference(session, stale_element, as_frame):
 
 @pytest.mark.parametrize("expression, expected_type, expected_class", [
     ("window.frames[0]", Frame, "Frame"),
-    ("document.getElementById('foo')", Element, "HTMLDivElement"),
-    ("document.getElementById('checkbox').shadowRoot", ShadowRoot, "ShadowRoot"),
+    ("document.querySelector('div')", Element, "HTMLDivElement"),
+    ("document.querySelector('custom-element').shadowRoot", ShadowRoot, "ShadowRoot"),
     ("window", Window, "Window")
 ], ids=["frame", "node", "shadow-root", "window"])
-def test_element_reference(session, iframe, inline, expression, expected_type, expected_class):
-    session.url = inline(f"""
-        <style>
-            custom-checkbox-element {{
-                display:block; width:20px; height:20px;
-            }}
-        </style>
-        <custom-checkbox-element id='checkbox'></custom-checkbox-element>
-        <script>
-            customElements.define('custom-checkbox-element',
-                class extends HTMLElement {{
-                    constructor() {{
-                        super();
-                        this.attachShadow({{mode: 'open'}}).innerHTML = `
-                            <div><input type="checkbox"/></div>
-                        `;
-                    }}
-                }});
-        </script>
-        <div id="foo"/>
-        {iframe("<p>")}""")
+def test_element_reference(session, get_test_page, expression, expected_type, expected_class):
+    session.url = get_test_page(as_frame=False)
 
     result = execute_async_script(session, f"arguments[0]({expression})")
     reference = assert_success(result)

@@ -11,6 +11,7 @@
 import {alt_manifest_origin,
         default_request_options,
         default_alt_request_options,
+        request_options_with_auto_reauthn,
         fedcm_test,
         select_manifest,
         set_fedcm_cookie} from './support/fedcm-helper.sub.js';
@@ -239,5 +240,24 @@ credential-management/support/fedcm/manifest.py`;
     // Expect failure
   }
 }, 'Test that User Info API does not work in the top frame');
+
+fedcm_test(async t => {
+  let test_options = request_options_with_auto_reauthn("manifest_with_single_account.json");
+  await select_manifest(t, test_options);
+
+  // Signs in john_doe so that they will be a returning user
+  let cred = await navigator.credentials.get(test_options);
+  assert_equals(cred.token, "account_id=john_doe");
+
+  test_options = request_options_with_auto_reauthn("manifest_with_two_accounts.json");
+  await select_manifest(t, test_options);
+
+  // There are two accounts "Jane" and "John" returned in that order. Without
+  // auto re-authn, the first account "Jane" would be selected and an token
+  // would be issued to that account. However, since "John" is returning and
+  // "Jane" is a new user, the second account "John" will be selected.
+  cred = await navigator.credentials.get(test_options);
+  assert_equals(cred.token, "account_id=john_doe");
+}, "Test that the returning account from the two accounts will be auto re-authenticated.");
 
 </script>

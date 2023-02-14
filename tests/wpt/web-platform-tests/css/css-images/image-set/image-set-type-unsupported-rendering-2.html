@@ -14,13 +14,18 @@ Spec definition:
 
 If all the values in the image set are of an unsupported type,
 the set should be empty.
+
+"This has no effect on the validity of the image-set() function"
+
+https://github.com/w3c/csswg-drafts/issues/8266 to define what the result
+should be here, maybe an alternative would be to not render an image at all.
 -->
 <style>
   #test {
-    background-image: url("/images/green.png");
+    background-image: url("/images/red.png");
     background-image: image-set(
-      url("/images/red.png") 1x type('image/unsupported'),
-      url("/images/red.png") 1x type('image/unsupported')
+      url("/images/green.png") 1x type('image/unsupported'),
+      url("/images/green.png") 1x type('image/unsupported')
     );
     width: 100px;
     height: 100px;

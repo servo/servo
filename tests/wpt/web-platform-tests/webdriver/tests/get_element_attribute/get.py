@@ -5,11 +5,11 @@ from webdriver import Element
 from tests.support.asserts import assert_error, assert_success
 
 
-def get_element_attribute(session, element, attr):
+def get_element_attribute(session, element_id, attr):
     return session.transport.send(
         "GET", "session/{session_id}/element/{element_id}/attribute/{attr}".format(
             session_id=session.session_id,
-            element_id=element,
+            element_id=element_id,
             attr=attr))
 
 
@@ -36,6 +36,15 @@ def test_no_such_element_with_invalid_value(session):
     assert_error(response, "no such element")
 
 
+def test_no_such_element_with_shadow_root(session, get_test_page):
+    session.url = get_test_page()
+
+    element = session.find.css("custom-element", all=False)
+
+    result = get_element_attribute(session, element.shadow_root.id, "id")
+    assert_error(result, "no such element")
+
+
 @pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
 def test_no_such_element_from_other_window_handle(session, inline, closed):
     session.url = inline("<div id='parent'><p/>")
@@ -53,24 +62,26 @@ def test_no_such_element_from_other_window_handle(session, inline, closed):
 
 
 @pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
-def test_no_such_element_from_other_frame(session, url, closed):
-    session.url = url("/webdriver/tests/support/html/subframe.html")
+def test_no_such_element_from_other_frame(session, get_test_page, closed):
+    session.url = get_test_page(as_frame=True)
 
-    frame = session.find.css("#delete-frame", all=False)
+    frame = session.find.css("iframe", all=False)
     session.switch_frame(frame)
 
-    button = session.find.css("#remove-parent", all=False)
-    if closed:
-        button.click()
+    element = session.find.css("div", all=False)
 
     session.switch_frame("parent")
-    response = get_element_attribute(session, button.id, "id")
+
+    if closed:
+        session.execute_script("arguments[0].remove();", args=[frame])
+
+    response = get_element_attribute(session, element.id, "id")
     assert_error(response, "no such element")
 
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, as_frame):
-    element = stale_element("<input>", "input", as_frame=as_frame)
+    element = stale_element("input#text", as_frame=as_frame)
 
     result = get_element_attribute(session, element.id, "id")
     assert_error(result, "stale element reference")

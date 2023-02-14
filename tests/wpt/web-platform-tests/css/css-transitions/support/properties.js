@@ -259,7 +259,6 @@ var unspecified_properties = {
     'box-shadow': ['box-shadow'],
     'font-size-adjust': ['number'],
     'font-stretch': ['font-stretch'],
-    'marker-offset': ['length'],
     'text-decoration-color': ['color'],
     'column-count': ['integer'],
     'column-gap': ['length'],
@@ -269,10 +268,6 @@ var unspecified_properties = {
     'transform': ['transform'],
     'transform-origin': ['horizontal'],
     'zoom': ['number'],
-    'outline-radius-topleft': ['length', 'percentage'],
-    'outline-radius-topright': ['length', 'percentage'],
-    'outline-radius-bottomright': ['length', 'percentage'],
-    'outline-radius-bottomleft': ['length', 'percentage'],
     'display': ['display'],
     'position': ['position'],
     'object-view-box': ['object-view-box']

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1414682">
+<link rel="match" href="fixedpos-in-footer-forced-break-print-ref.html">
+<style>
+  body { margin: 0; }
+</style>
+<div style="display:table-row;">
+  On the first page.
+  <div style="break-before:page;">
+    On the second page.
+  </div>
+  <div style="break-before:page; break-after:page;">
+    On the third page.
+  </div>
+  On the fourth page.
+</div>
+<div style="display:table-footer-group; break-inside:avoid;">
+  <div style="height:3em;">
+    On every page.
+  </div>
+  <div style="position:fixed; bottom:0;">
+    <div>At the bottom of every page.</div>
+  </div>
+</div>

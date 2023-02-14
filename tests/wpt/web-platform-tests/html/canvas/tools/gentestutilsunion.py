@@ -28,7 +28,7 @@
 #
 # * Test the tests, add new ones to Git, remove deleted ones from Git, etc.
 
-from typing import List, Mapping
+from typing import List, Mapping, MutableMapping, Optional
 
 import re
 import collections
@@ -38,6 +38,7 @@ import importlib
 import os
 import pathlib
 import sys
+import textwrap
 
 try:
     import cairocffi as cairo  # type: ignore
@@ -209,6 +210,58 @@ def _get_canvas_size(test: Mapping[str, str]):
     return match.group('width'), match.group('height')
 
 
+def _write_reference_test(templates: Mapping[str, str],
+                          template_params: MutableMapping[str, str],
+                          reference: str,
+                          canvas_path: Optional[str],
+                          offscreen_path: Optional[str]):
+    code = template_params['code']
+    template_params['code'] = textwrap.indent(code, '  ')
+    if canvas_path:
+        pathlib.Path(f'{canvas_path}.html').write_text(
+            templates['element_ref_test'] % template_params, 'utf-8')
+    if offscreen_path:
+        pathlib.Path(f'{offscreen_path}.html').write_text(
+            templates['offscreen_ref_test'] % template_params, 'utf-8')
+        template_params['code'] = textwrap.indent(code, '    ')
+        pathlib.Path(f'{offscreen_path}.w.html').write_text(
+            templates['worker_ref_test'] % template_params, 'utf-8')
+
+    template_params['code'] = textwrap.indent(reference.strip(), '  ')
+    template_params['links'] = ''
+    template_params['fuzzy'] = ''
+    if canvas_path:
+        pathlib.Path(f'{canvas_path}-expected.html').write_text(
+            templates['element_ref_test'] % template_params, 'utf-8')
+    if offscreen_path:
+        pathlib.Path(f'{offscreen_path}-expected.html').write_text(
+            templates['element_ref_test'] % template_params, 'utf-8')
+
+
+def _write_testharness_test(templates: Mapping[str, str],
+                            template_params: MutableMapping[str, str],
+                            canvas_path: Optional[str],
+                            offscreen_path: Optional[str]):
+
+    # Create test cases for canvas and offscreencanvas.
+    if canvas_path:
+        pathlib.Path(f'{canvas_path}.html').write_text(
+            templates['element'] % template_params, 'utf-8')
+
+    if offscreen_path:
+        code = template_params['code']
+        offscreen_template = templates['offscreen']
+        worker_template = templates['worker']
+        if ('then(t_pass, t_fail);' in code):
+            offscreen_template = offscreen_template.replace('t.done();\n', '')
+            worker_template = worker_template.replace('t.done();\n', '')
+
+        pathlib.Path(f'{offscreen_path}.html').write_text(
+            offscreen_template % template_params, 'utf-8')
+        pathlib.Path(f'{offscreen_path}.worker.js').write_text(
+            worker_template % template_params, 'utf-8')
+
+
 def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
                    sub_dir: str, html_canvas_cfg: TestConfig,
                    offscreen_canvas_cfg: TestConfig) -> None:
@@ -261,6 +314,9 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
 
     notes = '<p class="notes">%s' % test['notes'] if 'notes' in test else ''
 
+    links = f'\n<link rel="match" href="{name}-expected.html">'
+    fuzzy = ('\n<meta name=fuzzy content="%s">' %
+             test['fuzzy'] if 'fuzzy' in test else '')
     timeout = ('\n<meta name="timeout" content="%s">' %
                test['timeout'] if 'timeout' in test else '')
     timeout_js = ('// META: timeout=%s\n' % test['timeout']
@@ -315,6 +371,8 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
         'fonthack': fonthack,
         'timeout': timeout,
         'timeout_js': timeout_js,
+        'fuzzy': fuzzy,
+        'links': links,
         'canvas': canvas,
         'width': width,
         'height': height,
@@ -331,22 +389,17 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
         canvas_path += '-manual'
         offscreen_path += '-manual'
 
-    # Create test cases for canvas and offscreencanvas.
-    if html_canvas_cfg.enabled:
-        pathlib.Path(f'{canvas_path}.html').write_text(
-            templates['w3ccanvas'] % template_params, 'utf-8')
-
-    if offscreen_canvas_cfg.enabled:
-        offscreen_template = templates['w3coffscreencanvas']
-        worker_template = templates['w3cworker']
-        if ('then(t_pass, t_fail);' in code_canvas):
-            offscreen_template = offscreen_template.replace('t.done();\n', '')
-            worker_template = worker_template.replace('t.done();\n', '')
-
-        pathlib.Path(f'{offscreen_path}.html').write_text(
-            offscreen_template % template_params, 'utf-8')
-        pathlib.Path(f'{offscreen_path}.worker.js').write_text(
-            worker_template % template_params, 'utf-8')
+    reference = test.get('reference')
+    if reference is not None:
+        _write_reference_test(
+            templates, template_params, reference,
+            canvas_path if html_canvas_cfg.enabled else None,
+            offscreen_path if offscreen_canvas_cfg.enabled else None)
+    else:
+        _write_testharness_test(
+            templates, template_params,
+            canvas_path if html_canvas_cfg.enabled else None,
+            offscreen_path if offscreen_canvas_cfg.enabled else None)
 
 
 def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:

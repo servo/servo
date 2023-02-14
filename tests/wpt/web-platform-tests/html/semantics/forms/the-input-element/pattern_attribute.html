@@ -11,8 +11,42 @@
 <h1><code>pattern</code> attribute</h1>
 <div style="display: none">
   <input pattern="[a-z]{3}" value="abcd" id="basic">
+
   <input pattern="a.b" value="a&#x1D306;b" id="unicode-code-points">
-  <input pattern="\p{ASCII_Hex_Digit}+" value="c0ff33" id="unicode-property-escape">
+  <input pattern="\p{ASCII_Hex_Digit}+" value="c0ff33" id="unicode-property">
+
+  <input pattern="\p{RGI_Emoji}+" value="&#x1F618;&#x1F48B;" id="unicode-property-of-strings">
+  <input pattern="[\p{ASCII_Hex_Digit}--[Ff]]" value="0123456789abcdefABCDEF" id="set-difference">
+  <input pattern="[_\q{a|bc|def}]" value="q" id="string-literal">
+
+  <input pattern="[(]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-01">
+  <input pattern="[)]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-02">
+  <input pattern="[[]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-03">
+  <input pattern="[{]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-04">
+  <input pattern="[}]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-05">
+  <input pattern="[/]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-06">
+  <input pattern="[-]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-07">
+  <input pattern="[|]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-08">
+
+  <input pattern="[&&]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-09">
+  <input pattern="[!!]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-10">
+  <input pattern="[##]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-11">
+  <input pattern="[$$]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-12">
+  <input pattern="[%%]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-13">
+  <input pattern="[**]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-14">
+  <input pattern="[++]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-15">
+  <input pattern="[,,]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-16">
+  <input pattern="[..]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-17">
+  <input pattern="[::]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-18">
+  <input pattern="[;;]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-19">
+  <input pattern="[&lt;&lt;]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-20">
+  <input pattern="[==]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-21">
+  <input pattern="[>>]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-22">
+  <input pattern="[??]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-23">
+  <input pattern="[@@]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-24">
+  <input pattern="[``]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-25">
+  <input pattern="[~~]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-26">
+  <input pattern="[_^^]" value="foo" class="breaking-change-from-u-to-v" id="breaking-change-from-u-to-v-27">
 </div>
 <div id="log"></div>
 <script>
@@ -35,8 +69,38 @@
   }, "<input pattern> is Unicode code point-aware");
 
   test(() => {
-    const input = document.querySelector("#unicode-property-escape");
+    const input = document.querySelector("#unicode-property");
     assert_true(input.validity.valid);
     assert_true(input.matches(":valid"));
   }, "<input pattern> supports Unicode property escape syntax");
+
+  test(() => {
+    const input = document.querySelector("#unicode-property-of-strings");
+    assert_true(input.validity.valid);
+    assert_true(input.matches(":valid"));
+  }, "<input pattern> supports Unicode property escape syntax for properties of strings");
+
+  test(() => {
+    const input = document.querySelector("#set-difference");
+    assert_false(input.validity.valid);
+    assert_false(input.matches(":valid"));
+  }, "<input pattern> supports set difference syntax");
+
+  test(() => {
+    const input = document.querySelector("#string-literal");
+    assert_false(input.validity.valid);
+    assert_true(input.matches(":invalid"));
+  }, "<input pattern> supports string literal syntax");
+
+  test(() => {
+    const inputs = document.querySelectorAll("input.breaking-change-from-u-to-v");
+    // These examples are all written such that they’re all `:invalid`
+    // when using `u`, but would become `:valid` when using `v` because
+    // the pattern would error, in turn resulting in
+    // `validity.valid: true`.
+    for (const input of inputs) {
+      assert_true(input.validity.valid);
+      assert_true(input.matches(":valid"));
+    }
+  }, "<input pattern> enables the RegExp v flag");
 </script>

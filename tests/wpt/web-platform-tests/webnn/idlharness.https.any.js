@@ -23,7 +23,7 @@ idl_test(
       ML: ['navigator.ml'],
       MLContext: ['context'],
       MLOperand: ['input', 'filter', 'output'],
-      MLOperator: ['relu'],
+      MLActivation: ['relu'],
       MLGraphBuilder: ['builder'],
       MLGraph: ['graph']
     });

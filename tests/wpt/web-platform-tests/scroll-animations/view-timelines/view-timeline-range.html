@@ -70,8 +70,14 @@
       verifyTimelineOffsets(anim);
     });
     await runTimelineRangeTest(t, {
-      rangeStart: { rangeName: 'enter', offset: CSS.percent(0) },
-      rangeEnd: { rangeName: 'enter', offset: CSS.percent(100) },
+      rangeStart: { rangeName: 'entry', offset: CSS.percent(0) },
+      rangeEnd: { rangeName: 'entry', offset: CSS.percent(100) },
+      startOffset: 600,
+      endOffset: 700
+    });
+    await runTimelineRangeTest(t, {
+      rangeStart: { rangeName: 'entry-crossing', offset: CSS.percent(0) },
+      rangeEnd: { rangeName: 'entry-crossing', offset: CSS.percent(100) },
       startOffset: 600,
       endOffset: 700
     });
@@ -82,8 +88,14 @@
       endOffset: 900
     });
     await runTimelineRangeTest(t, {
+      rangeStart:  { rangeName: 'exit-crossing', offset: CSS.percent(0) },
+      rangeEnd: { rangeName: 'exit-crossing', offset: CSS.percent(100) },
+      startOffset: 800,
+      endOffset: 900
+    });
+    await runTimelineRangeTest(t, {
       rangeStart: { rangeName: 'contain', offset: CSS.percent(-50) },
-      rangeEnd: { rangeName: 'enter', offset: CSS.percent(200) },
+      rangeEnd: { rangeName: 'entry', offset: CSS.percent(200) },
       startOffset: 650,
       endOffset: 800
     });
@@ -91,7 +103,7 @@
 
   promise_test(async t => {
     await runTimelineRangeTest(t, {
-      rangeStart: { rangeName: 'enter' },
+      rangeStart: { rangeName: 'entry' },
       rangeEnd: { rangeName: 'exit' },
       startOffset: 600,
       endOffset: 900
@@ -120,8 +132,8 @@
     });
 
     await runTimelineRangeTest(t, {
-      rangeStart: { rangeName: 'enter', offset: CSS.px(20) } ,
-      rangeEnd: { rangeName: 'enter', offset: CSS.px(100) },
+      rangeStart: { rangeName: 'entry', offset: CSS.px(20) } ,
+      rangeEnd: { rangeName: 'entry', offset: CSS.px(100) },
       startOffset: 620,
       endOffset: 700
     });
@@ -154,7 +166,7 @@
   promise_test(async t => {
     await runTimelineRangeTest(t, {
       rangeStart: "contain -50%",
-      rangeEnd: "enter 200%",
+      rangeEnd: "entry 200%",
       startOffset: 650,
       endOffset: 800
     });

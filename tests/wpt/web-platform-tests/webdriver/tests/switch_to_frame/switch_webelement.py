@@ -28,8 +28,8 @@ def test_frame_id_webelement_no_such_element(session, iframe, inline):
 
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
-def test_frame_id_webelement_stale_element_reference(session, iframe, stale_element, as_frame):
-    frame = stale_element(iframe("<div>"), "iframe", as_frame=as_frame)
+def test_frame_id_webelement_stale_element_reference(session, stale_element, as_frame):
+    frame = stale_element("iframe", as_frame=as_frame)
 
     result = switch_to_frame(session, frame)
     assert_error(result, "stale element reference")

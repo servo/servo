@@ -4,7 +4,18 @@
 <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
 <link rel="help" href="https://www.w3.org/TR/css-cascade-4/#default">
 <meta name="assert" content="Checks that adding 'all: revert' has no effect on elements with no other author rules.">
-<meta name="timeout" content="long">
+<!-- Split into chunks to avoid timeouts. -->
+<meta name="variant" content="?include=0">
+<meta name="variant" content="?include=1">
+<meta name="variant" content="?include=2">
+<meta name="variant" content="?include=3">
+<meta name="variant" content="?include=4">
+<meta name="variant" content="?include=5">
+<meta name="variant" content="?include=6">
+<meta name="variant" content="?include=7">
+<script>
+  const CHUNKS = 8;
+</script>
 
 <style>
 .revert-all {
@@ -15,6 +26,7 @@
 <div id="log"></div>
 <div id="wrapper"></div>
 
+<script src="/common/subset-tests-by-key.js"></script>
 <script src="/html/resources/common.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -40,8 +52,10 @@ function assertSameClones(clone1, clone2, callback) {
 
 const wrapper = document.getElementById("wrapper");
 const elementNames = [...HTML5_ELEMENTS, "math", "svg", "z-custom"].sort();
-for (let elementName of elementNames) {
-  test(function() {
+for (let i = 0; i < elementNames.length; ++i) {
+  let elementName = elementNames[i];
+  let chunk = i % CHUNKS;
+  subsetTestByKey(chunk.toString(), test, function() {
     const element = document.createElement(elementName);
     wrapper.appendChild(element);
     const style = getComputedStyle(element);

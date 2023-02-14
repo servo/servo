@@ -49,8 +49,8 @@
         // Expected number of output channels from the convolver node.  We should
         // start with the number of inputs, because the source (oscillator) is
         // actively processing.  When the source stops, the number of channels
-        // should change to 1.
-        const expectedValues = [2, 1];
+        // should change to 0.
+        const expectedValues = [2, 0];
         let index = 0;
 
         testerNode.port.onmessage = event => {
