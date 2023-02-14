@@ -40,7 +40,7 @@ pub(crate) struct Animations {
     pub sets: DocumentAnimationSet,
 
     /// Whether or not we have animations that are running.
-    have_running_animations: Cell<bool>,
+    has_running_animations: Cell<bool>,
 
     /// A list of nodes with in-progress CSS transitions or pending events.
     rooted_nodes: DomRefCell<FxHashMap<OpaqueNode, Dom<Node>>>,
@@ -53,7 +53,7 @@ impl Animations {
     pub(crate) fn new() -> Self {
         Animations {
             sets: Default::default(),
-            have_running_animations: Cell::new(false),
+            has_running_animations: Cell::new(false),
             rooted_nodes: Default::default(),
             pending_events: Default::default(),
         }
@@ -97,6 +97,7 @@ impl Animations {
         }
 
         self.unroot_unused_nodes(&sets);
+        //self.update_running_animations_presence(window);
     }
 
     /// Cancel animations for the given node, if any exist.
@@ -142,17 +143,25 @@ impl Animations {
     }
 
     fn update_running_animations_presence(&self, window: &Window, new_value: bool) {
-        let have_running_animations = self.have_running_animations.get();
-        if new_value == have_running_animations {
+        let had_running_animations = self.has_running_animations.get();
+        if new_value == had_running_animations {
             return;
         }
 
-        self.have_running_animations.set(new_value);
-        let state = match new_value {
+        self.has_running_animations.set(new_value);
+        self.handle_animation_presence_or_pending_events_change(window);
+    }
+
+    fn handle_animation_presence_or_pending_events_change(&self, window: &Window) {
+        let has_running_animations = self.has_running_animations.get();
+        let has_pending_events = !self.pending_events.borrow().is_empty();
+
+        // Do not send the NoAnimationCallbacksPresent state until all pending
+        // animation events are delivered.
+        let state = match has_running_animations || has_pending_events {
             true => AnimationsPresentState::AnimationsPresent,
             false => AnimationsPresentState::NoAnimationsPresent,
         };
-
         window.send_to_constellation(ScriptMsg::ChangeRunningAnimationsState(state));
     }
 
@@ -425,10 +434,13 @@ impl Animations {
             });
     }
 
-    pub(crate) fn send_pending_events(&self) {
+    pub(crate) fn send_pending_events(&self, window: &Window) {
         // Take all of the events here, in case sending one of these events
         // triggers adding new events by forcing a layout.
         let events = std::mem::replace(&mut *self.pending_events.borrow_mut(), Vec::new());
+        if events.is_empty() {
+            return;
+        }
 
         for event in events.into_iter() {
             // We root the node here to ensure that sending this event doesn't
@@ -487,6 +499,10 @@ impl Animations {
                     .upcast::<Event>()
                     .fire(node.upcast());
             }
+        }
+
+        if self.pending_events.borrow().is_empty() {
+            self.handle_animation_presence_or_pending_events_change(window);
         }
     }
 }
