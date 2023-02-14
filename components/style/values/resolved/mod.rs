@@ -5,6 +5,7 @@
 //! Resolved values. These are almost always computed values, but in some cases
 //! there are used values.
 
+use crate::media_queries::Device;
 use crate::properties::ComputedValues;
 use crate::ArcSlice;
 use cssparser;
@@ -16,12 +17,22 @@ mod counters;
 
 use crate::values::computed;
 
+/// Element-specific information needed to resolve property values.
+pub struct ResolvedElementInfo<'a> {
+    /// Element we're resolving line-height against.
+    #[cfg(feature = "gecko")]
+    pub element: crate::gecko::wrapper::GeckoElement<'a>,
+}
+
 /// Information needed to resolve a given value.
 pub struct Context<'a> {
     /// The style we're resolving for. This is useful to resolve currentColor.
     pub style: &'a ComputedValues,
-    // TODO(emilio): Add layout box information, and maybe property-specific
-    // information?
+    /// The device / document we're resolving style for. Useful to do font metrics stuff needed for
+    /// line-height.
+    pub device: &'a Device,
+    /// The element-specific information to resolve the value.
+    pub element_info: ResolvedElementInfo<'a>,
 }
 
 /// A trait to represent the conversion between resolved and resolved values.
