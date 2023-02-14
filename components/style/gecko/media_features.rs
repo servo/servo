@@ -538,8 +538,8 @@ fn eval_moz_platform(_: &Context, query_value: Option<Platform>) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_MatchesPlatform(query_value) }
 }
 
-fn eval_moz_windows_non_native_menus(_: &Context) -> bool {
-    unsafe { bindings::Gecko_MediaFeatures_WindowsNonNativeMenus() }
+fn eval_moz_windows_non_native_menus(context: &Context) -> bool {
+    unsafe { bindings::Gecko_MediaFeatures_WindowsNonNativeMenus(context.device().document()) }
 }
 
 fn eval_moz_overlay_scrollbars(context: &Context) -> bool {
