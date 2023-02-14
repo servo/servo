@@ -781,6 +781,7 @@ impl ToCss for LineNameList {
     ToResolvedValue,
     ToShmem,
 )]
+#[value_info(other_values = "subgrid")]
 #[repr(C, u8)]
 pub enum GenericGridTemplateComponent<L, I> {
     /// `none` value.
