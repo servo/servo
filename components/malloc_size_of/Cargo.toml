@@ -37,7 +37,7 @@ hashglobe = { path = "../hashglobe" }
 http = { version = "0.2", optional = true }
 hyper_serde = { version = "0.13", optional = true }
 keyboard-types = { version = "0.6", optional = true }
-selectors = { path = "../selectors" }
+selectors = { path = "../selectors", features = ["shmem"] }
 serde = { version = "1.0.27", optional = true }
 serde_bytes = { version = "0.11", optional = true }
 servo_arc = { path = "../servo_arc" }
