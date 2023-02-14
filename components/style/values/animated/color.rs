@@ -8,7 +8,8 @@ use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
 use crate::values::computed::Percentage;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::color::{
-    ColorInterpolationMethod, ColorSpace, GenericColor, GenericColorMix, HueInterpolationMethod,
+    ColorInterpolationMethod, GenericColor, GenericColorMix, HueInterpolationMethod,
+    InterpolationColorSpace,
 };
 use euclid::default::{Transform3D, Vector3D};
 use std::f32::consts::PI;
@@ -133,14 +134,14 @@ impl Color {
         }
 
         let mix_function = match interpolation.space {
-            ColorSpace::Srgb => Self::mix_in::<RGBA>,
-            ColorSpace::LinearSrgb => Self::mix_in::<LinearRGBA>,
-            ColorSpace::Xyz => Self::mix_in::<XYZD65A>,
-            ColorSpace::XyzD50 => Self::mix_in::<XYZD50A>,
-            ColorSpace::Lab => Self::mix_in::<LABA>,
-            ColorSpace::Hwb => Self::mix_in::<HWBA>,
-            ColorSpace::Hsl => Self::mix_in::<HSLA>,
-            ColorSpace::Lch => Self::mix_in::<LCHA>,
+            InterpolationColorSpace::Srgb => Self::mix_in::<RGBA>,
+            InterpolationColorSpace::LinearSrgb => Self::mix_in::<LinearRGBA>,
+            InterpolationColorSpace::Xyz => Self::mix_in::<XYZD65A>,
+            InterpolationColorSpace::XyzD50 => Self::mix_in::<XYZD50A>,
+            InterpolationColorSpace::Lab => Self::mix_in::<LABA>,
+            InterpolationColorSpace::Hwb => Self::mix_in::<HWBA>,
+            InterpolationColorSpace::Hsl => Self::mix_in::<HSLA>,
+            InterpolationColorSpace::Lch => Self::mix_in::<LCHA>,
         };
         mix_function(
             left_color,
