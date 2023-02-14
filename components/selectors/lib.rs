@@ -18,7 +18,9 @@ extern crate phf;
 extern crate precomputed_hash;
 extern crate servo_arc;
 extern crate smallvec;
+#[cfg(feature = "shmem")]
 extern crate to_shmem;
+#[cfg(feature = "shmem")]
 #[macro_use]
 extern crate to_shmem_derive;
 
