@@ -5532,7 +5532,7 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "bitflags",
  "cssparser",
@@ -5860,7 +5860,7 @@ dependencies = [
 
 [[package]]
 name = "servo_arc"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "nodrop",
  "serde",
