@@ -327,10 +327,11 @@ pub trait Parser<'i> {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, ToShmem)]
-#[shmem(no_bounds)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "shmem", derive(ToShmem))]
+#[cfg_attr(feature = "shmem", shmem(no_bounds))]
 pub struct SelectorList<Impl: SelectorImpl>(
-    #[shmem(field_bound)] pub SmallVec<[Selector<Impl>; 1]>,
+    #[cfg_attr(feature = "shmem", shmem(field_bound))] pub SmallVec<[Selector<Impl>; 1]>,
 );
 
 /// How to treat invalid selectors in a selector list.
@@ -555,10 +556,12 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
 ///
 /// This reordering doesn't change the semantics of selector matching, and we
 /// handle it in to_css to make it invisible to serialization.
-#[derive(Clone, Eq, PartialEq, ToShmem)]
-#[shmem(no_bounds)]
+#[derive(Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "shmem", derive(ToShmem))]
+#[cfg_attr(feature = "shmem", shmem(no_bounds))]
 pub struct Selector<Impl: SelectorImpl>(
-    #[shmem(field_bound)] ThinArc<SpecificityAndFlags, Component<Impl>>,
+    #[cfg_attr(feature = "shmem", shmem(field_bound))]
+    ThinArc<SpecificityAndFlags, Component<Impl>>,
 );
 
 impl<Impl: SelectorImpl> Selector<Impl> {
@@ -934,7 +937,8 @@ impl<'a, Impl: SelectorImpl> Iterator for AncestorIter<'a, Impl> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "shmem", derive(ToShmem))]
 pub enum Combinator {
     Child,        //  >
     Descendant,   // space
@@ -985,27 +989,28 @@ impl Combinator {
 /// optimal packing and cache performance, see [1].
 ///
 /// [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1357973
-#[derive(Clone, Eq, PartialEq, ToShmem)]
-#[shmem(no_bounds)]
+#[derive(Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "shmem", derive(ToShmem))]
+#[cfg_attr(feature = "shmem", shmem(no_bounds))]
 pub enum Component<Impl: SelectorImpl> {
     Combinator(Combinator),
 
     ExplicitAnyNamespace,
     ExplicitNoNamespace,
-    DefaultNamespace(#[shmem(field_bound)] Impl::NamespaceUrl),
+    DefaultNamespace(#[cfg_attr(feature = "shmem", shmem(field_bound))] Impl::NamespaceUrl),
     Namespace(
-        #[shmem(field_bound)] Impl::NamespacePrefix,
-        #[shmem(field_bound)] Impl::NamespaceUrl,
+        #[cfg_attr(feature = "shmem", shmem(field_bound))] Impl::NamespacePrefix,
+        #[cfg_attr(feature = "shmem", shmem(field_bound))] Impl::NamespaceUrl,
     ),
 
     ExplicitUniversalType,
     LocalName(LocalName<Impl>),
 
-    ID(#[shmem(field_bound)] Impl::Identifier),
-    Class(#[shmem(field_bound)] Impl::Identifier),
+    ID(#[cfg_attr(feature = "shmem", shmem(field_bound))] Impl::Identifier),
+    Class(#[cfg_attr(feature = "shmem", shmem(field_bound))] Impl::Identifier),
 
     AttributeInNoNamespaceExists {
-        #[shmem(field_bound)]
+        #[cfg_attr(feature = "shmem", shmem(field_bound))]
         local_name: Impl::LocalName,
         local_name_lower: Impl::LocalName,
     },
@@ -1013,7 +1018,7 @@ pub enum Component<Impl: SelectorImpl> {
     AttributeInNoNamespace {
         local_name: Impl::LocalName,
         operator: AttrSelectorOperator,
-        #[shmem(field_bound)]
+        #[cfg_attr(feature = "shmem", shmem(field_bound))]
         value: Impl::AttrValue,
         case_sensitivity: ParsedCaseSensitivity,
         never_matches: bool,
@@ -1036,7 +1041,7 @@ pub enum Component<Impl: SelectorImpl> {
     FirstOfType,
     LastOfType,
     OnlyOfType,
-    NonTSPseudoClass(#[shmem(field_bound)] Impl::NonTSPseudoClass),
+    NonTSPseudoClass(#[cfg_attr(feature = "shmem", shmem(field_bound))] Impl::NonTSPseudoClass),
     /// The ::slotted() pseudo-element:
     ///
     /// https://drafts.csswg.org/css-scoping/#slotted-pseudo
@@ -1051,7 +1056,7 @@ pub enum Component<Impl: SelectorImpl> {
     Slotted(Selector<Impl>),
     /// The `::part` pseudo-element.
     ///   https://drafts.csswg.org/css-shadow-parts/#part
-    Part(#[shmem(field_bound)] Box<[Impl::Identifier]>),
+    Part(#[cfg_attr(feature = "shmem", shmem(field_bound))] Box<[Impl::Identifier]>),
     /// The `:host` pseudo-class:
     ///
     /// https://drafts.csswg.org/css-scoping/#host-selector
@@ -1076,7 +1081,7 @@ pub enum Component<Impl: SelectorImpl> {
     /// Same comment as above re. the argument.
     Is(Box<[Selector<Impl>]>),
     /// An implementation-dependent pseudo-element selector.
-    PseudoElement(#[shmem(field_bound)] Impl::PseudoElement),
+    PseudoElement(#[cfg_attr(feature = "shmem", shmem(field_bound))] Impl::PseudoElement),
 }
 
 impl<Impl: SelectorImpl> Component<Impl> {
@@ -1219,10 +1224,11 @@ impl<Impl: SelectorImpl> Component<Impl> {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, ToShmem)]
-#[shmem(no_bounds)]
+#[derive(Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "shmem", derive(ToShmem))]
+#[cfg_attr(feature = "shmem", shmem(no_bounds))]
 pub struct LocalName<Impl: SelectorImpl> {
-    #[shmem(field_bound)]
+    #[cfg_attr(feature = "shmem", shmem(field_bound))]
     pub name: Impl::LocalName,
     pub lower_name: Impl::LocalName,
 }

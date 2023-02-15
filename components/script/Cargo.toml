@@ -88,7 +88,7 @@ regex = "1.1"
 script_layout_interface = { path = "../script_layout_interface" }
 script_plugins = { path = "../script_plugins" }
 script_traits = { path = "../script_traits" }
-selectors = { path = "../selectors" }
+selectors = { path = "../selectors", features = ["shmem"] }
 serde = { version = "1", features = ["derive"] }
 serde_bytes = "0.11"
 servo-media = { git = "https://github.com/servo/media" }
