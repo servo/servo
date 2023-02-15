@@ -5,6 +5,7 @@ def main(request, response):
 
     output =  b"HTTP/1.1 200 OK\r\n"
     output += b"Content-Type: text/plain;charset=UTF-8\r\n"
+    output += b"Connection: close\r\n"
     if length == b"auto" :
         output += b"Content-Length:"
         output += "{0}".format(len(content)).encode("ascii")

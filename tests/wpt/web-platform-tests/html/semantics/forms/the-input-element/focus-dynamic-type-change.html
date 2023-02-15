@@ -33,8 +33,12 @@ function test_from_to(fromType, toType) {
     input.addEventListener("blur", onBlur);
     input.type = toType;
     assert_equals(document.activeElement, input, `${fromType} input should be focused after change to ${toType}`);
+    assert_true(input.matches(":focus"), `${fromType} input should still match :focus`);
+    assert_true(input.matches(":focus-visible"), `${fromType} input should still match :focus-visible`);
     await tick();
     assert_equals(document.activeElement, input, `${fromType} input should still be focused after change to ${toType}`);
+    assert_true(input.matches(":focus"), `${fromType} input should still match :focus`);
+    assert_true(input.matches(":focus-visible"), `${fromType} input should still match :focus-visible`);
     input.removeEventListener("focus", onFocus);
     input.removeEventListener("blur", onBlur);
   }, `${fromType} -> ${toType}`);

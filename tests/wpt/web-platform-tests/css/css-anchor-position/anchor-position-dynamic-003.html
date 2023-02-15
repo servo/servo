@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 .containing-block {
   position: absolute;
@@ -84,14 +85,14 @@
     <div class="target"></div>
   </div>
 
-<script>
+<script type="module">
 for (const element of document.getElementsByClassName('target')) {
   element.dataset.offsetX = '50';
   element.dataset.offsetY = '70';
   element.dataset.expectedWidth = '50';
   element.dataset.expectedHeight = '70';
 }
-checkLayout('.target', false);
+await checkLayoutForAnchorPos('.target', false);
 
 document.body.classList.add('after');
 for (const element of document.getElementsByClassName('target')) {
@@ -100,6 +101,6 @@ for (const element of document.getElementsByClassName('target')) {
   element.dataset.expectedWidth = '70';
   element.dataset.expectedHeight = '50';
 }
-checkLayout('.after .target', true);
+await checkLayoutForAnchorPos('.after .target', true);
 </script>
 </body>

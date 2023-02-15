@@ -193,15 +193,22 @@ class SafariBrowser(WebDriverBrowser):
         if self.kill_safari:
             self.logger.debug("Going to stop Safari")
             for proc in psutil.process_iter(attrs=["exe"]):
-                if (proc.info["exe"] is not None and
-                    os.path.samefile(proc.info["exe"], self.safari_path)):
-                    self.logger.debug("Stopping Safari %s" % proc.pid)
+                if proc.info["exe"] is None:
+                    continue
+
+                try:
+                    if not os.path.samefile(proc.info["exe"], self.safari_path):
+                        continue
+                except OSError:
+                    continue
+
+                self.logger.debug("Stopping Safari %s" % proc.pid)
+                try:
+                    proc.terminate()
                     try:
-                        proc.terminate()
-                        try:
-                            proc.wait(10)
-                        except psutil.TimeoutExpired:
-                            proc.kill()
-                            proc.wait(10)
-                    except psutil.NoSuchProcess:
-                        pass
+                        proc.wait(10)
+                    except psutil.TimeoutExpired:
+                        proc.kill()
+                        proc.wait(10)
+                except psutil.NoSuchProcess:
+                    pass

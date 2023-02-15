@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Lin Peng" href="mailto:penglin220@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius">
+<head>
+    <style>
+      .div1
+      {
+        width: 109px;
+        height: 100px;
+        background: lightgreen;
+        border-top-right-radius: 10px;
+        clip-path: polygon(0 0, 109px 0px, 109px 100px, 100px 100px);
+      }
+      .div2
+      {
+        position: relative;
+        top: -100px;
+        width: 109px;
+        height: 200px;
+        background: black;
+        border-bottom-left-radius: 10px;
+        clip-path: polygon(0 0, 0px 200px, 100px 200px, 100px 100px);
+      }
+  </style>
+</head>
+<body>
+  <div class="div1"></div>
+  <div class="div2"></div>
+</body>

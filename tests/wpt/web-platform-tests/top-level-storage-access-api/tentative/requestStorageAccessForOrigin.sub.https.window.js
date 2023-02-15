@@ -52,6 +52,15 @@ test(
     '[' + testPrefix +
         '] document.requestStorageAccessForOrigin() should be supported on the document interface');
 
+promise_test(
+  t => {
+    return promise_rejects_js(t, TypeError,
+      document.requestStorageAccessForOrigin(),
+      'document.requestStorageAccessForOrigin() call without origin argument');
+  },
+  '[' + testPrefix +
+      '] document.requestStorageAccessForOrigin() should be rejected when called with no argument');
+
 if (topLevelDocument) {
   promise_test(
       t => {
@@ -87,7 +96,7 @@ if (topLevelDocument) {
   // This will validate that calls to requestStorageAccessForOrigin are rejected
   // in non-top-level contexts.
   RunTestsInIFrame(
-      './resources/requestStorageAccessForOrigin-iframe.html?testCase=same-origin-frame&rootdocument=false');
+      './resources/requestStorageAccessForOrigin-iframe.https.html?testCase=same-origin-frame&rootdocument=false');
 
   promise_test(
       async t => {
@@ -114,6 +123,18 @@ if (topLevelDocument) {
       },
       '[' + testPrefix +
           '] document.requestStorageAccessForOrigin() should be rejected when called with an opaque origin');
+
+
+  promise_test(
+    async t => {
+      await test_driver.set_permission(
+        { name: 'top-level-storage-access', requestedOrigin: 'https://foo.com' }, 'granted');
+
+      await RunCallbackWithGesture(
+        () => document.requestStorageAccessForOrigin('https://foo.com'));
+    },
+    '[' + testPrefix +
+    '] document.requestStorageAccessForOrigin() should be resolved when called properly with a user gesture');
 
 } else {
   promise_test(

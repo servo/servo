@@ -1,19 +1,28 @@
 'use strict';
 
+const expected = values => {
+    // Some properties, such as line-height, report computed values which differ
+    // from the keyframe values. To support this, we allow optional values to specify
+    // explicit "from" and "to" values as additional keyframe values.
+    const [ from, to ] = values;
+    return [ values[2] ?? from, values[3] ?? to ];
+};
+
 const discreteType = {
   testInterpolation: (property, setup, options) => {
     for (const keyframes of options) {
       const [ from, to ] = keyframes;
+      const [ expectedFrom, expectedTo ] = expected(keyframes);
       test(t => {
         const idlName = propertyToIDL(property);
         const target = createTestElement(t, setup);
         const animation = target.animate({ [idlName]: [from, to] },
                                          { duration: 1000, fill: 'both' });
         testAnimationSamples(animation, idlName,
-                             [{ time: 0,    expected: from.toLowerCase() },
-                              { time: 499,  expected: from.toLowerCase() },
-                              { time: 500,  expected: to.toLowerCase() },
-                              { time: 1000, expected: to.toLowerCase() }]);
+                             [{ time: 0,    expected: expectedFrom.toLowerCase() },
+                              { time: 499,  expected: expectedFrom.toLowerCase() },
+                              { time: 500,  expected: expectedTo.toLowerCase() },
+                              { time: 1000, expected: expectedTo.toLowerCase() }]);
       }, `${property} uses discrete animation when animating between`
          + ` "${from}" and "${to}" with linear easing`);
 
@@ -33,9 +42,9 @@ const discreteType = {
           }
         );
         testAnimationSamples(animation, idlName,
-                             [{ time: 0,    expected: from.toLowerCase() },
-                              { time: 940,  expected: from.toLowerCase() },
-                              { time: 960,  expected: to.toLowerCase() }]);
+                             [{ time: 0,    expected: expectedFrom.toLowerCase() },
+                              { time: 940,  expected: expectedFrom.toLowerCase() },
+                              { time: 960,  expected: expectedTo.toLowerCase() }]);
       }, `${property} uses discrete animation when animating between`
          + ` "${from}" and "${to}" with effect easing`);
 
@@ -53,9 +62,9 @@ const discreteType = {
           { duration: 1000, fill: 'both' }
         );
         testAnimationSamples(animation, idlName,
-                             [{ time: 0,    expected: from.toLowerCase() },
-                              { time: 940,  expected: from.toLowerCase() },
-                              { time: 960,  expected: to.toLowerCase() }]);
+                             [{ time: 0,    expected: expectedFrom.toLowerCase() },
+                              { time: 940,  expected: expectedFrom.toLowerCase() },
+                              { time: 960,  expected: expectedTo.toLowerCase() }]);
       }, `${property} uses discrete animation when animating between`
          + ` "${from}" and "${to}" with keyframe easing`);
     }
@@ -64,6 +73,7 @@ const discreteType = {
   testAdditionOrAccumulation: (property, setup, options, composite) => {
     for (const keyframes of options) {
       const [ from, to ] = keyframes;
+      const [ expectedFrom, expectedTo ] = expected(keyframes);
       test(t => {
         const idlName = propertyToIDL(property);
         const target = createTestElement(t, setup);
@@ -73,7 +83,7 @@ const discreteType = {
           { duration: 1000, composite }
         );
         testAnimationSamples(animation, idlName,
-                             [{ time: 0, expected: to.toLowerCase() }]);
+                             [{ time: 0, expected: expectedTo.toLowerCase() }]);
       }, `${property}: "${to}" onto "${from}"`);
 
       test(t => {
@@ -85,7 +95,7 @@ const discreteType = {
           { duration: 1000, composite }
         );
         testAnimationSamples(animation, idlName,
-                             [{ time: 0, expected: from.toLowerCase() }]);
+                             [{ time: 0, expected: expectedFrom.toLowerCase() }]);
       }, `${property}: "${from}" onto "${to}"`);
     }
   },

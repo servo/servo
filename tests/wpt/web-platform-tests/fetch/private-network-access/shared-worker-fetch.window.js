@@ -20,7 +20,7 @@ promise_test(t => sharedWorkerFetchTest(t, {
   target: {
     server: Server.HTTP_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
@@ -38,7 +38,7 @@ promise_test(t => sharedWorkerFetchTest(t, {
   target: {
     server: Server.HTTP_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
@@ -50,7 +50,7 @@ promise_test(t => sharedWorkerFetchTest(t, {
   target: {
     server: Server.HTTP_PRIVATE,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
@@ -70,7 +70,7 @@ promise_test(t => sharedWorkerFetchTest(t, {
   },
   target: {
     server: Server.HTTP_LOCAL,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    behavior: { preflight: PreflightBehavior.optionalSuccess(token()) },
   },
   expected: WorkerFetchTestResult.FAILURE,
 }), "treat-as-public to local: failure.");
@@ -83,7 +83,7 @@ promise_test(t => sharedWorkerFetchTest(t, {
   target: {
     server: Server.HTTP_PRIVATE,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },

@@ -18,6 +18,7 @@ def main(request, response):
   ## Handle the header retrieval request ##
   if b'retrieve' in request.GET:
     response.writer.write_status(200)
+    response.writer.write_header(b"Connection", b"close")
     response.writer.end_headers()
     try:
       header_value = request.server.stash.take(testId)

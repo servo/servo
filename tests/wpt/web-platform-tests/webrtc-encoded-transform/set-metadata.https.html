@@ -75,11 +75,9 @@ promise_test(async t => {
   // webrtc struct for all metadata?
   assert_equals(cloneMetadata.synchronizationSource,
                 metadata.synchronizationSource, 'synchronizationSource');
-  // TODO(https://crbug.com/webrtc/14709): This property is not cloned either.
-  // When clone() is refactored on to of setMetadata() and all properties are
-  // set, also expect `contributingSources` to match.
-  // assert_array_equals(cloneMetadata.contributingSources,
-  //                     metadata.contributingSources, 'contributingSources');
+  assert_array_equals(cloneMetadata.contributingSources,
+                      metadata.contributingSources, 'contributingSources');
   assert_equals(cloneMetadata.payloadType, metadata.payloadType, 'payloadType');
 }, "[VP8] setMetadata() carries over codec-specific properties");
+
 </script>

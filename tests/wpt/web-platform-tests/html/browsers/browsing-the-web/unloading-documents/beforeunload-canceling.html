@@ -154,6 +154,37 @@ const testCases = [
     expectCancelation: true,
     setReturnValue: "foo",
     expectedReturnValue: "foo"
+  },
+  {
+    expectCancelation: true,
+    cancel: true,
+    expectedReturnValue: ""
+  },
+  {
+    setReturnValue: "foo",
+    expectCancelation: true,
+    expectedReturnValue: "foo",
+    cancel: true
+  },
+  {
+    valueToReturn: "foo",
+    expectedReturnValue: "foo",
+    expectCancelation: true,
+    cancel: true
+  },
+  {
+    valueToReturn: "foo",
+    setReturnValue: "foo",
+    expectedReturnValue: "foo",
+    expectCancelation: true,
+    cancel: true
+  },
+  {
+    valueToReturn: true,
+    setReturnValue: "",
+    expectedReturnValue: "true",
+    expectCancelation: true,
+    cancel: true
   }
 ];
 
@@ -163,6 +194,11 @@ function runNextTest() {
 
   const labelAboutReturnValue = testCase.setReturnValue === undefined ? "" :
     `; setting returnValue to ${testCase.setReturnValue}`;
+
+  const labelAboutCancel = testCase.cancel === undefined ? "" :
+    "; calling preventDefault()";
+
+  const suffixLabels = labelAboutReturnValue + labelAboutCancel;
 
   async_test(t => {
     const iframe = document.createElement("iframe");
@@ -174,7 +210,7 @@ function runNextTest() {
 
     iframe.src = "beforeunload-canceling-1.html";
     document.body.appendChild(iframe);
-  }, `Returning ${testCase.valueToReturn} with a real iframe unloading${labelAboutReturnValue}`);
+  }, `Returning ${testCase.valueToReturn} with a real iframe unloading${suffixLabels}`);
 }
 
 runNextTest();

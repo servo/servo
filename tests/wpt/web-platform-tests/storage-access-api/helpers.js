@@ -11,7 +11,7 @@ function processQueryParams() {
 
 // Create an iframe element, set it up using `setUpFrame`, and optionally fetch
 // tests in it. Returns the created frame, after it has loaded.
-function CreateFrameHelper(setUpFrame, fetchTests) {
+async function CreateFrameHelper(setUpFrame, fetchTests) {
   const frame = document.createElement('iframe');
   const promise = new Promise((resolve, reject) => {
     frame.onload = () => resolve(frame);
@@ -21,7 +21,7 @@ function CreateFrameHelper(setUpFrame, fetchTests) {
   setUpFrame(frame);
 
   if (fetchTests) {
-    fetch_tests_from_window(frame.contentWindow);
+    await fetch_tests_from_window(frame.contentWindow);
   }
   return promise;
 }

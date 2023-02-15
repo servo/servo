@@ -14,13 +14,11 @@ test_valid_value("animation-range-start", "cover -42%");
 test_valid_value("animation-range-start", "contain 42%");
 test_valid_value("animation-range-start", "exit 42%");
 test_valid_value("animation-range-start", "exit 1%, cover 2%, contain 100%");
-test_valid_value("animation-range-start", "enter 42px");
+test_valid_value("animation-range-start", "exit-crossing 42%");
+test_valid_value("animation-range-start", "entry 42px");
+test_valid_value("animation-range-start", "entry-crossing 42px");
 test_valid_value("animation-range-start", "contain calc(10px + 10%)");
-test_valid_value("animation-range-start", "enter 1em");
+test_valid_value("animation-range-start", "entry 1em");
 test_valid_value("animation-range-start", "exit calc(1em + 10px)");
-
-// There's an open issue in the spec about "enter" vs "entry".
-//
-// https://drafts.csswg.org/scroll-animations-1/#valdef-animation-timeline-range-entry
-test_valid_value("animation-range-start", "enter 42%");
+test_valid_value("animation-range-start", "entry 42%");
 </script>

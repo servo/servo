@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <head>
   <title>TestDriver - Set Storage Access Command Tests</title>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/testdriver.js"></script>
@@ -11,24 +12,26 @@
   <script>
     "use strict";
 
+    // Use a different domain so that the cookie is cross-site.
+    const wwwAlt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
+
     promise_test(async t => {
-      // Allow a third-party site embedded in this first-party site.
-      await window.test_driver.set_storage_access("http://{{domains[www]}}:{{ports[http][0]}}/", "http://{{domains[]}}:{{ports[http][0]}}/", "allowed");
-      await window.test_driver.set_storage_access("https://{{domains[www]}}:{{ports[https][0]}}/", "https://{{domains[]}}:{{ports[https][0]}}/", "allowed");
-      // Block a third-party site embedded in this first-party site.
-      await window.test_driver.set_storage_access("http://{{domains[www1]}}:{{ports[http][0]}}/", "http://{{domains[]}}:{{ports[http][0]}}/", "blocked");
-      await window.test_driver.set_storage_access("https://{{domains[www1]}}:{{ports[https][0]}}/", "https://{{domains[]}}:{{ports[https][0]}}/", "blocked");
-      // Block a third-party site on all first-party sites.
-      await window.test_driver.set_storage_access("http://{{domains[www2]}}:{{ports[http][0]}}/", "*", "blocked");
-      await window.test_driver.set_storage_access("https://{{domains[www2]}}:{{ports[https][0]}}/", "*", "blocked");
-    }, "Set up storage access rules");
+      t.add_cleanup(async () => {
+        await test_driver.delete_all_cookies();
+        await MaybeSetStorageAccess(wwwAlt + "/", "*", "allowed");
+      });
 
-    RunTestsInIFrame("http://{{domains[]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello0&value=world0&allowed=true&testcase=same-site");
+      const responder_html = `${wwwAlt}/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js`;
+      const frame = await CreateFrame(responder_html);
 
-    RunTestsInIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello&value=world&allowed=true&testcase=third-party-allowed-on-first-party-site");
+      await fetch(`${wwwAlt}/cookies/resources/set.py?cookie=monster;Secure;SameSite=None;Path=/`,
+        { mode: "no-cors", credentials: "include" }).then((resp) => resp.text());
 
-    RunTestsInIFrame("http://{{domains[www1]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello1&value=world1&allowed=false&testcase=third-party-blocked-on-first-party-site");
+      assert_true(cookieStringHasCookie("cookie", "monster", await GetJSCookiesFromFrame(frame)), "frame should have access via document.cookie.");
 
-    RunTestsInIFrame("http://{{domains[www2]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello2&value=world2&allowed=false&testcase=third-party-blocked-all");
+      await MaybeSetStorageAccess(wwwAlt + "/", "*", "blocked");
+
+      assert_false(cookieStringHasCookie("cookie", "monster", await GetJSCookiesFromFrame(frame)), "frame should not have access via document.cookie.");
+    });
   </script>
 </body>

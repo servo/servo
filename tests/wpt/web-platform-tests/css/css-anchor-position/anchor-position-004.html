@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 .relpos {
   position: relative;
@@ -31,7 +32,7 @@
   position: absolute;
 }
 </style>
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <div class="relpos">
     <div class="spacer"></div>
     <div id="anchor"></div>

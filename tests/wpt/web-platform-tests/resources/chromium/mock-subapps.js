@@ -1,6 +1,6 @@
 'use strict';
 
-import {SubAppsService, SubAppsServiceReceiver, SubAppsServiceResult} from '/gen/third_party/blink/public/mojom/subapps/sub_apps_service.mojom.m.js';
+import {SubAppsService, SubAppsServiceReceiver, SubAppsServiceResultCode} from '/gen/third_party/blink/public/mojom/subapps/sub_apps_service.mojom.m.js';
 
 self.SubAppsServiceTest = (() => {
   // Class that mocks SubAppsService interface defined in /third_party/blink/public/mojom/subapps/sub_apps_service.mojom
@@ -29,7 +29,7 @@ self.SubAppsServiceTest = (() => {
     list() {
       return Promise.resolve({
         result: {
-          code: testInternal.serviceResultCode,
+          resultCode: testInternal.serviceResultCode,
           subAppsList: testInternal.listCallReturnValue,
         }
       });
