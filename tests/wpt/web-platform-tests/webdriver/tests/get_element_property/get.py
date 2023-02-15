@@ -37,6 +37,15 @@ def test_no_such_element_with_invalid_value(session):
     assert_error(response, "no such element")
 
 
+def test_no_such_element_with_shadow_root(session, get_test_page):
+    session.url = get_test_page()
+
+    element = session.find.css("custom-element", all=False)
+
+    result = get_element_property(session, element.shadow_root.id, "id")
+    assert_error(result, "no such element")
+
+
 @pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
 def test_no_such_element_from_other_window_handle(session, inline, closed):
     session.url = inline("<div id='parent'><p/>")
@@ -54,25 +63,26 @@ def test_no_such_element_from_other_window_handle(session, inline, closed):
 
 
 @pytest.mark.parametrize("closed", [False, True], ids=["open", "closed"])
-def test_no_such_element_from_other_frame(session, url, closed):
-    session.url = url("/webdriver/tests/support/html/subframe.html")
+def test_no_such_element_from_other_frame(session, get_test_page, closed):
+    session.url = get_test_page(as_frame=True)
 
-    frame = session.find.css("#delete-frame", all=False)
+    frame = session.find.css("iframe", all=False)
     session.switch_frame(frame)
 
-    button = session.find.css("#remove-parent", all=False)
-    if closed:
-        button.click()
+    element = session.find.css("div", all=False)
 
     session.switch_frame("parent")
 
-    response = get_element_property(session, button.id, "id")
+    if closed:
+        session.execute_script("arguments[0].remove();", args=[frame])
+
+    response = get_element_property(session, element.id, "id")
     assert_error(response, "no such element")
 
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, as_frame):
-    element = stale_element("<input>", "input", as_frame=as_frame)
+    element = stale_element("input#text", as_frame=as_frame)
 
     result = get_element_property(session, element.id, "id")
     assert_error(result, "stale element reference")
@@ -150,32 +160,18 @@ def test_primitives_set_by_execute_script(session, inline, js_primitive, py_prim
     ("shadowRoot", ShadowRoot),
     ("window", Window),
 ])
-def test_web_reference(session, inline, js_web_reference, py_web_reference):
-    session.url = inline("""
-        <div id="parent"></div>
-        <p id="element"></p>
-        <iframe id="frame"></iframe>
-        <shadow-element id="custom"></shadow-element>
+def test_web_reference(session, get_test_page, js_web_reference, py_web_reference):
+    session.url = get_test_page()
 
-        <script>
-            customElements.define("shadow-element",
-                class extends HTMLElement {
-                    constructor() {
-                        super();
-                        this.attachShadow({ mode: "open" }).innerHTML = "<p>foo";
-                    }
-                }
-            );
-
-            const parent = document.getElementById("parent");
-            parent.__element = document.getElementById("element");
-            parent.__frame = document.getElementById("frame").contentWindow;
-            parent.__shadowRoot = document.getElementById("custom").shadowRoot;
-            parent.__window = document.defaultView;
-        </script>
+    session.execute_script("""
+        const parent = document.querySelector("body");
+        parent.__element = document.querySelector("div");
+        parent.__frame = document.querySelector("iframe").contentWindow;
+        parent.__shadowRoot = document.querySelector("custom-element").shadowRoot;
+        parent.__window = document.defaultView;
         """)
 
-    elem = session.find.css("#parent", all=False)
+    elem = session.find.css("body", all=False)
     response = get_element_property(session, elem.id, "__{}".format(js_web_reference))
     value = assert_success(response)
 

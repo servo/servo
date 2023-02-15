@@ -83,5 +83,21 @@ test(() => {
       '<option selected>Fourth</option>';
   assert_equals(target.selectedOptions[0].textContent, 'Fourth');
 }, 'The last selected OPTION should win; Inserted by innerHTML');
+
+test (() => {
+  for (let insert_location = 0; insert_location < 3; ++insert_location) {
+    const target = document.querySelector('#by-innerHTML');
+    target.innerHTML = '<option>A</option>' +
+        '<option selected>C</option>' +
+        '<option>D</option>';
+    const refNode = target.querySelectorAll('option')[insert_location];
+
+    const opt = document.createElement('option');
+    opt.selected = true;
+    opt.textContent = 'B';
+    target.insertBefore(opt, refNode);
+    assert_equals(target.selectedOptions[0].textContent, 'B');
+  }
+}, 'If an OPTION says it is selected, it should be selected after it is inserted.');
 </script>
 </body>

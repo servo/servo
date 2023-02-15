@@ -24,7 +24,7 @@ def test_no_browsing_context(session, closed_frame, touch_chain):
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, touch_chain, as_frame):
-    element = stale_element("<input>", "input", as_frame=as_frame)
+    element = stale_element("input#text", as_frame=as_frame)
 
     with pytest.raises(StaleElementReferenceException):
         touch_chain.click(element=element).perform()

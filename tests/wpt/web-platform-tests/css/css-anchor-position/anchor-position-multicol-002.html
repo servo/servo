@@ -6,6 +6,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 .cb {
   transform: translate(0);  /* Make it a containing block. */
@@ -54,7 +55,7 @@
   background: purple;
 }
 </style>
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <p>The green box should be a union of blue boxes,
     and the purple box should be at the right-bottom of the green box.
   </p>

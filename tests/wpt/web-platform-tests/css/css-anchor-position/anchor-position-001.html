@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 #container {
   position: relative;
@@ -42,7 +43,7 @@
   height: 100px;
 }
 </style>
-<body onload="checkLayout('#target')">
+<body onload="checkLayoutForAnchorPos('#target')">
   <div id="container">
     <div id="a1"></div>
     <div id="a2"></div>

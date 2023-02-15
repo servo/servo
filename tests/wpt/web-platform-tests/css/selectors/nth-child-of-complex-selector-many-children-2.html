@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>nth-child(...of S) with many children, where only some match</title>
+    <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org" />
+    <link rel="help" href="https://crbug.com/1412421" />
+    <link rel="match" href="nth-child-of-complex-selector-many-children-2-ref.html" />
+    <style>
+      p:nth-child(16 of .c) { background-color: red; }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is no red.</p>
+    <div>
+      <p></p>
+      <p></p>
+      <p></p>
+      <p class="c">1</p>
+      <p class="c">2</p>
+      <p></p>
+      <p></p>
+      <p class="c">3</p>
+      <p class="c">4</p>
+      <p></p>
+      <p></p>
+      <p class="c">5</p>
+      <p></p>
+      <p></p>
+      <p class="c">6</p>
+      <p></p>
+      <p class="c">7</p>
+      <p></p>
+      <p></p>
+      <p></p>
+      <p></p>
+      <p class="c">8</p>
+      <p></p>
+      <p></p>
+      <p></p>
+      <p class="c">9</p>
+      <p class="c">10</p>
+      <p></p>
+      <p></p>
+      <p class="c">11</p>
+      <p class="c">12</p>
+      <p></p>
+      <p></p>
+      <p class="c">13</p>
+      <p class="c">14</p>
+    </div>
+  </body>
+</html>

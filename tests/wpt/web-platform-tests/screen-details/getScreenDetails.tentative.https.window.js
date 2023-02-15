@@ -8,7 +8,7 @@ promise_test(async t => {
 }, 'getScreenDetails() is present');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'window-placement'}, 'granted');
+  await test_driver.set_permission({name: 'window-management'}, 'granted');
   const screenDetails = await self.getScreenDetails();
   assert_true(ScreenDetails.prototype.isPrototypeOf(screenDetails));
   assert_true(ScreenDetailed.prototype.isPrototypeOf(screenDetails.currentScreen));
@@ -19,14 +19,14 @@ promise_test(async t => {
 }, 'getScreenDetails() returns the expected interface with permission granted');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'window-placement'}, 'granted');
+  await test_driver.set_permission({name: 'window-management'}, 'granted');
   assert_greater_than((await self.getScreenDetails()).screens.length, 0);
-  await test_driver.set_permission({name: 'window-placement'}, 'denied');
+  await test_driver.set_permission({name: 'window-management'}, 'denied');
   await promise_rejects_dom(t, 'NotAllowedError', self.getScreenDetails());
 }, 'getScreenDetails() rejects the promise with permission denied');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'window-placement'}, 'granted');
+  await test_driver.set_permission({name: 'window-management'}, 'granted');
   let iframe = document.body.appendChild(document.createElement('iframe'));
   assert_greater_than((await iframe.contentWindow.getScreenDetails()).screens.length, 0);
 
@@ -50,7 +50,7 @@ promise_test(async t => {
 }, 'getScreenDetails() resolves for attached iframe; rejects for detached iframe');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'window-placement'}, 'granted');
+  await test_driver.set_permission({name: 'window-management'}, 'granted');
   let iframe = document.body.appendChild(document.createElement('iframe'));
   const screenDetails = await iframe.contentWindow.getScreenDetails();
   assert_greater_than(screenDetails.screens.length, 0);

@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 #container {
   position: relative;
@@ -59,9 +60,9 @@
         data-offset-x=200 data-offset-y=100
         data-expected-width=300 data-expected-height=100></div>
   </div>
-<script>
+<script type="module">
 document.body.offsetTop;  // Force layout.
 container.classList.add('after');
-checkLayout('#target');
+await checkLayoutForAnchorPos('#target');
 </script>
 </body>

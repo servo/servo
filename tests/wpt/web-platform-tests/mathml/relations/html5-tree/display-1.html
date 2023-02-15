@@ -63,13 +63,16 @@
           var after_block_and_specified_width = getBox("after_block_and_specified_width");
           test(function() {
               assert_true(MathMLFeatureDetection.has_mspace());
-              assert_approx_equals(before_block_and_specified_width.left, content.left, 1,
+              let math = getBox("math_with_specified_width");
+              assert_approx_equals(before_block_and_specified_width.left, math.left, 1,
                                    "content before must be left aligned");
+              assert_approx_equals(math.width, 100, 1,
+                                   "math uses specified width.");
               assert_approx_equals((mspace_width.left + mspace_width.right) / 2,
-                                   (content.left + content.right) / 2,
+                                   (math.left + math.right) / 2,
                                    1,
                                    "math must be centered.");
-              assert_approx_equals(after_block_and_specified_width.left, content.left, 1,
+              assert_approx_equals(after_block_and_specified_width.left, math.left, 1,
                                    "content after must be left aligned");
               assert_less_than_equal(before_block_and_specified_width.bottom, mspace_width.top,
                                      "new line before math");
@@ -154,7 +157,7 @@
     <span id="after_inline" class="square"></span>
     <br/>
     <span id="before_block_and_specified_width" class="square"></span>
-    <math display="block" style="width:100px"><mspace id="mspace_width" width="50px" height="50px"/></math>
+    <math display="block" id="math_with_specified_width" style="background: pink; width:100px"><mspace id="mspace_width" width="50px" height="50px"/></math>
     <span id="after_block_and_specified_width" class="square"></span>
     <br/>
     <div>

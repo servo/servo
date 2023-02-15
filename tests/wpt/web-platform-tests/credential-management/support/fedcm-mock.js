@@ -99,6 +99,12 @@ export class MockFederatedAuthRequest {
   async setIdpSigninStatus(origin, status) {
   }
 
+  async registerIdP(configURL) {
+  }
+
+  async unregisterIdP(configURL) {
+  }
+
   async reset() {
     this.token_ = null;
     this.selected_identity_provider_config_url_ = null;

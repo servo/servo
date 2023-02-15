@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
 #container {
@@ -20,7 +21,7 @@
   position: absolute;
 }
 </style>
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <div id="container">
     <div>spacer</div>
     <div>

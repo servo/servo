@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Tests basics of the 'anchor-default' property</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-default">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<div id="container">
+  <div id="target"></div>
+</div>
+
+<script>
+// anchor-default: <anchor-element>
+// <anchor-element> = implicit | <dashed-ident>
+test_valid_value('anchor-default', 'implicit');
+test_valid_value('anchor-default', '--foo');
+test_invalid_value('anchor-default', 'none');
+test_invalid_value('anchor-default', 'foo-bar');
+test_invalid_value('anchor-default', '--foo --bar')
+test_invalid_value('anchor-default', '--foo, --bar')
+test_invalid_value('anchor-default', '100px');
+test_invalid_value('anchor-default', '100%');
+
+// Computed value: as specified
+test_computed_value('anchor-default', 'implicit');
+test_computed_value('anchor-default', '--foo');
+
+// Initial: implicit
+// Inherited: no
+assert_not_inherited('anchor-default', 'implicit', '--foo');
+
+// Animation type: discrete
+test_no_interpolation({
+  property: 'anchor-default',
+  from: '--foo',
+  to: 'implicit',
+});
+</script>

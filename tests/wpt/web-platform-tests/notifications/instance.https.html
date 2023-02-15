@@ -3,61 +3,58 @@
 <title>Notification instance basic tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/custom-data.js"></script>
 <script>
-if (Notification.permission != "granted") {
-    test(function() {
-        this.force_timeout()
-        this.set_status(this.NOTRUN, "You must allow notifications for this"
-            + " origin before running this test.")
-    })
-} else {
-    var n = new Notification("Radio check",
-      {
-          dir: "ltr",
-         lang: "aa",
-         body: "This is a radio check.",
-          tag: "radio_check999",
-         icon: "http://example.com/icon.png",
-      }
-    )
-    n.onshow = function() {
-        n.close()
+var n = new Notification("Radio check",
+    {
+        dir: "ltr",
+        lang: "aa",
+        body: "This is a radio check.",
+        tag: "radio_check999",
+        icon: "http://example.com/icon.png",
+        data: fakeCustomData,
     }
-    test(function() {
-        assert_true(n instanceof Notification)
-    },"Notification instance exists.")
-    test(function() {
-        assert_true("close" in n)
-    },"Attribute exists: close")
-    test(function() {
-        assert_true("onclick" in n)
-    },"Attribute exists: onclick")
-    test(function() {
-        assert_true("onshow" in n)
-    },"Attribute exists: onshow")
-    test(function() {
-        assert_true("onerror" in n)
-    },"Attribute exists: onerror")
-    test(function() {
-        assert_true("onclose" in n)
-    },"Attribute exists: onclose")
-    test(function() {
-        assert_equals("Radio check", n.title)
-    },"Attribute exists with expected value: title")
-    test(function() {
-        assert_equals("ltr", n.dir)
-    },"Attribute exists with expected value: dir")
-    test(function() {
-        assert_equals("aa", n.lang)
-    },"Attribute exists with expected value: lang")
-    test(function() {
-        assert_equals("This is a radio check.", n.body)
-    },"Attribute exists with expected value: body")
-    test(function() {
-        assert_equals("radio_check999", n.tag)
-    },"Attribute exists with expected value: tag")
-    test(function() {
-        assert_equals("http://example.com/icon.png", n.icon)
-    },"Attribute exists with expected value: icon")
+)
+n.onshow = function() {
+    n.close()
 }
+test(function() {
+    assert_true(n instanceof Notification)
+},"Notification instance exists.")
+test(function() {
+    assert_true("close" in n)
+},"Attribute exists: close")
+test(function() {
+    assert_true("onclick" in n)
+},"Attribute exists: onclick")
+test(function() {
+    assert_true("onshow" in n)
+},"Attribute exists: onshow")
+test(function() {
+    assert_true("onerror" in n)
+},"Attribute exists: onerror")
+test(function() {
+    assert_true("onclose" in n)
+},"Attribute exists: onclose")
+test(function() {
+    assert_equals("Radio check", n.title)
+},"Attribute exists with expected value: title")
+test(function() {
+    assert_equals("ltr", n.dir)
+},"Attribute exists with expected value: dir")
+test(function() {
+    assert_equals("aa", n.lang)
+},"Attribute exists with expected value: lang")
+test(function() {
+    assert_equals("This is a radio check.", n.body)
+},"Attribute exists with expected value: body")
+test(function() {
+    assert_equals("radio_check999", n.tag)
+},"Attribute exists with expected value: tag")
+test(function() {
+    assert_equals("http://example.com/icon.png", n.icon)
+},"Attribute exists with expected value: icon")
+test(function() {
+    assert_custom_data(n.data);
+},"Attribute exists with expected value: data")
 </script>

@@ -26,7 +26,8 @@
       extraValidations: async (entries, options)=>{
         const paint_entries = await new Promise(resolve => {
           new PerformanceObserver(list => resolve(list.getEntries())).observe(
-            {type: 'paint', buffered: true});
+            {type: 'paint', buffered: true,
+             includeSoftNavigationObservations: true});
           });
         assert_equals(paint_entries.length, 10);
       },

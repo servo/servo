@@ -111,7 +111,7 @@ components:
   tox-python3_6:
     env:
       TOXENV: py36
-      PY_COLORS: 0
+      PY_COLORS: "0"
     install:
       - python3.6
       - python3.6-distutils
@@ -120,7 +120,7 @@ components:
   tox-python3_10:
     env:
       TOXENV: py310
-      PY_COLORS: 0
+      PY_COLORS: "0"
     install:
       - python3.10
       - python3.10-distutils

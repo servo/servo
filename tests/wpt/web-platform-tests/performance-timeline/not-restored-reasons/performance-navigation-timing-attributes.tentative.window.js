@@ -19,7 +19,7 @@ promise_test(async t => {
   const rc1_url = await rc1.executeScript(() => {
     return location.href;
   });
-  // Add a cross-origin iframe and use BroadcastChannel.
+  // Add a cross-origin iframe.
   const rc1_child = await rc1.addIframe(
       /*extraConfig=*/ {
         origin: 'HTTP_REMOTE_ORIGIN',

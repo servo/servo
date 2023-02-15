@@ -27,8 +27,10 @@
       assert_equals(state, "granted");
     }, "Permissions grants are observable across same-origin iframes");
 
-    // Finally run the simple tests below in a separate cross-origin iframe.
-    RunTestsInIFrame('https://{{domains[www]}}:{{ports[https][0]}}/storage-access-api/resources/permissions-iframe.https.html');
+    promise_test(async (t) => {
+      // Finally run the simple tests below in a separate cross-origin iframe.
+      await RunTestsInIFrame('https://{{domains[www]}}:{{ports[https][0]}}/storage-access-api/resources/permissions-iframe.https.html');
+    }, "IFrame tests");
     return;
   }
 

@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 .cb {
   position: relative;
@@ -34,7 +35,7 @@
   background: orange;
 }
 </style>
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <!-- Margins/borders/paddings on the containing block. -->
   <div class="cb margins">
     <div class="spacer"></div>

@@ -47,8 +47,8 @@
 
   promise_test(async t => {
     // Points of interest along view timeline:
-    //   600 px cover start, enter start
-    //   700 px contain start, enter end
+    //   600 px cover start, entry start
+    //   700 px contain start, entry end
     //   800 px contain end, exit start
     //   900 px cover end, exit end
     const anim =
@@ -64,8 +64,8 @@
 
     assert_percents_approx_equal(timeline.getCurrentTime('cover'), 0,
                                  MAX_SCROLL, 'Scroll aligned with cover start');
-    assert_percents_approx_equal(timeline.getCurrentTime('enter'), 0,
-                                 MAX_SCROLL, 'Scroll aligned with enter start');
+    assert_percents_approx_equal(timeline.getCurrentTime('entry'), 0,
+                                 MAX_SCROLL, 'Scroll aligned with entry start');
     assert_percents_approx_equal(timeline.getCurrentTime(), 0,
                                  MAX_SCROLL,
                                  'Scroll aligned with timeline start offset');
@@ -73,14 +73,14 @@
     container.scrollLeft = 650;
     await waitForNextFrame();
 
-    assert_percents_approx_equal(timeline.getCurrentTime('enter'), 50,
-                                 MAX_SCROLL, 'Scroll at enter midpoint');
+    assert_percents_approx_equal(timeline.getCurrentTime('entry'), 50,
+                                 MAX_SCROLL, 'Scroll at entry midpoint');
 
     container.scrollLeft = 700;
     await waitForNextFrame();
 
-    assert_percents_approx_equal(timeline.getCurrentTime('enter'), 100,
-                                 MAX_SCROLL, 'Scroll at enter end');
+    assert_percents_approx_equal(timeline.getCurrentTime('entry'), 100,
+                                 MAX_SCROLL, 'Scroll at entry end');
     assert_percents_approx_equal(timeline.getCurrentTime('contain'), 0,
                                  MAX_SCROLL, 'Scroll at contain start');
 
