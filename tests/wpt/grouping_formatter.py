@@ -155,15 +155,22 @@ class ServoHandler(mozlog.reader.LogHandler):
     def test_start(self, data):
         self.running_tests[data['thread']] = data['test']
 
+    @staticmethod
+    def data_was_for_expected_result(data):
+        if "expected" not in data:
+            return True
+        return "known_intermittent" in data \
+            and data["status"] in data["known_intermittent"]
+
     def test_end(self, data: dict) -> Optional[UnexpectedResult]:
         self.completed_tests += 1
         test_status = data["status"]
         test_path = data["test"]
         del self.running_tests[data['thread']]
 
-        had_unexpected_test_result = "expected" in data
+        had_expected_test_result = self.data_was_for_expected_result(data)
         subtest_failures = self.subtest_failures.pop(test_path, [])
-        if not had_unexpected_test_result and not subtest_failures:
+        if had_expected_test_result and not subtest_failures:
             self.expected[test_status] += 1
             return None
 
@@ -185,7 +192,7 @@ class ServoHandler(mozlog.reader.LogHandler):
             subtest_failures
         )
 
-        if had_unexpected_test_result:
+        if not had_expected_test_result:
             self.unexpected_tests[result.actual].append(data)
         if subtest_failures:
             self.tests_with_failing_subtests.append(data)
@@ -194,7 +201,7 @@ class ServoHandler(mozlog.reader.LogHandler):
         return result
 
     def test_status(self, data: dict):
-        if "expected" not in data:
+        if self.data_was_for_expected_result(data):
             return
         self.subtest_failures[data["test"]].append(UnexpectedSubtestResult(
             data["test"],
