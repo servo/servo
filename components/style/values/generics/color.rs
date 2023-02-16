@@ -5,6 +5,7 @@
 //! Generic types for color properties.
 
 use crate::color::mix::ColorInterpolationMethod;
+use crate::color::AbsoluteColor;
 use crate::values::animated::color::AnimatedRGBA;
 use crate::values::animated::ToAnimatedValue;
 use crate::values::specified::percentage::ToPercentage;
@@ -97,18 +98,19 @@ impl<RGBA, Percentage> ColorMix<GenericColor<RGBA, Percentage>, Percentage> {
         RGBA: Clone + ToAnimatedValue<AnimatedValue = AnimatedRGBA>,
         Percentage: ToPercentage,
     {
-        let left = self.left.as_numeric()?.clone().to_animated_value();
-        let right = self.right.as_numeric()?.clone().to_animated_value();
-        Some(ToAnimatedValue::from_animated_value(
-            crate::color::mix::mix(
-                &self.interpolation,
-                &left,
-                self.left_percentage.to_percentage(),
-                &right,
-                self.right_percentage.to_percentage(),
-                self.normalize_weights,
-            ),
-        ))
+        let left = AbsoluteColor::from(self.left.as_numeric()?.clone().to_animated_value());
+        let right = AbsoluteColor::from(self.right.as_numeric()?.clone().to_animated_value());
+
+        let mixed = crate::color::mix::mix(
+            &self.interpolation,
+            &left,
+            self.left_percentage.to_percentage(),
+            &right,
+            self.right_percentage.to_percentage(),
+            self.normalize_weights,
+        );
+
+        Some(ToAnimatedValue::from_animated_value(mixed.into()))
     }
 }
 
