@@ -6632,7 +6632,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "to_shmem"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -6644,7 +6644,7 @@ dependencies = [
 
 [[package]]
 name = "to_shmem_derive"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "darling",
  "derive_common",
