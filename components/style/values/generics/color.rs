@@ -4,12 +4,12 @@
 
 //! Generic types for color properties.
 
+use crate::color::mix::ColorInterpolationMethod;
 use crate::values::animated::color::AnimatedRGBA;
 use crate::values::animated::ToAnimatedValue;
 use crate::values::specified::percentage::ToPercentage;
-use crate::values::{Parse, Parser, ParserContext};
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, ToCss};
+use style_traits::{CssWriter, ToCss};
 
 /// This struct represents a combined color from a numeric color and
 /// the current foreground color (currentcolor keyword).
@@ -22,158 +22,6 @@ pub enum GenericColor<RGBA, Percentage> {
     CurrentColor,
     /// The color-mix() function.
     ColorMix(Box<GenericColorMix<Self, Percentage>>),
-}
-
-/// A color space as defined in [1].
-///
-/// [1]: https://drafts.csswg.org/css-color-4/#typedef-color-space
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    ToAnimatedValue,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum InterpolationColorSpace {
-    /// The sRGB color space.
-    Srgb,
-    /// The linear-sRGB color space.
-    LinearSrgb,
-    /// The CIEXYZ color space.
-    #[parse(aliases = "xyz-d65")]
-    Xyz,
-    /// https://drafts.csswg.org/css-color-4/#valdef-color-xyz
-    XyzD50,
-    /// The CIELAB color space.
-    Lab,
-    /// https://drafts.csswg.org/css-color-4/#valdef-hsl-hsl
-    Hsl,
-    /// https://drafts.csswg.org/css-color-4/#valdef-hwb-hwb
-    Hwb,
-    /// The CIELAB color space, expressed in cylindrical coordinates.
-    Lch,
-    // TODO: Oklab, Lch
-}
-
-impl InterpolationColorSpace {
-    /// Returns whether this is a `<polar-color-space>`.
-    pub fn is_polar(self) -> bool {
-        match self {
-            Self::Srgb | Self::LinearSrgb | Self::Xyz | Self::XyzD50 | Self::Lab => false,
-            Self::Hsl | Self::Hwb | Self::Lch => true,
-        }
-    }
-}
-
-/// A hue-interpolation-method as defined in [1].
-///
-/// [1]: https://drafts.csswg.org/css-color-4/#typedef-hue-interpolation-method
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    ToAnimatedValue,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum HueInterpolationMethod {
-    /// https://drafts.csswg.org/css-color-4/#shorter
-    Shorter,
-    /// https://drafts.csswg.org/css-color-4/#longer
-    Longer,
-    /// https://drafts.csswg.org/css-color-4/#increasing
-    Increasing,
-    /// https://drafts.csswg.org/css-color-4/#decreasing
-    Decreasing,
-    /// https://drafts.csswg.org/css-color-4/#specified
-    Specified,
-}
-
-/// https://drafts.csswg.org/css-color-4/#color-interpolation-method
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToShmem,
-    ToAnimatedValue,
-    ToComputedValue,
-    ToResolvedValue,
-)]
-#[repr(C)]
-pub struct ColorInterpolationMethod {
-    /// The color-space the interpolation should be done in.
-    pub space: InterpolationColorSpace,
-    /// The hue interpolation method.
-    pub hue: HueInterpolationMethod,
-}
-
-impl ColorInterpolationMethod {
-    /// Returns the srgb interpolation method.
-    pub fn srgb() -> Self {
-        Self {
-            space: InterpolationColorSpace::Srgb,
-            hue: HueInterpolationMethod::Shorter,
-        }
-    }
-}
-
-impl Parse for ColorInterpolationMethod {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        input.expect_ident_matching("in")?;
-        let space = InterpolationColorSpace::parse(input)?;
-        // https://drafts.csswg.org/css-color-4/#hue-interpolation
-        //     Unless otherwise specified, if no specific hue interpolation
-        //     algorithm is selected by the host syntax, the default is shorter.
-        let hue = if space.is_polar() {
-            input
-                .try_parse(|input| -> Result<_, ParseError<'i>> {
-                    let hue = HueInterpolationMethod::parse(input)?;
-                    input.expect_ident_matching("hue")?;
-                    Ok(hue)
-                })
-                .unwrap_or(HueInterpolationMethod::Shorter)
-        } else {
-            HueInterpolationMethod::Shorter
-        };
-        Ok(Self { space, hue })
-    }
-}
-
-impl ToCss for ColorInterpolationMethod {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str("in ")?;
-        self.space.to_css(dest)?;
-        if self.hue != HueInterpolationMethod::Shorter {
-            dest.write_char(' ')?;
-            self.hue.to_css(dest)?;
-            dest.write_str(" hue")?;
-        }
-        Ok(())
-    }
 }
 
 /// A restricted version of the css `color-mix()` function, which only supports
@@ -249,17 +97,18 @@ impl<RGBA, Percentage> ColorMix<GenericColor<RGBA, Percentage>, Percentage> {
         RGBA: Clone + ToAnimatedValue<AnimatedValue = AnimatedRGBA>,
         Percentage: ToPercentage,
     {
-        use crate::values::animated::color::Color as AnimatedColor;
         let left = self.left.as_numeric()?.clone().to_animated_value();
         let right = self.right.as_numeric()?.clone().to_animated_value();
-        Some(ToAnimatedValue::from_animated_value(AnimatedColor::mix(
-            &self.interpolation,
-            &left,
-            self.left_percentage.to_percentage(),
-            &right,
-            self.right_percentage.to_percentage(),
-            self.normalize_weights,
-        )))
+        Some(ToAnimatedValue::from_animated_value(
+            crate::color::mix::mix(
+                &self.interpolation,
+                &left,
+                self.left_percentage.to_percentage(),
+                &right,
+                self.right_percentage.to_percentage(),
+                self.normalize_weights,
+            ),
+        ))
     }
 }
 
