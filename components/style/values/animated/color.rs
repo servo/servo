@@ -5,6 +5,7 @@
 //! Animated types for CSS colors.
 
 use crate::color::mix::ColorInterpolationMethod;
+use crate::color::{AbsoluteColor, ColorComponents, ColorSpace};
 use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
 use crate::values::computed::Percentage;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -25,6 +26,29 @@ pub struct AnimatedRGBA {
     pub blue: f32,
     /// The alpha component.
     pub alpha: f32,
+}
+
+impl From<AbsoluteColor> for AnimatedRGBA {
+    fn from(value: AbsoluteColor) -> Self {
+        let srgb = value.to_color_space(ColorSpace::Srgb);
+
+        Self::new(
+            srgb.components.0,
+            srgb.components.1,
+            srgb.components.2,
+            srgb.alpha,
+        )
+    }
+}
+
+impl From<AnimatedRGBA> for AbsoluteColor {
+    fn from(value: AnimatedRGBA) -> Self {
+        Self::new(
+            ColorSpace::Srgb,
+            ColorComponents(value.red, value.green, value.blue),
+            value.alpha,
+        )
+    }
 }
 
 use self::AnimatedRGBA as RGBA;
@@ -54,12 +78,13 @@ impl Animate for RGBA {
         let (left_weight, right_weight) = procedure.weights();
         Ok(crate::color::mix::mix(
             &ColorInterpolationMethod::srgb(),
-            self,
+            &AbsoluteColor::from(self.clone()),
             left_weight as f32,
-            other,
+            &AbsoluteColor::from(other.clone()),
             right_weight as f32,
             /* normalize_weights = */ false,
-        ))
+        )
+        .into())
     }
 }
 

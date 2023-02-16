@@ -93,6 +93,8 @@ pub enum ColorSpace {
     XyzD50,
     /// A color specified with the color(..) function and the "xyz-d65" or "xyz"
     /// color space, e.g. "color(xyz-d65 0.21661 0.14602 0.59452)".
+    /// NOTE: https://drafts.csswg.org/css-color-4/#resolving-color-function-values
+    ///       specifies that `xyz` is an alias for the `xyz-d65` color space.
     #[parse(aliases = "xyz")]
     XyzD65,
 }
@@ -108,6 +110,21 @@ impl ColorSpace {
     #[inline]
     pub fn is_polar(&self) -> bool {
         matches!(self, Self::Hsl | Self::Hwb | Self::Lch | Self::Oklch)
+    }
+
+    /// Returns an index of the hue component in the color space, otherwise
+    /// `None`.
+    #[inline]
+    pub fn hue_index(&self) -> Option<usize> {
+        match self {
+            Self::Hsl | Self::Hwb => Some(0),
+            Self::Lch | Self::Oklch => Some(2),
+
+            _ => {
+                debug_assert!(!self.is_polar());
+                None
+            },
+        }
     }
 }
 
@@ -144,7 +161,6 @@ pub struct AbsoluteColor {
 /// let srgb = AbsoluteColor::new(ColorSpace::Srgb, 1.0, 0.0, 0.0, 0.0);
 /// let floats = color_components_as!(&srgb, [f32; 4]); // [1.0, 0.0, 0.0, 0.0]
 /// ```
-#[macro_export]
 macro_rules! color_components_as {
     ($c:expr, $t:ty) => {{
         // This macro is not an inline function, because we can't use the
@@ -171,6 +187,12 @@ impl AbsoluteColor {
             color_space,
             flags: SerializationFlags::empty(),
         }
+    }
+
+    /// Return all the components of the color in an array.  (Includes alpha)
+    #[inline]
+    pub fn raw_components(&self) -> &[f32; 4] {
+        unsafe { color_components_as!(self, [f32; 4]) }
     }
 
     /// Return the alpha component.
