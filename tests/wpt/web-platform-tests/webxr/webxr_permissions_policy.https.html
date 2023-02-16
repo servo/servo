@@ -13,7 +13,7 @@ xr_promise_test(
   return navigator.xr.isSessionSupported("inline").then((supported) => {
     t.step(() => {
       assert_true(supported,
-        "inline should always be supported, even without feature policy");
+        "inline should always be supported, even without permissions policy");
     });
 
     // It shouldn't matter that there's no device connected, the SecurityError
@@ -42,11 +42,11 @@ xr_promise_test(
 
           promise_rejects_dom(t, "NotSupportedError",
             navigator.xr.requestSession("inline", { requiredFeatures: ["local"] }),
-            "Inline with features should reject without feature policy"),
+            "Inline with features should reject without permissions policy"),
 
           promise_rejects_dom(t, "NotSupportedError",
             navigator.xr.requestSession("immersive-vr"),
-            "Immersive-vr should reject without feature policy")
+            "Immersive-vr should reject without permissions policy")
           ]));
       });
     });
@@ -87,11 +87,11 @@ xr_promise_test(
 
   t.step(() => {
     assert_false(gl.getContextAttributes().xrCompatible,
-      "xrCompatibility shouldn't be set when requested without feature policy");
+      "xrCompatibility shouldn't be set when requested without permissions policy");
   });
 
   return promise_rejects_dom(t, "SecurityError",
     gl.makeXRCompatible(),
-    "makeXRCompatible should reject without feature policy");
+    "makeXRCompatible should reject without permissions policy");
 });
 </script>

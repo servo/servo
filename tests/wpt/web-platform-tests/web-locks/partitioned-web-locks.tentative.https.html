@@ -21,7 +21,7 @@ let next_lock_id = 1;
 async function third_party_test(t) {
   let target_url = HTTPS_ORIGIN + '/web-locks/resources/iframe.html';
   target_url = new URL(
-    `./resources/partitioned-parent.html?target=${encodeURIComponent(target_url)}`,
+    `/web-locks/resources/partitioned-parent.html?target=${encodeURIComponent(target_url)}`,
     HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
 
   navigator.locks.request('testLock', {mode: 'exclusive', ifAvailable: true},
@@ -71,11 +71,11 @@ async function nested_iframe_test(t) {
   let leaf_url = HTTPS_ORIGIN + '/web-locks/resources/iframe.html';
   // Wrap the child iframe in its cross-origin parent (middle).
   let middle_url = new URL(
-    `./resources/iframe-parent.html?target=${encodeURIComponent(leaf_url)}`,
+    `/web-locks/resources/iframe-parent.html?target=${encodeURIComponent(leaf_url)}`,
     HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
   // Embed the parent iframe in the top-level site (top).
   let top_url = new URL(
-    `./resources/partitioned-parent.html?target=${encodeURIComponent(middle_url)}`,
+    `/web-locks/resources/partitioned-parent.html?target=${encodeURIComponent(middle_url)}`,
     HTTPS_ORIGIN + self.location.pathname);
 
   // Request the weblock for the top-level site.

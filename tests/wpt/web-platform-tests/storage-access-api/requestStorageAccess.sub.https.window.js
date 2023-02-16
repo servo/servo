@@ -7,7 +7,10 @@
 //
 // testPrefix: Prefix each test case with an indicator so we know what context
 // they are run in if they are used in multiple iframes.
-const {testPrefix} = processQueryParams();
+//
+// topLevelDocument: Keep track of if we run these tests in a nested context, we
+// don't want to recurse forever.
+const {testPrefix, topLevelDocument} = processQueryParams();
 
 if (window !== window.top) {
   // WPT synthesizes a top-level HTML test for this JS file, and in that case we
@@ -26,10 +29,15 @@ promise_setup(async () => {
     { name: 'storage-access' }, 'prompt');
 });
 
-promise_test(t => {
-  return promise_rejects_dom(t, "NotAllowedError", document.requestStorageAccess(),
+promise_test(async t => {
+  if (topLevelDocument) {
+    await document.requestStorageAccess()
+    .catch(t.unreached_func("document.requestStorageAccess() call should resolve in top-level frame"));
+  } else {
+    return promise_rejects_dom(t, "NotAllowedError", document.requestStorageAccess(),
     "document.requestStorageAccess() call without user gesture");
-}, "[" + testPrefix + "] document.requestStorageAccess() should be rejected with a NotAllowedError by default with no user gesture");
+  }
+}, "[" + testPrefix + "] document.requestStorageAccess() should resolve in top-level frame or otherwise reject with a NotAllowedError with no user gesture");
 
 promise_test(
     async () => {

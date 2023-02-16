@@ -175,6 +175,18 @@ promise_test_parallel(t => iframeTest(t, {
   expected: IframeTestResult.SUCCESS,
 }), "treat-as-public-address to public: no preflight required.");
 
+promise_test_parallel(t => iframeTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_PUBLIC,
+    behavior: { preflight: PreflightBehavior.optionalSuccess(token()) }
+  },
+  expected: IframeTestResult.SUCCESS,
+}), "treat-as-public-address to local: optional preflight");
+
 // The following tests verify that when a grandparent frame navigates its
 // grandchild, the IP address space of the grandparent is compared against the
 // IP address space of the response. Indeed, the navigation initiator in this

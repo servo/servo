@@ -68,4 +68,15 @@ promise_test(t => {
 }, "Same-origin => cross-origin 'fetch()' in " + self.location.protocol +
            " without CSP");
 
+// WebSocket
+promise_test(async function(t) {
+  let url = "wss://{{host}}:{{ports[wss][0]}}/echo";
+  assert_no_csp_event_for_url(t, url);
+
+  return new Promise(resolve => {
+    let ws = new WebSocket(url);
+    ws.onopen = resolve;
+  });
+}, "WebSocket without CSP");
+
 done();

@@ -106,11 +106,11 @@ window.onload = () => {
     // be invisible. Otherwise, it should be visible.
     const expectVisible = !nonPopover.hasAttribute('popover');
     assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'A non-popover should start out visible');
-    assert_throws_dom("NotSupportedError",() => nonPopover.showPopover(),'Calling showPopover on a non-popover should throw NotSupportedError');
+    assert_throws_dom("InvalidStateError",() => nonPopover.showPopover(),'Calling showPopover on a non-popover should throw InvalidStateError');
     assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'Calling showPopover on a non-popover should leave it visible');
-    assert_throws_dom("NotSupportedError",() => nonPopover.hidePopover(),'Calling hidePopover on a non-popover should throw NotSupportedError');
+    assert_throws_dom("InvalidStateError",() => nonPopover.hidePopover(),'Calling hidePopover on a non-popover should throw InvalidStateError');
     assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'Calling hidePopover on a non-popover should leave it visible');
-    assert_throws_dom("NotSupportedError",() => nonPopover.togglePopover(),'Calling togglePopover on a non-popover should throw NotSupportedError');
+    assert_throws_dom("InvalidStateError",() => nonPopover.togglePopover(),'Calling togglePopover on a non-popover should throw InvalidStateError');
     assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'Calling togglePopover on a non-popover should leave it visible');
   }
 
