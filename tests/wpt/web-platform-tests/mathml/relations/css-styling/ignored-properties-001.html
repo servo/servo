@@ -5,6 +5,7 @@
 <title>Ignored CSS properties</title>
 <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
 <meta name="assert" content="Verify style with ignored properties does not affect MathML layout.">
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
@@ -29,9 +30,6 @@
               "align-content: end; justify-content: end;",
               "align-self: end; justify-self: end;",
           ];
-          if (tag !== "mtable") {
-              ignoredProperties.push("width: 100px !important; height: 200px !important;");
-          }
 
           ignoredProperties.forEach(ignoredStyle => {
               document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\

@@ -25,6 +25,47 @@
       }));
   }, 'applyConstraints rejects invalid groupID');
 
+  promise_test(async t => {
+    let long_string_groupId = "2".padStart(501);
+    await setMediaPermission("granted", ["camera"]);
+    return navigator.mediaDevices.getUserMedia({ video: true })
+      .then(t.step_func(stream => {
+        return stream.getVideoTracks()[0].applyConstraints(
+          { groupId: { ideal: long_string_groupId } }).then(
+            t.unreached_func('Accepted ideal long string groupID'),
+            t.step_func(e => {
+              assert_equals(e.name, 'OverconstrainedError');
+            }));
+      }));
+  }, 'applyConstraints rejects long string ideal groupID');
+
+  promise_test(async t => {
+    let long_string_groupId = "2".padStart(501);
+    await setMediaPermission("granted", ["camera"]);
+    return navigator.mediaDevices.getUserMedia({ video: true })
+      .then(t.step_func(stream => {
+        return stream.getVideoTracks()[0].applyConstraints(
+          { groupId: { exact: long_string_groupId } }).then(
+            t.unreached_func('Accepted exact long string  groupID'),
+            t.step_func(e => {
+              assert_equals(e.name, 'OverconstrainedError');
+            }));
+      }));
+  }, 'applyConstraints rejects long string groupID');
+
+  promise_test(async t => {
+    await setMediaPermission("granted", ["camera"]);
+    return navigator.mediaDevices.getUserMedia({ video: true })
+      .then(t.step_func(stream => {
+        return stream.getVideoTracks()[0].applyConstraints(
+          { mandatory: { groupId: "INVALID" }, groupId: { exact: "INVALID" } }).then(
+            t.unreached_func('Accepted exact long string  groupID'),
+            t.step_func(e => {
+              assert_equals(e.name, 'OverconstrainedError');
+            }));
+      }));
+  }, 'applyConstraints rejects using both mandatory and specific constraints');
+
   promise_test(t => {
     return navigator.mediaDevices.getUserMedia({ video: true })
       .then(t.step_func(stream => {

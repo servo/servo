@@ -117,8 +117,8 @@
 
 
   test_animation_delay({
-    rangeStart: 'enter 0%',
-    rangeEnd: 'enter 100%',
+    rangeStart: 'entry 0%',
+    rangeEnd: 'entry 100%',
     startOffset: 600,
     endOffset: 700
   });
@@ -132,13 +132,13 @@
 
   test_animation_delay({
     rangeStart: 'contain -50%',
-    rangeEnd: 'enter 200%',
+    rangeEnd: 'entry 200%',
     startOffset: 650,
     endOffset: 800
   });
 
   test_animation_delay({
-    rangeStart: 'enter 0%',
+    rangeStart: 'entry 0%',
     rangeEnd: 'exit 100%',
     startOffset: 600,
     endOffset: 900
@@ -159,8 +159,15 @@
   });
 
   test_animation_delay({
-    rangeStart: 'enter 20px',
-    rangeEnd: 'enter 100px',
+    rangeStart: 'entry 20px',
+    rangeEnd: 'entry 100px',
+    startOffset: 620,
+    endOffset: 700
+  });
+
+  test_animation_delay({
+    rangeStart: 'entry-crossing 20px',
+    rangeEnd: 'entry-crossing 100px',
     startOffset: 620,
     endOffset: 700
   });
@@ -168,6 +175,13 @@
   test_animation_delay({
     rangeStart: 'exit 20px',
     rangeEnd: 'exit 80px',
+    startOffset: 820,
+    endOffset: 880
+  });
+
+  test_animation_delay({
+    rangeStart: 'exit-crossing 20px',
+    rangeEnd: 'exit-crossing 80px',
     startOffset: 820,
     endOffset: 880
   });

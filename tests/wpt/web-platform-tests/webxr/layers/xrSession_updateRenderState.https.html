@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  function testUpdateRenderState(xrSession, deviceController, t, { gl, glLayer }) {
+    return new Promise((resolve, reject) => {
+      const baseLayer = new XRWebGLLayer(xrSession, gl);
+      const singleLayer = [
+        new XRWebGLLayer(xrSession, gl),
+      ];
+      const multipleLayers = [
+        new XRWebGLLayer(xrSession, gl),
+        new XRWebGLLayer(xrSession, gl)
+      ];
+      const duplicateLayers = [
+        baseLayer,
+        new XRWebGLLayer(xrSession, gl),
+        baseLayer
+      ];
+      const layersFeatureEnabled = xrSession.enabledFeatures.includes('layers');
+
+      t.step(() => {
+        assert_throws_dom('NotSupportedError', () => xrSession.updateRenderState({ baseLayer, layers: singleLayer }), "XRSession should throw an error when updating render state with both a baseLayer and layers set.");
+      });
+
+      t.step(() => {
+        const updateRenderStateMultilayer = () => xrSession.updateRenderState({ layers: multipleLayers });
+        if (layersFeatureEnabled) {
+          try {
+            updateRenderStateMultilayer();
+          } catch (err) {
+            reject("XRSession should support render state with multiple layers if the layers feature is enabled.");
+          }
+        } else {
+          assert_throws_dom('NotSupportedError', updateRenderStateMultilayer, "XRSession should be able to updateRenderState with multiple layers only if the layers feature is enabled.");
+        }
+     });
+
+      if (layersFeatureEnabled) {
+        t.step(() => {
+          assert_throws_js(TypeError, () => xrSession.updateRenderState({ layers: duplicateLayers }), "XRSession should throw a TypeError when updating render state with duplicate layers.");
+        });
+      }
+
+     t.step(() => {
+      navigator.xr.requestSession('inline', {}).then((otherSession) => {
+        const otherSessionLayer = [ new XRWebGLLayer(otherSession, gl) ];
+        assert_throws_js(TypeError, () => xrSession.updateRenderState({ layers: otherSessionLayer }), "XRSession should throw a TypeError when updating render state with a layer created for a different session.");
+        resolve();
+      });
+     });
+    });
+  }
+
+  xr_session_promise_test("Ensure XRSession throws appropriate errors when updating render state without layers feature enabled",
+    testUpdateRenderState, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', {});
+
+  xr_session_promise_test("Ensure XRSession throws appropriate errors when updating render state with layers feature enabled",
+    testUpdateRenderState, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

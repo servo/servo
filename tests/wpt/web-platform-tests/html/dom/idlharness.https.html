@@ -59,7 +59,10 @@ idl_test(
       Transferable: [],
       Document: ['iframe.contentDocument', 'new Document()', 'documentWithHandlers'],
       XMLDocument: ['document.implementation.createDocument(null, "", null)'],
-      HTMLElement: ['document.createElement("noscript")'], // more tests in html/semantics/interfaces.js
+      HTMLElement: [
+        'document.createElement("noscript")',
+        'Object.assign(document.createElement("noscript"),{popover:"auto"})',
+      ], // more tests in html/semantics/interfaces.js
       HTMLUnknownElement: ['document.createElement("bgsound")'], // more tests in html/semantics/interfaces.js
       HTMLHtmlElement: ['document.createElement("html")'],
       HTMLHeadElement: ['document.createElement("head")'],
@@ -125,6 +128,7 @@ idl_test(
       CanvasRenderingContext2D: ['document.createElement("canvas").getContext("2d")'],
       CanvasGradient: [],
       CanvasPattern: [],
+      ToggleEvent: ['new ToggleEvent("beforetoggle")'],
       TextMetrics: [],
       ImageData: ['new ImageData(10, 10)'],
       HTMLMapElement: ['document.createElement("map")'],

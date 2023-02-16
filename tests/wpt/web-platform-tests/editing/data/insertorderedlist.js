@@ -720,4 +720,48 @@ var browserTests = [
      "<ol><li>abc<br></li></ol>"],
     [true,true],
     {"insertorderedlist":[false,false,"false",false,true,"true"]}],
+
+// "dir" attribute should be preserved for the list element to make the
+// bullets aligned correctly.
+["<div dir=\"rtl\">a[]bc</div><div dir=\"rtl\">def</div>",
+    [["insertorderedlist",""]],
+    ["<div dir=\"rtl\"><ol><li>abc</li></ol></div><div dir=\"rtl\">def</div>",
+     "<ol dir=\"rtl\"><li>abc</li></ol><div dir=\"rtl\">def</div>"],
+    [true],
+    {}],
+["<div dir=\"rtl\">a[bc</div><div dir=\"rtl\">de]f</div>",
+    [["insertorderedlist",""]],
+    ["<div dir=\"rtl\"><ol><li>abc</li><li>def</li></ol></div>",
+     "<ol dir=\"rtl\"><li>abc</li><li>def</li></ol>"],
+    [true],
+    {}],
+// but do not copy `dir` attributes to corresponding <li>s because different
+// one from the value of the parent list element causes odd looks and anyway
+// the `dir` attribute does not affect the text direction.
+["<div dir=\"rtl\">a[bc</div><div dir=\"ltr\">de]f</div>",
+    [["insertorderedlist",""]],
+    ["<div dir=\"rtl\"><ol><li>abc</li><li>def</li></ol></div>",
+     "<ol dir=\"rtl\"><li>abc</li><li>def</li></ol>"],
+    [true],
+    {}],
+
+// The other attributes should be clonsed to each list item.
+["<div id=\"a\">a[bc</div><div id=\"b\">de]f</div>",
+    [["insertorderedlist",""]],
+    ["<div><ol><li id=\"a\">abc</li><li id=\"b\">def</li></ol></div>",
+     "<ol><li id=\"a\">abc</li><li id=\"b\">def</li></ol>"],
+    [true],
+    {}],
+["<div class=\"a\">a[bc</div><div class=\"b\">de]f</div>",
+    [["insertorderedlist",""]],
+    ["<div><ol><li class=\"a\">abc</li><li class=\"b\">def</li></ol></div>",
+     "<ol><li class=\"a\">abc</li><li class=\"b\">def</li></ol>"],
+    [true],
+    {}],
+["<div title=\"a\">a[bc</div><div title=\"b\">de]f</div>",
+    [["insertorderedlist",""]],
+    ["<div><ol><li title=\"a\">abc</li><li title=\"b\">def</li></ol></div>",
+     "<ol><li title=\"a\">abc</li><li title=\"b\">def</li></ol>"],
+    [true],
+    {}],
 ]

@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <style>
 #container {
   position: relative;
@@ -44,7 +45,7 @@
   properties such as `transform` can create a containing block without setting
   the `position` property.
 -->
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <div id="container">
     <div>
       <div id="anchor1"></div>

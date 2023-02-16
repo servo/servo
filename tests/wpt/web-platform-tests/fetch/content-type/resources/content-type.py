@@ -11,6 +11,7 @@ def main(request, response):
         for value in values:
             output += b"Content-Type: " + value + b"\r\n"
     output += b"Content-Length: " + isomorphic_encode(str(len(content))) + b"\r\n"
+    output += b"Connection: close\r\n"
     output += b"\r\n"
     output += content
     response.writer.write(output)

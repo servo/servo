@@ -13,10 +13,10 @@ def get_shadow_root(session, element_id):
 
 
 @pytest.fixture
-def check_user_prompt_closed_without_exception(session, create_dialog, inline, checkbox_dom):
+def check_user_prompt_closed_without_exception(session, create_dialog, get_test_page):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
-        session.url = inline(checkbox_dom)
-        element = session.find.css("custom-checkbox-element", all=False)
+        session.url = get_test_page()
+        element = session.find.css("custom-element", all=False)
 
         create_dialog(dialog_type, text=dialog_type)
 
@@ -30,10 +30,10 @@ def check_user_prompt_closed_without_exception(session, create_dialog, inline, c
 
 
 @pytest.fixture
-def check_user_prompt_closed_with_exception(session, create_dialog, inline, checkbox_dom):
+def check_user_prompt_closed_with_exception(session, create_dialog, get_test_page):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
-        session.url = inline(checkbox_dom)
-        element = session.find.css("custom-checkbox-element", all=False)
+        session.url = get_test_page()
+        element = session.find.css("custom-element", all=False)
 
         create_dialog(dialog_type, text=dialog_type)
 
@@ -46,10 +46,10 @@ def check_user_prompt_closed_with_exception(session, create_dialog, inline, chec
 
 
 @pytest.fixture
-def check_user_prompt_not_closed_but_exception(session, create_dialog, inline, checkbox_dom):
+def check_user_prompt_not_closed_but_exception(session, create_dialog, get_test_page):
     def check_user_prompt_not_closed_but_exception(dialog_type):
-        session.url = inline(checkbox_dom)
-        element = session.find.css("custom-checkbox-element", all=False)
+        session.url = get_test_page()
+        element = session.find.css("custom-element", all=False)
 
         create_dialog(dialog_type, text=dialog_type)
 

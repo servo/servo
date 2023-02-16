@@ -246,6 +246,12 @@ const PreflightBehavior = {
     "preflight-headers": "cors+pna",
   }),
 
+  optionalSuccess: (uuid) => ({
+    "preflight-uuid": uuid,
+    "preflight-headers": "cors+pna",
+    "is-preflight-optional": true,
+  }),
+
   // The preflight response should succeed and allow service-worker header.
   // `uuid` should be a UUID that uniquely identifies the preflight request.
   serviceWorkerSuccess: (uuid) => ({

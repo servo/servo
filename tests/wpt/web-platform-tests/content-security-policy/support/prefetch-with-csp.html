@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+  <html>
+    <head>
+      <link id="prefetch" rel="prefetch" href="pass.png">
+    </head>
+    <body>
+      <script>
+        const bc = new BroadcastChannel(new URLSearchParams(location.search).get("uid"));
+        document.getElementById("prefetch").addEventListener("error", e => bc.postMessage(false));
+        const observer = new PerformanceObserver(entries => {
+          const found = entries.getEntriesByName(new URL("pass.png", location.href).href);
+          if (found.length)
+            bc.postMessage(found[0].encodedBodySize > 0);
+        });
+        observer.observe({entryTypes: ["resource"]});
+      </script>
+    </body>
+  </html>

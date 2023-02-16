@@ -4,23 +4,23 @@
 <link rel="author" title="Apple Inc." href="http://www.apple.com/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
-test(function() {
-    if (Notification.permission != "granted") {
-        this.force_timeout()
-        this.set_status(this.NOTRUN, "You must allow notifications for this"
-            + "origin before running this test.")
-    } else {
-        var t = async_test("Invoked the onclose event handler.")
-        var notification = new Notification("New Email Received")
-        notification.onshow = t.step_func(function() {
-            notification.close()
-        })
-        notification.onclose = t.step_func(function(e) {
-            assert_equals(Object.prototype.toString.call(e), "[object Event]")
-            assert_equals(e.type, "close", "Checked the event type.")
-            t.done()
-        })
-    }
-}, "Checked test prerequisites.")
+promise_setup(() => {
+    return test_driver.set_permission({ name: "notifications" }, "granted")
+})
+
+promise_test(async t => {
+    const notification = new Notification("New Email Received")
+    await new Promise(resolve => {
+        notification.onshow = resolve;
+    })
+    notification.close()
+    const event = await new Promise(resolve => {
+        notification.onclose = resolve;
+    })
+    assert_equals(Object.prototype.toString.call(event), "[object Event]")
+    assert_equals(event.type, "close", "Checked the event type.")
+}, "Invoked the onclose event handler.")
 </script>

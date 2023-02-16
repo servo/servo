@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
 .container {
@@ -37,7 +38,7 @@
   background: lime;
 }
 </style>
-<body onload="checkLayout('.target')">
+<body onload="checkLayoutForAnchorPos('.target')">
   <div class="container relpos xcolumns">
     <div style="height: 150px"></div>
     <div class="relpos">

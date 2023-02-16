@@ -3,6 +3,7 @@
   <head>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
   </head>
 
   <body>
@@ -16,7 +17,7 @@
 
           let ifr = document.createElement('iframe');
           document.body.appendChild(ifr);
-          ifr.src = "https://{{domains[www2]}}:{{ports[https][0]}}/clear-site-data/support/iframe_executionContexts.html";
+          ifr.src = get_host_info().HTTPS_REMOTE_ORIGIN + "/clear-site-data/support/iframe_executionContexts.html";
         });
       }
 
@@ -28,7 +29,7 @@
           }, { once: true });
 
           let image = new Image();
-          image.src = "https://{{domains[www2]}}:{{ports[https][0]}}/clear-site-data/support/echo-clear-site-data.py?" + what;
+          image.src = get_host_info().HTTPS_REMOTE_ORIGIN + "/clear-site-data/support/echo-clear-site-data.py?" + what;
         });
       }
 

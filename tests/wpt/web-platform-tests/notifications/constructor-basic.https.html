@@ -7,11 +7,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(function() {
-    if (Notification.permission != "granted") {
-        this.force_timeout()
-        this.set_status(this.NOTRUN, "You must allow notifications for this"
-            + " origin before running this test.")
-    }
     var notification = new Notification("New Email Received")
     assert_true(notification instanceof Notification)
     notification.onshow = function() {

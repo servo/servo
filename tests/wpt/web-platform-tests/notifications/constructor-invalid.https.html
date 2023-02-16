@@ -7,11 +7,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(function() {
-    if (Notification.permission != "granted") {
-        this.force_timeout()
-        this.set_status(this.NOTRUN, "You must allow notifications for this"
-            + " origin before running this test.")
-    }
     assert_throws_js(TypeError, function() {
         new Notification()
     })
