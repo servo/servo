@@ -424,6 +424,12 @@ fn tweak_when_ignoring_colors(
         return;
     }
 
+    // Always honor colors if forced-color-adjust is set to none.
+    let forced = context.builder.get_inherited_text().clone_forced_color_adjust();
+    if forced == computed::ForcedColorAdjust::None {
+        return;
+    }
+
     // Don't override background-color on ::-moz-color-swatch. It is set as an
     // author style (via the style attribute), but it's pretty important for it
     // to show up for obvious reasons :)

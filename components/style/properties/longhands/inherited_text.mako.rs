@@ -388,3 +388,14 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/css-text-4/#hyphenate-character",
 )}
+
+${helpers.predefined_type(
+    "forced-color-adjust",
+    "ForcedColorAdjust",
+    "computed::ForcedColorAdjust::Auto",
+    engines="gecko",
+    gecko_pref="layout.css.forced-color-adjust.enabled",
+    has_effect_on_gecko_scrollbars=False,
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-color-adjust-1/#forced-color-adjust-prop",
+)}
