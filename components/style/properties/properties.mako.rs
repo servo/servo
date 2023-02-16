@@ -935,6 +935,7 @@ CASCADE_GROUPS = {
         "font-family",
         # color-scheme affects how system colors resolve.
         "color-scheme",
+        "forced-color-adjust",
     ],
 }
 def in_late_group(p):
