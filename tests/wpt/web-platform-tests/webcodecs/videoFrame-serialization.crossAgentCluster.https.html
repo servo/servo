@@ -16,10 +16,29 @@
     };
   </script>
   <script id='sharedWorkerCode' type='javascript/worker'>
+    const data = new Uint8Array([
+      1, 2, 3, 4, 5, 6, 7, 8,
+      9, 10, 11, 12, 13, 14, 15, 16,
+    ]);
     let received = new Map();
     self.onconnect = function (event) {
       const port = event.ports[0];
       port.onmessage = function (e) {
+        if (e.data == 'create-frame') {
+          let frameOrError = null;
+          try {
+            frameOrError = new VideoFrame(data, {
+              timestamp: 0,
+              codedWidth: 2,
+              codedHeight: 2,
+              format: 'RGBA',
+            });
+          } catch (error) {
+            frameOrError = error
+          }
+          port.postMessage(frameOrError);
+          return;
+        }
         if (e.data.hasOwnProperty('id')) {
           port.postMessage(
             received.get(e.data.id) ? 'RECEIVED' : 'NOT_RECEIVED');
@@ -72,7 +91,7 @@ promise_test(async () => {
   });
   const worker = new SharedWorker(window.URL.createObjectURL(blob));
   let frame = createVideoFrame(40);
-  worker.port.postMessage({frame: frame, transfer: false});
+  worker.port.postMessage(frame);
   worker.port.postMessage({'id': 40});
   const received = await new Promise(resolve => worker.port.onmessage = e => {
     resolve(e.data);
@@ -126,7 +145,7 @@ promise_test(async () => {
   });
   const worker = new SharedWorker(window.URL.createObjectURL(blob));
   let frame = createVideoFrame(90);
-  worker.port.postMessage({frame: frame, transfer: true});
+  worker.port.postMessage(frame, [frame]);
   worker.port.postMessage({'id': 90});
   const received = await new Promise(resolve => worker.port.onmessage = e => {
     resolve(e.data);
@@ -146,6 +165,28 @@ promise_test(async () => {
   });
   assert_equals(received, 'NOT_RECEIVED');
 }, 'Verify frames cannot be transferred to serviceworker');
+
+promise_test(async () => {
+  const blob = new Blob([document.querySelector('#sharedWorkerCode').textContent], {
+    type: 'text/javascript',
+  });
+  const worker = new SharedWorker(window.URL.createObjectURL(blob));
+  worker.port.postMessage('create-frame');
+  const received = await new Promise(resolve => worker.port.onmessage = e => {
+    resolve(e.data);
+  });
+  assert_true(received instanceof ReferenceError);
+}, 'Verify frames is unavailable in sharedworker');
+
+promise_test(async () => {
+  navigator.serviceWorker.register('videoFrame-serialization.crossAgentCluster.serviceworker.js');
+  let registration = await navigator.serviceWorker.ready;
+  registration.active.postMessage('create-frame');
+  const received = await new Promise(resolve => navigator.serviceWorker.onmessage = (e) => {
+    resolve(e.data);
+  });
+  assert_true(received instanceof ReferenceError);
+}, 'Verify frames is unavailable in serviceworker');
 
 function appendIframe(src) {
   const frame = document.createElement('iframe');

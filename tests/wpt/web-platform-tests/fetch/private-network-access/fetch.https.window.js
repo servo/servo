@@ -5,7 +5,6 @@
 // META: variant=?include=from-local
 // META: variant=?include=from-private
 // META: variant=?include=from-public
-// META: variant=?include=from-treat-as-public
 //
 // Spec: https://wicg.github.io/private-network-access/#integration-fetch
 //
@@ -270,66 +269,3 @@ subsetTestByKey("from-public", promise_test, t => fetchTest(t, {
   expected: FetchTestResult.SUCCESS,
 }), "public to public: no preflight required.");
 
-// These tests verify that documents fetched from the `local` address space yet
-// carrying the `treat-as-public-address` CSP directive are treated as if they
-// had been fetched from the `public` address space.
-
-subsetTestByKey("from-treat-as-public", promise_test, t => fetchTest(t, {
-  source: {
-    server: Server.HTTPS_LOCAL,
-    treatAsPublic: true,
-  },
-  target: { server: Server.HTTPS_LOCAL },
-  expected: FetchTestResult.FAILURE,
-}), "treat-as-public-address to local: failed preflight.");
-
-subsetTestByKey("from-treat-as-public", promise_test, t => fetchTest(t, {
-  source: {
-    server: Server.HTTPS_LOCAL,
-    treatAsPublic: true,
-  },
-  target: {
-    server: Server.HTTPS_LOCAL,
-    behavior: {
-      preflight: PreflightBehavior.success(token()),
-      // Interesting: no need for CORS headers on same-origin final response.
-    },
-  },
-  expected: FetchTestResult.SUCCESS,
-}), "treat-as-public-address to local: success.");
-
-subsetTestByKey("from-treat-as-public", promise_test, t => fetchTest(t, {
-  source: {
-    server: Server.HTTPS_LOCAL,
-    treatAsPublic: true,
-  },
-  target: { server: Server.HTTPS_PRIVATE },
-  expected: FetchTestResult.FAILURE,
-}), "treat-as-public-address to private: failed preflight.");
-
-subsetTestByKey("from-treat-as-public", promise_test, t => fetchTest(t, {
-  source: {
-    server: Server.HTTPS_LOCAL,
-    treatAsPublic: true,
-  },
-  target: {
-    server: Server.HTTPS_PRIVATE,
-    behavior: {
-      preflight: PreflightBehavior.success(token()),
-      response: ResponseBehavior.allowCrossOrigin(),
-    },
-  },
-  expected: FetchTestResult.SUCCESS,
-}), "treat-as-public-address to private: success.");
-
-subsetTestByKey("from-treat-as-public", promise_test, t => fetchTest(t, {
-  source: {
-    server: Server.HTTPS_LOCAL,
-    treatAsPublic: true,
-  },
-  target: {
-    server: Server.HTTPS_PUBLIC,
-    behavior: { response: ResponseBehavior.allowCrossOrigin() },
-  },
-  expected: FetchTestResult.SUCCESS,
-}), "treat-as-public-address to public: no preflight required.");

@@ -106,7 +106,7 @@ promise_test(t => workerFetchTest(t, {
   },
   target: {
     server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    behavior: { preflight: PreflightBehavior.optionalSuccess(token()) },
   },
   expected: WorkerFetchTestResult.SUCCESS,
 }), "treat-as-public to local: success.");

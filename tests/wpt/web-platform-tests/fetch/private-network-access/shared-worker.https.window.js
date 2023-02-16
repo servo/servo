@@ -25,7 +25,7 @@ promise_test(t => sharedWorkerScriptTest(t, {
   },
   target: {
     server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    behavior: { preflight: PreflightBehavior.optionalSuccess(token()) },
   },
   expected: WorkerScriptTestResult.SUCCESS,
 }), "treat-as-public to local: success.");
@@ -46,7 +46,7 @@ promise_test(t => sharedWorkerScriptTest(t, {
   },
   target: {
     server: Server.HTTPS_PRIVATE,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    behavior: { preflight: PreflightBehavior.optionalSuccess(token()) },
   },
   expected: WorkerScriptTestResult.SUCCESS,
 }), "treat-as-public to private: success.");

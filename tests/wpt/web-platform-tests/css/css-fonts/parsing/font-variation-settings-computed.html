@@ -23,6 +23,12 @@ test_computed_value('font-variation-settings', '"wght" 700, "wght" 500', '"wght"
 test_computed_value('font-variation-settings', '"wght" 700, "XHGT" 0.7',
     ['"wght" 700, "XHGT" 0.7', '"XHGT" 0.7, "wght" 700']);
 
+test_computed_value('font-variation-settings', '"wght" 100, "wdth" 200', '"wdth" 200, "wght" 100',
+    "values should be sorted alphabetically by tag.");
+
+test_computed_value('font-variation-settings', '"wght" 100, "wdth" 200, "wght" 300, "wdth" 400', '"wdth" 400, "wght" 300',
+    "duplicate values should be removed, keeping the rightmost occurrence, and sorted alphabetically by tag.");
+
 test_computed_value('font-variation-settings', '"XHGT" calc(0.4 + 0.3)', '"XHGT" 0.7');
 </script>
 </body>
