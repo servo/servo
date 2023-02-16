@@ -21,6 +21,123 @@ type Vector = euclid::default::Vector3D<f32>;
 const RAD_PER_DEG: f32 = PI / 180.0;
 const DEG_PER_RAD: f32 = 180.0 / PI;
 
+/// Normalize hue into [0, 360).
+#[inline]
+fn normalize_hue(hue: f32) -> f32 {
+    hue - 360. * (hue / 360.).floor()
+}
+
+/// Calculate the hue from RGB components and return it along with the min and
+/// max RGB values.
+#[inline]
+fn rgb_to_hue_min_max(red: f32, green: f32, blue: f32) -> (f32, f32, f32) {
+    let max = red.max(green).max(blue);
+    let min = red.min(green).min(blue);
+
+    let delta = max - min;
+
+    let hue = if delta != 0.0 {
+        60.0 * if max == red {
+            (green - blue) / delta + if green < blue { 6.0 } else { 0.0 }
+        } else if max == green {
+            (blue - red) / delta + 2.0
+        } else {
+            (red - green) / delta + 4.0
+        }
+    } else {
+        std::f32::NAN
+    };
+
+    (hue, min, max)
+}
+
+/// Convert a hue value into red, green, blue components.
+#[inline]
+fn hue_to_rgb(t1: f32, t2: f32, hue: f32) -> f32 {
+    let hue = normalize_hue(hue);
+
+    if hue * 6.0 < 360.0 {
+        t1 + (t2 - t1) * hue / 60.0
+    } else if hue * 2.0 < 360.0 {
+        t2
+    } else if hue * 3.0 < 720.0 {
+        t1 + (t2 - t1) * (240.0 - hue) / 60.0
+    } else {
+        t1
+    }
+}
+
+/// Convert from HSL notation to RGB notation.
+#[inline]
+pub fn hsl_to_rgb(from: &ColorComponents) -> ColorComponents {
+    let ColorComponents(hue, saturation, lightness) = *from;
+
+    let t2 = if lightness <= 0.5 {
+        lightness * (saturation + 1.0)
+    } else {
+        lightness + saturation - lightness * saturation
+    };
+    let t1 = lightness * 2.0 - t2;
+
+    ColorComponents(
+        hue_to_rgb(t1, t2, hue + 120.0),
+        hue_to_rgb(t1, t2, hue),
+        hue_to_rgb(t1, t2, hue - 120.0),
+    )
+}
+
+/// Convert from RGB notation to HSL notation.
+/// https://drafts.csswg.org/css-color/#rgb-to-hsl
+pub fn rgb_to_hsl(from: &ColorComponents) -> ColorComponents {
+    let ColorComponents(red, green, blue) = *from;
+
+    let (hue, min, max) = rgb_to_hue_min_max(red, green, blue);
+
+    let light = (min + max) / 2.0;
+    let delta = max - min;
+
+    let sat = if delta != 0.0 {
+        if light == 0.0 || light == 1.0 {
+            0.0
+        } else {
+            (max - light) / light.min(1.0 - light)
+        }
+    } else {
+        0.0
+    };
+
+    ColorComponents(hue, sat, light)
+}
+
+/// Convert from HWB notation to RGB notation.
+/// https://drafts.csswg.org/css-color-4/#hwb-to-rgb
+#[inline]
+pub fn hwb_to_rgb(from: &ColorComponents) -> ColorComponents {
+    let ColorComponents(hue, whiteness, blackness) = *from;
+
+    if whiteness + blackness > 1.0 {
+        let gray = whiteness / (whiteness + blackness);
+        return ColorComponents(gray, gray, gray);
+    }
+
+    let x = 1.0 - whiteness - blackness;
+    hsl_to_rgb(&ColorComponents(hue, 1.0, 0.5)).map(|v| v * x + whiteness)
+}
+
+/// Convert from RGB notation to HWB notation.
+/// https://drafts.csswg.org/css-color-4/#rgb-to-hwb
+#[inline]
+pub fn rgb_to_hwb(from: &ColorComponents) -> ColorComponents {
+    let ColorComponents(red, green, blue) = *from;
+
+    let (hue, min, max) = rgb_to_hue_min_max(red, green, blue);
+
+    let whiteness = min;
+    let blackness = 1.0 - max;
+
+    ColorComponents(hue, whiteness, blackness)
+}
+
 #[inline]
 fn transform(from: &ColorComponents, mat: &Transform) -> ColorComponents {
     let result = mat.transform_vector3d(Vector::new(from.0, from.1, from.2));
