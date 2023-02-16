@@ -97,28 +97,32 @@ class Item:
 
 def get_results() -> Optional[Item]:
     unexpected = []
-    known_intermittents = []
     for filename in sys.argv[1:]:
         with open(filename, encoding="utf-8") as file:
-            data = json.load(file)
-            unexpected += data["unexpected"]
-            known_intermittents += data["known_intermittents"]
-
+            unexpected += json.load(file)
     unexpected.sort(key=lambda result: result["path"])
-    known_intermittents.sort(key=lambda result: result["path"])
+
+    def is_flaky(result):
+        return result["flaky"]
+
+    def is_stable_and_known(result):
+        return not is_flaky(result) and result["issues"]
+
+    def is_stable_and_unexpected(result):
+        return not is_flaky(result) and not result["issues"]
+
+    def add_children(children, results, filter_func, text):
+        filtered = [Item.from_result(result) for result in
+                    filter(filter_func, results)]
+        if filtered:
+            children.append(Item(f"{text} ({len(filtered)})", "", filtered))
 
     children = []
-    if unexpected:
-        children.append(
-            Item(f"Tests producing unexpected results ({len(unexpected)})", "",
-                 [Item.from_result(result) for result in unexpected]),
-        )
-    if known_intermittents:
-        children.append(
-            Item("Unexpected results that are known to be intermittent "
-                 f"({len(known_intermittents)})", "",
-                 [Item.from_result(result) for result in known_intermittents])
-        )
+    add_children(children, unexpected, is_flaky, "Flaky unexpected result")
+    add_children(children, unexpected, is_stable_and_known,
+                 "Stable unexpected results that are known to be intermittent")
+    add_children(children, unexpected, is_stable_and_unexpected,
+                 "Stable unexpected results")
 
     run_url = get_github_run_url()
     if run_url:
