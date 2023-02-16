@@ -12,109 +12,113 @@ import sys
 import platform
 
 GSTREAMER_DYLIBS = [
-    ("gstapp", "gst-plugins-base"),
-    ("gstaudio", "gst-plugins-base"),
-    ("gstbase", "gstreamer"),
-    ("gstcodecparsers", "gst-plugins-bad"),
-    ("gstcontroller", "gstreamer"),
-    ("gstfft", "gst-plugins-base"),
-    ("gstgl", "gst-plugins-base"),
-    ("gstnet", "gstreamer"),
-    ("gstpbutils", "gst-plugins-base"),
-    ("gstplayer", "gst-plugins-bad"),
-    ("gstreamer", "gstreamer"),
-    ("gstriff", "gst-plugins-base"),
-    ("gstrtp", "gst-plugins-base"),
-    ("gstrtsp", "gst-plugins-base"),
-    ("gstsctp", "gst-plugins-bad"),
-    ("gstsdp", "gst-plugins-base"),
-    ("gsttag", "gst-plugins-base"),
-    ("gstvideo", "gst-plugins-base"),
-    ("gstwebrtc", "gst-plugins-bad"),
-]
-
-NON_UWP_DYLIBS = [
+    # gstreamer
+    "gstbase",
+    "gstcontroller",
     "gstnet",
-    "gstsctp",
-]
-
-GSTREAMER_PLUGINS = [
-    ("gstapp", "gst-plugins-base"),
-    ("gstaudiobuffersplit", "gst-plugins-bad"),
-    ("gstaudioconvert", "gst-plugins-base"),
-    ("gstaudiofx", "gst-plugins-good"),
-    ("gstaudioparsers", "gst-plugins-good"),
-    ("gstaudioresample", "gst-plugins-base"),
-    ("gstautodetect", "gst-plugins-good"),
-    ("gstcoreelements", "gstreamer"),
-    ("gstdeinterlace", "gst-plugins-good"),
-    ("gstdtls", "gst-plugins-bad"),
-    ("gstgio", "gst-plugins-base"),
-    ("gstid3tag", "gst-plugins-bad"),
-    ("gstid3demux", "gst-plugins-good"),
-    ("gstinterleave", "gst-plugins-good"),
-    ("gstisomp4", "gst-plugins-good"),
-    ("gstlibav", "gst-libav"),
-    ("gstmatroska", "gst-plugins-good"),
-    ("gstogg", "gst-plugins-base"),
-    ("gstopengl", "gst-plugins-base"),
-    ("gstopus", "gst-plugins-base"),
-    ("gstplayback", "gst-plugins-base"),
-    ("gstproxy", "gst-plugins-bad"),
-    ("gstrtp", "gst-plugins-good"),
-    ("gstrtpmanager", "gst-plugins-good"),
-    ("gsttheora", "gst-plugins-base"),
-    ("gsttypefindfunctions", "gst-plugins-base"),
-    ("gstvideoconvertscale", "gst-plugins-base"),
-    ("gstvideofilter", "gst-plugins-good"),
-    ("gstvideoparsersbad", "gst-plugins-bad"),
-    ("gstvorbis", "gst-plugins-base"),
-    ("gstvolume", "gst-plugins-base"),
-    ("gstvpx", "gst-plugins-good"),
-    ("gstwebrtc", "gst-plugins-bad"),
-]
-
-WINDOWS_PLUGINS = [
-    "gstnice",
-    "gstwasapi",
-]
-
-MACOS_PLUGINS = [
-    # Temporarily disabled until CI is using Mojave.
-    # https://github.com/servo/saltfs/issues/1011
-    # ("gstapplemedia", "gst-plugins-bad"),
-    ("gstosxaudio", "gst-plugins-good"),
-    ("gstosxvideo", "gst-plugins-good"),
-]
-
-NON_UWP_PLUGINS = [
-    "gstdtls",
-    "gstmatroska",
-    "gstnice",
-    "gstogg",
-    "gstopengl",
-    "gstopus",
+    "gstreamer",
+    # gst-plugins-base
+    "gstapp",
+    "gstaudio",
+    "gstfft",
+    "gstgl",
+    "gstpbutils",
+    "gstriff",
     "gstrtp",
-    "gstrtpmanager",
-    "gsttheora",
-    "gstvorbis",
-    "gstvpx",
+    "gstrtsp",
+    "gstsctp",
+    "gstsdp",
+    "gsttag",
+    "gstvideo",
+    # gst-plugins-bad
+    "gstcodecparsers",
+    "gstplayer",
     "gstwebrtc",
 ]
 
 
+GSTREAMER_PLUGINS = [
+    # gstreamer
+    "gstcoreelements",
+    "gstnice",
+    # gst-plugins-base
+    "gstapp",
+    "gstaudioconvert",
+    "gstaudioresample",
+    "gstgio",
+    "gstogg",
+    "gstopengl",
+    "gstopus",
+    "gstplayback",
+    "gsttheora",
+    "gsttypefindfunctions",
+    "gstvolume",
+    "gstvorbis",
+    # gst-plugins-good
+    "gstaudiofx",
+    "gstaudioparsers",
+    "gstautodetect",
+    "gstdeinterlace",
+    "gstid3demux",
+    "gstinterleave",
+    "gstisomp4",
+    "gstmatroska",
+    "gstrtp",
+    "gstrtpmanager",
+    "gstvideofilter",
+    "gstvpx",
+    # gst-plugins-bad
+    "gstaudiobuffersplit",
+    "gstdtls",
+    "gstid3tag",
+    "gstproxy",
+    "gstvideoparsersbad",
+    "gstwebrtc",
+    # gst-libav
+    "gstlibav",
+]
+
+
 def windows_dlls(uwp):
-    dlls = [x for x, _ in GSTREAMER_DYLIBS]
+    libs = list(GSTREAMER_DYLIBS)
+    NON_UWP_DYLIBS = [
+        "gstnet",
+        "gstsctp",
+    ]
     if uwp:
-        dlls = filter(lambda x: x not in NON_UWP_DYLIBS, dlls)
-    return [x + "-1.0-0.dll" for x in dlls]
+        libs = filter(lambda x: x not in NON_UWP_DYLIBS, libs)
+    return [f"{lib}-1.0-0.dll" for lib in libs]
 
 
 def windows_plugins(uwp):
-    dlls = [x for x, _ in GSTREAMER_PLUGINS] + WINDOWS_PLUGINS
+    # FIXME: We should support newer gstreamer versions here that replace
+    # gstvideoconvert and gstvideoscale with gstvideoconvertscale.
+    libs = [
+        *GSTREAMER_PLUGINS,
+        "gstvideoconvert",
+        "gstvideoscale",
+        "gstwasapi"
+    ]
+    NON_UWP_PLUGINS = [
+        "gstnice",
+        # gst-plugins-base
+        "gstogg",
+        "gstopengl",
+        "gstopus",
+        "gstrtp",
+        "gsttheora",
+        "gstvorbis",
+        # gst-plugins-good
+        "gstmatroska",
+        "gstrtpmanager",
+        "gstvpx",
+        # gst-plugins-bad
+        "gstdtls",
+        "gstwebrtc",
+    ]
     if uwp:
-        dlls = filter(lambda x: x not in NON_UWP_PLUGINS, dlls)
-    return [x + ".dll" for x in dlls]
+        libs = filter(lambda x: x not in NON_UWP_PLUGINS, libs)
+    return [f"{lib}.dll" for lib in libs]
 
 
 def macos_lib_dir():
@@ -125,27 +129,38 @@ def macos_lib_dir():
 
 
 def macos_dylibs():
-    return [
-        os.path.join(
-            macos_lib_dir(),
-            "lib" + name + "-1.0.0.dylib"
-        ) for name, path in GSTREAMER_DYLIBS
-    ] + [
-        os.path.join(macos_lib_dir(), "libnice.dylib"),
-        os.path.join(macos_lib_dir(), "libnice.10.dylib"),
+    dylibs = [
+        *[f"lib{lib}-1.0.0.dylib" for lib in GSTREAMER_DYLIBS],
+        "libnice.dylib",
+        "libnice.10.dylib",
     ]
+    return [os.path.join(macos_lib_dir(), lib) for lib in dylibs]
 
 
 def macos_plugins():
-    return [
-        os.path.join(
-            macos_lib_dir(),
-            'gstreamer-1.0',
-            "lib" + name + ".dylib"
-        ) for name, path in GSTREAMER_PLUGINS + MACOS_PLUGINS
-    ] + [
-        os.path.join(macos_lib_dir(), "gstreamer-1.0", "libgstnice.dylib"),
+    plugins = [
+        *GSTREAMER_PLUGINS,
+        # gst-plugins-good
+        "gstosxaudio",
+        "gstosxvideo",
+        # gst-plugins-bad
+        "gstapplemedia",
     ]
+
+    def plugin_path(plugin):
+        return os.path.join(macos_lib_dir(), 'gstreamer-1.0', f"lib{plugin}.dylib")
+
+    # These plugins depend on the particular version of GStreamer that is installed
+    # on the system that is building servo.
+    conditional_plugins = [
+        # gst-plugins-base
+        plugin_path("gstvideoconvert"),
+        plugin_path("gstvideoscale"),
+        plugin_path("gstvideoconvertscale")
+    ]
+    conditional_plugins = list(filter(lambda path: os.path.exists(path),
+                                      conditional_plugins))
+    return [plugin_path(plugin) for plugin in plugins] + conditional_plugins
 
 
 def write_plugin_list(target):
