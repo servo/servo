@@ -4,6 +4,7 @@
 
 //! Color mixing/interpolation.
 
+use super::ColorSpace;
 use crate::parser::{Parse, ParserContext};
 use crate::values::animated::color::AnimatedRGBA as RGBA;
 use cssparser::Parser;
@@ -14,55 +15,6 @@ use style_traits::{CssWriter, ParseError, ToCss};
 
 const RAD_PER_DEG: f32 = PI / 180.0;
 const DEG_PER_RAD: f32 = 180.0 / PI;
-
-/// A color space as defined in [1].
-///
-/// [1]: https://drafts.csswg.org/css-color-4/#typedef-color-space
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    ToAnimatedValue,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum InterpolationColorSpace {
-    /// The sRGB color space.
-    Srgb,
-    /// The linear-sRGB color space.
-    LinearSrgb,
-    /// The CIEXYZ color space.
-    #[parse(aliases = "xyz-d65")]
-    Xyz,
-    /// https://drafts.csswg.org/css-color-4/#valdef-color-xyz
-    XyzD50,
-    /// The CIELAB color space.
-    Lab,
-    /// https://drafts.csswg.org/css-color-4/#valdef-hsl-hsl
-    Hsl,
-    /// https://drafts.csswg.org/css-color-4/#valdef-hwb-hwb
-    Hwb,
-    /// The CIELAB color space, expressed in cylindrical coordinates.
-    Lch,
-    // TODO: Oklab, Lch
-}
-
-impl InterpolationColorSpace {
-    /// Returns whether this is a `<polar-color-space>`.
-    pub fn is_polar(self) -> bool {
-        match self {
-            Self::Srgb | Self::LinearSrgb | Self::Xyz | Self::XyzD50 | Self::Lab => false,
-            Self::Hsl | Self::Hwb | Self::Lch => true,
-        }
-    }
-}
 
 /// A hue-interpolation-method as defined in [1].
 ///
@@ -111,7 +63,7 @@ pub enum HueInterpolationMethod {
 #[repr(C)]
 pub struct ColorInterpolationMethod {
     /// The color-space the interpolation should be done in.
-    pub space: InterpolationColorSpace,
+    pub space: ColorSpace,
     /// The hue interpolation method.
     pub hue: HueInterpolationMethod,
 }
@@ -120,7 +72,7 @@ impl ColorInterpolationMethod {
     /// Returns the srgb interpolation method.
     pub fn srgb() -> Self {
         Self {
-            space: InterpolationColorSpace::Srgb,
+            space: ColorSpace::Srgb,
             hue: HueInterpolationMethod::Shorter,
         }
     }
@@ -132,7 +84,7 @@ impl Parse for ColorInterpolationMethod {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_ident_matching("in")?;
-        let space = InterpolationColorSpace::parse(input)?;
+        let space = ColorSpace::parse(input)?;
         // https://drafts.csswg.org/css-color-4/#hue-interpolation
         //     Unless otherwise specified, if no specific hue interpolation
         //     algorithm is selected by the host syntax, the default is shorter.
@@ -209,14 +161,23 @@ pub fn mix(
     }
 
     let mix_function = match interpolation.space {
-        InterpolationColorSpace::Srgb => mix_in::<RGBA>,
-        InterpolationColorSpace::LinearSrgb => mix_in::<LinearRGBA>,
-        InterpolationColorSpace::Xyz => mix_in::<XYZD65A>,
-        InterpolationColorSpace::XyzD50 => mix_in::<XYZD50A>,
-        InterpolationColorSpace::Lab => mix_in::<LABA>,
-        InterpolationColorSpace::Hwb => mix_in::<HWBA>,
-        InterpolationColorSpace::Hsl => mix_in::<HSLA>,
-        InterpolationColorSpace::Lch => mix_in::<LCHA>,
+        ColorSpace::Srgb => mix_in::<RGBA>,
+        ColorSpace::SrgbLinear => mix_in::<LinearRGBA>,
+        ColorSpace::XyzD65 => mix_in::<XYZD65A>,
+        ColorSpace::XyzD50 => mix_in::<XYZD50A>,
+        ColorSpace::Lab => mix_in::<LABA>,
+        ColorSpace::Hwb => mix_in::<HWBA>,
+        ColorSpace::Hsl => mix_in::<HSLA>,
+        ColorSpace::Lch => mix_in::<LCHA>,
+
+        ColorSpace::Oklab |
+        ColorSpace::Oklch |
+        ColorSpace::DisplayP3 |
+        ColorSpace::A98Rgb |
+        ColorSpace::ProphotoRgb |
+        ColorSpace::Rec2020 => {
+            todo!()
+        },
     };
     mix_function(
         left_color,

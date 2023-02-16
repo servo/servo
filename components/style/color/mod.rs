@@ -24,10 +24,36 @@ impl ColorComponents {
 
 /// A color space representation in the CSS specification.
 ///
-/// https://w3c.github.io/csswg-drafts/css-color-4/#color-type
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
+/// https://drafts.csswg.org/css-color-4/#typedef-color-space
+///
+/// NOTE: Right now HSL and HWB colors can not be constructed by the user. They
+///       are converted to RGB in the parser. The parser should return the
+///       HSL/HWB values as is to avoid unnescessary conversions to/from RGB.
+///       See: https://bugzilla.mozilla.org/show_bug.cgi?id=1817035
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(u8)]
 pub enum ColorSpace {
+    /// A color specified in the Hsl notation in the sRGB color space, e.g.
+    /// "hsl(289.18 93.136% 65.531%)"
+    /// https://drafts.csswg.org/css-color-4/#the-hsl-notation
+    Hsl,
+    /// A color specified in the Hwb notation in the sRGB color space, e.g.
+    /// "hwb(740deg 20% 30%)"
+    /// https://drafts.csswg.org/css-color-4/#the-hwb-notation
+    Hwb,
     /// A color specified in the Lab color format, e.g.
     /// "lab(29.2345% 39.3825 20.0664)".
     /// https://w3c.github.io/csswg-drafts/css-color-4/#lab-colors
@@ -67,7 +93,22 @@ pub enum ColorSpace {
     XyzD50,
     /// A color specified with the color(..) function and the "xyz-d65" or "xyz"
     /// color space, e.g. "color(xyz-d65 0.21661 0.14602 0.59452)".
+    #[parse(aliases = "xyz")]
     XyzD65,
+}
+
+impl ColorSpace {
+    /// Returns whether this is a `<rectangular-color-space>`.
+    #[inline]
+    pub fn is_rectangular(&self) -> bool {
+        !self.is_polar()
+    }
+
+    /// Returns whether this is a `<polar-color-space>`.
+    #[inline]
+    pub fn is_polar(&self) -> bool {
+        matches!(self, Self::Hsl | Self::Hwb | Self::Lch | Self::Oklch)
+    }
 }
 
 bitflags! {
@@ -96,6 +137,14 @@ pub struct AbsoluteColor {
     pub flags: SerializationFlags,
 }
 
+/// Given an [`AbsoluteColor`], return the 4 float components as the type given,
+/// e.g.:
+///
+/// ```rust
+/// let srgb = AbsoluteColor::new(ColorSpace::Srgb, 1.0, 0.0, 0.0, 0.0);
+/// let floats = color_components_as!(&srgb, [f32; 4]); // [1.0, 0.0, 0.0, 0.0]
+/// ```
+#[macro_export]
 macro_rules! color_components_as {
     ($c:expr, $t:ty) => {{
         // This macro is not an inline function, because we can't use the
@@ -139,6 +188,14 @@ impl AbsoluteColor {
         }
 
         let (xyz, white_point) = match self.color_space {
+            Hsl => {
+                let rgb = convert::hsl_to_rgb(&self.components);
+                convert::to_xyz::<convert::Srgb>(&rgb)
+            },
+            Hwb => {
+                let rgb = convert::hwb_to_rgb(&self.components);
+                convert::to_xyz::<convert::Srgb>(&rgb)
+            },
             Lab => convert::to_xyz::<convert::Lab>(&self.components),
             Lch => convert::to_xyz::<convert::Lch>(&self.components),
             Oklab => convert::to_xyz::<convert::Oklab>(&self.components),
@@ -154,6 +211,14 @@ impl AbsoluteColor {
         };
 
         let result = match color_space {
+            Hsl => {
+                let rgb = convert::from_xyz::<convert::Srgb>(&xyz, white_point);
+                convert::rgb_to_hsl(&rgb)
+            },
+            Hwb => {
+                let rgb = convert::from_xyz::<convert::Srgb>(&xyz, white_point);
+                convert::rgb_to_hwb(&rgb)
+            },
             Lab => convert::from_xyz::<convert::Lab>(&xyz, white_point),
             Lch => convert::from_xyz::<convert::Lch>(&xyz, white_point),
             Oklab => convert::from_xyz::<convert::Oklab>(&xyz, white_point),
@@ -239,6 +304,17 @@ impl ToCss for AbsoluteColor {
         W: Write,
     {
         match self.color_space {
+            ColorSpace::Hsl => {
+                let rgb = convert::hsl_to_rgb(&self.components);
+                Self::new(ColorSpace::Srgb, rgb, self.alpha).to_css(dest)
+            },
+
+            ColorSpace::Hwb => {
+                let rgb = convert::hwb_to_rgb(&self.components);
+
+                Self::new(ColorSpace::Srgb, rgb, self.alpha).to_css(dest)
+            },
+
             ColorSpace::Srgb if !self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION) => {
                 cssparser::ToCss::to_css(
                     &cssparser::RGBA::from_floats(
@@ -268,9 +344,6 @@ impl ToCss for AbsoluteColor {
             ),
             _ => {
                 let color_space = match self.color_space {
-                    ColorSpace::Lab | ColorSpace::Lch | ColorSpace::Oklab | ColorSpace::Oklch => {
-                        unreachable!("Handle these in the wrapping match case!!")
-                    },
                     ColorSpace::Srgb => {
                         debug_assert!(
                             self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION),
@@ -286,6 +359,10 @@ impl ToCss for AbsoluteColor {
                     ColorSpace::Rec2020 => cssparser::PredefinedColorSpace::Rec2020,
                     ColorSpace::XyzD50 => cssparser::PredefinedColorSpace::XyzD50,
                     ColorSpace::XyzD65 => cssparser::PredefinedColorSpace::XyzD65,
+
+                    _ => {
+                        unreachable!("other color spaces do not support color() syntax")
+                    },
                 };
 
                 let color_function = cssparser::ColorFunction {
