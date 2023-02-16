@@ -6,7 +6,9 @@ import dataclasses
 import grouping_formatter
 import json
 import os
+import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -14,8 +16,8 @@ import mozlog
 import mozlog.formatters
 import multiprocessing
 
-from typing import List
-from grouping_formatter import UnexpectedResult
+from typing import List, NamedTuple, Optional, Tuple, Union
+from grouping_formatter import UnexpectedResult, UnexpectedSubtestResult
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
@@ -28,7 +30,7 @@ import update  # noqa: F401,E402
 
 TRACKER_API = "https://build.servo.org/intermittent-tracker"
 TRACKER_API_ENV_VAR = "INTERMITTENT_TRACKER_API"
-GITHUB_API_TOKEN_ENV_VAR = "INTERMITTENT_TRACKER_GITHUB_API_TOKEN"
+TRACKER_DASHBOARD_SECRET_ENV_VAR = "INTERMITTENT_TRACKER_DASHBOARD_SECRET"
 
 
 def determine_build_type(kwargs: dict, target_dir: str):
@@ -186,41 +188,106 @@ def update_tests(**kwargs):
     return 1 if return_value is update.exit_unclean else 0
 
 
-class TrackerFilter():
+class GithubContextInformation(NamedTuple):
+    build_url: Optional[str]
+    pull_url: Optional[str]
+    branch_name: Optional[str]
+
+
+class TrackerDashboardFilter():
     def __init__(self):
-        self.url = os.environ.get(TRACKER_API_ENV_VAR, TRACKER_API)
-        if self.url.endswith("/"):
-            self.url = self.url[0:-1]
+        base_url = os.environ.get(TRACKER_API_ENV_VAR, TRACKER_API)
+        self.headers = {
+            "Content-Type": "application/json"
+        }
+        if TRACKER_DASHBOARD_SECRET_ENV_VAR in os.environ:
+            self.url = f"{base_url}/dashboard/attempts"
+            secret = os.environ[TRACKER_DASHBOARD_SECRET_ENV_VAR]
+            self.headers["Authorization"] = f"Bearer {secret}"
+        else:
+            self.url = f"{base_url}/dashboard/query"
 
-    def is_failure_intermittent(self, test_name):
-        query = urllib.parse.quote(test_name, safe='')
-        request = urllib.request.Request("%s/query.py?name=%s" % (self.url, query))
-        search = urllib.request.urlopen(request)
-        return len(json.load(search)) > 0
+    @staticmethod
+    def get_github_context_information() -> GithubContextInformation:
+        github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
+        if not github_context:
+            return GithubContextInformation(None, None, None)
 
+        repository = github_context['repository']
+        repo_url = f"https://github.com/{repository}"
 
-class GitHubQueryFilter():
-    def __init__(self, token):
-        self.token = token
+        run_id = github_context['run_id']
+        build_url = f"{repo_url}/actions/runs/{run_id})"
 
-    def is_failure_intermittent(self, test_name):
-        url = "https://api.github.com/search/issues?q="
-        query = "repo:servo/servo+" + \
-            "label:I-intermittent+" + \
-            "type:issue+" + \
-            "state:open+" + \
-            test_name
+        commit_title = github_context["event"]["head_commit"]["message"]
+        match = re.match(r"^Auto merge of #(\d+)", commit_title)
+        pr_url = f"{repo_url}/pull/{match.group(1)}" if match else None
 
-        # we want `/` to get quoted, but not `+` (github's API doesn't like
-        # that), so we set `safe` to `+`
-        url += urllib.parse.quote(query, safe="+")
+        return GithubContextInformation(
+            build_url,
+            pr_url,
+            github_context["ref_name"]
+        )
 
-        request = urllib.request.Request(url)
-        request.add_header("Authorization", f"Bearer: {self.token}")
-        request.add_header("Accept", "application/vnd.github+json")
-        return json.load(
-            urllib.request.urlopen(request)
-        )["total_count"] > 0
+    def make_data_from_result(
+        self,
+        result: Union[UnexpectedResult, UnexpectedSubtestResult],
+    ) -> dict:
+        data = {
+            'path': result.path,
+            'subtest': None,
+            'expected': result.expected,
+            'actual': result.actual,
+            'time': result.time // 1000,
+            'message': result.message,
+            'stack': result.stack,
+        }
+        if isinstance(result, UnexpectedSubtestResult):
+            data["subtest"] = result.subtest
+        return data
+
+    def filter_unexpected_results(
+        self,
+        unexpected_results: List[UnexpectedResult]
+    ) -> Tuple[List[UnexpectedResult], List[UnexpectedResult]]:
+        attempts = []
+        for result in unexpected_results:
+            attempts.append(self.make_data_from_result(result))
+            for subtest_result in result.unexpected_subtest_results:
+                attempts.append(self.make_data_from_result(subtest_result))
+
+        context = self.get_github_context_information()
+        try:
+            request = urllib.request.Request(
+                url=self.url,
+                method='POST',
+                data=json.dumps({
+                    'branch': context.branch_name,
+                    'build_url': context.build_url,
+                    'pull_url': context.pull_url,
+                    'attempts': attempts
+                }).encode('utf-8'),
+                headers=self.headers)
+
+            known_intermittents = dict()
+            with urllib.request.urlopen(request) as response:
+                for test in json.load(response)["known"]:
+                    known_intermittents[test["path"]] = \
+                        [issue["number"] for issue in test["issues"]]
+
+        except urllib.error.HTTPError as e:
+            print(e)
+            print(e.readlines())
+            raise(e)
+
+        known = [result for result in unexpected_results
+                 if result.path in known_intermittents]
+        unknown = [result for result in unexpected_results
+                   if result.path not in known_intermittents]
+        for result in known:
+            result.issues = known_intermittents[result.path]
+
+        return (known, unknown)
 
 
 def filter_intermittents(
@@ -230,19 +297,10 @@ def filter_intermittents(
     print(80 * "=")
     print(f"Filtering {len(unexpected_results)} unexpected "
           "results for known intermittents")
-    if GITHUB_API_TOKEN_ENV_VAR in os.environ:
-        filter = GitHubQueryFilter(os.environ.get(GITHUB_API_TOKEN_ENV_VAR))
-    else:
-        filter = TrackerFilter()
 
-    known_intermittents: List[UnexpectedResult] = []
-    unexpected: List[UnexpectedResult] = []
-    for i, result in enumerate(unexpected_results):
-        print(f" [{i}/{len(unexpected_results)}]", file=sys.stderr, end="\r")
-        if filter.is_failure_intermittent(result.path):
-            known_intermittents.append(result)
-        else:
-            unexpected.append(result)
+    filter = TrackerDashboardFilter()
+    (known_intermittents, unexpected) = \
+        filter.filter_unexpected_results(unexpected_results)
 
     output = "\n".join([
         f"{len(known_intermittents)} known-intermittent unexpected result",

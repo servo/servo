@@ -41,24 +41,21 @@ class UnexpectedResult():
     stack: Optional[str]
     unexpected_subtest_results: list[UnexpectedSubtestResult] = field(
         default_factory=list)
+    issues: list[str] = field(default_factory=list)
 
     def __str__(self):
-        output = ""
-        if self.expected != self.actual:
-            lines = UnexpectedResult.to_lines(self)
-            output += UnexpectedResult.wrap_and_indent_lines(lines, "  ")
+        output = UnexpectedResult.to_lines(self)
 
         if self.unexpected_subtest_results:
-            def make_subtests_failure(result, subtest_results):
+            def make_subtests_failure(subtest_results):
                 # Test names sometimes contain control characters, which we want
                 # to be printed in their raw form, and not their interpreted form.
-                path = result.path.encode('unicode-escape')
-                lines = [f"Unexpected subtest result in {path}:"]
+                lines = []
                 for subtest in subtest_results[:-1]:
                     lines += UnexpectedResult.to_lines(
                         subtest, print_stack=False)
                 lines += UnexpectedResult.to_lines(subtest_results[-1])
-                return self.wrap_and_indent_lines(lines, "  ")
+                return self.wrap_and_indent_lines(lines, "  ").splitlines()
 
             # Organize the failures by stack trace so we don't print the same stack trace
             # more than once. They are really tall and we don't want to flood the screen
@@ -69,11 +66,11 @@ class UnexpectedResult():
 
             # Print stackless results first. They are all separate.
             if None in results_by_stack:
-                output = make_subtests_failure(
-                    self, results_by_stack.pop(None))
+                output += make_subtests_failure(results_by_stack.pop(None))
             for subtest_results in results_by_stack.values():
-                output += make_subtests_failure(self, subtest_results)
-        return output
+                output += make_subtests_failure(subtest_results)
+
+        return UnexpectedResult.wrap_and_indent_lines(output, "  ")
 
     @staticmethod
     def wrap_and_indent_lines(lines, indent):
@@ -89,15 +86,18 @@ class UnexpectedResult():
 
     @staticmethod
     def to_lines(result: Any[UnexpectedSubtestResult, UnexpectedResult], print_stack=True):
+        first_line = result.actual
         if result.expected != result.actual:
-            expected_text = f" [expected {result.expected}]"
-        else:
-            expected_text = u""
+            first_line += f" [expected {result.expected}]"
 
         # Test names sometimes contain control characters, which we want
         # to be printed in their raw form, and not their interpreted form.
-        path = result.path.encode('unicode-escape')
-        lines = [f"{result.actual}{expected_text} {path}"]
+        first_line += f" {result.path.encode('unicode-escape').decode('utf-8')}"
+
+        if isinstance(result, UnexpectedResult) and result.issues:
+            first_line += f" ({', '.join([f'#{bug}' for bug in result.issues])})"
+
+        lines = [first_line]
         if result.message:
             for message_line in result.message.splitlines():
                 lines.append(f"  \u2192 {message_line}")
