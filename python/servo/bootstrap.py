@@ -250,7 +250,7 @@ def get_linux_distribution():
         distrib, version = 'Ubuntu', base_version
     elif distrib.lower() == 'ubuntu':
         if version > '22.04':
-            raise Exception('unsupported version of %s: %s' % (distrib, version))
+            print('WARNING: unsupported version of %s: %s' % (distrib, version))
     # Fixme: we should allow checked/supported versions only
     elif distrib.lower() not in [
         'centos',
