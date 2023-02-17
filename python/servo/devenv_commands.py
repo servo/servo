@@ -178,6 +178,54 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         return self.call_rustup_run(["rustc"] + params, env=self.build_env())
 
+    @Command('cargo-fix',
+             description='Run "cargo fix"',
+             category='devenv')
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to cargo-fix")
+    @CommandBase.build_like_command_arguments
+    def cargo_fix(self, params, features=[], media_stack=None, target=None,
+                  android=False, magicleap=False, **kwargs):
+        if not params:
+            params = []
+
+        features = features or []
+
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        features += self.pick_media_stack(media_stack, target)
+
+        self.ensure_bootstrapped(target=target)
+        self.ensure_clobbered()
+        env = self.build_env()
+
+        return self.run_cargo_build_like_command("fix", params, env=env, features=features, **kwargs)
+
+    @Command('cargo-clippy',
+             description='Run "cargo clippy"',
+             category='devenv')
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to cargo-clippy")
+    @CommandBase.build_like_command_arguments
+    def cargo_clippy(self, params, features=[], media_stack=None, target=None,
+                     android=False, magicleap=False, **kwargs):
+        if not params:
+            params = []
+
+        features = features or []
+
+        target, android = self.pick_target_triple(target, android, magicleap)
+
+        features += self.pick_media_stack(media_stack, target)
+
+        self.ensure_bootstrapped(target=target)
+        self.ensure_clobbered()
+        env = self.build_env()
+
+        return self.run_cargo_build_like_command("clippy", params, env=env, features=features, **kwargs)
+
     @Command('grep',
              description='`git grep` for selected directories.',
              category='devenv')
