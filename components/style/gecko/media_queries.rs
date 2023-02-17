@@ -199,6 +199,18 @@ impl Device {
         unsafe { bindings::Gecko_GetBaseSize(self.document(), language.as_ptr(), generic) }
     }
 
+    /// Gets the size of the scrollbar in CSS pixels.
+    pub fn scrollbar_inline_size(&self) -> Length {
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            // XXX: we could have a more reasonable default perhaps.
+            None => return Length::new(0.0),
+        };
+        Length::new(unsafe {
+            bindings::Gecko_GetScrollbarInlineSize(pc)
+        })
+    }
+
     /// Queries font metrics
     pub fn query_font_metrics(
         &self,

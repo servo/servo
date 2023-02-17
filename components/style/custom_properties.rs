@@ -85,6 +85,10 @@ fn get_content_preferred_color_scheme(_device: &Device) -> VariableValue {
     VariableValue::ident("light")
 }
 
+fn get_scrollbar_inline_size(device: &Device) -> VariableValue {
+    VariableValue::pixels(device.scrollbar_inline_size().px())
+}
+
 static ENVIRONMENT_VARIABLES: [EnvironmentVariable; 4] = [
     make_variable!(atom!("safe-area-inset-top"), get_safearea_inset_top),
     make_variable!(atom!("safe-area-inset-bottom"), get_safearea_inset_bottom),
@@ -120,7 +124,7 @@ macro_rules! lnf_int_variable {
     }};
 }
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 6] = [
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 7] = [
     lnf_int_variable!(
         atom!("-moz-gtk-csd-titlebar-radius"),
         TitlebarRadius,
@@ -145,6 +149,10 @@ static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 6] = [
     make_variable!(
         atom!("-moz-content-preferred-color-scheme"),
         get_content_preferred_color_scheme
+    ),
+    make_variable!(
+        atom!("scrollbar-inline-size"),
+        get_scrollbar_inline_size
     ),
 ];
 
