@@ -136,10 +136,8 @@ impl TimingFunction {
         if !linear_timing_function_enabled() {
             return Err(input.new_custom_error(StyleParseErrorKind::ExperimentalProperty));
         }
-        if input.is_exhausted() {
-            return Ok(GenericTimingFunction::LinearFunction(LinearStops::default()));
-        }
         let mut result = vec![];
+        // Closely follows `parse_comma_separated`, but can generate multiple entries for one comma-separated entry.
         loop {
             input.parse_until_before(Delimiter::Comma, |i| {
                 let mut input_start = i.try_parse(|i| Percentage::parse(context, i)).ok();
@@ -174,6 +172,9 @@ impl TimingFunction {
                 Ok(&Token::Comma) => continue,
                 Ok(_) => unreachable!(),
             }
+        }
+        if result.len() < 2 {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(GenericTimingFunction::LinearFunction(LinearStops::new(
