@@ -91,8 +91,8 @@ impl Promise {
         Promise::new_in_current_realm(global, comp)
     }
 
-    pub fn new_in_current_realm(global: &GlobalScope, _comp: InRealm) -> Rc<Promise> {
-        let cx = global.get_cx();
+    pub fn new_in_current_realm(_global: &GlobalScope, _comp: InRealm) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut());
         Promise::new_with_js_promise(obj.handle(), cx)
@@ -100,7 +100,7 @@ impl Promise {
 
     #[allow(unsafe_code)]
     pub fn duplicate(&self) -> Rc<Promise> {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
     }
 
@@ -172,7 +172,7 @@ impl Promise {
     where
         T: ToJSValConvertible,
     {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let _ac = enter_realm(&*self);
         rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
@@ -195,7 +195,7 @@ impl Promise {
     where
         T: ToJSValConvertible,
     {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let _ac = enter_realm(&*self);
         rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
@@ -206,7 +206,7 @@ impl Promise {
 
     #[allow(unsafe_code)]
     pub fn reject_error(&self, error: Error) {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let _ac = enter_realm(&*self);
         rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
@@ -245,7 +245,7 @@ impl Promise {
     #[allow(unsafe_code)]
     pub fn append_native_handler(&self, handler: &PromiseNativeHandler, _comp: InRealm) {
         let _ais = AutoEntryScript::new(&*handler.global());
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let resolve_func =
                 create_native_handler_function(*cx,
                                                handler.reflector().get_jsobject(),

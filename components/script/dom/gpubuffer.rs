@@ -134,7 +134,7 @@ impl GPUBufferMethods for GPUBuffer {
     #[allow(unsafe_code)]
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
     fn Unmap(&self) {
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         // Step 1
         match self.state.get() {
             GPUBufferState::Unmapped | GPUBufferState::Destroyed => {

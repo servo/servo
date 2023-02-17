@@ -245,7 +245,7 @@ impl CallSetup {
         if let Some(window) = global.downcast::<Window>() {
             window.Document().ensure_safe_to_run_script_or_layout();
         }
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
 
         let aes = AutoEntryScript::new(&global);
         let ais = callback.incumbent().map(AutoIncumbentScript::new);

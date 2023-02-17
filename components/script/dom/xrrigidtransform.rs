@@ -117,7 +117,7 @@ impl XRRigidTransformMethods for XRRigidTransform {
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
     fn Matrix(&self, _cx: JSContext) -> NonNull<JSObject> {
         if self.matrix.get().is_null() {
-            let cx = self.global().get_cx();
+            let cx = GlobalScope::get_cx();
             // According to the spec all matrices are column-major,
             // however euclid uses row vectors so we use .to_array()
             let arr = self.transform.to_transform().to_array();

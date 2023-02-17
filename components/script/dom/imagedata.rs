@@ -39,7 +39,7 @@ impl ImageData {
     ) -> Fallible<DomRoot<ImageData>> {
         let len = width * height * 4;
         unsafe {
-            let cx = global.get_cx();
+            let cx = GlobalScope::get_cx();
             rooted!(in (*cx) let mut js_object = ptr::null_mut::<JSObject>());
             if let Some(ref mut d) = data {
                 d.resize(len as usize, 0);
@@ -60,7 +60,7 @@ impl ImageData {
         jsobject: *mut JSObject,
     ) -> Fallible<DomRoot<ImageData>> {
         // checking jsobject type
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         typedarray!(in(*cx) let array_res: Uint8ClampedArray = jsobject);
         let array = array_res.map_err(|_| {
             Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())
@@ -111,7 +111,7 @@ impl ImageData {
         });
 
         let len = width * height * 4;
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         Uint8ClampedArray::create(*cx, CreateWith::Length(len as usize), array.handle_mut())
             .unwrap();

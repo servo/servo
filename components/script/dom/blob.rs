@@ -272,7 +272,7 @@ impl BlobMethods for Blob {
             Box::new(|promise, bytes| {
                 match bytes {
                     Ok(b) => {
-                        let cx = promise.global().get_cx();
+                        let cx = GlobalScope::get_cx();
                         let result = run_array_buffer_data_algorithm(cx, b);
 
                         match result {

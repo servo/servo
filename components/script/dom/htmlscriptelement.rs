@@ -110,7 +110,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
         task!(off_thread_compile_continue: move || {
             let elem = script_element.root();
             let global = elem.global();
-            let cx = global.get_cx();
+            let cx = GlobalScope::get_cx();
             let _ar = enter_realm(&*global);
 
             let compiled_script = FinishOffThreadStencil(*cx, token.0, ptr::null_mut());
@@ -418,7 +418,7 @@ impl FetchResponseListener for ClassicContext {
 
         let elem = self.elem.root();
         let global = elem.global();
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         let _ar = enter_realm(&*global);
 
         let options = unsafe { CompileOptionsWrapper::new(*cx, final_url.as_str(), 1) };
@@ -1053,7 +1053,7 @@ impl HTMLScriptElement {
         } else {
             self.line_number as u32
         };
-        rooted!(in(*window.get_cx()) let mut rval = UndefinedValue());
+        rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
         let global = window.upcast::<GlobalScope>();
         global.evaluate_script_on_global_with_result(
             &script.code,
@@ -1108,7 +1108,7 @@ impl HTMLScriptElement {
                 .map(|record| record.handle());
 
             if let Some(record) = record {
-                rooted!(in(*global.get_cx()) let mut rval = UndefinedValue());
+                rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
                 let evaluated =
                     module_tree.execute_module(global, record, rval.handle_mut().into());
 

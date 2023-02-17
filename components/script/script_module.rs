@@ -81,8 +81,8 @@ use uuid::Uuid;
 
 #[allow(unsafe_code)]
 unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
-    rooted!(in(*global.get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(*global.get_cx(), &global, thrown.handle_mut());
+    rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
+    Error::Type(string).to_jsval(*GlobalScope::get_cx(), &global, thrown.handle_mut());
 
     return RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())));
 }
@@ -421,14 +421,15 @@ impl ModuleTree {
         url: ServoUrl,
         options: ScriptFetchOptions,
     ) -> Result<ModuleObject, RethrowError> {
-        let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+        let cx = GlobalScope::get_cx();
+        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         let compile_options =
-            unsafe { CompileOptionsWrapper::new(*global.get_cx(), url.as_str(), 1) };
+            unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), 1) };
 
         unsafe {
-            rooted!(in(*global.get_cx()) let mut module_script = CompileModule1(
-                *global.get_cx(),
+            rooted!(in(*cx) let mut module_script = CompileModule1(
+                *cx,
                 compile_options.ptr,
                 &mut transform_str_to_source_text(&module_script_text),
             ));
@@ -436,12 +437,12 @@ impl ModuleTree {
             if module_script.is_null() {
                 warn!("fail to compile module script of {}", url);
 
-                rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
+                rooted!(in(*cx) let mut exception = UndefinedValue());
                 assert!(JS_GetPendingException(
-                    *global.get_cx(),
+                    *cx,
                     &mut exception.handle_mut()
                 ));
-                JS_ClearPendingException(*global.get_cx());
+                JS_ClearPendingException(*cx);
 
                 return Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
                     exception.get(),
@@ -474,18 +475,19 @@ impl ModuleTree {
         global: &GlobalScope,
         module_record: HandleObject,
     ) -> Result<(), RethrowError> {
-        let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+        let cx = GlobalScope::get_cx();
+        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         unsafe {
-            if !ModuleLink(*global.get_cx(), module_record) {
+            if !ModuleLink(*cx, module_record) {
                 warn!("fail to link & instantiate module");
 
-                rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
+                rooted!(in(*cx) let mut exception = UndefinedValue());
                 assert!(JS_GetPendingException(
-                    *global.get_cx(),
+                    *cx,
                     &mut exception.handle_mut()
                 ));
-                JS_ClearPendingException(*global.get_cx());
+                JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
                     exception.get(),
@@ -505,7 +507,7 @@ impl ModuleTree {
         module_record: HandleObject,
         eval_result: MutableHandleValue,
     ) -> Result<(), RethrowError> {
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         unsafe {
@@ -547,11 +549,11 @@ impl ModuleTree {
             unsafe {
                 let ar = enter_realm(&*global);
                 JS_SetPendingException(
-                    *global.get_cx(),
+                    *GlobalScope::get_cx(),
                     exception.handle(),
                     ExceptionStackBehavior::Capture,
                 );
-                report_pending_exception(*global.get_cx(), true, InRealm::Entered(&ar));
+                report_pending_exception(*GlobalScope::get_cx(), true, InRealm::Entered(&ar));
             }
         }
     }
@@ -563,16 +565,17 @@ impl ModuleTree {
         module_object: HandleObject,
         base_url: ServoUrl,
     ) -> Result<IndexSet<ServoUrl>, RethrowError> {
-        let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
+        let cx = GlobalScope::get_cx();
+        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         let mut specifier_urls = IndexSet::new();
 
         unsafe {
-            rooted!(in(*global.get_cx()) let requested_modules = GetRequestedModules(*global.get_cx(), module_object));
+            rooted!(in(*cx) let requested_modules = GetRequestedModules(*cx, module_object));
 
             let mut length = 0;
 
-            if !GetArrayLength(*global.get_cx(), requested_modules.handle(), &mut length) {
+            if !GetArrayLength(*cx, requested_modules.handle(), &mut length) {
                 let module_length_error =
                     gen_type_error(&global, "Wrong length of requested modules".to_owned());
 
@@ -580,10 +583,10 @@ impl ModuleTree {
             }
 
             for index in 0..length {
-                rooted!(in(*global.get_cx()) let mut element = UndefinedValue());
+                rooted!(in(*cx) let mut element = UndefinedValue());
 
                 if !JS_GetElement(
-                    *global.get_cx(),
+                    *cx,
                     requested_modules.handle(),
                     index,
                     &mut element.handle_mut(),
@@ -594,12 +597,12 @@ impl ModuleTree {
                     return Err(get_element_error);
                 }
 
-                rooted!(in(*global.get_cx()) let specifier = GetRequestedModuleSpecifier(
-                    *global.get_cx(), element.handle()
+                rooted!(in(*cx) let specifier = GetRequestedModuleSpecifier(
+                    *cx, element.handle()
                 ));
 
                 let url = ModuleTree::resolve_module_specifier(
-                    *global.get_cx(),
+                    *cx,
                     &base_url,
                     specifier.handle().into_handle(),
                 );
@@ -976,7 +979,7 @@ impl ModuleOwner {
 
         let module = global.dynamic_module_list().remove(dynamic_module_id);
 
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         let module_tree = module_identity.get_module_tree(&global);
 
         // In the timing of executing this `finish_dynamic_module` function,
@@ -986,7 +989,7 @@ impl ModuleOwner {
         let network_error = module_tree.get_network_error().borrow().as_ref().cloned();
         let existing_rethrow_error = module_tree.get_rethrow_error().borrow().as_ref().cloned();
 
-        rooted!(in(*global.get_cx()) let mut rval = UndefinedValue());
+        rooted!(in(*cx) let mut rval = UndefinedValue());
         if network_error.is_none() && existing_rethrow_error.is_none() {
             let record = module_tree
                 .get_record()
@@ -1355,7 +1358,7 @@ fn fetch_an_import_module_script_graph(
     promise: Rc<Promise>,
 ) -> Result<(), RethrowError> {
     // Step 1.
-    let cx = global.get_cx();
+    let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let specifier = unsafe { GetModuleRequestSpecifier(*cx, module_request) });
     let url = ModuleTree::resolve_module_specifier(*cx, &base_url, specifier.handle().into());
 
@@ -1428,9 +1431,9 @@ unsafe extern "C" fn HostResolveImportedModule(
     }
 
     // Step 5.
-    rooted!(in(*global_scope.get_cx()) let specifier = GetModuleRequestSpecifier(cx, specifier));
+    rooted!(in(*GlobalScope::get_cx()) let specifier = GetModuleRequestSpecifier(cx, specifier));
     let url = ModuleTree::resolve_module_specifier(
-        *global_scope.get_cx(),
+        *GlobalScope::get_cx(),
         &base_url,
         specifier.handle().into(),
     );

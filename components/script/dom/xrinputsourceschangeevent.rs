@@ -63,7 +63,7 @@ impl XRInputSourcesChangeEvent {
             event.init_event(type_, bubbles, cancelable);
         }
         let _ac = enter_realm(&*global);
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         unsafe {
             rooted!(in(*cx) let mut added_val = UndefinedValue());
             added.to_jsval(*cx, added_val.handle_mut());

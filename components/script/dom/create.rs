@@ -154,7 +154,7 @@ fn create_html_element(
                             // Step 6. Recovering from exception.
                             let global =
                                 GlobalScope::current().unwrap_or_else(|| document.global());
-                            let cx = global.get_cx();
+                            let cx = GlobalScope::get_cx();
 
                             // Step 6.1.1
                             unsafe {

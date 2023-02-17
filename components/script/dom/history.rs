@@ -117,7 +117,7 @@ impl History {
                     blobs: None,
                 };
                 let global_scope = self.window.upcast::<GlobalScope>();
-                rooted!(in(*global_scope.get_cx()) let mut state = UndefinedValue());
+                rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
                 if let Err(_) = structuredclone::read(&global_scope, data, state.handle_mut()) {
                     warn!("Error reading structuredclone data");
                 }

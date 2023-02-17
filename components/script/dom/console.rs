@@ -17,7 +17,7 @@ impl Console {
     #[allow(unsafe_code)]
     fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
         if let Some(chan) = global.devtools_chan() {
-            let caller = unsafe { describe_scripted_caller(*global.get_cx()) }.unwrap_or_default();
+            let caller = unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
             let console_message = ConsoleMessage {
                 message: String::from(message),
                 logLevel: level,

@@ -116,7 +116,7 @@ impl XRRayMethods for XRRay {
         // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
         // Step 1
         if self.matrix.get().is_null() {
-            let cx = self.global().get_cx();
+            let cx = GlobalScope::get_cx();
             // Step 2
             let z = Vector3D::new(0., 0., -1.);
             // Step 3

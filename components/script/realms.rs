@@ -11,9 +11,9 @@ pub struct AlreadyInRealm(());
 
 impl AlreadyInRealm {
     #![allow(unsafe_code)]
-    pub fn assert(global: &GlobalScope) -> AlreadyInRealm {
+    pub fn assert(_global: &GlobalScope) -> AlreadyInRealm {
         unsafe {
-            assert!(!GetCurrentRealmOrNull(*global.get_cx()).is_null());
+            assert!(!GetCurrentRealmOrNull(*GlobalScope::get_cx()).is_null());
         }
         AlreadyInRealm(())
     }
@@ -44,7 +44,7 @@ impl<'a> InRealm<'a> {
 
 pub fn enter_realm(object: &impl DomObject) -> JSAutoRealm {
     JSAutoRealm::new(
-        *object.global().get_cx(),
+        *GlobalScope::get_cx(),
         object.reflector().get_jsobject().get(),
     )
 }

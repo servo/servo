@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::utils::create_typed_array;
@@ -90,7 +89,7 @@ impl XRViewMethods for XRView {
     /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
     fn ProjectionMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
         if self.proj.get().is_null() {
-            let cx = self.global().get_cx();
+            let cx = GlobalScope::get_cx();
             // row_major since euclid uses row vectors
             let proj = self.view.projection.to_array();
             create_typed_array(cx, &proj, &self.proj);

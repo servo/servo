@@ -140,11 +140,10 @@ impl CustomElementRegistry {
         constructor: HandleObject,
         prototype: MutableHandleValue,
     ) -> ErrorResult {
-        let global_scope = self.window.upcast::<GlobalScope>();
         unsafe {
             // Step 10.1
             if !JS_GetProperty(
-                *global_scope.get_cx(),
+                *GlobalScope::get_cx(),
                 constructor,
                 b"prototype\0".as_ptr() as *const _,
                 prototype,
@@ -166,7 +165,7 @@ impl CustomElementRegistry {
     /// Steps 10.3, 10.4
     #[allow(unsafe_code)]
     unsafe fn get_callbacks(&self, prototype: HandleObject) -> Fallible<LifecycleCallbacks> {
-        let cx = self.window.get_cx();
+        let cx = GlobalScope::get_cx();
 
         // Step 4
         Ok(LifecycleCallbacks {
@@ -181,7 +180,7 @@ impl CustomElementRegistry {
     /// Step 10.6
     #[allow(unsafe_code)]
     fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
-        let cx = self.window.get_cx();
+        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut observed_attributes = UndefinedValue());
         if unsafe {
             !JS_GetProperty(
@@ -254,7 +253,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         constructor_: Rc<CustomElementConstructor>,
         options: &ElementDefinitionOptions,
     ) -> ErrorResult {
-        let cx = self.window.get_cx();
+        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let constructor = constructor_.callback());
         let name = LocalName::from(&*name);
 
@@ -437,7 +436,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Step 2
         if let Some(definition) = self.definitions.borrow().get(&LocalName::from(&*name)) {
             unsafe {
-                let cx = global_scope.get_cx();
+                let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut constructor = UndefinedValue());
                 definition
                     .constructor
@@ -543,7 +542,7 @@ impl CustomElementDefinition {
         prefix: Option<Prefix>,
     ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
-        let cx = window.get_cx();
+        let cx = GlobalScope::get_cx();
         // Step 2
         rooted!(in(*cx) let constructor = ObjectValue(self.constructor.callback()));
         rooted!(in(*cx) let mut element = ptr::null_mut::<JSObject>());
@@ -662,7 +661,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
 
         // Step 8.exception.3
         let global = GlobalScope::current().expect("No current global");
-        let cx = global.get_cx();
+        let cx = GlobalScope::get_cx();
         unsafe {
             let ar = enter_realm(&*global);
             throw_dom_exception(cx, &global, error);
@@ -686,7 +685,7 @@ fn run_upgrade_constructor(
     element: &Element,
 ) -> ErrorResult {
     let window = window_from_node(element);
-    let cx = window.get_cx();
+    let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(in(*cx) let mut element_val = UndefinedValue());
     unsafe {
@@ -909,7 +908,7 @@ impl CustomElementReactionStack {
                     return;
                 }
 
-                let cx = element.global().get_cx();
+                let cx = GlobalScope::get_cx();
                 // We might be here during HTML parsing, rather than
                 // during Javscript execution, and so we typically aren't
                 // already in a realm here.

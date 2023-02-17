@@ -1215,7 +1215,7 @@ impl GlobalScope {
                                     return;
                                 }
 
-                                rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
+                                rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
 
                                 // Step 10.3 StructuredDeserialize(serialized, targetRealm).
                                 if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
@@ -1269,7 +1269,7 @@ impl GlobalScope {
         };
         if let Some((dom_port, PortMessageTask { origin, data })) = should_dispatch {
             // Substep 3-4
-            rooted!(in(*self.get_cx()) let mut message_clone = UndefinedValue());
+            rooted!(in(*GlobalScope::get_cx()) let mut message_clone = UndefinedValue());
             if let Ok(ports) = structuredclone::read(self, data, message_clone.handle_mut()) {
                 // Substep 6
                 // Dispatch the event, using the dom message-port.
@@ -2120,7 +2120,7 @@ impl GlobalScope {
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
     #[allow(unsafe_code)]
-    pub fn from_reflector<T: DomObject>(reflector: &T) -> DomRoot<Self> {
+    pub fn from_reflector<T: DomObject>(reflector: &T, _realm: &AlreadyInRealm) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 
@@ -2221,7 +2221,7 @@ impl GlobalScope {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_cx(&self) -> SafeJSContext {
+    pub fn get_cx() -> SafeJSContext {
         unsafe { SafeJSContext::from_ptr(Runtime::get()) }
     }
 
@@ -2603,7 +2603,7 @@ impl GlobalScope {
             Some(metadata),
             self.time_profiler_chan().clone(),
             || {
-                let cx = self.get_cx();
+                let cx = GlobalScope::get_cx();
 
                 let ar = enter_realm(&*self);
 
@@ -2857,7 +2857,7 @@ impl GlobalScope {
         // Only perform the checkpoint if we're not shutting down.
         if self.can_continue_running() {
             self.microtask_queue.checkpoint(
-                self.get_cx(),
+                GlobalScope::get_cx(),
                 |_| Some(DomRoot::from_ref(self)),
                 vec![DomRoot::from_ref(self)],
             );
@@ -2866,7 +2866,7 @@ impl GlobalScope {
 
     /// Enqueue a microtask for subsequent execution.
     pub fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job, self.get_cx());
+        self.microtask_queue.enqueue(job, GlobalScope::get_cx());
     }
 
     /// Create a new sender/receiver pair that can be used to implement an on-demand

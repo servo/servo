@@ -833,7 +833,7 @@ impl HTMLInputElement {
         }
 
         // Rust's regex is not compatible, we need to use mozjs RegExp.
-        let cx = self.global().get_cx();
+        let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut pattern = ptr::null_mut::<JSObject>());
 
