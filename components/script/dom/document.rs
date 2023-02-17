@@ -3575,7 +3575,7 @@ impl Document {
         // Step 1
         let in_realm_proof = AlreadyInRealm::assert(&self.global());
         let promise =
-            Promise::new_in_current_realm(&self.global(), InRealm::Already(&in_realm_proof));
+            Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
         let mut error = false;
 
         // Step 4
@@ -3643,7 +3643,7 @@ impl Document {
         let global = self.global();
         // Step 1
         let in_realm_proof = AlreadyInRealm::assert(&global);
-        let promise = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
         // Step 2
         if self.fullscreen_element.get().is_none() {
             promise.reject_error(Error::Type(String::from("fullscreen is null")));

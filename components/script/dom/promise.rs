@@ -88,10 +88,10 @@ impl Promise {
     pub fn new(global: &GlobalScope) -> Rc<Promise> {
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
-        Promise::new_in_current_realm(global, comp)
+        Promise::new_in_current_realm(comp)
     }
 
-    pub fn new_in_current_realm(_global: &GlobalScope, _comp: InRealm) -> Rc<Promise> {
+    pub fn new_in_current_realm(_comp: InRealm) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut());

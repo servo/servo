@@ -130,8 +130,7 @@ impl WorkletMethods for Worklet {
         comp: InRealm,
     ) -> Rc<Promise> {
         // Step 1.
-        let global = self.window.upcast();
-        let promise = Promise::new_in_current_realm(&global, comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         // Step 3.
         let module_url_record = match self.window.Document().base_url().join(&module_url.0) {

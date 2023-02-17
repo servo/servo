@@ -1005,7 +1005,7 @@ impl TestBindingMethods for TestBinding {
             resolve.map(SimpleHandler::new),
             reject.map(SimpleHandler::new),
         );
-        let p = Promise::new_in_current_realm(&global, comp.clone());
+        let p = Promise::new_in_current_realm(comp.clone());
         p.append_native_handler(&handler, comp);
         return p;
 
@@ -1028,7 +1028,7 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn PromiseAttribute(&self, comp: InRealm) -> Rc<Promise> {
-        Promise::new_in_current_realm(&self.global(), comp)
+        Promise::new_in_current_realm(comp)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}

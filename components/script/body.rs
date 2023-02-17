@@ -721,7 +721,7 @@ pub fn consume_body<T: BodyMixin + DomObject>(object: &T, body_type: BodyType) -
     let global = object.global();
     let in_realm_proof = AlreadyInRealm::assert(&global);
     let promise =
-        Promise::new_in_current_realm(&object.global(), InRealm::Already(&in_realm_proof));
+        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
     // Step 1
     if object.is_disturbed() || object.is_locked() {

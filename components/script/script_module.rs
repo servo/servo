@@ -357,7 +357,7 @@ impl ModuleTree {
         match promise.as_ref() {
             Some(promise) => promise.append_native_handler(&handler, comp),
             None => {
-                let new_promise = Promise::new_in_current_realm(&owner.global(), comp);
+                let new_promise = Promise::new_in_current_realm(comp);
                 new_promise.append_native_handler(&handler, comp);
                 *promise = Some(new_promise);
             },
@@ -393,7 +393,7 @@ impl ModuleTree {
         match promise.as_ref() {
             Some(promise) => promise.append_native_handler(&handler, comp),
             None => {
-                let new_promise = Promise::new_in_current_realm(&owner.global(), comp);
+                let new_promise = Promise::new_in_current_realm(comp);
                 new_promise.append_native_handler(&handler, comp);
                 *promise = Some(new_promise);
             },

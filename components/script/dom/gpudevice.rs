@@ -357,7 +357,7 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost
     fn Lost(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
         *self.lost_promise.borrow_mut() = Some(promise.clone());
         promise
     }
@@ -1117,7 +1117,7 @@ impl GPUDeviceMethods for GPUDevice {
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope
     fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
         let mut context = self.scope_context.borrow_mut();
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
         let scope_id =
             if let Some(meta) = context.scope_stack.iter().rev().find(|m| !m.popped.get()) {
                 meta.popped.set(true);

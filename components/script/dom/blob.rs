@@ -239,7 +239,7 @@ impl BlobMethods for Blob {
     fn Text(&self) -> Rc<Promise> {
         let global = self.global();
         let in_realm_proof = AlreadyInRealm::assert(&global);
-        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
         let id = self.get_blob_url_id();
         global.read_file_async(
             id,
@@ -262,7 +262,7 @@ impl BlobMethods for Blob {
     fn ArrayBuffer(&self) -> Rc<Promise> {
         let global = self.global();
         let in_realm_proof = AlreadyInRealm::assert(&global);
-        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
         let id = self.get_blob_url_id();
 

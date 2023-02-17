@@ -288,7 +288,7 @@ where
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
     let in_realm_proof = AlreadyInRealm::assert(&attribute.global());
-    let p = Promise::new_in_current_realm(&attribute.global(), InRealm::Already(&in_realm_proof));
+    let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
@@ -528,7 +528,7 @@ impl From<BluetoothError> for Error {
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -546,7 +546,7 @@ impl BluetoothMethods for Bluetooth {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
     fn GetAvailability(&self, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);

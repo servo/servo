@@ -70,7 +70,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         let global = self.client.global();
 
         // A: Step 1
-        let promise = Promise::new_in_current_realm(&*global, comp);
+        let promise = Promise::new_in_current_realm(comp);
         let USVString(ref script_url) = script_url;
 
         // A: Step 3

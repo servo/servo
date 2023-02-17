@@ -159,7 +159,7 @@ impl XRSystemMethods for XRSystem {
     ) -> Rc<Promise> {
         let global = self.global();
         let window = global.as_window();
-        let promise = Promise::new_in_current_realm(&global, comp);
+        let promise = Promise::new_in_current_realm(comp);
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {

@@ -428,7 +428,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
-            let promise = Promise::new_in_current_realm(&global_scope, comp);
+            let promise = Promise::new_in_current_realm(comp);
             promise.reject_native(&DOMException::new(&global_scope, DOMErrorName::SyntaxError));
             return promise;
         }
@@ -441,7 +441,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
                 definition
                     .constructor
                     .to_jsval(*cx, constructor.handle_mut());
-                let promise = Promise::new_in_current_realm(&global_scope, comp);
+                let promise = Promise::new_in_current_realm(comp);
                 promise.resolve_native(&constructor.get());
                 return promise;
             }
@@ -452,7 +452,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Steps 4, 5
         let promise = map.get(&name).cloned().unwrap_or_else(|| {
-            let promise = Promise::new_in_current_realm(&global_scope, comp);
+            let promise = Promise::new_in_current_realm(comp);
             map.insert(name, promise.clone());
             promise
         });

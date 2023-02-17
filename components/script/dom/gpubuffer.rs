@@ -6,7 +6,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{GPUBufferMethods, GPUSize64};
 use crate::dom::bindings::codegen::Bindings::GPUMapModeBinding::GPUMapModeConstants;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
@@ -209,7 +208,7 @@ impl GPUBufferMethods for GPUBuffer {
         size: Option<GPUSize64>,
         comp: InRealm,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let promise = Promise::new_in_current_realm(comp);
         let range_size = if let Some(s) = size {
             s
         } else if offset >= self.size {

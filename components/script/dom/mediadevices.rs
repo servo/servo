@@ -44,7 +44,7 @@ impl MediaDevicesMethods for MediaDevices {
     /// https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia
     #[allow(unsafe_code)]
     fn GetUserMedia(&self, constraints: &MediaStreamConstraints, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(&self.global(), comp);
+        let p = Promise::new_in_current_realm(comp);
         let media = ServoMedia::get().unwrap();
         let stream = MediaStream::new(&self.global());
         if let Some(constraints) = convert_constraints(&constraints.audio) {
@@ -69,7 +69,7 @@ impl MediaDevicesMethods for MediaDevices {
         // Step 1.
         let global = self.global();
         let in_realm_proof = AlreadyInRealm::assert(&global);
-        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
         // Step 2.
         // XXX These steps should be run in parallel.
