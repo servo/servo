@@ -21,7 +21,23 @@ promise_test(async () => {
   doc.body.appendChild(input);
   await waitUntilStableAutofocusState();
   assert_not_equals(doc.activeElement, input);
-}, 'Autofocus elements in iframed documents with URL fragments should be skipped.');
+  iframe.remove();
+}, 'Autofocus elements in iframed documents with URL fragments should be skipped. (id matches)');
+
+promise_test(async () => {
+  let iframe = await waitForIframeLoad("resources/frame-with-a.html");
+  iframe.contentWindow.location.hash = 'anchor1';
+  await waitForEvent(iframe.contentWindow, 'hashchange');
+  const doc = iframe.contentDocument;
+  assert_true(!!doc.querySelector(':target'));
+
+  let input = doc.createElement('input');
+  input.autofocus = true;
+  doc.body.appendChild(input);
+  await waitUntilStableAutofocusState();
+  assert_not_equals(doc.activeElement, input);
+  iframe.remove();
+}, 'Autofocus elements in iframed documents with URL fragments should be skipped.(a element)');
 
 promise_test(async () => {
   let w = window.open('resources/frame-with-anchor.html');

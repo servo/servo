@@ -183,6 +183,8 @@ function transition_test(options, description) {
   promise_test(async () => {
     const customProperty = generate_name();
 
+    options.transitionProperty ??= customProperty;
+
     CSS.registerProperty({
       name: customProperty,
       syntax: options.syntax,
@@ -199,7 +201,7 @@ function transition_test(options, description) {
       });
     });
 
-    target.style.transition = `${customProperty} 1s -500ms linear`;
+    target.style.transition = `${options.transitionProperty} 1s -500ms linear`;
     target.style.setProperty(customProperty, options.to);
 
     const animations = target.getAnimations();

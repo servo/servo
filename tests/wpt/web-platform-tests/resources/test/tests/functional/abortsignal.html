@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Test#get_signal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  "use strict";
+
+  setup(() => {
+    assert_implements_optional(window.AbortController, "No AbortController");
+  });
+
+  let signal;
+  let observed = false;
+
+  test(t => {
+    signal = t.get_signal();
+    assert_true(signal instanceof AbortSignal, "Returns an abort signal");
+    assert_false(signal.aborted, "Signal should not be aborted before test end");
+    signal.onabort = () => observed = true;
+  }, "t.signal existence");
+
+  test(t => {
+    assert_true(signal.aborted, "Signal should be aborted after test end");
+    assert_true(observed, "onabort should have been called");
+  }, "t.signal.aborted");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "message": null,
+    "status_string": "OK"
+  },
+  "summarized_tests": [
+    {
+      "message": null,
+      "name": "t.signal existence",
+      "properties": {},
+      "status_string": "PASS"
+    },
+    {
+      "message": null,
+      "name": "t.signal.aborted",
+      "properties": {},
+      "status_string": "PASS"
+    }
+  ],
+  "type": "complete"
+}
+</script>

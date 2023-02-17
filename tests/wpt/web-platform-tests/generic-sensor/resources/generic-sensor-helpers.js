@@ -11,6 +11,7 @@
 async function loadChromiumResources() {
   await loadScript('/resources/testdriver.js');
   await loadScript('/resources/testdriver-vendor.js');
+  await loadScript('/page-visibility/resources/window_state_context.js');
   await import('/resources/chromium/generic_sensor_mocks.js');
 }
 

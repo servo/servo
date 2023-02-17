@@ -43,7 +43,7 @@ test(() => {
   const tag = new WebAssembly.Tag({ parameters: [] });
   const exn = new WebAssembly.Exception(tag, []);
   for (const value of outOfRangeValues) {
-    assert_throws_js(TypeError, () => exn.getArg(tag, value));
+    assert_throws_js(RangeError, () => exn.getArg(tag, value));
   }
 }, "Getting out-of-range argument");
 

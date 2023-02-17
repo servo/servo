@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.execCommand("selectAll");
+  const editingHost = document.querySelector("thead[contenteditable]");
+  editingHost.addEventListener("focus", () => {
+    editingHost.addEventListener("focusout", () => {
+      document.execCommand("italic");
+      document.execCommand("insertText", false, "A");
+      document.execCommand("insertUnorderedList");
+    });
+    document.designMode = "on";
+    document.execCommand("selectAll");
+    document.execCommand("insertHTML", false, "A");
+  });
+  editingHost.focus();
+});
+</script>
+</head>
+<body>
+<big>
+</big>
+<table>
+<thead contenteditable>
+</thead></table>
+<p>
+<object></object>
+</p>
+</body>
+</html>
