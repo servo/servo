@@ -37,22 +37,22 @@ promise_test(async t => {
 }, "API is only supported in top-level browsing contexts.");
 
 promise_test(async t => {
-  const same_origin_url = document.location.origin + '/sub-app';
+  const url = '/sub-app';
 
   let subapp = {
-    [same_origin_url]: { installURL: same_origin_url }
+    [url]: { "installURL": url }
   };
 
   await promise_rejects_dom(t, 'NotAllowedError', navigator.subApps.add(subapp));
 }, 'Missing user activation.');
 
 promise_test(async t => {
-  const same_origin_url = document.location.origin + '/sub-app-';
+  const base_url = '/sub-app-';
 
   let add_call_params = {};
   for (let i = 0; i < 8; i++) {
-    const url = same_origin_url + i;
-    add_call_params[url] = { installURL: url };
+    const url = base_url + i;
+    add_call_params[url] = { "installURL": url };
   }
 
   await test_driver.bless("installing subapps", async function () {
@@ -82,8 +82,8 @@ promise_test(async t => {
   };
 
   let mocked_response = [
-    { unhashedAppIdPath: url_1, resultCode: Status.FAILURE },
-    { unhashedAppIdPath: url_2, resultCode: Status.FAILURE }
+    { "unhashedAppIdPath": url_1, "resultCode": Status.FAILURE },
+    { "unhashedAppIdPath": url_2, "resultCode": Status.FAILURE }
   ];
 
   let expected_results = {
@@ -106,8 +106,8 @@ promise_test(async t => {
   };
 
   let mocked_response = [
-    { unhashedAppIdPath: url_1, resultCode: Status.SUCCESS },
-    { unhashedAppIdPath: url_2, resultCode: Status.FAILURE }
+    { "unhashedAppIdPath": url_1, "resultCode": Status.SUCCESS },
+    { "unhashedAppIdPath": url_2, "resultCode": Status.FAILURE }
   ];
 
   let expected_results = {

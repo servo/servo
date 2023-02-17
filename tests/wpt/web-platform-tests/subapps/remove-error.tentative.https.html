@@ -20,7 +20,7 @@ promise_test(async t => {
 
   // At this point the iframe is detached and unloaded, and its execution
   // context is gone.
-  await promise_rejects_dom(t, 'NotFoundError', iframeDOMException, iframeNavigator.subApps.remove('sub-app-id'));
+  await promise_rejects_dom(t, 'NotFoundError', iframeDOMException, iframeNavigator.subApps.remove('/sub-app-id'));
 }, "The object is no longer associated to a document.");
 
 promise_test(async t => {
@@ -31,11 +31,11 @@ promise_test(async t => {
   const iframeDOMException = iframe.contentWindow.DOMException;
   t.add_cleanup(() => iframe.remove());
 
-  await promise_rejects_dom(t, 'InvalidStateError', iframeDOMException, iframeNavigator.subApps.remove('sub-app-id'));
+  await promise_rejects_dom(t, 'InvalidStateError', iframeDOMException, iframeNavigator.subApps.remove('/sub-app-id'));
 }, "API is only supported in top-level browsing contexts.");
 
 promise_test(async t => {
-  const full_url = document.location.origin + '/sub-app';
+  const full_url = document.location.origin + '/sub-app-id';
 
   await promise_rejects_dom(t, 'NotSupportedError', navigator.subApps.remove(full_url));
 }, 'API supports only root-relative paths.');
@@ -46,7 +46,7 @@ promise_test(async t => {
       mockSubAppsService = null;
   });
   await createMockSubAppsService(Status.FAILURE, [], []);
-  return promise_rejects_dom(t, 'OperationError', navigator.subApps.remove('sub-app-id'));
+  return promise_rejects_dom(t, 'OperationError', navigator.subApps.remove('/sub-app-id'));
 }, 'Remove call failed.');
 
 </script>

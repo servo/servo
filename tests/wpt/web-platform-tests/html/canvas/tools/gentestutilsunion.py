@@ -28,7 +28,7 @@
 #
 # * Test the tests, add new ones to Git, remove deleted ones from Git, etc.
 
-from typing import List, Mapping, MutableMapping, Optional
+from typing import Any, List, Mapping, MutableMapping, Optional
 
 import re
 import collections
@@ -184,7 +184,7 @@ class CanvasType(str, enum.Enum):
     OFFSCREEN_CANVAS = 'offscreencanvas'
 
 
-def _get_enabled_canvas_types(test: Mapping[str, str]) -> List[CanvasType]:
+def _get_enabled_canvas_types(test: Mapping[str, Any]) -> List[CanvasType]:
     return [CanvasType(t.lower()) for t in test.get('canvasType', CanvasType)]
 
 
@@ -199,7 +199,7 @@ _CANVAS_SIZE_REGEX = re.compile(r'(?P<width>.*), (?P<height>.*)',
                                 re.MULTILINE | re.DOTALL)
 
 
-def _get_canvas_size(test: Mapping[str, str]):
+def _get_canvas_size(test: Mapping[str, Any]):
     size = test.get('size', '100, 50')
     match = _CANVAS_SIZE_REGEX.match(size)
     if not match:
@@ -262,7 +262,7 @@ def _write_testharness_test(templates: Mapping[str, str],
             worker_template % template_params, 'utf-8')
 
 
-def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
+def _generate_test(test: Mapping[str, Any], templates: Mapping[str, str],
                    sub_dir: str, html_canvas_cfg: TestConfig,
                    offscreen_canvas_cfg: TestConfig) -> None:
     name = test['name']
@@ -448,30 +448,42 @@ def genTestUtils_union(TEMPLATEFILE: str, NAME2DIRFILE: str) -> None:
             pass  # Ignore if it already exists,
 
     used_tests = collections.defaultdict(set)
-    for test in tests:
-        name = test['name']
-        print('\r(%s)' % name, ' ' * 32, '\t')
+    for original_test in tests:
+        variants = original_test.get('variants', {'': dict()})
+        for variant_name, variant_params in variants.items():
+            test = original_test.copy()
+            if variant_name or variant_params:
+                test['name'] += '.' + variant_name
+                test['code'] = test['code'] % variant_params
+                if 'reference' in test:
+                  test['reference'] = test['reference'] % variant_params
+                test.update(variant_params)
 
-        enabled_canvas_types = _get_enabled_canvas_types(test)
+            name = test['name']
+            print('\r(%s)' % name, ' ' * 32, '\t')
 
-        already_tested = used_tests[name].intersection(enabled_canvas_types)
-        if already_tested:
-            raise InvalidTestDefinitionError(
-                f'Test {name} is defined twice for types {already_tested}')
-        used_tests[name].update(enabled_canvas_types)
+            enabled_canvas_types = _get_enabled_canvas_types(test)
 
-        sub_dir = _get_test_sub_dir(name, name_to_sub_dir)
-        _generate_test(
-            test,
-            templates,
-            sub_dir,
-            html_canvas_cfg=TestConfig(
-                out_dir=CANVASOUTPUTDIR,
-                image_out_dir=CANVASIMAGEOUTPUTDIR,
-                enabled=CanvasType.HTML_CANVAS in enabled_canvas_types),
-            offscreen_canvas_cfg=TestConfig(
-                out_dir=OFFSCREENCANVASOUTPUTDIR,
-                image_out_dir=OFFSCREENCANVASIMAGEOUTPUTDIR,
-                enabled=CanvasType.OFFSCREEN_CANVAS in enabled_canvas_types))
+            already_tested = used_tests[name].intersection(
+                enabled_canvas_types)
+            if already_tested:
+                raise InvalidTestDefinitionError(
+                    f'Test {name} is defined twice for types {already_tested}')
+            used_tests[name].update(enabled_canvas_types)
+
+            sub_dir = _get_test_sub_dir(name, name_to_sub_dir)
+            _generate_test(
+                test,
+                templates,
+                sub_dir,
+                html_canvas_cfg=TestConfig(
+                    out_dir=CANVASOUTPUTDIR,
+                    image_out_dir=CANVASIMAGEOUTPUTDIR,
+                    enabled=CanvasType.HTML_CANVAS in enabled_canvas_types),
+                offscreen_canvas_cfg=TestConfig(
+                    out_dir=OFFSCREENCANVASOUTPUTDIR,
+                    image_out_dir=OFFSCREENCANVASIMAGEOUTPUTDIR,
+                    enabled=CanvasType.OFFSCREEN_CANVAS in
+                    enabled_canvas_types))
 
     print()

@@ -39,3 +39,13 @@ async function waitUntilStableAutofocusState(w) {
   // Awaiting one animation frame is an easy way to determine autofocus state.
   await waitForAnimationFrame(targetWindow);
 }
+
+async function waitForIframeLoad(src, w = window) {
+  const iframe = w.document.createElement("iframe");
+  let loadPromise = new Promise(resolve => {
+    iframe.addEventListener("load", () => resolve(iframe));
+  });
+  iframe.src = src;
+  w.document.body.appendChild(iframe);
+  return loadPromise;
+}
