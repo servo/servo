@@ -11,7 +11,7 @@ pub struct AlreadyInRealm(());
 
 impl AlreadyInRealm {
     #![allow(unsafe_code)]
-    pub fn assert(_global: &GlobalScope) -> AlreadyInRealm {
+    pub fn assert() -> AlreadyInRealm {
         unsafe {
             assert!(!GetCurrentRealmOrNull(*GlobalScope::get_cx()).is_null());
         }

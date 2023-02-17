@@ -67,8 +67,7 @@ impl MediaDevicesMethods for MediaDevices {
     /// https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices
     fn EnumerateDevices(&self) -> Rc<Promise> {
         // Step 1.
-        let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let in_realm_proof = AlreadyInRealm::assert();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
         // Step 2.

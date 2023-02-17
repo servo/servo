@@ -3573,7 +3573,7 @@ impl Document {
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
-        let in_realm_proof = AlreadyInRealm::assert(&self.global());
+        let in_realm_proof = AlreadyInRealm::assert();
         let promise =
             Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
         let mut error = false;
@@ -3642,7 +3642,7 @@ impl Document {
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
         let global = self.global();
         // Step 1
-        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let in_realm_proof = AlreadyInRealm::assert();
         let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
         // Step 2
         if self.fullscreen_element.get().is_none() {

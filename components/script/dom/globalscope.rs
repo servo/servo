@@ -2733,7 +2733,7 @@ impl GlobalScope {
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
     ) -> Rc<Promise> {
-        let in_realm_proof = AlreadyInRealm::assert(&self);
+        let in_realm_proof = AlreadyInRealm::assert();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
         if options.resizeWidth.map_or(false, |w| w == 0) {
             p.reject_error(Error::InvalidState);
