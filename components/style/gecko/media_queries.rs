@@ -541,8 +541,11 @@ impl Device {
     }
 
     /// Return whether the document is a chrome document.
+    ///
+    /// This check is consistent with how we enable chrome rules for chrome:// and resource://
+    /// stylesheets (and thus chrome:// documents).
     #[inline]
     pub fn is_chrome_document(&self) -> bool {
-        self.pref_sheet_prefs().mIsChrome
+        self.document().mDocURISchemeIsChrome()
     }
 }
