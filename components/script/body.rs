@@ -719,8 +719,7 @@ impl Callback for ConsumeBodyPromiseHandler {
 #[allow(unrooted_must_root)]
 pub fn consume_body<T: BodyMixin + DomObject>(object: &T, body_type: BodyType) -> Rc<Promise> {
     let in_realm_proof = AlreadyInRealm::assert();
-    let promise =
-        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+    let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
     // Step 1
     if object.is_disturbed() || object.is_locked() {

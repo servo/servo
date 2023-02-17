@@ -3574,8 +3574,7 @@ impl Document {
     pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
         // Step 1
         let in_realm_proof = AlreadyInRealm::assert();
-        let promise =
-            Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
         let mut error = false;
 
         // Step 4
