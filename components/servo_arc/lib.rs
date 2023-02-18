@@ -25,11 +25,6 @@
 // duplicate those here.
 #![allow(missing_docs)]
 
-extern crate nodrop;
-#[cfg(feature = "servo")]
-extern crate serde;
-extern crate stable_deref_trait;
-
 use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};

@@ -5,9 +5,12 @@
 //! Helper types for the `@viewport` rule.
 
 use crate::{CSSPixel, CssWriter, ParseError, PinchZoomFactor, ToCss};
-use cssparser::Parser;
+use cssparser::*;
 use euclid::Size2D;
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use std::fmt::{self, Write};
+use to_shmem_derive::ToShmem;
 
 define_css_keyword_enum! {
     pub enum UserZoom {
@@ -114,7 +117,6 @@ impl Zoom {
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
         use crate::values::specified::AllowedNumericType::NonNegative;
         use crate::ParsingMode;
-        use cssparser::Token;
 
         let location = input.current_source_location();
         match *input.next()? {

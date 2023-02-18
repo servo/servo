@@ -10,30 +10,9 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code, missing_docs)]
 
-extern crate app_units;
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate cssparser;
-extern crate euclid;
-#[macro_use]
-extern crate lazy_static;
-extern crate malloc_size_of;
-#[macro_use]
-extern crate malloc_size_of_derive;
-extern crate selectors;
-#[macro_use]
-extern crate serde;
-extern crate servo_arc;
-#[cfg(feature = "servo")]
-extern crate servo_atoms;
-#[cfg(feature = "servo")]
-extern crate servo_url;
-extern crate to_shmem;
-#[macro_use]
-extern crate to_shmem_derive;
-#[cfg(feature = "servo")]
-extern crate webrender_api;
+use bitflags::bitflags;
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "servo")]
 pub use webrender_api::units::DevicePixel;
 

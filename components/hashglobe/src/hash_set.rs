@@ -1577,7 +1577,7 @@ mod test_set {
 
     #[test]
     fn test_replace() {
-        use hash;
+        use std::hash;
 
         #[derive(Debug)]
         struct Foo(&'static str, i32);

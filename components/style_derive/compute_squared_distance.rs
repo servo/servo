@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantAttrs};
+use darling::FromField;
 use derive_common::cg;
 use proc_macro2::TokenStream;
+use quote::quote;
 use quote::TokenStreamExt;
-use syn::{DeriveInput, WhereClause};
+use syn::{parse_quote, DeriveInput, WhereClause};
 use synstructure;
 
 pub fn derive(mut input: DeriveInput) -> TokenStream {

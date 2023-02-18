@@ -3,9 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use darling::util::Override;
+use darling::FromDeriveInput;
+use darling::FromField;
+use darling::FromVariant;
 use derive_common::cg;
 use proc_macro2::TokenStream;
+use quote::quote;
 use quote::{ToTokens, TokenStreamExt};
+use syn::parse_quote;
 use syn::{self, Data, Path, WhereClause};
 use synstructure::{BindingInfo, Structure, VariantInfo};
 

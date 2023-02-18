@@ -9,6 +9,7 @@ readme = "README.md"
 keywords = ["css", "selectors"]
 license = "MPL-2.0"
 build = "build.rs"
+edition = "2018"
 
 [lib]
 name = "selectors"

@@ -19,12 +19,16 @@
 
 use crate::parser::{Combinator, Component, SelectorImpl};
 use crate::sink::Push;
+use bitflags::bitflags;
+use derive_more::{Add, AddAssign};
 use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use smallvec::{self, SmallVec};
 use std::cmp;
 use std::iter;
 use std::ptr;
 use std::slice;
+#[cfg(feature = "shmem")]
+use to_shmem_derive::ToShmem;
 
 /// Top-level SelectorBuilder struct. This should be stack-allocated by the
 /// consumer and never moved (because it contains a lot of inline data that

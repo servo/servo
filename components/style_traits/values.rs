@@ -348,7 +348,7 @@ impl Separator for Space {
         let mut results = vec![parse_one(input)?];
         loop {
             input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
-            if let Ok(item) = input.try(&mut parse_one) {
+            if let Ok(item) = input.r#try(&mut parse_one) {
                 results.push(item);
             } else {
                 return Ok(results);
@@ -374,9 +374,9 @@ impl Separator for CommaWithSpace {
         loop {
             input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
             let comma_location = input.current_source_location();
-            let comma = input.try(|i| i.expect_comma()).is_ok();
+            let comma = input.r#try(|i| i.expect_comma()).is_ok();
             input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
-            if let Ok(item) = input.try(&mut parse_one) {
+            if let Ok(item) = input.r#try(&mut parse_one) {
                 results.push(item);
             } else if comma {
                 return Err(comma_location.new_unexpected_token_error(Token::Comma));
@@ -478,8 +478,9 @@ impl_to_css_for_predefined_type!(::cssparser::UnicodeRange);
 macro_rules! define_css_keyword_enum {
     (pub enum $name:ident { $($variant:ident = $css:expr,)+ }) => {
         #[allow(missing_docs)]
-        #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
+        #[cfg_attr(feature = "servo", derive(serde::Deserialize, serde::Serialize))]
+        #[derive(Clone, Copy, Debug, Eq, Hash,
+            malloc_size_of_derive::MallocSizeOf, PartialEq, to_shmem_derive::ToShmem)]
         pub enum $name {
             $($variant),+
         }
@@ -506,7 +507,7 @@ macro_rules! define_css_keyword_enum {
 
             /// Parse this property from an already-tokenized identifier.
             pub fn from_ident(ident: &str) -> Result<$name, ()> {
-                match_ignore_ascii_case! { ident,
+                cssparser::match_ignore_ascii_case! { ident,
                     $($css => Ok($name::$variant),)+
                     _ => Err(())
                 }
@@ -532,11 +533,22 @@ macro_rules! define_css_keyword_enum {
 /// Helper types for the handling of specified values.
 pub mod specified {
     use crate::ParsingMode;
+    use malloc_size_of_derive::MallocSizeOf;
+    use serde::{Deserialize, Serialize};
 
     /// Whether to allow negative lengths or not.
     #[repr(u8)]
     #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, PartialOrd, Serialize, ToShmem,
+        Clone,
+        Copy,
+        Debug,
+        Deserialize,
+        Eq,
+        MallocSizeOf,
+        PartialEq,
+        PartialOrd,
+        Serialize,
+        to_shmem_derive::ToShmem,
     )]
     pub enum AllowedNumericType {
         /// Allow all kind of numeric values.
