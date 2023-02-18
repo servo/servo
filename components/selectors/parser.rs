@@ -10,7 +10,8 @@ use crate::builder::{SelectorBuilder, SelectorFlags, SpecificityAndFlags};
 use crate::context::QuirksMode;
 use crate::sink::Push;
 pub use crate::visitor::SelectorVisitor;
-use cssparser::parse_nth;
+use bitflags::bitflags;
+use cssparser::{match_ignore_ascii_case, parse_nth, *};
 use cssparser::{BasicParseError, BasicParseErrorKind, ParseError, ParseErrorKind};
 use cssparser::{CowRcStr, Delimiter, SourceLocation};
 use cssparser::{Parser as CssParser, ToCss, Token};
@@ -21,6 +22,8 @@ use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Debug};
 use std::iter::Rev;
 use std::slice;
+#[cfg(feature = "shmem")]
+use to_shmem_derive::ToShmem;
 
 /// A trait that represents a pseudo-element.
 pub trait PseudoElement: Sized + ToCss {

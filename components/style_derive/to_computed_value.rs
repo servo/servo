@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use darling::FromField;
 use derive_common::cg;
 use proc_macro2::TokenStream;
+use quote::quote;
+use syn::parse_quote;
 use syn::{DeriveInput, Ident, Path};
 use synstructure::{BindStyle, BindingInfo};
 

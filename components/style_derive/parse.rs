@@ -3,8 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::to_css::CssVariantAttrs;
+use darling::FromField;
+use darling::FromVariant;
 use derive_common::cg;
 use proc_macro2::TokenStream;
+use quote::quote;
+use syn::parse_quote;
 use syn::{self, DeriveInput, Path};
 use synstructure::{Structure, VariantInfo};
 
@@ -54,7 +58,7 @@ fn parse_non_keyword_variant(
         }
     } else {
         quote! {
-            if let Ok(v) = input.try(|i| <#ty as crate::parser::Parse>::parse(context, i)) {
+            if let Ok(v) = input.r#try(|i| <#ty as crate::parser::Parse>::parse(context, i)) {
                 return Ok(#name::#variant_name(v));
             }
         }

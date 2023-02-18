@@ -4,7 +4,6 @@
 
 #![feature(test)]
 
-extern crate embedder_traits;
 extern crate test;
 
 pub use test::*;

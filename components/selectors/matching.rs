@@ -8,6 +8,8 @@ use crate::nth_index_cache::NthIndexCacheInner;
 use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use crate::tree::Element;
+use bitflags::bitflags;
+use log::debug;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
 use std::iter;

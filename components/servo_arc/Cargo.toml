@@ -5,6 +5,7 @@ authors = ["The Servo Project Developers"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/servo/servo"
 description = "A fork of std::sync::Arc with some extra functionality and without weak references"
+edition = "2018"
 
 [lib]
 name = "servo_arc"

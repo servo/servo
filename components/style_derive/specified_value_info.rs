@@ -4,10 +4,14 @@
 
 use crate::parse::ParseVariantAttrs;
 use crate::to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
+use darling::FromDeriveInput;
+use darling::FromField;
+use darling::FromVariant;
 use derive_common::cg;
 use proc_macro2::TokenStream;
+use quote::quote;
 use quote::TokenStreamExt;
-use syn::{Data, DeriveInput, Fields, Ident, Type};
+use syn::{parse_quote, Data, DeriveInput, Fields, Ident, Type};
 
 pub fn derive(mut input: DeriveInput) -> TokenStream {
     let css_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);

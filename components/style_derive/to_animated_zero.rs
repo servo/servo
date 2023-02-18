@@ -5,8 +5,9 @@
 use crate::animate::{AnimationFieldAttrs, AnimationInputAttrs, AnimationVariantAttrs};
 use derive_common::cg;
 use proc_macro2::TokenStream;
+use quote::quote;
 use quote::TokenStreamExt;
-use syn;
+use syn::{self, parse_quote};
 use synstructure;
 
 pub fn derive(mut input: syn::DeriveInput) -> TokenStream {

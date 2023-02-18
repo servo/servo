@@ -47,45 +47,6 @@
 //!   publishing this crate on crates.io.
 
 #[cfg(feature = "servo")]
-extern crate accountable_refcell;
-extern crate app_units;
-#[cfg(feature = "servo")]
-extern crate content_security_policy;
-#[cfg(feature = "servo")]
-extern crate crossbeam_channel;
-extern crate cssparser;
-extern crate euclid;
-extern crate hashglobe;
-#[cfg(feature = "servo")]
-extern crate http;
-#[cfg(feature = "servo")]
-extern crate hyper_serde;
-#[cfg(feature = "servo")]
-extern crate keyboard_types;
-extern crate selectors;
-#[cfg(feature = "servo")]
-extern crate serde;
-#[cfg(feature = "servo")]
-extern crate serde_bytes;
-extern crate servo_arc;
-extern crate smallbitvec;
-extern crate smallvec;
-#[cfg(feature = "servo")]
-extern crate string_cache;
-extern crate thin_slice;
-#[cfg(feature = "servo")]
-extern crate time;
-#[cfg(feature = "url")]
-extern crate url;
-#[cfg(feature = "servo")]
-extern crate uuid;
-extern crate void;
-#[cfg(feature = "webrender_api")]
-extern crate webrender_api;
-#[cfg(feature = "servo")]
-extern crate xml5ever;
-
-#[cfg(feature = "servo")]
 use content_security_policy as csp;
 #[cfg(feature = "servo")]
 use serde_bytes::ByteBuf;

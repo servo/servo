@@ -12,14 +12,6 @@
 #![crate_name = "to_shmem"]
 #![crate_type = "rlib"]
 
-extern crate cssparser;
-extern crate servo_arc;
-extern crate smallbitvec;
-extern crate smallvec;
-#[cfg(feature = "string_cache")]
-extern crate string_cache;
-extern crate thin_slice;
-
 use servo_arc::{Arc, ThinArc};
 use smallbitvec::{InternalStorage, SmallBitVec};
 use smallvec::{Array, SmallVec};

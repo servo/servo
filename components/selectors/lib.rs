@@ -5,25 +5,6 @@
 // Make |cargo bench| work.
 #![cfg_attr(feature = "bench", feature(test))]
 
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate cssparser;
-#[macro_use]
-extern crate derive_more;
-extern crate fxhash;
-#[macro_use]
-extern crate log;
-extern crate phf;
-extern crate precomputed_hash;
-extern crate servo_arc;
-extern crate smallvec;
-#[cfg(feature = "shmem")]
-extern crate to_shmem;
-#[cfg(feature = "shmem")]
-#[macro_use]
-extern crate to_shmem_derive;
-
 pub mod attr;
 pub mod bloom;
 mod builder;

@@ -2218,7 +2218,7 @@ mod test_map {
     use super::Entry::{Occupied, Vacant};
     use super::HashMap;
     use super::RandomState;
-    use cell::RefCell;
+    use std::cell::RefCell;
 
     #[test]
     fn test_zero_capacities() {
