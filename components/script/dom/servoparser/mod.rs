@@ -34,6 +34,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::PreInvoke;
+use crate::realms::enter_realm;
 use crate::script_thread::ScriptThread;
 use content_security_policy::{self as csp, CspList};
 use dom_struct::dom_struct;
@@ -827,6 +828,8 @@ impl FetchResponseListener for ParserContext {
         if parser.aborted.get() {
             return;
         }
+
+        let _realm = enter_realm(&*parser.document);
 
         parser.document.set_csp_list(csp_list);
         self.parser = Some(Trusted::new(&*parser));
