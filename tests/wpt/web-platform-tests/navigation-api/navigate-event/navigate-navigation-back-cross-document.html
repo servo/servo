@@ -9,7 +9,9 @@ async_test(t => {
     let target_id = i.contentWindow.navigation.currentEntry.id;
     i.contentWindow.navigation.navigate("?foo");
     i.onload = t.step_func(() => {
+      let beforeunload_called = false;
       i.contentWindow.navigation.onnavigate = t.step_func_done(e => {
+        assert_true(beforeunload_called);
         assert_equals(e.navigationType, "traverse");
         assert_false(e.cancelable);
         assert_false(e.canIntercept);
@@ -24,6 +26,7 @@ async_test(t => {
         assert_equals(e.formData, null);
         assert_equals(e.info, "hi");
       });
+      i.contentWindow.onbeforeunload = () => beforeunload_called = true;
       assert_true(i.contentWindow.navigation.canGoBack);
       i.contentWindow.navigation.back({ info: "hi" });
     })

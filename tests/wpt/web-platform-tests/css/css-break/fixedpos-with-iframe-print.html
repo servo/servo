@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1414873">
+<link rel="match" href="fixedpos-with-iframe-print-ref.html">
+<p>The word "PASS" should be seen below.</p>
+<div style="position:fixed; background:blue;">
+  <iframe src="data:text/html,PASS" style="width:8em; height:3em; background:yellow;"></iframe>
+</div>
+<p style="break-before:page; position:relative; z-index:1; height:8em; background:white;">
+  Apart from this text, there should be nothing on this page.
+</p>
+

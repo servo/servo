@@ -186,7 +186,7 @@ class FakeDevice {
   open() {
     assert_false(this.opened_);
     this.opened_ = true;
-    return Promise.resolve({error: mojom.UsbOpenDeviceError.OK});
+    return Promise.resolve({result: {success: mojom.UsbOpenDeviceSuccess.OK}});
   }
 
   close() {

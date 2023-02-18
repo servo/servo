@@ -37,7 +37,7 @@ test_math_used('calc(atan(tan(0.7853975rad ) ))', '45deg', {type:'angle', approx
 test_math_used('calc(atan(tan(3.14159 / 4 + 1 - 1) ))', '45deg', {type:'angle', approx:0.1});
 test_math_used('calc(asin(sin(0.25turn)) )', '90deg', {type:'angle', approx:0.1});
 test_math_used('calc(atan2(0,1))', '0deg', {type:'angle', approx:0.1});
-test_math_used('calc(atan2(0,-1))', '-180deg', {type:'angle', approx:0.1});
+test_math_used('calc(atan2(0,-1) / 4)', '45deg', {type:'angle', approx:0.1}); // atan2(0,-1) equals 180deg, result is divided to avoid ambiguity with -180deg
 test_math_used('calc(atan2(1,-1))', '135deg', {type:'angle', approx:0.1});
 test_math_used('calc(atan2(-1,1))', '-45deg', {type:'angle', approx:0.1});
 

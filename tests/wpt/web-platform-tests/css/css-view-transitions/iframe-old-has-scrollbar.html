@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+  <title>View transitions: iframe transition from scrollbar</title>
+  <link rel="help" href="https://github.com/WICG/view-transitions">
+  <link rel="author" href="mailto:bokan@chromium.org">
+  <link rel="match" href="iframe-old-has-scrollbar-ref.html">
+  <meta name=fuzzy content="iframe-old-has-scrollbar-ref.html:0-80;0-500">
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    iframe {
+      width: 50vw;
+      height: 50vh;
+    }
+  </style>
+  <script>
+    onload = () => {
+      requestAnimationFrame(()=>{requestAnimationFrame(()=> {
+        frames[0].window.startTransition();
+        frames[0].window.transition.ready.then(() => {
+          requestAnimationFrame(()=>{requestAnimationFrame(()=> {
+            // Expect that the scrollbar should disappear immediately since it
+            // isn't part of the snapshot.
+            takeScreenshot();
+          })});
+        });
+      })});
+    }
+  </script>
+</head>
+
+<body>
+  <iframe src="support/iframe-scrollbar-child.html?scrollbar">
+  </iframe>
+</body>
+</html>
