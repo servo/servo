@@ -965,6 +965,21 @@
     "hash": ""
   },
   {
+    "input": "http://[::127.0.0.1.]",
+    "base": "http://example.org/foo/bar",
+    "href": "http://[::7f00:1]/",
+    "origin": "http://[::7f00:1]",
+    "protocol": "http:",
+    "username": "",
+    "password": "",
+    "host": "[::7f00:1]",
+    "hostname": "[::7f00:1]",
+    "port": "",
+    "pathname": "/",
+    "search": "",
+    "hash": ""
+  },
+  {
     "input": "http://[0:0:0:0:0:0:13.1.68.3]",
     "base": "http://example.org/foo/bar",
     "href": "http://[::d01:4403]/",
@@ -3960,7 +3975,17 @@
     "failure": true
   },
   {
+    "input": "http://[::.1.2]",
+    "base": "http://other.com/",
+    "failure": true
+  },
+  {
     "input": "http://[::1.]",
+    "base": "http://other.com/",
+    "failure": true
+  },
+  {
+    "input": "http://[::.1]",
     "base": "http://other.com/",
     "failure": true
   },

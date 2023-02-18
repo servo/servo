@@ -2,7 +2,8 @@
 <meta charset="utf-8">
 <title>Interactions between top layer element types</title>
 <link rel="author" href="mailto:masonf@chromium.org">
-<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -35,10 +36,10 @@ const examples = [
   },
   {
     type: types.fullscreen,
-    closes: [types.popover, types.fullscreen],
+    closes: [types.popover],
     createElement: () => document.createElement('div'),
     trigger: async function(visibleElement) {assert_false(this.isTopLayer());await blessTopLayer(visibleElement);await this.element.requestFullscreen();},
-    close: function() {assert_equals(this.element,document.fullscreenElement); document.exitFullscreen();},
+    close: function() {document.exitFullscreen();},
     isTopLayer: function() {return this.element.matches(':fullscreen');},
   },
 ];

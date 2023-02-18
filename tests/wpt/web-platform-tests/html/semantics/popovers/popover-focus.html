@@ -54,15 +54,6 @@
     border: 2px solid black;
     top:150px;
     left:150px;
-    opacity: 0;
-  }
-  [popover]:not(:open) {
-    /* Add a *hide* transition to all popovers, to make sure animations don't
-       affect focus management */
-    transition: opacity 10s;
-  }
-  [popover]:open {
-    opacity: 1;
   }
   :focus-within { border: 5px dashed red; }
   :focus { border: 5px solid lime; }
@@ -90,10 +81,6 @@
     t.add_cleanup(() => priorFocus.remove());
     return priorFocus;
   }
-  async function finishAnimationsAndVerifyHide(popover) {
-    await finishAnimations(popover);
-    assert_false(isElementVisible(popover),'After animations are finished, the popover should be hidden');
-  }
   function activateAndVerify(popover) {
     const testName = popover.getAttribute('data-test');
     promise_test(async t => {
@@ -113,7 +100,7 @@
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by popover.showPopover()`);
       popover.hidePopover();
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus on hide, or if focus didn\'t shift on show, focus should stay where it was');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
 
       // Hit Escape:
       priorFocus.focus();
@@ -122,7 +109,7 @@
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by popover.showPopover()`);
       await sendEscape();
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus after Escape');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
 
       // Move focus into the popover, then hit Escape:
       let containedButton = popover.querySelector('button');
@@ -134,7 +121,7 @@
         assert_equals(document.activeElement, containedButton);
         await sendEscape();
         assert_equals(document.activeElement, priorFocus, 'prior element should get focus after Escape');
-        await finishAnimationsAndVerifyHide(popover);
+        assert_false(isElementVisible(popover));
       }
 
       // Change the popover type:
@@ -145,7 +132,7 @@
       popover.popover = 'hint';
       assert_false(popover.matches(':open'), 'Changing the popover type should hide the popover');
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus when the type is changed');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
       popover.popover = 'auto';
 
       // Remove from the document:
@@ -167,7 +154,7 @@
       dialog.showModal();
       assert_false(popover.matches(':open'), 'Opening a modal dialog should hide the popover');
       assert_not_equals(document.activeElement, priorFocus, 'prior element should *not* get focus when a modal dialog is shown');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
       dialog.close();
       dialog.remove();
 
@@ -181,7 +168,7 @@
       // Make sure Escape works in the invoker case:
       await sendEscape();
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus after Escape (via invoker)');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
 
       // Make sure we can directly focus the (already open) popover:
       priorFocus.focus();
@@ -193,7 +180,7 @@
       button.click(); // Button is set to toggle the popover
       assert_false(popover.matches(':open'));
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus on button-toggled hide');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
     }, "Popover focus test: " + testName);
 
     promise_test(async t => {
@@ -210,7 +197,7 @@
       await clickOn(button); // This will *not* light dismiss, but will "toggle" the popover.
       assert_false(popover.matches(':open'));
       assert_equals(document.activeElement, priorFocus, 'focus should return to the prior focus');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
 
       // Same thing, but the button is contained within the popover
       button.removeAttribute('popovertoggletarget');
@@ -227,7 +214,7 @@
       await clickOn(button);
       assert_false(popover.matches(':open'), 'clicking button should hide the popover');
       assert_equals(document.activeElement, priorFocus, 'Contained button should return focus to the previously focused element');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
 
       // Same thing, but the button is unrelated (no popovertoggletarget)
       button = document.createElement('button');
@@ -238,7 +225,7 @@
       await clickOn(button); // This will light dismiss the popover, focus the prior focus, then focus this button.
       assert_false(popover.matches(':open'), 'clicking button should hide the popover (via light dismiss)');
       assert_equals(document.activeElement, button, 'Focus should go to unrelated button on light dismiss');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
     }, "Popover button click focus test: " + testName);
 
     promise_test(async t => {
@@ -259,7 +246,7 @@
       assert_equals(document.activeElement, newFocus, 'focus should not change when prior focus is removed');
       popover.hidePopover();
       assert_not_equals(document.activeElement, priorFocus, 'focused element has been removed');
-      await finishAnimationsAndVerifyHide(popover);
+      assert_false(isElementVisible(popover));
       document.body.appendChild(priorFocus); // Put it back
 
       // Move the prior focus inside the (already open) popover
@@ -271,12 +258,7 @@
       assert_true(popover.contains(priorFocus));
       assert_true(popover.matches(':open'), 'popover should stay open');
       popover.hidePopover();
-      await waitForRender();
-      assert_true(isElementVisible(popover),'Animations should keep the popover visible');
-      assert_not_equals(getComputedStyle(popover).display,'none','Animations should keep the popover visible');
-      assert_equals(document.activeElement, priorFocus, 'focused element gets focused');
-      await finishAnimationsAndVerifyHide(popover);
-      assert_equals(getComputedStyle(popover).display,'none','Animations have ended, popover should be hidden');
+      assert_false(isElementVisible(popover));
       assert_not_equals(document.activeElement, priorFocus, 'focused element is display:none inside the popover');
       document.body.appendChild(priorFocus); // Put it back
     }, "Popover corner cases test: " + testName);

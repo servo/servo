@@ -20,8 +20,16 @@ async_test(t => {
       let result;
 
       i.contentWindow.navigation.onnavigate = t.step_func(e => {
-        e.intercept({ handler: () => new Promise(resolve => t.step_timeout(resolve, 2)) });
-        t.step_timeout(() => i.remove(), 1);
+        // 1. The intercept handler runs.
+        // 2. "t.step_timeout(handlerRunResolve, 0)" executes handlerRunResolve in a macro task.
+        // 3. In the next microtask, the iframe is removed.
+        // 4. "t.step_timeout(resolve, 5)" executes and the intercept handler promise resolves.
+        let handlerRunResolve;
+        new Promise(r => handlerRunResolve = r).then(() => i.remove());
+        e.intercept({ handler() {
+          t.step_timeout(handlerRunResolve, 0);
+          return new Promise(resolve => t.step_timeout(resolve, 5));
+        }});
       });
 
       i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("navigatesuccess must not fire");

@@ -2,7 +2,8 @@
 <meta charset="utf-8" />
 <title>Popover events</title>
 <link rel="author" href="mailto:masonf@chromium.org">
-<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/popover-utils.js"></script>
@@ -20,7 +21,7 @@ function getPopoverAndSignal(t) {
 window.onload = () => {
   for(const method of ["listener","attribute"]) {
     promise_test(async t => {
-      const popover = document.querySelector('[popover]');
+      const {popover,signal} = getPopoverAndSignal(t);
       assert_false(popover.matches(':open'));
       let showCount = 0;
       let afterShowCount = 0;
@@ -59,10 +60,9 @@ window.onload = () => {
       };
       switch (method) {
         case "listener":
-          const {signal} = getPopoverAndSignal(t);
-          // These events bubble.
-          document.addEventListener('beforetoggle', listener, {signal});
-          document.addEventListener('toggle', listener, {signal});
+          // These events do *not* bubble.
+          popover.addEventListener('beforetoggle', listener, {signal});
+          popover.addEventListener('toggle', listener, {signal});
           break;
         case "attribute":
           assert_false(popover.hasAttribute('onbeforetoggle'));
