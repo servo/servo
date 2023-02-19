@@ -31,14 +31,14 @@ impl EventsLoop {
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     pub fn new(_headless: bool) -> EventsLoop {
-        EventsLoop(EventLoop::Winit(Some(winit::event_loop::EventLoop::with_user_event())))
+        EventsLoop(EventLoop::Winit(Some(winit::event_loop::EventLoopBuilder::with_user_event().build())))
     }
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     pub fn new(headless: bool) -> EventsLoop {
         EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            EventLoop::Winit(Some(winit::event_loop::EventLoop::with_user_event()))
+            EventLoop::Winit(Some(winit::event_loop::EventLoopBuilder::with_user_event().build()))
         })
     }
 }

@@ -89,7 +89,6 @@ packages = [
   # https://github.com/servo/servo/pull/28236
   "dlib",
   "nix",
-  "strsim",
 
   # Duplicated by webrender debugger via ws
   "digest",
@@ -97,6 +96,10 @@ packages = [
   "opaque-debug",
   "sha-1",
   "block-buffer",
+
+  # Duplicated by winit/surfman update.
+  "raw-window-handle",
+  "windows-sys",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
