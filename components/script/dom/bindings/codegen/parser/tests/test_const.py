@@ -22,8 +22,10 @@ expected = [
     ("::TestConsts::udbi", "udbi", "UnrestrictedDouble", 2),
 ]
 
+
 def WebIDLTest(parser, harness):
-    parser.parse("""
+    parser.parse(
+        """
         interface TestConsts {
           const byte zero = 0;
           const byte b = -1;
@@ -45,22 +47,25 @@ def WebIDLTest(parser, harness):
           const unrestricted float ufli = 2;
           const unrestricted double udbi = 2;
         };
-    """)
+    """
+    )
 
     results = parser.finish()
 
     harness.ok(True, "TestConsts interface parsed without error.")
     harness.check(len(results), 1, "Should be one production.")
     iface = results[0]
-    harness.ok(isinstance(iface, WebIDL.IDLInterface),
-               "Should be an IDLInterface")
-    harness.check(iface.identifier.QName(), "::TestConsts", "Interface has the right QName")
+    harness.ok(isinstance(iface, WebIDL.IDLInterface), "Should be an IDLInterface")
+    harness.check(
+        iface.identifier.QName(), "::TestConsts", "Interface has the right QName"
+    )
     harness.check(iface.identifier.name, "TestConsts", "Interface has the right name")
-    harness.check(len(iface.members), len(expected), "Expect %s members" % len(expected))
+    harness.check(
+        len(iface.members), len(expected), "Expect %s members" % len(expected)
+    )
 
     for (const, (QName, name, type, value)) in zip(iface.members, expected):
-        harness.ok(isinstance(const, WebIDL.IDLConst),
-                   "Should be an IDLConst")
+        harness.ok(isinstance(const, WebIDL.IDLConst), "Should be an IDLConst")
         harness.ok(const.isConst(), "Const is a const")
         harness.ok(not const.isAttr(), "Const is not an attr")
         harness.ok(not const.isMethod(), "Const is not a method")
@@ -68,19 +73,23 @@ def WebIDLTest(parser, harness):
         harness.check(const.identifier.name, name, "Const has the right name")
         harness.check(str(const.type), type, "Const has the right type")
         harness.ok(const.type.isPrimitive(), "All consts should be primitive")
-        harness.check(str(const.value.type), str(const.type),
-                      "Const's value has the same type as the type")
+        harness.check(
+            str(const.value.type),
+            str(const.type),
+            "Const's value has the same type as the type",
+        )
         harness.check(const.value.value, value, "Const value has the right value.")
-
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
           interface TestConsts {
             const boolean? zero = 0;
           };
-        """)
+        """
+        )
         parser.finish()
     except:
         threw = True

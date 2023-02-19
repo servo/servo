@@ -1,11 +1,13 @@
 def WebIDLTest(parser, harness):
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface AnyNotInUnion {
               undefined foo((any or DOMString) arg);
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except:

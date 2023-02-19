@@ -1,7 +1,9 @@
 import WebIDL
 
+
 def WebIDLTest(parser, harness):
-    parser.parse("""
+    parser.parse(
+        """
         interface TestArrayBuffer {
           attribute ArrayBuffer bufferAttr;
           undefined bufferMethod(ArrayBuffer arg1, ArrayBuffer? arg2, sequence<ArrayBuffer> arg3);
@@ -36,7 +38,8 @@ def WebIDLTest(parser, harness):
           attribute Float64Array float64ArrayAttr;
           undefined float64ArrayMethod(Float64Array arg1, Float64Array? arg2, sequence<Float64Array> arg3);
         };
-    """)
+    """
+    )
 
     results = parser.finish()
 
@@ -55,24 +58,35 @@ def WebIDLTest(parser, harness):
         harness.ok(attr.type.isSpiderMonkeyInterface(), "Should test as a js interface")
 
         (retType, arguments) = method.signatures()[0]
-        harness.ok(retType.isUndefined(), "Should have a undefined return type")
+        harness.ok(retType.isUndefined(), "Should have an undefined return type")
         harness.check(len(arguments), 3, "Expect 3 arguments")
 
-        harness.check(str(arguments[0].type), t,  "Expect an ArrayBuffer type")
-        harness.ok(arguments[0].type.isSpiderMonkeyInterface(), "Should test as a js interface")
+        harness.check(str(arguments[0].type), t, "Expect an ArrayBuffer type")
+        harness.ok(
+            arguments[0].type.isSpiderMonkeyInterface(), "Should test as a js interface"
+        )
 
-        harness.check(str(arguments[1].type), t + "OrNull",  "Expect an ArrayBuffer type")
-        harness.ok(arguments[1].type.inner.isSpiderMonkeyInterface(), "Should test as a js interface")
+        harness.check(
+            str(arguments[1].type), t + "OrNull", "Expect an ArrayBuffer type"
+        )
+        harness.ok(
+            arguments[1].type.inner.isSpiderMonkeyInterface(),
+            "Should test as a js interface",
+        )
 
-        harness.check(str(arguments[2].type), t + "Sequence",  "Expect an ArrayBuffer type")
-        harness.ok(arguments[2].type.inner.isSpiderMonkeyInterface(), "Should test as a js interface")
+        harness.check(
+            str(arguments[2].type), t + "Sequence", "Expect an ArrayBuffer type"
+        )
+        harness.ok(
+            arguments[2].type.inner.isSpiderMonkeyInterface(),
+            "Should test as a js interface",
+        )
 
-
-    checkStuff(members[0],  members[1],  "ArrayBuffer")
-    checkStuff(members[2],  members[3],  "ArrayBufferView")
-    checkStuff(members[4],  members[5],  "Int8Array")
-    checkStuff(members[6],  members[7],  "Uint8Array")
-    checkStuff(members[8],  members[9],  "Uint8ClampedArray")
+    checkStuff(members[0], members[1], "ArrayBuffer")
+    checkStuff(members[2], members[3], "ArrayBufferView")
+    checkStuff(members[4], members[5], "Int8Array")
+    checkStuff(members[6], members[7], "Uint8Array")
+    checkStuff(members[8], members[9], "Uint8ClampedArray")
     checkStuff(members[10], members[11], "Int16Array")
     checkStuff(members[12], members[13], "Uint16Array")
     checkStuff(members[14], members[15], "Int32Array")

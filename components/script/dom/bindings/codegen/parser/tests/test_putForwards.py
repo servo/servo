@@ -1,11 +1,13 @@
 def WebIDLTest(parser, harness):
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface I {
               [PutForwards=B] readonly attribute long A;
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except:
@@ -13,16 +15,18 @@ def WebIDLTest(parser, harness):
 
     harness.ok(threw, "Should have thrown.")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface I {
               [PutForwards=B] readonly attribute J A;
             };
             interface J {
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except:
@@ -30,17 +34,19 @@ def WebIDLTest(parser, harness):
 
     harness.ok(threw, "Should have thrown.")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface I {
               [PutForwards=B] attribute J A;
             };
             interface J {
               attribute long B;
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except:
@@ -48,17 +54,19 @@ def WebIDLTest(parser, harness):
 
     harness.ok(threw, "Should have thrown.")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface I {
               [PutForwards=B] static readonly attribute J A;
             };
             interface J {
               attribute long B;
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except:
@@ -66,17 +74,19 @@ def WebIDLTest(parser, harness):
 
     harness.ok(threw, "Should have thrown.")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             callback interface I {
               [PutForwards=B] readonly attribute J A;
             };
             interface J {
               attribute long B;
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except:
@@ -84,10 +94,11 @@ def WebIDLTest(parser, harness):
 
     harness.ok(threw, "Should have thrown.")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface I {
               [PutForwards=C] readonly attribute J A;
               [PutForwards=C] readonly attribute J B;
@@ -98,7 +109,8 @@ def WebIDLTest(parser, harness):
             interface K {
               [PutForwards=A] readonly attribute I D;
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except:
