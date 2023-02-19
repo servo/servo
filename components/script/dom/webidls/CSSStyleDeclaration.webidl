@@ -17,8 +17,8 @@ interface CSSStyleDeclaration {
   DOMString getPropertyValue(DOMString property);
   DOMString getPropertyPriority(DOMString property);
   [CEReactions, Throws]
-  undefined setProperty(DOMString property, [TreatNullAs=EmptyString] DOMString value,
-                                       optional [TreatNullAs=EmptyString] DOMString priority = "");
+  undefined setProperty(DOMString property, [LegacyNullToEmptyString] DOMString value,
+                                       optional [LegacyNullToEmptyString] DOMString priority = "");
   [CEReactions, Throws]
   DOMString removeProperty(DOMString property);
   // readonly attribute CSSRule? parentRule;

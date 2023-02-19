@@ -7,7 +7,7 @@
  * so that we can hold a traceable owner for those dynamic modules which don't hold a owner.
  */
 
-[NoInterfaceObject, Exposed=Window]
+[LegacyNoInterfaceObject, Exposed=Window]
 interface DynamicModuleOwner {
   readonly attribute Promise<any> promise;
 };

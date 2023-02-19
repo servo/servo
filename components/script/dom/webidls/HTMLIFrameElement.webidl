@@ -42,8 +42,8 @@ partial interface HTMLIFrameElement {
   // [CEReactions]
   //         attribute DOMString longDesc;
 
-  // [CEReactions, TreatNullAs=EmptyString]
+  // [CEReactions, LegacyNullToEmptyString]
   // attribute DOMString marginHeight;
-  // [CEReactions, TreatNullAs=EmptyString]
+  // [CEReactions, LegacyNullToEmptyString]
   // attribute DOMString marginWidth;
 };

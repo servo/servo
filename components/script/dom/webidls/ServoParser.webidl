@@ -6,5 +6,5 @@
 // web pages.
 
 [Exposed=(Window,Worker),
- NoInterfaceObject]
+ LegacyNoInterfaceObject]
 interface ServoParser {};

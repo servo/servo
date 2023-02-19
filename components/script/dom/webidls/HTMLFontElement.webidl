@@ -8,7 +8,7 @@ interface HTMLFontElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions]
-  attribute [TreatNullAs=EmptyString] DOMString color;
+  attribute [LegacyNullToEmptyString] DOMString color;
   [CEReactions]
   attribute DOMString face;
   [CEReactions]

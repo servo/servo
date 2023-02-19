@@ -6,7 +6,7 @@
  * https://www.khronos.org/registry/webgl/extensions/EXT_color_buffer_half_float/
  */
 
-[NoInterfaceObject, Exposed=Window]
+[LegacyNoInterfaceObject, Exposed=Window]
 interface EXTColorBufferHalfFloat {
   const GLenum RGBA16F_EXT = 0x881A;
   const GLenum RGB16F_EXT = 0x881B;

@@ -6,6 +6,6 @@
  * https://www.khronos.org/registry/webgl/extensions/OES_texture_half_float_linear/
  */
 
-[NoInterfaceObject, Exposed=Window]
+[LegacyNoInterfaceObject, Exposed=Window]
 interface OESTextureHalfFloatLinear {
 };

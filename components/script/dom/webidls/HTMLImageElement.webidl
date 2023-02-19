@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlimageelement
-[Exposed=Window, NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
+[Exposed=Window, LegacyFactoryFunction=Image(optional unsigned long width, optional unsigned long height)]
 interface HTMLImageElement : HTMLElement {
   [HTMLConstructor] constructor();
 
@@ -48,7 +48,7 @@ partial interface HTMLImageElement {
            attribute DOMString longDesc;
 
   [CEReactions]
-  attribute [TreatNullAs=EmptyString] DOMString border;
+  attribute [LegacyNullToEmptyString] DOMString border;
 };
 
 // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlimageelement-interface

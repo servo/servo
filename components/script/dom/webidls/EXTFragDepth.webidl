@@ -6,6 +6,6 @@
  * https://www.khronos.org/registry/webgl/extensions/EXT_frag_depth/
  */
 
-[NoInterfaceObject, Exposed=Window]
+[LegacyNoInterfaceObject, Exposed=Window]
 interface EXTFragDepth {
 }; // interface EXT_frag_depth

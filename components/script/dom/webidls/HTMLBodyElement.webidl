@@ -13,17 +13,17 @@ HTMLBodyElement includes WindowEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#HTMLBodyElement-partial
 partial interface HTMLBodyElement {
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString text;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString text;
 
   // https://github.com/servo/servo/issues/8715
-  //[CEReactions, TreatNullAs=EmptyString] attribute DOMString link;
+  //[CEReactions, LegacyNullToEmptyString] attribute DOMString link;
 
   // https://github.com/servo/servo/issues/8716
-  //[CEReactions, TreatNullAs=EmptyString] attribute DOMString vLink;
+  //[CEReactions, LegacyNullToEmptyString] attribute DOMString vLink;
 
   // https://github.com/servo/servo/issues/8717
-  //[CEReactions, TreatNullAs=EmptyString] attribute DOMString aLink;
+  //[CEReactions, LegacyNullToEmptyString] attribute DOMString aLink;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString bgColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString bgColor;
   [CEReactions] attribute DOMString background;
 };

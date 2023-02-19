@@ -6,6 +6,6 @@
  * https://www.khronos.org/registry/webgl/extensions/EXT_shader_texture_lod/
  */
 
-[NoInterfaceObject, Exposed=Window]
+[LegacyNoInterfaceObject, Exposed=Window]
 interface EXTShaderTextureLod {
 };

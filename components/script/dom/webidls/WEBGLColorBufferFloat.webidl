@@ -6,7 +6,7 @@
  * https://www.khronos.org/registry/webgl/extensions/WEBGL_color_buffer_float/
  */
 
-[NoInterfaceObject, Exposed=Window]
+[LegacyNoInterfaceObject, Exposed=Window]
 interface WEBGLColorBufferFloat {
   const GLenum RGBA32F_EXT = 0x8814;
   const GLenum FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT = 0x8211;
