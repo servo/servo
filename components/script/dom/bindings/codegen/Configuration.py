@@ -167,11 +167,11 @@ class DescriptorProvider:
         return self.config.getDescriptor(interfaceName)
 
 
-def MemberIsUnforgeable(member, descriptor):
+def MemberIsLegacyUnforgeable(member, descriptor):
     return ((member.isAttr() or member.isMethod())
             and not member.isStatic()
-            and (member.isUnforgeable()
-                 or bool(descriptor.interface.getExtendedAttribute("Unforgeable"))))
+            and (member.isLegacyUnforgeable()
+                 or bool(descriptor.interface.getExtendedAttribute("LegacyUnforgeable"))))
 
 
 class Descriptor(DescriptorProvider):
@@ -244,9 +244,9 @@ class Descriptor(DescriptorProvider):
                          and not self.interface.getExtendedAttribute("Abstract")
                          and not self.interface.getExtendedAttribute("Inline")
                          and not spiderMonkeyInterface)
-        self.hasUnforgeableMembers = (self.concrete
-                                      and any(MemberIsUnforgeable(m, self) for m in
-                                              self.interface.members))
+        self.hasLegacyUnforgeableMembers = (self.concrete
+                                            and any(MemberIsLegacyUnforgeable(m, self) for m in
+                                                    self.interface.members))
 
         self.operations = {
             'IndexedGetter': None,
@@ -461,7 +461,7 @@ def getTypesFromDescriptor(descriptor):
     members = [m for m in descriptor.interface.members]
     if descriptor.interface.ctor():
         members.append(descriptor.interface.ctor())
-    members.extend(descriptor.interface.namedConstructors)
+    members.extend(descriptor.interface.legacyFactoryFunctions)
     signatures = [s for m in members if m.isMethod() for s in m.signatures()]
     types = []
     for s in signatures:
