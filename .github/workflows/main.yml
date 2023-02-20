@@ -218,6 +218,8 @@ jobs:
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
             --filter-intermittents filtered-test-wpt.${{ matrix.chunk_id }}.json
+        env:
+          INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET }}
       - name: Archive filtered results
         uses: actions/upload-artifact@v3
         if: ${{ always() }}
