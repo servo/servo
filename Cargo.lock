@@ -5532,7 +5532,7 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "bitflags",
  "cssparser",
@@ -5860,7 +5860,7 @@ dependencies = [
 
 [[package]]
 name = "servo_arc"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "nodrop",
  "serde",
@@ -6632,7 +6632,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "to_shmem"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -6644,7 +6644,7 @@ dependencies = [
 
 [[package]]
 name = "to_shmem_derive"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "darling",
  "derive_common",

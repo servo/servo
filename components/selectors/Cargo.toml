@@ -1,6 +1,6 @@
 [package]
 name = "selectors"
-version = "0.23.0"
+version = "0.24.0"
 authors = ["The Servo Project Developers"]
 documentation = "https://docs.rs/selectors/"
 description = "CSS Selectors matching for Rust"
@@ -27,10 +27,10 @@ fxhash = "0.2"
 log = "0.4"
 phf = "0.8"
 precomputed-hash = "0.1"
-servo_arc = { version = "0.1", path = "../servo_arc" }
+servo_arc = { version = "0.2", path = "../servo_arc" }
 smallvec = "1.0"
-to_shmem = { path = "../to_shmem", optional = true }
-to_shmem_derive = { path = "../to_shmem_derive", optional = true }
+to_shmem = { version = "0.0.0", path = "../to_shmem", optional = true }
+to_shmem_derive = { version = "0.0.0", path = "../to_shmem_derive", optional = true }
 
 [build-dependencies]
 phf_codegen = "0.8"
