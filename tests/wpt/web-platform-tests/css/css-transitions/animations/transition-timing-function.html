@@ -69,6 +69,7 @@
         verifyPosition('box3', easeIn());
         verifyPosition('box4', easeOut());
         verifyPosition('box5', easeInOut());
+        verifyPosition('box6', 400);
       });
     }, 'Ensure that transition easing functions are properly applied.');
   };
@@ -80,6 +81,7 @@
   <div id="box3" class="box" style="transition-timing-function: ease-in;"></div>
   <div id="box4" class="box" style="transition-timing-function: ease-out;"></div>
   <div id="box5" class="box" style="transition-timing-function: ease-in-out;"></div>
+  <div id="box6" class="box" style="transition-timing-function: linear(0, 1, 0);"></div>
 </div>
 </body>
 </html>

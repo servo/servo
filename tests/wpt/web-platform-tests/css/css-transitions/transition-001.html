@@ -41,8 +41,8 @@
                 '1s 2s width ease-in' : ["width", "1s", "ease-in", "2s"],
                 '1s ease-in 2s width' : ["width", "1s", "ease-in", "2s"],
                 'width ease-in 1s 2s' : ["width", "1s", "ease-in", "2s"],
-                'width .1s ease-in .2s' : ["width", "0.1s", "ease-in", "0.2s"]
-            };
+                'width .1s ease-in .2s' : ["width", "0.1s", "ease-in", "0.2s"],
+                '1s width linear(0, .5 10% 20%, 1, .5 50%, 1) 2s' : ["width", "1s", "linear(0 0%, 0.5 10%, 0.5 20%, 1 35%, 0.5 50%, 1 100%)", "2s"]};
 
             for (var key in values) {
                 if (Object.prototype.hasOwnProperty.call(values, key)) {

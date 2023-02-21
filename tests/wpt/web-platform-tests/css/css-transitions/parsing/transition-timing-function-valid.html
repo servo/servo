@@ -13,6 +13,9 @@
 <body>
 <script>
 test_valid_value("transition-timing-function", "linear");
+test_valid_value("transition-timing-function", "linear(0 0%, 0.5 50%, 1 100%)");
+test_valid_value("transition-timing-function", "linear(0 0%, 10 10%, 10 50%, 25.4 75%, 100 100%)");
+test_valid_value("transition-timing-function", "linear(0 0%, 1 100%)");
 
 test_valid_value("transition-timing-function", "ease");
 test_valid_value("transition-timing-function", "ease-in");

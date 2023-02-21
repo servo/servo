@@ -130,6 +130,23 @@ test(function () {
 }, "Headers iterator is correctly updated with set-cookie changes");
 
 test(function () {
+  const headers = new Headers([
+    ["set-cookie", "a"],
+    ["set-cookie", "b"],
+    ["set-cookie", "c"]
+  ]);
+  const iterator = headers[Symbol.iterator]();
+  assert_array_equals(iterator.next().value, ["set-cookie", "a"]);
+  headers.delete("set-cookie");
+  headers.append("set-cookie", "d");
+  headers.append("set-cookie", "e");
+  headers.append("set-cookie", "f");
+  assert_array_equals(iterator.next().value, ["set-cookie", "e"]);
+  assert_array_equals(iterator.next().value, ["set-cookie", "f"]);
+  assert_true(iterator.next().done);
+}, "Headers iterator is correctly updated with set-cookie changes #2");
+
+test(function () {
   const headers = new Headers(headerList);
   assert_true(headers.has("sEt-cOoKiE"));
 }, "Headers.prototype.has works for set-cookie");
@@ -214,6 +231,31 @@ test(function () {
   ]);
   assert_array_equals(headers.getSetCookie(), ["z=z", "a=a", "n=n"]);
 }, "Headers.prototype.getSetCookie preserves header ordering");
+
+test(function () {
+  const headers = new Headers({"Set-Cookie": "  a=b\n"});
+  headers.append("set-cookie", "\n\rc=d  ");
+  assert_nested_array_equals([...headers], [
+    ["set-cookie", "a=b"],
+    ["set-cookie", "c=d"]
+  ]);
+  headers.set("set-cookie", "\te=f ");
+  assert_nested_array_equals([...headers], [["set-cookie", "e=f"]]);
+}, "Adding Set-Cookie headers normalizes their value");
+
+test(function () {
+  assert_throws_js(TypeError, () => {
+    new Headers({"set-cookie": "\0"});
+  });
+
+  const headers = new Headers();
+  assert_throws_js(TypeError, () => {
+    headers.append("Set-Cookie", "a\nb");
+  });
+  assert_throws_js(TypeError, () => {
+    headers.set("Set-Cookie", "a\rb");
+  });
+}, "Adding invalid Set-Cookie headers throws");
 
 test(function () {
   const response = new Response();
