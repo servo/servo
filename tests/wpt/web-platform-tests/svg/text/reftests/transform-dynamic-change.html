@@ -2,6 +2,7 @@
 <html class="reftest-wait">
 <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1270713">
 <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1271931">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1414117">
 <link rel="match" href="transform-dynamic-change-ref.html">
 <body>
 
@@ -20,6 +21,12 @@
   <text x="300" y="350" id="text2" font-size="50">PASS</text>
 </svg>
 
+<div id="container3">
+  <svg width="200" height="100">
+    <text x="0" y="50" font-size="20">PASS</text>
+  </svg>
+</div>
+
 <script>
 requestAnimationFrame(() => {
   requestAnimationFrame(() => {
@@ -29,6 +36,10 @@ requestAnimationFrame(() => {
 
     document.getElementById('svg2').style.transform = 'scale(2) translate(-300px, -300px)';
     document.getElementById('text2').style.fill = 'green';
+
+    document.getElementById('container3').style.transformOrigin = "0px 0px";
+    document.getElementById('container3').style.transform = "scale(3)";
+
     document.documentElement.classList.remove('reftest-wait');
   });
 });
