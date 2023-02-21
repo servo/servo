@@ -74,14 +74,3 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-content/#propdef-quotes",
     servo_restyle_damage="rebuild_and_reflow",
 )}
-
-${helpers.predefined_type(
-    "-moz-image-region",
-    "ClipRectOrAuto",
-    "computed::ClipRectOrAuto::auto()",
-    engines="gecko",
-    gecko_ffi_name="mImageRegion",
-    animation_value_type="ComputedValue",
-    boxed=True,
-    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)",
-)}
