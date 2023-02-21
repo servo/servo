@@ -219,6 +219,7 @@ jobs:
             --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
             --filter-intermittents filtered-test-wpt.${{ matrix.chunk_id }}.json
         env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
           INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET }}
       - name: Archive filtered results
         uses: actions/upload-artifact@v3
