@@ -42,6 +42,7 @@ class UnexpectedResult():
     unexpected_subtest_results: list[UnexpectedSubtestResult] = field(
         default_factory=list)
     issues: list[str] = field(default_factory=list)
+    flaky: bool = False
 
     def __str__(self):
         output = UnexpectedResult.to_lines(self)

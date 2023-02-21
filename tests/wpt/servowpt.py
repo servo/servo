@@ -16,7 +16,7 @@ import mozlog
 import mozlog.formatters
 import multiprocessing
 
-from typing import List, NamedTuple, Optional, Tuple, Union
+from typing import List, NamedTuple, Optional, Union
 from grouping_formatter import UnexpectedResult, UnexpectedSubtestResult
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -154,10 +154,36 @@ def run_tests(**kwargs):
 
     # Filter intermittents if that was specified on the command-line.
     if handler.unexpected_results and filter_intermittents_output:
-        all_filtered = filter_intermittents(
-            handler.unexpected_results,
-            filter_intermittents_output
-        )
+        # Copy the list of unexpected results from the first run, so that we
+        # can access them after the tests are rerun (which changes
+        # `handler.unexpected_results`). After rerunning some tests will be
+        # marked as flaky but otherwise the contents of this original list
+        # won't change.
+        unexpected_results = list(handler.unexpected_results)
+
+        # This isn't strictly necessary since `handler.suite_start()` clears
+        # the state, but make sure that we are starting with a fresh handler.
+        handler.reset_state()
+
+        print(80 * "=")
+        print(f"Rerunning {len(unexpected_results)} tests "
+              "with unexpected results to detect flaky tests.")
+        unexpected_results_tests = [result.path for result in unexpected_results]
+        kwargs["test_list"] = unexpected_results_tests
+        kwargs["include"] = unexpected_results_tests
+        kwargs["pause_after_test"] = False
+        wptrunner.run_tests(**kwargs)
+
+        # Use the second run to mark tests from the first run as flaky, but
+        # discard the results otherwise.
+        # TODO: It might be a good idea to send the new results to the
+        # dashboard if they were also unexpected.
+        stable_tests = [result.path for result in handler.unexpected_results]
+        for result in unexpected_results:
+            result.flaky = result.path not in stable_tests
+
+        all_filtered = filter_intermittents(unexpected_results,
+                                            filter_intermittents_output)
         return_value = 0 if all_filtered else 1
 
     # Write the unexpected-only raw log if that was specified on the command-line.
@@ -246,10 +272,7 @@ class TrackerDashboardFilter():
             data["subtest"] = result.subtest
         return data
 
-    def filter_unexpected_results(
-        self,
-        unexpected_results: List[UnexpectedResult]
-    ) -> Tuple[List[UnexpectedResult], List[UnexpectedResult]]:
+    def report_failures(self, unexpected_results: List[UnexpectedResult]):
         attempts = []
         for result in unexpected_results:
             attempts.append(self.make_data_from_result(result))
@@ -280,49 +303,40 @@ class TrackerDashboardFilter():
             print(e.readlines())
             raise(e)
 
-        known = [result for result in unexpected_results
-                 if result.path in known_intermittents]
-        unknown = [result for result in unexpected_results
-                   if result.path not in known_intermittents]
-        for result in known:
-            result.issues = known_intermittents[result.path]
-
-        return (known, unknown)
+        for result in unexpected_results:
+            result.issues = known_intermittents.get(result.path, [])
 
 
 def filter_intermittents(
     unexpected_results: List[UnexpectedResult],
-    output_file: str
+    output_path: str
 ) -> bool:
-    print(80 * "=")
-    print(f"Filtering {len(unexpected_results)} unexpected "
-          "results for known intermittents")
+    print(f"Filtering {len(unexpected_results)} "
+          "unexpected results for known intermittents")
+    dashboard = TrackerDashboardFilter()
+    dashboard.report_failures(unexpected_results)
 
-    filter = TrackerDashboardFilter()
-    (known_intermittents, unexpected) = \
-        filter.filter_unexpected_results(unexpected_results)
+    def add_result(output, text, results, filter_func) -> None:
+        filtered = [str(result) for result in filter(filter_func, results)]
+        if filtered:
+            output += [f"{text} ({len(results)}): ", *filtered]
 
-    output = "\n".join([
-        f"{len(known_intermittents)} known-intermittent unexpected result",
-        *[str(result) for result in known_intermittents],
-        "",
-        f"{len(unexpected)} unexpected results that are NOT known-intermittents",
-        *[str(result) for result in unexpected],
-    ])
-    print(output)
-    print(80 * "=")
+    def is_stable_and_unexpected(result):
+        return not result.flaky and not result.issues
 
-    if output_file:
-        print(f"Writing filtered results to {output_file}")
-        with open(output_file, "w", encoding="utf-8") as file:
-            file.write(json.dumps({
-                "known_intermittents":
-                    [dataclasses.asdict(result) for result in known_intermittents],
-                "unexpected":
-                    [dataclasses.asdict(result) for result in unexpected],
-            }))
+    output = []
+    add_result(output, "Flaky unexpected results", unexpected_results,
+               lambda result: result.flaky)
+    add_result(output, "Stable unexpected results that are known-intermittent",
+               unexpected_results, lambda result: not result.flaky and result.issues)
+    add_result(output, "Stable unexpected results",
+               unexpected_results, is_stable_and_unexpected)
+    print("\n".join(output))
 
-    return not unexpected
+    with open(output_path, "w", encoding="utf-8") as file:
+        json.dump([dataclasses.asdict(result) for result in unexpected_results], file)
+
+    return not any([is_stable_and_unexpected(result) for result in unexpected_results])
 
 
 def write_unexpected_only_raw_log(
