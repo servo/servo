@@ -6229,9 +6229,9 @@ dependencies = [
 
 [[package]]
 name = "string_cache"
-version = "0.8.4"
+version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "213494b7a2b503146286049378ce02b482200519accc31872ee8be91fa820a08"
+checksum = "fcac566e671100a4d4c4a2fb55ceb6c3d3554b9d4fb30b70ddacde3c96ac7986"
 dependencies = [
  "new_debug_unreachable",
  "once_cell",
