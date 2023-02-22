@@ -523,3 +523,13 @@ function getMessageData(message_data_type, source) {
     window.addEventListener("message", waitAndRemove);
   });
 }
+
+function preventDefaultPointerdownOnce(target) {
+  return new Promise(
+    (resolve) => {
+      target.addEventListener("pointerdown", (event) => {
+                                event.preventDefault();
+                                resolve();
+                              }, {once: true});
+    });
+}

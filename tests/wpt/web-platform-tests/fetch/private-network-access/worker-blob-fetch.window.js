@@ -8,7 +8,7 @@
 // within documents.
 //
 // This file covers only those tests that must execute in a non-secure context.
-// Other tests are defined in: worker-fetch.https.window.js
+// Other tests are defined in: worker-blob-fetch.https.window.js
 
 promise_test(t => workerBlobFetchTest(t, {
   source: { server: Server.HTTP_LOCAL },

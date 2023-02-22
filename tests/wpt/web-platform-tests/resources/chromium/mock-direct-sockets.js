@@ -38,6 +38,15 @@ self.DirectSocketsServiceTest = (() => {
         result: -11
       });
     }
+
+    openTCPServerSocket(
+      options,
+      receiver) {
+      return Promise.resolve({
+        // return result = net:Error::NOT_IMPLEMENTED (code -11)
+        result: -11
+      });
+    }
   }
 
   let testInternal = {

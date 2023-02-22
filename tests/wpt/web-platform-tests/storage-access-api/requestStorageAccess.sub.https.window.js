@@ -40,16 +40,27 @@ promise_test(async t => {
 }, "[" + testPrefix + "] document.requestStorageAccess() should resolve in top-level frame or otherwise reject with a NotAllowedError with no user gesture");
 
 promise_test(
-    async () => {
-      await test_driver.set_permission(
-          {name: 'storage-access'}, 'granted');
+    async (t) => {
+      await MaybeSetStorageAccess("*", "*", "blocked");
+      await test_driver.set_permission({name: 'storage-access'}, 'granted');
+      t.add_cleanup(async () => {
+        await test_driver.delete_all_cookies();
+      });
 
       await RunCallbackWithGesture(() => document.requestStorageAccess());
+
+      await fetch(`${window.location.origin}/cookies/resources/set-cookie.py?name=cookie&path=/&samesite=None&secure=`)
+          .then((resp) => resp.text());
+      const httpCookies = await fetch(`${window.location.origin}/storage-access-api/resources/echo-cookie-header.py`)
+          .then((resp) => resp.text());
+      assert_true(httpCookies.includes('cookie=1'),
+          'After obtaining storage access, subresource requests from the frame should send and set cookies.');
     },
     '[' + testPrefix +
-        '] document.requestStorageAccess() should be resolved when called properly with a user gesture');
+        '] document.requestStorageAccess() should be resolved when called properly with a user gesture, and ' +
+        'should allow cookie access');
 
-if (testPrefix == 'cross-origin-frame' || testPrefix == 'nested-cross-origin-frame') {
+if (!topLevelDocument && !testPrefix.includes('same-origin')) {
   promise_test(
       async t => {
         await RunCallbackWithGesture(() => {
