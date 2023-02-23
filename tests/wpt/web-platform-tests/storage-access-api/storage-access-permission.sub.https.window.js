@@ -39,7 +39,7 @@
 
   promise_test(async t => {
     const permission = await navigator.permissions.query({name: "storage-access"});
-    assert_equals(permission.name, "storage_access");
+    assert_equals(permission.name, "storage-access");
     assert_equals(permission.state, "prompt");
   }, "Permission default state can be queried");
 
@@ -50,7 +50,7 @@
     await test_driver.set_permission({ name: 'storage-access' }, 'granted');
 
     const permission = await navigator.permissions.query({name: "storage-access"});
-    assert_equals(permission.name, "storage_access");
+    assert_equals(permission.name, "storage-access");
     assert_equals(permission.state, "granted");
   }, "Permission granted state can be queried");
 
@@ -61,7 +61,7 @@
     await test_driver.set_permission({ name: 'storage-access' }, 'denied');
 
     const permission = await navigator.permissions.query({name: "storage-access"});
-    assert_equals(permission.name, "storage_access");
+    assert_equals(permission.name, "storage-access");
     assert_equals(permission.state, "denied");
 
     await test_driver.set_permission({ name: 'storage-access' }, 'prompt');

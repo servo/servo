@@ -28,21 +28,27 @@ window.onload = () => {
       let hideCount = 0;
       let afterHideCount = 0;
       function listener(e) {
+        assert_false(e.bubbles,'toggle events should not bubble');
         if (e.type === "beforetoggle") {
           if (e.newState === "open") {
             ++showCount;
             assert_equals(e.oldState,"closed",'The "beforetoggle" event should be fired before the popover is open');
             assert_true(e.target.matches(':closed'),'The popover should be in the :closed state when the opening event fires.');
             assert_false(e.target.matches(':open'),'The popover should *not* be in the :open state when the opening event fires.');
+            assert_true(e.cancelable,'beforetoggle should be cancelable only for the "show" transition');
           } else {
             ++hideCount;
             assert_equals(e.newState,"closed",'Popover toggleevent states should be "open" and "closed"');
             assert_equals(e.oldState,"open",'The "beforetoggle" event should be fired before the popover is closed')
             assert_true(e.target.matches(':open'),'The popover should be in the :open state when the hiding event fires.');
             assert_false(e.target.matches(':closed'),'The popover should *not* be in the :closed state when the hiding event fires.');
+            assert_false(e.cancelable,'beforetoggle should be cancelable only for the "show" transition');
+            e.preventDefault(); // beforetoggle should be cancelable only for the "show" transition
           }
         } else {
           assert_equals(e.type,"toggle",'Popover events should be "beforetoggle" and "toggle"')
+          assert_false(e.cancelable,'toggle should never be cancelable');
+          e.preventDefault(); // toggle should never be cancelable
           if (e.newState === "open") {
             ++afterShowCount;
             if (document.body.contains(e.target)) {

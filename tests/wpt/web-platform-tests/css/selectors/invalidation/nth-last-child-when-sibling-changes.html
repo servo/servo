@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :nth-last-child(... of class) when sibling changes</title>
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="match" href="nth-last-child-when-sibling-changes-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<style>
+  .sibling + :nth-last-child(odd of .c) {
+    color: green;
+  }
+</style>
+<div>
+  <p class="sibling" id="toggler">Ignored</p>
+  <p class="c">Odd; used to be green, should not be since no sibling</p>
+  <p class="c">Even, so should not be green</p>
+  <p class="c" class="sibling">Odd, but no sibling, so should not be green</p>
+  <p class="c">Even, so should not be green</p>
+  <p class="sibling">Ignored</p>
+  <p class="c">Odd, should be green</p>
+</div>
+<script>
+  document.documentElement.offsetTop;
+  toggler.classList.toggle("sibling");
+</script>

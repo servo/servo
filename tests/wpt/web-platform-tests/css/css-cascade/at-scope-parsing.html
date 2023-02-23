@@ -38,6 +38,7 @@
   test_valid('@scope (.a) to (.b)');
   test_valid('@scope (.a)to (.b)', '@scope (.a) to (.b)');
   test_valid('@scope (.a) to (.b:hover, #c, div)');
+  test_valid('@scope');
 
   // Forgiving behavior:
   test_valid('@scope (.c <> .d)', '@scope ()');
@@ -46,7 +47,7 @@
   test_valid('@scope (div::before)', '@scope ()');
   test_valid('@scope (div::after)', '@scope ()');
   test_valid('@scope (slotted(div))', '@scope ()');
-  test_valid('@scope (.a) to (div::before)', '@scope (.a) to ()');
+  test_valid('@scope (.a) to (div::before)', '@scope (.a)');
 
   test_invalid('@scope (.a) unknown (.c)');
   test_invalid('@scope (.a) to unknown (.c)');

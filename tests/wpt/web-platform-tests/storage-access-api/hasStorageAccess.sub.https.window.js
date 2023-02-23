@@ -1,7 +1,7 @@
 // META: script=helpers.js
 'use strict';
 
-const {expectAccessAllowed, testPrefix, topLevelDocument} = processQueryParams();
+const {secure, testPrefix, topLevelDocument} = processQueryParams();
 
 // Common tests to run in all frames.
 test(() => {
@@ -10,8 +10,12 @@ test(() => {
 
 promise_test(async () => {
   const hasAccess = await document.hasStorageAccess();
-  assert_equals(hasAccess, expectAccessAllowed, "Access should be granted by default: " + expectAccessAllowed);
-}, "[" + testPrefix + "] document.hasStorageAccess() should be allowed by default: " + expectAccessAllowed);
+  if (secure) {
+    assert_true(hasAccess, "Access should be granted by default.");
+  } else {
+    assert_false(hasAccess, "Access should not be granted in insecure contexts.");
+  }
+}, `[${testPrefix}] document.hasStorageAccess() should be ${secure ? "allowed" : "disallowed"} by default.`);
 
 promise_test(async (t) => {
   const description = "Promise should reject when called on a generated document not part of the DOM.";
