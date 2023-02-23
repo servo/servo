@@ -44,12 +44,12 @@ impl MediaType {
     fn parse(name: &str) -> Result<Self, ()> {
         // From https://drafts.csswg.org/mediaqueries/#mq-syntax:
         //
-        //   The <media-type> production does not include the keywords not, or, and, and only.
+        //   The <media-type> production does not include the keywords only, not, and, or, and layer.
         //
         // Here we also perform the to-ascii-lowercase part of the serialization
         // algorithm: https://drafts.csswg.org/cssom/#serializing-media-queries
         match_ignore_ascii_case! { name,
-            "not" | "or" | "and" | "only" => Err(()),
+            "not" | "or" | "and" | "only" | "layer" => Err(()),
             _ => Ok(MediaType(CustomIdent(Atom::from(string_as_ascii_lowercase(name))))),
         }
     }
