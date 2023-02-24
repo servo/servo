@@ -30,18 +30,14 @@ packages = [
   "arrayvec",
   "base64",
   "cfg-if",
-  "cloudabi",
-  "cocoa",
   "crossbeam-channel",
   "crossbeam-utils",
   "fixedbitset",
   "getrandom",
-  "gleam",
   "h2",
   "image",
   "itoa",
   "libloading",
-  "lock_api",
   "metal",
   "miniz_oxide",
   "num-rational",
@@ -83,11 +79,9 @@ packages = [
   # https://github.com/servo/servo/pull/25518
   "core-foundation",
   "core-foundation-sys",
-  "core-graphics",
   "lyon_geom",
 
   # https://github.com/servo/servo/pull/28236
-  "dlib",
   "nix",
 
   # Duplicated by webrender debugger via ws
@@ -100,24 +94,6 @@ packages = [
   # Duplicated by winit/surfman update.
   "raw-window-handle",
   "windows-sys",
-  "calloop",
-  "io-surface",
-  "memmap2",
-  "ndk",
-  "ndk-sys",
-  "num_enum",
-  "num_enum_derive",
-  "owned_ttf_parser",
-  "smithay-client-toolkit",
-  "strsim",
-  "surfman",
-  "ttf-parser",
-  "wayland-client",
-  "wayland-commons",
-  "wayland-cursor",
-  "wayland-protocols",
-  "wayland-scanner",
-  "winit",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
