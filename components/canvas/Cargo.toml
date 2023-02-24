@@ -40,7 +40,7 @@ sparkle = "0.1.25"
 style = { path = "../style" }
 style_traits = { path = "../style_traits" }
 # NOTE: the sm-angle feature only enables angle on windows, not other platforms!
-surfman = { version = "0.5", features = ["sm-angle","sm-angle-default"] }
+surfman = { version = "0.6", features = ["sm-angle","sm-angle-default"] }
 surfman-chains = "0.7"
 surfman-chains-api = "0.2"
 time = { version = "0.1.41", optional = true }

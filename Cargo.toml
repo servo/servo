@@ -28,8 +28,6 @@ opt-level = 3
 
 # This is here to dedupe winapi since mio 0.6 is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
-# This is here so surfman targets winit 0.28.1.
-surfman = { git = "https://github.com/servo/surfman.git" }
 # surfman-chains has not yet released version 0.7 to crates.io yet.
 surfman-chains = { git = "https://github.com/servo/surfman-chains.git" }
 

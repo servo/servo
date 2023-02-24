@@ -100,6 +100,24 @@ packages = [
   # Duplicated by winit/surfman update.
   "raw-window-handle",
   "windows-sys",
+  "calloop",
+  "io-surface",
+  "memmap2",
+  "ndk",
+  "ndk-sys",
+  "num_enum",
+  "num_enum_derive",
+  "owned_ttf_parser",
+  "smithay-client-toolkit",
+  "strsim",
+  "surfman",
+  "ttf-parser",
+  "wayland-client",
+  "wayland-commons",
+  "wayland-cursor",
+  "wayland-protocols",
+  "wayland-scanner",
+  "winit",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
