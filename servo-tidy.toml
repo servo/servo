@@ -35,6 +35,7 @@ packages = [
   "fixedbitset",
   "getrandom",
   "h2",
+  "half",
   "image",
   "itoa",
   "libloading",
