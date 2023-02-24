@@ -7,6 +7,8 @@ on:
 
 jobs:
   upload-docs:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Upload docs to GitHub Pages
     runs-on: ubuntu-20.04
     steps:

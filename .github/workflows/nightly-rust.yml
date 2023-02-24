@@ -12,6 +12,8 @@ env:
 
 jobs:
   build-linux-with-rust-nightly:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Build (Linux) + rustc nightly
     runs-on: ubuntu-20.04
     steps:
