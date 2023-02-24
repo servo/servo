@@ -12,6 +12,6 @@ path = "lib.rs"
 
 [dependencies]
 euclid = "0.22"
-surfman = "0.5"
+surfman = "0.6"
 surfman-chains = "0.7"
 

@@ -11,8 +11,6 @@ use euclid::{
     Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit,
     Vector2D, Vector3D,
 };
-#[cfg(target_os = "macos")]
-use winit::platform::macos::{ActivationPolicy, WindowBuilderExtMacOS};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
@@ -49,21 +47,6 @@ use surfman::SurfaceType;
 use winapi;
 use winit::dpi::{LogicalPosition, PhysicalPosition, PhysicalSize};
 use winit::event::ModifiersState;
-
-#[cfg(target_os = "macos")]
-fn builder_with_platform_options(mut builder: winit::window::WindowBuilder) -> winit::window::WindowBuilder {
-    if opts::get().output_file.is_some() {
-        // Prevent the window from showing in Dock.app, stealing focus,
-        // when generating an output file.
-        builder = builder.with_activation_policy(ActivationPolicy::Prohibited)
-    }
-    builder
-}
-
-#[cfg(not(target_os = "macos"))]
-fn builder_with_platform_options(builder: winit::window::WindowBuilder) -> winit::window::WindowBuilder {
-    builder
-}
 
 pub struct Window {
     winit_window: winit::window::Window,
@@ -117,14 +100,12 @@ impl Window {
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
 
-        let mut window_builder = winit::window::WindowBuilder::new()
+        let window_builder = winit::window::WindowBuilder::new()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(PhysicalSize::new(width as f64, height as f64))
             .with_visible(visible);
-
-        window_builder = builder_with_platform_options(window_builder);
 
         let winit_window = window_builder.build(events_loop.as_winit()).expect("Failed to create window.");
 
@@ -508,12 +489,10 @@ impl WindowPortsMethods for Window {
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
-        let mut window_builder = winit::window::WindowBuilder::new()
+        let window_builder = winit::window::WindowBuilder::new()
             .with_title("Servo XR".to_string())
             .with_inner_size(size)
             .with_visible(true);
-
-        window_builder = builder_with_platform_options(window_builder);
 
         let winit_window = window_builder.build(event_loop)
             .expect("Failed to create window.");
