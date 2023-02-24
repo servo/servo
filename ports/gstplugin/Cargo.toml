@@ -23,7 +23,7 @@ gstreamer-base = "0.15"
 gstreamer-gl = "0.15"
 gstreamer-gl-sys = { version = "0.8", features = ["wayland"] }
 gstreamer-sys = "0.8"
-gstreamer-video = "0.15"
+gstreamer-video = "0.19"
 lazy_static = "1.4"
 libservo = { path = "../../components/servo" }
 log = "0.4"
