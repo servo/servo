@@ -42,12 +42,15 @@ function assert_click_attributes(click_event, pointerdown_event, pointerup_event
 promise_test(async () => {
   const target = document.getElementById("target");
 
+  let pointerDownPrevented = preventDefaultPointerdownOnce(target);
+
   let pointerdown_promise = getEvent("pointerdown", target);
   let pointerup_promise = getEvent("pointerup", target);
   let click_promise = getEvent("click", target);
 
   await clickInTarget(pointer_type, target);
 
+  await pointerDownPrevented;
   let pointerdown_event = await pointerdown_promise;
   let pointerup_event = await pointerup_promise;
   let click_event = await click_promise;

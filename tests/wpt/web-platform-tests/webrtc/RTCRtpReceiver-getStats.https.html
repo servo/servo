@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCRtpReceiver.prototype.getStats</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -121,5 +122,24 @@
     validateStatsReport(statsReportFirst);
     validateStatsReport(statsReportSecond);
   }, 'receiver.getStats() should work with a closed PeerConnection');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+
+    exchangeIceCandidates(caller, callee);
+    exchangeIceCandidates(callee, caller);
+    await exchangeOfferAnswer(caller, callee);
+    await waitForIceStateChange(caller, ['checking']);
+    const receiver = callee.getReceivers()[0];
+    const statsReport = await receiver.getStats();
+    assert_stats_report_has_stats(statsReport, ['candidate-pair', 'local-candidate', 'remote-candidate']);
+  }, 'receiver.getStats() should return stats report containing ICE candidate stats');
 
 </script>

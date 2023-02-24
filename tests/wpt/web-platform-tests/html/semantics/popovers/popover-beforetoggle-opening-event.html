@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
-<title>Popover show event</title>
+<title>Popover beforetoggle event</title>
 <link rel="author" href="mailto:masonf@chromium.org">
 <link rel=help href="https://open-ui.org/components/popover.research.explainer">
 <link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
@@ -16,6 +16,7 @@ test(() => {
   const popover = document.querySelector('[popover]');
   const testText = 'Show Event Occurred';
   popover.addEventListener('beforetoggle',(e) => {
+    assert_false(e.bubbles, 'beforetoggle event does not bubble');
     if (e.newState !== "open")
       return;
     popover.textContent = testText;

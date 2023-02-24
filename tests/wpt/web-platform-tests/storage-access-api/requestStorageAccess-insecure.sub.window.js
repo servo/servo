@@ -43,21 +43,21 @@ if (topLevelDocument) {
 
   // Create a test with a single-child same-origin iframe.
   const sameOriginFramePromise = RunTestsInIFrame(
-      'resources/requestStorageAccess-iframe.html?testCase=same-origin-frame&rootdocument=false');
+      'resources/requestStorageAccess-iframe.html?testCase=same-origin-frame');
 
   // Create a test with a single-child cross-origin iframe.
   const crossOriginFramePromise = RunTestsInIFrame(
-      'http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=cross-origin-frame&rootdocument=false');
+      'http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=cross-origin-frame');
 
   // Validate the nested-iframe scenario where the same-origin frame
   // containing the tests is not the first child.
   const nestedSameOriginFramePromise = RunTestsInNestedIFrame(
-      'resources/requestStorageAccess-iframe.html?testCase=nested-same-origin-frame&rootdocument=false');
+      'resources/requestStorageAccess-iframe.html?testCase=nested-same-origin-frame');
 
   // Validate the nested-iframe scenario where the cross-origin frame
   // containing the tests is not the first child.
   const nestedCrossOriginFramePromise = RunTestsInNestedIFrame(
-      'http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=nested-cross-origin-frame&rootdocument=false');
+      'http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=nested-cross-origin-frame');
 
   // Because the iframe tests expect no user activation, and because they
   // load asynchronously, we want to first run those tests before simulating

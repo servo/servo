@@ -20,6 +20,25 @@ for (const url of BAD_URLS) {
   }, `WebTransport constructor should reject URL '${url}'`);
 }
 
+const OPTIONS = [
+  { allowPooling: true },
+  { requireUnreliable: true },
+  { allowPooling: true, requireUnreliable: true },
+  { congestionControl: "default" },
+  { congestionControl: "throughput" },
+  { congestionControl: "low-latency" },
+  { allowPooling: true, requireUnreliable: true, congestionControl: "low-latency" },
+  // XXX Need to test serverCertificateHashes
+];
+
+for (const options of OPTIONS) {
+  promise_test(async t => {
+    const wt = new WebTransport(`https://${HOST}:0/`, options );
+    await wt.ready;
+    wt.close();
+  }, "WebTransport constructor should allow options " + JSON.stringify(options));
+}
+
 promise_test(async t => {
   const wt = new WebTransport(`https://${HOST}:0/`);
 

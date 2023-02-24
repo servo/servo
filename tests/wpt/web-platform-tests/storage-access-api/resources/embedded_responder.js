@@ -20,6 +20,10 @@ window.addEventListener("message", async (event) => {
       reply(obtainedAccess);
     }
       break;
+    case "write document.cookie":
+      document.cookie = event.data.cookie;
+      reply(undefined);
+      break;
     case "document.cookie":
       reply(document.cookie);
       break;
@@ -35,6 +39,11 @@ window.addEventListener("message", async (event) => {
       break;
     case "reload":
       window.location.reload();
+      break;
+    case "httpCookies":
+      // The `httpCookies` variable is defined/set by
+      // script-with-cookie-header.py.
+      reply(httpCookies);
       break;
     default:
   }

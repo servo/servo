@@ -5,4 +5,4 @@
 
 // Validate the nested-iframe scenario where the same-origin frame
 // containing the tests is not the first child.
-RunTestsInNestedIFrame('resources/requestStorageAccess-iframe.https.html?testCase=nested-same-origin-frame&rootdocument=false');
+RunTestsInNestedIFrame('resources/requestStorageAccess-iframe.https.html?testCase=nested-same-origin-frame');
