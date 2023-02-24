@@ -815,15 +815,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cloudabi"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4344512281c643ae7638bbabc3af17a11307803ec8f0fcad9fae512a8bf36467"
-dependencies = [
- "bitflags",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4466,7 +4457,7 @@ checksum = "a4893845fa2ca272e647da5d0e46660a314ead9c2fdd9a883aabc32e481a8733"
 dependencies = [
  "instant",
  "lock_api",
- "parking_lot_core 0.8.0",
+ "parking_lot_core 0.8.6",
 ]
 
 [[package]]
@@ -4481,15 +4472,14 @@ dependencies = [
 
 [[package]]
 name = "parking_lot_core"
-version = "0.8.0"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c361aa727dd08437f2f1447be8b59a33b0edd15e0fcee698f935613d9efbca9b"
+checksum = "60a2cfe6f0ad2bfc16aefa463b497d5c7a5ecd44a23efa72aa342d90177356dc"
 dependencies = [
- "cfg-if 0.1.10",
- "cloudabi",
+ "cfg-if 1.0.0",
  "instant",
  "libc",
- "redox_syscall 0.1.56",
+ "redox_syscall 0.2.13",
  "smallvec",
  "winapi",
 ]
