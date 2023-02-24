@@ -12,6 +12,8 @@ env:
 
 jobs:
   upload-linux:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Upload nightly (Linux)
     runs-on: ubuntu-20.04
     steps:
@@ -33,6 +35,8 @@ jobs:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
 
   upload-mac:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Upload nightly (macOS)
     runs-on: macos-12
     steps:
@@ -74,6 +78,8 @@ jobs:
           GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
 
   upload-win:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Upload nightly (Windows)
     runs-on: windows-2019
     steps:

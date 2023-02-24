@@ -5,6 +5,8 @@ on:
 
 jobs:
   upstream:
+    # Run job only on servo/servo
+    if: github.repository == 'servo/servo'
     runs-on: ubuntu-latest
     steps:
       - name: Calculate PR fetch depth
