@@ -6756,13 +6756,13 @@ dependencies = [
 [[package]]
 name = "surfman-chains"
 version = "0.7.0"
-source = "git+https://github.com/servo/surfman-chains.git#f7b30e8736501fe3d326f1c41e7ae0a2bca4e818"
+source = "git+https://github.com/servo/surfman-chains.git#57cd1e290205a5459969bfe4cf0852d3bfec189c"
 dependencies = [
  "euclid",
  "fnv",
  "log",
  "sparkle",
- "surfman 0.5.0",
+ "surfman 0.6.0",
  "surfman-chains-api",
 ]
 
