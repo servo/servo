@@ -961,13 +961,13 @@ dependencies = [
 
 [[package]]
 name = "content-security-policy"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91ea9f813e3c5ece60232e2b5d0d8187d310bf1e5641c5457e54099780a892a8"
+checksum = "1780f19455c4d346013dc4fb3e9c329c64c7c300b0ebeff786743f4b9f34ec0e"
 dependencies = [
- "base64 0.12.0",
+ "base64 0.13.0",
  "bitflags",
- "lazy_static",
+ "once_cell",
  "percent-encoding",
  "regex",
  "serde",
@@ -1410,9 +1410,9 @@ dependencies = [
 
 [[package]]
 name = "digest"
-version = "0.10.3"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2fb860ca6fafa5552fb6d0e816a69c8e49f0908bf524e30a90d97c85892d506"
+checksum = "8168378f4e5023e7218c89c891c0fd8ecdb5e5e4f18cb78f38cf245dd021e76f"
 dependencies = [
  "block-buffer 0.10.2",
  "crypto-common",
@@ -3995,6 +3995,7 @@ dependencies = [
  "flate2",
  "futures 0.3.5",
  "futures-util",
+ "generic-array 0.14.4",
  "headers",
  "http",
  "hyper 0.14.5",
@@ -4023,6 +4024,7 @@ dependencies = [
  "servo_arc",
  "servo_config",
  "servo_url",
+ "sha2",
  "std_test_override",
  "time",
  "tokio 0.2.24",
@@ -5948,19 +5950,18 @@ checksum = "028f48d513f9678cda28f6e4064755b3fbb2af6acd672f2c209b62323f7aea0f"
 dependencies = [
  "cfg-if 1.0.0",
  "cpufeatures",
- "digest 0.10.3",
+ "digest 0.10.6",
 ]
 
 [[package]]
 name = "sha2"
-version = "0.8.1"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27044adfd2e1f077f649f59deb9490d3941d674002f7d062870a60ebe9bd47a0"
+checksum = "82e6b795fe2e3b1e845bafcb27aa35405c4d47cdfc92af5fc8d3002f76cebdc0"
 dependencies = [
- "block-buffer 0.7.3",
- "digest 0.8.1",
- "fake-simd",
- "opaque-debug 0.2.3",
+ "cfg-if 1.0.0",
+ "cpufeatures",
+ "digest 0.10.6",
 ]
 
 [[package]]

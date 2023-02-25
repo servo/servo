@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base64;
+use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use openssl::hash::{hash, MessageDigest};
+use sha2::{Digest, Sha256, Sha384, Sha512};
 use std::iter::Filter;
 use std::str::Split;
 use std::sync::MutexGuard;
@@ -115,12 +116,13 @@ pub fn get_strongest_metadata(integrity_metadata_list: Vec<SriEntry>) -> Vec<Sri
 }
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#apply-algorithm-to-response>
-fn apply_algorithm_to_response(
+fn apply_algorithm_to_response<S: ArrayLength<u8>, D: Digest<OutputSize = S>>(
     body: MutexGuard<ResponseBody>,
-    message_digest: MessageDigest,
+    mut hasher: D,
 ) -> String {
     if let ResponseBody::Done(ref vec) = *body {
-        let response_digest = hash(message_digest, vec).unwrap(); //Now hash
+        hasher.update(vec);
+        let response_digest = hasher.finalize(); //Now hash
         base64::encode(&response_digest)
     } else {
         unreachable!("Tried to calculate digest of incomplete response body")
@@ -156,14 +158,14 @@ pub fn is_response_integrity_valid(integrity_metadata: &str, response: &Response
         let algorithm = item.alg;
         let digest = item.val;
 
-        let message_digest = match &*algorithm {
-            "sha256" => MessageDigest::sha256(),
-            "sha384" => MessageDigest::sha384(),
-            "sha512" => MessageDigest::sha512(),
+        let hashed = match &*algorithm {
+            "sha256" => apply_algorithm_to_response(body, Sha256::new()),
+            "sha384" => apply_algorithm_to_response(body, Sha384::new()),
+            "sha512" => apply_algorithm_to_response(body, Sha512::new()),
             _ => continue,
         };
 
-        if apply_algorithm_to_response(body, message_digest) == digest {
+        if hashed == digest {
             return true;
         }
     }

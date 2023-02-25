@@ -20,7 +20,7 @@ async-tungstenite = { version = "0.9", features = ["tokio-openssl"] }
 base64 = "0.10.1"
 brotli = "3"
 bytes = "1"
-content-security-policy = { version = "0.4.0", features = ["serde"] }
+content-security-policy = { version = "0.5", features = ["serde"] }
 cookie_rs = { package = "cookie", version = "0.12" }
 crossbeam-channel = "0.4"
 data-url = "0.1.0"
@@ -29,6 +29,7 @@ embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"
 futures = { version = "0.3", package = "futures" }
 futures-util = { version  = "0.3" }
+generic-array = "0.14"
 headers = "0.3"
 http = "0.2"
 hyper = { version = "0.14", features = ["client", "http1", "http2", "tcp", "stream"] }
@@ -57,6 +58,7 @@ servo_allocator = { path = "../allocator" }
 servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
+sha2 = "0.10"
 time = "0.1.41"
 tokio = { version = "1", package = "tokio", features = ["sync", "macros", "rt-multi-thread"] }
 tokio2 = { version = "0.2", package = "tokio", features = ["sync", "macros", "rt-threaded", "tcp"] }
