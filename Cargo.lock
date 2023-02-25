@@ -2579,7 +2579,7 @@ dependencies = [
  "http",
  "indexmap",
  "slab",
- "tokio 1.15.0",
+ "tokio 1.25.0",
  "tokio-util 0.6.9",
  "tracing",
 ]
@@ -2793,8 +2793,8 @@ dependencies = [
  "httpdate 0.3.2",
  "itoa 0.4.8",
  "pin-project 1.0.2",
- "socket2 0.4.2",
- "tokio 1.15.0",
+ "socket2 0.4.7",
+ "tokio 1.25.0",
  "tower-service",
  "tracing",
  "want",
@@ -2813,7 +2813,7 @@ dependencies = [
  "openssl",
  "openssl-sys",
  "parking_lot 0.12.0",
- "tokio 1.15.0",
+ "tokio 1.25.0",
  "tokio-openssl 0.6.3",
  "tower-layer",
 ]
@@ -3542,7 +3542,7 @@ dependencies = [
  "string_cache",
  "thin-slice",
  "time",
- "tokio 1.15.0",
+ "tokio 1.25.0",
  "url",
  "uuid",
  "void",
@@ -3757,19 +3757,6 @@ dependencies = [
  "miow",
  "net2",
  "slab",
- "winapi",
-]
-
-[[package]]
-name = "mio"
-version = "0.7.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8067b404fe97c70829f082dec8bcf4f71225d7eaea1d8645349cb76fa06205cc"
-dependencies = [
- "libc",
- "log",
- "miow",
- "ntapi",
  "winapi",
 ]
 
@@ -4008,7 +3995,7 @@ dependencies = [
  "std_test_override",
  "time",
  "tokio 0.2.24",
- "tokio 1.15.0",
+ "tokio 1.25.0",
  "tokio-openssl 0.6.3",
  "tokio-stream",
  "tokio-test",
@@ -4120,15 +4107,6 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
-]
-
-[[package]]
-name = "ntapi"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c28774a7fd2fbb4f0babd8237ce554b73af68021b5f695a3cebd6c59bac0980f"
-dependencies = [
- "winapi",
 ]
 
 [[package]]
@@ -6103,9 +6081,9 @@ dependencies = [
 
 [[package]]
 name = "socket2"
-version = "0.4.2"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dc90fe6c7be1a323296982db1836d1ea9e47b6839496dde9a541bc496df3516"
+checksum = "02e2d2db9033d13a1567121ddd7a095ee144db4e1ca1b1bda3419bc0da294ebd"
 dependencies = [
  "libc",
  "winapi",
@@ -6651,18 +6629,20 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.15.0"
+version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbbf1c778ec206785635ce8ad57fe52b3009ae9e0c9f574a728f3049d3e55838"
+checksum = "c8e00990ebabbe4c14c08aca901caed183ecd5c09562a12c824bb53d3c3fd3af"
 dependencies = [
+ "autocfg",
  "bytes 1.1.0",
  "libc",
  "memchr",
- "mio 0.7.14",
+ "mio 0.8.6",
  "num_cpus",
  "pin-project-lite 0.2.8",
+ "socket2 0.4.7",
  "tokio-macros 1.7.0",
- "winapi",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]
@@ -6706,7 +6686,7 @@ dependencies = [
  "futures-util",
  "openssl",
  "openssl-sys",
- "tokio 1.15.0",
+ "tokio 1.25.0",
 ]
 
 [[package]]
@@ -6717,7 +6697,7 @@ checksum = "f6edf2d6bc038a43d31353570e27270603f4648d18f5ed10c0e179abe43255af"
 dependencies = [
  "futures-core",
  "pin-project-lite 0.2.8",
- "tokio 1.15.0",
+ "tokio 1.25.0",
 ]
 
 [[package]]
@@ -6729,7 +6709,7 @@ dependencies = [
  "async-stream",
  "bytes 1.1.0",
  "futures-core",
- "tokio 1.15.0",
+ "tokio 1.25.0",
  "tokio-stream",
 ]
 
@@ -6758,7 +6738,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite 0.2.8",
- "tokio 1.15.0",
+ "tokio 1.25.0",
 ]
 
 [[package]]
