@@ -68,7 +68,6 @@ page_data = """
                         "value": {
                             "attributes": {},
                             "childNodeCount": 0,
-                            "children": None,
                             "localName": "p",
                             "namespaceURI": "http://www.w3.org/1999/xhtml",
                             "nodeType": 1
@@ -77,7 +76,6 @@ page_data = """
                         "type": "node",
                         "value": {
                             "childNodeCount": 0,
-                            "children": None,
                             "nodeType": 3,
                             "nodeValue": "Lorem",
                         }
@@ -102,7 +100,6 @@ page_data = """
                         "value": {
                             "attributes": {},
                             "childNodeCount": 1,
-                            "children": None,
                             "localName": "p",
                             "namespaceURI": "http://www.w3.org/1999/xhtml",
                             "nodeType": 1
@@ -112,7 +109,6 @@ page_data = """
                         "value": {
                             "attributes": {},
                             "childNodeCount": 0,
-                            "children": None,
                             "localName": "br",
                             "namespaceURI": "http://www.w3.org/1999/xhtml",
                             "nodeType": 1
@@ -389,7 +385,6 @@ async def test_comment_node(
                         "type": "node",
                         "value": {
                             "childNodeCount": 0,
-                            "children": None,
                             "nodeType": 10
                         }
                     }, {
@@ -397,7 +392,6 @@ async def test_comment_node(
                         "value": {
                             "attributes": {},
                             "childNodeCount": 2,
-                            "children": None,
                             "localName": "html",
                             "namespaceURI": "http://www.w3.org/1999/xhtml",
                             "nodeType": 1
@@ -521,7 +515,6 @@ async def test_node_within_object(bidi_session, inline, top_context):
                 "value": {
                     "attributes": {},
                     "childNodeCount": 0,
-                    "children": None,
                     "localName": "span",
                     "namespaceURI": "http://www.w3.org/1999/xhtml",
                     "nodeType": 1
@@ -545,7 +538,6 @@ async def test_node_within_object(bidi_session, inline, top_context):
                         "value": {
                             "attributes": {},
                             "childNodeCount": 0,
-                            "children": None,
                             "localName": "span",
                             "namespaceURI": "http://www.w3.org/1999/xhtml",
                             "nodeType": 1
@@ -564,7 +556,6 @@ async def test_node_within_object(bidi_session, inline, top_context):
                         "value": {
                             "attributes": {},
                             "childNodeCount": 0,
-                            "children": None,
                             "localName": "span",
                             "namespaceURI": "http://www.w3.org/1999/xhtml",
                             "nodeType": 1

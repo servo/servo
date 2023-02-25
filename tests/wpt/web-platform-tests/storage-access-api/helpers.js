@@ -1,10 +1,10 @@
 'use strict';
 
 function processQueryParams() {
-  const queryParams = new URL(window.location).searchParams;
+  const url = new URL(window.location);
+  const queryParams = url.searchParams;
   return {
-    expectAccessAllowed: queryParams.get("allowed") != "false",
-    topLevelDocument: queryParams.get("rootdocument") != "false",
+    topLevelDocument: window === window.top,
     testPrefix: queryParams.get("testCase") || "top-level-context",
   };
 }
@@ -108,10 +108,44 @@ function ReloadPromise(frame) {
   });
 }
 
+// Writes cookies via document.cookie in the given frame.
+function SetDocumentCookieFromFrame(frame, cookie) {
+  return PostMessageAndAwaitReply(
+    { command: "write document.cookie", cookie }, frame.contentWindow);
+}
+
 // Reads cookies via document.cookie in the given frame.
 function GetJSCookiesFromFrame(frame) {
   return PostMessageAndAwaitReply(
       { command: "document.cookie" }, frame.contentWindow);
+}
+
+async function DeleteCookieInFrame(frame, name, params) {
+  await SetDocumentCookieFromFrame(frame, `${name}=0; expires=${new Date(0).toUTCString()}; ${params};`);
+  assert_false(cookieStringHasCookie(name, '0', await GetJSCookiesFromFrame(frame)), `Verify that cookie '${name}' has been deleted.`);
+}
+
+// Tests whether the frame can write cookies via document.cookie. Note that this
+// overwrites, then deletes, cookies named "cookie" and "foo".
+//
+// This function requires the caller to have included
+// /cookies/resources/cookie-helper.sub.js.
+async function CanFrameWriteCookies(frame) {
+  const cookie_suffix = "Secure;SameSite=None;Path=/";
+  await DeleteCookieInFrame(frame, "cookie", cookie_suffix);
+  await DeleteCookieInFrame(frame, "foo", cookie_suffix);
+
+  await SetDocumentCookieFromFrame(frame, `cookie=monster;${cookie_suffix}`);
+  await SetDocumentCookieFromFrame(frame, `foo=bar;${cookie_suffix}`);
+
+  const cookies = await GetJSCookiesFromFrame(frame);
+  const can_write = cookieStringHasCookie("cookie", "monster", cookies) &&
+      cookieStringHasCookie("foo", "bar", cookies);
+
+  await DeleteCookieInFrame(frame, "cookie", cookie_suffix);
+  await DeleteCookieInFrame(frame, "foo", cookie_suffix);
+
+  return can_write;
 }
 
 // Reads cookies via the `httpCookies` variable in the given frame.
@@ -155,6 +189,10 @@ function FrameInitiatedReload(frame) {
 }
 
 // Tries to set storage access policy, ignoring any errors.
+//
+// Note: to discourage the writing of tests that assume unpartitioned cookie
+// access by default, any test that calls this with `value` == "blocked" should
+// do so as the first step in the test.
 async function MaybeSetStorageAccess(origin, embedding_origin, value) {
   try {
     await test_driver.set_storage_access(origin, embedding_origin, value);

@@ -519,6 +519,7 @@ promise_test(async t => {
   const fetchPromise = fetch('../resources/empty.txt', {
     body, signal,
     method: 'POST',
+    duplex: 'half',
     headers: {
       'Content-Type': 'text/plain'
     }

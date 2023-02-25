@@ -14,15 +14,15 @@
   <button id=button1>Button1</button>
   <div popover id=popover1 style="top:100px">
     <button id=inside_popover1>Inside1</button>
-    <button id=invoker2 popovertoggletarget=popover2>Nested Invoker 2</button>
+    <button id=invoker2 popovertarget=popover2>Nested Invoker 2</button>
     <button id=inside_popover2>Inside2</button>
   </div>
   <button id=button2>Button2</button>
-  <button popovertoggletarget=popover1 id=invoker1>Invoker1</button>
+  <button popovertarget=popover1 id=invoker1>Invoker1</button>
   <button id=button3>Button3</button>
   <div popover id=popover2 style="top:200px">
     <button id=inside_popover3>Inside3</button>
-    <button id=invoker3 popovertoggletarget=popover3>Nested Invoker 3</button>
+    <button id=invoker3 popovertarget=popover3>Nested Invoker 3</button>
   </div>
   <div popover id=popover3 style="top:300px">
     Non-focusable popover
@@ -90,11 +90,11 @@ promise_test(async t => {
 }, "Popover focus navigation");
 </script>
 
-<button id=circular0 popovertoggletarget=popover4>Invoker</button>
+<button id=circular0 popovertarget=popover4>Invoker</button>
 <div id=popover4 popover>
-  <button id=circular1 autofocus popoverhidetarget=popover4></button>
-  <button id=circular2 popovershowtarget=popover4></button>
-  <button id=circular3 popovertoggletarget=popover4></button>
+  <button id=circular1 autofocus popovertarget=popover4 popovertargetaction=hide></button>
+  <button id=circular2 popovertarget=popover4 popovertargetaction=show></button>
+  <button id=circular3 popovertarget=popover4></button>
 </div>
 <button id=circular4>after</button>
 <script>
@@ -107,16 +107,16 @@ promise_test(async t => {
 </script>
 
 <div id=deleted>
-  <button popovershowtarget=deleted1>Show popover</button>
+  <button popovertarget=deleted1 popovertargetaction=show>Show popover</button>
   <div popover id=deleted1>
-    <button popoverhidetarget=deleted1 autofocus>Hide popover</button>
+    <button popovertarget=deleted1 popovertargetaction=hide autofocus>Hide popover</button>
   </div>
 </div>
 <script>
 promise_test(async t => {
   const invoker = document.querySelector('#deleted>button');
   const popover = document.querySelector('#deleted>[popover]');
-  const hideButton = popover.querySelector('[popoverhidetarget]');
+  const hideButton = popover.querySelector('[popovertargetaction=hide]');
   invoker.focus(); // Make sure button is focused.
   assert_equals(document.activeElement,invoker);
   await sendEnter(); // Activate the invoker

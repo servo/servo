@@ -8,7 +8,7 @@
 // within documents.
 //
 // This file covers only those tests that must execute in a non-secure context.
-// Other tests are defined in: worker-fetch.https.window.js
+// Other tests are defined in: worker-blob-fetch.https.window.js
 
 promise_test(t => workerBlobFetchTest(t, {
   source: { server: Server.HTTP_LOCAL },
@@ -107,37 +107,49 @@ promise_test(t => workerBlobFetchTest(t, {
 // make private network requests because they are not secure contexts.
 
 promise_test(t => workerBlobFetchTest(t, {
+  source: { server: Server.HTTPS_LOCAL },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.optionalSuccess(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
+    },
+  },
+  expected: WorkerFetchTestResult.SUCCESS,
+}), "local https to local https: success.");
+
+promise_test(t => workerBlobFetchTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: {
-    server: Server.HTTP_LOCAL,
+    server: Server.HTTPS_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: WorkerFetchTestResult.FAILURE,
-}), "private https to local: failure.");
+}), "private https to local https: failure.");
 
 promise_test(t => workerBlobFetchTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
-    server: Server.HTTP_PRIVATE,
+    server: Server.HTTPS_PRIVATE,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: WorkerFetchTestResult.FAILURE,
-}), "public https to private: failure.");
+}), "public https to private https: failure.");
 
 promise_test(t => workerBlobFetchTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
-    server: Server.HTTP_LOCAL,
+    server: Server.HTTPS_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: WorkerFetchTestResult.FAILURE,
-}), "public https to local: failure.");
+}), "public https to local https: failure.");

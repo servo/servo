@@ -14,11 +14,11 @@ promise_test(async t => {
   assert_not_equals(window.scrollY, 0);
   navigation.onnavigate = e => {
     e.intercept({ scroll: "manual" });
-    e.scroll();
-    assert_equals(window.scrollY, 0);
+    assert_throws_dom("InvalidStateError", () => e.scroll());
+    assert_not_equals(window.scrollY, 0);
   }
   await navigation.back().finished;
-  assert_equals(window.scrollY, 0);
-}, "scroll: scroll() should work inside a navigate event handler");
+  assert_not_equals(window.scrollY, 0);
+}, "scroll: scroll() should not work inside a navigate event handler");
 </script>
 </body>

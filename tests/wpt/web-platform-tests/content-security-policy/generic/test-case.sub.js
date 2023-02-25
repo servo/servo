@@ -51,7 +51,14 @@ function TestCase(scenarios, sanityChecker) {
         // securitypolicyviolation events are fired in a queued task in
         // https://w3c.github.io/webappsec-csp/#report-violation
         // so wait for queued tasks to run using setTimeout().
-        await new Promise(resolve => setTimeout(resolve, 0));
+        let timeout = 0;
+        if (scenario.subresource.startsWith('worklet-') &&
+            navigator.userAgent.includes("Firefox/")) {
+          // https://bugzilla.mozilla.org/show_bug.cgi?id=1808911
+          // In Firefox sometimes violations from Worklets are delayed.
+          timeout = 10;
+        }
+        await new Promise(resolve => setTimeout(resolve, timeout));
 
         // Pass violation events to `violationEventPromise` (which will be tested
         // in the subsequent promise_test()) and clean up the listener.

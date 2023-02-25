@@ -67,7 +67,9 @@
     assert_greater_than(param1.transactionId.length, 0);
     assert_equals(typeof param2.transactionId, "string");
     assert_greater_than(param2.transactionId.length, 0);
-    assert_equals(param1.transactionId, param2.transactionId);
+    // Don't assert_equals() because the transcation ID is different on each run
+    // which makes the -expected.txt baseline different each failed run.
+    assert_true(param1.transactionId == param2.transactionId);
 
     await undefined;
     const param3 = sender.getParameters();
@@ -89,7 +91,9 @@
     assert_equals(typeof param2.transactionId, "string");
     assert_greater_than(param2.transactionId.length, 0);
 
-    assert_equals(param1.transactionId, param2.transactionId);
+    // Don't assert_equals() because the transcation ID is different on each run
+    // which makes the -expected.txt baseline different each failed run.
+    assert_true(param1.transactionId == param2.transactionId);
   }, `sender.getParameters() should return the same transaction ID if called back-to-back without relinquishing the event loop, even if there is an intervening call to setParameters`);
 
   promise_test(async t => {

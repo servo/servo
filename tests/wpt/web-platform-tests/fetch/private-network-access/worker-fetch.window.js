@@ -106,37 +106,49 @@ promise_test(t => workerFetchTest(t, {
 // make private network requests because they are not secure contexts.
 
 promise_test(t => workerFetchTest(t, {
+  source: { server: Server.HTTPS_LOCAL },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.optionalSuccess(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
+    },
+  },
+  expected: WorkerFetchTestResult.SUCCESS,
+}), "local https to local https: success.");
+
+promise_test(t => workerFetchTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: {
-    server: Server.HTTP_LOCAL,
+    server: Server.HTTPS_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: WorkerFetchTestResult.FAILURE,
-}), "private https to local: failure.");
+}), "private https to local https: failure.");
 
 promise_test(t => workerFetchTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
-    server: Server.HTTP_PRIVATE,
+    server: Server.HTTPS_PRIVATE,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: WorkerFetchTestResult.FAILURE,
-}), "public https to private: failure.");
+}), "public https to private https: failure.");
 
 promise_test(t => workerFetchTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
-    server: Server.HTTP_LOCAL,
+    server: Server.HTTPS_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: WorkerFetchTestResult.FAILURE,
-}), "public https to local: failure.");
+}), "public https to local https: failure.");

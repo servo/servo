@@ -26,7 +26,7 @@
   function runTests() {
       var container = document.getElementById("container");
       for (tag in MathMLFragments) {
-          container.insertAdjacentHTML("beforeend", `<math>${MathMLFragments[tag]}</math>`);
+          container.insertAdjacentHTML("beforeend", `<math><mrow>${MathMLFragments[tag]}</mrow></math>`);
       }
       Array.from(document.getElementsByClassName("element")).forEach(element => {
           var tag = element.tagName;
@@ -36,11 +36,17 @@
               assert_equals(style.getPropertyValue("text-transform"),
                             tag === "mi" ? "math-auto" : "none",
                             "no attribute");
-              element.setAttribute("mathvariant", "fraktur");
-              assert_equals(style.getPropertyValue("text-transform"), "math-fraktur", "attribute specified");
-              element.setAttribute("mathvariant", "DoUbLe-StRuCk");
-              assert_equals(style.getPropertyValue("text-transform"), "math-double-struck", "case insensitive");
-          }, `mathvariant on the ${tag} element is mapped to CSS text-transform`)
+              element.parentNode.setAttribute("style", "text-transform: uppercase");
+              assert_equals(style.getPropertyValue("text-transform"),
+                            tag === "mi" ? "math-auto" : "uppercase",
+                            "text-transform on parent");
+              element.setAttribute("mathvariant", "normal");
+              assert_equals(style.getPropertyValue("text-transform"),
+                            tag === "mi" ? "none" : "uppercase", "attribute specified");
+              element.setAttribute("mathvariant", "NoRmAl");
+              assert_equals(style.getPropertyValue("text-transform"),
+                            tag === "mi" ? "none" : "uppercase", "case insensitive");
+          }, `mathvariant on the ${tag} element is ${tag === "mi" ? "" : "not"} mapped to CSS text-transform`)
 
           test(function() {
               // none and mprescripts appear as scripts
@@ -94,7 +100,7 @@
 <body>
   <div id="log"></div>
   <div id="container">
-    <math class="element"></math>
+    <div><math class="element"></math></div>
   </div>
 </body>
 </html>

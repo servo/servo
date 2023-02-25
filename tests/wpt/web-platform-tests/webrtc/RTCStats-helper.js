@@ -19,8 +19,6 @@
       "csrc",
       "peer-connection",
       "data-channel",
-      "stream",
-      "track",
       "transport",
       "candidate-pair",
       "local-candidate",
@@ -39,9 +37,6 @@ const statsValidatorTable = {
   'csrc': validateContributingSourceStats,
   'peer-connection': validatePeerConnectionStats,
   'data-channel': validateDataChannelStats,
-  'transceiver': validateTransceiverStats,
-  'sender': validateSenderStats,
-  'receiver': validateReceiverStats,
   'transport': validateTransportStats,
   'candidate-pair': validateIceCandidatePairStats,
   'local-candidate': validateIceCandidateStats,
@@ -271,8 +266,7 @@ function validateReceivedRtpStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.4.  RTCInboundRtpStreamStats dictionary
     dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
-      DOMString            trackId;
-      DOMString            receiverId;
+      DOMString            trackIdentifier;
       DOMString            remoteId;
       unsigned long        framesDecoded;
       unsigned long        keyFramesDecoded;
@@ -319,13 +313,12 @@ function validateReceivedRtpStreamStats(statsReport, stats) {
   [webrtc-pc]
   8.6.  Mandatory To Implement Stats
     - RTCInboundRtpStreamStats, with all required attributes from its inherited
-      dictionaries, and also attributes receiverId, remoteId, framesDecoded, nackCount, framesReceived, bytesReceived, totalAudioEnergy, totalSampleDuration
+      dictionaries, and also attributes remoteId, framesDecoded, nackCount, framesReceived, bytesReceived, totalAudioEnergy, totalSampleDuration
  */
 function validateInboundRtpStreamStats(statsReport, stats) {
   validateReceivedRtpStreamStats(statsReport, stats);
-  validateOptionalIdField(statsReport, stats, 'trackId', 'track');
-  validateIdField(statsReport, stats, 'receiverId', 'receiver');
-  validateIdField(statsReport, stats, 'remoteId', 'remote-outbound-rtp');
+  assert_string_field(stats, 'trackIdentifier');
+  validateOptionalIdField(statsReport, stats, 'remoteId', 'remote-outbound-rtp');
   assert_unsigned_int_field(stats, 'framesDecoded');
   assert_optional_unsigned_int_field(stats, 'keyFramesDecoded');
   assert_optional_unsigned_int_field(stats, 'frameWidth');
@@ -438,7 +431,6 @@ function validateSentRtpStreamStats(statsReport, stats) {
   7.7.  RTCOutboundRtpStreamStats dictionary
     dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
       DOMString            mediaSourceId;
-      DOMString            senderId;
       DOMString            remoteId;
       DOMString            rid;
       DOMHighResTimeStamp  lastPacketSentTimestamp;
@@ -477,21 +469,16 @@ function validateSentRtpStreamStats(statsReport, stats) {
       unsigned long        sliCount;
       DOMString            encoderImplementation;
     };
-    Obsolete members:
-    partial dictionary RTCOutboundStreamStats {
-      DOMString            trackId;
-    };
     [webrtc-pc]
     8.6.  Mandatory To Implement Stats
       - RTCOutboundRtpStreamStats, with all required attributes from its
-        inherited dictionaries, and also attributes senderId, remoteId, framesEncoded, nackCount, framesSent
+        inherited dictionaries, and also attributes remoteId, framesEncoded, nackCount, framesSent
  */
 function validateOutboundRtpStreamStats(statsReport, stats) {
   validateSentRtpStreamStats(statsReport, stats)
 
   validateOptionalIdField(statsReport, stats, 'mediaSourceId', 'media-source');
-  validateIdField(statsReport, stats, 'senderId', 'sender');
-  validateIdField(statsReport, stats, 'remoteId', 'remote-inbound-rtp');
+  validateOptionalIdField(statsReport, stats, 'remoteId', 'remote-inbound-rtp');
 
   assert_optional_string_field(stats, 'rid');
 
@@ -561,8 +548,6 @@ function validateOutboundRtpStreamStats(statsReport, stats) {
   assert_optional_string_field(stats, 'encoderImplementation');
   assert_optional_boolean_field(stats, 'powerEfficientEncoder');
   assert_optional_string_field(stats, 'scalabilityMode');
-  // Obsolete stats
-  validateOptionalIdField(statsReport, stats, 'trackId', 'track');
 }
 
 /*
@@ -680,94 +665,6 @@ function validatePeerConnectionStats(statsReport, stats) {
   assert_optional_unsigned_int_field(stats, 'dataChannelsRequested');
   assert_optional_unsigned_int_field(stats, 'dataChannelsAccepted');
 }
-
-/* [webrtc-stats]
-  7.16 RTCRtpTransceiverStats dictionary
-  dictionary RTCRtpTransceiverStats {
-    DOMString senderId;
-    DOMString receiverId;
-    DOMString mid;
-  };
-*/
-function validateTransceiverStats(statsReport, stats) {
-  validateRtcStats(statsReport, stats);
-  validateOptionalIdField(statsReport, stats, 'senderId', 'sender');
-  validateOptionalIdField(statsReport, stats, 'receiverId', 'sender');
-  assert_optional_string_field(stats, 'mid');
-}
-
-/*
-  [webrtc-stats]
-  dictionary RTCMediaHandlerStats : RTCStats {
-      DOMString           trackIdentifier;
-      boolean      remoteSource;
-      boolean      ended;
-      DOMString           kind;
-      RTCPriorityType     priority;
-  };
-  dictionary RTCVideoHandlerStats : RTCMediaHandlerStats {
-  };
-  dictionary RTCAudioHandlerStats : RTCMediaHandlerStats {
-  };
-  Used from validateSenderStats and validateReceiverStats
-
-  [webrtc-priority]
-  enum RTCPriorityType {
-    "very-low",
-    "low",
-    "medium",
-    "high"
-  };
-
-  [webrtc-pc]
-  MTI:
-  RTCMediaHandlerStats with attributes trackIdentifier
-  RTCAudioHandlerStats, with all required attributes from its inherited dictionaries
-  RTCVideoHandlerStats, with all required attributes from its inherited dictionaries
-
-*/
-function validateMediaHandlerStats(statsReport, stats) {
-  validateRtcStats(statsReport, stats);
-  assert_string_field(stats, 'trackIdentifier');
-  assert_optional_boolean_field(stats, 'remoteSource');
-  assert_optional_boolean_field(stats, 'ended');
-  assert_optional_string_field(stats, 'kind');
-  assert_enum_field(stats, 'priority', ['very-low', 'low', 'medium', 'high']);
-}
-
-/*
- [webrtc-stats]
-  dictionary RTCAudioSenderStats : RTCAudioHandlerStats {
-      DOMString           mediaSourceId;
-  };
-  dictionary RTCVideoSenderStats : RTCVideoHandlerStats {
-      DOMString           mediaSourceId;
-  };
-
-  [webrtc-pc]
-  MTI:
-  RTCVideoSenderStats, with all required attributes from its inherited dictionaries
-*/
-function validateSenderStats(statsReport, stats) {
-  validateMediaHandlerStats(statsReport, stats);
-  validateOptionalIdField(statsReport, stats, 'mediaSourceId', 'media-source');
-}
-
-/*
- [webrtc-stats]
-  dictionary RTCAudioReceiverStats : RTCAudioHandlerStats {
-  };
-  dictionary RTCVideoReceiverStats : RTCVideoHandlerStats {
-  };
-
-  [webrtc-pc]
-  MTI:
-  RTCVideoReceiverStats, with all required attributes from its inherited dictionaries
-*/
-function validateReceiverStats(statsReport, stats) {
-  validateMediaHandlerStats(statsReport, stats);
-}
-
 
 /*
   [webrtc-stats]

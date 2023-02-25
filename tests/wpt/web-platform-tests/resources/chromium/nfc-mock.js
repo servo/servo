@@ -50,7 +50,7 @@ function toByteArray(data) {
     tmpData = JSON.stringify(tmpData);
 
   if (typeof tmpData === 'string')
-    byteArray = new TextEncoder('utf-8').encode(tmpData);
+    byteArray = new TextEncoder().encode(tmpData);
 
   return byteArray;
 }

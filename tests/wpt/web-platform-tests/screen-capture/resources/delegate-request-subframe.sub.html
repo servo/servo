@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Display-capture request delegation test: subframe</title>
+
+<script>
+  function reportResult(msg) {
+      window.top.postMessage({"type": "result", "result": msg}, "*");
+  }
+
+  window.addEventListener("message", async e => {
+      if (e.data.type == "make-display-capture-request") {
+          try {
+              const stream = await navigator.mediaDevices.getDisplayMedia();
+              stream.getTracks()[0].stop();
+              reportResult("success");
+          } catch(e) {
+              reportResult("failure");
+          }
+      }
+  });
+
+  window.top.postMessage({"type": "subframe-loaded"}, "*");
+</script>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>
+  Delayed Stylesheet imported using link tag should not block rendering
+  or JS execution when media doesn't match.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<link rel="stylesheet" href="support/link-style.css?pipe=trickle(d1)"
+  media="print" onload="this.media='all'">
+<h1>
+  This text is black in color till stylesheet is fetched.
+</h1>
+<script>
+test(() => {
+  assert_false(styleExists("h1 { color: purple; }"),
+               'Stylesheet should still be pending due to delay');
+  const h1 = document.querySelector('h1');
+  assert_equals(getComputedStyle(h1).color, 'rgb(0, 0, 0)');
+});
+</script>

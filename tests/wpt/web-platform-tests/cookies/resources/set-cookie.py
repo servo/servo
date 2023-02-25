@@ -21,8 +21,14 @@ def main(request, response):
 
     name = request.GET[b'name']
     path = request.GET[b'path']
+    samesite = request.GET.get(b'samesite')
+    secure = b'secure' in request.GET
     expiry_year = date.today().year + 1
     cookie = b"%s=1; Path=%s; Expires=09 Jun %d 10:18:14 GMT" % (name, path, expiry_year)
+    if samesite:
+        cookie += b";SameSite=%s" % samesite
+    if secure:
+        cookie += b";Secure"
 
     headers = [
         (b"Content-Type", b"application/json"),

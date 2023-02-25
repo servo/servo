@@ -185,6 +185,7 @@ SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-object-element/object-param-url.html
 SET TIMEOUT: html/semantics/embedded-content/the-object-element/object-param-url-ref.html
+SET TIMEOUT: html/semantics/forms/textfieldselection/select-event.html
 SET TIMEOUT: html/semantics/scripting-1/the-script-element/*
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/0*
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/resources/history-frame.html

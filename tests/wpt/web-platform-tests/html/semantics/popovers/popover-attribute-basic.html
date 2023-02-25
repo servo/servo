@@ -237,15 +237,6 @@ window.onload = () => {
     assert_false(popover.matches(':open'),'From "auto" to "invalid" (which is interpreted as "manual") should close the popover');
   },'Changing attribute values should close open popovers');
 
-  function modalPseudoSupported() {
-    try {
-      document.createElement('dialog').matches(':modal');
-      return true; // No exception means :modal is supported.
-    } catch(e) {
-      return false;
-    }
-  }
-
   const validTypes = ["auto","manual"];
   validTypes.forEach(type => {
     test((t) => {
@@ -259,16 +250,14 @@ window.onload = () => {
       assert_false(popover.matches(':open'));
     },`Removing a visible popover=${type} element from the document should close the popover`);
 
-    if (modalPseudoSupported()) {
-      test((t) => {
-        const popover = createPopover(t);
-        popover.setAttribute('popover',type);
-        popover.showPopover();
-        assert_true(popover.matches(':open'));
-        assert_false(popover.matches(':modal'));
-        popover.hidePopover();
-      },`A showing popover=${type} does not match :modal`);
-    }
+    test((t) => {
+      const popover = createPopover(t);
+      popover.setAttribute('popover',type);
+      popover.showPopover();
+      assert_true(popover.matches(':open'));
+      assert_false(popover.matches(':modal'));
+      popover.hidePopover();
+    },`A showing popover=${type} does not match :modal`);
   });
 
   test((t) => {

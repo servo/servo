@@ -6,5 +6,5 @@
 (async function() {
   // Validate the nested-iframe scenario where the cross-origin frame
   // containing the tests is not the first child.
-  RunTestsInNestedIFrame('https://{{domains[www]}}:{{ports[https][0]}}/storage-access-api/resources/requestStorageAccess-iframe.https.html?testCase=nested-cross-origin-frame&rootdocument=false');
+  RunTestsInNestedIFrame('https://{{domains[www]}}:{{ports[https][0]}}/storage-access-api/resources/requestStorageAccess-iframe.https.html?testCase=nested-cross-origin-frame');
 })();

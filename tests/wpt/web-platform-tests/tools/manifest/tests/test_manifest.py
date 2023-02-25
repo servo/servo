@@ -1,10 +1,12 @@
 # mypy: ignore-errors
 
 import os
+import sys
 from unittest import mock
 
 import hypothesis as h
 import hypothesis.strategies as hs
+import pytest
 
 from .. import manifest, sourcefile, item, utils
 
@@ -119,6 +121,8 @@ def manifest_tree(draw):
     return output
 
 
+@pytest.mark.skipif(sys.version_info.major == 3 and sys.version_info.minor == 10,
+                    reason="Deadlock on shutdown with Python 3.10")
 @h.given(manifest_tree())
 # FIXME: Workaround for https://github.com/web-platform-tests/wpt/issues/22758
 @h.settings(suppress_health_check=(h.HealthCheck.too_slow,))
@@ -138,6 +142,8 @@ def test_manifest_to_json(s):
     assert loaded.to_json() == json_str
 
 
+@pytest.mark.skipif(sys.version_info.major == 3 and sys.version_info.minor == 10,
+                    reason="Deadlock on shutdown with Python 3.10")
 @h.given(manifest_tree())
 # FIXME: Workaround for https://github.com/web-platform-tests/wpt/issues/22758
 @h.settings(suppress_health_check=(h.HealthCheck.too_slow,))

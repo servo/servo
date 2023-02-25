@@ -573,6 +573,20 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         response = None
         req_handler = None
 
+        def cleanup():
+            # Try to close the files
+            # Ignore any exception (e.g. if the file handle was already closed for some reason).
+            if rfile:
+                try:
+                    rfile.close()
+                except OSError:
+                    pass
+            if wfile:
+                try:
+                    wfile.close()
+                except OSError:
+                    pass
+
         while not self.close_connection:
             try:
                 frame = queue.get(True, 1)
@@ -582,10 +596,7 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
 
             self.logger.debug(f'({self.uid} - {stream_id}) {str(frame)}')
             if isinstance(frame, RequestReceived):
-                if rfile:
-                    rfile.close()
-                if wfile:
-                    wfile.close()
+                cleanup()
 
                 pipe_rfile, pipe_wfile = os.pipe()
                 (rfile, wfile) = os.fdopen(pipe_rfile, 'rb'), os.fdopen(pipe_wfile, 'wb')
@@ -626,10 +637,7 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
                                     (self.uid, stream_id))
                 break
 
-        if rfile:
-            rfile.close()
-        if wfile:
-            wfile.close()
+        cleanup()
 
     def frame_handler(self, request, response, handler):
         try:
@@ -854,7 +862,7 @@ class WebTestHttpd:
         self.logger.info(f"Starting {http_type} server on {http_scheme}://{self.host}:{self.port}")
         self.started = True
         self.server_thread = threading.Thread(target=self.httpd.serve_forever)
-        self.server_thread.setDaemon(True)  # don't hang on exit
+        self.server_thread.daemon = True  # don't hang on exit
         self.server_thread.start()
 
     def stop(self):

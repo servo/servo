@@ -45,6 +45,30 @@ Target = Union[RealmTarget, ContextTarget]
 
 class Script(BidiModule):
     @command
+    def add_preload_script(
+        self,
+        function_declaration: str,
+        arguments: Optional[List[Mapping[str, Any]]] = None,
+        sandbox: Optional[str] = None
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "functionDeclaration": function_declaration
+        }
+
+        if arguments is not None:
+            params["arguments"] = arguments
+        if sandbox is not None:
+            params["sandbox"] = sandbox
+
+        return params
+
+    @add_preload_script.result
+    def _add_preload_script(self, result: Mapping[str, Any]) -> Any:
+        assert "script" in result
+
+        return result["script"]
+
+    @command
     def call_function(
         self,
         function_declaration: str,
@@ -134,3 +158,11 @@ class Script(BidiModule):
         assert isinstance(result["realms"], list)
 
         return result["realms"]
+
+    @command
+    def remove_preload_script(self, script: str) -> Any:
+        params: MutableMapping[str, Any] = {
+            "script": script
+        }
+
+        return params

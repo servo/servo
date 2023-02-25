@@ -34,12 +34,12 @@
     return;
   }
 
-  // We're in an iframe test now.
+  // We're in a cross-origin, same-site iframe test now.
   test_driver.set_test_context(window.top);
 
   promise_test(async t => {
     const permission = await navigator.permissions.query({name: "storage-access"});
-    assert_equals(permission.name, "storage_access");
+    assert_equals(permission.name, "storage-access");
     assert_equals(permission.state, "prompt");
   }, "Permission default state can be queried");
 
@@ -50,7 +50,7 @@
     await test_driver.set_permission({ name: 'storage-access' }, 'granted');
 
     const permission = await navigator.permissions.query({name: "storage-access"});
-    assert_equals(permission.name, "storage_access");
+    assert_equals(permission.name, "storage-access");
     assert_equals(permission.state, "granted");
   }, "Permission granted state can be queried");
 
@@ -61,7 +61,7 @@
     await test_driver.set_permission({ name: 'storage-access' }, 'denied');
 
     const permission = await navigator.permissions.query({name: "storage-access"});
-    assert_equals(permission.name, "storage_access");
+    assert_equals(permission.name, "storage-access");
     assert_equals(permission.state, "denied");
 
     await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
@@ -79,11 +79,11 @@
     });
 
     await test_driver.set_permission({ name: 'storage-access' }, 'granted');
-    await RunCallbackWithGesture(() => document.requestStorageAccess());
+    await document.requestStorageAccess();
 
     const event = await p;
 
-    assert_equals(event.target.name, "storage_access");
+    assert_equals(event.target.name, "storage-access");
     assert_equals(event.target.state, "granted");
   }, "Permission state can be observed");
 })();

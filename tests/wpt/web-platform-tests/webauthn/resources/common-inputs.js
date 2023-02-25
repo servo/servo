@@ -24,7 +24,7 @@ const AUTHENTICATOR_SELECTION_CRITERIA = {
 };
 
 const MAKE_CREDENTIAL_OPTIONS = {
-    challenge: new TextEncoder("utf-8").encode(CHALLENGE),
+    challenge: new TextEncoder().encode(CHALLENGE),
     rp: PUBLIC_KEY_RP,
     user: PUBLIC_KEY_USER,
     pubKeyCredParams: PUBLIC_KEY_PARAMETERS,
