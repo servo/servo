@@ -39,7 +39,7 @@ bitflags = "1.0"
 bluetooth_traits = { path = "../bluetooth_traits" }
 canvas_traits = { path = "../canvas_traits" }
 chrono = "0.4"
-content-security-policy = { version = "0.4.0", features = ["serde"] }
+content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"
 crossbeam-channel = "0.4"
 cssparser = "0.29"

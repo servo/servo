@@ -13,7 +13,7 @@ test = false
 doctest = false
 
 [dependencies]
-content-security-policy = { version = "0.4.0", features = ["serde"] }
+content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"
 embedder_traits = { path = "../embedder_traits" }
 headers = "0.3"
