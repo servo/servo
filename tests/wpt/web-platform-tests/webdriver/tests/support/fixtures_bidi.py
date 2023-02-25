@@ -3,8 +3,35 @@ from typing import Any, Mapping
 
 import pytest
 import webdriver
-from webdriver.bidi.error import InvalidArgumentException, NoSuchFrameException
+from webdriver.bidi.error import (
+    InvalidArgumentException,
+    NoSuchFrameException,
+    NoSuchScriptException,
+)
 from webdriver.bidi.modules.script import ContextTarget
+
+
+@pytest.fixture
+async def add_preload_script(bidi_session):
+    preload_scripts_ids = []
+
+    async def add_preload_script(function_declaration, arguments=None, sandbox=None):
+        script = await bidi_session.script.add_preload_script(
+            function_declaration=function_declaration,
+            arguments=arguments,
+            sandbox=sandbox,
+        )
+        preload_scripts_ids.append(script)
+
+        return script
+
+    yield add_preload_script
+
+    for script in reversed(preload_scripts_ids):
+        try:
+            await bidi_session.script.remove_preload_script(script=script)
+        except (InvalidArgumentException, NoSuchScriptException):
+            pass
 
 
 @pytest.fixture

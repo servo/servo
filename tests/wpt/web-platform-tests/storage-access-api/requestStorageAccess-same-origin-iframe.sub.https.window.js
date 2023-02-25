@@ -4,4 +4,4 @@
 'use strict';
 
 // Create a test with a single-child same-origin iframe.
-RunTestsInIFrame('resources/requestStorageAccess-iframe.html?testCase=same-origin-frame&rootdocument=false');
+RunTestsInIFrame('resources/requestStorageAccess-iframe.https.html?testCase=same-origin-frame');

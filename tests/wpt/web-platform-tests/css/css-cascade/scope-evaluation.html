@@ -356,10 +356,67 @@ test_scope(document.currentScript, () => {
   assert_not_green('#adjacent');
   assert_green('.a');
   assert_green('.a > div');
-  assert_green('.b');
+  assert_not_green('.b');
   assert_not_green('#below');
-}, 'The scoping limit is in scope');
+}, 'The scoping limit is not in scope');
 </script>
+
+<template>
+  <style>
+    @scope (.a) to (.b > *) {
+      * { background-color: green; }
+    }
+  </style>
+  <div id=above>
+    <div class=a>
+      <div>
+        <div class=b>
+          <div id=limit></div>
+        </div>
+      </div>
+    </div>
+    <div id=adjacent></div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  assert_not_green('#above');
+  assert_not_green('#adjacent');
+  assert_green('.a');
+  assert_green('.a > div');
+  assert_green('.b');
+  assert_not_green('#limit');
+}, 'Simulated inclusive scoping limit');
+</script>
+
+<template>
+  <style>
+    @scope (.a) to (.a) {
+      * { background-color: green; }
+    }
+  </style>
+  <div id=above>
+    <div class=a>
+      <div>
+        <div class=b>
+          <div id=inner></div>
+        </div>
+      </div>
+    </div>
+    <div id=adjacent></div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  assert_not_green('#above');
+  assert_not_green('#adjacent');
+  assert_not_green('.a');
+  assert_not_green('.a > div');
+  assert_not_green('.b');
+  assert_not_green('#inner');
+}, 'Scope with no elements');
+</script>
+
 
 <template>
   <style>

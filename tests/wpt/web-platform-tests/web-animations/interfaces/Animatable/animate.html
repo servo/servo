@@ -342,5 +342,18 @@ for (const pseudo of [
      `SyntaxError`);
 }
 
+promise_test(async t => {
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+  let animBefore = div.animate({opacity: [1, 0]}, {duration: 1, pseudoElement: '::before', fill: 'both'});
+  let animAfter = div.animate({opacity: [1, 0]}, {duration: 1, pseudoElement: '::after', fill: 'both'});
+  await animBefore.finished;
+  await animAfter.finished;
+  // The animation on ::before should not be replaced as it targets a different
+  // pseudo-element.
+  assert_equals(animBefore.replaceState, 'active');
+  assert_equals(animAfter.replaceState, 'active');
+}, 'Finished fill animation doesn\'t replace animation on a different pseudoElement');
+
 </script>
 </body>

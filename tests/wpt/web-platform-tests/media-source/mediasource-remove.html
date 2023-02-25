@@ -210,6 +210,35 @@
 
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
+              sourceBuffer.appendBuffer(mediaData);
+
+              test.expectEvent(sourceBuffer, "updatestart");
+              test.expectEvent(sourceBuffer, "update");
+              test.expectEvent(sourceBuffer, "updateend");
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_less_than(mediaSource.duration, 10)
+
+                  mediaSource.duration = 10;
+
+                  sourceBuffer.remove(1, 1 + 0.9 / (1000 * 1000));
+
+                  assert_true(sourceBuffer.updating, "updating");
+                  test.expectEvent(sourceBuffer, "updatestart");
+                  test.expectEvent(sourceBuffer, "update");
+                  test.expectEvent(sourceBuffer, "updateend");
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.done();
+              });
+
+          }, "Test remove with a nanosecond range.");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
               test.expectEvent(sourceBuffer, "updatestart");
               test.expectEvent(sourceBuffer, "update");
               test.expectEvent(sourceBuffer, "updateend");

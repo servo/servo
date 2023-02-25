@@ -8872,5 +8872,10 @@
     "protocol": "non-special:",
     "search": "",
     "username": ""
+  },
+  {
+    "input": "",
+    "base": "about:blank",
+    "failure": true
   }
 ]

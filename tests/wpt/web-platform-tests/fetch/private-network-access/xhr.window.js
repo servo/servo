@@ -107,7 +107,7 @@ promise_test(t => xhrTest(t, {
   target: {
     server: Server.HTTP_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
@@ -122,7 +122,7 @@ promise_test(t => xhrTest(t, {
   target: {
     server: Server.HTTP_PRIVATE,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
@@ -147,11 +147,23 @@ promise_test(t => xhrTest(t, {
 // their parent is a non-secure context.
 
 promise_test(t => xhrTest(t, {
+  source: { server: Server.HTTPS_LOCAL },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.optionalSuccess(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
+    },
+  },
+  expected: XhrTestResult.SUCCESS,
+}), "local https to local: success.");
+
+promise_test(t => xhrTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: {
     server: Server.HTTPS_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
@@ -163,7 +175,7 @@ promise_test(t => xhrTest(t, {
   target: {
     server: Server.HTTPS_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
@@ -175,7 +187,7 @@ promise_test(t => xhrTest(t, {
   target: {
     server: Server.HTTPS_PRIVATE,
     behavior: {
-      preflight: PreflightBehavior.success(token()),
+      preflight: PreflightBehavior.optionalSuccess(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },

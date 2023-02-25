@@ -60,7 +60,7 @@ const actions = [
 ];
 
 function waitForRender() {
-  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  return new Promise(resolve => setTimeout(resolve, 0));
 }
 
 function initialize(el) {

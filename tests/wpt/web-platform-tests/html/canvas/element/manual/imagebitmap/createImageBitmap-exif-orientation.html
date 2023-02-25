@@ -34,7 +34,7 @@ async_test(function(t) {
     document.body.append(canvas);
 
     const ctx = canvas.getContext("2d");
-    loadImage("resources/squares.jpg")
+    loadImage("resources/squares_6.jpg")
         .then((image) => createImageBitmap(image))
         .then(t.step_func_done(function(imageBitmap) {
             ctx.drawImage(imageBitmap, 0, 0);
@@ -59,7 +59,7 @@ async_test(function(t) {
     document.body.append(canvas);
 
     const ctx = canvas.getContext("2d");
-    loadImage("resources/squares.jpg")
+    loadImage("resources/squares_6.jpg")
         .then((image) => createImageBitmap(image, { imageOrientation: "flipY" }))
         .then(t.step_func_done(function(imageBitmap) {
             ctx.drawImage(imageBitmap, 0, 0);
@@ -84,7 +84,7 @@ async_test(function(t) {
     document.body.append(canvas);
 
     const ctx = canvas.getContext("2d");
-    loadImage("resources/squares.jpg")
+    loadImage("resources/squares_6.jpg")
         .then(image => createImageBitmap(image, 80, 0, 160, 160))
         .then(t.step_func_done(function(imageBitmap) {
             ctx.drawImage(imageBitmap, 0, 0);
@@ -105,7 +105,7 @@ async_test(function(t) {
     document.body.append(canvas);
 
     const ctx = canvas.getContext("2d");
-    loadImage("resources/squares.jpg")
+    loadImage("resources/squares_6.jpg")
         .then(image => createImageBitmap(image, 80, 0, 160, 160, { imageOrientation: "flipY" }))
         .then(t.step_func_done(function(imageBitmap) {
             ctx.drawImage(imageBitmap, 0, 0);

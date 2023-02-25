@@ -118,9 +118,8 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
       const button = document.createElement('button');
       t.add_cleanup(() => button.remove());
       document.body.appendChild(button);
-      assert_equals(ex.id,'');
-      ex.id = 'popover-id';
-      button.popoverToggleTargetElement = ex;
+      button.popoverTargetElement = ex;
+      button.popoverTargetAction = "toggle";
       assert_true(ex.matches(':closed'));
       await clickOn(button);
       ensureIsOpenPopover(ex,'Invoking element should be able to invoke all popovers');

@@ -629,10 +629,10 @@ async function workerFetchTest(t, { source, target, expected }) {
 
   iframe.contentWindow.postMessage({ url: sourceUrl.href }, "*");
 
-  const { error, status, message } = await reply;
+  const { error, status, body } = await reply;
   assert_equals(error, expected.error, "fetch error");
   assert_equals(status, expected.status, "response status");
-  assert_equals(message, expected.message, "response body");
+  assert_equals(body, expected.body, "response body");
 }
 
 async function workerBlobFetchTest(t, { source, target, expected }) {
@@ -646,10 +646,10 @@ async function workerBlobFetchTest(t, { source, target, expected }) {
 
   iframe.contentWindow.postMessage({ url: targetUrl.href }, "*");
 
-  const { error, status, message } = await reply;
+  const { error, status, body } = await reply;
   assert_equals(error, expected.error, "fetch error");
   assert_equals(status, expected.status, "response status");
-  assert_equals(message, expected.message, "response body");
+  assert_equals(body, expected.body, "response body");
 }
 
 async function sharedWorkerFetchTest(t, { source, target, expected }) {
@@ -666,8 +666,26 @@ async function sharedWorkerFetchTest(t, { source, target, expected }) {
 
   iframe.contentWindow.postMessage({ url: sourceUrl.href }, "*");
 
-  const { error, status, message } = await reply;
+  const { error, status, body } = await reply;
   assert_equals(error, expected.error, "fetch error");
   assert_equals(status, expected.status, "response status");
-  assert_equals(message, expected.message, "response body");
+  assert_equals(body, expected.body, "response body");
+}
+
+async function sharedWorkerBlobFetchTest(t, { source, target, expected }) {
+  const targetUrl = preflightUrl(target);
+
+  const fetcherUrl = resolveUrl(
+      'resources/shared-worker-blob-fetcher.html',
+      sourceResolveOptions(source));
+
+  const reply = futureMessage();
+  const iframe = await appendIframe(t, document, fetcherUrl);
+
+  iframe.contentWindow.postMessage({ url: targetUrl.href }, "*");
+
+  const { error, status, body } = await reply;
+  assert_equals(error, expected.error, "fetch error");
+  assert_equals(status, expected.status, "response status");
+  assert_equals(body, expected.body, "response body");
 }

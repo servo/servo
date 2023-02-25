@@ -1,7 +1,7 @@
 // META: script=helpers.js
 'use strict';
 
-const {expectAccessAllowed, testPrefix, topLevelDocument} = processQueryParams();
+const {testPrefix, topLevelDocument} = processQueryParams();
 
 // Common tests to run in all frames.
 test(() => {
@@ -31,16 +31,16 @@ if (topLevelDocument) {
   // of various iFrames
 
   // Create a test with a single-child same-origin iframe.
-  RunTestsInIFrame("resources/hasStorageAccess-iframe.html?testCase=same-origin-frame&rootdocument=false");
+  RunTestsInIFrame("resources/hasStorageAccess-iframe.html?testCase=same-origin-frame");
 
   // Create a test with a single-child cross-origin iframe.
-  RunTestsInIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/hasStorageAccess-iframe.html?testCase=cross-origin-frame&rootdocument=false");
+  RunTestsInIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/hasStorageAccess-iframe.html?testCase=cross-origin-frame");
 
   // Validate the nested-iframe scenario where the same-origin frame containing
   // the tests is not the first child.
-  RunTestsInNestedIFrame("resources/hasStorageAccess-iframe.html?testCase=nested-same-origin-frame&rootdocument=false");
+  RunTestsInNestedIFrame("resources/hasStorageAccess-iframe.html?testCase=nested-same-origin-frame");
 
   // Validate the nested-iframe scenario where the cross-origin frame containing
   //  the tests is not the first child.
-  RunTestsInNestedIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/hasStorageAccess-iframe.html?testCase=nested-cross-origin-frame&rootdocument=false");
+  RunTestsInNestedIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/hasStorageAccess-iframe.html?testCase=nested-cross-origin-frame");
 }

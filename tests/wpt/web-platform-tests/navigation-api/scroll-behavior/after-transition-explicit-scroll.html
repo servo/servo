@@ -13,10 +13,14 @@ promise_test(async t => {
   await navigation.navigate("#frag").finished;
   assert_not_equals(window.scrollY, 0);
   navigation.onnavigate = t.step_func(e => {
-    e.intercept({ scroll: "after-transition" });
-    assert_not_equals(window.scrollY, 0);
-    e.scroll();
-    assert_equals(window.scrollY, 0);
+    e.intercept({
+      scroll: "after-transition",
+      handler: t.step_func(() => {
+        assert_not_equals(window.scrollY, 0);
+        e.scroll();
+        assert_equals(window.scrollY, 0);
+      })
+    });
   });
   await navigation.back().finished;
   assert_equals(window.scrollY, 0);

@@ -71,7 +71,7 @@
       button.remove();
     });
     popover.id = popoverId;
-    button.setAttribute('popovertoggletarget', popoverId);
+    button.setAttribute('popovertarget', popoverId);
     return button;
   }
   function addPriorFocus(t) {
@@ -187,7 +187,7 @@
       const priorFocus = addPriorFocus(t);
       assert_false(popover.matches(':open'), 'popover should start out hidden');
       let button = addInvoker(t, popover);
-      assert_equals(button.getAttribute('popovertoggletarget'), popover.id, 'This test assumes the button uses `popovertoggletarget`.');
+      assert_equals(button.getAttribute('popovertarget'), popover.id, 'This test assumes the button uses `popovertarget`.');
       assert_not_equals(button, priorFocus, 'Stranger things have happened');
       assert_false(popover.contains(button), 'Start with a non-contained button');
       priorFocus.focus();
@@ -200,8 +200,8 @@
       assert_false(isElementVisible(popover));
 
       // Same thing, but the button is contained within the popover
-      button.removeAttribute('popovertoggletarget');
-      button.setAttribute('popoverhidetarget', popover.id);
+      button.setAttribute('popovertarget', popover.id);
+      button.setAttribute('popovertargetaction', 'hide');
       popover.appendChild(button);
       t.add_cleanup(() => button.remove());
       priorFocus.focus();
@@ -216,7 +216,7 @@
       assert_equals(document.activeElement, priorFocus, 'Contained button should return focus to the previously focused element');
       assert_false(isElementVisible(popover));
 
-      // Same thing, but the button is unrelated (no popovertoggletarget)
+      // Same thing, but the button is unrelated (no popovertarget)
       button = document.createElement('button');
       document.body.appendChild(button);
       priorFocus.focus();

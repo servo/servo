@@ -40,7 +40,7 @@ promise_test(async t => {
     new Cbor(credential.response.attestationObject).getCBOR();
 
   let rpIdHash = new Uint8Array(await crypto.subtle.digest(
-    { name: "SHA-256" }, new TextEncoder("utf-8").encode(PUBLIC_KEY_RP.id)));
+    { name: "SHA-256" }, new TextEncoder().encode(PUBLIC_KEY_RP.id)));
 
   let authenticatorData = parseAuthenticatorData(attestationObject.authData);
 
@@ -59,7 +59,7 @@ promise_test(async t => {
 promise_test(async t => {
   let assertion = await navigator.credentials.get({
     publicKey: {
-      challenge: new TextEncoder("utf-8").encode(CHALLENGE),
+      challenge: new TextEncoder().encode(CHALLENGE),
       rpId: PUBLIC_KEY_RP.id,
       allowCredentials: [{
         type: "public-key",
@@ -87,7 +87,7 @@ promise_test(async t => {
   let authenticatorData = parseAuthenticatorData(binaryAuthenticatorData);
 
   let rpIdHash = new Uint8Array(await crypto.subtle.digest(
-    { name: "SHA-256" }, new TextEncoder("utf-8").encode(PUBLIC_KEY_RP.id)));
+    { name: "SHA-256" }, new TextEncoder().encode(PUBLIC_KEY_RP.id)));
 
   assert_array_equals(authenticatorData.rpIdHash, rpIdHash)
   assert_true(authenticatorData.flags.up);

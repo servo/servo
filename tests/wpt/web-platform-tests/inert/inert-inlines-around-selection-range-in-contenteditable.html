@@ -85,6 +85,102 @@ document.addEventListener("DOMContentLoaded", () => {
     const desc = `execCommand("delete") at ${t.name}`
     assert_equals(editingHost.innerHTML, "af", `${desc}: <span inert> should be deleted`);
   }, "a[bc<span inert>XYZ</span>de]f");
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert style="display:contents">a[bc</span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert style="display:contents">{abc</span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert><span style="display:contents">a[bc</span></span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert><span style="display:contents">{abc</span></span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert style="display:none">a[bc</span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert style="display:none">{abc</span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert><span style="display:none">a[bc</span></span><span>de]f</span>`);
+
+  test(t => {
+    utils.setupEditingHost(t.name, { selection: "setBaseAndExtent" });
+    const initialInnerHTML = editingHost.innerHTML;
+    document.execCommand("delete");
+    const desc = `execCommand("delete") at ${t.name}`
+    assert_equals(
+      editingHost.innerHTML,
+      initialInnerHTML,
+      `${desc}: <span> content should not be deleted because anchor node of Selection is in the <span inert>`
+    );
+  }, `<span inert><span style="display:none">{abc</span></span><span>de]f</span>`);
 });
 </script>
 </head>

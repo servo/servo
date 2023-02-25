@@ -38,7 +38,7 @@ async function postCapabilityDelegationMessage(frame, message, origin, capabilit
 // Returns the name of a capability for which `postMessage` delegation is supported by the user
 // agent, or undefined if no such capability is found.
 async function findOneCapabilitySupportingDelegation() {
-  const capabilities = ["fullscreen", "payment"];
+  const capabilities = ["fullscreen", "payment", "display-capture"];
 
   for (let i = 0; i < capabilities.length; i++) {
     try {

@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
 
 <input id="target" style="margin: 20px">
 
@@ -29,6 +30,7 @@ target.addEventListener("pointerdown", e=>{
   pointerdownPointerType = e.pointerType;
 });
 
+let pointerDownPrevented = preventDefaultPointerdownOnce(target);
 let eventWatcher = new EventWatcher(contextmenuTest, target, ["contextmenu"]);
 let actions = new test_driver.Actions();
 // TODO: We might be able to test "pen" just like "touch".
@@ -38,5 +40,5 @@ actions = actions.addPointer(testPointer, inputSource)
   .pointerDown({sourceName:testPointer, button:actions.ButtonType.RIGHT})
   .pause(inputSource === "touch" ? 1500 : 0, "pointer", {sourceName:testPointer})
   .pointerUp({sourceName:testPointer, button:actions.ButtonType.RIGHT});
-Promise.all([eventWatcher.wait_for("contextmenu"), actions.send()]).then(()=>contextmenuTest.done());
+Promise.all([pointerDownPrevented, eventWatcher.wait_for("contextmenu"), actions.send()]).then(()=>contextmenuTest.done());
 </script>

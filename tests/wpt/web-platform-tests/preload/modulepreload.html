@@ -6,11 +6,11 @@
 <script>
 host_info = get_host_info();
 
-function verifyNumberOfDownloads(url, number) {
+function verifyNumberOfDownloads(url, number, allowTransferSizeOfZero = false) {
     var numDownloads = 0;
     let absoluteURL = new URL(url, location.href).href;
     performance.getEntriesByName(absoluteURL).forEach(entry => {
-        if (entry.transferSize > 0) {
+        if (entry.transferSize > 0 || allowTransferSizeOfZero) {
             numDownloads++;
         }
     });
@@ -36,17 +36,17 @@ function attachAndWaitForError(element) {
 promise_test(function(t) {
     var link = document.createElement('link');
     link.rel = 'modulepreload';
-    link.href = 'resources/dummy.js';
+    link.href = 'resources/dummy.js?unique';
     return attachAndWaitForLoad(link).then(() => {
-        verifyNumberOfDownloads('resources/dummy.js', 1);
+        verifyNumberOfDownloads('resources/dummy.js?unique', 1);
 
         // Verify that <script> doesn't fetch the module again.
         var script = document.createElement('script');
         script.type = 'module';
-        script.src = 'resources/dummy.js';
+        script.src = 'resources/dummy.js?unique';
         return attachAndWaitForLoad(script);
     }).then(() => {
-        verifyNumberOfDownloads('resources/dummy.js', 1);
+        verifyNumberOfDownloads('resources/dummy.js?unique', 1);
     });
 }, 'link rel=modulepreload');
 
@@ -107,7 +107,7 @@ promise_test(function(t) {
         link.href = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`;
         return attachAndWaitForLoad(link);
     }).then(() => {
-        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`, 1);
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`, 1, true);
 
         // Verify that <script> doesn't fetch the module again.
         var script = document.createElement('script');
@@ -115,7 +115,7 @@ promise_test(function(t) {
         script.src = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`;
         return attachAndWaitForLoad(script);
     }).then(() => {
-        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`, 1);
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginNone`, 1, true);
     });
 }, 'cross-origin link rel=modulepreload');
 
@@ -125,7 +125,7 @@ promise_test(function(t) {
     link.crossorigin = 'anonymous';
     link.href = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`;
     return attachAndWaitForLoad(link).then(() => {
-        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`, 1);
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`, 1, true);
 
         // Verify that <script> doesn't fetch the module again.
         var script = document.createElement('script');
@@ -134,7 +134,7 @@ promise_test(function(t) {
         script.src = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`;
         return attachAndWaitForLoad(script);
     }).then(() => {
-        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`, 1);
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginAnonymous`, 1, true);
     });
 }, 'cross-origin link rel=modulepreload crossorigin=anonymous');
 
@@ -144,7 +144,7 @@ promise_test(function(t) {
     link.crossorigin = 'use-credentials';
     link.href = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`;
     return attachAndWaitForLoad(link).then(() => {
-        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`, 1);
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`, 1, true);
 
         // Verify that <script> doesn't fetch the module again.
         var script = document.createElement('script');
@@ -153,7 +153,7 @@ promise_test(function(t) {
         script.src = `${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`;
         return attachAndWaitForLoad(script);
     }).then(() => {
-        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`, 1);
+        verifyNumberOfDownloads(`${host_info.HTTP_REMOTE_ORIGIN}/preload/resources/cross-origin-module.py?crossOriginUseCredentials`, 1, true);
     });
 }, 'cross-origin link rel=modulepreload crossorigin=use-credentials');
 /**
@@ -163,18 +163,18 @@ promise_test(function(t) {
 promise_test(function(t) {
     var link = document.createElement('link');
     link.rel = 'modulepreload';
-    link.href = 'resources/module1.js';
+    link.href = 'resources/module1.js?submodule';
     return attachAndWaitForLoad(link).then(() => {
-        verifyNumberOfDownloads('resources/module1.js', 1);
+        verifyNumberOfDownloads('resources/module1.js?submodule', 1);
         // The load event fires before (optional) submodules fetch.
         verifyNumberOfDownloads('resources/module2.js', 0);
 
         var script = document.createElement('script');
         script.type = 'module';
-        script.src = 'resources/module1.js';
+        script.src = 'resources/module1.js?submodule';
         return attachAndWaitForLoad(script);
     }).then(() => {
-        verifyNumberOfDownloads('resources/module1.js', 1);
+        verifyNumberOfDownloads('resources/module1.js?submodule', 1);
         verifyNumberOfDownloads('resources/module2.js', 1);
     });
 }, 'link rel=modulepreload with submodules');

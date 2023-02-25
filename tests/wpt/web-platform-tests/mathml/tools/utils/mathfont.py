@@ -168,7 +168,7 @@ def createGlyphFromValue(aFont, aCodePoint):
     for i in range(0, 5):
         drawHexaDigit(g, (5 - (i + 1)) * em / 2, value % 16)
         value /= 16
-    g.width = 5 * em / 2
+    g.width = 5 * em // 2
     g.stroke("circular", em / 10, "square", "miter", "cleanup")
 
 def createSizeVariants(aFont, aUsePUA = False, aCenterOnBaseline = False):

@@ -52,7 +52,7 @@ function checkImageBitmapRotated(bitmap) {
 }
 
 promise_test(async t => {
-    const response = await fetch("resources/squares.jpg");
+    const response = await fetch("resources/squares_6.jpg");
     const blob = await response.blob();
     const image = await createImageBitmap(blob)
     const image_copy = structuredClone(image);
@@ -61,7 +61,7 @@ promise_test(async t => {
 
 promise_test(async t => {
     const image = new Image();
-    image.src = "resources/squares.jpg"
+    image.src = "resources/squares_6.jpg"
     await new Promise(resolve => image.onload = resolve);
     const image_copy = await createImageBitmap(image);
     checkImageBitmapRotated(image_copy);
@@ -69,7 +69,7 @@ promise_test(async t => {
 
 promise_test(async t => {
     const image = new Image();
-    image.src = "resources/squares.jpg"
+    image.src = "resources/squares_6.jpg"
     // The following has no effect because the image's style is not
     // processed unless the element is connected to the DOM.
     image.style.imageOrientation = "none";
@@ -81,7 +81,7 @@ promise_test(async t => {
 promise_test(async t => {
     const image = new Image();
     document.body.appendChild(image);
-    image.src = "resources/squares.jpg"
+    image.src = "resources/squares_6.jpg"
     // The style is being processed in this case, but the imageOrientation
     // CSS property must still have no effect because createImageBitmap
     // accesses the element's underlying media directly, without being
@@ -94,7 +94,7 @@ promise_test(async t => {
 
 
 promise_test(async t => {
-    const response = await fetch("resources/squares.jpg");
+    const response = await fetch("resources/squares_6.jpg");
     const blob = await response.blob();
     const image = await createImageBitmap(blob);
     const image_copy = await createImageBitmap(image);
@@ -103,7 +103,7 @@ promise_test(async t => {
 
 promise_test(async t => {
     const worker = new Worker("serialize-worker.js");
-    const response = await fetch("resources/squares.jpg");
+    const response = await fetch("resources/squares_6.jpg");
     const blob = await response.blob()
     const image = await createImageBitmap(blob);
     worker.postMessage({bitmap: image});
@@ -113,7 +113,7 @@ promise_test(async t => {
 
 promise_test(async t => {
     const worker = new Worker("transfer-worker.js");
-    let response = await fetch("resources/squares.jpg");
+    let response = await fetch("resources/squares_6.jpg");
     let blob = await response.blob();
     let image = await createImageBitmap(blob);
     worker.postMessage({bitmap: image}, [image]);
@@ -130,7 +130,7 @@ promise_test(async t => {
     // duplication code path (if applicable) carries over the image
     // orientation metadata.
     const worker = new Worker("transfer-worker.js");
-    let response = await fetch("resources/squares.jpg");
+    let response = await fetch("resources/squares_6.jpg");
     let blob = await response.blob();
     let image = await createImageBitmap(blob);
     const canvas = document.createElement('canvas');

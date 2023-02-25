@@ -11,13 +11,13 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/popover-utils.js"></script>
 
-<button id=b1t popovertoggletarget='p1'>Popover 1</button>
-<button id=b1s popovershowtarget='p1'>Popover 1</button>
+<button id=b1t popovertarget='p1'>Popover 1</button>
+<button id=b1s popovertarget='p1' popovertargetaction=show>Popover 1</button>
 <button id=p1anchor>Popover1 anchor (no action)</button>
 <span id=outside>Outside all popovers</span>
 <div popover id=p1 anchor=p1anchor>
   <span id=inside1>Inside popover 1</span>
-  <button id=b2 popovershowtarget='p2'>Popover 2</button>
+  <button id=b2 popovertarget='p2' popovertargetaction=show>Popover 2</button>
   <span id=inside1after>Inside popover 1 after button</span>
 </div>
 <div popover id=p2 anchor=b2>
@@ -234,9 +234,9 @@
     await waitForRender();
     p1HideCount = popover1HideCount;
     await clickOn(button1toggle);
-    assert_false(popover1.matches(':open'),'popover1 should be hidden by popovertoggletarget');
-    assert_equals(popover1HideCount,p1HideCount+1,'popover1 should get hidden only once by popovertoggletarget');
-  },'Clicking on popovertoggletarget element, even if it wasn\'t used for activation, should hide it exactly once');
+    assert_false(popover1.matches(':open'),'popover1 should be hidden by popovertarget');
+    assert_equals(popover1HideCount,p1HideCount+1,'popover1 should get hidden only once by popovertarget');
+  },'Clicking on popovertarget element, even if it wasn\'t used for activation, should hide it exactly once');
 
   promise_test(async () => {
     popover1.showPopover();
@@ -265,12 +265,12 @@
   },'Dragging from an open popover outside an open popover should leave the popover open');
 </script>
 
-<button id=b3 popovertoggletarget=p3>Popover 3 - button 3
+<button id=b3 popovertarget=p3>Popover 3 - button 3
   <div popover id=p4>Inside popover 4</div>
 </button>
 <div popover id=p3>Inside popover 3</div>
 <div popover id=p5>Inside popover 5
-  <button popovertoggletarget=p3>Popover 3 - button 4 - unused</button>
+  <button popovertarget=p3>Popover 3 - button 4 - unused</button>
 </div>
 <style>
   #p3 {top:100px;}
@@ -309,7 +309,7 @@
   <div style="height:2000px;background:lightgreen"></div>
   Bottom of popover6
 </div>
-<button popovertoggletarget=p6>Popover 6</button>
+<button popovertarget=p6>Popover 6</button>
 <style>
   #p6 {
     width: 300px;
@@ -388,16 +388,16 @@
 <!-- Convoluted ancestor relationship -->
 <div popover id=convoluted_p1>Popover 1
   <div id=convoluted_anchor>Anchor
-    <button popovertoggletarget=convoluted_p2>Open Popover 2</button>
+    <button popovertarget=convoluted_p2>Open Popover 2</button>
     <div popover id=convoluted_p4><p>Popover 4</p></div>
   </div>
 </div>
 <div popover id=convoluted_p2 anchor=convoluted_p2>Popover 2 (self-anchor-linked)
-  <button popovertoggletarget=convoluted_p3>Open Popover 3</button>
-  <button popovershowtarget=convoluted_p2>Self-linked invoker</button>
+  <button popovertarget=convoluted_p3>Open Popover 3</button>
+  <button popovertarget=convoluted_p2 popovertargetaction=show>Self-linked invoker</button>
 </div>
 <div popover id=convoluted_p3 anchor=convoluted_anchor>Popover 3
-  <button popovertoggletarget=convoluted_p4>Open Popover 4</button>
+  <button popovertarget=convoluted_p4>Open Popover 4</button>
 </div>
 <button onclick="convoluted_p1.showPopover()">Open convoluted popover</button>
 <style>

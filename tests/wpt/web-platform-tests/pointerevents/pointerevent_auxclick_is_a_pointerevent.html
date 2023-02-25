@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
 
 <input id="target" style="margin: 20px">
 
@@ -41,6 +42,7 @@ function run_test(pointerType){
       pointerId = 0;
       pointerType = "";
     });
+    let pointerDownPrevented = preventDefaultPointerdownOnce(target);
     target.addEventListener("auxclick", auxclickFunc);
     let eventWatcher = new EventWatcher(test, target, ["auxclick"]);
     let actions = new test_driver.Actions();
@@ -49,7 +51,7 @@ function run_test(pointerType){
       .pointerMove(0,0, {origin:target, sourceName:testPointer})
       .pointerDown({button:actions.ButtonType.MIDDLE, sourceName:testPointer})
       .pointerUp({button:actions.ButtonType.MIDDLE, sourceName:testPointer});
-    Promise.all([eventWatcher.wait_for("auxclick"), actions.send()]).then(()=>resolve());
+    Promise.all([pointerDownPrevented, eventWatcher.wait_for("auxclick"), actions.send()]).then(()=>resolve());
   }), "auxclick using " + pointerType + " is a PointerEvent");
 }
 
