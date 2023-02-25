@@ -30,6 +30,8 @@ opt-level = 3
 mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 # surfman-chains has not yet released version 0.7 to crates.io yet.
 surfman-chains = { git = "https://github.com/servo/surfman-chains.git" }
+# fork that bumps crates since the original repo is archived.
+immeta = { git = "https://github.com/fabricedesre/immeta.git" }
 
 # https://github.com/servo/servo/issues/27515#issuecomment-671474054
 [patch."https://github.com/servo/webrender"]
