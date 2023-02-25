@@ -59,10 +59,6 @@ packages = [
   "bytes",
   "futures",
   "mio",
-  "pin-project-lite",
-  "tokio",
-  "tokio-macros",
-  "tokio-openssl",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",
@@ -79,7 +75,6 @@ packages = [
   "block-buffer",
   "digest",
   "generic-array",
-  "opaque-debug",
   "sha-1",
 
   # Duplicated by winit/surfman update.
