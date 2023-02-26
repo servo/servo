@@ -274,52 +274,6 @@ impl From<cssparser::PredefinedColorSpace> for ColorSpace {
     }
 }
 
-impl From<cssparser::AbsoluteColor> for AbsoluteColor {
-    fn from(f: cssparser::AbsoluteColor) -> Self {
-        match f {
-            cssparser::AbsoluteColor::Rgba(rgba) => Self::from_rgba(rgba),
-
-            cssparser::AbsoluteColor::Lab(lab) => Self::new(
-                ColorSpace::Lab,
-                ColorComponents(lab.lightness, lab.a, lab.b),
-                lab.alpha,
-            ),
-
-            cssparser::AbsoluteColor::Lch(lch) => Self::new(
-                ColorSpace::Lch,
-                ColorComponents(lch.lightness, lch.chroma, lch.hue),
-                lch.alpha,
-            ),
-
-            cssparser::AbsoluteColor::Oklab(oklab) => Self::new(
-                ColorSpace::Oklab,
-                ColorComponents(oklab.lightness, oklab.a, oklab.b),
-                oklab.alpha,
-            ),
-
-            cssparser::AbsoluteColor::Oklch(oklch) => Self::new(
-                ColorSpace::Oklch,
-                ColorComponents(oklch.lightness, oklch.chroma, oklch.hue),
-                oklch.alpha,
-            ),
-
-            cssparser::AbsoluteColor::ColorFunction(c) => {
-                let mut result = AbsoluteColor::new(
-                    c.color_space.into(),
-                    ColorComponents(c.c1, c.c2, c.c3),
-                    c.alpha,
-                );
-
-                if matches!(c.color_space, cssparser::PredefinedColorSpace::Srgb) {
-                    result.flags |= SerializationFlags::AS_COLOR_FUNCTION;
-                }
-
-                result
-            },
-        }
-    }
-}
-
 impl ToCss for AbsoluteColor {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -394,7 +348,7 @@ impl ToCss for AbsoluteColor {
                     c3: self.components.2,
                     alpha: self.alpha,
                 };
-                let color = cssparser::AbsoluteColor::ColorFunction(color_function);
+                let color = cssparser::Color::ColorFunction(color_function);
                 cssparser::ToCss::to_css(&color, dest)
             },
         }
