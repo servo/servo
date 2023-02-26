@@ -1,7 +1,9 @@
-name: Pull request
+name: Quick check
 on:
   pull_request:
-    branches: ["**"]
+  push:
+    branches:
+      [ "**", "!auto", "!try", "!try-linux", "!try-mac", "!try-windows", "!try-wpt"]
 
 env:
   RUST_BACKTRACE: 1
@@ -9,6 +11,7 @@ env:
 
 jobs:
   build-linux:
+    if: github.repository == 'servo/servo' || github.event_name == 'push'
     name: Build (Linux)
     runs-on: ubuntu-20.04
     steps:
@@ -23,6 +26,8 @@ jobs:
         run: python3 ./mach test-tidy --no-progress --all
       - name: Release build
         run: python3 ./mach build --release
+      - name: Smoketest
+        run: xvfb-run python3 ./mach smoketest
       - name: Unit tests
         run: python3 ./mach test-unit --release
       - name: Lockfile check
