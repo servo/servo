@@ -126,18 +126,18 @@ fn eval_scan(_: &Context, _: Option<Scan>) -> bool {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#color
-fn eval_color(context: &Context) -> u32 {
+fn eval_color(context: &Context) -> i32 {
     unsafe { bindings::Gecko_MediaFeatures_GetColorDepth(context.device().document()) }
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#color-index
-fn eval_color_index(_: &Context) -> u32 {
+fn eval_color_index(_: &Context) -> i32 {
     // We should return zero if the device does not use a color lookup table.
     0
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#monochrome
-fn eval_monochrome(context: &Context) -> u32 {
+fn eval_monochrome(context: &Context) -> i32 {
     // For color devices we should return 0.
     unsafe { bindings::Gecko_MediaFeatures_GetMonochromeBitsPerPixel(context.device().document()) }
 }
