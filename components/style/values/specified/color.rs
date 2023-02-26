@@ -6,7 +6,7 @@
 
 use super::AllowQuirks;
 use crate::color::mix::ColorInterpolationMethod;
-use crate::color::{AbsoluteColor, ColorComponents, ColorSpace};
+use crate::color::{AbsoluteColor, ColorComponents, ColorSpace, SerializationFlags};
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
@@ -433,8 +433,65 @@ impl From<RGBA> for Color {
     }
 }
 
-struct ColorComponentParser<'a, 'b: 'a>(&'a ParserContext<'b>);
-impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponentParser<'a, 'b> {
+#[inline]
+fn new_absolute(color_space: ColorSpace, c1: f32, c2: f32, c3: f32, alpha: f32) -> Color {
+    Color::Absolute(Box::new(Absolute {
+        color: AbsoluteColor::new(color_space, ColorComponents(c1, c2, c3), alpha),
+        authored: None,
+    }))
+}
+
+impl cssparser::FromParsedColor for Color {
+    fn from_current_color() -> Self {
+        Color::CurrentColor
+    }
+
+    fn from_rgba(red: u8, green: u8, blue: u8, alpha: f32) -> Self {
+        new_absolute(
+            ColorSpace::Srgb,
+            red as f32 / 255.0,
+            green as f32 / 255.0,
+            blue as f32 / 255.0,
+            alpha,
+        )
+    }
+
+    fn from_lab(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
+        new_absolute(ColorSpace::Lab, lightness, a, b, alpha)
+    }
+
+    fn from_lch(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
+        new_absolute(ColorSpace::Lch, lightness, chroma, hue, alpha)
+    }
+
+    fn from_oklab(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
+        new_absolute(ColorSpace::Oklab, lightness, a, b, alpha)
+    }
+
+    fn from_oklch(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
+        new_absolute(ColorSpace::Oklch, lightness, chroma, hue, alpha)
+    }
+
+    fn from_color_function(
+        color_space: cssparser::PredefinedColorSpace,
+        c1: f32,
+        c2: f32,
+        c3: f32,
+        alpha: f32,
+    ) -> Self {
+        let mut result = new_absolute(color_space.into(), c1, c2, c3, alpha);
+        if let Color::Absolute(ref mut absolute) = result {
+            if matches!(absolute.color.color_space, ColorSpace::Srgb) {
+                absolute.color.flags |= SerializationFlags::AS_COLOR_FUNCTION;
+            }
+        }
+        result
+    }
+}
+
+struct ColorParser<'a, 'b: 'a>(&'a ParserContext<'b>);
+impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorParser<'i> for ColorParser<'a, 'b> {
+    type Output = Color;
     type Error = StyleParseErrorKind<'i>;
 
     fn parse_angle_or_number<'t>(
@@ -532,23 +589,30 @@ impl Color {
             },
         };
 
-        let compontent_parser = ColorComponentParser(&*context);
-        match input.try_parse(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
-            Ok(value) => Ok(match value {
-                CSSParserColor::CurrentColor => Color::CurrentColor,
-                CSSParserColor::Absolute(absolute) => {
-                    let enabled = matches!(absolute, cssparser::AbsoluteColor::Rgba(_)) ||
-                        allow_more_color_4();
+        let color_parser = ColorParser(&*context);
+        match input.try_parse(|i| cssparser::parse_color_with(&color_parser, i)) {
+            Ok(mut color) => {
+                if let Color::Absolute(ref mut absolute) = color {
+                    let enabled = {
+                        let is_srgb = matches!(absolute.color.color_space, ColorSpace::Srgb);
+                        let is_color_function = absolute
+                            .color
+                            .flags
+                            .contains(SerializationFlags::AS_COLOR_FUNCTION);
+                        let pref_enabled = allow_more_color_4();
+
+                        (is_srgb && !is_color_function) || pref_enabled
+                    };
                     if !enabled {
                         return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                     }
 
-                    Color::Absolute(Box::new(Absolute {
-                        color: absolute.into(),
-                        authored: authored.map(|s| s.to_ascii_lowercase().into_boxed_str()),
-                    }))
-                },
-            }),
+                    // Because we can't set the `authored` value at construction time, we have to set it
+                    // here.
+                    absolute.authored = authored.map(|s| s.to_ascii_lowercase().into_boxed_str());
+                }
+                Ok(color)
+            },
             Err(e) => {
                 #[cfg(feature = "gecko")]
                 {
