@@ -217,7 +217,7 @@ class TrackerDashboardFilter():
         repo_url = f"https://github.com/{repository}"
 
         run_id = github_context['run_id']
-        build_url = f"{repo_url}/actions/runs/{run_id})"
+        build_url = f"{repo_url}/actions/runs/{run_id}"
 
         commit_title = github_context["event"]["head_commit"]["message"]
         match = re.match(r"^Auto merge of #(\d+)", commit_title)
