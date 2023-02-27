@@ -23,15 +23,12 @@ use std::mem;
 use std::rc::Rc;
 use webxr::glwindow::GlWindowDiscovery;
 
-thread_local! {
-    pub static WINDOWS: RefCell<HashMap<WindowId, Rc<dyn WindowPortsMethods>>> = RefCell::new(HashMap::new());
-}
-
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
     browser: RefCell<Browser<dyn WindowPortsMethods>>,
     event_queue: RefCell<Vec<WindowEvent>>,
     suspended: Cell<bool>,
+    windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
 }
 
 impl App {
@@ -62,6 +59,7 @@ impl App {
             browser: RefCell::new(browser),
             servo: None,
             suspended: Cell::new(false),
+            windows: HashMap::new(),
         };
 
         let ev_waker = events_loop.create_event_loop_waker();
@@ -105,7 +103,7 @@ impl App {
                 servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
                 servo.setup_logging();
 
-                register_window(window.clone());
+                app.windows.insert(window.id(), window.clone());
                 app.servo = Some(servo);
             }
 
@@ -118,12 +116,7 @@ impl App {
             // Handle the event
             app.winit_event_to_servo_event(e);
 
-            let animating = WINDOWS.with(|windows| {
-                windows
-                    .borrow()
-                    .iter()
-                    .any(|(_, window)| window.is_animating())
-            });
+            let animating = app.is_animating();
 
             // Block until the window gets an event
             if !animating || app.suspended.get() {
@@ -138,6 +131,10 @@ impl App {
                 app.servo.take().unwrap().deinit();
             }
         });
+    }
+
+    fn is_animating(&self) -> bool {
+        self.windows.iter().any(|(_, window)| window.is_animating())
     }
 
     fn get_events(&self) -> Vec<WindowEvent> {
@@ -168,16 +165,14 @@ impl App {
             winit::event::Event::WindowEvent {
                 window_id, event, ..
             } => {
-                return WINDOWS.with(|windows| {
-                    match windows.borrow().get(&window_id) {
-                        None => {
-                            warn!("Got an event from unknown window");
-                        },
-                        Some(window) => {
-                            window.winit_event_to_servo_event(event);
-                        },
-                    }
-                });
+                match self.windows.get(&window_id) {
+                    None => {
+                        warn!("Got an event from unknown window");
+                    },
+                    Some(window) => {
+                        window.winit_event_to_servo_event(event);
+                    },
+                }
             },
 
             winit::event::Event::LoopDestroyed |
@@ -198,11 +193,9 @@ impl App {
         // will send a key event to the servo window.
 
         let mut app_events = self.get_events();
-        WINDOWS.with(|windows| {
-            for (_win_id, window) in &*windows.borrow() {
-                app_events.extend(window.get_events());
-            }
-        });
+        for (_win_id, window) in &self.windows {
+            app_events.extend(window.get_events());
+        }
 
         browser.handle_window_events(app_events);
 
@@ -239,10 +232,4 @@ fn get_default_url() -> ServoUrl {
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     cmdline_url.or(pref_url).or(blank_url).unwrap()
-}
-
-pub fn register_window(window: Rc<dyn WindowPortsMethods>) {
-    WINDOWS.with(|w| {
-        w.borrow_mut().insert(window.id(), window);
-    });
 }
