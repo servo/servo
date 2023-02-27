@@ -349,3 +349,41 @@ class MachCommands(CommandBase):
             "--verbose",
         ], env=env)
         return p.wait()
+
+    @Command('try',
+             description='Runs try jobs by force pushing to personal fork try branches',
+             category='devenv')
+    @CommandArgument(
+        'jobs', default=["try"], nargs='...',
+        help="Name(s) of job(s) (ex: try, linux, mac, windows, wpt)")
+    def try_jobs(self, jobs):
+        branches = []
+        # we validate branches because force pushing is destructive
+        VALID_TRY_BRACHES = ["try", "try-linux", "try-mac", "try-windows", "try-wpt"]
+        for job in jobs:
+            # branches must start with try-
+            if "try" not in job:
+                job = "try-" + job
+            if job not in VALID_TRY_BRACHES:
+                print(job + " job doesn't exist")
+                return -1
+            branches.append(job)
+        remote = "origin"
+        if "servo/servo" in subprocess.check_output(["git", "config", "--get", "remote.origin.url"]).decode():
+            # if we have servo/servo for origin check try remote
+            try:
+                if "servo/servo" in subprocess.check_output(["git", "config", "--get", "remote.try.url"]).decode():
+                    # User has servo/servo for try remote
+                    print("You should not use servo/servo for try remote!")
+                    return -1
+                else:
+                    remote = "try"
+            except subprocess.CalledProcessError:
+                print("It looks like you are patching in upstream servo.")
+                print("Set try remote to your personal fork with `git remote add try https://github.com/user/servo`")
+                return -1
+        for b in branches:
+            res = call(["git", "push", remote, "--force", f"HEAD:{b}"], env=self.build_env())
+            if res != 0:
+                return res
+        return 0
