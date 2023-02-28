@@ -107,3 +107,10 @@ function showDefaultopenPopoversOnLoad() {
     window.addEventListener('load',show,{once:true});
   }
 }
+function popoverHintSupported() {
+  // TODO(crbug.com/1416284): This function should be removed, and
+  // any calls replaced with `true`, once popover=hint ships.
+  const testElement = document.createElement('div');
+  testElement.popover = 'hint';
+  return testElement.popover === 'hint';
+}

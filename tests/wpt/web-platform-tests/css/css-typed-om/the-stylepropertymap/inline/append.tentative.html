@@ -56,4 +56,10 @@ test(t => {
   assert_style_value_array_equals(result, [CSS.s(5), CSS.s(10), CSS.s(1), CSS.s(2)]);
 }, 'StylePropertyMap.append is case-insensitive');
 
+// https://crbug.com/1417176
+test(t => {
+  let styleMap = createInlineStyleMap(t, 'transition-duration: inherit');
+  assert_throws_js(TypeError, () => styleMap.append('transition-duration', '1s'));
+}, 'StylePropertyMap.append rejects appending to CSS-wide keywords');
+
 </script>
