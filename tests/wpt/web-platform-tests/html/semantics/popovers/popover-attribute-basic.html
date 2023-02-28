@@ -15,6 +15,7 @@
   <div popover id=boolean>Pop up</div>
   <div popover="">Pop up</div>
   <div popover=auto>Pop up</div>
+  <div popover=hint>Pop up</div>
   <div popover=manual>Pop up</div>
   <article popover>Different element type</article>
   <header popover>Different element type</header>
@@ -163,6 +164,10 @@ window.onload = () => {
     assert_equals(popover.popover,'manual','Invalid values should reflect as "manual"');
     popover.removeAttribute('popover');
     assert_equals(popover.popover,null,'No value should reflect as null');
+    if (popoverHintSupported()) {
+      popover.popover='hint';
+      assert_equals(popover.getAttribute('popover'),'hint');
+    }
     popover.popover='auto';
     assert_equals(popover.getAttribute('popover'),'auto');
     popover.popover='';
@@ -223,7 +228,13 @@ window.onload = () => {
     const popover = createPopover(t);
     popover.showPopover();
     assert_true(popover.matches(':open'));
-    popover.setAttribute('popover','manual'); // Change popover type
+    if (popoverHintSupported()) {
+      popover.setAttribute('popover','hint'); // Change popover type
+      assert_false(popover.matches(':open'));
+      popover.showPopover();
+      assert_true(popover.matches(':open'));
+      popover.setAttribute('popover','manual');
+    }
     assert_false(popover.matches(':open'));
     popover.showPopover();
     assert_true(popover.matches(':open'));
@@ -237,7 +248,7 @@ window.onload = () => {
     assert_false(popover.matches(':open'),'From "auto" to "invalid" (which is interpreted as "manual") should close the popover');
   },'Changing attribute values should close open popovers');
 
-  const validTypes = ["auto","manual"];
+  const validTypes = popoverHintSupported() ? ["auto","hint","manual"] : ["auto","manual"];
   validTypes.forEach(type => {
     test((t) => {
       const popover = createPopover(t);
@@ -376,6 +387,7 @@ window.onload = () => {
                     popover.hidePopover();
                     break;
                   case 'auto':
+                  case 'hint':
                     assert_false(popover.matches(':open'),'A popover=auto should light-dismiss');
                     break;
                 }

@@ -216,7 +216,10 @@ async function createIndexedDBForTesting(rc, dbName, version) {
   await rc.executeScript((dbName, version) => {
     let request = indexedDB.open(dbName, version);
     request.onupgradeneeded = () => {
-      request.result.createObjectStore('store');
+      if (version == 1) {
+        // Only create the object store once.
+        request.result.createObjectStore('store');
+      }
     }
     request.onversionchange = () => {
       fail(t, 'unexpectedly received versionchange event.');

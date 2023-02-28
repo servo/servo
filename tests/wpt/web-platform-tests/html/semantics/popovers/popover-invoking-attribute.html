@@ -10,6 +10,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
 
 <body>
 <script>
@@ -60,8 +61,9 @@ const invokers = [
   ...supportedInputButtonTypes,
   ...unsupportedTypes,
 ];
+const validTypes = popoverHintSupported() ? ["auto","hint","manual"] : ["auto","manual"];
 window.addEventListener('load', () => {
-  ["auto","manual"].forEach(type => {
+  validTypes.forEach(type => {
     invokers.forEach(testcase => {
       ["toggle","hide","show","ShOw","garbage",null,undefined].forEach(action => {
         [false,true].forEach(use_idl_for_target => {
