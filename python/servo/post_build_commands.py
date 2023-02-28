@@ -169,7 +169,10 @@ class PostBuildCommands(CommandBase):
         try:
             check_call(args, env=env)
         except subprocess.CalledProcessError as e:
-            print("Servo exited with return value %d" % e.returncode)
+            if e.returncode < 0:
+                print(f"Servo was terminated by signal {-e.returncode}")
+            else:
+                print(f"Servo exited with non-zero status {e.returncode}")
             return e.returncode
         except OSError as e:
             if e.errno == 2:
