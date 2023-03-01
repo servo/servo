@@ -100,7 +100,7 @@ function ReplyPromise(timestamp) {
 }
 
 // Returns a promise that resolves when the given frame fires its load event.
-function ReloadPromise(frame) {
+function LoadPromise(frame) {
   return new Promise((resolve) => {
     frame.addEventListener("load", (event) => {
       resolve();
@@ -183,9 +183,17 @@ function ObservePermissionChange(frame, args = []) {
 // Executes `location.reload()` in the given frame. The returned promise
 // resolves when the frame has finished reloading.
 function FrameInitiatedReload(frame) {
-  const reload = ReloadPromise(frame);
+  const reload = LoadPromise(frame);
   frame.contentWindow.postMessage({ command: "reload" }, "*");
   return reload;
+}
+
+// Executes `location.href = url` in the given frame. The returned promise
+// resolves when the frame has finished navigating.
+function FrameInitiatedNavigation(frame, url) {
+  const load = LoadPromise(frame);
+  frame.contentWindow.postMessage({ command: "navigate", url }, "*");
+  return load;
 }
 
 // Tries to set storage access policy, ignoring any errors.

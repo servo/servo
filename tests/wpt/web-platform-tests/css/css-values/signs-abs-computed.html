@@ -6,8 +6,20 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../support/numeric-testcommon.js"></script>
-<div id="target"></div>
+<div id="container" style="font-size: 20px">
+  <div id="target"></div>
+</div>
 <script>
+function test_zero(expression, { is_negative }) {
+  test_math_used(`calc(${expression})`, '0', {type:'integer'});
+  // to test zero sign, make it to negative infinity and clamp it between -1 and 1
+  test_math_used(`clamp(-1, calc( 1 / sign(${expression})), 1)`, (is_negative)? '-1' : '1', {type:'integer'});
+}
+
+function test_length_equals(value, expected, msgExtra) {
+  test_math_used(value, expected, {msgExtra, type: 'integer'});
+}
+
 // Identity tests
 test_math_used('abs(1)', '1', {type:'integer'});
 test_math_used('sign(1)', '1', {type:'integer'});
@@ -29,8 +41,8 @@ test_math_used('calc(sign(0.1 - 0.2) - 0.05)', '-1.05', {type:'number', approx:0
 test_math_used('calc(sign(1) + sign(1) - 0.05)', '1.95', {type:'number', approx:0.1});
 
 // Test sign for zero
-test_math_used('calc(sign(-0))', '-0', {type:'integer'});
-test_math_used('calc(sign(0))', '0', {type:'integer'});
+test_zero('calc(sign(-0))', {is_negative: true});
+test_zero('calc(sign(0))', {is_negative: false});
 
 //Type checking sign
 test_math_used('sign(1px)', '1', {type:'integer'});
@@ -75,48 +87,48 @@ test_math_used('sign(-1deg)', '-1', {type:'integer'});
 test_math_used('sign(-1grad)', '-1', {type:'integer'});
 test_math_used('sign(-1rad)', '-1', {type:'integer'});
 test_math_used('sign(-1turn)', '-1', {type:'integer'});
-test_math_used('sign(0px)', '0', {type:'integer'});
-test_math_used('sign(0cm)', '0', {type:'integer'});
-test_math_used('sign(0mm)', '0', {type:'integer'});
-test_math_used('sign(0Q)', '0', {type:'integer'});
-test_math_used('sign(0in)', '0', {type:'integer'});
-test_math_used('sign(0pc)', '0', {type:'integer'});
-test_math_used('sign(0pt)', '0', {type:'integer'});
-test_math_used('sign(0em)', '0', {type:'integer'});
-test_math_used('sign(0ex)', '0', {type:'integer'});
-test_math_used('sign(0ch)', '0', {type:'integer'});
-test_math_used('sign(0rem)', '0', {type:'integer'});
-test_math_used('sign(0vh)', '0', {type:'integer'});
-test_math_used('sign(0vw)', '0', {type:'integer'});
-test_math_used('sign(0vmin)', '0', {type:'integer'});
-test_math_used('sign(0vmax)', '0', {type:'integer'});
-test_math_used('sign(-0px)', '-0', {type:'integer'});
-test_math_used('sign(-0cm)', '-0', {type:'integer'});
-test_math_used('sign(-0mm)', '-0', {type:'integer'});
-test_math_used('sign(-0Q)', '-0', {type:'integer'});
-test_math_used('sign(-0in)', '-0', {type:'integer'});
-test_math_used('sign(-0pc)', '-0', {type:'integer'});
-test_math_used('sign(-0pt)', '-0', {type:'integer'});
-test_math_used('sign(-0em)', '-0', {type:'integer'});
-test_math_used('sign(-0ex)', '-0', {type:'integer'});
-test_math_used('sign(-0ch)', '-0', {type:'integer'});
-test_math_used('sign(-0rem)', '-0', {type:'integer'});
-test_math_used('sign(-0vh)', '-0', {type:'integer'});
-test_math_used('sign(-0vw)', '-0', {type:'integer'});
-test_math_used('sign(-0vmin)', '-0', {type:'integer'});
-test_math_used('sign(-0vmax)', '-0', {type:'integer'});
-test_math_used('sign(0s)', '0', {type:'integer'});
-test_math_used('sign(0ms)', '0', {type:'integer'});
-test_math_used('sign(-0s)', '0', {type:'integer'});
-test_math_used('sign(-0ms)', '0', {type:'integer'});
-test_math_used('sign(0deg)', '0', {type:'integer'});
-test_math_used('sign(0grad)', '0', {type:'integer'});
-test_math_used('sign(0rad)', '0', {type:'integer'});
-test_math_used('sign(0turn)', '0', {type:'integer'});
-test_math_used('sign(-0deg)', '-0', {type:'integer'});
-test_math_used('sign(-0grad)', '-0', {type:'integer'});
-test_math_used('sign(-0rad)', '-0', {type:'integer'});
-test_math_used('sign(-0turn)', '-0', {type:'integer'});
+test_zero('sign(0px)', {is_negative: false});
+test_zero('sign(0cm)', {is_negative: false});
+test_zero('sign(0mm)', {is_negative: false});
+test_zero('sign(0Q)', {is_negative: false});
+test_zero('sign(0in)', {is_negative: false});
+test_zero('sign(0pc)', {is_negative: false});
+test_zero('sign(0pt)', {is_negative: false});
+test_zero('sign(0em)', {is_negative: false});
+test_zero('sign(0ex)', {is_negative: false});
+test_zero('sign(0ch)', {is_negative: false});
+test_zero('sign(0rem)', {is_negative: false});
+test_zero('sign(0vh)', {is_negative: false});
+test_zero('sign(0vw)', {is_negative: false});
+test_zero('sign(0vmin)', {is_negative: false});
+test_zero('sign(0vmax)', {is_negative: false});
+test_zero('sign(-0px)', {is_negative: true});
+test_zero('sign(-0cm)', {is_negative: true});
+test_zero('sign(-0mm)', {is_negative: true});
+test_zero('sign(-0Q)', {is_negative: true});
+test_zero('sign(-0in)', {is_negative: true});
+test_zero('sign(-0pc)', {is_negative: true});
+test_zero('sign(-0pt)', {is_negative: true});
+test_zero('sign(-0em)', {is_negative: true});
+test_zero('sign(-0ex)', {is_negative: true});
+test_zero('sign(-0ch)', {is_negative: true});
+test_zero('sign(-0rem)', {is_negative: true});
+test_zero('sign(-0vh)', {is_negative: true});
+test_zero('sign(-0vw)', {is_negative: true});
+test_zero('sign(-0vmin)', {is_negative: true});
+test_zero('sign(-0vmax)', {is_negative: true});
+test_zero('sign(0s)', {is_negative: false});
+test_zero('sign(0ms)', {is_negative: false});
+test_zero('sign(-0s)', {is_negative: true});
+test_zero('sign(-0ms)', {is_negative: true});
+test_zero('sign(0deg)', {is_negative: false});
+test_zero('sign(0grad)', {is_negative: false});
+test_zero('sign(0rad)', {is_negative: false});
+test_zero('sign(0turn)', {is_negative: false});
+test_zero('sign(-0deg)', {is_negative: true});
+test_zero('sign(-0grad)', {is_negative: true});
+test_zero('sign(-0rad)', {is_negative: true});
+test_zero('sign(-0turn)', {is_negative: true});
 
 //Type checking abs
 test_math_used('abs(1px)', '1px');
@@ -161,4 +173,12 @@ test_math_used('abs(-1deg)', '1deg', {type:'angle', approx:0.001});
 test_math_used('abs(-1grad)', '1grad', {type:'angle', approx:0.001});
 test_math_used('abs(-1rad)', '1rad', {type:'angle', approx:0.001});
 test_math_used('abs(-1turn)', '1turn', {type:'angle', approx:0.001});
+
+// with relative length
+document.getElementById('container').style.fontSize = '10px';
+test_length_equals('sign(10px - 1em)', '0', 'fontSize=10px');
+test_length_equals('sign(10px - 2em)', '-1', 'fontSize=10px');
+document.getElementById('container').style.fontSize = '20px';
+
+
 </script>

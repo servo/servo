@@ -29,7 +29,17 @@ self.DirectSocketsServiceTest = (() => {
       });
     }
 
-    openUDPSocket(
+    openConnectedUDPSocket(
+      options,
+      receiver,
+      listener) {
+      return Promise.resolve({
+        // return result = net:Error::NOT_IMPLEMENTED (code -11)
+        result: -11
+      });
+    }
+
+    openBoundUDPSocket(
       options,
       receiver,
       listener) {
