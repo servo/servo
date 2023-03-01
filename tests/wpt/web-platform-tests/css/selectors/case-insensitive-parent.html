@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Case-insensitive parent selector matching</title>
+    <link rel="help" href="https://crbug.com/1418575">
+    <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+    <link rel="match" href="case-insensitive-parent-ref.html">
+    <style>FoReIgNobject span { color: green; }</style>
+  </head>
+  <body>
+    <svg width="500" height="100" xmlns="http://www.w3.org/2000/svg">
+      <foreignObject width="500" height="100">
+        <span>Test passes if the text is green.</span>
+      </foreignObject>
+    </svg>
+  </body>
+</html>
