@@ -1700,7 +1700,6 @@ pub enum Appearance {
     /// A searchfield.
     Searchfield,
     /// A multi-line text field, e.g. HTML <textarea>.
-    #[parse(aliases = "textfield-multiline")]
     Textarea,
     /// A checkbox element.
     Checkbox,
@@ -1711,10 +1710,8 @@ pub enum Appearance {
     /// List boxes.
     Listbox,
     /// A horizontal meter bar.
-    #[parse(aliases = "meterbar")]
     Meter,
     /// A horizontal progress bar.
-    #[parse(aliases = "progressbar")]
     ProgressBar,
     /// A typical dialog button.
     Button,
