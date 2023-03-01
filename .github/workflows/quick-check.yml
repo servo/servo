@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
     branches:
-      [ "**", "!auto", "!try", "!try-linux", "!try-mac", "!try-windows", "!try-wpt"]
+      [ "**", "!master", "!auto", "!try", "!try-linux", "!try-mac", "!try-windows", "!try-wpt", "!dependabot/**"]
 
 env:
   RUST_BACKTRACE: 1
