@@ -91,6 +91,11 @@ impl URLSearchParams {
 }
 
 impl URLSearchParamsMethods for URLSearchParams {
+    // https://url.spec.whatwg.org/#dom-urlsearchparams-size
+    fn Size(&self) -> u32 {
+        self.list.borrow().len() as u32
+    }
+
     // https://url.spec.whatwg.org/#dom-urlsearchparams-append
     fn Append(&self, name: USVString, value: USVString) {
         // Step 1.
