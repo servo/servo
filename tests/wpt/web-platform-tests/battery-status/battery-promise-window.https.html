@@ -20,7 +20,7 @@
 <div id="log"></div>
 <script>
 async_test(function (t) {
-  var win = window.open('support-window-open.html');
+  var win = window.open('resources/support-window-open.html');
   window.onmessage = t.step_func(function(e) {
     assert_array_equals(e.data, [false, false, true]);
     win.close();

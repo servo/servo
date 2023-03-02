@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="resources/battery-status-helpers.js"></script>
+</head>
+<body>
+<script>
+battery_status_test(async (t, mockBatteryMonitor)  => {
+  const promise1 = navigator.getBattery();
+  mockBatteryMonitor.setBatteryStatus(false, 10, 20, 0.5);
+  const result1 = await promise1;
+  mockBatteryMonitor.verifyBatteryStatus(result1);
+  const promise2 = navigator.getBattery();
+  assert_equals(promise1, promise2);
+  const result2 = await promise2;
+  mockBatteryMonitor.verifyBatteryStatus(result2);
+}, 'multiple consecutive invocations of navigator.getBattery()');
+</script>
+</body>
+</html>

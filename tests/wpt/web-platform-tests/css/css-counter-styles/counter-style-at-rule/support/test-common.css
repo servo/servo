@@ -10,7 +10,6 @@ ol, ul {
   list-style-position: inside;
 }
 li, p {
-  float: left;
   padding: 0;
 }
 p {

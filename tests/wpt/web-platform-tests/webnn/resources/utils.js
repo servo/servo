@@ -268,6 +268,7 @@ const PrecisionMetrics = {
   sin: {ATOL: {float32: 1/1024, float16: 1/512}},
   tan: {ATOL: {float32: 1/1024, float16: 1/512}},
   // End Element-wise unary operations
+  hardSwish: {ULP: {float32: 4, float16: 4}},
   gemm: {ULP: {float32: getGemmPrecisionTolerance, float16: getGemmPrecisionTolerance}},
   leakyRelu: {ULP: {float32: 1, float16: 1}},
   matmul: {ULP: {float32: getMatmulPrecisionTolerance, float16: getMatmulPrecisionTolerance}},
@@ -353,12 +354,17 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
               `assert_array_approx_equals_ulp: ${description} lengths differ, expected ${expected.length} but got ${actual.length}`);
   let actualBitwise, expectedBitwise, distance;
   for (let i = 0; i < actual.length; i++) {
-    actualBitwise = getBitwise(actual[i], dataType);
-    expectedBitwise = getBitwise(expected[i], dataType);
-    distance = actualBitwise - expectedBitwise;
-    distance = distance >= 0 ? distance : -distance;
-    assert_true(distance <= nulp,
-                `assert_array_approx_equals_ulp: ${description} actual ${actual[i]} should be close enough to expected ${expected[i]} by the acceptable ${nulp} ULP distance, but they have ${distance} ULP distance`);
+    if (actual[i] === expected[i]) {
+      continue;
+    } else {
+      // measure the ULP distance
+      actualBitwise = getBitwise(actual[i], dataType);
+      expectedBitwise = getBitwise(expected[i], dataType);
+      distance = actualBitwise - expectedBitwise;
+      distance = distance >= 0 ? distance : -distance;
+      assert_true(distance <= nulp,
+                  `assert_array_approx_equals_ulp: ${description} actual ${actual[i]} should be close enough to expected ${expected[i]} by the acceptable ${nulp} ULP distance, but they have ${distance} ULP distance`);
+    }
   }
 };
 

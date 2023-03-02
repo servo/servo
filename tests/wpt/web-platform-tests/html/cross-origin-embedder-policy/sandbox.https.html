@@ -16,7 +16,7 @@ async_test(t => {
 
   const origins = get_host_info();
   const frame = document.createElement("iframe");
-  const nothingCrossOriginCORP = new URL("resources/nothing-cross-origin-corp.txt", window.location).pathname;
+  const nothingCrossOriginCORP = new URL("resources/nothing-cross-origin-corp.js", window.location).pathname;
   const nothingSameOriginCORP = new URL("resources/nothing-same-origin-corp.txt", window.location).pathname;
   frame.sandbox = "allow-scripts";
   frame.srcdoc = `<script>

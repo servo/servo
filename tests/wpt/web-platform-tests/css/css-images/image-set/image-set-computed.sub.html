@@ -29,4 +29,8 @@ test_computed_value_variants('background-image', "image-set(url(http://{{host}}/
 test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) type('image/png'))", 'image-set(url("http://{{host}}/example.png") 1dppx type("image/png"))');
 test_computed_value_variants('background-image', "image-set(url(http://{{host}}/example.png) type('image/png') 1x)", 'image-set(url("http://{{host}}/example.png") 1dppx type("image/png"))');
 test_computed_value_variants('content', "image-set(url('http://{{host}}/example.png') 192dpi, linear-gradient(black, white) 1x)", 'image-set(url("http://{{host}}/example.png") 2dppx, linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255)) 1dppx)');
+
+// Unsupported type should still serialize.
+test_computed_value_variants('background-image', 'image-set(url("http://{{host}}/example.png") type("image/unsupported"))', 'image-set(url("http://{{host}}/example.png") 1dppx type("image/unsupported"))');
+test_computed_value_variants('background-image', 'image-set(url("http://{{host}}/example.png") 2x type("image/unsupported"), url("http://{{host}}/example.png") 1x type("image/unsupported"))', 'image-set(url("http://{{host}}/example.png") 2dppx type("image/unsupported"), url("http://{{host}}/example.png") 1dppx type("image/unsupported"))');
 </script>

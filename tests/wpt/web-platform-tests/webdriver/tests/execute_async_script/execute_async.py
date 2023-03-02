@@ -25,6 +25,27 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
+@pytest.mark.parametrize("expression, expected", [
+    ("null", None),
+    ("undefined", None),
+    ("true", True),
+    ("false", False),
+    ("23", 23),
+    ("'foo'", "foo"),
+    (
+        # Compute value in the runtime to reduce the potential for
+        # interference from encoding literal bytes or escape sequences in
+        # Python and HTTP.
+        "String.fromCharCode(0)",
+        "\x00"
+    )
+])
+def test_primitive_serialization(session, expression, expected):
+    response = execute_async_script(session, "arguments[0]({});".format(expression))
+    value = assert_success(response)
+    assert value == expected
+
+
 @pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
 def test_abort_by_user_prompt(session, dialog_type):
     response = execute_async_script(

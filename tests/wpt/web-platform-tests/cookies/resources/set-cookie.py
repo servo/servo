@@ -34,5 +34,5 @@ def main(request, response):
         (b"Content-Type", b"application/json"),
         (b"Set-Cookie", cookie)
     ]
-    body = b"dummy value"
+    body = b"var dummy='value';"
     return headers, body
