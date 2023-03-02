@@ -39,7 +39,7 @@ interface HTMLInputElement : HTMLElement {
            attribute boolean indeterminate;
   // [CEReactions]
   //          attribute DOMString inputMode;
-  readonly attribute HTMLElement? list;
+  readonly attribute HTMLDataListElement? list;
   [CEReactions]
            attribute DOMString max;
   [CEReactions, SetterThrows]

@@ -744,7 +744,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-input-list
-    fn suggestions_source_element(&self) -> Option<DomRoot<HTMLElement>> {
+    fn suggestions_source_element(&self) -> Option<DomRoot<HTMLDataListElement>> {
         let list_string = self
             .upcast::<Element>()
             .get_string_attribute(&local_name!("list"));
@@ -762,10 +762,7 @@ impl HTMLInputElement {
             });
         first_with_id
             .as_ref()
-            .and_then(|el| {
-                el.downcast::<HTMLDataListElement>()
-                    .map(|data_el| data_el.upcast::<HTMLElement>())
-            })
+            .and_then(|el| el.downcast::<HTMLDataListElement>())
             .map(|el| DomRoot::from_ref(&*el))
     }
 
@@ -1314,7 +1311,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_setter!(SetMin, "min");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-list
-    fn GetList(&self) -> Option<DomRoot<HTMLElement>> {
+    fn GetList(&self) -> Option<DomRoot<HTMLDataListElement>> {
         self.suggestions_source_element()
     }
 
