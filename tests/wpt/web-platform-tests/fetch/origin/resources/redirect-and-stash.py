@@ -23,10 +23,16 @@ def main(request, response):
     request.server.stash.put(key, origin_list)
 
     if b"location" in request.GET:
+        location = request.GET.first(b"location")
+        if b"dummyJS" in request.GET:
+            location += b"&dummyJS"
         response.status = 308
-        response.headers.set(b"Location", request.GET.first(b"location"))
+        response.headers.set(b"Location", location)
         return
 
     response.headers.set(b"Content-Type", b"text/html")
     response.headers.set(b"Access-Control-Allow-Origin", b"*")
-    response.content = b"<meta charset=utf-8>\n<body><script>parent.postMessage('loaded','*')</script></body>"
+    if b"dummyJS" in request.GET:
+        response.content = b"console.log('dummy JS')"
+    else:
+        response.content = b"<meta charset=utf-8>\n<body><script>parent.postMessage('loaded','*')</script></body>"

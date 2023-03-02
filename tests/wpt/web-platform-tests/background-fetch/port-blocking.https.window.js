@@ -28,8 +28,12 @@ backgroundFetchTest((t, bgFetch) => {
   return bgFetch.fetch(uniqueId(), 'https://example.com:8080');
 }, 'fetch to non-default non-bad port (8080) should register ok');
 
-backgroundFetchTest((t, bgFetch) => {
+backgroundFetchTest(async (t, bgFetch) => {
+  const promise = bgFetch.fetch(uniqueId(), 'https://example.com:587').then(fetch => {
+    return fetch.match('https://example.com:587');
+  }).then(record => record.responseReady);
+
   return promise_rejects_js(
       t, TypeError,
-      bgFetch.fetch(uniqueId(), 'https://example.com:587'));
+      promise);
 }, 'fetch to bad port (SMTP) should reject');

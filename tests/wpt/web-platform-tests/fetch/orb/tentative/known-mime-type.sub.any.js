@@ -29,7 +29,17 @@ promise_test(
       TypeError,
       fetchORB(`${path}/data.json`, null, contentType("application/json"))
     ),
-  "ORB should block opaque application/json"
+  "ORB should block opaque application/json (non-empty)"
+);
+
+promise_test(
+  t =>
+    promise_rejects_js(
+      t,
+      TypeError,
+      fetchORB(`${path}/empty.json`, null, contentType("application/json"))
+    ),
+  "ORB should block opaque application/json (empty)"
 );
 
 promise_test(async () => {

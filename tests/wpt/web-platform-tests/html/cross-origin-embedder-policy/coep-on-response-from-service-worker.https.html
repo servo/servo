@@ -44,7 +44,7 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   const w = frame.contentWindow;
-  await w.fetch('resources/nothing-cross-origin-corp.txt', {mode: 'no-cors'});
+  await w.fetch('resources/nothing-cross-origin-corp.js', {mode: 'no-cors'});
 }, 'making a same-origin request for CORP: cross-origin');
 
 promise_test(async (t) => {
@@ -63,7 +63,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
   const w = frame.contentWindow;
   await w.fetch(
-    remote('resources/nothing-cross-origin-corp.txt'),
+    remote('resources/nothing-cross-origin-corp.js'),
     {mode: 'no-cors'});
 }, 'making a cross-origin request for CORP: cross-origin');
 
@@ -85,7 +85,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
   const w = frame.contentWindow;
   await w.fetch(
-    remote('resources/nothing-cross-origin-corp.txt?passthrough'),
+    remote('resources/nothing-cross-origin-corp.js?passthrough'),
     {mode: 'no-cors'});
 }, 'making a cross-origin request for CORP: cross-origin [PASS THROUGH]');
 

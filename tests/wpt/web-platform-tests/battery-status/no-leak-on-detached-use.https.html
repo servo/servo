@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+function waitForMessage(data) {
+  return new Promise(
+      resolve => {
+        window.addEventListener('message', e => {
+          if (e.data == data) {
+            resolve();
+          }
+        }, {once: true});
+      });
+}
+
+promise_test(async t => {
+  const w = window.open('resources/window-postmessage-open-close.html');
+  await waitForMessage('opened');
+
+  const nav = w.navigator;
+  let result = nav.getBattery();
+  assert_equals(typeof result, 'object');
+  assert_equals(result.constructor, w.Promise);
+
+  w.close();
+  await waitForMessage('closed');
+  result = nav.getBattery();
+  assert_equals(result, undefined);
+}, 'navigator.getBattery() does not operate on a closed window');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.srcdoc = '<html></html>';
+  document.body.appendChild(iframe);
+
+  const frameNav = iframe.contentWindow.navigator;
+  document.body.removeChild(iframe);
+
+  const battery = await frameNav.getBattery();
+  assert_equals(battery, undefined);
+}, 'navigator.getBattery() on a detached frame does not leak or crash');
+</script>
+</body>
+</html>

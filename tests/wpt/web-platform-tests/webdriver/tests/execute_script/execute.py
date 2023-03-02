@@ -25,6 +25,27 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
+@pytest.mark.parametrize("expression, expected", [
+    ("null", None),
+    ("undefined", None),
+    ("true", True),
+    ("false", False),
+    ("23", 23),
+    ("'foo'", "foo"),
+    (
+        # Compute value in the runtime to reduce the potential for
+        # interference from encoding literal bytes or escape sequences in
+        # Python and HTTP.
+        "String.fromCharCode(0)",
+        "\x00"
+    )
+])
+def test_primitive_serialization(session, expression, expected):
+    response = execute_script(session, "return {};".format(expression))
+    value = assert_success(response)
+    assert value == expected
+
+
 def test_opening_new_window_keeps_current_window_handle(session, inline):
     original_handle = session.window_handle
     original_handles = session.handles

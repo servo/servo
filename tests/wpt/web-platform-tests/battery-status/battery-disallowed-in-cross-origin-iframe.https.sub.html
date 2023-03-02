@@ -19,7 +19,7 @@ function load_iframe(iframe, src) {
 promise_test(async t => {
   let iframe = document.getElementById('blank');
   const path = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-  const src = 'https://{{domains[www1]}}:{{ports[https][0]}}' + path + 'support-iframe.html';
+  const src = 'https://{{domains[www1]}}:{{ports[https][0]}}' + path + 'resources/support-iframe.html';
   iframe = await load_iframe(iframe, src);
   await promise_rejects_dom(t, 'NotAllowedError', iframe.contentWindow.navigator.getBattery());
 }, "throw a 'NotAllowedError' when invoking navigator.getBattery() within cross-origin iframe");

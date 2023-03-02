@@ -18,7 +18,7 @@ function load_iframe(iframe, src) {
 
 promise_test(async t => {
   let iframe = document.getElementById('blank');
-  const src = 'support-iframe.html';
+  const src = 'resources/support-iframe.html';
   iframe = await load_iframe(iframe, src);
   await iframe.contentWindow.navigator.getBattery();
 }, "navigator.getBattery() is allowed in same origin iframe");

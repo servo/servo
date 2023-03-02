@@ -120,7 +120,7 @@ async_test(t => {
 });
 
 promise_test(async t => {
-  const response = await fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/html/cross-origin-embedder-policy/resources/nothing-cross-origin-corp.txt", {mode: "no-cors"});
+  const response = await fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/html/cross-origin-embedder-policy/resources/nothing-cross-origin-corp.js", {mode: "no-cors"});
   assert_equals(response.type, "opaque");
 }, `"require-corp" top-level: fetch() to CORP: cross-origin response should succeed`);
 

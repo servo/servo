@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="resources/battery-status-helpers.js"></script>
+</head>
+<body>
+<script>
+battery_status_test(async (t, mockBatteryMonitor) => {
+  const levelFullPrecision = 0.556789;
+  const levelRounded = 0.56;
+
+  mockBatteryMonitor.setBatteryStatus(false, 10, 20, levelFullPrecision);
+
+  const battery = await navigator.getBattery();
+  assert_equals(battery.level, levelRounded);
+}, 'battery level is reported with restricted precision');
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@ from wptserve.utils import isomorphic_decode
 def main(request, response):
   header = [(b'Content-Type', b'text/html')]
   if b'test' in request.GET:
-    with open(os.path.join(os.path.dirname(isomorphic_decode(__file__)), u'blank.html'), u'r') as f:
+    with open(os.path.join(os.path.dirname(isomorphic_decode(__file__)), u'sample.js'), u'r') as f:
       body = f.read()
     return (header, body)
 
