@@ -1838,13 +1838,16 @@ impl GlobalScope {
             };
             match parent {
                 Some((parent_id, rel_pos)) => {
-                    let parent_file_id = {
-                        let parent_info = blobs_map
-                            .get_mut(&parent_id)
-                            .expect("Parent of blob whose url is requested is unknown.");
-                        self.promote(parent_info, /* set_valid is */ false)
+                    let parent_info = blobs_map
+                        .get_mut(&parent_id)
+                        .expect("Parent of blob whose url is requested is unknown.");
+                    let parent_file_id = self.promote(parent_info, /* set_valid is */ false);
+                    let parent_size = match parent_info.blob_impl.blob_data() {
+                        BlobData::File(ref f) => f.get_size(),
+                        BlobData::Memory(ref v) => v.len() as u64,
+                        BlobData::Sliced(_, _) => panic!("Blob ancestry should be only one level."),
                     };
-                    let parent_size = self.get_blob_size(&parent_id);
+                    let parent_size = rel_pos.to_abs_range(parent_size as usize).len() as u64;
                     let blob_info = blobs_map
                         .get_mut(blob_id)
                         .expect("Blob whose url is requested is unknown.");
