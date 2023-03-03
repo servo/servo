@@ -118,11 +118,14 @@ class WebTransportH3Protocol(QuicConnectionProtocol):
 
             method = headers.get(b":method")
             protocol = headers.get(b":protocol")
-            if method == b"CONNECT" and protocol == b"webtransport":
+            origin = headers.get(b"origin")
+            # Accept any Origin but the client must send it.
+            if method == b"CONNECT" and protocol == b"webtransport" and origin:
                 self._session_stream_id = event.stream_id
                 self._handshake_webtransport(event, headers)
             else:
-                self._send_error_response(event.stream_id, 400)
+                status_code = 404 if origin else 403
+                self._send_error_response(event.stream_id, status_code)
 
         if isinstance(event, DataReceived) and\
            self._session_stream_id == event.stream_id:

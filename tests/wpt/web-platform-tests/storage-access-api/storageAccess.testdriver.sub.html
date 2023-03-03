@@ -16,10 +16,10 @@
     const wwwAlt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
 
     promise_test(async t => {
-      await MaybeSetStorageAccess(wwwAlt + "/", "*", "blocked");
+      await MaybeSetStorageAccess("*", "*", "blocked");
       t.add_cleanup(async () => {
         await test_driver.delete_all_cookies();
-        await MaybeSetStorageAccess(wwwAlt + "/", "*", "allowed");
+        await MaybeSetStorageAccess("*", "*", "allowed");
       });
 
       const responder_html = `${wwwAlt}/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js`;

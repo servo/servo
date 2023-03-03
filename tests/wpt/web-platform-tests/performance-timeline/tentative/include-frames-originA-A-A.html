@@ -4,49 +4,66 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src=/common/get-host-info.sub.js></script>
+  <script src="../resources/include-frames-helper.js"></script>
 </head>
 
 <body>
   <script>
-    const loadChildFrame = () => {
-      return new Promise(resolve => {
+    const verifyMainFrameEntries = (entries, description = '') => {
+      let filterOptions = [
+        createFilterOption('include-frames-originA-A-A', 'navigation', 1, 'Main Frame', description),
+        createFilterOption('include-frames-subframe', 'resource', 1, 'Main Frame', description),
+      ];
 
-        const childFrame = document.createElement('iframe');
+      verifyEntries(entries, filterOptions);
+    }
 
-        window.addEventListener("message", (e) => {
-          resolve(e.data)
-        });
+    const verifyChildFrameEntries = (entries) => {
+      let filterOptions = [
+        createFilterOption('include-frames-subframe', 'navigation', 1, 'Child Frame'),
+        createFilterOption('child-frame.html', 'resource', 1, 'Child Frame'),
+        createFilterOption('mark_subframe', 'mark', 1, 'Child frame')
+      ];
 
-        childFrame.src = "../resources/include-frames-subframe.html?origin=" + get_host_info().ORIGIN;
+      verifyEntries(entries, filterOptions);
+    }
 
-        document.body.appendChild(childFrame);
-      });
+    const verifyGrandchildFrameEntries = (entries) => {
+      let filterOptions = [
+        createFilterOption('child-frame.html', 'navigation', 1, 'Grandchild Frame'),
+        createFilterOption('mark_child_frame', 'mark', 1, 'Grandchild frame')
+      ];
+
+      verifyEntries(entries, filterOptions);
     }
 
     promise_test(async () => {
       performance.clearResourceTimings();
 
       // Load a child frame. The child frame upon loading would load a child frame of its own.
-      childFrameEntrySize = await loadChildFrame();
+      await loadChildFrameAndGrandchildFrame(
+        '../resources/include-frames-subframe.html?origin=' + get_host_info().ORIGIN);
 
-      // Verify the number of performance entries in the child frame.
-      assert_equals(childFrameEntrySize, 6, 'Child Frame should have 6 entries.');
-
+      // Verify entries retrieved from main frame.
       const entries = performance.getEntries({ includeChildFrames: true });
 
-      const navigationEntries = performance.getEntries({ entryType: "navigation", includeChildFrames: true });
+      verifyMainFrameEntries(entries);
 
-      const markedEntries = performance.getEntries(
-        { name: 'entry-name', includeChildFrames: true });
+      verifyChildFrameEntries(entries);
 
-      // 3 entries for parent, 4 for child, 2 for grandchild.
-      assert_equals(entries.length, 9, 'Total entries should be 9.');
+      verifyGrandchildFrameEntries(entries);
 
       // 1 entry for parent, 1 for child, 1 for grandchild.
+      const navigationEntries = performance.getEntries({ entryType: "navigation", includeChildFrames: true });
       assert_equals(navigationEntries.length, 3, 'Navigation entries should be 3.');
 
-      // 1 entry for child, 1 for grandchild.
-      assert_equals(markedEntries.length, 2, 'Mark entries should be 2.');
+      const markedChildFrameEntries = performance.getEntries(
+        { name: 'mark_subframe', includeChildFrames: true });
+      assert_equals(markedChildFrameEntries.length, 1, 'Child frame mark entries should be 1.');
+
+      const markedGrandchildFrameEntries = performance.getEntries(
+        { name: 'mark_child_frame', includeChildFrames: true });
+      assert_equals(markedGrandchildFrameEntries.length, 1, 'Grand child frame mark entries should be 1.');
 
       // Test cases where includeChildFrames is false.
       const entriesWithNoFitlerOptions = performance.getEntries();
@@ -58,18 +75,15 @@
       const markedEntriesWithoutIncludingChildFrames = performance.getEntries(
         { name: 'entry-name', includeChildFrames: false });
 
-      // 3 entries for parent.
-      assert_equals(entriesWithNoFitlerOptions.length, 3,
-        'Total entries without filter options should be 3 without filter options.');
+      verifyMainFrameEntries(entriesWithNoFitlerOptions, 'with no filter options.');
 
-      assert_equals(entriesWithoutIncludingChildFrames.length, 3,
-        'Total entries with includeChildFrame being false should be 3.');
+      verifyMainFrameEntries(entriesWithoutIncludingChildFrames, 'with includingChildFrames being false.')
 
-      // 1 entry for parent.
+      // 1 entry for main frame.
       assert_equals(navigationEntriesWithoutIncludingChildFrames.length, 1,
         'Navigation entries with includeChildFrame being false should be 1.');
 
-      // 0 entry for child.
+      // 0 entry since grandchild frame is not included.
       assert_equals(markedEntriesWithoutIncludingChildFrames.length, 0,
         'Mark entries with includeChildFrame being false should be 0.');
 

@@ -45,7 +45,7 @@
 <div id=test1>
   <button onclick='showTestPopover("test1",0)'>Test1 Popover</button>
   <my-element>
-    <template shadowroot=open>
+    <template shadowrootmode=open>
       <div popover>
         <p>This should show, even though it is inside shadow DOM.</p>
       </div>
@@ -71,7 +71,7 @@
     <button id=t2b2 onclick='showTestPopover("test2",1)'>Test 2 Popover 2</button>
   </div>
   <my-element>
-    <template shadowroot=open>
+    <template shadowrootmode=open>
       <div popover anchor=t2b2 style="top: 400px;">
         <p>Hiding this popover will hide *all* open popovers,</p>
         <p>because t2b2 doesn't exist in this context.</p>
@@ -98,7 +98,7 @@
 
 <div id=test3>
   <my-element>
-    <template shadowroot=open>
+    <template shadowrootmode=open>
       <button id=t3b1 onclick='showTestPopover("test3",0)'>Test 3 Popover 1</button>
       <div popover anchor=t3b1>
         <p>This popover will stay open when popover2 shows.</p>
@@ -138,7 +138,7 @@
   <div popover anchor=t4b1>
     <p>This should not get hidden when popover2 opens.</p>
     <my-element>
-      <template shadowroot=open>
+      <template shadowrootmode=open>
         <button id=t4b2 onclick='showTestPopover("test4",1)'>Test 4 Popover 2</button>
         <div popover anchor=t4b2>
           <p>This should not hide popover1.</p>

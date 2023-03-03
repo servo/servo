@@ -13,8 +13,11 @@ meta.setAttribute('http-equiv', 'Content-Security-Policy');
 meta.setAttribute('content', "connect-src 'none'");
 document.head.appendChild(meta);
 
-backgroundFetchTest((t, bgFetch) => {
+backgroundFetchTest(async (t, bgFetch) => {
+  const fetch = await bgFetch.fetch(uniqueId(), '/');
+
+  const record = await fetch.match('/');
   return promise_rejects_js(
       t, TypeError,
-      bgFetch.fetch(uniqueId(), 'https://example.com'));
+      record.responseReady);
 }, 'fetch blocked by CSP should reject');

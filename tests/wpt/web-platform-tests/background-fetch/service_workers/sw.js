@@ -52,6 +52,10 @@ function handleBackgroundFetchEvent(event) {
         const registrationCopy = cloneRegistration(event.registration);
         sendMessageToDocument(
           { type: event.type, eventRegistration: registrationCopy, results })
+      })
+      .catch(error => {
+        sendMessageToDocument(
+          { type: event.type, eventRegistration:{}, results:[], error:true })
       }));
 }
 

@@ -140,7 +140,7 @@ def _handle_final_request(request, response):
     if uuid is not None:
       if (request.server.stash.take(uuid) is None and
           not _is_preflight_optional(request)):
-        return (405, [], "no preflight received for {}".format(uuid))
+        return (405, [], "no preflight received")
       request.server.stash.put(uuid, "final")
 
     mode = request.GET.get(b"final-headers")

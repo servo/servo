@@ -43,16 +43,6 @@ function convertTemplatesToShadowRootsWithin(node) {
   }
 }
 
-function convertDeclarativeTemplatesToShadowRootsWithin(root) {
-  root.querySelectorAll("template[shadowroot]").forEach(template => {
-    const mode = template.getAttribute("shadowroot");
-    const shadowRoot = template.parentNode.attachShadow({ mode });
-    shadowRoot.appendChild(template.content);
-    template.remove();
-    convertDeclarativeTemplatesToShadowRootsWithin(shadowRoot);
-  });
-}
-
 function isShadowHost(node) {
   return node && node.nodeType == Node.ELEMENT_NODE && node.shadowRoot;
 }

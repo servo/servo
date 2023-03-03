@@ -7,11 +7,12 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <script src="resources/shadow-dom.js"></script>
 <script src="resources/focus-utils.js"></script>
 
 <div>
-  <template shadowroot=open>
+  <template shadowrootmode=open>
     <slot />
   </template>
   <slot>
@@ -24,7 +25,7 @@
 
 <script>
 promise_test(async () => {
-  convertDeclarativeTemplatesToShadowRootsWithin(document);
+  polyfill_declarative_shadow_dom(document);
   input2.focus();
   assert_equals(document.activeElement, input2);
 

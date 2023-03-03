@@ -6,6 +6,7 @@
 <link rel=help href="https://html.spec.whatwg.org/multipage/#textFieldSelection">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
 <div id="log"></div>
 
 <textarea>foobar</textarea>
@@ -59,14 +60,10 @@ const actions = [
   }
 ];
 
-function waitForRender() {
-  return new Promise(resolve => setTimeout(resolve, 0));
-}
-
 function initialize(el) {
   el.setRangeText("foobar", 0, el.value.length, "start");
   // Make sure to flush async dispatches
-  return waitForRender();
+  return waitForAtLeastOneFrame();
 }
 
 els.forEach((el) => {
@@ -96,7 +93,7 @@ els.forEach((el) => {
 
       action.action(el);
 
-      await waitForRender();
+      await waitForAtLeastOneFrame();
       el.onselect = null;
     }, `${elLabel}: ${action.label} a second time (must not fire select)`);
 
@@ -107,7 +104,7 @@ els.forEach((el) => {
 
       action.action(element);
 
-      await waitForRender();
+      await waitForAtLeastOneFrame();
       assert_true(fired, "event didn't fire");
 
     }, `${elLabel}: ${action.label} disconnected node`);
@@ -122,7 +119,7 @@ els.forEach((el) => {
       action.action(element);
 
       assert_false(fired, "the select event must not fire synchronously");
-      await waitForRender();
+      await waitForAtLeastOneFrame();
       assert_true(fired, "event didn't fire");
     }, `${elLabel}: ${action.label} event queue`);
 
@@ -135,7 +132,7 @@ els.forEach((el) => {
       action.action(element);
       action.action(element);
 
-      await waitForRender();
+      await waitForAtLeastOneFrame();
       assert_equals(selectCount, 1, "the select event must not fire twice");
     }, `${elLabel}: ${action.label} twice in disconnected node (must fire select only once)`);
   });

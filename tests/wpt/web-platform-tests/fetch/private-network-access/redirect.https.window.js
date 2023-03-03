@@ -230,3 +230,248 @@ promise_test(t => fetchTest(t, {
   fetchOptions: { mode: "no-cors" },
   expected: FetchTestResult.OPAQUE,
 }), "public to private to local: no-cors success.");
+
+// treat-as-public -> local -> private
+
+// Request 1 (treat-as-public -> local): preflight required.
+// Request 2 (treat-as-public -> private): preflight required.
+
+// This verifies that PNA checks are applied to every step in a redirect chain.
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      redirect: preflightUrl({
+        server: Server.HTTPS_PRIVATE,
+        behavior: {
+          preflight: PreflightBehavior.success(token()),
+          response: ResponseBehavior.allowCrossOrigin(),
+        },
+      }),
+    }
+  },
+  expected: FetchTestResult.FAILURE,
+}), "treat-as-public to local to private: failed first preflight.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      redirect: preflightUrl({
+        server: Server.HTTPS_PRIVATE,
+        behavior: {
+          preflight: PreflightBehavior.noPnaHeader(token()),
+          response: ResponseBehavior.allowCrossOrigin(),
+        },
+      }),
+    }
+  },
+  expected: FetchTestResult.FAILURE,
+}), "treat-as-public to local to private: failed second preflight.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      redirect: preflightUrl({
+        server: Server.HTTPS_PRIVATE,
+        behavior: {
+          preflight: PreflightBehavior.success(token()),
+          response: ResponseBehavior.allowCrossOrigin(),
+        },
+      }),
+    }
+  },
+  expected: FetchTestResult.SUCCESS,
+}), "treat-as-public to local to private: success.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      redirect: preflightUrl({
+        server: Server.HTTPS_PRIVATE,
+        behavior: { preflight: PreflightBehavior.success(token()) },
+      }),
+    }
+  },
+  fetchOptions: { mode: "no-cors" },
+  expected: FetchTestResult.FAILURE,
+}), "treat-as-public to local to private: no-cors failed first preflight.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      redirect: preflightUrl({ server: Server.HTTPS_PRIVATE }),
+    }
+  },
+  fetchOptions: { mode: "no-cors" },
+  expected: FetchTestResult.FAILURE,
+}), "treat-as-public to local to private: no-cors failed second preflight.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      redirect: preflightUrl({
+        server: Server.HTTPS_PRIVATE,
+        behavior: { preflight: PreflightBehavior.success(token()) },
+      }),
+    }
+  },
+  fetchOptions: { mode: "no-cors" },
+  expected: FetchTestResult.OPAQUE,
+}), "treat-as-public to local to private: no-cors success.");
+
+// treat-as-public -> private -> local
+
+// Request 1 (treat-as-public -> private): preflight required.
+// Request 2 (treat-as-public -> local): preflight required.
+
+// This verifies that PNA checks are applied to every step in a redirect chain.
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  server: Server.HTTPS_PRIVATE,
+  target: {
+    behavior: {
+      preflight: PreflightBehavior.noPnaHeader(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
+      redirect: preflightUrl({
+        server: Server.HTTPS_LOCAL,
+        behavior: {
+          preflight: PreflightBehavior.success(token()),
+          response: ResponseBehavior.allowCrossOrigin(),
+        },
+      }),
+    }
+  },
+  expected: FetchTestResult.FAILURE,
+}), "treat-as-public to private to local: failed first preflight.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_PRIVATE,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
+      redirect: preflightUrl({
+        server: Server.HTTPS_LOCAL,
+        behavior: { response: ResponseBehavior.allowCrossOrigin() },
+      }),
+    }
+  },
+  expected: FetchTestResult.FAILURE,
+}), "treat-as-public to private to local: failed second preflight.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_PRIVATE,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
+      redirect: preflightUrl({
+        server: Server.HTTPS_LOCAL,
+        behavior: {
+          preflight: PreflightBehavior.success(token()),
+          response: ResponseBehavior.allowCrossOrigin(),
+        },
+      }),
+    }
+  },
+  expected: FetchTestResult.SUCCESS,
+}), "treat-as-public to private to local: success.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_PRIVATE,
+    behavior: {
+      redirect: preflightUrl({
+        server: Server.HTTPS_LOCAL,
+        behavior: { preflight: PreflightBehavior.success(token()) },
+      }),
+    }
+  },
+  fetchOptions: { mode: "no-cors" },
+  expected: FetchTestResult.FAILURE,
+}), "treat-as-public to private to local: no-cors failed first preflight.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_PRIVATE,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      redirect: preflightUrl({ server: Server.HTTPS_LOCAL }),
+    }
+  },
+  fetchOptions: { mode: "no-cors" },
+  expected: FetchTestResult.FAILURE,
+}), "treat-as-public to private to local: no-cors failed second preflight.");
+
+promise_test(t => fetchTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: {
+    server: Server.HTTPS_PRIVATE,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      redirect: preflightUrl({
+        server: Server.HTTPS_LOCAL,
+        behavior: { preflight: PreflightBehavior.success(token()) },
+      }),
+    }
+  },
+  fetchOptions: { mode: "no-cors" },
+  expected: FetchTestResult.OPAQUE,
+}), "treat-as-public to private to local: no-cors success.");

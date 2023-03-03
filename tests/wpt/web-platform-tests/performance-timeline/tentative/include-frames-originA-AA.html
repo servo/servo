@@ -1,56 +1,51 @@
-
 <!DOCTYPE html>
 
 <head>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/include-frames-helper.js"></script>
 </head>
 
 <body>
-<script>
-  const verifyPerformanceEntries = () => {
-    const entries = performance.getEntries({ includeChildFrames: true });
+  <script>
+    const verifyMainFrameEntries = (entries) => {
+      let filterOptions = [
+        createFilterOption('include-frames-originA-AA', 'navigation', 1, 'Main Frame'),
+        createFilterOption('child-frame.html', 'navigation', 2, 'Child Frames'),
+        createFilterOption('child-frame.html', 'resource', 2, 'Main Frame'),
+        createFilterOption('mark_child_frame', 'mark', 2, 'Child frames')
+      ];
 
-    const navigationEntries = performance.getEntries({ entryType: "navigation", includeChildFrames: true });
+      verifyEntries(entries, filterOptions);
+    }
 
-    const markedEntries = performance.getEntries(
-      { name: 'entry-name', includeChildFrames: true });
+    const verifyPerformanceEntries = () => {
+      const entries = performance.getEntries({ includeChildFrames: true });
 
-    // 4 entries for parent, 2 for each child
-    assert_equals(entries.length, 8,'Total entries should be 8.');
+      const navigationEntries = performance.getEntries({ entryType: "navigation", includeChildFrames: true });
 
-    // 1 entry for parent, 1 for each child.
-    assert_equals(navigationEntries.length, 3, 'Navigation entries should be 3.');
+      const markedEntries = performance.getEntries(
+        { name: 'mark_child_frame', includeChildFrames: true });
 
-    // 1 entry for each child.
-    assert_equals(markedEntries.length, 2, 'Mark entries should be 2.');
-  }
+      verifyMainFrameEntries(entries);
 
-  const loadChildFrame = () => {
-    return new Promise(resolve => {
+      // 1 entry for main frame, 1 for each child frame.
+      assert_equals(navigationEntries.length, 3, 'Navigation entries should be 3.');
 
-      const childFrame = document.createElement('iframe');
+      // 1 entry for each child frame.
+      assert_equals(markedEntries.length, 2, 'Mark entries should be 2.');
+    }
 
-      childFrame.addEventListener("load", () => {
-        resolve();
-      });
+    promise_test(async () => {
+      performance.clearResourceTimings();
 
-      childFrame.src = "../resources/child-frame.html";
+      // Load first child iframe.
+      const promise1 = loadChildFrame('../resources/child-frame.html');
 
-      document.body.appendChild(childFrame);
-    });
-  }
+      // Load second child iframe.
+      const promise2 = loadChildFrame('../resources/child-frame.html');
 
-  promise_test(async () => {
-    performance.clearResourceTimings();
-
-    // Load first child iframe.
-    const promise1 = loadChildFrame();
-
-    // Load second child iframe.
-    const promise2 = loadChildFrame();
-
-    return Promise.all([promise1, promise2]).then(verifyPerformanceEntries);
-  }, 'GetEntries of a document of origin A and its two child frames both of origin A.');
-</script>
+      return Promise.all([promise1, promise2]).then(verifyPerformanceEntries);
+    }, 'GetEntries of a document of origin A and its two child frames both of origin A.');
+  </script>
 </body>

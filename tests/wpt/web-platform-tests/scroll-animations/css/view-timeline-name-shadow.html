@@ -41,7 +41,7 @@
   <div class=scroller>
     <div>
       <div class=target>
-        <template shadowroot=open>
+        <template shadowrootmode=open>
           <style>
             :host {
               view-timeline: timeline vertical;
@@ -78,7 +78,7 @@
   </style>
   <div class=scroller>
     <div class=host>
-      <template shadowroot=open>
+      <template shadowrootmode=open>
         <style>
           ::slotted(.target) {
             view-timeline: timeline vertical;
@@ -114,7 +114,7 @@
     }
   </style>
   <div class=host>
-    <template shadowroot=open>
+    <template shadowrootmode=open>
       <style>
           /* Not using 'anim' at document scope, due to https://crbug.com/1334534 */
           @keyframes anim2 {
@@ -158,7 +158,7 @@
   </style>
   <div class=scroller>
     <div class=host>
-      <template shadowroot=open>
+      <template shadowrootmode=open>
         <style>
           div {
             view-timeline: timeline vertical;
