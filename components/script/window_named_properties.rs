@@ -11,7 +11,6 @@ use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::jsstr_to_string;
-use js::error::throw_type_error;
 use js::glue::RUST_JSID_TO_STRING;
 use js::glue::{CreateProxyHandler, NewProxyObject, ProxyTraps, RUST_JSID_IS_STRING};
 use js::jsapi::JS_SetImmutablePrototype;
@@ -131,17 +130,14 @@ unsafe extern "C" fn own_property_keys(
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn define_property(
-    cx: *mut JSContext,
+    _cx: *mut JSContext,
     _proxy: HandleObject,
     _id: HandleId,
     _desc: Handle<PropertyDescriptor>,
-    _result: *mut ObjectOpResult,
+    result: *mut ObjectOpResult,
 ) -> bool {
-    throw_type_error(
-        cx,
-        "Not allowed to define a property on the named properties object.",
-    );
-    false
+    (*result).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_NAMED_PROPERTY as usize;
+    true
 }
 
 #[allow(unsafe_code)]
