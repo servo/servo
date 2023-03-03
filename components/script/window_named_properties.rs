@@ -11,8 +11,7 @@ use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::jsstr_to_string;
-use js::glue::RUST_JSID_TO_STRING;
-use js::glue::{CreateProxyHandler, NewProxyObject, ProxyTraps, RUST_JSID_IS_STRING};
+use js::glue::{CreateProxyHandler, NewProxyObject, ProxyTraps};
 use js::jsapi::JS_SetImmutablePrototype;
 use js::jsapi::{
     Handle, HandleObject, JSClass, JSContext, JSErrNum, MutableHandleObject, UndefinedHandleValue,
@@ -85,7 +84,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     is_none: *mut bool,
 ) -> bool {
     let cx = SafeJSContext::from_ptr(cx);
-    if !RUST_JSID_IS_STRING(id) {
+    if !id.is_string() {
         // Nothing to do if we're resolving a non-string property.
         return true;
     }
@@ -103,7 +102,7 @@ unsafe extern "C" fn get_own_property_descriptor(
         return true;
     }
 
-    let s = jsstr_to_string(*cx, RUST_JSID_TO_STRING(id));
+    let s = jsstr_to_string(*cx, id.to_string());
     if s.is_empty() {
         return true;
     }
