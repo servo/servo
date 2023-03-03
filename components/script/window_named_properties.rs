@@ -84,10 +84,6 @@ unsafe extern "C" fn get_own_property_descriptor(
     is_none: *mut bool,
 ) -> bool {
     let cx = SafeJSContext::from_ptr(cx);
-    if !id.is_string() {
-        // Nothing to do if we're resolving a non-string property.
-        return true;
-    }
 
     let mut found = false;
     if !has_property_on_prototype(
@@ -102,7 +98,19 @@ unsafe extern "C" fn get_own_property_descriptor(
         return true;
     }
 
-    let s = jsstr_to_string(*cx, id.to_string());
+    let s = if id.is_string() {
+        jsstr_to_string(*cx, id.to_string())
+    } else if id.is_int() {
+        // If the property key is an integer index, convert it to a String too.
+        // TODO(delan) will this interfere with indexed access on the Window object
+        // (window[index]), which should only return document-tree child navigables?
+        // https://html.spec.whatwg.org/#accessing-other-browsing-contexts
+        id.to_int().to_string()
+    } else {
+        // TODO(delan) what do we do if the property key is a symbol?
+        warn!("[[GetOwnProperty]] called with id neither string nor int: {:?}", id.get());
+        return true;
+    };
     if s.is_empty() {
         return true;
     }
