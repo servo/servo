@@ -42,6 +42,16 @@ promise_test(
   "ORB should block opaque application/json (empty)"
 );
 
+promise_test(
+  t =>
+    promise_rejects_js(
+      t,
+      TypeError,
+      fetchORB(`${path}/data_non_ascii.json`, null, contentType("application/json"))
+    ),
+  "ORB should block opaque application/json which contains non ascii characters"
+);
+
 promise_test(async () => {
   fetchORB(`${path}/image.png`, null, contentType("image/png"));
 }, "ORB shouldn't block opaque image/png");

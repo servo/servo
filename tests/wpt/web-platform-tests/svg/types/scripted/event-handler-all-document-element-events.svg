@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml">
-    <title>oncopy / oncut / onpaste</title>
+    <title>oncopy / oncut / onpaste / oncontextmenu</title>
     <metadata>
         <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGElement"/>
     </metadata>
@@ -11,7 +11,7 @@
         "use strict";
         setup({ explicit_done: true });
 
-        const names = ["oncut","oncopy","onpaste"];
+        const names = ["oncut","oncopy","onpaste","oncontextmenu"];
 
         for (const name of names) {
             const withoutOn = name.substring(2);

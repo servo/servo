@@ -25,7 +25,7 @@
 
 <div id="inclusive-ancestor-across-root">
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         @container (width = 400px) {
           #t1 { color: green; }
@@ -38,7 +38,7 @@
 
 <div id="inclusive-ancestor-skip-slotting">
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         div {
           width: 200px;
@@ -60,7 +60,7 @@
 
 <div id="inclusive-ancestor-slotted">
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         slot {
           display: block;
@@ -79,7 +79,7 @@
 
 <div id="inclusive-ancestor-host">
   <div id="t4">
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         @container (width = 400px) {
           :host(#t4) { color: green; }
@@ -91,7 +91,7 @@
 
 <div id="inclusive-ancestor-part">
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         div {
           width: 200px;
@@ -112,7 +112,7 @@
 
 <div id="inclusive-ancestor-slotted-before">
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         slot {
           display: block;
@@ -140,7 +140,7 @@
 
 <div id="inclusive-ancestor-host-before">
   <div id="t7">
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         :host {
           width: 200px;
@@ -167,7 +167,7 @@
     }
   </style>
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         div {
           width: 200px;
@@ -188,7 +188,7 @@
     }
   </style>
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         div {
           width: 200px;
@@ -196,7 +196,7 @@
         }
       </style>
       <div exportparts="inner-part">
-        <template shadowroot="open">
+        <template shadowrootmode="open">
           <style>
             div {
               width: 200px;
@@ -213,7 +213,7 @@
 </div>
 
 <div id="inclusive-ancestor-slot-fallback">
-  <div><template shadowroot="open">
+  <div><template shadowrootmode="open">
     <style>
       div {
         width: 200px;
@@ -231,7 +231,7 @@
 
 <div id="no-container-for-part">
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         div {
           width: 200px;
@@ -253,7 +253,7 @@
 
 <div id="inner-scope-host-part">
   <div>
-    <template shadowroot="open">
+    <template shadowrootmode="open">
       <style>
         div {
           width: 200px;

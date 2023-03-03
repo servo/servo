@@ -51,43 +51,56 @@
       // scrollTop=200 to 400 is the entry range
       container.scrollTop = 200;
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '0', 'Effect at entry 0%');
+      const anim = document.getAnimations()[0];
+      assert_equals(getComputedStyle(subject).opacity, '0',
+                    'Effect at entry 0%');
 
       container.scrollTop = 300;
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '0.5', 'Effect at entry 50%');
+      assert_equals(getComputedStyle(subject).opacity, '0.5',
+                    'Effect at entry 50%');
 
       container.scrollTop = 400;
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '1', 'Effect at entry 100%');
+      assert_equals(getComputedStyle(subject).opacity, '1',
+                    'Effect at entry 100%');
 
       // scrollTop=600-800 is the exit range
       container.scrollTop = 600;
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '1', 'Effect at exit 0%');
+      assert_equals(getComputedStyle(subject).opacity, '1',
+                    'Effect at exit 0%');
 
       container.scrollTop = 700;
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '0.5', 'Effect at exit 50%');
+      assert_equals(getComputedStyle(subject).opacity, '0.5',
+                    'Effect at exit 50%');
 
       container.scrollTop = 800;
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '0', 'Effect at exit 100%');
+      assert_equals(getComputedStyle(subject).opacity, '0',
+                    'Effect at exit 100%');
 
-      // First change scrollTop so that you are at entry 100%, then resize the container in a way
-      // that scrollTop is the same, but now the animation is at entry 50% and check opacity.
-      // After changing the height of container, scrollTop=300-500 is the entry range
+      // First change scrollTop so that you are at entry 100%, then resize the
+      // container in a way that scrollTop is the same, but now the animation is
+      // at entry 50% and check opacity. After changing the height of container,
+      // scrollTop=300-500 is the entry range
       container.scrollTop = 400;
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '1', 'Effect at entry 100%');
+      assert_equals(getComputedStyle(subject).opacity, '1',
+                    'Effect at entry 100% (post resize)');
+
       container.style.height = '300px';
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '0.5', 'Effect at entry 50%');
+      assert_equals(getComputedStyle(subject).opacity, '0.5',
+                    'Effect at entry 50% (post resize)');
 
-      // After changing the height of container, scrollTop=600-800 is still the exit range
+      // After changing the height of container, scrollTop=600-800 is still the
+      // exit range
       container.scrollTop = 700;
       await waitForNextFrame();
-      assert_equals(getComputedStyle(subject).opacity, '0.5', 'Effect at exit 50%');
+      assert_equals(getComputedStyle(subject).opacity, '0.5',
+                    'Effect at exit 50% (post resize)');
     });
   }
 </script>

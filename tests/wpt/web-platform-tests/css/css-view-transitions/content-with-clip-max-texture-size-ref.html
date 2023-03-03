@@ -6,16 +6,23 @@
 .target {
   contain: paint;
   width: 100px;
-  height: 8000px;
+  height: 40000px;
+  view-transition-name: target;
 }
 
-.green {
+.top {
   width: 100%;
-  height: 7900px;
-  background: green
+  height: 100px;
+  background: lightblue;
 }
 
-.blue {
+.middle {
+  width: 100%;
+  height: 39800px;
+  background: green;
+}
+
+.bottom {
   width: 100%;
   height: 100px;
   background: blue;
@@ -30,9 +37,10 @@
 }
 </style>
 <body>
-<div id="target1" class="target">
-  <div class="green"></div>
-  <div id="scrollblue" class="blue"></div>
+<div class="target">
+  <div class="top">This text is at the top of the box</div>
+  <div class="middle">This text is in the middle of the box</div>
+  <div id="scrollblue" class="bottom">This text is at the bottom of the box</div>
 </div>
 <div id=hidden class=hidden></div>
 </body>

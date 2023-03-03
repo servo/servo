@@ -4,22 +4,20 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src=/common/get-host-info.sub.js></script>
+  <script src="../resources/include-frames-helper.js"></script>
 </head>
 
 <body>
   <script>
-    const loadChildFrame = (src) => {
-      return new Promise(resolve => {
-        const childFrame = document.createElement('iframe');
+    const verifyMainFrameEntries = (entries) => {
+      let filterOptions = [
+        createFilterOption('include-frames-originA-AB', 'navigation', 1, 'Main Frame'),
+        createFilterOption('child-frame.html', 'navigation', 1, 'Child Frames'),
+        createFilterOption('child-frame.html', 'resource', 2, 'Main Frame'),
+        createFilterOption('mark_child_frame', 'mark', 1, 'Child frames')
+      ];
 
-        childFrame.addEventListener("load", () => {
-          resolve();
-        });
-
-        childFrame.src = src;
-
-        document.body.appendChild(childFrame);
-      });
+      verifyEntries(entries, filterOptions);
     }
 
     const verifyPerformanceEntries = () => {
@@ -28,15 +26,14 @@
       const navigationEntries = performance.getEntries({ entryType: "navigation", includeChildFrames: true });
 
       const markedEntries = performance.getEntries(
-        { name: 'entry-name', includeChildFrames: true });
+        { name: 'mark_child_frame', includeChildFrames: true });
 
-      // 4 entries for parent, 2 for local child, 0 for remote child.
-      assert_equals(entries.length, 6, 'Total entries should 6.');
+      verifyMainFrameEntries(entries);
 
-      // 1 entry for parent, 1 for local child.
+      // 1 entry for main frame, 1 for local child frame.
       assert_equals(navigationEntries.length, 2, 'Navigation entries should be 2.');
 
-      // 1 entry for local child.
+      // 1 entry for local child frame.
       assert_equals(markedEntries.length, 1, 'Mark entries should be 1.');
     }
 

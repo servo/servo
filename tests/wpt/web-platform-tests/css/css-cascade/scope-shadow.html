@@ -6,7 +6,7 @@
 <script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 
 <div id=host_plain>
-  <template shadowroot=open>
+  <template shadowrootmode=open>
     <style>
       @scope (:host) {
         .a {
@@ -30,7 +30,7 @@
 </script>
 
 <div id=host_functional>
-  <template shadowroot=open>
+  <template shadowrootmode=open>
     <style>
       @scope (:host(div)) {
         .a {
