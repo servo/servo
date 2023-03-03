@@ -147,7 +147,8 @@ ${helpers.two_properties_shorthand(
 
 <%helpers:shorthand name="offset"
                     engines="gecko"
-                    sub_properties="offset-path offset-distance offset-rotate offset-anchor"
+                    sub_properties="offset-path offset-distance offset-rotate offset-anchor
+                                    offset-position"
                     gecko_pref="layout.css.motion-path.enabled",
                     spec="https://drafts.fxtf.org/motion-1/#offset-shorthand">
     use crate::parser::Parse;
@@ -160,27 +161,39 @@ ${helpers.two_properties_shorthand(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        // FIXME: Bug 1559232: Support offset-position.
-        // Per the spec, this must have offet-position and/or offset-path. However, we don't
-        // support offset-position, so offset-path is necessary now.
-        let offset_path = OffsetPath::parse(context, input)?;
+        let offset_position =
+            if static_prefs::pref!("layout.css.motion-path-offset-position.enabled") {
+                input.try_parse(|i| PositionOrAuto::parse(context, i)).ok()
+            } else {
+                None
+            };
+
+        let offset_path = input.try_parse(|i| OffsetPath::parse(context, i)).ok();
+
+        // Must have one of [offset-position, offset-path].
+        if offset_position.is_none() && offset_path.is_none() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
 
         let mut offset_distance = None;
         let mut offset_rotate = None;
-        loop {
-            if offset_distance.is_none() {
-                if let Ok(value) = input.try_parse(|i| LengthPercentage::parse(context, i)) {
-                    offset_distance = Some(value);
+        // offset-distance and offset-rotate are grouped with offset-path.
+        if offset_path.is_some() {
+            loop {
+                if offset_distance.is_none() {
+                    if let Ok(value) = input.try_parse(|i| LengthPercentage::parse(context, i)) {
+                        offset_distance = Some(value);
+                    }
                 }
-            }
 
-            if offset_rotate.is_none() {
-                if let Ok(value) = input.try_parse(|i| OffsetRotate::parse(context, i)) {
-                    offset_rotate = Some(value);
-                    continue;
+                if offset_rotate.is_none() {
+                    if let Ok(value) = input.try_parse(|i| OffsetRotate::parse(context, i)) {
+                        offset_rotate = Some(value);
+                        continue;
+                    }
                 }
+                break;
             }
-            break;
         }
 
         let offset_anchor = input.try_parse(|i| {
@@ -189,7 +202,8 @@ ${helpers.two_properties_shorthand(
         }).ok();
 
         Ok(expanded! {
-            offset_path: offset_path,
+            offset_position: offset_position.unwrap_or(PositionOrAuto::auto()),
+            offset_path: offset_path.unwrap_or(OffsetPath::none()),
             offset_distance: offset_distance.unwrap_or(LengthPercentage::zero()),
             offset_rotate: offset_rotate.unwrap_or(OffsetRotate::auto()),
             offset_anchor: offset_anchor.unwrap_or(PositionOrAuto::auto()),
@@ -198,9 +212,26 @@ ${helpers.two_properties_shorthand(
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            // FIXME: Bug 1559232: Support offset-position. We don't support offset-position,
-            // so always serialize offset-path now.
-            self.offset_path.to_css(dest)?;
+            if let Some(offset_position) = self.offset_position {
+                // The basic concept is: we must serialize offset-position or offset-path group.
+                // offset-path group means "offset-path offset-distance offset-rotate".
+                let must_serialize_path = *self.offset_path != OffsetPath::None
+                    || (!self.offset_distance.is_zero() || !self.offset_rotate.is_auto());
+                let position_is_default = *offset_position == PositionOrAuto::auto();
+                if !position_is_default || !must_serialize_path {
+                    offset_position.to_css(dest)?;
+                }
+
+                if must_serialize_path {
+                    if !position_is_default {
+                        dest.write_char(' ')?;
+                    }
+                    self.offset_path.to_css(dest)?;
+                }
+            } else {
+                // If the pref is off, we always show offset-path.
+                self.offset_path.to_css(dest)?;
+            }
 
             if !self.offset_distance.is_zero() {
                 dest.write_char(' ')?;

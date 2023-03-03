@@ -255,6 +255,19 @@ ${helpers.predefined_type(
     boxed=True
 )}
 
+// Motion Path Module Level 1
+${helpers.predefined_type(
+    "offset-position",
+    "PositionOrAuto",
+    "computed::PositionOrAuto::auto()",
+    engines="gecko",
+    animation_value_type="ComputedValue",
+    gecko_pref="layout.css.motion-path-offset-position.enabled",
+    spec="https://drafts.fxtf.org/motion-1/#offset-position-property",
+    servo_restyle_damage="reflow_out_of_flow",
+    boxed=True
+)}
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword(
