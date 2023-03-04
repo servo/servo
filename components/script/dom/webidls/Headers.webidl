@@ -15,6 +15,7 @@ interface Headers {
   undefined delete(ByteString name);
   [Throws]
   ByteString? get(ByteString name);
+  sequence<ByteString> getSetCookie();
   [Throws]
   boolean has(ByteString name);
   [Throws]

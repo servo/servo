@@ -155,6 +155,16 @@ impl HeadersMethods for Headers {
             .map(|v| ByteString::new(v.as_bytes().to_vec())))
     }
 
+    // https://fetch.spec.whatwg.org/#dom-headers-getsetcookie
+    fn GetSetCookie(&self) -> Vec<ByteString> {
+        self.header_list
+            .borrow()
+            .get_all("Set-Cookie")
+            .iter()
+            .map(|v| ByteString::new(v.as_bytes().to_vec()))
+            .collect()
+    }
+
     // https://fetch.spec.whatwg.org/#dom-headers-has
     fn Has(&self, name: ByteString) -> Fallible<bool> {
         // Step 1
