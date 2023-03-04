@@ -212,7 +212,7 @@ promise_test(async t => {
 
   assert_equals(artwork.length, URLs.length);
   for (let i = 0 ; i < artwork.length ; ++i) {
-    assert_equals(artwork[i].src, new URL(URLs[i], document.URL).href);
+    assert_equals(artwork[i].src, new URL(URLs[i], subframe.contentDocument.URL).href);
   }
 }, 'Test that the base URL of MediaImage is the base URL of entry setting object');
 
