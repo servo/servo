@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step-insert valid values</title>
+<link rel="author" title="Sammy Gill" href="sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-insert">
+<meta name="assert" content="Parsing valid values for block-step-insert property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+    #target {
+      font-size: 40px;
+    }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    test_valid_value("block-step-insert", "margin");
+    test_valid_value("block-step-insert", "padding");
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step-insert invalid values</title>
+<link rel="author" title="Sammy Gill" href="sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-insert">
+<meta name="assert" content="Invalid values for block-step-insert should not be parsed">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+    #target {
+      font-size: 40px;
+    }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    test_invalid_value("block-step-insert", "auto");
+    test_invalid_value("block-step-insert", "-1px");
+    test_invalid_value("block-step-insert", "min-content");
+    test_invalid_value("block-step-insert", "10%");
+    test_invalid_value("block-step-insert", "20");
+    test_invalid_value("block-step-insert", "none");
+    test_invalid_value("block-step-insert", "border-box");
+    test_invalid_value('block-step-insert', "margin-box");
+    test_invalid_value("block-step-insert", "margin padding");
+    test_invalid_value("block-step-insert", "padding margin");
+</script>
+</body>
+</html>

@@ -17,119 +17,58 @@ div.box {
 </div>
 
 <script>
-var receivedEvents = [];
-var receivedMouseEvents = [];
-var receivedPointerEvents = [];
-var mouseEventList = ["mousedown", "mouseup", "mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"];
-var pointerEventList = ["pointerdown", "pointerup", "pointerenter", "pointerleave", "pointerover", "pointerout", "pointermove"];
+    var receivedEvents = [];
+    var receivedMouseEvents = [];
+    var receivedPointerEvents = [];
+    var mouseEventList = ["mousedown", "mouseup", "mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"];
+    var pointerEventList = ["pointerdown", "pointerup", "pointerenter", "pointerleave", "pointerover", "pointerout", "pointermove"];
 
-var preventDefaultList = ["none"].concat(pointerEventList);
-var eventToPreventDefault = "";
+    var preventDefaultList = ["none"].concat(pointerEventList);
+    var eventToPreventDefault = "";
 
-function init() {
-  var targetDiv = document.getElementById("target");
+    function init() {
+      var targetDiv = document.getElementById("target");
 
-  mouseEventList.forEach(function(eventName) {
-    targetDiv.addEventListener(eventName, function(event) {
-      receivedEvents.push(eventName);
-      receivedMouseEvents.push(eventName);
+    mouseEventList.forEach(function (eventName) {
+      targetDiv.addEventListener(eventName, function (event) {
+        receivedEvents.push(eventName);
+        receivedMouseEvents.push(eventName);
+      });
     });
-  });
 
-  pointerEventList.forEach(function(eventName) {
-    targetDiv.addEventListener(eventName, function(event) {
-      if (event.type == eventToPreventDefault) {
-        event.preventDefault();
-      }
-      receivedEvents.push(eventName);
-      receivedPointerEvents.push(eventName);
+    pointerEventList.forEach(function (eventName) {
+      targetDiv.addEventListener(eventName, function (event) {
+        if (event.type == eventToPreventDefault) {
+          event.preventDefault();
+        }
+        receivedEvents.push(eventName);
+        receivedPointerEvents.push(eventName);
+      });
     });
-  });
-}
+  }
 
-var expectedPointerEvents = new Map([
-  ["none", ["pointerover", "pointerenter", "pointermove", "pointerdown", "pointerup",
-            "pointerdown", "pointermove", "pointerout", "pointerleave",
-            "pointerover", "pointerenter", "pointermove", "pointerup", "pointerout",
-            "pointerleave"
-            ]],
-  ["pointerdown", ["pointerover", "pointerenter", "pointermove", "pointerdown",
-            "pointerup", "pointerdown", "pointermove", "pointerout", "pointerleave",
-            "pointerover", "pointerenter", "pointermove", "pointerup", "pointerout",
-            "pointerleave"
-            ]],
-  ["pointerup", ["pointerover", "pointerenter", "pointermove", "pointerdown",
-            "pointerup", "pointerdown", "pointermove", "pointerout", "pointerleave",
-            "pointerover", "pointerenter", "pointermove", "pointerup",
-            "pointerout", "pointerleave"
-            ]],
-  ["pointerenter", ["pointerover", "pointerenter", "pointermove",
-            "pointerdown", "pointerup", "pointerdown", "pointermove",
-            "pointerout", "pointerleave", "pointerover", "pointerenter",
-            "pointermove", "pointerup", "pointerout", "pointerleave"
-            ]],
-  ["pointerleave", ["pointerover", "pointerenter", "pointermove",
-            "pointerdown", "pointerup", "pointerdown", "pointermove",
-            "pointerout", "pointerleave", "pointerover", "pointerenter",
-            "pointermove", "pointerup", "pointerout", "pointerleave"
-            ]],
-  ["pointerover", ["pointerover", "pointerenter", "pointermove",
-            "pointerdown", "pointerup", "pointerdown", "pointermove",
-            "pointerout", "pointerleave", "pointerover", "pointerenter",
-            "pointermove", "pointerup", "pointerout",
-            "pointerleave"
-            ]],
-  ["pointerout", ["pointerover", "pointerenter", "pointermove",
-            "pointerdown", "pointerup", "pointerdown", "pointermove",
-            "pointerout", "pointerleave", "pointerover", "pointerenter",
-            "pointermove", "pointerup", "pointerout",
-            "pointerleave"
-            ]],
-  ["pointermove", ["pointerover", "pointerenter", "pointermove",
-            "pointerdown", "pointerup", "pointerdown", "pointermove",
-            "pointerout", "pointerleave", "pointerover", "pointerenter",
-            "pointermove", "pointerup", "pointerout", "pointerleave"
-            ]]
-  ]);
-var expectedMouseEvents = new Map([
-  ["none", ["mouseover", "mouseenter", "mousemove", "mousedown", "mouseup",
-            "mousedown", "mousemove", "mouseout", "mouseleave",
-            "mouseover", "mouseenter", "mousemove", "mouseup", "mouseout", "mouseleave"
-            ]],
-  ["pointerdown", ["mouseover", "mouseenter", "mousemove",
-            "mouseout", "mouseleave", "mouseover", "mouseenter",
-            "mouseout", "mouseleave"
-            ]],
-  ["pointerup", ["mouseover", "mouseenter", "mousemove",
-            "mousedown", "mouseup", "mousedown", "mousemove",
-            "mouseout", "mouseleave", "mouseover",
-            "mouseenter", "mousemove", "mouseup", "mouseout", "mouseleave"
-            ]],
-  ["pointerenter", ["mouseover", "mouseenter", "mousemove", "mousedown",
-            "mouseup", "mousedown", "mousemove", "mouseout", "mouseleave",
-            "mouseover", "mouseenter", "mousemove", "mouseup", "mouseout", "mouseleave"
-            ]],
-  ["pointerleave", ["mouseover", "mouseenter", "mousemove", "mousedown",
-            "mouseup", "mousedown", "mousemove", "mouseout", "mouseleave",
-            "mouseover", "mouseenter", "mousemove", "mouseup",
-            "mouseout", "mouseleave"
-            ]],
-  ["pointerover", ["mouseover", "mouseenter", "mousemove",
-            "mousedown", "mouseup", "mousedown", "mousemove", "mouseout",
-            "mouseleave", "mouseover", "mouseenter", "mousemove", "mouseup",
-            "mouseout", "mouseleave"
-            ]],
-  ["pointerout", ["mouseover", "mouseenter", "mousemove",
-            "mousedown", "mouseup", "mousedown", "mousemove",
-            "mouseout", "mouseleave", "mouseover", "mouseenter",
-            "mousemove", "mouseup", "mouseout", "mouseleave"
-            ]],
-  ["pointermove", ["mouseover", "mouseenter", "mousemove",
-            "mousedown", "mouseup", "mousedown", "mousemove",
-            "mouseout", "mouseleave", "mouseover", "mouseenter",
-            "mousemove", "mouseup", "mouseout", "mouseleave"
-            ]]
-  ]);
+  function expectedPointerEvents() {
+    return [
+      "pointerover", "pointerenter", "pointermove", "pointerdown", "pointerup",
+      "pointerdown", "pointermove", "pointerout", "pointerleave", "pointerover",
+      "pointerenter", "pointermove", "pointerup", "pointerout", "pointerleave"
+    ];
+  }
+
+  // When "pointerdown" is not prevented, all compat mouse events are fired.
+  // Otherwise, the "mousedown/move/up" events between "pointerdown" and
+  // "pointerup" are suppressed.
+  function expectedMouseEvents(prevented_event) {
+    return prevented_event === "pointerdown"
+      ? ["mouseover", "mouseenter", "mousemove",
+        "mouseout", "mouseleave", "mouseover", "mouseenter",
+        "mouseout", "mouseleave"]
+      : ["mouseover", "mouseenter", "mousemove",
+        "mousedown", "mouseup", "mousedown", "mousemove",
+        "mouseout", "mouseleave", "mouseover", "mouseenter",
+        "mousemove", "mouseup",
+        "mouseout", "mouseleave"];
+  }
 
 async function runTestForDefaultEvent(preventDefaultEvent) {
     promise_test((test)=>
@@ -153,8 +92,8 @@ async function runTestForDefaultEvent(preventDefaultEvent) {
           if(eventToPreventDefault === 'none'){
             assert_true(arePointerEventsBeforeCompatMouseEvents(receivedEvents), "There are no compatible mouse events for all pointer events:" + receivedEvents);
           }
-          assert_array_equals(receivedPointerEvents, expectedPointerEvents.get(preventDefaultEvent));
-          assert_array_equals(receivedMouseEvents, expectedMouseEvents.get(preventDefaultEvent));
+          assert_array_equals(receivedPointerEvents, expectedPointerEvents());
+          assert_array_equals(receivedMouseEvents, expectedMouseEvents(preventDefaultEvent));
         });
         resolve();
     }), `Verifies the effect of pointer event prevent-default on ${preventDefaultEvent}`);

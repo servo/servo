@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step-size invalid values</title>
+<link rel="author" title="Sammy Gill" href="sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-size">
+<meta name="assert" content="Invalid values for block-step-size should not be parsed">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+    #target {
+      font-size: 40px;
+    }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    test_invalid_value("block-step-size", "auto");
+    test_invalid_value("block-step-size", "-1px");
+    test_invalid_value("block-step-size", "min-content");
+    test_invalid_value("block-step-size", "10%");
+    test_invalid_value("block-step-size", "20");
+</script>
+</body>
+</html>

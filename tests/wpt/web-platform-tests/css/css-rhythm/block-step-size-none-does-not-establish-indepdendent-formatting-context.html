@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-size">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="block-step-size none should not establish an independent formatting context for the box">
+<style>
+div {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+}
+.floating {
+    position: relative;
+    z-index: -1;
+    float: left;
+    background-color: red;
+}
+.block-step-size {
+    block-step-size: none;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="floating"></div>
+<div class="block-step-size"></div>
+</body>
+</html>
