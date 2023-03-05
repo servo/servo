@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step-size computed values</title>
+<link rel="author" title="Sammy Gill" href="sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-size">
+<meta name="assert" content="Checking computed values for block-step-size">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+    #target {
+      font-size: 40px;
+    }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    test_computed_value("block-step-size", "0px");
+    test_computed_value("block-step-size", "none");
+    test_computed_value("block-step-size", "100px");
+    test_computed_value("block-step-size", "2em", "80px");
+    test_computed_value("block-step-size", "calc(10px + 0.5em)", "30px");
+    test_computed_value("block-step-size", "calc(10px - 0.5em)", "0px");
+</script>
+</body>
+</html>

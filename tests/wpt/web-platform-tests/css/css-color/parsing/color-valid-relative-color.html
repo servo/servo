@@ -613,7 +613,7 @@
     test_valid_value(`color`, `lch(from var(--color) calc(l / 2) c h)`);
 
     // Example 13.
-    test_valid_value(`color`, `rgb(from var(--color) calc(r * .3 + g * .59 + b * .11) calc(r * .3 + g * .59 + b * .11) calc(r * .3 + g * .59 + b * .11))`, `rgb(from var(--color) calc(r * 0.3 + g * 0.59 + b * 0.11) calc(r * 0.3 + g * 0.59 + b * 0.11) calc(r * 0.3 + g * 0.59 + b * 0.11))`);
+    test_valid_value(`color`, `rgb(from var(--color) calc(r * .3 + g * .59 + b * .11) calc(r * .3 + g * .59 + b * .11) calc(r * .3 + g * .59 + b * .11))`);
     test_valid_value(`color`, `lch(from var(--color) l 0 h)`);
 
     // Example 14.

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step-size valid values</title>
+<link rel="author" title="Sammy Gill" href="sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-size">
+<meta name="assert" content="Parsing valid values for block-step-size properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+    #target {
+      font-size: 40px;
+    }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    test_valid_value("block-step-size", "1px");
+    test_valid_value("block-step-size", "2em");
+    test_valid_value("block-step-size", "0", "0px");
+    test_valid_value("block-step-size", "none");
+    test_valid_value("block-step-size", "calc(2em + 3ex)");
+    test_valid_value("block-step-size", "1.2em");
+</script>
+</body>
+</html>
