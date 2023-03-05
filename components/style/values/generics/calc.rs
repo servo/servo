@@ -192,6 +192,8 @@ pub enum GenericCalcNode<L> {
         /// Is the function mod or rem?
         op: ModRemOp,
     },
+    /// A `hypot()` function
+    Hypot(crate::OwnedSlice<GenericCalcNode<L>>),
 }
 
 pub use self::GenericCalcNode as CalcNode;
@@ -357,6 +359,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     op,
                 }
             },
+            Self::Hypot(ref c) => CalcNode::Hypot(map_children(c, map)),
         }
     }
 
@@ -535,6 +538,13 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     ModRemOp::Rem => dividend - divisor * (dividend / divisor).trunc(),
                 }
             },
+            Self::Hypot(ref c) => {
+                let mut result: O = Zero::zero();
+                for child in &**c {
+                    result = result + child.resolve_internal(leaf_to_output_fn)?.powi(2);
+                }
+                result.sqrt()
+            }
         })
     }
 
@@ -613,6 +623,12 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 dividend.mul_by(scalar);
                 divisor.mul_by(scalar);
             },
+            // Not possible to handle negatives in this case, see: https://bugzil.la/1815448
+            Self::Hypot(ref mut children) => {
+                for node in &mut **children {
+                    node.mul_by(scalar);
+                }
+            },
         }
     }
 
@@ -652,7 +668,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 dividend.visit_depth_first_internal(f);
                 divisor.visit_depth_first_internal(f);
             },
-            Self::Sum(ref mut children) | Self::MinMax(ref mut children, _) => {
+            Self::Sum(ref mut children) | Self::MinMax(ref mut children, _) | Self::Hypot(ref mut children) => {
                 for child in &mut **children {
                     child.visit_depth_first_internal(f);
                 }
@@ -962,6 +978,30 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     *children_slot = children.into_boxed_slice().into();
                 }
             },
+            Self::Hypot(ref children) => {
+                let mut result = match children[0].try_op(&children[0], Mul::mul) {
+                    Ok(res) => res,
+                    Err(..) => return,
+                };
+
+                for child in children.iter().skip(1) {
+                    let square = match child.try_op(&child, Mul::mul) {
+                        Ok(res) => res,
+                        Err(..) => return,
+                    };
+                    result = match result.try_op(&square, Add::add) {
+                        Ok(res) => res,
+                        Err(..) => return,
+                    }
+                }
+
+                result = match result.try_op(&result, |a, _| a.sqrt()) {
+                    Ok(res) => res,
+                    Err(..) => return,
+                };
+
+                replace_self_with!(&mut result);
+            }
             Self::Leaf(ref mut l) => {
                 l.simplify();
             },
@@ -1007,6 +1047,10 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
 
                 true
             },
+            Self::Hypot(_) => {
+                dest.write_str("hypot(")?;
+                true
+            },
             _ => {
                 if is_outermost {
                     dest.write_str("calc(")?;
@@ -1016,7 +1060,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         };
 
         match *self {
-            Self::MinMax(ref children, _) => {
+            Self::MinMax(ref children, _) | Self::Hypot(ref children) => {
                 let mut first = true;
                 for child in &**children {
                     if !first {
