@@ -13,6 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use data_url::mime::Mime as DataUrlMime;
 use dom_struct::dom_struct;
 use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
+use net::fetch::headers::get_value_from_header_list;
 use net_traits::request::is_cors_safelisted_request_header;
 use std::cell::Cell;
 use std::str::{self, FromStr};
@@ -159,7 +160,7 @@ impl HeadersMethods for Headers {
     fn GetSetCookie(&self) -> Vec<ByteString> {
         self.header_list
             .borrow()
-            .get_all("Set-Cookie")
+            .get_all("set-cookie")
             .iter()
             .map(|v| ByteString::new(v.as_bytes().to_vec()))
             .collect()
@@ -283,16 +284,24 @@ impl Headers {
         extract_mime_type(&*self.header_list.borrow()).unwrap_or(vec![])
     }
 
-    pub fn sort_header_list(&self) -> Vec<(String, Vec<u8>)> {
+    // https://fetch.spec.whatwg.org/#concept-header-list-sort-and-combine
+    pub fn sort_and_combine(&self) -> Vec<(String, Vec<u8>)> {
         let borrowed_header_list = self.header_list.borrow();
-        let headers_iter = borrowed_header_list.iter();
         let mut header_vec = vec![];
-        for (name, value) in headers_iter {
-            let name = name.as_str().to_owned();
-            let value = value.as_bytes().to_vec();
-            let name_value = (name, value);
-            header_vec.push(name_value);
+
+        for name in borrowed_header_list.keys() {
+            let name = name.as_str();
+            if name == "set-cookie" {
+                for value in borrowed_header_list.get_all(name).iter() {
+                    header_vec.push((name.to_owned(), value.as_bytes().to_vec()));
+                }
+            } else {
+                if let Some(value) = get_value_from_header_list(name, &borrowed_header_list) {
+                    header_vec.push((name.to_owned(), value.as_bytes().to_vec()));
+                }
+            }
         }
+
         header_vec.sort();
         header_vec
     }
@@ -303,17 +312,18 @@ impl Iterable for Headers {
     type Value = ByteString;
 
     fn get_iterable_length(&self) -> u32 {
-        self.header_list.borrow().iter().count() as u32
+        let sorted_header_vec = self.sort_and_combine();
+        sorted_header_vec.len() as u32
     }
 
     fn get_value_at_index(&self, n: u32) -> ByteString {
-        let sorted_header_vec = self.sort_header_list();
+        let sorted_header_vec = self.sort_and_combine();
         let value = sorted_header_vec[n as usize].1.clone();
         ByteString::new(value)
     }
 
     fn get_key_at_index(&self, n: u32) -> ByteString {
-        let sorted_header_vec = self.sort_header_list();
+        let sorted_header_vec = self.sort_and_combine();
         let key = sorted_header_vec[n as usize].0.clone();
         ByteString::new(key.into_bytes().to_vec())
     }

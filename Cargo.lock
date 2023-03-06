@@ -5304,6 +5304,7 @@ dependencies = [
  "mozangle",
  "mozjs",
  "msg",
+ "net",
  "net_traits",
  "num-traits",
  "parking_lot 0.11.2",

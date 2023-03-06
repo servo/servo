@@ -157,7 +157,7 @@ fn collect_http_quoted_string(position: &mut Peekable<Chars>, extract_value: boo
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-header-list-get>
-fn get_value_from_header_list(name: &str, headers: &HeaderMap) -> Option<String> {
+pub fn get_value_from_header_list(name: &str, headers: &HeaderMap) -> Option<String> {
     let values = headers
         .get_all(name)
         .iter()
