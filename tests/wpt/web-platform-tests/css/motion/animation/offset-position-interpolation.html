@@ -39,7 +39,7 @@
         to: 'right -140% bottom -60%',
       }, [
         {at: -1, expect: 'calc(960px - 240%) calc(800px - 160%)'},
-        {at: 0, expect: 'left 480px top 400px'},
+        {at: 0, expect: 'left calc(0% + 480px) top calc(0% + 400px)'},
         {at: 0.125, expect: 'calc(420px + 30%) calc(350px + 20%)'},
         {at: 0.875, expect: 'calc(210% + 60px) calc(140% + 50px)'},
         {at: 1, expect: 'right -140% bottom -60%'},
@@ -51,12 +51,12 @@
         from: 'left top',
         to: 'left 8px bottom 20%',
       }, [
-        {at: -1, expect: '-8px -80%'},
+        {at: -1, expect: 'calc(0% - 8px) -80%'},
         {at: 0, expect: 'left top'},
-        {at: 0.125, expect: '1px 10%'},
-        {at: 0.875, expect: '7px 70%'},
-        {at: 1, expect: 'left 8px bottom 20%'},
-        {at: 2, expect: '16px 160%'}
+        {at: 0.125, expect: 'calc(0% + 1px) 10%'},
+        {at: 0.875, expect: 'calc(0% + 7px) 70%'},
+        {at: 1, expect: 'left calc(0% + 8px) bottom 20%'},
+        {at: 2, expect: 'calc(0% + 16px) 160%'}
       ]);
 
       test_no_interpolation({
