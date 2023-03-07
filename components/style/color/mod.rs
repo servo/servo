@@ -13,6 +13,7 @@ use style_traits::{CssWriter, ToCss};
 
 /// The 3 components that make up a color.  (Does not include the alpha component)
 #[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[repr(C)]
 pub struct ColorComponents(pub f32, pub f32, pub f32);
 
 impl ColorComponents {
@@ -46,6 +47,11 @@ impl ColorComponents {
 )]
 #[repr(u8)]
 pub enum ColorSpace {
+    /// A color specified in the sRGB color space with either the rgb/rgba(..)
+    /// functions or the newer color(srgb ..) function. If the color(..)
+    /// function is used, the AS_COLOR_FUNCTION flag will be set. Examples:
+    /// "color(srgb 0.691 0.139 0.259)", "rgb(176, 35, 66)"
+    Srgb = 0,
     /// A color specified in the Hsl notation in the sRGB color space, e.g.
     /// "hsl(289.18 93.136% 65.531%)"
     /// https://drafts.csswg.org/css-color-4/#the-hsl-notation
@@ -70,9 +76,6 @@ pub enum ColorSpace {
     /// "oklch(40.101% 0.12332 21.555)".
     /// https://w3c.github.io/csswg-drafts/css-color-4/#lch-colors
     Oklch,
-    /// A color specified with the color(..) function and the "srgb" color
-    /// space, e.g. "color(srgb 0.691 0.139 0.259)".
-    Srgb,
     /// A color specified with the color(..) function and the "srgb-linear"
     /// color space, e.g. "color(srgb-linear 0.435 0.017 0.055)".
     SrgbLinear,
@@ -141,7 +144,7 @@ bitflags! {
 
 /// An absolutely specified color, using either rgb(), rgba(), lab(), lch(),
 /// oklab(), oklch() or color().
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 #[repr(C)]
 pub struct AbsoluteColor {
     /// The 3 components that make up colors in any color space.
@@ -179,20 +182,67 @@ macro_rules! color_components_as {
 }
 
 impl AbsoluteColor {
-    /// Create a new [AbsoluteColor] with the given [ColorSpace] and components.
+    /// Create a new [`AbsoluteColor`] with the given [`ColorSpace`] and
+    /// components.
     pub fn new(color_space: ColorSpace, components: ColorComponents, alpha: f32) -> Self {
+        let mut components = components;
+
+        // Lightness must not be less than 0.
+        if matches!(
+            color_space,
+            ColorSpace::Lab | ColorSpace::Lch | ColorSpace::Oklab | ColorSpace::Oklch
+        ) {
+            components.0 = components.0.max(0.0);
+        }
+
+        // Chroma must not be less than 0.
+        if matches!(color_space, ColorSpace::Lch | ColorSpace::Oklch) {
+            components.1 = components.1.max(0.0);
+        }
+
         Self {
             components,
-            alpha,
+            alpha: alpha.clamp(0.0, 1.0),
             color_space,
             flags: SerializationFlags::empty(),
         }
+    }
+
+    /// Create a new [`AbsoluteColor`] from rgba values in the sRGB color space.
+    pub fn srgb(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+        Self::new(ColorSpace::Srgb, ColorComponents(red, green, blue), alpha)
+    }
+
+    /// Create a new transparent color.
+    pub fn transparent() -> Self {
+        Self::srgb(0.0, 0.0, 0.0, 0.0)
+    }
+
+    /// Create a new opaque black color.
+    pub fn black() -> Self {
+        Self::srgb(0.0, 0.0, 0.0, 1.0)
+    }
+
+    /// Create a new opaque white color.
+    pub fn white() -> Self {
+        Self::srgb(1.0, 1.0, 1.0, 1.0)
     }
 
     /// Return all the components of the color in an array.  (Includes alpha)
     #[inline]
     pub fn raw_components(&self) -> &[f32; 4] {
         unsafe { color_components_as!(self, [f32; 4]) }
+    }
+
+    /// Returns true if this color is in one of the legacy color formats.
+    #[inline]
+    pub fn is_legacy_color(&self) -> bool {
+        // rgb(), rgba(), hsl(), hsla(), hwb(), hwba()
+        match self.color_space {
+            ColorSpace::Srgb => !self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION),
+            ColorSpace::Hsl | ColorSpace::Hwb => true,
+            _ => false,
+        }
     }
 
     /// Return the alpha component.

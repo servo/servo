@@ -8,6 +8,7 @@
 //! computed values and need yet another intermediate representation. This
 //! module's raison d'être is to ultimately contain all these types.
 
+use crate::color::AbsoluteColor;
 use crate::properties::PropertyId;
 use crate::values::computed::length::LengthPercentage;
 use crate::values::computed::url::ComputedUrl;
@@ -380,6 +381,7 @@ trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
 trivial_to_animated_value!(i32);
+trivial_to_animated_value!(AbsoluteColor);
 // Note: This implementation is for ToAnimatedValue of ShapeSource.
 //
 // SVGPathData uses Box<[T]>. If we want to derive ToAnimatedValue for all the

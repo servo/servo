@@ -224,7 +224,6 @@ impl_trivial_to_shmem!(
     usize
 );
 
-impl_trivial_to_shmem!(cssparser::RGBA);
 impl_trivial_to_shmem!(cssparser::SourceLocation);
 impl_trivial_to_shmem!(cssparser::TokenSerializationType);
 
