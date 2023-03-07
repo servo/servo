@@ -106,32 +106,6 @@ impl ColorMix {
     }
 }
 
-impl AbsoluteColor {
-    /// Convenience function to create a color in the sRGB color space.
-    pub fn from_rgba(rgba: RGBA) -> Self {
-        let red = rgba.red as f32 / 255.0;
-        let green = rgba.green as f32 / 255.0;
-        let blue = rgba.blue as f32 / 255.0;
-
-        Self::new(
-            ColorSpace::Srgb,
-            ColorComponents(red, green, blue),
-            rgba.alpha,
-        )
-    }
-
-    /// Convert the color to sRGB color space and return it in the RGBA struct.
-    pub fn to_rgba(&self) -> RGBA {
-        let rgba = self.to_color_space(ColorSpace::Srgb);
-
-        let red = (rgba.components.0 * 255.0).round() as u8;
-        let green = (rgba.components.1 * 255.0).round() as u8;
-        let blue = (rgba.components.2 * 255.0).round() as u8;
-
-        RGBA::new(red, green, blue, rgba.alpha)
-    }
-}
-
 /// Container holding an absolute color and the text specified by an author.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub struct Absolute {
@@ -170,6 +144,13 @@ pub enum Color {
     /// Quirksmode-only rule for inheriting color from the body
     #[cfg(feature = "gecko")]
     InheritFromBodyQuirk,
+}
+
+impl From<AbsoluteColor> for Color {
+    #[inline]
+    fn from(value: AbsoluteColor) -> Self {
+        Self::from_absolute_color(value)
+    }
 }
 
 /// System colors. A bunch of these are ad-hoc, others come from Windows:
@@ -413,7 +394,7 @@ pub enum SystemColor {
 impl SystemColor {
     #[inline]
     fn compute(&self, cx: &Context) -> ComputedColor {
-        use crate::gecko::values::convert_nscolor_to_rgba;
+        use crate::gecko::values::convert_nscolor_to_absolute_color;
         use crate::gecko_bindings::bindings;
 
         // TODO: We should avoid cloning here most likely, though it's
@@ -423,13 +404,7 @@ impl SystemColor {
         if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
             return ComputedColor::currentcolor();
         }
-        ComputedColor::rgba(convert_nscolor_to_rgba(color))
-    }
-}
-
-impl From<RGBA> for Color {
-    fn from(value: RGBA) -> Self {
-        Color::rgba(value)
+        ComputedColor::Absolute(convert_nscolor_to_absolute_color(color))
     }
 }
 
@@ -711,12 +686,12 @@ impl Color {
     pub fn honored_in_forced_colors_mode(&self, allow_transparent: bool) -> bool {
         match *self {
             #[cfg(feature = "gecko")]
-            Color::InheritFromBodyQuirk => false,
-            Color::CurrentColor => true,
+            Self::InheritFromBodyQuirk => false,
+            Self::CurrentColor => true,
             #[cfg(feature = "gecko")]
-            Color::System(..) => true,
-            Color::Absolute(ref absolute) => allow_transparent && absolute.color.alpha() == 0.0,
-            Color::ColorMix(ref mix) => {
+            Self::System(..) => true,
+            Self::Absolute(ref absolute) => allow_transparent && absolute.color.alpha() == 0.0,
+            Self::ColorMix(ref mix) => {
                 mix.left.honored_in_forced_colors_mode(allow_transparent) &&
                     mix.right.honored_in_forced_colors_mode(allow_transparent)
             },
@@ -725,22 +700,21 @@ impl Color {
 
     /// Returns currentcolor value.
     #[inline]
-    pub fn currentcolor() -> Color {
-        Color::CurrentColor
+    pub fn currentcolor() -> Self {
+        Self::CurrentColor
     }
 
     /// Returns transparent value.
     #[inline]
-    pub fn transparent() -> Color {
+    pub fn transparent() -> Self {
         // We should probably set authored to "transparent", but maybe it doesn't matter.
-        Color::rgba(RGBA::transparent())
+        Self::from_absolute_color(AbsoluteColor::transparent())
     }
 
-    /// Returns an absolute RGBA color value.
-    #[inline]
-    pub fn rgba(rgba: RGBA) -> Self {
+    /// Create a color from an [`AbsoluteColor`].
+    pub fn from_absolute_color(color: AbsoluteColor) -> Self {
         Color::Absolute(Box::new(Absolute {
-            color: AbsoluteColor::from_rgba(rgba),
+            color,
             authored: None,
         }))
     }
@@ -758,7 +732,14 @@ impl Color {
                 return Err(e);
             }
             Color::parse_quirky_color(input)
-                .map(Color::rgba)
+                .map(|rgba| {
+                    Color::from_absolute_color(AbsoluteColor::srgb(
+                        rgba.red as f32 / 255.0,
+                        rgba.green as f32 / 255.0,
+                        rgba.blue as f32 / 255.0,
+                        rgba.alpha, // alpha value is already a float and in range [0..1]
+                    ))
+                })
                 .map_err(|_| e)
         })
     }
@@ -840,7 +821,7 @@ impl Color {
     pub fn to_computed_color(&self, context: Option<&Context>) -> Option<ComputedColor> {
         Some(match *self {
             Color::CurrentColor => ComputedColor::CurrentColor,
-            Color::Absolute(ref absolute) => ComputedColor::Numeric(absolute.color.to_rgba()),
+            Color::Absolute(ref absolute) => ComputedColor::Absolute(absolute.color),
             Color::ColorMix(ref mix) => {
                 use crate::values::computed::percentage::Percentage;
 
@@ -860,7 +841,9 @@ impl Color {
             #[cfg(feature = "gecko")]
             Color::System(system) => system.compute(context?),
             #[cfg(feature = "gecko")]
-            Color::InheritFromBodyQuirk => ComputedColor::rgba(context?.device().body_text_color()),
+            Color::InheritFromBodyQuirk => {
+                ComputedColor::Absolute(context?.device().body_text_color())
+            },
         })
     }
 }
@@ -874,7 +857,7 @@ impl ToComputedValue for Color {
 
     fn from_computed_value(computed: &ComputedColor) -> Self {
         match *computed {
-            ComputedColor::Numeric(ref color) => Color::rgba(*color),
+            ComputedColor::Absolute(ref color) => Self::from_absolute_color(color.clone()),
             ComputedColor::CurrentColor => Color::CurrentColor,
             ComputedColor::ColorMix(ref mix) => {
                 Color::ColorMix(Box::new(ToComputedValue::from_computed_value(&**mix)))
@@ -902,16 +885,16 @@ impl Parse for MozFontSmoothingBackgroundColor {
 }
 
 impl ToComputedValue for MozFontSmoothingBackgroundColor {
-    type ComputedValue = RGBA;
+    type ComputedValue = AbsoluteColor;
 
-    fn to_computed_value(&self, context: &Context) -> RGBA {
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         self.0
             .to_computed_value(context)
-            .into_rgba(RGBA::transparent())
+            .resolve_into_absolute(&AbsoluteColor::transparent())
     }
 
-    fn from_computed_value(computed: &RGBA) -> Self {
-        MozFontSmoothingBackgroundColor(Color::rgba(*computed))
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        MozFontSmoothingBackgroundColor(Color::from_absolute_color(*computed))
     }
 }
 
@@ -949,18 +932,19 @@ impl SpecifiedValueInfo for Color {
 pub struct ColorPropertyValue(pub Color);
 
 impl ToComputedValue for ColorPropertyValue {
-    type ComputedValue = RGBA;
+    type ComputedValue = AbsoluteColor;
 
     #[inline]
-    fn to_computed_value(&self, context: &Context) -> RGBA {
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        let current_color = context.builder.get_parent_inherited_text().clone_color();
         self.0
             .to_computed_value(context)
-            .into_rgba(context.builder.get_parent_inherited_text().clone_color())
+            .resolve_into_absolute(&current_color)
     }
 
     #[inline]
-    fn from_computed_value(computed: &RGBA) -> Self {
-        ColorPropertyValue(Color::rgba(*computed).into())
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        ColorPropertyValue(Color::from_absolute_color(*computed).into())
     }
 }
 

@@ -17,7 +17,6 @@ use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::specified::ViewportVariant;
 use crate::values::KeyframesName;
 use app_units::Au;
-use cssparser::RGBA;
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Scale, SideOffsets2D, Size2D};
 use mime::Mime;

@@ -6,7 +6,6 @@
 
 use crate::color::mix::ColorInterpolationMethod;
 use crate::color::AbsoluteColor;
-use crate::values::animated::color::AnimatedRGBA;
 use crate::values::animated::ToAnimatedValue;
 use crate::values::specified::percentage::ToPercentage;
 use std::fmt::{self, Write};
@@ -16,9 +15,9 @@ use style_traits::{CssWriter, ToCss};
 /// the current foreground color (currentcolor keyword).
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
 #[repr(C)]
-pub enum GenericColor<RGBA, Percentage> {
+pub enum GenericColor<Percentage> {
     /// The actual numeric color.
-    Numeric(RGBA),
+    Absolute(AbsoluteColor),
     /// The `CurrentColor` keyword.
     CurrentColor,
     /// The color-mix() function.
@@ -92,17 +91,18 @@ impl<Color: ToCss, Percentage: ToCss + ToPercentage> ToCss for ColorMix<Color, P
     }
 }
 
-impl<RGBA, Percentage> ColorMix<GenericColor<RGBA, Percentage>, Percentage> {
-    fn to_rgba(&self) -> Option<RGBA>
+impl<Percentage> ColorMix<GenericColor<Percentage>, Percentage> {
+    /// Mix the colors so that we get a single color. If any of the 2 colors are
+    /// not mixable (perhaps not absolute?), then return None.
+    fn mix_into_absolute(&self) -> Option<AbsoluteColor>
     where
-        RGBA: Clone + ToAnimatedValue<AnimatedValue = AnimatedRGBA>,
         Percentage: ToPercentage,
     {
-        let left = AbsoluteColor::from(self.left.as_numeric()?.clone().to_animated_value());
-        let right = AbsoluteColor::from(self.right.as_numeric()?.clone().to_animated_value());
+        let left = self.left.as_absolute()?.to_animated_value();
+        let right = self.right.as_absolute()?.to_animated_value();
 
         let mixed = crate::color::mix::mix(
-            &self.interpolation,
+            self.interpolation,
             &left,
             self.left_percentage.to_percentage(),
             &right,
@@ -116,36 +116,34 @@ impl<RGBA, Percentage> ColorMix<GenericColor<RGBA, Percentage>, Percentage> {
 
 pub use self::GenericColor as Color;
 
-impl<RGBA, Percentage> Color<RGBA, Percentage> {
-    /// Returns the numeric rgba value if this color is numeric, or None
-    /// otherwise.
-    pub fn as_numeric(&self) -> Option<&RGBA> {
+impl<Percentage> Color<Percentage> {
+    /// If this color is absolute return it's value, otherwise return None.
+    pub fn as_absolute(&self) -> Option<&AbsoluteColor> {
         match *self {
-            Self::Numeric(ref rgba) => Some(rgba),
+            Self::Absolute(ref absolute) => Some(absolute),
             _ => None,
         }
     }
 
     /// Simplifies the color-mix()es to the extent possible given a current
     /// color (or not).
-    pub fn simplify(&mut self, current_color: Option<&RGBA>)
+    pub fn simplify(&mut self, current_color: Option<&AbsoluteColor>)
     where
-        RGBA: Clone + ToAnimatedValue<AnimatedValue = AnimatedRGBA>,
         Percentage: ToPercentage,
     {
         match *self {
-            Self::Numeric(..) => {},
+            Self::Absolute(..) => {},
             Self::CurrentColor => {
                 if let Some(c) = current_color {
-                    *self = Self::Numeric(c.clone());
+                    *self = Self::Absolute(c.clone());
                 }
             },
             Self::ColorMix(ref mut mix) => {
                 mix.left.simplify(current_color);
                 mix.right.simplify(current_color);
 
-                if let Some(mix) = mix.to_rgba() {
-                    *self = Self::Numeric(mix);
+                if let Some(mix) = mix.mix_into_absolute() {
+                    *self = Self::Absolute(mix);
                 }
             },
         }
@@ -156,19 +154,14 @@ impl<RGBA, Percentage> Color<RGBA, Percentage> {
         Self::CurrentColor
     }
 
-    /// Returns a numeric color representing the given RGBA value.
-    pub fn rgba(color: RGBA) -> Self {
-        Self::Numeric(color)
-    }
-
     /// Whether it is a currentcolor value (no numeric color component).
     pub fn is_currentcolor(&self) -> bool {
         matches!(*self, Self::CurrentColor)
     }
 
-    /// Whether it is a numeric color (no currentcolor component).
-    pub fn is_numeric(&self) -> bool {
-        matches!(*self, Self::Numeric(..))
+    /// Whether this color is an absolute color.
+    pub fn is_absolute(&self) -> bool {
+        matches!(*self, Self::Absolute(..))
     }
 }
 

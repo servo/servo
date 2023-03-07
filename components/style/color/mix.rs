@@ -6,7 +6,6 @@
 
 use super::{AbsoluteColor, ColorComponents, ColorSpace};
 use crate::parser::{Parse, ParserContext};
-use crate::values::animated::color::AnimatedRGBA as RGBA;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -65,10 +64,32 @@ pub struct ColorInterpolationMethod {
 
 impl ColorInterpolationMethod {
     /// Returns the srgb interpolation method.
-    pub fn srgb() -> Self {
+    pub const fn srgb() -> Self {
         Self {
             space: ColorSpace::Srgb,
             hue: HueInterpolationMethod::Shorter,
+        }
+    }
+
+    /// Return the oklab interpolation method used for default color
+    /// interpolcation.
+    pub const fn oklab() -> Self {
+        Self {
+            space: ColorSpace::Oklab,
+            hue: HueInterpolationMethod::Shorter,
+        }
+    }
+
+    /// Decides the best method for interpolating between the given colors.
+    /// https://drafts.csswg.org/css-color-4/#interpolation-space
+    pub fn best_interpolation_between(left: &AbsoluteColor, right: &AbsoluteColor) -> Self {
+        // The preferred color space to use for interpolating colors is Oklab.
+        // However, if either of the colors are in legacy rgb(), hsl() or hwb(),
+        // then interpolation is done in sRGB.
+        if !left.is_legacy_color() || !right.is_legacy_color() {
+            Self::oklab()
+        } else {
+            Self::srgb()
         }
     }
 }
@@ -118,7 +139,7 @@ impl ToCss for ColorInterpolationMethod {
 ///
 /// For now, colors modelled in other spaces need to be convertible to and from
 /// `RGBA` because we use sRGB for displaying colors.
-trait ModelledColor: Clone + Copy + From<RGBA> + Into<RGBA> {
+trait ModelledColor: Clone + Copy {
     /// Linearly interpolate between the left and right colors.
     ///
     /// The HueInterpolationMethod parameter is only for color spaces where the hue is
@@ -134,7 +155,7 @@ trait ModelledColor: Clone + Copy + From<RGBA> + Into<RGBA> {
 
 /// Mix two colors into one.
 pub fn mix(
-    interpolation: &ColorInterpolationMethod,
+    interpolation: ColorInterpolationMethod,
     left_color: &AbsoluteColor,
     mut left_weight: f32,
     right_color: &AbsoluteColor,

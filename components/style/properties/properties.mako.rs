@@ -19,7 +19,7 @@ use std::{ops, ptr};
 use std::fmt::{self, Write};
 use std::mem;
 
-use cssparser::{Parser, RGBA, TokenSerializationType};
+use cssparser::{Parser, TokenSerializationType};
 use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use crate::context::QuirksMode;
@@ -3233,8 +3233,9 @@ impl ComputedValues {
     /// let top_color =
     ///   style.resolve_color(style.get_border().clone_border_top_color());
     #[inline]
-    pub fn resolve_color(&self, color: computed::Color) -> RGBA {
-        color.into_rgba(self.get_inherited_text().clone_color())
+    pub fn resolve_color(&self, color: computed::Color) -> crate::color::AbsoluteColor {
+        let current_color = self.get_inherited_text().clone_color();
+        color.resolve_into_absolute(&current_color)
     }
 
     /// Returns which longhand properties have different values in the two

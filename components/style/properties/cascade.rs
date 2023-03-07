@@ -5,6 +5,7 @@
 //! The main cascading algorithm of the style system.
 
 use crate::applicable_declarations::CascadePriority;
+use crate::color::AbsoluteColor;
 use crate::context::QuirksMode;
 use crate::custom_properties::CustomPropertiesBuilder;
 use crate::dom::TElement;
@@ -411,9 +412,8 @@ fn tweak_when_ignoring_colors(
     declaration: &mut Cow<PropertyDeclaration>,
     declarations_to_apply_unless_overriden: &mut DeclarationsToApplyUnlessOverriden,
 ) {
-    use crate::values::specified::Color;
     use crate::values::computed::ToComputedValue;
-    use cssparser::RGBA;
+    use crate::values::specified::Color;
 
     if !longhand_id.ignored_when_document_colors_disabled() {
         return;
@@ -445,7 +445,7 @@ fn tweak_when_ignoring_colors(
         // We assume here currentColor is opaque.
         let color = color
             .to_computed_value(context)
-            .into_rgba(RGBA::new(0, 0, 0, 1.0));
+            .resolve_into_absolute(&AbsoluteColor::black());
         color.alpha
     }
 

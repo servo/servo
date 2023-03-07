@@ -184,9 +184,12 @@ impl FontPaletteValuesRule {
             }
             for c in &self.override_colors {
                 if let SpecifiedColor::Absolute(ref absolute) = c.color {
-                    let rgba = absolute.color.to_rgba();
                     unsafe {
-                        Gecko_SetFontPaletteOverride(palette_values, c.index.0.value(), rgba);
+                        Gecko_SetFontPaletteOverride(
+                            palette_values,
+                            c.index.0.value(),
+                            (&absolute.color) as *const _ as *mut _,
+                        );
                     }
                 }
             }
