@@ -20,6 +20,7 @@ from .protocol import (BaseProtocolPart,
                        TestharnessProtocolPart,
                        Protocol,
                        SelectorProtocolPart,
+                       AccessibilityProtocolPart,
                        ClickProtocolPart,
                        CookiesProtocolPart,
                        SendKeysProtocolPart,
@@ -186,6 +187,17 @@ class WebDriverSelectorProtocolPart(SelectorProtocolPart):
         return self.webdriver.find.css(selector)
 
 
+class WebDriverAccessibilityProtocolPart(AccessibilityProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def get_computed_label(self, element):
+        return element.get_computed_label()
+
+    def get_computed_role(self, element):
+        return element.get_computed_role()
+
+
 class WebDriverClickProtocolPart(ClickProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
@@ -342,6 +354,7 @@ class WebDriverProtocol(Protocol):
     implements = [WebDriverBaseProtocolPart,
                   WebDriverTestharnessProtocolPart,
                   WebDriverSelectorProtocolPart,
+                  WebDriverAccessibilityProtocolPart,
                   WebDriverClickProtocolPart,
                   WebDriverCookiesProtocolPart,
                   WebDriverSendKeysProtocolPart,

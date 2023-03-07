@@ -38,6 +38,34 @@ class GetAllCookiesAction:
         return self.protocol.cookies.get_all_cookies()
 
 
+class GetComputedLabelAction:
+    name = "get_computed_label"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        selector = payload["selector"]
+        element = self.protocol.select.element_by_selector(selector)
+        self.logger.debug("Getting computed label for element: %s" % element)
+        return self.protocol.accessibility.get_computed_label(element)
+
+
+class GetComputedRoleAction:
+    name = "get_computed_role"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        selector = payload["selector"]
+        element = self.protocol.select.element_by_selector(selector)
+        self.logger.debug("Getting computed role for element: %s" % element)
+        return self.protocol.accessibility.get_computed_role(element)
+
+
 class GetNamedCookieAction:
     name = "get_named_cookie"
 
@@ -253,6 +281,8 @@ actions = [ClickAction,
            DeleteAllCookiesAction,
            GetAllCookiesAction,
            GetNamedCookieAction,
+           GetComputedLabelAction,
+           GetComputedRoleAction,
            SendKeysAction,
            MinimizeWindowAction,
            SetWindowRectAction,

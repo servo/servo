@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id='d' style='height: 100px; width: 100px' role="group" aria-label="test label"></div>
+<h1 id="h">test heading</h1>
+<script>
+
+promise_test(async t => {
+  const label = await test_driver.get_computed_label(document.getElementById('d'));
+  assert_true(label == "test label");
+}, "tests labelFrom: author");
+
+promise_test(async t => {
+  const label = await test_driver.get_computed_label(document.getElementById('h'));
+  assert_true(label == "test heading");
+}, "tests labelFrom: contents");
+
+</script>

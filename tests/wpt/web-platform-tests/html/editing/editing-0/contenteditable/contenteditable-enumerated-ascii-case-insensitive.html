@@ -5,20 +5,41 @@
 <meta name="assert" content="@contenteditable values are ASCII case-insensitive">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div contenteditable="false"></div>
-<div contenteditable="FaLsE"></div>
-<div contenteditable="falſe"></div>
-<div></div>
+
 <script>
-const div = document.querySelectorAll("div");
+function testValue(value, isValid) {
+  const valueLower = value.toLowerCase();
 
-test(() => {
-  assert_equals(div[0].contentEditable, "false", "lowercase valid");
-  assert_equals(div[1].contentEditable, "false", "mixed case valid");
-  assert_equals(div[2].contentEditable, "inherit", "non-ASCII invalid");
+  test(() => {
+    const el = document.createElement('div');
+    if (valueLower !== "inherit") {
+      el.setAttribute('contenteditable', value);
+    }
+    assert_equals(el.contentEditable, isValid ? valueLower : "inherit");
+  }, `IDL attribute getter for attribute value "${value}"`);
 
-  assert_throws_dom("SyntaxError", () => {
-    div[3].contentEditable = "falſe";
-  }, "non-ASCII rejected by IDL");
-}, "keyword false");
+  test(() => {
+    const el = document.createElement('div');
+    if (isValid) {
+      el.contentEditable = value;
+      assert_equals(el.getAttribute('contenteditable'), valueLower === "inherit" ? null : valueLower);
+    } else {
+      assert_throws_dom("SyntaxError", () => {
+        el.contentEditable = value;
+      });
+    }
+  }, `IDL attribute setter for value "${value}"`);
+}
+
+const valid = ["true", "false", "inherit", "plaintext-only"]; // "inherit" is treated specially
+const invalid = ["foobar", "falſe", "plaıntext-only", "plaİntext-only"];
+
+for (const value of valid) {
+  testValue(value, true);
+  testValue(value.toUpperCase(), true);
+}
+
+for (const value of invalid) {
+  testValue(value, false);
+}
 </script>
