@@ -104,20 +104,20 @@ checksum = "80b9e34fcbf29c0563547cb2ecce9b49504597cad6166769b1e4efb45c6c2951"
 
 [[package]]
 name = "android_log-sys"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85965b6739a430150bdd138e2374a98af0c3ee0d030b3bb7fc3bddff58d0102e"
+checksum = "27f0fc03f560e1aebde41c2398b691cb98b5ea5996a6184a7a67bbbb77448969"
 
 [[package]]
 name = "android_logger"
-version = "0.10.1"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9ed09b18365ed295d722d0b5ed59c01b79a826ff2d2a8f73d5ecca8e6fb2f66"
+checksum = "3fa490e751f3878eb9accb9f18988eca52c2337ce000a8bf31ef50d4c723ca9e"
 dependencies = [
  "android_log-sys",
- "env_logger",
- "lazy_static",
+ "env_logger 0.10.0",
  "log",
+ "once_cell",
 ]
 
 [[package]]
@@ -1559,6 +1559,16 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
+dependencies = [
+ "log",
+ "regex",
 ]
 
 [[package]]
@@ -3406,7 +3416,7 @@ dependencies = [
  "devtools",
  "devtools_traits",
  "embedder_traits",
- "env_logger",
+ "env_logger 0.8.2",
  "euclid",
  "gaol",
  "gfx",
@@ -4896,7 +4906,7 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "588f6378e4dd99458b60ec275b4477add41ce4fa9f64dcba6f15adccb19b50d6"
 dependencies = [
- "env_logger",
+ "env_logger 0.8.2",
  "log",
  "rand 0.8.5",
 ]
@@ -6017,7 +6027,7 @@ version = "0.0.1"
 dependencies = [
  "backtrace",
  "cbindgen",
- "env_logger",
+ "env_logger 0.8.2",
  "keyboard-types",
  "lazy_static",
  "libc",
