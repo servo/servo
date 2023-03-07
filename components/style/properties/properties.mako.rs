@@ -2972,6 +2972,18 @@ pub mod style_structs {
                 })
             }
 
+            /// Returns whether there is any named progress timeline specified with
+            /// scroll-timeline-name other than `none`.
+            pub fn specifies_scroll_timelines(&self) -> bool {
+                self.scroll_timeline_name_iter().any(|name| !name.is_none())
+            }
+
+            /// Returns whether there is any named progress timeline specified with
+            /// view-timeline-name other than `none`.
+            pub fn specifies_view_timelines(&self) -> bool {
+                self.view_timeline_name_iter().any(|name| !name.is_none())
+            }
+
             /// Returns true if animation properties are equal between styles, but without
             /// considering keyframe data and animation-timeline.
             #[cfg(feature = "servo")]
