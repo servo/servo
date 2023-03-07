@@ -39,12 +39,7 @@ impl Zero for AngleDimension {
     }
 
     fn is_zero(&self) -> bool {
-        match *self {
-            AngleDimension::Deg(ref f) |
-            AngleDimension::Grad(ref f) |
-            AngleDimension::Rad(ref f) |
-            AngleDimension::Turn(ref f) => *f == 0.,
-        }
+        self.unitless_value() == 0.0
     }
 }
 
@@ -61,6 +56,24 @@ impl AngleDimension {
             AngleDimension::Rad(rad) => rad * DEG_PER_RAD,
             AngleDimension::Turn(turns) => turns * DEG_PER_TURN,
             AngleDimension::Grad(gradians) => gradians * DEG_PER_GRAD,
+        }
+    }
+
+    fn unitless_value(&self) -> CSSFloat {
+        match *self {
+            AngleDimension::Deg(v) |
+            AngleDimension::Rad(v) |
+            AngleDimension::Turn(v) |
+            AngleDimension::Grad(v) => v,
+        }
+    }
+
+    fn unit(&self) -> &'static str {
+        match *self {
+            AngleDimension::Deg(_) => "deg",
+            AngleDimension::Rad(_) => "rad",
+            AngleDimension::Turn(_) => "turn",
+            AngleDimension::Grad(_) => "grad"
         }
     }
 }
@@ -92,14 +105,7 @@ impl ToCss for Angle {
     where
         W: Write,
     {
-        if self.was_calc {
-            dest.write_str("calc(")?;
-        }
-        self.value.to_css(dest)?;
-        if self.was_calc {
-            dest.write_char(')')?;
-        }
-        Ok(())
+        crate::values::serialize_specified_dimension(self.value.unitless_value(), self.value.unit(), self.was_calc, dest)
     }
 }
 
@@ -108,7 +114,7 @@ impl ToComputedValue for Angle {
 
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
-        ComputedAngle::from_degrees(self.degrees())
+        ComputedAngle::from_degrees(crate::values::normalize(self.degrees()))
     }
 
     #[inline]
@@ -169,6 +175,12 @@ impl Angle {
             value: AngleDimension::Deg(degrees),
             was_calc: true,
         }
+    }
+
+    /// Returns the unit of the angle.
+    #[inline]
+    pub fn unit(&self) -> &'static str {
+        self.value.unit()
     }
 }
 
