@@ -35,6 +35,14 @@ pub enum RaySize {
     Sides,
 }
 
+impl RaySize {
+    /// Returns true if it is the default value.
+    #[inline]
+    pub fn is_default(&self) -> bool {
+        *self == RaySize::ClosestSide
+    }
+}
+
 /// The `ray()` function, `ray( [ <angle> && <size> && contain? ] )`
 ///
 /// https://drafts.fxtf.org/motion-1/#valdef-offsetpath-ray
@@ -62,6 +70,7 @@ pub struct RayFunction<Angle> {
     /// Decide the path length used when `offset-distance` is expressed
     /// as a percentage.
     #[animation(constant)]
+    #[css(skip_if = "RaySize::is_default")]
     pub size: RaySize,
     /// Clamp `offset-distance` so that the box is entirely contained
     /// within the path.

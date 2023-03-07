@@ -16,21 +16,12 @@ use style_traits::{ParseError, StyleParseErrorKind};
 /// The specified value of `offset-path`.
 pub type OffsetPath = GenericOffsetPath<Angle>;
 
-#[cfg(feature = "gecko")]
-fn is_ray_enabled() -> bool {
-    static_prefs::pref!("layout.css.motion-path-ray.enabled")
-}
-#[cfg(feature = "servo")]
-fn is_ray_enabled() -> bool {
-    false
-}
-
 impl Parse for RayFunction<Angle> {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if !is_ray_enabled() {
+        if !static_prefs::pref!("layout.css.motion-path-ray.enabled") {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
@@ -60,13 +51,14 @@ impl Parse for RayFunction<Angle> {
             break;
         }
 
-        if angle.is_none() || size.is_none() {
+        if angle.is_none() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(RayFunction {
             angle: angle.unwrap(),
-            size: size.unwrap(),
+            // If no <ray-size> is specified it defaults to closest-side.
+            size: size.unwrap_or(RaySize::ClosestSide),
             contain,
         })
     }
