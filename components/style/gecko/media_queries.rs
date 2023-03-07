@@ -559,7 +559,7 @@ impl Device {
     /// This check is consistent with how we enable chrome rules for chrome:// and resource://
     /// stylesheets (and thus chrome:// documents).
     #[inline]
-    pub fn is_chrome_document(&self) -> bool {
-        self.document().mDocURISchemeIsChrome()
+    pub fn chrome_rules_enabled_for_document(&self) -> bool {
+        self.document().mChromeRulesEnabled()
     }
 }

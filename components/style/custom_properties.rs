@@ -162,7 +162,7 @@ impl CssEnvironment {
         if let Some(var) = ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name) {
             return Some((var.evaluator)(device));
         }
-        if !device.is_chrome_document() {
+        if !device.chrome_rules_enabled_for_document() {
             return None;
         }
         let var = CHROME_ENVIRONMENT_VARIABLES
