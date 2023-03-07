@@ -835,9 +835,33 @@ where
             .nest_for_negation(|context| !list_matches_complex_selector(list, element, context)),
         Component::Has(ref list) => context
             .shared
-            .nest(|context| has_children_matching(list, element, context)),
+            .nest_for_relative_selector(element.opaque(), |context| {
+                if cfg!(debug_assertions) {
+                    for selector in list.iter() {
+                        let mut selector_iter = selector.iter_raw_parse_order_from(0);
+                        assert!(
+                            matches!(selector_iter.next().unwrap(), Component::RelativeSelectorAnchor),
+                            "Relative selector does not start with RelativeSelectorAnchor"
+                        );
+                        assert!(
+                            selector_iter.next().unwrap().is_combinator(),
+                            "Relative combinator does not exist"
+                        );
+                    }
+                }
+                // TODO(dshin): Proper matching for sibling relative combinators.
+                has_children_matching(list, element, context)
+            }),
         Component::Combinator(_) => unsafe {
             debug_unreachable!("Shouldn't try to selector-match combinators")
+        },
+        Component::RelativeSelectorAnchor => {
+            let anchor = context.shared.relative_selector_anchor();
+            debug_assert!(
+                anchor.is_some(),
+                "Relative selector outside of relative selector matching?"
+            );
+            anchor.map_or(false, |a| a == element.opaque())
         },
     }
 }

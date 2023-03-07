@@ -147,6 +147,9 @@ where
     /// Extra implementation-dependent matching data.
     pub extra_data: Impl::ExtraMatchingData<'a>,
 
+    /// The current element we're anchoring on for evaluating the relative selector.
+    current_relative_selector_anchor: Option<OpaqueElement>,
+
     quirks_mode: QuirksMode,
     needs_selector_flags: NeedsSelectorFlags,
     classes_and_ids_case_sensitivity: CaseSensitivity,
@@ -198,6 +201,7 @@ where
             in_negation: false,
             pseudo_element_matching_fn: None,
             extra_data: Default::default(),
+            current_relative_selector_anchor: None,
             _impl: ::std::marker::PhantomData,
         }
     }
@@ -317,5 +321,26 @@ where
     #[inline]
     pub fn shadow_host(&self) -> Option<OpaqueElement> {
         self.current_host
+    }
+
+    /// Runs F with a deeper nesting level, with the given element as the anchor,
+    /// for a :has(...) selector, for example.
+    #[inline]
+    pub fn nest_for_relative_selector<F, R>(&mut self, anchor: OpaqueElement, f: F) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        // TODO(dshin): Nesting should be rejected at parse time.
+        let original_relative_selector_anchor = self.current_relative_selector_anchor.take();
+        self.current_relative_selector_anchor = Some(anchor);
+        let result = self.nest(f);
+        self.current_relative_selector_anchor = original_relative_selector_anchor;
+        result
+    }
+
+    /// Returns the current anchor element to evaluate the relative selector against.
+    #[inline]
+    pub fn relative_selector_anchor(&self) -> Option<OpaqueElement> {
+        self.current_relative_selector_anchor
     }
 }
