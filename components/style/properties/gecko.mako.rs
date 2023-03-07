@@ -1907,9 +1907,32 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
     ${impl_coordinated_property('scroll_timeline', 'name', 'Name')}
     ${impl_coordinated_property('scroll_timeline', 'axis', 'Axis')}
 
+    pub fn scroll_timelines_equals(&self, other: &Self) -> bool {
+        self.gecko.mScrollTimelineNameCount == other.gecko.mScrollTimelineNameCount
+            && self.gecko.mScrollTimelineAxisCount == other.gecko.mScrollTimelineAxisCount
+            && unsafe {
+                bindings::Gecko_StyleScrollTimelinesEquals(
+                    &self.gecko.mScrollTimelines,
+                    &other.gecko.mScrollTimelines,
+                )
+            }
+    }
+
     ${impl_coordinated_property('view_timeline', 'name', 'Name')}
     ${impl_coordinated_property('view_timeline', 'axis', 'Axis')}
     ${impl_coordinated_property('view_timeline', 'inset', 'Inset')}
+
+    pub fn view_timelines_equals(&self, other: &Self) -> bool {
+        self.gecko.mViewTimelineNameCount == other.gecko.mViewTimelineNameCount
+            && self.gecko.mViewTimelineAxisCount == other.gecko.mViewTimelineAxisCount
+            && self.gecko.mViewTimelineInsetCount == other.gecko.mViewTimelineInsetCount
+            && unsafe {
+                bindings::Gecko_StyleViewTimelinesEquals(
+                    &self.gecko.mViewTimelines,
+                    &other.gecko.mViewTimelines,
+                )
+            }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="XUL">
