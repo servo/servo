@@ -92,6 +92,39 @@ where
     serialize_name(&ident, dest)
 }
 
+fn nan_inf_enabled() -> bool {
+    static_prefs::pref!("layout.css.nan-inf.enabled")
+}
+
+/// Serialize a specified dimension with unit, calc, and NaN/infinity handling (if enabled)
+pub fn serialize_specified_dimension<W>(v: f32, unit: &str, was_calc: bool, dest: &mut CssWriter<W>) -> fmt::Result
+where
+    W: Write,
+{
+    if was_calc {
+        dest.write_str("calc(")?;
+    }
+
+    if !v.is_finite() && nan_inf_enabled() {
+        if v.is_nan() {
+            dest.write_str("NaN * 1")?;
+        } else if v == f32::INFINITY {
+            dest.write_str("infinity * 1")?;
+        } else if v == f32::NEG_INFINITY {
+            dest.write_str("-infinity * 1")?;
+        }
+    } else {
+        v.to_css(dest)?;
+    }
+
+    dest.write_str(unit)?;
+
+    if was_calc {
+        dest.write_char(')')?;
+    }
+    Ok(())
+}
+
 /// A CSS string stored as an `Atom`.
 #[repr(transparent)]
 #[derive(

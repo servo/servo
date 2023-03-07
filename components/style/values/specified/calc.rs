@@ -836,7 +836,12 @@ impl CalcNode {
             Leaf::Angle(ref angle) => Ok(angle.degrees()),
             _ => Err(()),
         })?;
-        Ok(Angle::from_calc(crate::values::normalize(degrees)))
+        let result = Angle::from_calc(if nan_inf_enabled() {
+            degrees
+        } else {
+            crate::values::normalize(degrees)
+        });
+        Ok(result)
     }
 
     /// Tries to simplify this expression into a `<number>` value.
