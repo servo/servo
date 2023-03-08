@@ -14,7 +14,8 @@
 <script>
 test_computed_value("offset-path", "none");
 
-test_computed_value("offset-path", "ray(0rad closest-side)", "ray(0deg closest-side)");
+test_computed_value("offset-path", "ray(0deg)");
+test_computed_value("offset-path", "ray(0rad closest-side)", "ray(0deg)");
 test_computed_value("offset-path", "ray(0.25turn closest-corner contain)", "ray(90deg closest-corner contain)");
 test_computed_value("offset-path", "ray(200grad farthest-side)", "ray(180deg farthest-side)");
 test_computed_value("offset-path", "ray(270deg farthest-corner contain)");

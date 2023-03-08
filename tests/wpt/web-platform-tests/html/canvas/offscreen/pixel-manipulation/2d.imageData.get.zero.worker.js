@@ -19,6 +19,10 @@ var ctx = canvas.getContext('2d');
 assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 10, 0); });
 assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0, 10); });
 assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0, 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 0.1, 10); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 10, 0.99); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, -0.1, 10); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.getImageData(1, 1, 10, -0.99); });
 t.done();
 
 });

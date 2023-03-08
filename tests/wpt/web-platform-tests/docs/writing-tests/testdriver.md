@@ -87,6 +87,13 @@ the global scope.
 
 ```
 
+### Accessibility ###
+```eval_rst
+.. js:autofunction:: test_driver.get_computed_label
+.. js:autofunction:: test_driver.get_computed_role
+
+```
+
 ### Seure Payment Confirmation ###
 ```eval_rst
 .. js:autofunction:: test_driver.set_spc_transaction_mode

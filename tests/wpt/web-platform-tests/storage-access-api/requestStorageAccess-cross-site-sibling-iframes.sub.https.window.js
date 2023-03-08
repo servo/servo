@@ -5,12 +5,15 @@
 'use strict';
 
 (async function() {
-  // This is on the alt domain, so it's cross-site from the current document.
-  const wwwAlt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
+  // This is on the www subdomain, so it's cross-origin from the current document.
+  const www = "https://{{domains[www]}}:{{ports[https][0]}}";
+  // This is on the alt host, so it's cross-site from the current document.
+  const wwwAlt = "https://{{hosts[alt][]}}:{{ports[https][0]}}";
+  const url_suffix = "/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js";
 
   promise_test(async (t) => {
     await MaybeSetStorageAccess("*", "*", "blocked");
-    const responder_html = `${wwwAlt}/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js`;
+    const responder_html = `${wwwAlt}${url_suffix}`;
     const [frame1, frame2] = await Promise.all([
       CreateFrame(responder_html),
       CreateFrame(responder_html),
@@ -43,4 +46,36 @@
     assert_true(await FrameHasStorageAccess(frame2), "frame2 should have storage access after it requested it.");
     assert_true(await CanFrameWriteCookies(frame2), "frame2 should be able to write cookies via document.cookie after getting storage access.");
   }, "Grants have per-frame scope");
+
+  promise_test(async (t) => {
+    await MaybeSetStorageAccess("*", "*", "blocked");
+    const [crossOriginFrame, crossSiteFrame] = await Promise.all([
+      CreateFrame(`${www}${url_suffix}`),
+      CreateFrame(`${wwwAlt}${url_suffix}`),
+    ]);
+
+    t.add_cleanup(async () => {
+      await test_driver.delete_all_cookies();
+      await SetPermissionInFrame(crossOriginFrame, [{ name: 'storage-access' }, 'prompt']);
+      await SetPermissionInFrame(crossSiteFrame, [{ name: 'storage-access' }, 'prompt']);
+      await MaybeSetStorageAccess("*", "*", "allowed");
+    });
+
+    await SetPermissionInFrame(crossOriginFrame, [{ name: 'storage-access' }, 'granted']);
+    await SetPermissionInFrame(crossSiteFrame, [{ name: 'storage-access' }, 'granted']);
+
+    assert_true(await RequestStorageAccessInFrame(crossOriginFrame), "crossOriginFrame should be able to get storage access without a gesture.");
+    assert_true(await RequestStorageAccessInFrame(crossSiteFrame), "crossSiteFrame should be able to get storage access without a gesture.");
+
+    await SetDocumentCookieFromFrame(crossOriginFrame, `cookie=monster;Secure;SameSite=None;Path=/`);
+    await SetDocumentCookieFromFrame(crossSiteFrame, `foo=bar;Secure;SameSite=None;Path=/`);
+
+    assert_true(cookieStringHasCookie("cookie", "monster", await FetchFromFrame(crossOriginFrame, www)),"crossOriginFrame making same-origin subresource request can access cookies.");
+    assert_true(cookieStringHasCookie("foo", "bar", await FetchFromFrame(crossSiteFrame, wwwAlt)),"crossSiteFrame making same-origin subresource request can access cookies.");
+
+    assert_false(cookieStringHasCookie("foo", "bar",  await FetchFromFrame(crossOriginFrame, wwwAlt)), "crossOriginFrame making cross-site subresource request to sibling iframe's host should not include cookies.");
+    assert_false(cookieStringHasCookie("cookie", "monster", await FetchFromFrame(crossSiteFrame, www)),"crossSiteFrame making cross-site subresource request to sibling iframe's host should not include cookies.");
+
+  }, "Cross-site sibling iframes should not be able to take advantage of the existing permission grant requested by others.");
+
 })();

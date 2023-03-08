@@ -13,7 +13,7 @@
 <body>
 <script>
 const types = Object.freeze({
-  popover: Symbol("Popover API"),
+  popover: Symbol("Popover"),
   modalDialog: Symbol("Modal Dialog"),
   fullscreen: Symbol("Fullscreen Element"),
 });
@@ -30,17 +30,17 @@ const examples = [
     type: types.modalDialog,
     closes: [types.popover],
     createElement: () => document.createElement('dialog'),
-    trigger: function() {this.element.showModal();this.showing=true;},
-    close: function() {this.element.close();this.showing=false;},
-    isTopLayer: function() {return !!(this.element.isConnected && this.showing);},
+    trigger: function() {this.element.showModal()},
+    close: function() {this.element.close()},
+    isTopLayer: function() {return this.element.matches(':modal')},
   },
   {
     type: types.fullscreen,
     closes: [types.popover],
     createElement: () => document.createElement('div'),
     trigger: async function(visibleElement) {assert_false(this.isTopLayer());await blessTopLayer(visibleElement);await this.element.requestFullscreen();},
-    close: function() {document.exitFullscreen();},
-    isTopLayer: function() {return this.element.matches(':fullscreen');},
+    close: async function() {await document.exitFullscreen();},
+    isTopLayer: function() {return this.element.matches(':fullscreen')},
   },
 ];
 
@@ -53,10 +53,10 @@ function createElement(ex) {
   assert_false(ex.isTopLayer(),'Element should start out not in the top layer');
   return element;
 }
-function doneWithExample(ex) {
+async function doneWithExample(ex) {
   assert_true(!!ex.element);
   if (ex.isTopLayer())
-    ex.close();
+    await ex.close();
   ex.element.remove();
   ex.element = null;
 }
@@ -66,11 +66,16 @@ for(let i=0;i<examples.length;++i) {
     const example1 = Object.assign([],examples[i]);
     const example2 = Object.assign([],examples[j]);
     const shouldClose = example2.closes.includes(example1.type);
-    const desc = `A ${example2.type.description} should ${shouldClose ? "" : "*not*"} close a ${example1.type.description}`;
+    const desc = `A ${example2.type.description} should${shouldClose ? "" : " *not*"} close a ${example1.type.description}.`;
     promise_test(async t => {
       const element1 = createElement(example1);
       const element2 = createElement(example2);
-      t.add_cleanup(() => {doneWithExample(example1);doneWithExample(example2);});
+      t.add_cleanup(() => {
+        return Promise.all([
+          doneWithExample(example1),
+          doneWithExample(example2),
+        ]);
+      });
       await example1.trigger(document.body); // Open the 1st top layer element
       assert_true(example1.isTopLayer()); // Make sure it is top layer
       await example2.trigger(element1); // Open the 2nd top layer element

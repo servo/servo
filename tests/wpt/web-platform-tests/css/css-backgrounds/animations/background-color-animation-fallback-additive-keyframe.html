@@ -16,7 +16,7 @@
 <script>
 var target = document.getElementById("target");
 target.animate([
-  { backgroundColor: 'rgb(200, 0, 0)', composite: 'accumulate' },
+  { backgroundColor: 'rgb(200, 0, 0)', composite: 'accumulate', easing: 'steps(2, end)' },
   { backgroundColor: 'rgb(0, 0, 0' }
 ], {
   duration: 1000000

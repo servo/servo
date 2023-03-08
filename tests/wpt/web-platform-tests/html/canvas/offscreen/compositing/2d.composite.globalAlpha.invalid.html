@@ -15,11 +15,12 @@ var t_pass = t.done.bind(t);
 var t_fail = t.step_func(function(reason) {
     throw reason;
 });
-t.step(function() {
+t.step(async function() {
 
 var canvas = new OffscreenCanvas(100, 50);
 var ctx = canvas.getContext('2d');
 
+await (function(canvas, ctx) {
 ctx.globalAlpha = 0.5;
 var a = ctx.globalAlpha; // might not be exactly 0.5, if it is rounded/quantised, so remember for future comparisons
 ctx.globalAlpha = Infinity;
@@ -28,6 +29,7 @@ ctx.globalAlpha = -Infinity;
 _assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
 ctx.globalAlpha = NaN;
 _assertSame(ctx.globalAlpha, a, "ctx.globalAlpha", "a");
+})(canvas, ctx);
 t.done();
 
 });

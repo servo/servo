@@ -1883,6 +1883,32 @@ class WebKit(Browser):
         return None
 
 
+class WebKitTestRunner(Browser):
+    """Interface for WebKitTestRunner.
+    """
+
+    product = "wktr"
+    requirements = None
+
+    def download(self, dest=None, channel=None, rename=None):
+        raise NotImplementedError
+
+    def install(self, dest=None, channel=None):
+        raise NotImplementedError
+
+    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
+        raise NotImplementedError
+
+    def find_binary(self, venv_path=None, channel=None):
+        return None
+
+    def find_webdriver(self, venv_path=None, channel=None):
+        return None
+
+    def version(self, binary=None, webdriver_binary=None):
+        return None
+
+
 class WebKitGTKMiniBrowser(WebKit):
 
 

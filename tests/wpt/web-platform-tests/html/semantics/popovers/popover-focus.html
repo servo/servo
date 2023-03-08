@@ -129,7 +129,7 @@
       popover.showPopover();
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by popover.showPopover()`);
       assert_equals(popover.popover, 'auto', 'All popovers in this test should start as popover=auto');
-      popover.popover = 'hint';
+      popover.popover = 'manual';
       assert_false(popover.matches(':open'), 'Changing the popover type should hide the popover');
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus when the type is changed');
       assert_false(isElementVisible(popover));

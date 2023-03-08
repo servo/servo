@@ -481,10 +481,18 @@ class WebTransportH3Server:
         self.started = True
 
     def _start_on_server_thread(self) -> None:
+        secrets_log_file = None
+        if "SSLKEYLOGFILE" in os.environ:
+            try:
+                secrets_log_file = open(os.environ["SSLKEYLOGFILE"], "a")
+            except Exception as e:
+                _logger.warn(str(e))
+
         configuration = QuicConfiguration(
             alpn_protocols=H3_ALPN,
             is_client=False,
             max_datagram_frame_size=65536,
+            secrets_log_file=secrets_log_file,
         )
 
         _logger.info("Starting WebTransport over HTTP/3 server on %s:%s",

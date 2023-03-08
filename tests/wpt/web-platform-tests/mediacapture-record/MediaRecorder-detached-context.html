@@ -16,7 +16,7 @@
     try {
       new recorderFunc(new MediaStream);
     } catch (err) {
-      assert_equals(err.name, 'NotAllowedError');
+      assert_equals(err.name, 'NotSupportedError');
       t.done();
     }
     assert_unreached('MediaRecorder should have failed');

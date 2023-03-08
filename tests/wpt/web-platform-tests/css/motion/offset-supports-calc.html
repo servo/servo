@@ -27,7 +27,7 @@ test(function(){
 
 test(function(){
   target.style = 'offset-path: ray(calc(1turn - 100grad) closest-side);';
-  assert_equals(getComputedStyle(target).offsetPath, 'ray(270deg closest-side)');
+  assert_equals(getComputedStyle(target).offsetPath, 'ray(270deg)');
 }, 'offset-path supports calc');
 
 test(function(){

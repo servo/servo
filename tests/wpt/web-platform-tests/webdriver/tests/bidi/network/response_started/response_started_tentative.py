@@ -61,7 +61,6 @@ async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, 
         expected_request=expected_request,
         expected_response=expected_response,
         redirect_count=0,
-        is_redirect=False,
     )
 
     await bidi_session.session.unsubscribe(events=[RESPONSE_STARTED_EVENT])
@@ -107,7 +106,6 @@ async def test_load_page_twice(
         expected_request=expected_request,
         expected_response=expected_response,
         redirect_count=0,
-        is_redirect=False,
     )
 
 
@@ -142,7 +140,6 @@ async def test_response_status(
         events[0],
         expected_response=expected_response,
         redirect_count=0,
-        is_redirect=False,
     )
 
 
@@ -180,7 +177,6 @@ async def test_response_headers(
         events[0],
         expected_request=expected_request,
         redirect_count=0,
-        is_redirect=False,
     )
 
 
@@ -214,7 +210,6 @@ async def test_response_mime_type_file(
         expected_request=expected_request,
         expected_response=expected_response,
         redirect_count=0,
-        is_redirect=False,
     )
 
 
@@ -239,11 +234,10 @@ async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_
         events[0],
         expected_request=expected_request,
         redirect_count=0,
-        is_redirect=False,
     )
     expected_request = {"method": "GET", "url": text_url}
     assert_response_event(
-        events[1], expected_request=expected_request, redirect_count=1, is_redirect=True
+        events[1], expected_request=expected_request, redirect_count=1
     )
 
     # Check that both requests share the same requestId

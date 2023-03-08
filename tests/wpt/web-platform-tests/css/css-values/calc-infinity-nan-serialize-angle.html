@@ -14,9 +14,9 @@ function test_serialization(t,s, {prop="transform"}={}) {
 //TEST CASE                                            | EXPECTED
 var test_map = {
     "1deg * NaN"                                       :"calc(NaN * 1deg)",
-    "1rad * NaN"                                       :"calc(NaN * 1rad)",
-    "1turn * NaN"                                      :"calc(NaN * 1turn)",
-    "1grad * nan"                                      :"calc(NaN * 1grad)",
+    "1rad * NaN"                                       :"calc(NaN * 1deg)",
+    "1turn * NaN"                                      :"calc(NaN * 1deg)",
+    "1grad * nan"                                      :"calc(NaN * 1deg)",
     "1deg * infinity / infinity"                       :"calc(NaN * 1deg)",
     "1deg * 0 * infinity"                              :"calc(NaN * 1deg)",
     "1deg * (infinity + -infinity)"                    :"calc(NaN * 1deg)",
