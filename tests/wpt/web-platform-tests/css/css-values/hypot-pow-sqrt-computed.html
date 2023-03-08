@@ -25,12 +25,18 @@ test_math_used('calc(1px * pow(2, 3))', '8px')
 test_math_used('calc(100px * sqrt(100))', '1000px');
 test_math_used('calc(1px * pow(2, sqrt(100))', '1024px');
 test_math_used('hypot(3px, 4px)', '5px');
+test_math_used('hypot(3e+9px, 4e+9px)', '5e+9px');
 test_math_used('calc(100px * hypot(3, 4))', '500px');
 test_math_used('hypot(-5px)', '5px');
 test_math_used('calc(1px * hypot(-5))', '5px');
 test_math_used('calc(1px * hypot(10000))','10000px');
 test_math_used('calc(2px * sqrt(100000000))','20000px');
-test_math_used('calc(3px * pow(200, 4))', '33554428px');
+test_math_used('calc(3px * pow(20, 4))', '480000px');
+test_math_used('calc(-2 * hypot(3px, 4px))', '-10px');
+test_math_used('hypot(0% + 3px, 0% + 4px)', '5px');
+test_math_used('hypot(0% + 772.333px)', 'calc(0% + 772.333px)');
+test_math_used('hypot(0% + 772.35px)', 'calc(0% + 772.35px)');
+test_math_used('hypot(0% + 600px, 0% + 800px)', '1000px');
 
 //Type checking hypot
 test_math_used('hypot(1px)', '1px');

@@ -27,7 +27,9 @@ var imgdata1 = ctx.getImageData(0.1, 0.2, 15.8, 15.9);
 var olddata = [];
 for (var i = 0; i < imgdata1.data.length; ++i)
     olddata[i] = imgdata1.data[i];
+
 ctx.putImageData(imgdata1, 0.1, 0.2);
+
 var imgdata2 = ctx.getImageData(0.1, 0.2, 15.8, 15.9);
 for (var i = 0; i < imgdata2.data.length; ++i) {
     _assertSame(olddata[i], imgdata2.data[i], "olddata[\""+(i)+"\"]", "imgdata2.data[\""+(i)+"\"]");

@@ -48,6 +48,10 @@ window.addEventListener("message", async (event) => {
       // script-with-cookie-header.py.
       reply(httpCookies);
       break;
+    case "subresource cookies":
+      const cookie = await fetch(`${event.data.host}/storage-access-api/resources/echo-cookie-header.py`, {mode: 'cors', credentials: 'include'}).then((resp) => resp.text());
+      reply(cookie);
+      break;
     default:
   }
 });

@@ -180,6 +180,18 @@
         return create_action("get_all_cookies", {context});
     };
 
+    window.test_driver_internal.get_computed_label = function(element) {
+        const selector = get_selector(element);
+        const context = get_context(element);
+        return create_action("get_computed_label", {selector, context});
+    };
+
+    window.test_driver_internal.get_computed_role = function(element) {
+        const selector = get_selector(element);
+        const context = get_context(element);
+        return create_action("get_computed_role", {selector, context});
+    };
+
     window.test_driver_internal.get_named_cookie = function(name, context=null) {
         return create_action("get_named_cookie", {name, context});
     };

@@ -221,6 +221,40 @@
         },
 
         /**
+         * Get Computed Label for an element.
+         *
+         * This matches the behaviour of the
+         * `Get Computed Label
+         * <https://w3c.github.io/webdriver/#dfn-get-computed-label>`_
+         * WebDriver command.
+         *
+         * @param {Element} element
+         * @returns {Promise} fulfilled after the computed label is returned, or
+         *                    rejected in the cases the WebDriver command errors
+         */
+        get_computed_label: async function(element) {
+            let label = await window.test_driver_internal.get_computed_label(element);
+            return label;
+        },
+
+        /**
+         * Get Computed Role for an element.
+         *
+         * This matches the behaviour of the
+         * `Get Computed Label
+         * <https://w3c.github.io/webdriver/#dfn-get-computed-role>`_
+         * WebDriver command.
+         *
+         * @param {Element} element
+         * @returns {Promise} fulfilled after the computed role is returned, or
+         *                    rejected in the cases the WebDriver command errors
+         */
+        get_computed_role: async function(element) {
+            let role = await window.test_driver_internal.get_computed_role(element);
+            return role;
+        },
+
+        /**
          * Send keys to an element.
          *
          * If ``element`` isn't inside the

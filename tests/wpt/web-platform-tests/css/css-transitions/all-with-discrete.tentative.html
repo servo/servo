@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/4441">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=target1 class=target>hello</div>
+<div id=target2 class=target>hello</div>
+
+<style>
+.target {
+  float: left;
+  width: 100px;
+  height: 100px;
+}
+.target.animated {
+  float: right;
+}
+
+#target1 {
+  transition: all 1s, float 1s;
+}
+
+#target2 {
+  transition: all 1s;
+}
+</style>
+
+<script>
+promise_test(async () => {
+  let transitionstartFired = false;
+  target1.addEventListener('transitionstart', () => {
+    transitionstartFired = true;
+  });
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  target1.classList.add('animated');
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_true(transitionstartFired);
+}, 'all with an explicit discrete property should animate.');
+
+promise_test(async () => {
+  let transitionstartFired = false;
+  target2.addEventListener('transitionstart', () => {
+    transitionstartFired = true;
+  });
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  target2.classList.add('animated');
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_false(transitionstartFired);
+}, 'all without an explicit discrete property should not animate.');
+</script>

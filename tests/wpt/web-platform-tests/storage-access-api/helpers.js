@@ -196,6 +196,12 @@ function FrameInitiatedNavigation(frame, url) {
   return load;
 }
 
+// Makes a subresource request to the provided host in the given frame, and returns the cookies in the response.
+function FetchFromFrame(frame, host) {
+  return PostMessageAndAwaitReply(
+    { command: "subresource cookies", host }, frame.contentWindow);
+}
+
 // Tries to set storage access policy, ignoring any errors.
 //
 // Note: to discourage the writing of tests that assume unpartitioned cookie

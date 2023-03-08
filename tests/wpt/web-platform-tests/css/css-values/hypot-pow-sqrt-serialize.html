@@ -29,13 +29,13 @@ test_serialization(
     '1');
 
 test_serialization(
-    'calc(pow(1,1) + 1)',
-    'calc(2)',
-    '2');
+    'calc(pow(1,1) - 0.5)',
+    'calc(0.5)',
+    '0.5');
 test_serialization(
-    'calc(hypot(1) * 2)',
-    'calc(2)',
-    '2');
+    'calc(hypot(1) * 0.5)',
+    'calc(0.5)',
+    '0.5');
 test_serialization(
     'calc(sqrt(1) - 1)',
     'calc(0)',

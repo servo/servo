@@ -19,6 +19,8 @@ var ctx = canvas.getContext('2d');
 assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(10, 0); });
 assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(0, 10); });
 assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(0, 0); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(0.99, 10); });
+assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.createImageData(10, 0.1); });
 t.done();
 
 });

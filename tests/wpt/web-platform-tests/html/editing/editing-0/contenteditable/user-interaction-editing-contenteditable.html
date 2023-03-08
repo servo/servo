@@ -53,6 +53,16 @@
         el.contentEditable = "true";
         el.removeAttribute("contenteditable");
       }, 'set contentEditable = "true" and then remove contenteditable attribute', false, "inherit");
+
+      testContentEditable(el => {
+        el.setAttribute("contenteditable", "plaintext-only");
+      }, "contentEditable=plaintext-only attribute", true, "plaintext-only");
+
+      testContentEditable(el => {
+        const parent = document.createElement("div");
+        parent.appendChild(el);
+        parent.contentEditable = "plaintext-only";
+      }, 'set parent element contentEditable = "plaintext-only"', true, "inherit");
     </script>
   </body>
 </html>

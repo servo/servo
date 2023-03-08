@@ -18,36 +18,43 @@ var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#08f';
 ctx.fillRect(0, 0, 100, 50);
+
 var imgdata1 = ctx.getImageData(-10, 5, 1, 1);
 _assertSame(imgdata1.data[0], 0, "imgdata1.data[\""+(0)+"\"]", "0");
 _assertSame(imgdata1.data[1], 0, "imgdata1.data[\""+(1)+"\"]", "0");
 _assertSame(imgdata1.data[2], 0, "imgdata1.data[\""+(2)+"\"]", "0");
 _assertSame(imgdata1.data[3], 0, "imgdata1.data[\""+(3)+"\"]", "0");
+
 var imgdata2 = ctx.getImageData(10, -5, 1, 1);
 _assertSame(imgdata2.data[0], 0, "imgdata2.data[\""+(0)+"\"]", "0");
 _assertSame(imgdata2.data[1], 0, "imgdata2.data[\""+(1)+"\"]", "0");
 _assertSame(imgdata2.data[2], 0, "imgdata2.data[\""+(2)+"\"]", "0");
 _assertSame(imgdata2.data[3], 0, "imgdata2.data[\""+(3)+"\"]", "0");
+
 var imgdata3 = ctx.getImageData(200, 5, 1, 1);
 _assertSame(imgdata3.data[0], 0, "imgdata3.data[\""+(0)+"\"]", "0");
 _assertSame(imgdata3.data[1], 0, "imgdata3.data[\""+(1)+"\"]", "0");
 _assertSame(imgdata3.data[2], 0, "imgdata3.data[\""+(2)+"\"]", "0");
 _assertSame(imgdata3.data[3], 0, "imgdata3.data[\""+(3)+"\"]", "0");
+
 var imgdata4 = ctx.getImageData(10, 60, 1, 1);
 _assertSame(imgdata4.data[0], 0, "imgdata4.data[\""+(0)+"\"]", "0");
 _assertSame(imgdata4.data[1], 0, "imgdata4.data[\""+(1)+"\"]", "0");
 _assertSame(imgdata4.data[2], 0, "imgdata4.data[\""+(2)+"\"]", "0");
 _assertSame(imgdata4.data[3], 0, "imgdata4.data[\""+(3)+"\"]", "0");
+
 var imgdata5 = ctx.getImageData(100, 10, 1, 1);
 _assertSame(imgdata5.data[0], 0, "imgdata5.data[\""+(0)+"\"]", "0");
 _assertSame(imgdata5.data[1], 0, "imgdata5.data[\""+(1)+"\"]", "0");
 _assertSame(imgdata5.data[2], 0, "imgdata5.data[\""+(2)+"\"]", "0");
 _assertSame(imgdata5.data[3], 0, "imgdata5.data[\""+(3)+"\"]", "0");
+
 var imgdata6 = ctx.getImageData(0, 10, 1, 1);
 _assertSame(imgdata6.data[0], 0, "imgdata6.data[\""+(0)+"\"]", "0");
 _assertSame(imgdata6.data[1], 136, "imgdata6.data[\""+(1)+"\"]", "136");
 _assertSame(imgdata6.data[2], 255, "imgdata6.data[\""+(2)+"\"]", "255");
 _assertSame(imgdata6.data[3], 255, "imgdata6.data[\""+(3)+"\"]", "255");
+
 var imgdata7 = ctx.getImageData(-10, 10, 20, 20);
 _assertSame(imgdata7.data[ 0*4+0], 0, "imgdata7.data[ 0*4+0]", "0");
 _assertSame(imgdata7.data[ 0*4+1], 0, "imgdata7.data[ 0*4+1]", "0");

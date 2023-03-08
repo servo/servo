@@ -14,7 +14,8 @@
 <script>
 test_valid_value("offset-path", "none");
 
-test_valid_value("offset-path", "ray(0rad closest-side)");
+test_valid_value("offset-path", "ray(0deg)");
+test_valid_value("offset-path", "ray(0rad closest-side)", "ray(0rad)");
 test_valid_value("offset-path", "ray(0.25turn closest-corner contain)");
 test_valid_value("offset-path", "ray(200grad farthest-side)");
 test_valid_value("offset-path", "ray(270deg farthest-corner contain)");

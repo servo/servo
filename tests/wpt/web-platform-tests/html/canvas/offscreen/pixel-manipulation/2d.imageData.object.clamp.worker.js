@@ -17,24 +17,28 @@ var canvas = new OffscreenCanvas(100, 50);
 var ctx = canvas.getContext('2d');
 
 var imgdata = ctx.getImageData(0, 0, 10, 10);
+
 imgdata.data[0] = 100;
 imgdata.data[0] = 300;
 _assertSame(imgdata.data[0], 255, "imgdata.data[\""+(0)+"\"]", "255");
 imgdata.data[0] = 100;
 imgdata.data[0] = -100;
 _assertSame(imgdata.data[0], 0, "imgdata.data[\""+(0)+"\"]", "0");
+
 imgdata.data[0] = 100;
 imgdata.data[0] = 200+Math.pow(2, 32);
 _assertSame(imgdata.data[0], 255, "imgdata.data[\""+(0)+"\"]", "255");
 imgdata.data[0] = 100;
 imgdata.data[0] = -200-Math.pow(2, 32);
 _assertSame(imgdata.data[0], 0, "imgdata.data[\""+(0)+"\"]", "0");
+
 imgdata.data[0] = 100;
 imgdata.data[0] = Math.pow(10, 39);
 _assertSame(imgdata.data[0], 255, "imgdata.data[\""+(0)+"\"]", "255");
 imgdata.data[0] = 100;
 imgdata.data[0] = -Math.pow(10, 39);
 _assertSame(imgdata.data[0], 0, "imgdata.data[\""+(0)+"\"]", "0");
+
 imgdata.data[0] = 100;
 imgdata.data[0] = -Infinity;
 _assertSame(imgdata.data[0], 0, "imgdata.data[\""+(0)+"\"]", "0");

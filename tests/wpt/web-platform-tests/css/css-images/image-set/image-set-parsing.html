@@ -142,6 +142,42 @@ function test_resolution_units_parsing() {
   );
 }
 
+function test_non_positive_resolutions_parsing() {
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") 0x)'
+  );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") 0dppx)'
+  );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") 0dpi)'
+  );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") 0dpcm)'
+  );
+
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") -1x)'
+  );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") -3dppx)'
+  );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") -96dpi)'
+  );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("example.png") -113dpcm)'
+  );
+}
+
 function test_gradient_images_parsing() {
   test_valid_value_variants(
     'background-image',
@@ -257,14 +293,13 @@ function test_image_set_parsing() {
 
   test_invalid_value_variants('background-image', "image-set(none, url(example.png) 1x)");
   test_invalid_value_variants('background-image', "image-set()");
-  test_invalid_value_variants('background-image', "image-set(url(example.png) 0x)");
-  test_invalid_value_variants('background-image', "image-set(url(example.png) -20x)");
   test_invalid_value_variants('background-image', "image-set('example.jpeg' 92pid url(example.png) 1x)");
   test_invalid_value_variants('background-image', "image-set(url(example.png) 1x url(example.jpeg))");
   test_invalid_value_variants('background-image', "image-set(url(example.png) 1x 2x)");
 
   test_default_resolution_parsing();
   test_resolution_units_parsing();
+  test_non_positive_resolutions_parsing();
   test_gradient_images_parsing();
   test_image_type_parsing();
   test_no_images_set_nesting();

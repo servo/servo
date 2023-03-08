@@ -893,6 +893,14 @@ class Element:
     def attribute(self, name):
         return self.send_element_command("GET", "attribute/%s" % name)
 
+    @command
+    def get_computed_label(self):
+        return self.send_element_command("GET", "computedlabel")
+
+    @command
+    def get_computed_role(self):
+        return self.send_element_command("GET", "computedrole")
+
     # This MUST come last because otherwise @property decorators above
     # will be overridden by this.
     @command
