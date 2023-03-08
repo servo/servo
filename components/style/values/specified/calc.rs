@@ -245,7 +245,7 @@ impl generic::CalcNodeLeaf for Leaf {
                 *a = Angle::from_calc(a.degrees() * scalar);
             },
             Self::Time(ref mut t) => {
-                *t = Time::from_calc(t.seconds() * scalar);
+                *t = Time::from_seconds(t.seconds() * scalar);
             },
             Self::Percentage(ref mut p) => {
                 *p *= scalar;
@@ -334,7 +334,7 @@ impl generic::CalcNodeLeaf for Leaf {
                 *one = specified::Angle::from_calc(one.degrees() + other.degrees());
             },
             (&mut Time(ref mut one), &Time(ref other)) => {
-                *one = specified::Time::from_calc(one.seconds() + other.seconds());
+                *one = specified::Time::from_seconds(one.seconds() + other.seconds());
             },
             (&mut Length(ref mut one), &Length(ref other)) => {
                 *one = one.try_op(other, std::ops::Add::add)?;
@@ -376,7 +376,7 @@ impl generic::CalcNodeLeaf for Leaf {
                 ))));
             },
             (&Time(ref one), &Time(ref other)) => {
-                return Ok(Leaf::Time(specified::Time::from_calc(op(
+                return Ok(Leaf::Time(specified::Time::from_seconds(op(
                     one.seconds(),
                     other.seconds(),
                 ))));
@@ -428,7 +428,7 @@ impl CalcNode {
                     }
                 }
                 if allowed_units.intersects(CalcUnits::TIME) {
-                    if let Ok(t) = Time::parse_dimension(value, unit, /* from_calc = */ true) {
+                    if let Ok(t) = Time::parse_dimension(value, unit) {
                         return Ok(CalcNode::Leaf(Leaf::Time(t)));
                     }
                 }
@@ -596,8 +596,8 @@ impl CalcNode {
                             return Ok(a.atan2(b));
                         }
 
-                        if let Ok(a) = a.to_time() {
-                            let b = b.to_time()?;
+                        if let Ok(a) = a.to_time(None) {
+                            let b = b.to_time(None)?;
                             return Ok(a.seconds().atan2(b.seconds()));
                         }
 
@@ -822,12 +822,21 @@ impl CalcNode {
     }
 
     /// Tries to simplify this expression into a `<time>` value.
-    fn to_time(&self) -> Result<Time, ()> {
+    fn to_time(
+        &self,
+        clamping_mode: Option<AllowedNumericType>
+    ) -> Result<Time, ()> {
         let seconds = self.resolve(|leaf| match *leaf {
-            Leaf::Time(ref t) => Ok(t.seconds()),
+            Leaf::Time(ref time) => Ok(time.seconds()),
             _ => Err(()),
         })?;
-        Ok(Time::from_calc(crate::values::normalize(seconds)))
+
+        let result = Time::from_seconds_with_calc_clamping_mode(if nan_inf_enabled() {
+            seconds
+        } else {
+            crate::values::normalize(seconds)
+        }, clamping_mode);
+        Ok(result)
     }
 
     /// Tries to simplify this expression into an `Angle` value.
@@ -967,10 +976,11 @@ impl CalcNode {
     pub fn parse_time<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        clamping_mode: AllowedNumericType,
         function: MathFunction,
     ) -> Result<Time, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnits::TIME)?
-            .to_time()
+            .to_time(Some(clamping_mode))
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
