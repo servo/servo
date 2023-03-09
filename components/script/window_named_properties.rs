@@ -11,8 +11,13 @@ use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::jsstr_to_string;
-use js::glue::{CreateProxyHandler, NewProxyObject, ProxyTraps};
-use js::jsapi::{GetWellKnownSymbol, JS_SetImmutablePrototype, SymbolCode};
+use js::glue::{
+    AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps, RUST_SYMBOL_TO_JSID,
+};
+use js::jsapi::{
+    jsid, GetPropertyKeys, GetWellKnownSymbol, JS_SetImmutablePrototype, SymbolCode, JSITER_HIDDEN,
+    JSITER_OWNONLY, JSITER_SYMBOLS,
+};
 use js::jsapi::{
     Handle, HandleObject, JSClass, JSContext, JSErrNum, MutableHandleObject, UndefinedHandleValue,
 };
@@ -147,11 +152,12 @@ unsafe extern "C" fn get_own_property_descriptor(
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn own_property_keys(
-    _cx: *mut JSContext,
+    cx: *mut JSContext,
     _proxy: HandleObject,
-    _props: MutableHandleIdVector,
+    props: MutableHandleIdVector,
 ) -> bool {
-    // FIXME(pylbrecht): dummy implementation
+    rooted!(in(cx) let mut rooted = SymbolId(GetWellKnownSymbol(cx, SymbolCode::toStringTag)));
+    AppendToIdVector(props, rooted.handle().into());
     true
 }
 
