@@ -12,7 +12,7 @@ use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::jsstr_to_string;
 use js::glue::{CreateProxyHandler, NewProxyObject, ProxyTraps};
-use js::jsapi::JS_SetImmutablePrototype;
+use js::jsapi::{GetWellKnownSymbol, JS_SetImmutablePrototype, SymbolCode};
 use js::jsapi::{
     Handle, HandleObject, JSClass, JSContext, JSErrNum, MutableHandleObject, UndefinedHandleValue,
 };
@@ -22,6 +22,7 @@ use js::jsapi::{
     JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY, JSCLASS_RESERVED_SLOTS_MASK,
     JSCLASS_RESERVED_SLOTS_SHIFT,
 };
+use js::jsid::SymbolId;
 use js::jsval::UndefinedValue;
 use js::rust::IntoHandle;
 use js::rust::{Handle as RustHandle, MutableHandle as RustMutableHandle};
@@ -85,6 +86,20 @@ unsafe extern "C" fn get_own_property_descriptor(
 ) -> bool {
     let cx = SafeJSContext::from_ptr(cx);
 
+    if id.is_symbol() {
+        if id.get().asBits_ == SymbolId(GetWellKnownSymbol(*cx, SymbolCode::toStringTag)).asBits_ {
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            "WindowProperties".to_jsval(*cx, rval.handle_mut());
+            set_property_descriptor(
+                RustMutableHandle::from_raw(desc),
+                rval.handle(),
+                0,
+                &mut *is_none,
+            );
+        }
+        return true;
+    }
+
     let mut found = false;
     if !has_property_on_prototype(
         *cx,
@@ -106,10 +121,10 @@ unsafe extern "C" fn get_own_property_descriptor(
         // (window[index]), which should only return document-tree child navigables?
         // https://html.spec.whatwg.org/#accessing-other-browsing-contexts
         id.to_int().to_string()
+    } else if id.is_symbol() {
+        unreachable!()
     } else {
-        // TODO(delan) what do we do if the property key is a symbol?
-        warn!("[[GetOwnProperty]] called with id neither string nor int: {:?}", id.get());
-        return true;
+        unreachable!()
     };
     if s.is_empty() {
         return true;
@@ -120,7 +135,12 @@ unsafe extern "C" fn get_own_property_descriptor(
     if let Some(obj) = window.NamedGetter(cx, s.into()) {
         rooted!(in(*cx) let mut rval = UndefinedValue());
         obj.to_jsval(*cx, rval.handle_mut());
-        set_property_descriptor(RustMutableHandle::from_raw(desc), rval.handle(), 0, &mut *is_none);
+        set_property_descriptor(
+            RustMutableHandle::from_raw(desc),
+            rval.handle(),
+            0,
+            &mut *is_none,
+        );
     }
     return true;
 }
@@ -191,8 +211,8 @@ unsafe extern "C" fn is_extensible(
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn class_name(_cx: *mut JSContext, _proxy: HandleObject) -> *const i8 {
-    &b"WindowProperties\0" as *const _ as *const i8
+unsafe extern "C" fn class_name(_cx: *mut JSContext, _proxy: HandleObject) -> *const libc::c_char {
+    &b"WindowProperties\0" as *const _ as *const _
 }
 
 // Maybe this should be a DOMJSClass. See https://bugzilla.mozilla.org/show_bug.cgi?id=787070
