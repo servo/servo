@@ -16,6 +16,19 @@ jobs:
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Upload nightly (Linux)
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        layout-engine: ['2013', '2020']
+        include:
+          - layout-engine: '2013'
+            build-flag: '--with-layout-2013'
+            package: 'linux'
+            continue-on-error: false
+          - layout-engine: '2020'
+            build-flag: '--with-layout-2020'
+            package: 'linux-layout2020'
+            continue-on-error: true
+    continue-on-error: ${{ matrix.continue-on-error }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -26,11 +39,11 @@ jobs:
           sudo apt update
           python3 ./mach bootstrap
       - name: Release build
-        run: python3 ./mach build --release
+        run: python3 ./mach build --release ${{ matrix.build-flag }}
       - name: Package
         run: python3 ./mach package --release
       - name: Upload
-        run: python3 ./mach upload-nightly linux --secret-from-environment
+        run: python3 ./mach upload-nightly ${{ matrix.package }} --secret-from-environment
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
 
