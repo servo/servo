@@ -54,6 +54,9 @@ PACKAGES = {
     'linux': [
         'target/release/servo-tech-demo.tar.gz',
     ],
+    'linux-layout2020': [
+        'target/release/servo-tech-demo.tar.gz',
+    ],
     'mac': [
         'target/release/servo-tech-demo.dmg',
     ],
