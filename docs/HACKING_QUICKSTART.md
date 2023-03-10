@@ -180,6 +180,29 @@ the amount of disc space used).
 If you are on NixOS, these settings should be enough to not need to run `code .` from within a
 `nix-shell etc/shell.nix`, but it wouldn’t hurt to try that if you still have problems.
 
+When enabling rust-analyzer’s proc macro support, you may start to see errors like
+
+* proc macro \`MallocSizeOf\` not expanded: Cannot create expander for /path/to/servo/target/debug/deps/libfoo-0781e5a02b945749.so: unsupported ABI \`rustc 1.69.0-nightly (dc1d9d50f 2023-01-31)\` rust-analyzer(unresolved-proc-macro)
+
+This means rust-analyzer is using the wrong proc macro server, and you will need to configure the correct one manually. Use mach to query the current sysroot path, and copy the last line of output:
+
+```
+$ ./mach rustc --print sysroot
+NOTE: Entering nix-shell etc/shell.nix
+info: component 'llvm-tools' for target 'x86_64-unknown-linux-gnu' is up to date
+/home/me/.rustup/toolchains/nightly-2023-02-01-x86_64-unknown-linux-gnu
+```
+
+Then configure either your sysroot path or proc macro server path in `.vscode/settings.json`:
+
+```
+{
+    "rust-analyzer.procMacro.enable": true,
+    "rust-analyzer.cargo.sysroot": "[paste what you copied]",
+    "rust-analyzer.procMacro.server": "[paste what you copied]/libexec/rust-analyzer-proc-macro-srv",
+}
+```
+
 ## Debugging
 
 ### Logging:
