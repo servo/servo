@@ -39,6 +39,7 @@ macro_rules! apply_non_ts_list {
                 ("active", Active, ACTIVE, _),
                 ("autofill", Autofill, AUTOFILL, _),
                 ("checked", Checked, CHECKED, _),
+                ("closed", Closed, CLOSED, _),
                 ("defined", Defined, DEFINED, _),
                 ("disabled", Disabled, DISABLED, _),
                 ("enabled", Enabled, ENABLED, _),
@@ -69,6 +70,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-math-increment-script-level", MozMathIncrementScriptLevel, INCREMENT_SCRIPT_LEVEL, _),
 
                 ("required", Required, REQUIRED, _),
+                ("open", Open, OPEN, _),
                 ("optional", Optional, OPTIONAL_, _),
                 ("valid", Valid, VALID, _),
                 ("invalid", Invalid, INVALID, _),
