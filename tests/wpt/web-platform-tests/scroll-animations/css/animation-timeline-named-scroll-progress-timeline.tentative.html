@@ -655,8 +655,25 @@ promise_test(async t => {
   assert_equals(getComputedStyle(target).translate, '100px');
 }, 'scroll-timeline-axis is vertical');
 
-// TODO: Add more tests which change scroll-timeline-axis property.
-// Those animations which use this timeline should be restyled properly.
+promise_test(async t => {
+  let [scroller, target] = createScrollerAndTarget(t);
+
+  document.body.appendChild(scroller);
+  document.body.appendChild(target);
+
+  scroller.style.scrollTimeline = 'timeline block';
+  target.style.animation = "anim 10s linear";
+  target.style.animationTimeline = 'timeline';
+
+  scroller.scrollTop = 50;
+  scroller.scrollLeft = 25;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).translate, '100px');
+
+  scroller.style.scrollTimelineAxis = 'inline';
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).translate, '75px');
+}, 'scroll-timeline-axis is mutated');
 
 </script>
 </body>

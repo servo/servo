@@ -15,6 +15,7 @@ function test_serialization(t,s, {prop="animationDuration"}={}) {
 var test_map = {
     "1s * NaN"                                     :"calc(NaN * 1s)",
     "1s * nan"                                     :"calc(NaN * 1s)",
+    "1ms * NaN"                                     :"calc(NaN * 1s)",
     "1s * infinity / infinity"                     :"calc(NaN * 1s)",
     "1s * 0 * infinity"                            :"calc(NaN * 1s)",
     "1s * (infinity + -infinity)"                  :"calc(NaN * 1s)",

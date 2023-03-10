@@ -15,11 +15,11 @@
     left: 0;
     background-color: blue;
   }
-  #non-inert {
+  #nonInert {
     background-color: red;
   }
 </style>
-<div id="non-inert"></div>
+<div id="nonInert"></div>
 <div id="inert"></div>
 <script>
   test(function() {
@@ -32,17 +32,17 @@
     inert.inert = true;
     assert_equals(
       document.elementFromPoint(50, 50),
-      document.getElementById("non-inert"),
+      nonInert,
       "inert node is transparent to events (as pointer-events: none)",
     );
     assert_equals(
       getComputedStyle(inert).pointerEvents,
-      "auto",
+      getComputedStyle(nonInert).pointerEvents,
       "inert node doesn't change pointer-events computed value",
     );
     assert_equals(
       getComputedStyle(inert).userSelect,
-      "auto",
+      getComputedStyle(nonInert).userSelect,
       "inert node doesn't change user-select computed value",
     );
   });

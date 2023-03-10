@@ -57,10 +57,11 @@
             "Should have gotten expected events");
     }, "MediaRecorder handles pause() and resume() calls appropriately in state and events");
 
-    promise_test(async () => {
-        let video = createVideoStream();
-        let recorder = new MediaRecorder(video);
-        let events = recordEvents(recorder,
+    promise_test(async t => {
+        const {stream: video, control} = createVideoStream(t);
+        control.addVideoFrame();
+        const recorder = new MediaRecorder(video);
+        const events = recordEvents(recorder,
             ["start", "stop", "dataavailable", "pause", "resume", "error"]);
 
         recorder.start();

@@ -251,6 +251,33 @@ def iframe(inline):
 
 
 @pytest.fixture
+def test_page_with_pdf_js(inline):
+    """Prepare an url to load a PDF document in the browser using pdf.js"""
+    def test_page_with_pdf_js(encoded_pdf_data):
+        return inline("""
+<!doctype html>
+<script src="/_pdf_js/pdf.js"></script>
+<canvas></canvas>
+<script>
+async function getText() {
+  pages = [];
+  let loadingTask = pdfjsLib.getDocument({data: atob("%s")});
+  let pdf = await loadingTask.promise;
+  for (let pageNumber=1; pageNumber<=pdf.numPages; pageNumber++) {
+    let page = await pdf.getPage(pageNumber);
+    textContent = await page.getTextContent()
+    text = textContent.items.map(x => x.str).join("");
+    pages.push(text);
+  }
+  return pages
+}
+</script>
+""" % encoded_pdf_data)
+
+    return test_page_with_pdf_js
+
+
+@pytest.fixture
 async def top_context(bidi_session):
     contexts = await bidi_session.browsing_context.get_tree()
     return contexts[0]

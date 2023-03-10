@@ -11,13 +11,22 @@ def main(request, response):
     response.headers.append(b"Access-Control-Allow-Headers", b"*")
     response.headers.append(b"Access-Control-Expose-Headers", b"*")
 
-    response.headers.append(b"Accept-CH", b"sec-ch-device-memory,device-memory")
+    accept = b"sec-ch-device-memory,device-memory"
+    if(request.GET.first(b"multiple", None) is not None):
+      for accept_part in accept.split(b","):
+        response.headers.append(b"Accept-CH", accept_part)
+    else:
+      response.headers.append(b"Accept-CH", accept)
 
     critical = b"sec-ch-device-memory,device-memory"
     if(request.GET.first(b"mismatch", None) is not None):
       critical = b"sec-ch-viewport-width,viewport-width"
 
-    response.headers.append(b"Critical-CH", critical)
+    if(request.GET.first(b"multiple", None) is not None):
+      for critical_part in critical.split(b","):
+        response.headers.append(b"Critical-CH", critical_part)
+    else:
+      response.headers.append(b"Critical-CH", critical)
 
     response.headers.append(b"Cache-Control", b"no-store")
 

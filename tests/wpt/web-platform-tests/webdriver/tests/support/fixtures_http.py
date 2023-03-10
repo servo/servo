@@ -264,3 +264,12 @@ def get_test_page(iframe, inline):
             return inline(page_data)
 
     return get_test_page
+
+
+@pytest.fixture
+def load_pdf_document(current_session, test_page_with_pdf_js):
+    """Load a PDF document in the browser using pdf.js"""
+    def load_pdf_document(encoded_pdf_data):
+        current_session.url = test_page_with_pdf_js(encoded_pdf_data)
+
+    return load_pdf_document

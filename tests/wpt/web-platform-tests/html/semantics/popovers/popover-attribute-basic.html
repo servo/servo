@@ -160,8 +160,8 @@ window.onload = () => {
       assert_false(popover.matches(':open'));
       popover.showPopover();
       assert_true(popover.matches(':open'));
-      popover.setAttribute('popover','manual');
     }
+    popover.setAttribute('popover','manual');
     assert_false(popover.matches(':open'));
     popover.showPopover();
     assert_true(popover.matches(':open'));
