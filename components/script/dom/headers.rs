@@ -136,11 +136,10 @@ impl HeadersMethods for Headers {
     fn Get(&self, name: ByteString) -> Fallible<Option<ByteString>> {
         // Step 1
         let valid_name = validate_name(name)?;
-        Ok(self
-            .header_list
-            .borrow()
-            .get(HeaderName::from_str(&valid_name).unwrap())
-            .map(|v| ByteString::new(v.as_bytes().to_vec())))
+        Ok(
+            get_value_from_header_list(&valid_name, &self.header_list.borrow())
+                .map(|v| ByteString::new(v.as_bytes().to_vec())),
+        )
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers-getsetcookie
