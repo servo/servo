@@ -30,7 +30,7 @@
     assert_true(await RequestStorageAccessInFrame(frame), "requestStorageAccess resolves without requiring a gesture.");
 
     assert_true(await FrameHasStorageAccess(frame), "frame has storage access after request.");
-    assert_true(await CanFrameWriteCookies(frame), "frame can write cookies via JS after request.");
+    assert_true(await CanFrameWriteCookies(frame, /* keep_after_writing=*/true), "frame can write cookies via JS after request.");
 
     return frame;
   }
@@ -42,6 +42,7 @@
 
     await FrameInitiatedReload(frame);
 
+    assert_true(cookieStringHasCookie('cookie', 'monster', await GetHTTPCookiesFromFrame(frame)), "The frame's navigation request included cookies.");
     assert_true(await FrameHasStorageAccess(frame), "frame has storage access after refresh.");
     assert_true(await CanFrameWriteCookies(frame), "frame can write cookies via JS after refresh.");
   }, "Self-initiated reloads preserve storage access");
@@ -53,6 +54,7 @@
 
     await FrameInitiatedNavigation(frame, altWwwResponder);
 
+    assert_true(cookieStringHasCookie('cookie', 'monster', await GetHTTPCookiesFromFrame(frame)), "The frame's navigation request included cookies.");
     assert_true(await FrameHasStorageAccess(frame), "frame has storage access after refresh.");
     assert_true(await CanFrameWriteCookies(frame), "frame can write cookies via JS after refresh.");
   }, "Self-initiated same-origin navigations preserve storage access");

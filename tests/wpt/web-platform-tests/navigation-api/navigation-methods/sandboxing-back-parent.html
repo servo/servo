@@ -29,6 +29,7 @@ promise_test(async t => {
   await new Promise(resolve => window.onhashchange = resolve);
 
   navigation.onnavigate = t.unreached_func("navigate must not fire");
+  navigation.onnavigateerror = t.unreached_func("navigateerror must not fire");
   window.onpopstate = t.unreached_func("popstate must not fire");
   window.onhashchange = t.unreached_func("hashchange must not fire");
 

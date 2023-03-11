@@ -40,4 +40,53 @@ test_shorthand_value('animation',
   'animation-name': 'anim1, anim2, anim3',
   'animation-timeline': 'auto, auto, auto'
 });
+
+test((t) => {
+  t.add_cleanup(() => {
+    target.style = '';
+  });
+
+  target.style.animation = 'anim 1s';
+  target.style.animationTimeline = 'timeline';
+  assert_equals(target.style.animation, '');
+  assert_equals(target.style.animationName, 'anim');
+  assert_equals(target.style.animationDuration, '1s');
+}, 'Animation shorthand can not represent non-initial timelines (specified)');
+
+test((t) => {
+  t.add_cleanup(() => {
+    target.style = '';
+  });
+
+  target.style.animation = 'anim 1s';
+  target.style.animationTimeline = 'timeline';
+  assert_equals(getComputedStyle(target).animation, '');
+  assert_equals(getComputedStyle(target).animationName, 'anim');
+  assert_equals(getComputedStyle(target).animationDuration, '1s');
+}, 'Animation shorthand can not represent non-initial timelines (computed)');
+
+test((t) => {
+  t.add_cleanup(() => {
+    target.style = '';
+  });
+
+  target.style.animation = 'anim 1s';
+  target.style.animationDelayEnd = '42s';
+  assert_equals(target.style.animation, '');
+  assert_equals(target.style.animationName, 'anim');
+  assert_equals(target.style.animationDuration, '1s');
+}, 'Animation shorthand can not represent non-initial animation-delay-end (specified)');
+
+test((t) => {
+  t.add_cleanup(() => {
+    target.style = '';
+  });
+
+  target.style.animation = 'anim 1s';
+  target.style.animationDelayEnd = '42s';
+  assert_equals(getComputedStyle(target).animation, '');
+  assert_equals(getComputedStyle(target).animationName, 'anim');
+  assert_equals(getComputedStyle(target).animationDuration, '1s');
+}, 'Animation shorthand can not represent non-initial animation-delay-end (computed)');
+
 </script>

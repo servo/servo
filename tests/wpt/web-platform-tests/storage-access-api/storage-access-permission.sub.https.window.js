@@ -62,10 +62,10 @@
 
     const permission = await navigator.permissions.query({name: "storage-access"});
     assert_equals(permission.name, "storage-access");
-    assert_equals(permission.state, "denied");
+    assert_equals(permission.state, "prompt");
 
     await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
-  }, "Permission denied state can be queried");
+  }, "Permission denied state is hidden");
 
   promise_test(async t => {
     t.add_cleanup(async () => {

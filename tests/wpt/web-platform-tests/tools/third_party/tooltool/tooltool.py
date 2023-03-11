@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # tooltool is a lookaside cache implemented in Python
 # Copyright (C) 2011 John H. Ford <john@johnford.info>
@@ -22,8 +22,6 @@
 # in which the manifest file resides and it should be called
 # 'manifest.tt'
 
-from __future__ import print_function
-
 import base64
 import calendar
 import hashlib
@@ -36,50 +34,170 @@ import os
 import pprint
 import re
 import shutil
+import stat
 import sys
 import tarfile
 import tempfile
 import threading
 import time
 import zipfile
+from contextlib import closing, contextmanager
+from functools import wraps
+from io import BytesIO, open
+from random import random
+from subprocess import PIPE, Popen
 
-from io import open
-from io import BytesIO
-from subprocess import PIPE
-from subprocess import Popen
-
-__version__ = '1'
+__version__ = "1.4.0"
 
 # Allowed request header characters:
 # !#$%&'()*+,-./:;<=>?@[]^_`{|}~ and space, a-z, A-Z, 0-9, \, "
 REQUEST_HEADER_ATTRIBUTE_CHARS = re.compile(
-    r"^[ a-zA-Z0-9_\!#\$%&'\(\)\*\+,\-\./\:;<\=>\?@\[\]\^`\{\|\}~]*$")
-DEFAULT_MANIFEST_NAME = 'manifest.tt'
-TOOLTOOL_PACKAGE_SUFFIX = '.TOOLTOOL-PACKAGE'
+    r"^[ a-zA-Z0-9_\!#\$%&'\(\)\*\+,\-\./\:;<\=>\?@\[\]\^`\{\|\}~]*$"
+)
+DEFAULT_MANIFEST_NAME = "manifest.tt"
+TOOLTOOL_PACKAGE_SUFFIX = ".TOOLTOOL-PACKAGE"
 HAWK_VER = 1
 PY3 = sys.version_info[0] == 3
 
 if PY3:
-    open_attrs = dict(mode='w', encoding='utf-8')
     six_binary_type = bytes
-    six_text_type = str
-    unicode = str  # Silence `pyflakes` from reporting `undefined name 'unicode'` in Python 3.
+    unicode = (
+        str  # Silence `pyflakes` from reporting `undefined name 'unicode'` in Python 3.
+    )
     import urllib.request as urllib2
-    from http.client import HTTPSConnection, HTTPConnection
-    from urllib.parse import urlparse, urljoin
-    from urllib.request import Request
+    from http.client import HTTPConnection, HTTPSConnection
     from urllib.error import HTTPError, URLError
+    from urllib.parse import urljoin, urlparse
+    from urllib.request import Request
 else:
-    open_attrs = dict(mode='wb')
     six_binary_type = str
-    six_text_type = unicode
     import urllib2
-    from httplib import HTTPSConnection, HTTPConnection
-    from urllib2 import Request, HTTPError, URLError
-    from urlparse import urlparse, urljoin
+    from httplib import HTTPConnection, HTTPSConnection
+    from urllib2 import HTTPError, Request, URLError
+    from urlparse import urljoin, urlparse
 
 
 log = logging.getLogger(__name__)
+
+
+# Vendored code from `redo` module
+def retrier(attempts=5, sleeptime=10, max_sleeptime=300, sleepscale=1.5, jitter=1):
+    """
+    This function originates from redo 2.0.3 https://github.com/mozilla-releng/redo
+    A generator function that sleeps between retries, handles exponential
+    backoff and jitter. The action you are retrying is meant to run after
+    retrier yields.
+    """
+    jitter = jitter or 0  # py35 barfs on the next line if jitter is None
+    if jitter > sleeptime:
+        # To prevent negative sleep times
+        raise Exception(
+            "jitter ({}) must be less than sleep time ({})".format(jitter, sleeptime)
+        )
+
+    sleeptime_real = sleeptime
+    for _ in range(attempts):
+        log.debug("attempt %i/%i", _ + 1, attempts)
+
+        yield sleeptime_real
+
+        if jitter:
+            sleeptime_real = sleeptime + random.uniform(-jitter, jitter)
+            # our jitter should scale along with the sleeptime
+            jitter = jitter * sleepscale
+        else:
+            sleeptime_real = sleeptime
+
+        sleeptime *= sleepscale
+
+        if sleeptime_real > max_sleeptime:
+            sleeptime_real = max_sleeptime
+
+        # Don't need to sleep the last time
+        if _ < attempts - 1:
+            log.debug(
+                "sleeping for %.2fs (attempt %i/%i)", sleeptime_real, _ + 1, attempts
+            )
+            time.sleep(sleeptime_real)
+
+
+def retry(
+    action,
+    attempts=5,
+    sleeptime=60,
+    max_sleeptime=5 * 60,
+    sleepscale=1.5,
+    jitter=1,
+    retry_exceptions=(Exception,),
+    cleanup=None,
+    args=(),
+    kwargs={},
+    log_args=True,
+):
+    """
+    This function originates from redo 2.0.3 https://github.com/mozilla-releng/redo
+    Calls an action function until it succeeds, or we give up.
+    """
+    assert callable(action)
+    assert not cleanup or callable(cleanup)
+
+    action_name = getattr(action, "__name__", action)
+    if log_args and (args or kwargs):
+        log_attempt_args = (
+            "retry: calling %s with args: %s," " kwargs: %s, attempt #%d",
+            action_name,
+            args,
+            kwargs,
+        )
+    else:
+        log_attempt_args = ("retry: calling %s, attempt #%d", action_name)
+
+    if max_sleeptime < sleeptime:
+        log.debug("max_sleeptime %d less than sleeptime %d", max_sleeptime, sleeptime)
+
+    n = 1
+    for _ in retrier(
+        attempts=attempts,
+        sleeptime=sleeptime,
+        max_sleeptime=max_sleeptime,
+        sleepscale=sleepscale,
+        jitter=jitter,
+    ):
+        try:
+            logfn = log.info if n != 1 else log.debug
+            logfn_args = log_attempt_args + (n,)
+            logfn(*logfn_args)
+            return action(*args, **kwargs)
+        except retry_exceptions:
+            log.debug("retry: Caught exception: ", exc_info=True)
+            if cleanup:
+                cleanup()
+            if n == attempts:
+                log.info("retry: Giving up on %s", action_name)
+                raise
+            continue
+        finally:
+            n += 1
+
+
+def retriable(*retry_args, **retry_kwargs):
+    """
+    This function originates from redo 2.0.3 https://github.com/mozilla-releng/redo
+    A decorator factory for retry(). Wrap your function in @retriable(...) to
+    give it retry powers!
+    """
+
+    def _retriable_factory(func):
+        @wraps(func)
+        def _retriable_wrapper(*args, **kwargs):
+            return retry(func, args=args, kwargs=kwargs, *retry_args, **retry_kwargs)
+
+        return _retriable_wrapper
+
+    return _retriable_factory
+
+
+# end of vendored code from redo module
 
 
 def request_has_data(req):
@@ -88,20 +206,8 @@ def request_has_data(req):
     return req.has_data()
 
 
-def to_binary(val):
-    if isinstance(val, six_text_type):
-        return val.encode('utf-8')
-    return val
-
-
-def to_text(val):
-    if isinstance(val, six_binary_type):
-        return val.decode('utf-8')
-    return val
-
-
 def get_hexdigest(val):
-    return hashlib.sha512(to_binary(val)).hexdigest()
+    return hashlib.sha512(val).hexdigest()
 
 
 class FileRecordJSONEncoderException(Exception):
@@ -113,7 +219,6 @@ class InvalidManifest(Exception):
 
 
 class ExceptionWithFilename(Exception):
-
     def __init__(self, filename):
         Exception.__init__(self)
         self.filename = filename
@@ -142,22 +247,24 @@ class BadHeaderValue(Exception):
 def parse_url(url):
     url_parts = urlparse(url)
     url_dict = {
-        'scheme': url_parts.scheme,
-        'hostname': url_parts.hostname,
-        'port': url_parts.port,
-        'path': url_parts.path,
-        'resource': url_parts.path,
-        'query': url_parts.query,
+        "scheme": url_parts.scheme,
+        "hostname": url_parts.hostname,
+        "port": url_parts.port,
+        "path": url_parts.path,
+        "resource": url_parts.path,
+        "query": url_parts.query,
     }
-    if len(url_dict['query']) > 0:
-        url_dict['resource'] = '%s?%s' % (url_dict['resource'],  # pragma: no cover
-                                          url_dict['query'])
+    if len(url_dict["query"]) > 0:
+        url_dict["resource"] = "%s?%s" % (
+            url_dict["resource"],  # pragma: no cover
+            url_dict["query"],
+        )
 
     if url_parts.port is None:
-        if url_parts.scheme == 'http':
-            url_dict['port'] = 80
-        elif url_parts.scheme == 'https':  # pragma: no cover
-            url_dict['port'] = 443
+        if url_parts.scheme == "http":
+            url_dict["port"] = 80
+        elif url_parts.scheme == "https":  # pragma: no cover
+            url_dict["port"] = 443
     return url_dict
 
 
@@ -171,110 +278,119 @@ def random_string(length):
 
 def prepare_header_val(val):
     if isinstance(val, six_binary_type):
-        val = val.decode('utf-8')
+        val = val.decode("utf-8")
 
     if not REQUEST_HEADER_ATTRIBUTE_CHARS.match(val):
         raise BadHeaderValue(  # pragma: no cover
-            'header value value={val} contained an illegal character'.format(val=repr(val)))
+            "header value value={val} contained an illegal character".format(
+                val=repr(val)
+            )
+        )
 
     return val
 
 
 def parse_content_type(content_type):  # pragma: no cover
     if content_type:
-        return content_type.split(';')[0].strip().lower()
+        return content_type.split(";")[0].strip().lower()
     else:
-        return ''
+        return ""
 
 
 def calculate_payload_hash(algorithm, payload, content_type):  # pragma: no cover
     parts = [
-        part if isinstance(part, six_binary_type) else part.encode('utf8')
-        for part in ['hawk.' + str(HAWK_VER) + '.payload\n',
-                     parse_content_type(content_type) + '\n',
-                     payload or '',
-                     '\n',
-                     ]
+        part if isinstance(part, six_binary_type) else part.encode("utf8")
+        for part in [
+            "hawk." + str(HAWK_VER) + ".payload\n",
+            parse_content_type(content_type) + "\n",
+            payload or "",
+            "\n",
+        ]
     ]
 
     p_hash = hashlib.new(algorithm)
-    p_hash.update(''.join(parts))
+    for p in parts:
+        p_hash.update(p)
 
-    log.debug('calculating payload hash from:\n{parts}'.format(parts=pprint.pformat(parts)))
+    log.debug(
+        "calculating payload hash from:\n{parts}".format(parts=pprint.pformat(parts))
+    )
 
     return base64.b64encode(p_hash.digest())
 
 
 def validate_taskcluster_credentials(credentials):
-    if not hasattr(credentials, '__getitem__'):
-        raise InvalidCredentials('credentials must be a dict-like object')  # pragma: no cover
+    if not hasattr(credentials, "__getitem__"):
+        raise InvalidCredentials(
+            "credentials must be a dict-like object"
+        )  # pragma: no cover
     try:
-        credentials['clientId']
-        credentials['accessToken']
+        credentials["clientId"]
+        credentials["accessToken"]
     except KeyError:  # pragma: no cover
         etype, val, tb = sys.exc_info()
-        raise InvalidCredentials('{etype}: {val}'.format(etype=etype, val=val))
+        raise InvalidCredentials("{etype}: {val}".format(etype=etype, val=val))
 
 
 def normalize_header_attr(val):
     if isinstance(val, six_binary_type):
-        return val.decode('utf-8')
+        return val.decode("utf-8")
     return val  # pragma: no cover
 
 
-def normalize_string(mac_type,
-                     timestamp,
-                     nonce,
-                     method,
-                     name,
-                     host,
-                     port,
-                     content_hash,
-                     ):
-    return '\n'.join([
-        normalize_header_attr(header)
-        # The blank lines are important. They follow what the Node Hawk lib does.
-        for header in ['hawk.' + str(HAWK_VER) + '.' + mac_type,
-                       timestamp,
-                       nonce,
-                       method or '',
-                       name or '',
-                       host,
-                       port,
-                       content_hash or '',
-                       '',  # for ext which is empty in this case
-                       '',  # Add trailing new line.
-                       ]
-    ])
+def normalize_string(
+    mac_type,
+    timestamp,
+    nonce,
+    method,
+    name,
+    host,
+    port,
+    content_hash,
+):
+    return "\n".join(
+        [
+            normalize_header_attr(header)
+            # The blank lines are important. They follow what the Node Hawk lib does.
+            for header in [
+                "hawk." + str(HAWK_VER) + "." + mac_type,
+                timestamp,
+                nonce,
+                method or "",
+                name or "",
+                host,
+                port,
+                content_hash or "",
+                "",  # for ext which is empty in this case
+                "",  # Add trailing new line.
+            ]
+        ]
+    )
 
 
-def calculate_mac(mac_type,
-                  access_token,
-                  algorithm,
-                  timestamp,
-                  nonce,
-                  method,
-                  name,
-                  host,
-                  port,
-                  content_hash,
-                  ):
-    normalized = normalize_string(mac_type,
-                                  timestamp,
-                                  nonce,
-                                  method,
-                                  name,
-                                  host,
-                                  port,
-                                  content_hash)
-    log.debug(u'normalized resource for mac calc: {norm}'.format(norm=normalized))
+def calculate_mac(
+    mac_type,
+    access_token,
+    algorithm,
+    timestamp,
+    nonce,
+    method,
+    name,
+    host,
+    port,
+    content_hash,
+):
+    normalized = normalize_string(
+        mac_type, timestamp, nonce, method, name, host, port, content_hash
+    )
+    log.debug(u"normalized resource for mac calc: {norm}".format(norm=normalized))
     digestmod = getattr(hashlib, algorithm)
 
     if not isinstance(normalized, six_binary_type):
-        normalized = normalized.encode('utf8')
+        normalized = normalized.encode("utf8")
 
     if not isinstance(access_token, six_binary_type):
-        access_token = access_token.encode('ascii')
+        access_token = access_token.encode("ascii")
 
     result = hmac.new(access_token, normalized, digestmod)
     return base64.b64encode(result.digest())
@@ -285,31 +401,36 @@ def make_taskcluster_header(credentials, req):
 
     url = req.get_full_url()
     method = req.get_method()
-    algorithm = 'sha256'
+    algorithm = "sha256"
     timestamp = str(utc_now())
     nonce = random_string(6)
     url_parts = parse_url(url)
 
     content_hash = None
     if request_has_data(req):
+        if PY3:
+            data = req.data
+        else:
+            data = req.get_data()
         content_hash = calculate_payload_hash(  # pragma: no cover
             algorithm,
-            req.get_data(),
+            data,
             # maybe we should detect this from req.headers but we anyway expect json
-            content_type='application/json',
+            content_type="application/json",
         )
 
-    mac = calculate_mac('header',
-                        credentials['accessToken'],
-                        algorithm,
-                        timestamp,
-                        nonce,
-                        method,
-                        url_parts['resource'],
-                        url_parts['hostname'],
-                        str(url_parts['port']),
-                        content_hash,
-                        )
+    mac = calculate_mac(
+        "header",
+        credentials["accessToken"],
+        algorithm,
+        timestamp,
+        nonce,
+        method,
+        url_parts["resource"],
+        url_parts["hostname"],
+        str(url_parts["port"]),
+        content_hash,
+    )
 
     header = u'Hawk mac="{}"'.format(prepare_header_val(mac))
 
@@ -318,24 +439,32 @@ def make_taskcluster_header(credentials, req):
 
     header = u'{header}, id="{id}", ts="{ts}", nonce="{nonce}"'.format(
         header=header,
-        id=prepare_header_val(credentials['clientId']),
+        id=prepare_header_val(credentials["clientId"]),
         ts=prepare_header_val(timestamp),
         nonce=prepare_header_val(nonce),
     )
 
-    log.debug('Hawk header for URL={} method={}: {}'.format(url, method, header))
+    log.debug("Hawk header for URL={} method={}: {}".format(url, method, header))
 
     return header
 
 
 class FileRecord(object):
-
-    def __init__(self, filename, size, digest, algorithm, unpack=False,
-                 version=None, visibility=None):
+    def __init__(
+        self,
+        filename,
+        size,
+        digest,
+        algorithm,
+        unpack=False,
+        version=None,
+        visibility=None,
+    ):
         object.__init__(self)
-        if '/' in filename or '\\' in filename:
+        if "/" in filename or "\\" in filename:
             log.error(
-                "The filename provided contains path information and is, therefore, invalid.")
+                "The filename provided contains path information and is, therefore, invalid."
+            )
             raise BadFilenameException(filename=filename)
         self.filename = filename
         self.size = size
@@ -348,12 +477,14 @@ class FileRecord(object):
     def __eq__(self, other):
         if self is other:
             return True
-        if self.filename == other.filename and \
-           self.size == other.size and \
-           self.digest == other.digest and \
-           self.algorithm == other.algorithm and \
-           self.version == other.version and \
-           self.visibility == other.visibility:
+        if (
+            self.filename == other.filename
+            and self.size == other.size
+            and self.digest == other.digest
+            and self.algorithm == other.algorithm
+            and self.version == other.version
+            and self.visibility == other.visibility
+        ):
             return True
         else:
             return False
@@ -365,9 +496,18 @@ class FileRecord(object):
         return repr(self)
 
     def __repr__(self):
-        return "%s.%s(filename='%s', size=%s, digest='%s', algorithm='%s', visibility=%r)" % (
-            __name__, self.__class__.__name__, self.filename, self.size,
-            self.digest, self.algorithm, self.visibility)
+        return (
+            "%s.%s(filename='%s', size=%s, digest='%s', algorithm='%s', visibility=%r)"
+            % (
+                __name__,
+                self.__class__.__name__,
+                self.filename,
+                self.size,
+                self.digest,
+                self.algorithm,
+                self.visibility,
+            )
+        )
 
     def present(self):
         # Doesn't check validity
@@ -377,17 +517,15 @@ class FileRecord(object):
         if self.present():
             return self.size == os.path.getsize(self.filename)
         else:
-            log.debug(
-                "trying to validate size on a missing file, %s", self.filename)
+            log.debug("trying to validate size on a missing file, %s", self.filename)
             raise MissingFileException(filename=self.filename)
 
     def validate_digest(self):
         if self.present():
-            with open(self.filename, 'rb') as f:
+            with open(self.filename, "rb") as f:
                 return self.digest == digest_file(f, self.algorithm)
         else:
-            log.debug(
-                "trying to validate digest on a missing file, %s', self.filename")
+            log.debug("trying to validate digest on a missing file, %s', self.filename")
             raise MissingFileException(filename=self.filename)
 
     def validate(self):
@@ -406,35 +544,40 @@ class FileRecord(object):
 
 
 def create_file_record(filename, algorithm):
-    fo = open(filename, 'rb')
+    fo = open(filename, "rb")
     stored_filename = os.path.split(filename)[1]
-    fr = FileRecord(stored_filename, os.path.getsize(
-        filename), digest_file(fo, algorithm), algorithm)
+    fr = FileRecord(
+        stored_filename,
+        os.path.getsize(filename),
+        digest_file(fo, algorithm),
+        algorithm,
+    )
     fo.close()
     return fr
 
 
 class FileRecordJSONEncoder(json.JSONEncoder):
-
     def encode_file_record(self, obj):
         if not issubclass(type(obj), FileRecord):
-            err = "FileRecordJSONEncoder is only for FileRecord and lists of FileRecords, " \
-                  "not %s" % obj.__class__.__name__
+            err = (
+                "FileRecordJSONEncoder is only for FileRecord and lists of FileRecords, "
+                "not %s" % obj.__class__.__name__
+            )
             log.warn(err)
             raise FileRecordJSONEncoderException(err)
         else:
             rv = {
-                'filename': obj.filename,
-                'size': obj.size,
-                'algorithm': obj.algorithm,
-                'digest': obj.digest,
+                "filename": obj.filename,
+                "size": obj.size,
+                "algorithm": obj.algorithm,
+                "digest": obj.digest,
             }
             if obj.unpack:
-                rv['unpack'] = True
+                rv["unpack"] = True
             if obj.version:
-                rv['version'] = obj.version
+                rv["version"] = obj.version
             if obj.visibility is not None:
-                rv['visibility'] = obj.visibility
+                rv["visibility"] = obj.visibility
             return rv
 
     def default(self, f):
@@ -452,6 +595,7 @@ class FileRecordJSONDecoder(json.JSONDecoder):
     """I help the json module materialize a FileRecord from
     a JSON file.  I understand FileRecords and lists of
     FileRecords.  I ignore things that I don't expect for now"""
+
     # TODO: make this more explicit in what it's looking for
     # and error out on unexpected things
 
@@ -464,10 +608,10 @@ class FileRecordJSONDecoder(json.JSONDecoder):
                     record_list.append(record)
             return record_list
         required_fields = [
-            'filename',
-            'size',
-            'algorithm',
-            'digest',
+            "filename",
+            "size",
+            "algorithm",
+            "digest",
         ]
         if isinstance(obj, dict):
             missing = False
@@ -477,12 +621,18 @@ class FileRecordJSONDecoder(json.JSONDecoder):
                     break
 
             if not missing:
-                unpack = obj.get('unpack', False)
-                version = obj.get('version', None)
-                visibility = obj.get('visibility', None)
+                unpack = obj.get("unpack", False)
+                version = obj.get("version", None)
+                visibility = obj.get("visibility", None)
                 rv = FileRecord(
-                    obj['filename'], obj['size'], obj['digest'], obj['algorithm'],
-                    unpack, version, visibility)
+                    obj["filename"],
+                    obj["size"],
+                    obj["digest"],
+                    obj["algorithm"],
+                    unpack,
+                    version,
+                    visibility,
+                )
                 log.debug("materialized %s" % rv)
                 return rv
         return obj
@@ -495,7 +645,7 @@ class FileRecordJSONDecoder(json.JSONDecoder):
 
 class Manifest(object):
 
-    valid_formats = ('json',)
+    valid_formats = ("json",)
 
     def __init__(self, file_records=None):
         self.file_records = file_records or []
@@ -504,7 +654,7 @@ class Manifest(object):
         if self is other:
             return True
         if len(self.file_records) != len(other.file_records):
-            log.debug('Manifests differ in number of files')
+            log.debug("Manifests differ in number of files")
             return False
         # sort the file records by filename before comparing
         mine = sorted((fr.filename, fr) for fr in self.file_records)
@@ -536,39 +686,44 @@ class Manifest(object):
     def validate(self):
         return all(i.validate() for i in self.file_records)
 
-    def load(self, data_file, fmt='json'):
+    def load(self, data_file, fmt="json"):
         assert fmt in self.valid_formats
-        if fmt == 'json':
+        if fmt == "json":
             try:
                 self.file_records.extend(
-                    json.load(data_file, cls=FileRecordJSONDecoder))
+                    json.load(data_file, cls=FileRecordJSONDecoder)
+                )
             except ValueError:
                 raise InvalidManifest("trying to read invalid manifest file")
 
-    def loads(self, data_string, fmt='json'):
+    def loads(self, data_string, fmt="json"):
         assert fmt in self.valid_formats
-        if fmt == 'json':
+        if fmt == "json":
             try:
                 self.file_records.extend(
-                    json.loads(data_string, cls=FileRecordJSONDecoder))
+                    json.loads(data_string, cls=FileRecordJSONDecoder)
+                )
             except ValueError:
                 raise InvalidManifest("trying to read invalid manifest file")
 
-    def dump(self, output_file, fmt='json'):
+    def dump(self, output_file, fmt="json"):
         assert fmt in self.valid_formats
-        if fmt == 'json':
+        if fmt == "json":
             return json.dump(
-                self.file_records, output_file,
-                indent=2, separators=(',', ': '),
+                self.file_records,
+                output_file,
+                indent=2,
+                separators=(",", ": "),
                 cls=FileRecordJSONEncoder,
             )
 
-    def dumps(self, fmt='json'):
+    def dumps(self, fmt="json"):
         assert fmt in self.valid_formats
-        if fmt == 'json':
+        if fmt == "json":
             return json.dumps(
                 self.file_records,
-                indent=2, separators=(',', ': '),
+                indent=2,
+                separators=(",", ": "),
                 cls=FileRecordJSONEncoder,
             )
 
@@ -582,8 +737,8 @@ def digest_file(f, a):
     while data:
         h.update(data)
         data = f.read(chunk_size)
-    name = repr(f.name) if hasattr(f, 'name') else 'a file'
-    log.debug('hashed %s with %s to be %s', name, a, h.hexdigest())
+    name = repr(f.name) if hasattr(f, "name") else "a file"
+    log.debug("hashed %s with %s to be %s", name, a, h.hexdigest())
     return h.hexdigest()
 
 
@@ -594,7 +749,7 @@ def execute(cmd):
         line = process.stdout.readline()
         if not line:
             break
-        log.info(line.replace('\n', ' '))
+        log.info(line.replace("\n", " "))
     return process.wait() == 0
 
 
@@ -602,14 +757,13 @@ def open_manifest(manifest_file):
     """I know how to take a filename and load it into a Manifest object"""
     if os.path.exists(manifest_file):
         manifest = Manifest()
-        with open(manifest_file, "rb") as f:
+        with open(manifest_file, "r" if PY3 else "rb") as f:
             manifest.load(f)
             log.debug("loaded manifest from file '%s'" % manifest_file)
         return manifest
     else:
         log.debug("tried to load absent file '%s' as manifest" % manifest_file)
-        raise InvalidManifest(
-            "manifest file '%s' does not exist" % manifest_file)
+        raise InvalidManifest("manifest file '%s' does not exist" % manifest_file)
 
 
 def list_manifest(manifest_file):
@@ -617,15 +771,22 @@ def list_manifest(manifest_file):
     try:
         manifest = open_manifest(manifest_file)
     except InvalidManifest as e:
-        log.error("failed to load manifest file at '%s': %s" % (
-            manifest_file,
-            str(e),
-        ))
+        log.error(
+            "failed to load manifest file at '%s': %s"
+            % (
+                manifest_file,
+                str(e),
+            )
+        )
         return False
     for f in manifest.file_records:
-        print("{}\t{}\t{}".format("P" if f.present() else "-",
-                                  "V" if f.present() and f.validate() else "-",
-                                  f.filename))
+        print(
+            "{}\t{}\t{}".format(
+                "P" if f.present() else "-",
+                "V" if f.present() and f.validate() else "-",
+                f.filename,
+            )
+        )
     return True
 
 
@@ -635,10 +796,13 @@ def validate_manifest(manifest_file):
     try:
         manifest = open_manifest(manifest_file)
     except InvalidManifest as e:
-        log.error("failed to load manifest file at '%s': %s" % (
-            manifest_file,
-            str(e),
-        ))
+        log.error(
+            "failed to load manifest file at '%s': %s"
+            % (
+                manifest_file,
+                str(e),
+            )
+        )
         return False
     invalid_files = []
     absent_files = []
@@ -677,13 +841,17 @@ def add_files(manifest_file, algorithm, filenames, version, visibility, unpack):
         log.debug("appending a new file record to manifest file")
         add = True
         for fr in old_manifest.file_records:
-            log.debug("manifest file has '%s'" % "', ".join(
-                [x.filename for x in old_manifest.file_records]))
+            log.debug(
+                "manifest file has '%s'"
+                % "', ".join([x.filename for x in old_manifest.file_records])
+            )
             if new_fr == fr:
                 log.info("file already in old_manifest")
                 add = False
             elif filename == fr.filename:
-                log.error("manifest already contains a different file named %s" % filename)
+                log.error(
+                    "manifest already contains a different file named %s" % filename
+                )
                 add = False
         if add:
             new_manifest.file_records.append(new_fr)
@@ -695,8 +863,12 @@ def add_files(manifest_file, algorithm, filenames, version, visibility, unpack):
     for old_fr in old_manifest.file_records:
         if old_fr.filename not in new_filenames:
             new_manifest.file_records.append(old_fr)
-    with open(manifest_file, **open_attrs) as output:
-        new_manifest.dump(output, fmt='json')
+    if PY3:
+        with open(manifest_file, mode="w") as output:
+            new_manifest.dump(output, fmt="json")
+    else:
+        with open(manifest_file, mode="wb") as output:
+            new_manifest.dump(output, fmt="json")
     return all_files_added
 
 
@@ -706,7 +878,17 @@ def touch(f):
     try:
         os.utime(f, None)
     except OSError:
-        log.warn('impossible to update utime of file %s' % f)
+        log.warn("impossible to update utime of file %s" % f)
+
+
+@contextmanager
+@retriable(sleeptime=2)
+def request(url, auth_file=None):
+    req = Request(url)
+    _authorize(req, auth_file)
+    with closing(urllib2.urlopen(req)) as f:
+        log.debug("opened %s for reading" % url)
+        yield f
 
 
 def fetch_file(base_urls, file_record, grabchunk=1024 * 4, auth_file=None, region=None):
@@ -717,42 +899,41 @@ def fetch_file(base_urls, file_record, grabchunk=1024 * 4, auth_file=None, regio
     fetched_path = None
     for base_url in base_urls:
         # Generate the URL for the file on the server side
-        url = urljoin(base_url,
-                      '%s/%s' % (file_record.algorithm, file_record.digest))
+        url = urljoin(base_url, "%s/%s" % (file_record.algorithm, file_record.digest))
         if region is not None:
-            url += '?region=' + region
+            url += "?region=" + region
 
         log.info("Attempting to fetch from '%s'..." % base_url)
 
         # Well, the file doesn't exist locally.  Let's fetch it.
         try:
-            req = Request(url)
-            _authorize(req, auth_file)
-            f = urllib2.urlopen(req)
-            log.debug("opened %s for reading" % url)
-            with open(temp_path, **open_attrs) as out:
+            with request(url, auth_file) as f, open(temp_path, mode="wb") as out:
                 k = True
                 size = 0
                 while k:
                     # TODO: print statistics as file transfers happen both for info and to stop
                     # buildbot timeouts
                     indata = f.read(grabchunk)
-                    if PY3:
-                        indata = to_text(indata)
                     out.write(indata)
                     size += len(indata)
                     if len(indata) == 0:
                         k = False
-                log.info("File %s fetched from %s as %s" %
-                         (file_record.filename, base_url, temp_path))
+                log.info(
+                    "File %s fetched from %s as %s"
+                    % (file_record.filename, base_url, temp_path)
+                )
                 fetched_path = temp_path
                 break
         except (URLError, HTTPError, ValueError):
-            log.info("...failed to fetch '%s' from %s" %
-                     (file_record.filename, base_url), exc_info=True)
+            log.info(
+                "...failed to fetch '%s' from %s" % (file_record.filename, base_url),
+                exc_info=True,
+            )
         except IOError:  # pragma: no cover
-            log.info("failed to write to temporary file for '%s'" %
-                     file_record.filename, exc_info=True)
+            log.info(
+                "failed to write to temporary file for '%s'" % file_record.filename,
+                exc_info=True,
+            )
 
     # cleanup temp file in case of issues
     if fetched_path:
@@ -768,16 +949,43 @@ def fetch_file(base_urls, file_record, grabchunk=1024 * 4, auth_file=None, regio
 def clean_path(dirname):
     """Remove a subtree if is exists. Helper for unpack_file()."""
     if os.path.exists(dirname):
-        log.info('rm tree: %s' % dirname)
+        log.info("rm tree: %s" % dirname)
         shutil.rmtree(dirname)
 
 
 CHECKSUM_SUFFIX = ".checksum"
 
 
+def validate_tar_member(member, path):
+    def _is_within_directory(directory, target):
+        real_directory = os.path.realpath(directory)
+        real_target = os.path.realpath(target)
+        prefix = os.path.commonprefix([real_directory, real_target])
+        return prefix == real_directory
+
+    member_path = os.path.join(path, member.name)
+    if not _is_within_directory(path, member_path):
+        raise Exception("Attempted path traversal in tar file: " + member.name)
+    if member.issym():
+        link_path = os.path.join(os.path.dirname(member_path), member.linkname)
+        if not _is_within_directory(path, link_path):
+            raise Exception("Attempted link path traversal in tar file: " + member.name)
+    if member.mode & (stat.S_ISUID | stat.S_ISGID):
+        raise Exception("Attempted setuid or setgid in tar file: " + member.name)
+
+
+def safe_extract(tar, path=".", *, numeric_owner=False):
+    def _files(tar, path):
+        for member in tar:
+            validate_tar_member(member, path)
+            yield member
+
+    tar.extractall(path, members=_files(tar, path), numeric_owner=numeric_owner)
+
+
 def unpack_file(filename):
     """Untar `filename`, assuming it is uncompressed or compressed with bzip2,
-    xz, gzip, or unzip a zip file. The file is assumed to contain a single
+    xz, gzip, zst, or unzip a zip file. The file is assumed to contain a single
     directory with a name matching the base of the given filename.
     Xz support is handled by shelling out to 'tar'."""
     if os.path.isfile(filename) and tarfile.is_tarfile(filename):
@@ -785,26 +993,34 @@ def unpack_file(filename):
         base_file, tar_ext = os.path.splitext(tar_file)
         clean_path(base_file)
         log.info('untarring "%s"' % filename)
-        tar = tarfile.open(filename)
-        tar.extractall()
-        tar.close()
-    elif os.path.isfile(filename) and filename.endswith('.tar.xz'):
-        base_file = filename.replace('.tar.xz', '')
+        with tarfile.open(filename) as tar:
+            safe_extract(tar)
+    elif os.path.isfile(filename) and filename.endswith(".tar.xz"):
+        base_file = filename.replace(".tar.xz", "")
         clean_path(base_file)
         log.info('untarring "%s"' % filename)
         # Not using tar -Jxf because it fails on Windows for some reason.
-        process = Popen(['xz', '-d', '-c', filename], stdout=PIPE)
+        process = Popen(["xz", "-d", "-c", filename], stdout=PIPE)
         stdout, stderr = process.communicate()
         if process.returncode != 0:
             return False
         fileobj = BytesIO()
         fileobj.write(stdout)
         fileobj.seek(0)
-        tar = tarfile.open(fileobj=fileobj, mode='r|')
-        tar.extractall()
-        tar.close()
+        with tarfile.open(fileobj=fileobj, mode="r|") as tar:
+            safe_extract(tar)
+    elif os.path.isfile(filename) and filename.endswith(".tar.zst"):
+        import zstandard
+
+        base_file = filename.replace(".tar.zst", "")
+        clean_path(base_file)
+        log.info('untarring "%s"' % filename)
+        dctx = zstandard.ZstdDecompressor()
+        with dctx.stream_reader(open(filename, "rb")) as fileobj:
+            with tarfile.open(fileobj=fileobj, mode="r|") as tar:
+                safe_extract(tar)
     elif os.path.isfile(filename) and zipfile.is_zipfile(filename):
-        base_file = filename.replace('.zip', '')
+        base_file = filename.replace(".zip", "")
         clean_path(base_file)
         log.info('unzipping "%s"' % filename)
         z = zipfile.ZipFile(filename)
@@ -816,16 +1032,25 @@ def unpack_file(filename):
     return True
 
 
-def fetch_files(manifest_file, base_urls, filenames=[], cache_folder=None,
-                auth_file=None, region=None):
+def fetch_files(
+    manifest_file,
+    base_urls,
+    filenames=[],
+    cache_folder=None,
+    auth_file=None,
+    region=None,
+):
     # Lets load the manifest file
     try:
         manifest = open_manifest(manifest_file)
     except InvalidManifest as e:
-        log.error("failed to load manifest file at '%s': %s" % (
-            manifest_file,
-            str(e),
-        ))
+        log.error(
+            "failed to load manifest file at '%s': %s"
+            % (
+                manifest_file,
+                str(e),
+            )
+        )
         return False
 
     # we want to track files already in current working directory AND valid
@@ -852,21 +1077,27 @@ def fetch_files(manifest_file, base_urls, filenames=[], cache_folder=None,
                 # we have an invalid file here, better to cleanup!
                 # this invalid file needs to be replaced with a good one
                 # from the local cash or fetched from a tooltool server
-                log.info("File %s is present locally but it is invalid, so I will remove it "
-                         "and try to fetch it" % f.filename)
+                log.info(
+                    "File %s is present locally but it is invalid, so I will remove it "
+                    "and try to fetch it" % f.filename
+                )
                 os.remove(os.path.join(os.getcwd(), f.filename))
 
         # check if file is already in cache
         if cache_folder and f.filename not in present_files:
             try:
-                shutil.copy(os.path.join(cache_folder, f.digest),
-                            os.path.join(os.getcwd(), f.filename))
-                log.info("File %s retrieved from local cache %s" %
-                         (f.filename, cache_folder))
+                shutil.copy(
+                    os.path.join(cache_folder, f.digest),
+                    os.path.join(os.getcwd(), f.filename),
+                )
+                log.info(
+                    "File %s retrieved from local cache %s" % (f.filename, cache_folder)
+                )
                 touch(os.path.join(cache_folder, f.digest))
 
                 filerecord_for_validation = FileRecord(
-                    f.filename, f.size, f.digest, f.algorithm)
+                    f.filename, f.size, f.digest, f.algorithm
+                )
                 if filerecord_for_validation.validate():
                     present_files.append(f.filename)
                     if f.unpack:
@@ -874,13 +1105,17 @@ def fetch_files(manifest_file, base_urls, filenames=[], cache_folder=None,
                 else:
                     # the file copied from the cache is invalid, better to
                     # clean up the cache version itself as well
-                    log.warn("File %s retrieved from cache is invalid! I am deleting it from the "
-                             "cache as well" % f.filename)
+                    log.warn(
+                        "File %s retrieved from cache is invalid! I am deleting it from the "
+                        "cache as well" % f.filename
+                    )
                     os.remove(os.path.join(os.getcwd(), f.filename))
                     os.remove(os.path.join(cache_folder, f.digest))
             except IOError:
-                log.info("File %s not present in local cache folder %s" %
-                         (f.filename, cache_folder))
+                log.info(
+                    "File %s not present in local cache folder %s"
+                    % (f.filename, cache_folder)
+                )
 
         # now I will try to fetch all files which are not already present and
         # valid, appending a suffix to avoid race conditions
@@ -889,9 +1124,13 @@ def fetch_files(manifest_file, base_urls, filenames=[], cache_folder=None,
         # is a non empty list it can be used to filter if filename is in
         # present_files, it means that I have it already because it was already
         # either in the working dir or in the cache
-        if (f.filename in filenames or len(filenames) == 0) and f.filename not in present_files:
+        if (
+            f.filename in filenames or len(filenames) == 0
+        ) and f.filename not in present_files:
             log.debug("fetching %s" % f.filename)
-            temp_file_name = fetch_file(base_urls, f, auth_file=auth_file, region=region)
+            temp_file_name = fetch_file(
+                base_urls, f, auth_file=auth_file, region=region
+            )
             if temp_file_name:
                 fetched_files.append((f, temp_file_name))
             else:
@@ -905,15 +1144,20 @@ def fetch_files(manifest_file, base_urls, filenames=[], cache_folder=None,
         # this is why filerecord_for_validation is created
 
         filerecord_for_validation = FileRecord(
-            temp_file_name, localfile.size, localfile.digest, localfile.algorithm)
+            temp_file_name, localfile.size, localfile.digest, localfile.algorithm
+        )
 
         if filerecord_for_validation.validate():
             # great!
             # I can rename the temp file
-            log.info("File integrity verified, renaming %s to %s" %
-                     (temp_file_name, localfile.filename))
-            os.rename(os.path.join(os.getcwd(), temp_file_name),
-                      os.path.join(os.getcwd(), localfile.filename))
+            log.info(
+                "File integrity verified, renaming %s to %s"
+                % (temp_file_name, localfile.filename)
+            )
+            os.rename(
+                os.path.join(os.getcwd(), temp_file_name),
+                os.path.join(os.getcwd(), localfile.filename),
+            )
 
             if localfile.unpack:
                 unpack_files.append(localfile.filename)
@@ -926,14 +1170,21 @@ def fetch_files(manifest_file, base_urls, filenames=[], cache_folder=None,
                     if not os.path.exists(cache_folder):
                         log.info("Creating cache in %s..." % cache_folder)
                         os.makedirs(cache_folder, 0o0700)
-                    shutil.copy(os.path.join(os.getcwd(), localfile.filename),
-                                os.path.join(cache_folder, localfile.digest))
-                    log.info("Local cache %s updated with %s" % (cache_folder,
-                                                                 localfile.filename))
+                    shutil.copy(
+                        os.path.join(os.getcwd(), localfile.filename),
+                        os.path.join(cache_folder, localfile.digest),
+                    )
+                    log.info(
+                        "Local cache %s updated with %s"
+                        % (cache_folder, localfile.filename)
+                    )
                     touch(os.path.join(cache_folder, localfile.digest))
                 except (OSError, IOError):
-                    log.warning('Impossible to add file %s to cache folder %s' %
-                                (localfile.filename, cache_folder), exc_info=True)
+                    log.warning(
+                        "Impossible to add file %s to cache folder %s"
+                        % (localfile.filename, cache_folder),
+                        exc_info=True,
+                    )
         else:
             failed_files.append(localfile.filename)
             log.error("'%s'" % filerecord_for_validation.describe())
@@ -946,20 +1197,18 @@ def fetch_files(manifest_file, base_urls, filenames=[], cache_folder=None,
 
     # If we failed to fetch or validate a file, we need to fail
     if len(failed_files) > 0:
-        log.error("The following files failed: '%s'" %
-                  "', ".join(failed_files))
+        log.error("The following files failed: '%s'" % "', ".join(failed_files))
         return False
     return True
 
 
 def freespace(p):
     "Returns the number of bytes free under directory `p`"
-    if sys.platform == 'win32':  # pragma: no cover
+    if sys.platform == "win32":  # pragma: no cover
         # os.statvfs doesn't work on Windows
         import win32file
 
-        secsPerClus, bytesPerSec, nFreeClus, totClus = win32file.GetDiskFreeSpace(
-            p)
+        secsPerClus, bytesPerSec, nFreeClus, totClus = win32file.GetDiskFreeSpace(p)
         return secsPerClus * bytesPerSec * nFreeClus
     else:
         r = os.statvfs(p)
@@ -1000,94 +1249,102 @@ def purge(folder, gigs):
 
 
 def _log_api_error(e):
-    if hasattr(e, 'hdrs') and e.hdrs['content-type'] == 'application/json':
+    if hasattr(e, "hdrs") and e.hdrs["content-type"] == "application/json":
         json_resp = json.load(e.fp)
-        log.error("%s: %s" % (json_resp['error']['name'],
-                              json_resp['error']['description']))
+        log.error(
+            "%s: %s" % (json_resp["error"]["name"], json_resp["error"]["description"])
+        )
     else:
         log.exception("Error making RelengAPI request:")
 
 
 def _authorize(req, auth_file):
-    if not auth_file:
-        return
-
     is_taskcluster_auth = False
-    with open(auth_file) as f:
-        auth_file_content = f.read().strip()
+
+    if not auth_file:
         try:
-            auth_file_content = json.loads(auth_file_content)
+            taskcluster_env_keys = {
+                "clientId": "TASKCLUSTER_CLIENT_ID",
+                "accessToken": "TASKCLUSTER_ACCESS_TOKEN",
+            }
+            auth_content = {k: os.environ[v] for k, v in taskcluster_env_keys.items()}
             is_taskcluster_auth = True
-        except Exception:
-            pass
+        except KeyError:
+            return
+    else:
+        with open(auth_file) as f:
+            auth_content = f.read().strip()
+            try:
+                auth_content = json.loads(auth_content)
+                is_taskcluster_auth = True
+            except Exception:
+                pass
 
     if is_taskcluster_auth:
-        taskcluster_header = make_taskcluster_header(auth_file_content, req)
+        taskcluster_header = make_taskcluster_header(auth_content, req)
         log.debug("Using taskcluster credentials in %s" % auth_file)
-        req.add_unredirected_header('Authorization', taskcluster_header)
+        req.add_unredirected_header("Authorization", taskcluster_header)
     else:
         log.debug("Using Bearer token in %s" % auth_file)
-        req.add_unredirected_header('Authorization', 'Bearer %s' % auth_file_content)
+        req.add_unredirected_header("Authorization", "Bearer %s" % auth_content)
 
 
 def _send_batch(base_url, auth_file, batch, region):
-    url = urljoin(base_url, 'upload')
+    url = urljoin(base_url, "upload")
     if region is not None:
         url += "?region=" + region
+    data = json.dumps(batch)
     if PY3:
-        data = to_binary(json.dumps(batch))
-    else:
-        data = json.dumps(batch)
-    req = Request(url, data, {'Content-Type': 'application/json'})
+        data = data.encode("utf-8")
+    req = Request(url, data, {"Content-Type": "application/json"})
     _authorize(req, auth_file)
     try:
         resp = urllib2.urlopen(req)
     except (URLError, HTTPError) as e:
         _log_api_error(e)
         return None
-    return json.load(resp)['result']
+    return json.load(resp)["result"]
 
 
 def _s3_upload(filename, file):
     # urllib2 does not support streaming, so we fall back to good old httplib
-    url = urlparse(file['put_url'])
-    cls = HTTPSConnection if url.scheme == 'https' else HTTPConnection
-    host, port = url.netloc.split(':') if ':' in url.netloc else (url.netloc, 443)
+    url = urlparse(file["put_url"])
+    cls = HTTPSConnection if url.scheme == "https" else HTTPConnection
+    host, port = url.netloc.split(":") if ":" in url.netloc else (url.netloc, 443)
     port = int(port)
     conn = cls(host, port)
     try:
         req_path = "%s?%s" % (url.path, url.query) if url.query else url.path
-        with open(filename, 'rb') as f:
+        with open(filename, "rb") as f:
             content = f.read()
             content_length = len(content)
             f.seek(0)
             conn.request(
-                'PUT',
+                "PUT",
                 req_path,
                 f,
                 {
-                    'Content-Type': 'application/octet-stream',
-                    'Content-Length': str(content_length),
+                    "Content-Type": "application/octet-stream",
+                    "Content-Length": str(content_length),
                 },
             )
             resp = conn.getresponse()
             resp_body = resp.read()
             conn.close()
         if resp.status != 200:
-            raise RuntimeError("Non-200 return from AWS: %s %s\n%s" %
-                               (resp.status, resp.reason, resp_body))
+            raise RuntimeError(
+                "Non-200 return from AWS: %s %s\n%s"
+                % (resp.status, resp.reason, resp_body)
+            )
     except Exception:
-        file['upload_exception'] = sys.exc_info()
-        file['upload_ok'] = False
+        file["upload_exception"] = sys.exc_info()
+        file["upload_ok"] = False
     else:
-        file['upload_ok'] = True
+        file["upload_ok"] = True
 
 
 def _notify_upload_complete(base_url, auth_file, file):
-    req = Request(
-        urljoin(
-            base_url,
-            'upload/complete/%(algorithm)s/%(digest)s' % file))
+    req = Request(urljoin(base_url, "upload/complete/%(algorithm)s/%(digest)s" % file))
     _authorize(req, auth_file)
     try:
         urllib2.urlopen(req)
@@ -1097,7 +1354,7 @@ def _notify_upload_complete(base_url, auth_file, file):
             return
         # 409 indicates that the upload URL hasn't expired yet and we
         # should retry after a delay
-        to_wait = int(e.headers.get('X-Retry-After', 60))
+        to_wait = int(e.headers.get("X-Retry-After", 60))
         log.warning("Waiting %d seconds for upload URLs to expire" % to_wait)
         time.sleep(to_wait)
         _notify_upload_complete(base_url, auth_file, file)
@@ -1114,39 +1371,38 @@ def upload(manifest, message, base_urls, auth_file, region):
 
     # verify the manifest, since we'll need the files present to upload
     if not manifest.validate():
-        log.error('manifest is invalid')
+        log.error("manifest is invalid")
         return False
 
     if any(fr.visibility is None for fr in manifest.file_records):
-        log.error('All files in a manifest for upload must have a visibility set')
+        log.error("All files in a manifest for upload must have a visibility set")
 
     # convert the manifest to an upload batch
     batch = {
-        'message': message,
-        'files': {},
+        "message": message,
+        "files": {},
     }
     for fr in manifest.file_records:
-        batch['files'][fr.filename] = {
-            'size': fr.size,
-            'digest': fr.digest,
-            'algorithm': fr.algorithm,
-            'visibility': fr.visibility,
+        batch["files"][fr.filename] = {
+            "size": fr.size,
+            "digest": fr.digest,
+            "algorithm": fr.algorithm,
+            "visibility": fr.visibility,
         }
 
     # make the upload request
     resp = _send_batch(base_urls[0], auth_file, batch, region)
     if not resp:
         return None
-    files = resp['files']
+    files = resp["files"]
 
     # Upload the files, each in a thread.  This allows us to start all of the
     # uploads before any of the URLs expire.
     threads = {}
     for filename, file in files.items():
-        if 'put_url' in file:
+        if "put_url" in file:
             log.info("%s: starting upload" % (filename,))
-            thd = threading.Thread(target=_s3_upload,
-                                   args=(filename, file))
+            thd = threading.Thread(target=_s3_upload, args=(filename, file))
             thd.daemon = 1
             thd.start()
             threads[filename] = thd
@@ -1161,11 +1417,12 @@ def upload(manifest, message, base_urls, auth_file, region):
                 # _s3_upload has annotated file with result information
                 file = files[filename]
                 thread.join()
-                if file['upload_ok']:
+                if file["upload_ok"]:
                     log.info("%s: uploaded" % filename)
                 else:
-                    log.error("%s: failed" % filename,
-                              exc_info=file['upload_exception'])
+                    log.error(
+                        "%s: failed" % filename, exc_info=file["upload_exception"]
+                    )
                     success = False
                 del threads[filename]
 
@@ -1173,54 +1430,120 @@ def upload(manifest, message, base_urls, auth_file, region):
     # fails, we don't consider that an error (the server will notice
     # eventually)
     for filename, file in files.items():
-        if 'put_url' in file and file['upload_ok']:
+        if "put_url" in file and file["upload_ok"]:
             log.info("notifying server of upload completion for %s" % (filename,))
             _notify_upload_complete(base_urls[0], auth_file, file)
 
     return success
 
 
+def send_operation_on_file(data, base_urls, digest, auth_file):
+    url = base_urls[0]
+    url = urljoin(url, "file/sha512/" + digest)
+
+    data = json.dumps(data)
+
+    req = Request(url, data, {"Content-Type": "application/json"})
+    req.get_method = lambda: "PATCH"
+
+    _authorize(req, auth_file)
+
+    try:
+        urllib2.urlopen(req)
+    except (URLError, HTTPError) as e:
+        _log_api_error(e)
+        return False
+    return True
+
+
+def change_visibility(base_urls, digest, visibility, auth_file):
+    data = [
+        {
+            "op": "set_visibility",
+            "visibility": visibility,
+        }
+    ]
+    return send_operation_on_file(data, base_urls, digest, auth_file)
+
+
+def delete_instances(base_urls, digest, auth_file):
+    data = [
+        {
+            "op": "delete_instances",
+        }
+    ]
+    return send_operation_on_file(data, base_urls, digest, auth_file)
+
+
 def process_command(options, args):
-    """ I know how to take a list of program arguments and
+    """I know how to take a list of program arguments and
     start doing the right thing with them"""
     cmd = args[0]
     cmd_args = args[1:]
-    log.debug("processing '%s' command with args '%s'" %
-              (cmd, '", "'.join(cmd_args)))
+    log.debug("processing '%s' command with args '%s'" % (cmd, '", "'.join(cmd_args)))
     log.debug("using options: %s" % options)
 
-    if cmd == 'list':
-        return list_manifest(options['manifest'])
-    if cmd == 'validate':
-        return validate_manifest(options['manifest'])
-    elif cmd == 'add':
-        return add_files(options['manifest'], options['algorithm'], cmd_args,
-                         options['version'], options['visibility'],
-                         options['unpack'])
-    elif cmd == 'purge':
-        if options['cache_folder']:
-            purge(folder=options['cache_folder'], gigs=options['size'])
-        else:
-            log.critical('please specify the cache folder to be purged')
-            return False
-    elif cmd == 'fetch':
-        return fetch_files(
-            options['manifest'],
-            options['base_url'],
+    if cmd == "list":
+        return list_manifest(options["manifest"])
+    if cmd == "validate":
+        return validate_manifest(options["manifest"])
+    elif cmd == "add":
+        return add_files(
+            options["manifest"],
+            options["algorithm"],
             cmd_args,
-            cache_folder=options['cache_folder'],
+            options["version"],
+            options["visibility"],
+            options["unpack"],
+        )
+    elif cmd == "purge":
+        if options["cache_folder"]:
+            purge(folder=options["cache_folder"], gigs=options["size"])
+        else:
+            log.critical("please specify the cache folder to be purged")
+            return False
+    elif cmd == "fetch":
+        return fetch_files(
+            options["manifest"],
+            options["base_url"],
+            cmd_args,
+            cache_folder=options["cache_folder"],
             auth_file=options.get("auth_file"),
-            region=options.get('region'))
-    elif cmd == 'upload':
-        if not options.get('message'):
-            log.critical('upload command requires a message')
+            region=options.get("region"),
+        )
+    elif cmd == "upload":
+        if not options.get("message"):
+            log.critical("upload command requires a message")
             return False
         return upload(
-            options.get('manifest'),
-            options.get('message'),
-            options.get('base_url'),
-            options.get('auth_file'),
-            options.get('region'))
+            options.get("manifest"),
+            options.get("message"),
+            options.get("base_url"),
+            options.get("auth_file"),
+            options.get("region"),
+        )
+    elif cmd == "change-visibility":
+        if not options.get("digest"):
+            log.critical("change-visibility command requires a digest option")
+            return False
+        if not options.get("visibility"):
+            log.critical("change-visibility command requires a visibility option")
+            return False
+        return change_visibility(
+            options.get("base_url"),
+            options.get("digest"),
+            options.get("visibility"),
+            options.get("auth_file"),
+        )
+    elif cmd == "delete":
+        if not options.get("digest"):
+            log.critical("change-visibility command requires a digest option")
+            return False
+        return delete_instances(
+            options.get("base_url"),
+            options.get("digest"),
+            options.get("auth_file"),
+        )
     else:
         log.critical('command "%s" is not implemented' % cmd)
         return False
@@ -1229,62 +1552,127 @@ def process_command(options, args):
 def main(argv, _skip_logging=False):
     # Set up option parsing
     parser = optparse.OptionParser()
-    parser.add_option('-q', '--quiet', default=logging.INFO,
-                      dest='loglevel', action='store_const', const=logging.ERROR)
-    parser.add_option('-v', '--verbose',
-                      dest='loglevel', action='store_const', const=logging.DEBUG)
-    parser.add_option('-m', '--manifest', default=DEFAULT_MANIFEST_NAME,
-                      dest='manifest', action='store',
-                      help='specify the manifest file to be operated on')
-    parser.add_option('-d', '--algorithm', default='sha512',
-                      dest='algorithm', action='store',
-                      help='hashing algorithm to use (only sha512 is allowed)')
-    parser.add_option('--visibility', default=None,
-                      dest='visibility', choices=['internal', 'public'],
-                      help='Visibility level of this file; "internal" is for '
-                           'files that cannot be distributed out of the company '
-                           'but not for secrets; "public" files are available to '
-                           'anyone without restriction')
-    parser.add_option('--unpack', default=False,
-                      dest='unpack', action='store_true',
-                      help='Request unpacking this file after fetch.'
-                           ' This is helpful with tarballs.')
-    parser.add_option('--version', default=None,
-                      dest='version', action='store',
-                      help='Version string for this file. This annotates the '
-                           'manifest entry with a version string to help '
-                           'identify the contents.')
-    parser.add_option('-o', '--overwrite', default=False,
-                      dest='overwrite', action='store_true',
-                      help='UNUSED; present for backward compatibility')
-    parser.add_option('--url', dest='base_url', action='append',
-                      help='RelengAPI URL ending with /tooltool/; default '
-                      'is appropriate for Mozilla')
-    parser.add_option('-c', '--cache-folder', dest='cache_folder',
-                      help='Local cache folder')
-    parser.add_option('-s', '--size',
-                      help='free space required (in GB)', dest='size',
-                      type='float', default=0.)
-    parser.add_option('-r', '--region', help='Preferred AWS region for upload or fetch; '
-                      'example: --region=us-west-2')
-    parser.add_option('--message',
-                      help='The "commit message" for an upload; format with a bug number '
-                           'and brief comment',
-                      dest='message')
-    parser.add_option('--authentication-file',
-                      help='Use the RelengAPI token found in the given file to '
-                           'authenticate to the RelengAPI server.',
-                      dest='auth_file')
+    parser.add_option(
+        "-q",
+        "--quiet",
+        default=logging.INFO,
+        dest="loglevel",
+        action="store_const",
+        const=logging.ERROR,
+    )
+    parser.add_option(
+        "-v", "--verbose", dest="loglevel", action="store_const", const=logging.DEBUG
+    )
+    parser.add_option(
+        "-m",
+        "--manifest",
+        default=DEFAULT_MANIFEST_NAME,
+        dest="manifest",
+        action="store",
+        help="specify the manifest file to be operated on",
+    )
+    parser.add_option(
+        "-d",
+        "--algorithm",
+        default="sha512",
+        dest="algorithm",
+        action="store",
+        help="hashing algorithm to use (only sha512 is allowed)",
+    )
+    parser.add_option(
+        "--digest",
+        default=None,
+        dest="digest",
+        action="store",
+        help="digest hash to change visibility for",
+    )
+    parser.add_option(
+        "--visibility",
+        default=None,
+        dest="visibility",
+        choices=["internal", "public"],
+        help='Visibility level of this file; "internal" is for '
+        "files that cannot be distributed out of the company "
+        'but not for secrets; "public" files are available to '
+        "anyone without restriction",
+    )
+    parser.add_option(
+        "--unpack",
+        default=False,
+        dest="unpack",
+        action="store_true",
+        help="Request unpacking this file after fetch."
+        " This is helpful with tarballs.",
+    )
+    parser.add_option(
+        "--version",
+        default=None,
+        dest="version",
+        action="store",
+        help="Version string for this file. This annotates the "
+        "manifest entry with a version string to help "
+        "identify the contents.",
+    )
+    parser.add_option(
+        "-o",
+        "--overwrite",
+        default=False,
+        dest="overwrite",
+        action="store_true",
+        help="UNUSED; present for backward compatibility",
+    )
+    parser.add_option(
+        "--url",
+        dest="base_url",
+        action="append",
+        help="RelengAPI URL ending with /tooltool/; default "
+        "is appropriate for Mozilla",
+    )
+    parser.add_option(
+        "-c", "--cache-folder", dest="cache_folder", help="Local cache folder"
+    )
+    parser.add_option(
+        "-s",
+        "--size",
+        help="free space required (in GB)",
+        dest="size",
+        type="float",
+        default=0.0,
+    )
+    parser.add_option(
+        "-r",
+        "--region",
+        help="Preferred AWS region for upload or fetch; " "example: --region=us-west-2",
+    )
+    parser.add_option(
+        "--message",
+        help='The "commit message" for an upload; format with a bug number '
+        "and brief comment",
+        dest="message",
+    )
+    parser.add_option(
+        "--authentication-file",
+        help="Use the RelengAPI token found in the given file to "
+        "authenticate to the RelengAPI server.",
+        dest="auth_file",
+    )
 
     (options_obj, args) = parser.parse_args(argv[1:])
 
-    # default the options list if not provided
     if not options_obj.base_url:
-        options_obj.base_url = ['https://tooltool.mozilla-releng.net/']
+        tooltool_host = os.environ.get("TOOLTOOL_HOST", "tooltool.mozilla-releng.net")
+        taskcluster_proxy_url = os.environ.get("TASKCLUSTER_PROXY_URL")
+        if taskcluster_proxy_url:
+            tooltool_url = "{}/{}".format(taskcluster_proxy_url, tooltool_host)
+        else:
+            tooltool_url = "https://{}".format(tooltool_host)
+
+        options_obj.base_url = [tooltool_url]
 
     # ensure all URLs have a trailing slash
     def add_slash(url):
-        return url if url.endswith('/') else (url + '/')
+        return url if url.endswith("/") else (url + "/")
+
     options_obj.base_url = [add_slash(u) for u in options_obj.base_url]
 
     # expand ~ in --authentication-file
@@ -1294,7 +1682,7 @@ def main(argv, _skip_logging=False):
     # Dictionaries are easier to work with
     options = vars(options_obj)
 
-    log.setLevel(options['loglevel'])
+    log.setLevel(options["loglevel"])
 
     # Set up logging, for now just to the console
     if not _skip_logging:  # pragma: no cover
@@ -1303,11 +1691,11 @@ def main(argv, _skip_logging=False):
         ch.setFormatter(cf)
         log.addHandler(ch)
 
-    if options['algorithm'] != 'sha512':
-        parser.error('only --algorithm sha512 is supported')
+    if options["algorithm"] != "sha512":
+        parser.error("only --algorithm sha512 is supported")
 
     if len(args) < 1:
-        parser.error('You must specify a command')
+        parser.error("You must specify a command")
 
     return 0 if process_command(options, args) else 1
 

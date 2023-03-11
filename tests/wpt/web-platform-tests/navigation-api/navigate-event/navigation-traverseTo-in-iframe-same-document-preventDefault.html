@@ -27,12 +27,9 @@ promise_test(async t => {
     assert_equals(e.filename, location.href);
     top_navigateerror_fired = true;
   });
-  let iframe_navigateerror_fired = false;
-  i.contentWindow.navigation.onnavigateerror = t.step_func(e => {
-    assert_equals(e.constructor, i.contentWindow.ErrorEvent);
-    assert_equals(e.filename, i.contentWindow.location.href);
-    iframe_navigateerror_fired = true;
-  });
+
+  i.contentWindow.navigation.onnavigate = t.unreached_func("navigate event should not fire in the iframe, because the traversal was cancelled in the top window");
+  i.contentWindow.navigation.onnavigateerror = t.unreached_func("navigateerror event should not fire in the iframe, because the navigate event was not fired");
 
   // When the top window blocks the traversal, it should be blocked in the
   // iframe as well, and the traversal promises in the iframe should be rejected.
@@ -40,7 +37,6 @@ promise_test(async t => {
   const iDOMException = iWindow.DOMException;
   await assertBothRejectDOM(t, i.contentWindow.navigation.traverseTo(i.contentWindow.navigation.entries()[0].key), "AbortError", iWindow, iDOMException);
   assert_true(top_navigateerror_fired);
-  assert_true(iframe_navigateerror_fired);
   assert_equals(navigation.currentEntry.index, 1);
   assert_equals(i.contentWindow.navigation.currentEntry.index, 1);
 }, "navigation.traverseTo() in an iframe with same-document preventDefault in its parent");

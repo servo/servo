@@ -21,7 +21,7 @@ def test_null_response_value(session, inline):
 
 
 def test_no_top_browsing_context(session, closed_window):
-    element = Element("foo", session)
+    element = Element(session, "foo")
     response = element_click(session, element)
     assert_error(response, "no such window")
 
@@ -35,14 +35,14 @@ def test_no_top_browsing_context(session, closed_window):
 
 
 def test_no_browsing_context(session, closed_frame):
-    element = Element("foo", session)
+    element = Element(session, "foo")
 
     response = element_click(session, element)
     assert_error(response, "no such window")
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element("foo", session)
+    element = Element(session, "foo")
 
     response = element_click(session, element)
     assert_error(response, "no such element")

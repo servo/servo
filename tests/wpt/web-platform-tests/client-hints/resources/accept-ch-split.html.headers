@@ -1,0 +1,3 @@
+Accept-CH: sec-ch-device-memory
+Accept-CH: device-memory
+Access-Control-Allow-Origin: *

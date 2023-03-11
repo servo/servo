@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: basic</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: user callbacks</h1>
+<div id="log"></div>
+<script>
+
+
+test_self_user_callback(t =>
+    t.step_timeout(() => busy_wait()), "Window.setTimeout");
+
+test_self_user_callback(() => {
+    const interval = setInterval(() => {
+        busy_wait();
+        clearInterval(interval);
+    }, 10);
+}, "Window.setInterval");
+test_self_user_callback(() =>
+    requestAnimationFrame(() => busy_wait()), "Window.requestAnimationFrame");
+
+test_self_user_callback(t => {
+    const element = document.createElement("div");
+        document.body.appendChild(element);
+        t.add_cleanup(() => element.remove());
+        new ResizeObserver((entries, observer) => {
+            busy_wait(very_long_frame_duration);
+            observer.disconnect();
+        }).observe(element);
+}, "ResizeObserver.callback");
+
+test_self_user_callback(t => {
+    const element = document.createElement("div");
+    element.innerText = "123";
+    t.add_cleanup(() => element.remove());
+    new IntersectionObserver((entries, observer) => {
+        busy_wait(very_long_frame_duration);
+        observer.disconnect();
+    }).observe(element);
+    document.body.appendChild(element);
+}, "IntersectionObserver.callback");
+
+test_self_user_callback(t =>
+    scheduler.postTask(() => busy_wait()), "Scheduler.postTask");
+
+</script>
+</body>

@@ -57,10 +57,10 @@ test(function(t) {
   const transceiver = pc.addTransceiver('audio');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
   capabilities[0].uri = "4711";
-  assert_throws_dom("NotSupportedError", () => {
+  assert_throws_dom('InvalidModificationError', () => {
     transceiver.setHeaderExtensionsToNegotiate(capabilities);
-  }, 'transceiver should throw NotSupported when setting an unknown URI');
-}, `setHeaderExtensionsToNegotiate throws NotSupported on encountering unknown URI`);
+  }, 'transceiver should throw InvalidModificationError when setting an unknown URI');
+}, `setHeaderExtensionsToNegotiate throws InvalidModificationError on encountering unknown URI`);
 
 test(function(t) {
   const pc = new RTCPeerConnection();
@@ -72,7 +72,7 @@ test(function(t) {
   });
   ["sendonly", "recvonly", "inactive", "stopped"].map(direction => {
     capability.direction = direction;
-    assert_throws_dom("InvalidModificationError", () => {
+    assert_throws_dom('InvalidModificationError', () => {
       transceiver.setHeaderExtensionsToNegotiate(capabilities);
     }, `transceiver should throw InvalidModificationError when setting a mandatory header extension\'s direction to ${direction}`);
   });

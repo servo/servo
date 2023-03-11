@@ -23,6 +23,7 @@ ctx.fillStyle = '#f00';
 ctx.fillRect(20, 10, 60, 30);
 ctx.fillStyle = '#0f0';
 ctx.fillRect(40, 20, 20, 10);
+
 // Draw a skewed shape to fill that gap, to make sure it is aligned correctly
 ctx.setTransform(1,4, 2,3, 5,6);
 // Post-transform coordinates:

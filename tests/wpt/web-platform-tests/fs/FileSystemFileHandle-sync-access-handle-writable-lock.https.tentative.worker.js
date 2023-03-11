@@ -7,6 +7,7 @@ directory_test(async (t, root_dir) =>  {
   const fileHandle = await root_dir.getFileHandle('OPFS.test', {create: true});
 
   const syncHandle1 = await fileHandle.createSyncAccessHandle();
+  t.add_cleanup(() => syncHandle1.close());
   await promise_rejects_dom(
       t, 'NoModificationAllowedError', fileHandle.createSyncAccessHandle());
 
@@ -23,6 +24,7 @@ directory_test(async (t, root_dir) =>  {
   t.add_cleanup(() => fooSyncHandle.close());
 
   const barSyncHandle1 = await barFileHandle.createSyncAccessHandle();
+  t.add_cleanup(() => barSyncHandle1.close());
   await promise_rejects_dom(
       t, 'NoModificationAllowedError', barFileHandle.createSyncAccessHandle());
 
@@ -60,8 +62,10 @@ directory_test(async (t, root_dir) =>  {
   const fileHandle = await root_dir.getFileHandle('OPFS.test', {create: true});
 
   const syncHandle = await fileHandle.createSyncAccessHandle();
+  t.add_cleanup(() => { syncHandle.close(); });
   await promise_rejects_dom(
-      t, 'NoModificationAllowedError', fileHandle.createWritable());
+    t, 'NoModificationAllowedError', cleanup_writable(t, fileHandle.createWritable()));
+
   syncHandle.close();
   const writable = await fileHandle.createWritable();
   await writable.close();

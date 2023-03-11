@@ -33,7 +33,7 @@ def test_no_browsing_context(session, closed_frame, inline):
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element("foo", session)
+    element = Element(session, "foo")
 
     response = take_element_screenshot(session, element.id)
     assert_error(response, "no such element")

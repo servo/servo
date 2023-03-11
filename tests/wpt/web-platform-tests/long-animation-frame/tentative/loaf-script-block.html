@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: basic</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: script blocks</h1>
+<div id="log"></div>
+<script>
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.innerHTML = `(${busy_wait.toString()})()`;
+    document.body.appendChild(script);
+}, location.href, "classic-script");
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.innerHTML = `(${busy_wait.toString()})()`;
+    document.body.appendChild(script);
+}, location.href, "module-script");
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.src = "resources/busy.js";
+    document.body.appendChild(script);
+}, new URL("resources/busy.js", location.href).href, "classic-script");
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.src = "resources/busy.js";
+    script.type = "module";
+    document.body.appendChild(script);
+}, new URL("resources/busy.js", location.href).href, "module-script");
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.innerHTML = `import("./resources/busy.js?import");`;
+    document.body.appendChild(script);
+}, new URL("resources/busy.js?import", location.href).href, "execute-script");
+
+</script>
+</body>

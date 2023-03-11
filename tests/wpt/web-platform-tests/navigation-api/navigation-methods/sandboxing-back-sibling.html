@@ -33,6 +33,7 @@ promise_test(async t => {
   await new Promise(resolve => i.onload = resolve);
 
   i.contentWindow.navigation.onnavigate = t.unreached_func("navigate must not fire");
+  i.contentWindow.navigation.onnavigateerror = t.unreached_func("navigateerror must not fire");
   i.contentWindow.onbeforeunload = t.unreached_func("beforeunload must not fire");
   i.contentWindow.onunload = t.unreached_func("unload must not fire");
   i.contentWindow.onpagehide = t.unreached_func("pagehide must not fire");

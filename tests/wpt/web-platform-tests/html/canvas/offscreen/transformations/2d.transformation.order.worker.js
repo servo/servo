@@ -18,6 +18,7 @@ var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#f00';
 ctx.fillRect(0, 0, 100, 50);
+
 ctx.scale(2, 1);
 ctx.rotate(Math.PI / 2);
 ctx.fillStyle = '#0f0';

@@ -60,6 +60,14 @@ promise_test(async () => {
   // settings have been saved
   await open_and_expect_headers("resources/expect-no-client-hints-headers.html");
 
+  // Check that multiple headers will fill the cache.
+  await open_and_add_load_event("resources/accept-ch-split.html");
+  await open_and_expect_headers("resources/expect-client-hints-headers.html");
+
+  // Check that a mix of empty and full headers drops the cache.
+  await open_and_add_load_event("resources/accept-ch-mixed.html");
+  await open_and_expect_headers("resources/expect-no-client-hints-headers.html");
+
 }, "Accept-CH changes based on header");
 
 </script>
