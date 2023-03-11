@@ -55,7 +55,7 @@ def test_object(session):
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element("foo", session)
+    element = Element(session, "foo")
 
     result = execute_async_script(session, """
         arguments[1](true);

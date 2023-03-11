@@ -1,37 +1,14 @@
 import pytest
+import webdriver.bidi.error as error
 from webdriver.bidi.modules.script import ContextTarget
 
-from ... import recursive_compare
-
-
-@pytest.mark.asyncio
-async def test_arguments(bidi_session, top_context):
-    result = await bidi_session.script.call_function(
-        function_declaration="(...args)=>{return args}",
-        arguments=[{
-            "type": "string",
-            "value": "ARGUMENT_STRING_VALUE"
-        }, {
-            "type": "number",
-            "value": 42}],
-        await_promise=False,
-        target=ContextTarget(top_context["context"]))
-
-    recursive_compare({
-        "type": "array",
-        "value": [{
-            "type": 'string',
-            "value": 'ARGUMENT_STRING_VALUE'
-        }, {
-            "type": 'number',
-            "value": 42}]},
-        result)
+from ... import any_string, recursive_compare
 
 
 @pytest.mark.asyncio
 async def test_default_arguments(bidi_session, top_context):
     result = await bidi_session.script.call_function(
-        function_declaration="(...args)=>{return args}",
+        function_declaration="(...args) => args",
         await_promise=False,
         target=ContextTarget(top_context["context"]))
 
@@ -39,6 +16,121 @@ async def test_default_arguments(bidi_session, top_context):
         "type": "array",
         "value": []
     }, result)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "argument, expected",
+    [
+        ({"type": "undefined"}, "undefined"),
+        ({"type": "null"}, "null"),
+        ({"type": "string", "value": "foobar"}, "'foobar'"),
+        ({"type": "string", "value": "2"}, "'2'"),
+        ({"type": "number", "value": "-0"}, "-0"),
+        ({"type": "number", "value": "Infinity"}, "Infinity"),
+        ({"type": "number", "value": "-Infinity"}, "-Infinity"),
+        ({"type": "number", "value": 3}, "3"),
+        ({"type": "number", "value": 1.4}, "1.4"),
+        ({"type": "boolean", "value": True}, "true"),
+        ({"type": "boolean", "value": False}, "false"),
+        ({"type": "bigint", "value": "42"}, "42n"),
+    ],
+)
+async def test_primitive_value(bidi_session, top_context, argument, expected):
+    result = await bidi_session.script.call_function(
+        function_declaration=f"""(arg) => {{
+            if (arg !== {expected}) {{
+                throw new Error(`Argument should be {expected}, but was ` + arg);
+            }}
+            return arg;
+        }}""",
+        arguments=[argument],
+        await_promise=False,
+        target=ContextTarget(top_context["context"]),
+    )
+
+    recursive_compare(argument, result)
+
+
+@pytest.mark.asyncio
+async def test_primitive_value_NaN(bidi_session, top_context):
+    nan_remote_value = {"type": "number", "value": "NaN"}
+    result = await bidi_session.script.call_function(
+        function_declaration="""(arg) => {
+            if (!isNaN(arg)) {
+                throw new Error("Argument should be 'NaN', but was " + arg);
+            }
+            return arg;
+        }""",
+        arguments=[nan_remote_value],
+        await_promise=False,
+        target=ContextTarget(top_context["context"]),
+    )
+
+    recursive_compare(nan_remote_value, result)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "argument, expected_type",
+    [
+        ({
+             "type": "array",
+             "value": [
+                 {"type": "string", "value": "foobar"},
+             ],
+         },
+         "Array"
+         ),
+        ({"type": "date", "value": "2022-05-31T13:47:29.000Z"},
+         "Date"
+         ),
+        ({
+             "type": "map",
+             "value": [
+                 ["foobar", {"type": "string", "value": "foobar"}],
+             ],
+         },
+         "Map"
+         ),
+        ({
+             "type": "object",
+             "value": [
+                 ["foobar", {"type": "string", "value": "foobar"}],
+             ],
+         },
+         "Object"
+         ),
+        ({"type": "regexp", "value": {"pattern": "foo", "flags": "g"}},
+         "RegExp"
+         ),
+        ({
+             "type": "set",
+             "value": [
+                 {"type": "string", "value": "foobar"},
+             ],
+         },
+         "Set"
+         )
+    ],
+)
+async def test_local_value(bidi_session, top_context, argument, expected_type):
+    result = await bidi_session.script.call_function(
+        function_declaration=f"""(arg) => {{
+            if (!(arg instanceof {expected_type})) {{
+                const type = Object.prototype.toString.call(arg);
+                throw new Error(
+                    "Argument type should be {expected_type}, but was " + type
+                );
+            }}
+            return arg;
+        }}""",
+        arguments=[argument],
+        await_promise=False,
+        target=ContextTarget(top_context["context"]),
+    )
+
+    recursive_compare(argument, result)
 
 
 @pytest.mark.asyncio
@@ -113,11 +205,6 @@ async def test_default_arguments(bidi_session, top_context):
             {"type": "boolean", "value": False},
         ),
         (
-            "document.createElement('div')",
-            "(node) => node.tagName",
-            {"type": "string", "value": "DIV"},
-        ),
-        (
             "window.foo = 3; window",
             "(window) => window.foo",
             {"type": "number", "value": 3},
@@ -134,7 +221,7 @@ async def test_default_arguments(bidi_session, top_context):
         ),
     ],
 )
-async def test_remote_value_argument(
+async def test_remote_reference_argument(
     bidi_session, top_context, setup_expression, function_declaration, expected
 ):
     remote_value_result = await bidi_session.script.evaluate(
@@ -155,116 +242,6 @@ async def test_remote_value_argument(
     )
 
     assert result == expected
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "argument, expected",
-    [
-        ({"type": "undefined"}, "undefined"),
-        ({"type": "null"}, "null"),
-        ({"type": "string", "value": "foobar"}, "'foobar'"),
-        ({"type": "string", "value": "2"}, "'2'"),
-        ({"type": "number", "value": "-0"}, "-0"),
-        ({"type": "number", "value": "Infinity"}, "Infinity"),
-        ({"type": "number", "value": "-Infinity"}, "-Infinity"),
-        ({"type": "number", "value": 3}, "3"),
-        ({"type": "number", "value": 1.4}, "1.4"),
-        ({"type": "boolean", "value": True}, "true"),
-        ({"type": "boolean", "value": False}, "false"),
-        ({"type": "bigint", "value": "42"}, "42n"),
-    ],
-)
-async def test_primitive_values(bidi_session, top_context, argument, expected):
-    result = await bidi_session.script.call_function(
-        function_declaration=f"""(arg) => {{
-            if(arg!=={expected})
-                throw Error("Argument should be {expected}, but was "+arg);
-            return arg;
-        }}""",
-        arguments=[argument],
-        await_promise=False,
-        target=ContextTarget(top_context["context"]),
-    )
-
-    recursive_compare(argument, result)
-
-
-@pytest.mark.asyncio
-async def test_nan(bidi_session, top_context):
-    nan_remote_value = {"type": "number", "value": "NaN"}
-    result = await bidi_session.script.call_function(
-        function_declaration=f"""(arg) => {{
-            if(!isNaN(arg))
-                throw Error("Argument should be 'NaN', but was "+arg);
-            return arg;
-        }}""",
-        arguments=[nan_remote_value],
-        await_promise=False,
-        target=ContextTarget(top_context["context"]),
-    )
-
-    recursive_compare(nan_remote_value, result)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "argument, expected_type",
-    [
-        ({
-             "type": "array",
-             "value": [
-                 {"type": "string", "value": "foobar"},
-             ],
-         },
-         "Array"
-         ),
-        ({"type": "date", "value": "2022-05-31T13:47:29.000Z"},
-         "Date"
-         ),
-        ({
-             "type": "map",
-             "value": [
-                 ["foobar", {"type": "string", "value": "foobar"}],
-             ],
-         },
-         "Map"
-         ),
-        ({
-             "type": "object",
-             "value": [
-                 ["foobar", {"type": "string", "value": "foobar"}],
-             ],
-         },
-         "Object"
-         ),
-        ({"type": "regexp", "value": {"pattern": "foo", "flags": "g"}},
-         "RegExp"
-         ),
-        ({
-             "type": "set",
-             "value": [
-                 {"type": "string", "value": "foobar"},
-             ],
-         },
-         "Set"
-         )
-    ],
-)
-async def test_local_values(bidi_session, top_context, argument, expected_type):
-    result = await bidi_session.script.call_function(
-        function_declaration=f"""(arg) => {{
-            if(! (arg instanceof {expected_type}))
-                throw Error("Argument type should be {expected_type}, but was "+
-                    Object.prototype.toString.call(arg));
-            return arg;
-        }}""",
-        arguments=[argument],
-        await_promise=False,
-        target=ContextTarget(top_context["context"]),
-    )
-
-    recursive_compare(argument, result)
 
 
 @pytest.mark.asyncio
@@ -293,11 +270,11 @@ async def test_local_values(bidi_session, top_context, argument, expected_type):
         ),
     ],
 )
-async def test_remote_value_deserialization(
+async def test_remote_reference_deserialization(
     bidi_session, top_context, call_function, evaluate, value_fn, function_declaration
 ):
     remote_value = await evaluate(
-        "window.SOME_OBJECT = {SOME_PROPERTY:'SOME_VALUE'}; window.SOME_OBJECT",
+        "window.SOME_OBJECT = { SOME_PROPERTY: 'SOME_VALUE' }; window.SOME_OBJECT",
         result_ownership="root",
     )
 
@@ -317,6 +294,107 @@ async def test_remote_value_deserialization(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    "setup_expression, expected_node_type",
+    [
+        ("document.querySelector('img')", 1),
+        ("document.querySelector('input#button').attributes[0]", 2),
+        ("document.querySelector('#with-text-node').childNodes[0]", 3),
+        ("""document.createProcessingInstruction("xml-stylesheet", "href='foo.css'")""", 7),
+        ("document.querySelector('#with-comment').childNodes[0]", 8),
+        ("document", 9),
+        ("document.doctype", 10),
+        ("document.createDocumentFragment()", 11),
+        ("document.querySelector('#custom-element').shadowRoot", 11),
+    ],
+    ids=[
+        "element",
+        "attribute",
+        "text node",
+        "processing instruction",
+        "comment",
+        "document",
+        "doctype",
+        "document fragment",
+        "shadow root",
+    ]
+)
+async def test_remote_reference_node_argument(
+    bidi_session, get_test_page, top_context, setup_expression, expected_node_type
+):
+    await bidi_session.browsing_context.navigate(
+        context=top_context['context'], url=get_test_page(), wait="complete"
+    )
+
+    remote_reference = await bidi_session.script.evaluate(
+        expression=setup_expression,
+        await_promise=False,
+        target=ContextTarget(top_context["context"]),
+    )
+
+    result = await bidi_session.script.call_function(
+        function_declaration="(node) => node.nodeType",
+        arguments=[remote_reference],
+        await_promise=False,
+        target=ContextTarget(top_context["context"]),
+    )
+
+    assert result == {"type": "number", "value": expected_node_type}
+
+
+@pytest.mark.asyncio
+async def test_remote_reference_node_cdata(bidi_session, inline, top_context):
+    xml_page = inline("""<foo>CDATA section: <![CDATA[ < > & ]]>.</foo>""", doctype="xml")
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context['context'], url=xml_page, wait="complete"
+    )
+
+    remote_reference = await bidi_session.script.evaluate(
+        expression="document.querySelector('foo').childNodes[1]",
+        await_promise=False,
+        target=ContextTarget(top_context["context"]),
+    )
+
+    result = await bidi_session.script.call_function(
+        function_declaration="(node) => node.nodeType",
+        arguments=[remote_reference],
+        await_promise=False,
+        target=ContextTarget(top_context["context"]),
+    )
+
+    assert result == {"type": "number", "value": 4}
+
+
+@pytest.mark.asyncio
+async def test_remote_reference_sharedId_precedence_over_handle(
+    bidi_session, get_test_page, top_context
+):
+    await bidi_session.browsing_context.navigate(
+        context=top_context['context'], url=get_test_page(), wait="complete"
+    )
+
+    remote_reference = await bidi_session.script.evaluate(
+        expression="document.querySelector('img')",
+        await_promise=False,
+        result_ownership="root",
+        target=ContextTarget(top_context["context"]),
+    )
+
+    assert "handle" in remote_reference
+    # Invalidate shared reference to trigger a "no such node" error
+    remote_reference["sharedId"] = "foo"
+
+    with pytest.raises(error.NoSuchNodeException):
+        await bidi_session.script.call_function(
+            function_declaration="(node) => node.nodeType",
+            arguments=[remote_reference],
+            await_promise=False,
+            target=ContextTarget(top_context["context"]),
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     "expression, function_declaration, expected",
     [
         (
@@ -324,6 +402,7 @@ async def test_remote_value_deserialization(
             "(collection) => collection.item(0)",
             {
                 "type": "node",
+                "sharedId": any_string,
                 "value": {
                     "attributes": {},
                     "childNodeCount": 0,
@@ -339,6 +418,7 @@ async def test_remote_value_deserialization(
             "(nodeList) => nodeList.item(0)",
             {
                 "type": "node",
+                "sharedId": any_string,
                 "value": {
                     "attributes": {},
                     "childNodeCount": 0,
@@ -354,7 +434,7 @@ async def test_remote_value_deserialization(
         "nodelist"
     ]
 )
-async def test_remote_value_dom_collection(
+async def test_remote_reference_dom_collection(
     bidi_session,
     inline,
     top_context,
@@ -382,4 +462,4 @@ async def test_remote_value_dom_collection(
         arguments=[remote_value],
     )
 
-    assert result == expected
+    recursive_compare(expected, result)

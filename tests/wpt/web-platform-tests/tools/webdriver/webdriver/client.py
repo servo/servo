@@ -807,13 +807,12 @@ class Element:
     """
     identifier = "element-6066-11e4-a52e-4f735466cecf"
 
-    def __init__(self, id, session):
+    def __init__(self, session, id):
         """
         Construct a new web element representation.
 
-        :param id: Web element UUID which must be unique across
-            all browsing contexts.
         :param session: Current ``webdriver.Session``.
+        :param id: Web element UUID which must be unique across all browsing contexts.
         """
         self.id = id
         self.session = session
@@ -828,7 +827,7 @@ class Element:
     @classmethod
     def from_json(cls, json, session):
         uuid = json[Element.identifier]
-        return cls(uuid, session)
+        return cls(session, uuid)
 
     def send_element_command(self, method, uri, body=None):
         url = "element/%s/%s" % (self.id, uri)

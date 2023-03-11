@@ -1,0 +1,62 @@
+
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: window attribution</title>
+<meta name="timeout" content="long">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<div id="log"></div>
+<script>
+
+const host_info = get_host_info();
+const {ORIGIN, REMOTE_ORIGIN, HTTP_NOTSAMESITE_ORIGIN} = host_info;
+
+promise_test (async t => {
+  const [entry, script] = await expect_long_frame_with_script(() => {
+    requestAnimationFrame(() => busy_wait());
+  }, () => true, t);
+  assert_equals(script.windowAttribution, "self");
+  assert_equals(script.window, window);
+}, 'Scripts in this window should be self-attributed');
+
+promise_test (async t => {
+    const [executor, iframe] = await prepare_exec_iframe(t, ORIGIN);
+    const [entry, script] = await expect_long_frame_with_script(() =>
+      executor.execute_script(async (duration) => {
+        await new Promise(resolve => window.requestAnimationFrame(resolve));
+        const deadline = performance.now() + duration;
+        while (performance.now() < deadline) {}
+      }, [very_long_frame_duration]), () => true, t);
+    assert_equals(script.windowAttribution, "descendant");
+    assert_equals(script.window, iframe.contentWindow);
+}, 'Scripts in subframes should be descendant-attributed');
+
+promise_test (async t => {
+    const [executor1, iframe1] = await prepare_exec_iframe(t, ORIGIN);
+    const [executor2, iframe2] = await prepare_exec_iframe(t, ORIGIN);
+    const [entry, script] = await expect_long_frame_with_script(() =>
+      executor1.execute_script(async (duration) => {
+        await new Promise(resolve => window.requestAnimationFrame(resolve));
+        const deadline = performance.now() + duration;
+        while (performance.now() < deadline) {}
+      }, [very_long_frame_duration]), () => true, t);
+    const find_entry = win =>
+      win.performance.getEntriesByType("long-animation-frame").find(
+        e => e.duration >= very_long_frame_duration &&
+             e.scripts.length).scripts[0];
+
+    const iframe1_entry = find_entry(iframe1.contentWindow);
+    const iframe2_entry = find_entry(iframe2.contentWindow);
+    assert_equals(iframe1_entry.windowAttribution, "self");
+    assert_equals(iframe2_entry.windowAttribution, "same-page");
+    assert_equals(iframe1_entry.window, iframe1.contentWindow);
+    assert_equals(iframe2_entry.window, iframe1.contentWindow);
+}, 'Scripts in subframes should be same-page-attributed to other subframes');
+
+</script>
+</body>

@@ -30,7 +30,7 @@ def test_no_browsing_context(session, closed_frame):
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element("foo", session)
+    element = Element(session, "foo")
 
     response = get_shadow_root(session, element.id)
     assert_error(response, "no such element")

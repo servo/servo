@@ -164,10 +164,8 @@ class TagFilter:
     def __init__(self, tags):
         self.tags = set(tags)
 
-    def __call__(self, test_iter):
-        for test in test_iter:
-            if test.tags & self.tags:
-                yield test
+    def __call__(self, test):
+        return test.tags & self.tags
 
 
 class ManifestLoader:
@@ -214,6 +212,7 @@ class TestLoader:
                  test_types,
                  run_info,
                  manifest_filters=None,
+                 test_filters=None,
                  chunk_type="none",
                  total_chunks=1,
                  chunk_number=1,
@@ -228,6 +227,7 @@ class TestLoader:
         self.run_info = run_info
 
         self.manifest_filters = manifest_filters if manifest_filters is not None else []
+        self.test_filters = test_filters if test_filters is not None else []
 
         self.manifests = test_manifests
         self.tests = None
@@ -310,7 +310,9 @@ class TestLoader:
 
             inherit_metadata, test_metadata = self.load_metadata(manifest_file, metadata_path, test_path)
             for test in tests:
-                yield test_path, test_type, self.get_test(manifest_file, test, inherit_metadata, test_metadata)
+                wpt_test = self.get_test(manifest_file, test, inherit_metadata, test_metadata)
+                if all(f(wpt_test) for f in self.test_filters):
+                    yield test_path, test_type, wpt_test
 
     def _load_tests(self):
         """Read in the tests from the manifest file and add them to a queue"""

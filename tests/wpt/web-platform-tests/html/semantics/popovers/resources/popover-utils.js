@@ -126,7 +126,7 @@ function assertPopoverVisibility(popover, isPopover, expectedVisibility, message
   } else {
     assert_equals(window.getComputedStyle(popover).display,'none',`${message}: Non-showing popovers should have display:none`);
     assert_false(popover.matches(':open'),`${message}: Non-showing popovers should *not* match :open`);
-    assert_true(popover.matches(':closed'),`${message}: Non-showing popovers should match :closed`);
+    assert_equals(popover.matches(':closed'),isPopover,`${message}: Non-showing popovers should match :closed`);
   }
 }
 

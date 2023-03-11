@@ -18,11 +18,13 @@ var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#f00';
 ctx.fillRect(0, 0, 100, 50);
+
 ctx.save();
 ctx.scale(-1, 1);
 ctx.fillStyle = '#0f0';
 ctx.fillRect(-50, 0, 50, 50);
 ctx.restore();
+
 ctx.save();
 ctx.scale(1, -1);
 ctx.fillStyle = '#0f0';

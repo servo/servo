@@ -93,7 +93,6 @@ promise_test(async function() {
       "wrapper got enter and over events");
   }
 
-  assert_true(target.matches(":focus"), "target is focused");
   assert_true(target.matches(":active"), "target is active");
   assert_true(target.matches(":hover"), "target is hovered");
   assert_true(wrapper.matches(":hover"), "wrapper is hovered");

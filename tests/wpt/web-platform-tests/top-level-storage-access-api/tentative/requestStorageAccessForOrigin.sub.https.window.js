@@ -58,6 +58,7 @@ test(
 promise_setup(async () => {
   await test_driver.set_permission(
     { name: 'top-level-storage-access', requestedOrigin }, 'prompt');
+  await test_driver.set_permission({name: 'storage-access'}, 'prompt');
 });
 
 promise_test(
@@ -109,6 +110,29 @@ if (topLevelDocument) {
     },
     '[' + testPrefix +
     '] document.requestStorageAccessForOrigin() should be resolved without a user gesture with an existing permission');
+
+  promise_test(
+      async t => {
+        const altOrigin = 'https://{{hosts[alt][www]}}:{{ports[https][0]}}';
+        t.add_cleanup(async () => {
+          await test_driver.set_permission(
+              {name: 'top-level-storage-access', requestedOrigin: altOrigin},
+              'prompt');
+          await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+        });
+        await test_driver.set_permission(
+            {name: 'top-level-storage-access', requestedOrigin: altOrigin},
+            'granted');
+
+        await RunCallbackWithGesture(() => {
+          document.requestStorageAccessForOrigin(altOrigin).then(() => {
+            RunTestsInIFrame(
+                'https://{{hosts[alt][www]}}:{{ports[https][0]}}/top-level-storage-access-api/tentative/resources/requestStorageAccess-integration-iframe.https.html');
+          });
+        });
+      },
+      '[' + testPrefix +
+          '] document.requestStorageAccess() should be resolved without a user gesture after a successful requestStorageAccessForOrigin() call');
 
   // Create a test with a single-child same-origin iframe.
   // This will validate that calls to requestStorageAccessForOrigin are rejected

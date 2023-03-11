@@ -36,6 +36,13 @@ html { view-transition-name: none }
   background: green;
 }
 
+html::view-transition {
+  pointer-events: none;
+}
+html::view-transition-group(*) {
+  pointer-events: auto;
+}
+
 html::view-transition-group(shared) {
   animation-delay: 300s;
 }

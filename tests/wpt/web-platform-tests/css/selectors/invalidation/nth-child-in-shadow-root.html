@@ -17,6 +17,7 @@
   </template>
 </div>
 <script>
+  polyfill_declarative_shadow_dom(host);
   host.offsetTop;
   host.shadowRoot.getElementById('toggler').classList.toggle('foo');
 </script>

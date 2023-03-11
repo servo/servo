@@ -47,7 +47,7 @@ def test_object(session):
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element("foo", session)
+    element = Element(session, "foo")
 
     result = execute_script(session, "return true;", args=[element])
     assert_error(result, "no such element")

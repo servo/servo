@@ -128,6 +128,23 @@ async def test_sandbox_with_side_effects(bidi_session, new_tab):
 
 
 @pytest.mark.asyncio
+async def test_sandbox_returns_same_node(bidi_session, new_tab):
+    node = await bidi_session.script.evaluate(
+        expression="document.querySelector('body')",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+    )
+    recursive_compare({"type": "node", "sharedId": any_string}, node)
+
+    node_sandbox = await bidi_session.script.evaluate(
+        expression="document.querySelector('body')",
+        target=ContextTarget(new_tab["context"], sandbox="sandbox_1"),
+        await_promise=True,
+    )
+    assert node_sandbox == node
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("await_promise", [True, False])
 async def test_exception_details(bidi_session, new_tab, await_promise):
     if await_promise:

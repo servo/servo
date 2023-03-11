@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<!-- no testharnessreport.js -->
+<script src="../../storage-access-api/helpers.js"></script>
+<div id=log></div>
+<script>
+  promise_test(
+  async t =>  document.requestStorageAccess(),
+  '[request-storage-access-integration] ' +
+  'document.requestStorageAccess() should be resolved without a user gesture with an existing top-level-storage-access permission');
+</script>
