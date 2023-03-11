@@ -64,57 +64,41 @@ impl Headers {
 impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-append
     fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
-        // Step 1
         let value = normalize_value(value);
-        // Step 2
         let (mut valid_name, valid_value) = validate_name_and_value(name, value)?;
         valid_name = valid_name.to_lowercase();
-        // Step 3
+
         if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
-        // Step 4
         if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
-        // Step 5
-        if self.guard.get() == Guard::RequestNoCors &&
-            !is_cors_safelisted_request_header(&valid_name, &valid_value)
-        {
-            return Ok(());
-        }
-        // Step 6
         if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
-        // Step 7
-        // FIXME: this is NOT what WHATWG says to do when appending
-        // another copy of an existing header. HyperHeaders
-        // might not expose the information we need to do it right.
-        let mut combined_value: Vec<u8> = vec![];
-        if let Some(v) = self
-            .header_list
-            .borrow()
-            .get(HeaderName::from_str(&valid_name).unwrap())
-        {
-            combined_value = v.as_bytes().to_vec();
-            combined_value.extend(b", ");
+
+        if self.guard.get() == Guard::RequestNoCors {
+            let tmp_value = if let Some(value) = get_value_from_header_list(&valid_name, &self.header_list.borrow()) {
+                let mut l = value.as_bytes().to_vec();
+                l.extend(b", ");
+                l.extend(valid_value.clone());
+                l
+            } else {
+                valid_value.clone()
+            };
+
+            if !is_cors_safelisted_request_header(&valid_name, &tmp_value) {
+                return Ok(());
+            }
         }
-        combined_value.extend(valid_value.iter().cloned());
-        match HeaderValue::from_bytes(&combined_value) {
-            Ok(value) => {
-                self.header_list
-                    .borrow_mut()
-                    .insert(HeaderName::from_str(&valid_name).unwrap(), value);
-            },
-            Err(_) => {
-                // can't add the header, but we don't need to panic the browser over it
-                warn!(
-                    "Servo thinks \"{:?}\" is a valid HTTP header value but HeaderValue doesn't.",
-                    combined_value
-                );
-            },
-        };
+
+        if self.guard.get() != Guard::RequestNoCors || valid_name != "range" {
+            self.header_list
+                .borrow_mut()
+                .append(HeaderName::from_str(&valid_name).unwrap(), HeaderValue::from_bytes(&valid_value).unwrap());
+        }
+
         Ok(())
     }
 
