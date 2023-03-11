@@ -79,7 +79,9 @@ impl HeadersMethods for Headers {
         }
 
         if self.guard.get() == Guard::RequestNoCors {
-            let tmp_value = if let Some(value) = get_value_from_header_list(&valid_name, &self.header_list.borrow()) {
+            let tmp_value = if let Some(value) =
+                get_value_from_header_list(&valid_name, &self.header_list.borrow())
+            {
                 let mut l = value.as_bytes().to_vec();
                 l.extend(b", ");
                 l.extend(valid_value.clone());
@@ -94,9 +96,10 @@ impl HeadersMethods for Headers {
         }
 
         if self.guard.get() != Guard::RequestNoCors || valid_name != "range" {
-            self.header_list
-                .borrow_mut()
-                .append(HeaderName::from_str(&valid_name).unwrap(), HeaderValue::from_bytes(&valid_value).unwrap());
+            self.header_list.borrow_mut().append(
+                HeaderName::from_str(&valid_name).unwrap(),
+                HeaderValue::from_bytes(&valid_value).unwrap(),
+            );
         }
 
         Ok(())
@@ -286,7 +289,7 @@ impl Headers {
             }
         }
 
-        header_vec.sort();
+        header_vec.sort_by(|a, b| a.0.cmp(&b.0));
         header_vec
     }
 }
