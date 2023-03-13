@@ -399,7 +399,7 @@ impl ImageSet {
             })
         })?;
         Ok(Self {
-            selected_index: 0,
+            selected_index: std::usize::MAX,
             items: items.into(),
         })
     }
