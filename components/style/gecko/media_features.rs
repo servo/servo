@@ -188,6 +188,13 @@ enum PrefersReducedMotion {
     Reduce,
 }
 
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[repr(u8)]
+enum PrefersReducedTransparency {
+    NoPreference,
+    Reduce,
+}
+
 /// Values for the prefers-color-scheme media feature.
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
 #[repr(u8)]
@@ -224,6 +231,24 @@ fn eval_prefers_reduced_motion(
     match query_value {
         PrefersReducedMotion::NoPreference => !prefers_reduced,
         PrefersReducedMotion::Reduce => prefers_reduced,
+    }
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-transparency
+fn eval_prefers_reduced_transparency(
+    context: &Context,
+    query_value: Option<PrefersReducedTransparency>,
+) -> bool {
+    let prefers_reduced =
+        unsafe { bindings::Gecko_MediaFeatures_PrefersReducedTransparency(context.device().document()) };
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return prefers_reduced,
+    };
+
+    match query_value {
+        PrefersReducedTransparency::NoPreference => !prefers_reduced,
+        PrefersReducedTransparency::Reduce => prefers_reduced,
     }
 }
 
@@ -618,7 +643,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 64] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -740,6 +765,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
         atom!("prefers-reduced-motion"),
         AllowsRanges::No,
         keyword_evaluator!(eval_prefers_reduced_motion, PrefersReducedMotion),
+        FeatureFlags::empty(),
+    ),
+    feature!(
+        atom!("prefers-reduced-transparency"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_prefers_reduced_transparency, PrefersReducedTransparency),
         FeatureFlags::empty(),
     ),
     feature!(
