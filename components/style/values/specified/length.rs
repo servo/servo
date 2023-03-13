@@ -631,16 +631,7 @@ impl AbsoluteLength {
     where
         O: Fn(f32, f32) -> f32,
     {
-        Ok(match (self, other) {
-            (AbsoluteLength::Px(x), AbsoluteLength::Px(y)) => AbsoluteLength::Px(op(*x, *y)),
-            (AbsoluteLength::In(x), AbsoluteLength::In(y)) => AbsoluteLength::In(op(*x, *y)),
-            (AbsoluteLength::Cm(x), AbsoluteLength::Cm(y)) => AbsoluteLength::Cm(op(*x, *y)),
-            (AbsoluteLength::Mm(x), AbsoluteLength::Mm(y)) => AbsoluteLength::Mm(op(*x, *y)),
-            (AbsoluteLength::Q(x), AbsoluteLength::Q(y)) => AbsoluteLength::Q(op(*x, *y)),
-            (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(op(*x, *y)),
-            (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(op(*x, *y)),
-            _ => AbsoluteLength::Px(op(self.to_px(), other.to_px())),
-        })
+        Ok(Self::Px(op(self.to_px(), other.to_px())))
     }
 }
 
@@ -652,7 +643,7 @@ impl ToComputedValue for AbsoluteLength {
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        AbsoluteLength::Px(computed.px())
+        Self::Px(computed.px())
     }
 }
 
@@ -663,19 +654,11 @@ impl PartialOrd for AbsoluteLength {
 }
 
 impl Mul<CSSFloat> for AbsoluteLength {
-    type Output = AbsoluteLength;
+    type Output = Self;
 
     #[inline]
-    fn mul(self, scalar: CSSFloat) -> AbsoluteLength {
-        match self {
-            AbsoluteLength::Px(v) => AbsoluteLength::Px(v * scalar),
-            AbsoluteLength::In(v) => AbsoluteLength::In(v * scalar),
-            AbsoluteLength::Cm(v) => AbsoluteLength::Cm(v * scalar),
-            AbsoluteLength::Mm(v) => AbsoluteLength::Mm(v * scalar),
-            AbsoluteLength::Q(v) => AbsoluteLength::Q(v * scalar),
-            AbsoluteLength::Pt(v) => AbsoluteLength::Pt(v * scalar),
-            AbsoluteLength::Pc(v) => AbsoluteLength::Pc(v * scalar),
-        }
+    fn mul(self, scalar: CSSFloat) -> Self {
+        Self::Px(self.to_px() * scalar)
     }
 }
 
@@ -1143,18 +1126,6 @@ impl From<NoCalcLength> for Length {
     #[inline]
     fn from(len: NoCalcLength) -> Self {
         Length::NoCalc(len)
-    }
-}
-
-impl Mul<CSSFloat> for Length {
-    type Output = Length;
-
-    #[inline]
-    fn mul(self, scalar: CSSFloat) -> Length {
-        match self {
-            Length::NoCalc(inner) => Length::NoCalc(inner * scalar),
-            Length::Calc(..) => panic!("Can't multiply Calc!"),
-        }
     }
 }
 
