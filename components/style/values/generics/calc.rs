@@ -545,7 +545,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     result = result + child.resolve_internal(leaf_to_output_fn)?.powi(2);
                 }
                 result.sqrt()
-            }
+            },
         })
     }
 
@@ -669,7 +669,9 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 dividend.visit_depth_first_internal(f);
                 divisor.visit_depth_first_internal(f);
             },
-            Self::Sum(ref mut children) | Self::MinMax(ref mut children, _) | Self::Hypot(ref mut children) => {
+            Self::Sum(ref mut children) |
+            Self::MinMax(ref mut children, _) |
+            Self::Hypot(ref mut children) => {
                 for child in &mut **children {
                     child.visit_depth_first_internal(f);
                 }
@@ -1002,7 +1004,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 };
 
                 replace_self_with!(&mut result);
-            }
+            },
             Self::Leaf(ref mut l) => {
                 l.simplify();
             },

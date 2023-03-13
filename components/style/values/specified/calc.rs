@@ -672,10 +672,12 @@ impl CalcNode {
                 },
                 MathFunction::Log => {
                     let a = Self::parse_number_argument(context, input)?;
-                    let b = input.try_parse(|input| {
-                        input.expect_comma()?;
-                        Self::parse_number_argument(context, input)
-                    }).ok();
+                    let b = input
+                        .try_parse(|input| {
+                            input.expect_comma()?;
+                            Self::parse_number_argument(context, input)
+                        })
+                        .ok();
 
                     let number = match b {
                         Some(b) => a.log(b),
@@ -823,8 +825,7 @@ impl CalcNode {
     where
         F: FnOnce() -> Result<CSSFloat, ()>,
     {
-        closure()
-            .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        closure().map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
     /// Tries to simplify this expression into a `<length>` or `<percentage>`
@@ -854,18 +855,19 @@ impl CalcNode {
     }
 
     /// Tries to simplify this expression into a `<time>` value.
-    fn to_time(
-        &self,
-        clamping_mode: Option<AllowedNumericType>
-    ) -> Result<Time, ()> {
+    fn to_time(&self, clamping_mode: Option<AllowedNumericType>) -> Result<Time, ()> {
         let seconds = self.resolve(|leaf| match *leaf {
             Leaf::Time(ref time) => Ok(time.seconds()),
             _ => Err(()),
         })?;
 
         Ok(Time::from_seconds_with_calc_clamping_mode(
-            if nan_inf_enabled() { seconds } else { crate::values::normalize(seconds) },
-            clamping_mode
+            if nan_inf_enabled() {
+                seconds
+            } else {
+                crate::values::normalize(seconds)
+            },
+            clamping_mode,
         ))
     }
 
