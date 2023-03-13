@@ -770,7 +770,7 @@ impl specified::CalcLengthPercentage {
                     result
                 }
             }),
-            Leaf::Number(..) | Leaf::Angle(..) | Leaf::Time(..) => {
+            Leaf::Number(..) | Leaf::Angle(..) | Leaf::Time(..) | Leaf::Resolution(..) => {
                 unreachable!("Shouldn't have parsed")
             },
         });

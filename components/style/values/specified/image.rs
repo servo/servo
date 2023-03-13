@@ -441,7 +441,7 @@ impl ImageSetItem {
                 .ok();
         }
 
-        let resolution = resolution.unwrap_or(Resolution::X(1.0));
+        let resolution = resolution.unwrap_or_else(|| Resolution::from_x(1.0));
         let has_mime_type = mime_type.is_some();
         let mime_type = mime_type.unwrap_or_default();
 

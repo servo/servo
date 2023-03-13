@@ -11,7 +11,7 @@ use crate::values::generics::calc as generic;
 use crate::values::generics::calc::{MinMaxOp, ModRemOp, RoundingStrategy, SortKey};
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::length::{ContainerRelativeLength, ViewportPercentageLength};
-use crate::values::specified::{self, Angle, Time};
+use crate::values::specified::{self, Angle, Resolution, Time};
 use crate::values::{CSSFloat, CSSInteger};
 use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
 use smallvec::SmallVec;
@@ -107,6 +107,8 @@ pub enum Leaf {
     Angle(Angle),
     /// `<time>`
     Time(Time),
+    /// `<resolution>`
+    Resolution(Resolution),
     /// `<percentage>`
     Percentage(CSSFloat),
     /// `<number>`
@@ -130,6 +132,7 @@ impl ToCss for Leaf {
         match *self {
             Self::Length(ref l) => l.to_css(dest),
             Self::Number(ref n) => n.to_css(dest),
+            Self::Resolution(ref r) => r.to_css(dest),
             Self::Percentage(p) => crate::values::serialize_percentage(p, dest),
             Self::Angle(ref a) => a.to_css(dest),
             Self::Time(ref t) => t.to_css(dest),
@@ -148,10 +151,11 @@ bitflags! {
         const PERCENTAGE = 1 << 1;
         const ANGLE = 1 << 2;
         const TIME = 1 << 3;
+        const RESOLUTION = 1 << 3;
 
         const LENGTH_PERCENTAGE = Self::LENGTH.bits | Self::PERCENTAGE.bits;
         // NOTE: When you add to this, make sure to make Atan2 deal with these.
-        const ALL = Self::LENGTH.bits | Self::PERCENTAGE.bits | Self::ANGLE.bits | Self::TIME.bits;
+        const ALL = Self::LENGTH.bits | Self::PERCENTAGE.bits | Self::ANGLE.bits | Self::TIME.bits | Self::RESOLUTION.bits;
     }
 }
 
@@ -208,10 +212,12 @@ impl PartialOrd for Leaf {
             (&Length(ref one), &Length(ref other)) => one.partial_cmp(other),
             (&Angle(ref one), &Angle(ref other)) => one.degrees().partial_cmp(&other.degrees()),
             (&Time(ref one), &Time(ref other)) => one.seconds().partial_cmp(&other.seconds()),
+            (&Resolution(ref one), &Resolution(ref other)) => one.dppx().partial_cmp(&other.dppx()),
             (&Number(ref one), &Number(ref other)) => one.partial_cmp(other),
             _ => {
                 match *self {
-                    Length(..) | Percentage(..) | Angle(..) | Time(..) | Number(..) => {},
+                    Length(..) | Percentage(..) | Angle(..) | Time(..) | Number(..) |
+                    Resolution(..) => {},
                 }
                 unsafe {
                     debug_unreachable!("Forgot a branch?");
@@ -226,6 +232,7 @@ impl generic::CalcNodeLeaf for Leaf {
         match *self {
             Self::Length(ref l) => l.unitless_value(),
             Self::Percentage(n) | Self::Number(n) => n,
+            Self::Resolution(ref r) => r.dppx(),
             Self::Angle(ref a) => a.degrees(),
             Self::Time(ref t) => t.seconds(),
         }
@@ -244,6 +251,9 @@ impl generic::CalcNodeLeaf for Leaf {
             Self::Angle(ref mut a) => {
                 *a = Angle::from_calc(a.degrees() * scalar);
             },
+            Self::Resolution(ref mut r) => {
+                *r = Resolution::from_dppx(r.dppx() * scalar);
+            },
             Self::Time(ref mut t) => {
                 *t = Time::from_seconds(t.seconds() * scalar);
             },
@@ -258,6 +268,7 @@ impl generic::CalcNodeLeaf for Leaf {
             Self::Number(..) => SortKey::Number,
             Self::Percentage(..) => SortKey::Percentage,
             Self::Time(..) => SortKey::Sec,
+            Self::Resolution(..) => SortKey::Dppx,
             Self::Angle(..) => SortKey::Deg,
             Self::Length(ref l) => match *l {
                 NoCalcLength::Absolute(..) => SortKey::Px,
@@ -336,12 +347,16 @@ impl generic::CalcNodeLeaf for Leaf {
             (&mut Time(ref mut one), &Time(ref other)) => {
                 *one = specified::Time::from_seconds(one.seconds() + other.seconds());
             },
+            (&mut Resolution(ref mut one), &Resolution(ref other)) => {
+                *one = specified::Resolution::from_dppx(one.dppx() + other.dppx());
+            },
             (&mut Length(ref mut one), &Length(ref other)) => {
                 *one = one.try_op(other, std::ops::Add::add)?;
             },
             _ => {
                 match *other {
-                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) => {},
+                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Resolution(..) |
+                    Length(..) => {},
                 }
                 unsafe {
                     debug_unreachable!();
@@ -375,6 +390,12 @@ impl generic::CalcNodeLeaf for Leaf {
                     other.degrees(),
                 ))));
             },
+            (&Resolution(ref one), &Resolution(ref other)) => {
+                return Ok(Leaf::Resolution(specified::Resolution::from_dppx(op(
+                    one.dppx(),
+                    other.dppx(),
+                ))));
+            },
             (&Time(ref one), &Time(ref other)) => {
                 return Ok(Leaf::Time(specified::Time::from_seconds(op(
                     one.seconds(),
@@ -386,7 +407,8 @@ impl generic::CalcNodeLeaf for Leaf {
             },
             _ => {
                 match *other {
-                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) => {},
+                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) |
+                    Resolution(..) => {},
                 }
                 unsafe {
                     debug_unreachable!();
@@ -430,6 +452,11 @@ impl CalcNode {
                 if allowed_units.intersects(CalcUnits::TIME) {
                     if let Ok(t) = Time::parse_dimension(value, unit) {
                         return Ok(CalcNode::Leaf(Leaf::Time(t)));
+                    }
+                }
+                if allowed_units.intersects(CalcUnits::RESOLUTION) {
+                    if let Ok(t) = Resolution::parse_dimension(value, unit) {
+                        return Ok(CalcNode::Leaf(Leaf::Resolution(t)));
                     }
                 }
                 return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -604,6 +631,11 @@ impl CalcNode {
                         if let Ok(a) = a.to_angle() {
                             let b = b.to_angle()?;
                             return Ok(a.radians().atan2(b.radians()));
+                        }
+
+                        if let Ok(a) = a.to_resolution() {
+                            let b = b.to_resolution()?;
+                            return Ok(a.dppx().atan2(b.dppx()));
                         }
 
                         let a = a.into_length_or_percentage(AllowedNumericType::All)?;
@@ -831,12 +863,24 @@ impl CalcNode {
             _ => Err(()),
         })?;
 
-        let result = Time::from_seconds_with_calc_clamping_mode(if nan_inf_enabled() {
-            seconds
+        Ok(Time::from_seconds_with_calc_clamping_mode(
+            if nan_inf_enabled() { seconds } else { crate::values::normalize(seconds) },
+            clamping_mode
+        ))
+    }
+
+    /// Tries to simplify the expression into a `<resolution>` value.
+    fn to_resolution(&self) -> Result<Resolution, ()> {
+        let dppx = self.resolve(|leaf| match *leaf {
+            Leaf::Resolution(ref r) => Ok(r.dppx()),
+            _ => Err(()),
+        })?;
+
+        Ok(Resolution::from_dppx_calc(if nan_inf_enabled() {
+            dppx
         } else {
-            crate::values::normalize(seconds)
-        }, clamping_mode);
-        Ok(result)
+            crate::values::normalize(dppx)
+        }))
     }
 
     /// Tries to simplify this expression into an `Angle` value.
@@ -981,6 +1025,17 @@ impl CalcNode {
     ) -> Result<Time, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnits::TIME)?
             .to_time(Some(clamping_mode))
+            .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+
+    /// Convenience parsing function for `<resolution>`.
+    pub fn parse_resolution<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        function: MathFunction,
+    ) -> Result<Resolution, ParseError<'i>> {
+        Self::parse(context, input, function, CalcUnits::RESOLUTION)?
+            .to_resolution()
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 

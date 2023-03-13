@@ -101,6 +101,7 @@ pub enum SortKey {
     Cqmin,
     Cqw,
     Deg,
+    Dppx,
     Dvb,
     Dvh,
     Dvi,
