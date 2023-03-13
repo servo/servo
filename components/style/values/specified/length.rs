@@ -22,7 +22,7 @@ use crate::{Zero, ZeroNoPercent};
 use app_units::Au;
 use cssparser::{Parser, Token};
 use std::cmp;
-use std::ops::{Add, Mul, Sub};
+use std::ops::Mul;
 use style_traits::values::specified::AllowedNumericType;
 use std::fmt::{self, Write};
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind, CssWriter, ToCss};
@@ -792,24 +792,6 @@ fn are_container_queries_enabled() -> bool {
 #[cfg(feature = "servo")]
 fn are_container_queries_enabled() -> bool {
     false
-}
-
-impl Sub<AbsoluteLength> for AbsoluteLength {
-    type Output = Self;
-
-    #[inline]
-    fn sub(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (AbsoluteLength::Px(x), AbsoluteLength::Px(y)) => AbsoluteLength::Px(x - y),
-            (AbsoluteLength::In(x), AbsoluteLength::In(y)) => AbsoluteLength::In(x - y),
-            (AbsoluteLength::Cm(x), AbsoluteLength::Cm(y)) => AbsoluteLength::Cm(x - y),
-            (AbsoluteLength::Mm(x), AbsoluteLength::Mm(y)) => AbsoluteLength::Mm(x - y),
-            (AbsoluteLength::Q(x), AbsoluteLength::Q(y)) => AbsoluteLength::Q(x - y),
-            (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(x - y),
-            (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(x - y),
-            _ => AbsoluteLength::Px(self.to_px() - rhs.to_px()),
-        }
-    }
 }
 
 /// A `<length>` without taking `calc` expressions into account
