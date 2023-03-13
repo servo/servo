@@ -24,7 +24,8 @@ use cssparser::{Parser, Token};
 use std::cmp;
 use std::ops::{Add, Mul, Sub};
 use style_traits::values::specified::AllowedNumericType;
-use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind, CssWriter, ToCss};
 
 pub use super::image::Image;
 pub use super::image::{EndingShape as GradientEndingShape, Gradient};
@@ -98,6 +99,18 @@ impl FontRelativeLength {
         }
     }
 
+    // Return the unit, as a string.
+    fn unit(&self) -> &'static str {
+        match *self {
+            FontRelativeLength::Em(_) => "em",
+            FontRelativeLength::Ex(_) => "ex",
+            FontRelativeLength::Ch(_) => "ch",
+            FontRelativeLength::Cap(_) => "cap",
+            FontRelativeLength::Ic(_) => "ic",
+            FontRelativeLength::Rem(_) => "rem"
+        }
+    }
+
     fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
     where
         O: Fn(f32, f32) -> f32,
@@ -133,7 +146,7 @@ impl FontRelativeLength {
         base_size: FontBaseSize,
     ) -> computed::Length {
         let (reference_size, length) = self.reference_font_size_and_length(context, base_size);
-        (reference_size * length).normalized()
+        (reference_size * length).finite()
     }
 
     /// Return reference font size.
@@ -388,6 +401,36 @@ impl ViewportPercentageLength {
         self.unpack().2
     }
 
+    // Return the unit, as a string.
+    fn unit(&self) -> &'static str {
+        match *self {
+            ViewportPercentageLength::Vw(_) => "vw",
+            ViewportPercentageLength::Lvw(_) => "lvw",
+            ViewportPercentageLength::Svw(_) => "svw",
+            ViewportPercentageLength::Dvw(_) => "dvw",
+            ViewportPercentageLength::Vh(_) => "vh",
+            ViewportPercentageLength::Svh(_) => "svh",
+            ViewportPercentageLength::Lvh(_) => "lvh",
+            ViewportPercentageLength::Dvh(_) => "dvh",
+            ViewportPercentageLength::Vmin(_) => "vmin",
+            ViewportPercentageLength::Svmin(_) => "svmin",
+            ViewportPercentageLength::Lvmin(_) => "lvmin",
+            ViewportPercentageLength::Dvmin(_) => "dvmin",
+            ViewportPercentageLength::Vmax(_) => "vmax",
+            ViewportPercentageLength::Svmax(_) => "svmax",
+            ViewportPercentageLength::Lvmax(_) => "lvmax",
+            ViewportPercentageLength::Dvmax(_) => "dvmax",
+            ViewportPercentageLength::Vb(_) => "vb",
+            ViewportPercentageLength::Svb(_) => "svb",
+            ViewportPercentageLength::Lvb(_) => "lvb",
+            ViewportPercentageLength::Dvb(_) => "dvb",
+            ViewportPercentageLength::Vi(_) => "vi",
+            ViewportPercentageLength::Svi(_) => "svi",
+            ViewportPercentageLength::Lvi(_) => "lvi",
+            ViewportPercentageLength::Dvi(_) => "dvi",
+        }
+    }
+
     fn unpack(&self) -> (ViewportVariant, ViewportUnit, CSSFloat) {
         match *self {
             ViewportPercentageLength::Vw(v) => (ViewportVariant::UADefault, ViewportUnit::Vw, v),
@@ -496,7 +539,7 @@ impl ViewportPercentageLength {
         // See bug 989802. We truncate so that adding multiple viewport units
         // that add up to 100 does not overflow due to rounding differences
         let trunc_scaled = ((length.0 as f64) * factor as f64 / 100.).trunc();
-        Au::from_f64_au(trunc_scaled).into()
+        Au::from_f64_au(if trunc_scaled.is_nan() { 0.0f64 } else { trunc_scaled }).into()
     }
 }
 
@@ -513,7 +556,7 @@ impl CharacterWidth {
         // TODO(pcwalton): Find these from the font.
         let average_advance = reference_font_size * 0.5;
         let max_advance = reference_font_size;
-        average_advance * (self.0 as CSSFloat - 1.0) + max_advance
+        (average_advance * (self.0 as CSSFloat - 1.0) + max_advance).finite()
     }
 }
 
@@ -557,12 +600,23 @@ impl AbsoluteLength {
         }
     }
 
+    // Return the unit, as a string.
+    fn unit(&self) -> &'static str {
+        match *self {
+            AbsoluteLength::Px(_) => "px",
+            AbsoluteLength::In(_) => "in",
+            AbsoluteLength::Cm(_) => "cm",
+            AbsoluteLength::Mm(_) => "mm",
+            AbsoluteLength::Q(_) => "q",
+            AbsoluteLength::Pt(_) => "pt",
+            AbsoluteLength::Pc(_) => "pc"
+        }
+    }
+
     /// Convert this into a pixel value.
     #[inline]
     pub fn to_px(&self) -> CSSFloat {
-        use std::f32;
-
-        let pixel = match *self {
+        match *self {
             AbsoluteLength::Px(value) => value,
             AbsoluteLength::In(value) => value * PX_PER_IN,
             AbsoluteLength::Cm(value) => value * PX_PER_CM,
@@ -570,8 +624,7 @@ impl AbsoluteLength {
             AbsoluteLength::Q(value) => value * PX_PER_Q,
             AbsoluteLength::Pt(value) => value * PX_PER_PT,
             AbsoluteLength::Pc(value) => value * PX_PER_PC,
-        };
-        pixel.min(f32::MAX).max(f32::MIN)
+        }
     }
 
     fn try_op<O>(&self, other: &Self, op: O) -> Result<Self, ()>
@@ -595,7 +648,7 @@ impl ToComputedValue for AbsoluteLength {
     type ComputedValue = CSSPixelLength;
 
     fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
-        CSSPixelLength::new(self.to_px())
+        CSSPixelLength::new(self.to_px()).finite()
     }
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
@@ -622,24 +675,6 @@ impl Mul<CSSFloat> for AbsoluteLength {
             AbsoluteLength::Q(v) => AbsoluteLength::Q(v * scalar),
             AbsoluteLength::Pt(v) => AbsoluteLength::Pt(v * scalar),
             AbsoluteLength::Pc(v) => AbsoluteLength::Pc(v * scalar),
-        }
-    }
-}
-
-impl Add<AbsoluteLength> for AbsoluteLength {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (AbsoluteLength::Px(x), AbsoluteLength::Px(y)) => AbsoluteLength::Px(x + y),
-            (AbsoluteLength::In(x), AbsoluteLength::In(y)) => AbsoluteLength::In(x + y),
-            (AbsoluteLength::Cm(x), AbsoluteLength::Cm(y)) => AbsoluteLength::Cm(x + y),
-            (AbsoluteLength::Mm(x), AbsoluteLength::Mm(y)) => AbsoluteLength::Mm(x + y),
-            (AbsoluteLength::Q(x), AbsoluteLength::Q(y)) => AbsoluteLength::Q(x + y),
-            (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(x + y),
-            (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(x + y),
-            _ => AbsoluteLength::Px(self.to_px() + rhs.to_px()),
         }
     }
 }
@@ -678,6 +713,18 @@ impl ContainerRelativeLength {
             ContainerRelativeLength::Cqb(v) |
             ContainerRelativeLength::Cqmin(v) |
             ContainerRelativeLength::Cqmax(v) => v,
+        }
+    }
+
+    // Return the unit, as a string.
+    fn unit(&self) -> &'static str {
+        match *self {
+            ContainerRelativeLength::Cqw(_) => "cqw",
+            ContainerRelativeLength::Cqh(_) => "cqh",
+            ContainerRelativeLength::Cqi(_) => "cqi",
+            ContainerRelativeLength::Cqb(_) => "cqb",
+            ContainerRelativeLength::Cqmin(_) => "cqmin",
+            ContainerRelativeLength::Cqmax(_) => "cqmax"
         }
     }
 
@@ -734,7 +781,7 @@ impl ContainerRelativeLength {
                 ),
             ),
         };
-        CSSPixelLength::new(((container_length.to_f64_px()) * factor as f64 / 100.0) as f32)
+        CSSPixelLength::new((container_length.to_f64_px() * factor as f64 / 100.0) as f32).finite()
     }
 }
 
@@ -768,7 +815,7 @@ impl Sub<AbsoluteLength> for AbsoluteLength {
 /// A `<length>` without taking `calc` expressions into account
 ///
 /// <https://drafts.csswg.org/css-values/#lengths>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum NoCalcLength {
     /// An absolute length
     ///
@@ -793,7 +840,6 @@ pub enum NoCalcLength {
     ///
     /// This cannot be specified by the user directly and is only generated by
     /// `Stylist::synthesize_rules_for_legacy_attributes()`.
-    #[css(function)]
     ServoCharacterWidth(CharacterWidth),
 }
 
@@ -821,6 +867,17 @@ impl NoCalcLength {
             NoCalcLength::ViewportPercentage(v) => v.unitless_value(),
             NoCalcLength::ContainerRelative(v) => v.unitless_value(),
             NoCalcLength::ServoCharacterWidth(c) => c.0 as f32,
+        }
+    }
+
+    // Return the unit, as a string.
+    fn unit(&self) -> &'static str {
+        match *self {
+            NoCalcLength::Absolute(v) => v.unit(),
+            NoCalcLength::FontRelative(v) => v.unit(),
+            NoCalcLength::ViewportPercentage(v) => v.unit(),
+            NoCalcLength::ContainerRelative(v) => v.unit(),
+            NoCalcLength::ServoCharacterWidth(_) => ""
         }
     }
 
@@ -1019,7 +1076,7 @@ impl NoCalcLength {
     #[inline]
     pub fn to_computed_pixel_length_without_context(&self) -> Result<CSSFloat, ()> {
         match *self {
-            NoCalcLength::Absolute(len) => Ok(len.to_px()),
+            NoCalcLength::Absolute(len) => Ok(CSSPixelLength::new(len.to_px()).finite().px()),
             _ => Err(()),
         }
     }
@@ -1028,6 +1085,15 @@ impl NoCalcLength {
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> NoCalcLength {
         NoCalcLength::Absolute(AbsoluteLength::Px(px_value))
+    }
+}
+
+impl ToCss for NoCalcLength {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        crate::values::serialize_specified_dimension(self.unitless_value(), self.unit(), false, dest)
     }
 }
 
