@@ -322,6 +322,13 @@ fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
             return !context.in_ua_or_chrome_sheet() &&
                 !static_prefs::pref!("layout.css.prefers-contrast.enabled");
         }
+
+        // prefers-reduced-transparency is always enabled in the ua and chrome. On
+        // the web it is hidden behind a preference (see Bug 1822176).
+        if *feature == atom!("prefers-reduced-transparency") {
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.prefers-reduced-transparency.enabled");
+        }
     }
     false
 }
