@@ -78,10 +78,8 @@ impl ToComputedValue for specified::ImageSet {
         let items = self.items.to_computed_value(context);
         let dpr = context.device().device_pixel_ratio().get();
 
-        // If no item have a supported MIME type, the behavior is undefined by the standard
-        // By default, we select the first item
         let mut supported_image = false;
-        let mut selected_index = 0;
+        let mut selected_index = std::usize::MAX;
         let mut selected_resolution = items[0].resolution.dppx();
 
         for (i, item) in items.iter().enumerate() {
@@ -126,7 +124,7 @@ impl ToComputedValue for specified::ImageSet {
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         Self {
-            selected_index: 0,
+            selected_index: std::usize::MAX,
             items: ToComputedValue::from_computed_value(&computed.items),
         }
     }
