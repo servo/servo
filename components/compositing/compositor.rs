@@ -28,16 +28,16 @@ use msg::constellation_msg::{
 };
 use net_traits::image::base::Image;
 use net_traits::image_cache::CorsStatus;
-use num_traits::FromPrimitive;
 #[cfg(feature = "gl")]
 use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
+use script_traits::compositor::HitTestInfo;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
-use script_traits::{AnimationState, AnimationTickType, LayoutControlMsg};
 use script_traits::{
-    MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId, WheelDelta,
+    AnimationState, AnimationTickType, CompositorHitTestResult, LayoutControlMsg, MouseButton,
+    MouseEventType, ScrollState, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
+    WindowSizeData, WindowSizeType,
 };
-use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use std::collections::HashMap;
 use std::env;
@@ -48,8 +48,10 @@ use std::rc::Rc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
-use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
+use webrender_api::units::{
+    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D, WorldPoint,
+};
+use webrender_api::{self, HitTestFlags, ScrollLocation};
 use webrender_surfman::WebrenderSurfman;
 
 #[derive(Debug, PartialEq)]
@@ -263,6 +265,10 @@ struct PipelineDetails {
 
     /// Whether this pipeline is visible
     visible: bool,
+
+    /// Hit test items for this pipeline. This is used to map WebRender hit test
+    /// information to the full information necessary for Servo.
+    hit_test_items: Vec<HitTestInfo>,
 }
 
 impl PipelineDetails {
@@ -272,6 +278,7 @@ impl PipelineDetails {
             animations_running: false,
             animation_callbacks_running: false,
             visible: true,
+            hit_test_items: Vec::new(),
         }
     }
 }
@@ -381,17 +388,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender.deinit();
     }
 
-    pub fn update_cursor(&mut self, hit_test_results: HitTestResult) {
-        if let Some(item) = hit_test_results.items.first() {
-            if let Some(cursor) = Cursor::from_u8(item.tag.1 as _) {
-                if cursor != self.cursor {
-                    self.cursor = cursor;
-                    let msg = ConstellationMsg::SetCursor(cursor);
-                    if let Err(e) = self.constellation_chan.send(msg) {
-                        warn!("Sending event to constellation failed ({:?}).", e);
-                    }
-                }
-            }
+    fn update_cursor(&mut self, result: CompositorHitTestResult) {
+        let cursor = match result.cursor {
+            Some(cursor) if cursor != self.cursor => cursor,
+            _ => return,
+        };
+
+        self.cursor = cursor;
+        let msg = ConstellationMsg::SetCursor(cursor);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({:?}).", e);
         }
     }
 
@@ -514,7 +520,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (Msg::NewScrollFrameReady(recomposite_needed), ShutdownState::NotShuttingDown) => {
                 self.waiting_for_results_of_scroll = false;
-                self.update_cursor(self.hit_test_at_point(self.cursor_pos));
+                if let Some(result) = self.hit_test_at_device_point(self.cursor_pos) {
+                    self.update_cursor(result);
+                }
                 if recomposite_needed {
                     self.composition_request = CompositionRequest::CompositeNow(
                         CompositingReason::NewWebRenderScrollFrame,
@@ -628,9 +636,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 size2,
                 receiver,
                 descriptor,
+                compositor_display_list_info,
             )) => match receiver.recv() {
                 Ok(data) => {
                     self.waiting_on_pending_frame = true;
+
+                    let details = self.pipeline_details(PipelineId::from_webrender(pipeline));
+                    details.hit_test_items = compositor_display_list_info.hit_test_info;
+
                     let mut txn = webrender_api::Transaction::new();
                     txn.set_display_list(
                         epoch,
@@ -656,9 +669,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 flags,
                 sender,
             )) => {
-                let result =
-                    self.webrender_api
-                        .hit_test(self.webrender_document, pipeline, point, flags);
+                let result = self.hit_test_at_point_with_flags_and_pipeline(point, flags, pipeline);
                 let _ = sender.send(result);
             },
 
@@ -904,8 +915,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             MouseWindowEvent::MouseUp(_, p) => p,
         };
 
-        let results = self.hit_test_at_point(point);
-        let result = match results.items.first() {
+        let result = match self.hit_test_at_device_point(point) {
             Some(result) => result,
             None => return,
         };
@@ -920,29 +930,68 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             event_type,
             button,
             result.point_in_viewport.to_untyped(),
-            Some(UntrustedNodeAddress(result.tag.0 as *const c_void)),
-            Some(result.point_relative_to_item.to_untyped()),
+            Some(result.node),
+            Some(result.point_relative_to_item),
             button as u16,
         );
 
-        let pipeline_id = PipelineId::from_webrender(result.pipeline);
-        let msg = ConstellationMsg::ForwardEvent(pipeline_id, event_to_send);
+        let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event_to_send);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending event to constellation failed ({:?}).", e);
         }
     }
 
-    fn hit_test_at_point(&self, point: DevicePoint) -> HitTestResult {
+    fn hit_test_at_device_point(&self, point: DevicePoint) -> Option<CompositorHitTestResult> {
         let dppx = self.page_zoom * self.hidpi_factor();
         let scaled_point = (point / dppx).to_untyped();
+        let world_point = WorldPoint::from_untyped(scaled_point);
+        return self.hit_test_at_point(world_point);
+    }
 
-        let world_cursor = webrender_api::units::WorldPoint::from_untyped(scaled_point);
-        self.webrender_api.hit_test(
-            self.webrender_document,
-            None,
-            world_cursor,
-            HitTestFlags::empty(),
-        )
+    fn hit_test_at_point(&self, point: WorldPoint) -> Option<CompositorHitTestResult> {
+        return self
+            .hit_test_at_point_with_flags_and_pipeline(point, HitTestFlags::empty(), None)
+            .first()
+            .cloned();
+    }
+
+    fn hit_test_at_point_with_flags_and_pipeline(
+        &self,
+        point: WorldPoint,
+        flags: HitTestFlags,
+        pipeline_id: Option<webrender_api::PipelineId>,
+    ) -> Vec<CompositorHitTestResult> {
+        let root_pipeline_id = match self.root_pipeline.id {
+            Some(root_pipeline_id) => root_pipeline_id,
+            None => return vec![],
+        };
+        if self.pipeline(root_pipeline_id).is_none() {
+            return vec![];
+        }
+        let results =
+            self.webrender_api
+                .hit_test(self.webrender_document, pipeline_id, point, flags);
+
+        results
+            .items
+            .iter()
+            .filter_map(|item| {
+                let pipeline_id = PipelineId::from_webrender(item.pipeline);
+                let details = match self.pipeline_details.get(&pipeline_id) {
+                    Some(details) => details,
+                    None => return None,
+                };
+
+                let info = &details.hit_test_items[item.tag.0 as usize];
+                Some(CompositorHitTestResult {
+                    pipeline_id,
+                    point_in_viewport: item.point_in_viewport.to_untyped(),
+                    point_relative_to_item: item.point_relative_to_item.to_untyped(),
+                    node: UntrustedNodeAddress(info.node as *const c_void),
+                    cursor: info.cursor,
+                })
+            })
+            .collect()
     }
 
     pub fn on_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
@@ -955,25 +1004,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn dispatch_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
-        let root_pipeline_id = match self.root_pipeline.id {
-            Some(root_pipeline_id) => root_pipeline_id,
+        let result = match self.hit_test_at_device_point(cursor) {
+            Some(result) => result,
             None => return,
         };
-        if self.pipeline(root_pipeline_id).is_none() {
-            return;
-        }
 
-        let results = self.hit_test_at_point(cursor);
-        if let Some(item) = results.items.first() {
-            let node_address = Some(UntrustedNodeAddress(item.tag.0 as *const c_void));
-            let event = MouseMoveEvent(item.point_in_viewport.to_untyped(), node_address, 0);
-            let pipeline_id = PipelineId::from_webrender(item.pipeline);
-            let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-            self.update_cursor(results);
+        let event = MouseMoveEvent(result.point_in_viewport, Some(result.node), 0);
+        let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({:?}).", e);
         }
+        self.update_cursor(result);
     }
 
     fn send_touch_event(
@@ -982,16 +1023,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         identifier: TouchId,
         point: DevicePoint,
     ) {
-        let results = self.hit_test_at_point(point);
-        if let Some(item) = results.items.first() {
+        if let Some(result) = self.hit_test_at_device_point(point) {
             let event = TouchEvent(
                 event_type,
                 identifier,
-                item.point_in_viewport.to_untyped(),
-                Some(UntrustedNodeAddress(item.tag.0 as *const c_void)),
+                result.point_in_viewport,
+                Some(result.node),
             );
-            let pipeline_id = PipelineId::from_webrender(item.pipeline);
-            let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
+            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
@@ -999,15 +1038,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn send_wheel_event(&mut self, delta: WheelDelta, point: DevicePoint) {
-        let results = self.hit_test_at_point(point);
-        if let Some(item) = results.items.first() {
-            let event = WheelEvent(
-                delta,
-                item.point_in_viewport.to_untyped(),
-                Some(UntrustedNodeAddress(item.tag.0 as *const c_void)),
-            );
-            let pipeline_id = PipelineId::from_webrender(item.pipeline);
-            let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
+        if let Some(result) = self.hit_test_at_device_point(point) {
+            let event = WheelEvent(delta, result.point_in_viewport, Some(result.node));
+            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
@@ -1169,7 +1202,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            let cursor = webrender_api::units::WorldPoint::from_untyped(cursor);
+            let cursor = WorldPoint::from_untyped(cursor);
             let mut txn = webrender_api::Transaction::new();
             txn.scroll(scroll_location, cursor);
             if combined_event.magnification != 1.0 {

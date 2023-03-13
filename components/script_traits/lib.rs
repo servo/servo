@@ -18,11 +18,13 @@ extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate serde;
 
+pub mod compositor;
 mod script_msg;
 pub mod serializable;
 pub mod transferable;
 pub mod webdriver_msg;
 
+use crate::compositor::CompositorDisplayListInfo;
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
@@ -30,7 +32,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{Cursor, EventLoopWaker};
 use euclid::{default::Point2D, Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use gfx_traits::Epoch;
 use http::HeaderMap;
@@ -74,7 +76,7 @@ use webrender_api::{
     BuiltDisplayList, DocumentId, ExternalImageData, ExternalScrollId, ImageData, ImageDescriptor,
     ImageKey, ScrollClamping,
 };
-use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult};
+use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags};
 
 pub use crate::script_msg::{
     DOMMessage, HistoryEntryReplacement, Job, JobError, JobResult, JobResultValue, JobType,
@@ -1110,6 +1112,25 @@ impl From<i32> for MediaSessionActionType {
     }
 }
 
+/// The result of a hit test in the compositor.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CompositorHitTestResult {
+    /// The pipeline id of the resulting item.
+    pub pipeline_id: PipelineId,
+
+    /// The hit test point in the item's viewport.
+    pub point_in_viewport: euclid::default::Point2D<f32>,
+
+    /// The hit test point relative to the item itself.
+    pub point_relative_to_item: euclid::default::Point2D<f32>,
+
+    /// The node address of the hit test result.
+    pub node: UntrustedNodeAddress,
+
+    /// The cursor that should be used when hovering the item hit by the hit test.
+    pub cursor: Option<Cursor>,
+}
+
 /// The set of WebRender operations that can be initiated by the content process.
 #[derive(Deserialize, Serialize)]
 pub enum WebrenderMsg {
@@ -1125,6 +1146,7 @@ pub enum WebrenderMsg {
         LayoutSize,
         ipc::IpcBytesReceiver,
         BuiltDisplayListDescriptor,
+        CompositorDisplayListInfo,
     ),
     /// Perform a hit test operation. The result will be returned via
     /// the provided channel sender.
@@ -1132,7 +1154,7 @@ pub enum WebrenderMsg {
         Option<webrender_api::PipelineId>,
         WorldPoint,
         HitTestFlags,
-        IpcSender<HitTestResult>,
+        IpcSender<Vec<CompositorHitTestResult>>,
     ),
     /// Create a new image key. The result will be returned via the
     /// provided channel sender.
@@ -1178,6 +1200,7 @@ impl WebrenderIpcSender {
         &self,
         epoch: Epoch,
         size: LayoutSize,
+        display_list_info: CompositorDisplayListInfo,
         (pipeline, size2, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
     ) {
         let (data, descriptor) = list.into_data();
@@ -1189,6 +1212,7 @@ impl WebrenderIpcSender {
             size2,
             receiver,
             descriptor,
+            display_list_info,
         )) {
             warn!("Error sending display list: {}", e);
         }
@@ -1205,7 +1229,7 @@ impl WebrenderIpcSender {
         pipeline: Option<webrender_api::PipelineId>,
         point: WorldPoint,
         flags: HitTestFlags,
-    ) -> HitTestResult {
+    ) -> Vec<CompositorHitTestResult> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
             .send(WebrenderMsg::HitTest(pipeline, point, flags, sender))

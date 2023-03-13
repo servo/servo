@@ -413,11 +413,7 @@ impl<'a> DisplayListBuildState<'a> {
         clipping_and_scrolling: ClippingAndScrolling,
     ) -> BaseDisplayItem {
         BaseDisplayItem::new(
-            DisplayItemMetadata {
-                node,
-                // Store cursor id in display list.
-                pointing: cursor.map(|x| x as u16),
-            },
+            DisplayItemMetadata { node, cursor },
             clip_rect.to_layout(),
             section,
             self.current_stacking_context_id,

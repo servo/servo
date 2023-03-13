@@ -13,6 +13,7 @@ use euclid::{Point2D, SideOffsets2D, Size2D};
 use gfx::text::glyph::GlyphStore;
 use mitochondria::OnceCell;
 use net_traits::image_cache::UsePlaceholder;
+use script_traits::compositor::CompositorDisplayListInfo;
 use std::sync::Arc;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
@@ -46,6 +47,7 @@ pub struct DisplayListBuilder<'a> {
     element_for_canvas_background: OpaqueNode,
     pub context: &'a LayoutContext<'a>,
     pub wr: wr::DisplayListBuilder,
+    pub compositor_info: CompositorDisplayListInfo,
 
     /// Contentful paint, for the purpose of
     /// https://w3c.github.io/paint-timing/#first-contentful-paint
@@ -66,6 +68,7 @@ impl<'a> DisplayListBuilder<'a> {
             is_contentful: false,
             context,
             wr: wr::DisplayListBuilder::new(pipeline_id, fragment_tree.scrollable_overflow()),
+            compositor_info: CompositorDisplayListInfo::default(),
         }
     }
 
@@ -83,6 +86,21 @@ impl<'a> DisplayListBuilder<'a> {
             clip_id: self.current_space_and_clip.clip_id,
             hit_info: None,
             flags: style.get_webrender_primitive_flags(),
+        }
+    }
+
+    fn hit_info(&mut self, style: &ComputedValues, tag: Tag, auto_cursor: Cursor) -> HitInfo {
+        use style::computed_values::pointer_events::T as PointerEvents;
+
+        let inherited_ui = style.get_inherited_ui();
+        if inherited_ui.pointer_events == PointerEvents::None {
+            None
+        } else {
+            let hit_test_index = self.compositor_info.add_hit_test_info(
+                tag.node().0 as u64,
+                Some(cursor(inherited_ui.cursor.keyword, auto_cursor)),
+            );
+            Some((hit_test_index as u64, 0u16))
         }
     }
 }
@@ -157,7 +175,7 @@ impl Fragment {
         }
 
         let mut common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
-        common.hit_info = hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
+        common.hit_info = builder.hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
 
         let color = fragment.parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
@@ -351,7 +369,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder) {
-        let hit_info = hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
+        let hit_info = builder.hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
         if hit_info.is_some() {
             let mut common = builder.common_properties(self.border_rect, &self.fragment.style);
             common.hit_info = hit_info;
@@ -557,18 +575,6 @@ fn glyphs(
         }
     }
     glyphs
-}
-
-fn hit_info(style: &ComputedValues, tag: Tag, auto_cursor: Cursor) -> HitInfo {
-    use style::computed_values::pointer_events::T as PointerEvents;
-
-    let inherited_ui = style.get_inherited_ui();
-    if inherited_ui.pointer_events == PointerEvents::None {
-        None
-    } else {
-        let cursor = cursor(inherited_ui.cursor.keyword, auto_cursor);
-        Some((tag.node().0 as u64, cursor as u16))
-    }
 }
 
 fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {

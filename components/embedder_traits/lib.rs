@@ -26,7 +26,7 @@ pub use webxr_api::MainThreadWaker as EventLoopWaker;
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
-#[derive(Clone, Copy, Deserialize, Eq, FromPrimitive, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, FromPrimitive, PartialEq, Serialize)]
 pub enum Cursor {
     None,
     Default,
