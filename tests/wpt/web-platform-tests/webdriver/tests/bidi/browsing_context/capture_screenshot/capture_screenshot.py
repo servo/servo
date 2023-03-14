@@ -2,11 +2,11 @@ import pytest
 
 from tests.support.image import png_dimensions
 
-from . import compare_png_data, viewport_dimensions
+from . import viewport_dimensions
 
 
 @pytest.mark.asyncio
-async def test_capture(bidi_session, url, top_context, inline):
+async def test_capture(bidi_session, url, top_context, inline, compare_png_bidi):
     expected_size = await viewport_dimensions(bidi_session, top_context)
 
     await bidi_session.browsing_context.navigate(
@@ -22,10 +22,7 @@ async def test_capture(bidi_session, url, top_context, inline):
     data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"])
 
-    comparison = await compare_png_data(bidi_session,
-                                        url,
-                                        reference_data,
-                                        data)
+    comparison = await compare_png_bidi(data, reference_data)
     assert not comparison.equal()
 
     # Take a second screenshot that should be identical to validate that
@@ -36,8 +33,5 @@ async def test_capture(bidi_session, url, top_context, inline):
     new_data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"])
 
-    comparison = await compare_png_data(bidi_session,
-                                        url,
-                                        data,
-                                        new_data)
+    comparison = await compare_png_bidi(new_data, data)
     assert comparison.equal()

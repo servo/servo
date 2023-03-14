@@ -4,6 +4,8 @@ setup(() =>
     'Long animation frames are not supported.'));
 
 const very_long_frame_duration = 360;
+const no_long_frame_timeout = very_long_frame_duration * 3;
+const waiting_for_long_frame_timeout = very_long_frame_duration * 10;
 
 function loaf_promise(t) {
   return new Promise(resolve => {
@@ -21,8 +23,6 @@ function loaf_promise(t) {
   });
 }
 
-const no_long_frame_timeout = very_long_frame_duration * 2;
-
 function busy_wait(ms_delay = very_long_frame_duration) {
   const deadline = performance.now() + ms_delay;
   while (performance.now() < deadline) {}
@@ -32,7 +32,7 @@ async function expect_long_frame(cb, t) {
   await windowLoaded;
   await new Promise(resolve => t.step_timeout(resolve, 0));
   const timeout = new Promise((resolve, reject) =>
-    t.step_timeout(() => resolve("timeout"), no_long_frame_timeout));
+    t.step_timeout(() => resolve("timeout"), waiting_for_long_frame_timeout));
   const receivedLongFrame = loaf_promise(t);
   await cb(t);
   const entry = await Promise.race([
@@ -94,8 +94,9 @@ async function prepare_exec_popup(t, origin) {
 }
 function test_loaf_script(cb, name, type, label) {
   promise_test(async t => {
-    const [entry, script] = await expect_long_frame_with_script(cb,
-        script => (script.type === type && script.duration >= very_long_frame_duration), t);
+    let [entry, script] = [];
+    [entry, script] = await expect_long_frame_with_script(cb,
+      script => (script.type === type && script.duration >= very_long_frame_duration), t);
 
     assert_true(!!entry, "Entry detected");
     assert_equals(script.name, name);

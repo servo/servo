@@ -16,7 +16,7 @@ div::before {
 
     background-image: paint(geometry);
     margin-left: 2px;
-    --foo: bar;
+    --foo:bar;
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
@@ -48,7 +48,7 @@ registerPaint('geometry', class {
         ctx.fillStyle = 'green';
         if (serializedStrings[0] != "--bar: [CSSUnparsedValue=]")
             ctx.fillStyle = 'red';
-        if (serializedStrings[1] != "--foo: [CSSUnparsedValue= bar]")
+        if (serializedStrings[1] != "--foo: [CSSUnparsedValue=bar]")
             ctx.fillStyle = 'blue';
         if (serializedStrings[2] != "margin-left: [CSSUnitValue=2px]")
             ctx.fillStyle = 'yellow';

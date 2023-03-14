@@ -836,6 +836,7 @@ MISSING-TESTHARNESSREPORT: accessibility/crashtests/computed-node-checked.html
 
 PRINT STATEMENT: webdriver/tests/print/*
 PRINT STATEMENT: webdriver/tests/bidi/browsing_context/print/*
+PRINT STATEMENT: webdriver/tests/support/fixtures_bidi.py
 
 DUPLICATE-BASENAME-PATH: acid/acid3/empty.html
 DUPLICATE-BASENAME-PATH: acid/acid3/empty.xml
