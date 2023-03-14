@@ -17,7 +17,7 @@ use crate::values::specified::Integer;
 use crate::values::CustomIdent;
 use cssparser::{Parser, Token};
 use selectors::parser::SelectorParseErrorKind;
-use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo, StyleParseErrorKind};
+use style_traits::{ParseError, StyleParseErrorKind};
 
 #[derive(PartialEq)]
 enum CounterType {
@@ -201,7 +201,7 @@ impl Parse for Content {
         let mut has_alt_content = false;
         loop {
             {
-                if let Ok(image) = input.try_parse(|i| Image::parse_only_url(context, i)) {
+                if let Ok(image) = input.try_parse(|i| Image::parse_forbid_none(context, i)) {
                     content.push(generics::ContentItem::Image(image));
                     continue;
                 }
@@ -277,22 +277,5 @@ impl Parse for Content {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         Ok(generics::Content::Items(content.into()))
-    }
-}
-
-impl<Image> SpecifiedValueInfo for generics::GenericContentItem<Image> {
-    fn collect_completion_keywords(f: KeywordsCollectFn) {
-        f(&[
-            "url",
-            "image-set",
-            "counter",
-            "counters",
-            "attr",
-            "open-quote",
-            "close-quote",
-            "no-open-quote",
-            "no-close-quote",
-            "-moz-alt-content",
-        ]);
     }
 }
