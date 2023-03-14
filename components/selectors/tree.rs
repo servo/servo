@@ -92,29 +92,10 @@ pub trait Element: Sized + Clone + Debug {
         context: &mut MatchingContext<Self::Impl>,
     ) -> bool;
 
-    /// Sets selector flags, which indicate what kinds of selectors may have
-    /// matched on this element and therefore what kind of work may need to
-    /// be performed when DOM state changes.
-    ///
-    /// You probably don't want to use this directly and want to use
-    /// apply_selector_flags, since that sets flags on the parent as needed.
-    fn set_selector_flags(&self, flags: ElementSelectorFlags);
-
-    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
-        // Handle flags that apply to the element.
-        let self_flags = flags.for_self();
-        if !self_flags.is_empty() {
-            self.set_selector_flags(self_flags);
-        }
-
-        // Handle flags that apply to the parent.
-        let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.parent_element() {
-                p.set_selector_flags(parent_flags);
-            }
-        }
-    }
+    /// Sets selector flags on the elemnt itself or the parent, depending on the
+    /// flags, which indicate what kind of work may need to be performed when
+    /// DOM state changes.
+    fn apply_selector_flags(&self, flags: ElementSelectorFlags);
 
     /// Whether this element is a `link`.
     fn is_link(&self) -> bool;
