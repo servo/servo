@@ -291,6 +291,19 @@ impl Image {
         )
     }
 
+    /// Provides an alternate method for parsing, but forbidding `none`
+    pub fn parse_forbid_none<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Image, ParseError<'i>> {
+        Self::parse_with_cors_mode(
+            context,
+            input,
+            CorsMode::None,
+            ParseImageFlags::FORBID_NONE
+        )
+    }
+
     /// Provides an alternate method for parsing, but only for urls.
     pub fn parse_only_url<'i, 't>(
         context: &ParserContext,
