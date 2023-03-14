@@ -269,6 +269,11 @@ impl<'ln> GeckoNode<'ln> {
     }
 
     #[inline]
+    fn set_flags(&self, flags: u32) {
+        self.flags_atomic().fetch_or(flags, Ordering::Relaxed);
+    }
+
+    #[inline]
     fn flags_atomic(&self) -> &AtomicU32 {
         use std::cell::Cell;
         let flags: &Cell<u32> = &(self.0)._base._base_1.mFlags;
@@ -672,9 +677,7 @@ impl<'le> GeckoElement<'le> {
 
     #[inline]
     fn set_flags(&self, flags: u32) {
-        self.as_node()
-            .flags_atomic()
-            .fetch_or(flags, Ordering::Relaxed);
+        self.as_node().set_flags(flags);
     }
 
     #[inline]
@@ -1866,9 +1869,22 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         None
     }
 
-    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
-        debug_assert!(!flags.is_empty());
-        self.set_flags(selector_flags_to_node_flags(flags));
+    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
+        // Handle flags that apply to the element.
+        let self_flags = flags.for_self();
+        if !self_flags.is_empty() {
+            self.set_flags(selector_flags_to_node_flags(flags))
+        }
+
+        // Handle flags that apply to the parent.
+        let parent_flags = flags.for_parent();
+        if !parent_flags.is_empty() {
+            if let Some(p) = self.as_node().parent_node() {
+                if p.is_element() || p.is_shadow_root() {
+                    p.set_flags(selector_flags_to_node_flags(parent_flags));
+                }
+            }
+        }
     }
 
     fn attr_matches(
