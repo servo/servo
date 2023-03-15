@@ -7,8 +7,12 @@ use crate::attr::{
     ParsedCaseSensitivity,
 };
 use crate::bloom::{BloomFilter, BLOOM_HASH_MASK};
-use crate::parser::{AncestorHashes, Combinator, Component, LocalName, NthSelectorData};
-use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
+use crate::parser::{
+    AncestorHashes, Combinator, Component, LocalName, NthSelectorData, RelativeSelectorMatchHint,
+};
+use crate::parser::{
+    NonTSPseudoClass, RelativeSelector, Selector, SelectorImpl, SelectorIter, SelectorList,
+};
 use crate::tree::Element;
 use bitflags::bitflags;
 use debug_unreachable::debug_unreachable;
@@ -353,23 +357,63 @@ pub fn list_matches_complex_selector<E: Element>(
     false
 }
 
-/// Traverse all descendents of the given element and return true as soon as any of them match
-/// the given list of selectors.
-fn has_children_matching<E: Element>(
-    selectors: &[Selector<E::Impl>],
+/// Matches a relative selector in a list of relative selectors.
+fn matches_relative_selectors<E: Element>(
+    selectors: &[RelativeSelector<E::Impl>],
+    element: &E,
+    context: &mut MatchingContext<E::Impl>,
+) -> bool {
+    for RelativeSelector {
+        match_hint,
+        selector,
+    } in selectors.iter()
+    {
+        let (traverse_subtree, traverse_siblings, mut next_element) = match match_hint {
+            RelativeSelectorMatchHint::InChild => (false, true, element.first_element_child()),
+            RelativeSelectorMatchHint::InSubtree => (true, true, element.first_element_child()),
+            RelativeSelectorMatchHint::InSibling => (false, true, element.next_sibling_element()),
+            RelativeSelectorMatchHint::InSiblingSubtree => {
+                (true, true, element.next_sibling_element())
+            },
+            RelativeSelectorMatchHint::InNextSibling => {
+                (false, false, element.next_sibling_element())
+            },
+            RelativeSelectorMatchHint::InNextSiblingSubtree => {
+                (true, false, element.next_sibling_element())
+            },
+        };
+        while let Some(el) = next_element {
+            // TODO(dshin): `:has()` matching can get expensive when determining style changes.
+            // We'll need caching/filtering here, which is tracked in bug 1822177.
+            if matches_complex_selector(selector.iter(), &el, context) {
+                return true;
+            }
+            if traverse_subtree && matches_relative_selector_subtree(selector, &el, context) {
+                return true;
+            }
+            if !traverse_siblings {
+                break;
+            }
+            next_element = el.next_sibling_element();
+        }
+    }
+
+    false
+}
+
+fn matches_relative_selector_subtree<E: Element>(
+    selector: &Selector<E::Impl>,
     element: &E,
     context: &mut MatchingContext<E::Impl>,
 ) -> bool {
     let mut current = element.first_element_child();
 
     while let Some(el) = current {
-        for selector in selectors {
-            if matches_complex_selector(selector.iter(), &el, context) {
-                return true;
-            }
+        if matches_complex_selector(selector.iter(), &el, context) {
+            return true;
         }
 
-        if has_children_matching(selectors, &el, context) {
+        if matches_relative_selector_subtree(selector, &el, context) {
             return true;
         }
 
@@ -844,24 +888,10 @@ where
         Component::Negation(ref list) => context
             .shared
             .nest_for_negation(|context| !list_matches_complex_selector(list, element, context)),
-        Component::Has(ref list) => context
+        Component::Has(ref relative_selectors) => context
             .shared
             .nest_for_relative_selector(element.opaque(), |context| {
-                if cfg!(debug_assertions) {
-                    for selector in list.iter() {
-                        let mut selector_iter = selector.iter_raw_parse_order_from(0);
-                        assert!(
-                            matches!(selector_iter.next().unwrap(), Component::RelativeSelectorAnchor),
-                            "Relative selector does not start with RelativeSelectorAnchor"
-                        );
-                        assert!(
-                            selector_iter.next().unwrap().is_combinator(),
-                            "Relative combinator does not exist"
-                        );
-                    }
-                }
-                // TODO(dshin): Proper matching for sibling relative combinators.
-                has_children_matching(list, element, context)
+                matches_relative_selectors(relative_selectors, element, context)
             }),
         Component::Combinator(_) => unsafe {
             debug_unreachable!("Shouldn't try to selector-match combinators")
