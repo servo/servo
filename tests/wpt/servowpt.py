@@ -208,6 +208,7 @@ def update_tests(**kwargs):
     kwargs["store_state"] = False
 
     updatecommandline.check_args(kwargs)
+    update_args_for_layout_2020(kwargs)
 
     logger = update.setup_logging(kwargs, {"mach": sys.stdout})
     return_value = update.run_update(logger, **kwargs)
