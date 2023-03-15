@@ -51,10 +51,10 @@ use layout_traits::LayoutThreadFactory;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{
-    BackgroundHangMonitor, BackgroundHangMonitorRegister, HangAnnotation,
+    BackgroundHangMonitor, BackgroundHangMonitorRegister, BrowsingContextId, HangAnnotation,
+    LayoutHangAnnotation, MonitoredComponentId, MonitoredComponentType, PipelineId,
+    TopLevelBrowsingContextId,
 };
-use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
-use msg::constellation_msg::{MonitoredComponentId, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
@@ -64,10 +64,11 @@ use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQuer
 use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse};
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
-use script_traits::{DrawAPaintImageResult, PaintWorkletError};
-use script_traits::{Painter, WebrenderIpcSender};
-use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
+use script_traits::{
+    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,
+    LayoutMsg as ConstellationMsg, PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress,
+    WebrenderIpcSender, WindowSizeData, WindowSizeType,
+};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -135,6 +136,9 @@ pub struct LayoutThread {
     /// A means of communication with the background hang monitor.
     background_hang_monitor: Box<dyn BackgroundHangMonitor>,
 
+    /// The channel on which messages can be sent to the constellation.
+    constellation_chan: IpcSender<ConstellationMsg>,
+
     /// The channel on which messages can be sent to the script thread.
     script_chan: IpcSender<ConstellationControlMsg>,
 
@@ -189,6 +193,9 @@ pub struct LayoutThread {
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
+
+    /// The sizes of all iframes encountered during the last layout operation.
+    last_iframe_sizes: RefCell<FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>>,
 
     /// Flag that indicates if LayoutThread is busy handling a request.
     busy: Arc<AtomicBool>,
@@ -493,6 +500,7 @@ impl LayoutThread {
             is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_receiver,
+            constellation_chan,
             script_chan: script_chan.clone(),
             background_hang_monitor,
             time_profiler_chan: time_profiler_chan,
@@ -513,7 +521,6 @@ impl LayoutThread {
             webrender_api: webrender_api_sender,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             rw_data: Arc::new(Mutex::new(LayoutThreadData {
-                constellation_chan: constellation_chan,
                 display_list: None,
                 content_box_response: None,
                 content_boxes_response: Vec::new(),
@@ -531,6 +538,7 @@ impl LayoutThread {
             })),
             webrender_image_cache: Default::default(),
             paint_time_metrics: paint_time_metrics,
+            last_iframe_sizes: Default::default(),
             busy,
             load_webfonts_synchronously,
             relayout_event,
@@ -919,8 +927,12 @@ impl LayoutThread {
                         &QueryMsg::ElementInnerTextQuery(_) => {
                             rw_data.element_inner_text_response = String::new();
                         },
-                        &QueryMsg::InnerWindowDimensionsQuery(_) => {
-                            rw_data.inner_window_dimensions_response = None;
+                        &QueryMsg::InnerWindowDimensionsQuery(browsing_context_id) => {
+                            rw_data.inner_window_dimensions_response = self
+                                .last_iframe_sizes
+                                .borrow()
+                                .get(&browsing_context_id)
+                                .cloned();
                         },
                     },
                     ReflowGoal::Full | ReflowGoal::TickAnimations => {},
@@ -976,8 +988,7 @@ impl LayoutThread {
         if viewport_size_changed {
             if let Some(constraints) = self.stylist.viewport_constraints() {
                 // let the constellation know about the viewport constraints
-                rw_data
-                    .constellation_chan
+                self.constellation_chan
                     .send(ConstellationMsg::ViewportConstrained(
                         self.id,
                         constraints.clone(),
@@ -1348,6 +1359,8 @@ impl LayoutThread {
             display_list.wr.finalize(),
         );
 
+        self.update_iframe_sizes(display_list.iframe_sizes);
+
         if self.trace_layout {
             layout_debug::end_trace(self.generation.get());
         }
@@ -1388,6 +1401,49 @@ impl LayoutThread {
         for node in &invalid_nodes {
             if let Some(state) = animations.get_mut(node) {
                 state.cancel_all_animations();
+            }
+        }
+    }
+
+    /// Update the recorded iframe sizes of the contents of this layout thread and
+    /// when these sizes changes, send a message to the constellation informing it
+    /// of the new sizes.
+    fn update_iframe_sizes(
+        &self,
+        new_iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
+    ) {
+        let old_iframe_sizes =
+            std::mem::replace(&mut *self.last_iframe_sizes.borrow_mut(), new_iframe_sizes);
+
+        if self.last_iframe_sizes.borrow().is_empty() {
+            return;
+        }
+
+        let size_messages: Vec<_> = self
+            .last_iframe_sizes
+            .borrow()
+            .iter()
+            .filter_map(|(browsing_context_id, size)| {
+                match old_iframe_sizes.get(&browsing_context_id) {
+                    Some(old_size) if old_size != size => Some(IFrameSizeMsg {
+                        browsing_context_id: *browsing_context_id,
+                        size: *size,
+                        type_: WindowSizeType::Resize,
+                    }),
+                    None => Some(IFrameSizeMsg {
+                        browsing_context_id: *browsing_context_id,
+                        size: *size,
+                        type_: WindowSizeType::Initial,
+                    }),
+                    _ => None,
+                }
+            })
+            .collect();
+
+        if !size_messages.is_empty() {
+            let msg = ConstellationMsg::IFrameSizes(size_messages);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Layout resize to constellation failed ({}).", e);
             }
         }
     }

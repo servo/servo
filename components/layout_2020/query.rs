@@ -10,7 +10,6 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
 use euclid::Vector2D;
-use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
@@ -19,7 +18,6 @@ use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse};
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc as ServoArc;
 use std::collections::HashMap;
@@ -43,9 +41,6 @@ use webrender_api::ExternalScrollId;
 ///
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutThreadData {
-    /// The channel on which messages can be sent to the constellation.
-    pub constellation_chan: IpcSender<ConstellationMsg>,
-
     /// The root stacking context.
     pub display_list: Option<webrender_api::DisplayListBuilder>,
 
@@ -427,6 +422,7 @@ fn process_offset_parent_query_inner(
                     .to_physical(fragment.parent_style.writing_mode, &containing_block),
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
+                Fragment::IFrame(_) |
                 Fragment::Anonymous(_) => unreachable!(),
             };
             let border_box = fragment_relative_rect.translate(containing_block.origin.to_vector());
@@ -503,6 +499,7 @@ fn process_offset_parent_query_inner(
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Text(_) |
                 Fragment::Image(_) |
+                Fragment::IFrame(_) |
                 Fragment::Anonymous(_) => None,
             };
 
@@ -552,6 +549,7 @@ fn process_offset_parent_query_inner(
                         Fragment::Box(_) |
                         Fragment::Text(_) |
                         Fragment::Image(_) |
+                        Fragment::IFrame(_) |
                         Fragment::Anonymous(_) => None,
                     }
                 })

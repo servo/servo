@@ -11,6 +11,7 @@ use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOuts
 use crate::wrapper::GetStyleAndLayoutData;
 use atomic_refcell::AtomicRefMut;
 use html5ever::LocalName;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::Image as NetImage;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -396,6 +397,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode<'dom> + Send + Sync {
     /// adjusted for `image_density`.
     fn as_image(self) -> Option<(Option<Arc<NetImage>>, PhysicalSize<f64>)>;
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
+    fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
     fn first_child(self) -> Option<Self>;
     fn next_sibling(self) -> Option<Self>;
     fn parent_node(self) -> Option<Self>;
@@ -460,6 +462,16 @@ where
             },
             PhysicalSize::new(canvas_data.width.into(), canvas_data.height.into()),
         ))
+    }
+
+    fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)> {
+        let node = self.to_threadsafe();
+        match (node.iframe_pipeline_id(), node.iframe_browsing_context_id()) {
+            (Some(pipeline_id), Some(browsing_context_id)) => {
+                Some((pipeline_id, browsing_context_id))
+            },
+            _ => None,
+        }
     }
 
     fn first_child(self) -> Option<Self> {

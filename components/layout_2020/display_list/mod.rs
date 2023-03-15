@@ -10,8 +10,10 @@ use crate::replaced::IntrinsicSizes;
 use crate::style_ext::ComputedValuesExt;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
+use fnv::FnvHashMap;
 use gfx::text::glyph::GlyphStore;
 use mitochondria::OnceCell;
+use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
 use script_traits::compositor::CompositorDisplayListInfo;
 use std::sync::Arc;
@@ -22,6 +24,7 @@ use style::properties::ComputedValues;
 use style::values::computed::{BorderStyle, Length, LengthPercentage};
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
+use style_traits::CSSPixel;
 use webrender_api::{self as wr, units};
 
 mod background;
@@ -48,6 +51,7 @@ pub struct DisplayListBuilder<'a> {
     pub context: &'a LayoutContext<'a>,
     pub wr: wr::DisplayListBuilder,
     pub compositor_info: CompositorDisplayListInfo,
+    pub iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
 
     /// Contentful paint, for the purpose of
     /// https://w3c.github.io/paint-timing/#first-contentful-paint
@@ -69,6 +73,7 @@ impl<'a> DisplayListBuilder<'a> {
             context,
             wr: wr::DisplayListBuilder::new(pipeline_id, fragment_tree.scrollable_overflow()),
             compositor_info: CompositorDisplayListInfo::default(),
+            iframe_sizes: FnvHashMap::default(),
         }
     }
 
@@ -137,6 +142,34 @@ impl Fragment {
                         wr::AlphaType::PremultipliedAlpha,
                         i.image_key,
                         wr::ColorF::WHITE,
+                    );
+                },
+                Visibility::Hidden => (),
+                Visibility::Collapse => (),
+            },
+            Fragment::IFrame(iframe) => match iframe.style.get_inherited_box().visibility {
+                Visibility::Visible => {
+                    builder.is_contentful = true;
+                    let rect = iframe
+                        .rect
+                        .to_physical(iframe.style.writing_mode, containing_block)
+                        .translate(containing_block.origin.to_vector());
+
+                    builder.iframe_sizes.insert(
+                        iframe.browsing_context_id,
+                        Size2D::new(rect.size.width.px(), rect.size.height.px()),
+                    );
+
+                    let common = builder.common_properties(rect.to_webrender(), &iframe.style);
+                    builder.wr.push_iframe(
+                        rect.to_webrender(),
+                        common.clip_rect,
+                        &wr::SpaceAndClipInfo {
+                            spatial_id: common.spatial_id,
+                            clip_id: common.clip_id,
+                        },
+                        iframe.pipeline_id.to_webrender(),
+                        true,
                     );
                 },
                 Visibility::Hidden => (),

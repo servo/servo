@@ -82,9 +82,7 @@ pub use crate::script_msg::{
     DOMMessage, HistoryEntryReplacement, Job, JobError, JobResult, JobResultValue, JobType,
     SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg,
 };
-pub use crate::script_msg::{
-    EventResult, IFrameSize, IFrameSizeMsg, LayoutMsg, LogEntry, ScriptMsg,
-};
+pub use crate::script_msg::{EventResult, IFrameSizeMsg, LayoutMsg, LogEntry, ScriptMsg};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.

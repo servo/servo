@@ -482,7 +482,7 @@ impl Fragment {
                     stacking_context,
                 );
             },
-            Fragment::Text(_) | Fragment::Image(_) => {
+            Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {
                 stacking_context.fragments.push(StackingContextFragment {
                     section: StackingContextSection::Content,
                     space_and_clip: builder.current_space_and_clip,
