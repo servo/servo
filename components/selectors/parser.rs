@@ -12,6 +12,7 @@ use crate::builder::{
 };
 use crate::context::QuirksMode;
 use crate::sink::Push;
+use crate::visitor::SelectorListKind;
 pub use crate::visitor::SelectorVisitor;
 use bitflags::bitflags;
 use cssparser::{match_ignore_ascii_case, parse_nth, *};
@@ -1625,14 +1626,15 @@ impl<Impl: SelectorImpl> Component<Impl> {
                     return false;
                 }
             },
-
             Negation(ref list) | Is(ref list) | Where(ref list) => {
-                if !visitor.visit_selector_list(&list) {
+                let list_kind = SelectorListKind::from_component(self);
+                debug_assert!(!list_kind.is_empty());
+                if !visitor.visit_selector_list(list_kind, &list) {
                     return false;
                 }
             },
             NthOf(ref nth_of_data) => {
-                if !visitor.visit_selector_list(nth_of_data.selectors()) {
+                if !visitor.visit_selector_list(SelectorListKind::NTH_OF, nth_of_data.selectors()) {
                     return false;
                 }
             },

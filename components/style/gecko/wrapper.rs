@@ -910,6 +910,9 @@ fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
     if flags.contains(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
         gecko_flags |= NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS as u32;
     }
+    if flags.contains(ElementSelectorFlags::HAS_SLOW_SELECTOR_NTH_OF) {
+        gecko_flags |= NODE_HAS_SLOW_SELECTOR_NTH_OF as u32;
+    }
     if flags.contains(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
         gecko_flags |= NODE_HAS_EDGE_CHILD_SELECTOR as u32;
     }
