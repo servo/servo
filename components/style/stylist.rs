@@ -50,7 +50,7 @@ use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{matches_selector, MatchingContext, MatchingMode, NeedsSelectorFlags};
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorIter};
-use selectors::visitor::SelectorVisitor;
+use selectors::visitor::{SelectorListKind, SelectorVisitor};
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
 use smallbitvec::SmallBitVec;
@@ -1891,15 +1891,41 @@ struct StylistSelectorVisitor<'a> {
     /// Whether we've past the rightmost compound selector, not counting
     /// pseudo-elements.
     passed_rightmost_selector: bool,
+
     /// Whether the selector needs revalidation for the style sharing cache.
     needs_revalidation: &'a mut bool,
+
+    /// Flags for which selector list-containing components the visitor is
+    /// inside of, if any
+    in_selector_list_of: SelectorListKind,
+
     /// The filter with all the id's getting referenced from rightmost
     /// selectors.
     mapped_ids: &'a mut PrecomputedHashSet<Atom>,
+
+    /// The filter with the IDs getting referenced from the selector list of
+    /// :nth-child(... of <selector list>) selectors.
+    nth_of_mapped_ids: &'a mut PrecomputedHashSet<Atom>,
+
     /// The filter with the local names of attributes there are selectors for.
     attribute_dependencies: &'a mut PrecomputedHashSet<LocalName>,
+
+    /// The filter with the classes getting referenced from the selector list of
+    /// :nth-child(... of <selector list>) selectors.
+    nth_of_class_dependencies: &'a mut PrecomputedHashSet<Atom>,
+
+    /// The filter with the local names of attributes there are selectors for
+    /// within the selector list of :nth-child(... of <selector list>)
+    /// selectors.
+    nth_of_attribute_dependencies: &'a mut PrecomputedHashSet<LocalName>,
+
     /// All the states selectors in the page reference.
     state_dependencies: &'a mut ElementState,
+
+    /// All the state selectors in the page reference within the selector list
+    /// of :nth-child(... of <selector list>) selectors.
+    nth_of_state_dependencies: &'a mut ElementState,
+
     /// All the document states selectors in the page reference.
     document_state_dependencies: &'a mut DocumentState,
 }
@@ -1944,15 +1970,25 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         true
     }
 
-    fn visit_selector_list(&mut self, list: &[Selector<Self::Impl>]) -> bool {
+    fn visit_selector_list(
+        &mut self,
+        list_kind: SelectorListKind,
+        list: &[Selector<Self::Impl>],
+    ) -> bool {
+        let in_selector_list_of = self.in_selector_list_of | list_kind;
         for selector in list {
             let mut nested = StylistSelectorVisitor {
                 passed_rightmost_selector: false,
                 needs_revalidation: &mut *self.needs_revalidation,
-                attribute_dependencies: &mut *self.attribute_dependencies,
-                state_dependencies: &mut *self.state_dependencies,
-                document_state_dependencies: &mut *self.document_state_dependencies,
+                in_selector_list_of,
                 mapped_ids: &mut *self.mapped_ids,
+                nth_of_mapped_ids: &mut *self.nth_of_mapped_ids,
+                attribute_dependencies: &mut *self.attribute_dependencies,
+                nth_of_class_dependencies: &mut *self.nth_of_class_dependencies,
+                nth_of_attribute_dependencies: &mut *self.nth_of_attribute_dependencies,
+                state_dependencies: &mut *self.state_dependencies,
+                nth_of_state_dependencies: &mut *self.nth_of_state_dependencies,
+                document_state_dependencies: &mut *self.document_state_dependencies,
             };
             let _ret = selector.visit(&mut nested);
             debug_assert!(_ret, "We never return false");
@@ -1966,8 +2002,15 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         name: &LocalName,
         lower_name: &LocalName,
     ) -> bool {
+        if self.in_selector_list_of.in_nth_of() {
+            self.nth_of_attribute_dependencies.insert(name.clone());
+            self.nth_of_attribute_dependencies
+                .insert(lower_name.clone());
+        }
+
         self.attribute_dependencies.insert(name.clone());
         self.attribute_dependencies.insert(lower_name.clone());
+
         true
     }
 
@@ -1980,8 +2023,12 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
                 self.state_dependencies.insert(p.state_flag());
                 self.document_state_dependencies
                     .insert(p.document_state_flag());
+
+                if self.in_selector_list_of.in_nth_of() {
+                    self.nth_of_state_dependencies.insert(p.state_flag());
+                }
             },
-            Component::ID(ref id) if !self.passed_rightmost_selector => {
+            Component::ID(ref id) => {
                 // We want to stop storing mapped ids as soon as we've moved off
                 // the rightmost ComplexSelector that is not a pseudo-element.
                 //
@@ -1993,7 +2040,16 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
                 //
                 // NOTE(emilio): See the comment regarding on when this may
                 // break in visit_complex_selector.
-                self.mapped_ids.insert(id.0.clone());
+                if !self.passed_rightmost_selector {
+                    self.mapped_ids.insert(id.0.clone());
+                }
+
+                if self.in_selector_list_of.in_nth_of() {
+                    self.nth_of_mapped_ids.insert(id.0.clone());
+                }
+            },
+            Component::Class(ref class) if self.in_selector_list_of.in_nth_of() => {
+                self.nth_of_class_dependencies.insert(class.0.clone());
             },
             _ => {},
         }
@@ -2181,10 +2237,24 @@ pub struct CascadeData {
     /// rare.)
     attribute_dependencies: PrecomputedHashSet<LocalName>,
 
+    /// The classes that appear in the selector list of
+    /// :nth-child(... of <selector list>). Used to avoid restyling siblings of
+    /// an element when an irrelevant class changes.
+    nth_of_class_dependencies: PrecomputedHashSet<Atom>,
+
+    /// The attributes that appear in the selector list of
+    /// :nth-child(... of <selector list>). Used to avoid restyling siblings of
+    /// an element when an irrelevant attribute changes.
+    nth_of_attribute_dependencies: PrecomputedHashSet<LocalName>,
+
     /// The element state bits that are relied on by selectors.  Like
     /// `attribute_dependencies`, this is used to avoid taking element snapshots
     /// when an irrelevant element state bit changes.
     state_dependencies: ElementState,
+
+    /// The element state bits that are relied on by selectors that appear in
+    /// the selector list of :nth-child(... of <selector list>).
+    nth_of_state_dependencies: ElementState,
 
     /// The document state bits that are relied on by selectors.  This is used
     /// to tell whether we need to restyle the entire document when a document
@@ -2196,6 +2266,11 @@ pub struct CascadeData {
     /// safe: we disallow style sharing for elements whose id matches this
     /// filter, and hence might be in one of our selector maps.
     mapped_ids: PrecomputedHashSet<Atom>,
+
+    /// The IDs that appear in the selector list of
+    /// :nth-child(... of <selector list>). Used to avoid restyling siblings
+    /// of an element when an irrelevant ID changes.
+    nth_of_mapped_ids: PrecomputedHashSet<Atom>,
 
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or
@@ -2242,6 +2317,10 @@ impl CascadeData {
             slotted_rules: None,
             part_rules: None,
             invalidation_map: InvalidationMap::new(),
+            nth_of_mapped_ids: PrecomputedHashSet::default(),
+            nth_of_class_dependencies: PrecomputedHashSet::default(),
+            nth_of_attribute_dependencies: PrecomputedHashSet::default(),
+            nth_of_state_dependencies: ElementState::empty(),
             attribute_dependencies: PrecomputedHashSet::default(),
             state_dependencies: ElementState::empty(),
             document_state_dependencies: DocumentState::empty(),
@@ -2322,11 +2401,39 @@ impl CascadeData {
         self.state_dependencies.intersects(state)
     }
 
+    /// Returns whether the given ElementState bit is relied upon by a selector
+    /// of some rule in the selector list of :nth-child(... of <selector list>).
+    #[inline]
+    pub fn has_nth_of_state_dependency(&self, state: ElementState) -> bool {
+        self.nth_of_state_dependencies.intersects(state)
+    }
+
     /// Returns whether the given attribute might appear in an attribute
     /// selector of some rule.
     #[inline]
     pub fn might_have_attribute_dependency(&self, local_name: &LocalName) -> bool {
         self.attribute_dependencies.contains(local_name)
+    }
+
+    /// Returns whether the given ID might appear in an ID selector in the
+    /// selector list of :nth-child(... of <selector list>).
+    #[inline]
+    pub fn might_have_nth_of_id_dependency(&self, id: &Atom) -> bool {
+        self.nth_of_mapped_ids.contains(id)
+    }
+
+    /// Returns whether the given class might appear in a class selector in the
+    /// selector list of :nth-child(... of <selector list>).
+    #[inline]
+    pub fn might_have_nth_of_class_dependency(&self, class: &Atom) -> bool {
+        self.nth_of_class_dependencies.contains(class)
+    }
+
+    /// Returns whether the given attribute might appear in an attribute
+    /// selector in the selector list of :nth-child(... of <selector list>).
+    #[inline]
+    pub fn might_have_nth_of_attribute_dependency(&self, local_name: &LocalName) -> bool {
+        self.nth_of_attribute_dependencies.contains(local_name)
     }
 
     /// Returns the normal rule map for a given pseudo-element.
@@ -2419,6 +2526,9 @@ impl CascadeData {
         }
         self.invalidation_map.shrink_if_needed();
         self.attribute_dependencies.shrink_if_needed();
+        self.nth_of_attribute_dependencies.shrink_if_needed();
+        self.nth_of_class_dependencies.shrink_if_needed();
+        self.nth_of_mapped_ids.shrink_if_needed();
         self.mapped_ids.shrink_if_needed();
         self.layer_id.shrink_if_needed();
         self.selectors_for_cache_revalidation.shrink_if_needed();
@@ -2584,12 +2694,17 @@ impl CascadeData {
                             let mut visitor = StylistSelectorVisitor {
                                 needs_revalidation: &mut needs_revalidation,
                                 passed_rightmost_selector: false,
-                                attribute_dependencies: &mut self.attribute_dependencies,
-                                state_dependencies: &mut self.state_dependencies,
-                                document_state_dependencies: &mut self.document_state_dependencies,
+                                in_selector_list_of: SelectorListKind::default(),
                                 mapped_ids: &mut self.mapped_ids,
+                                nth_of_mapped_ids: &mut self.nth_of_mapped_ids,
+                                attribute_dependencies: &mut self.attribute_dependencies,
+                                nth_of_class_dependencies: &mut self.nth_of_class_dependencies,
+                                nth_of_attribute_dependencies: &mut self
+                                    .nth_of_attribute_dependencies,
+                                state_dependencies: &mut self.state_dependencies,
+                                nth_of_state_dependencies: &mut self.nth_of_state_dependencies,
+                                document_state_dependencies: &mut self.document_state_dependencies,
                             };
-
                             rule.selector.visit(&mut visitor);
 
                             if needs_revalidation {
@@ -3018,9 +3133,13 @@ impl CascadeData {
         self.clear_cascade_data();
         self.invalidation_map.clear();
         self.attribute_dependencies.clear();
+        self.nth_of_attribute_dependencies.clear();
+        self.nth_of_class_dependencies.clear();
         self.state_dependencies = ElementState::empty();
+        self.nth_of_state_dependencies = ElementState::empty();
         self.document_state_dependencies = DocumentState::empty();
         self.mapped_ids.clear();
+        self.nth_of_mapped_ids.clear();
         self.selectors_for_cache_revalidation.clear();
         self.effective_media_query_results.clear();
     }
@@ -3168,18 +3287,27 @@ size_of_test!(Rule, 40);
 
 /// A function to be able to test the revalidation stuff.
 pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
-    let mut attribute_dependencies = Default::default();
-    let mut mapped_ids = Default::default();
-    let mut state_dependencies = ElementState::empty();
-    let mut document_state_dependencies = DocumentState::empty();
     let mut needs_revalidation = false;
+    let mut mapped_ids = Default::default();
+    let mut nth_of_mapped_ids = Default::default();
+    let mut attribute_dependencies = Default::default();
+    let mut nth_of_class_dependencies = Default::default();
+    let mut nth_of_attribute_dependencies = Default::default();
+    let mut state_dependencies = ElementState::empty();
+    let mut nth_of_state_dependencies = ElementState::empty();
+    let mut document_state_dependencies = DocumentState::empty();
     let mut visitor = StylistSelectorVisitor {
         passed_rightmost_selector: false,
         needs_revalidation: &mut needs_revalidation,
-        attribute_dependencies: &mut attribute_dependencies,
-        state_dependencies: &mut state_dependencies,
-        document_state_dependencies: &mut document_state_dependencies,
+        in_selector_list_of: SelectorListKind::default(),
         mapped_ids: &mut mapped_ids,
+        nth_of_mapped_ids: &mut nth_of_mapped_ids,
+        attribute_dependencies: &mut attribute_dependencies,
+        nth_of_class_dependencies: &mut nth_of_class_dependencies,
+        nth_of_attribute_dependencies: &mut nth_of_attribute_dependencies,
+        state_dependencies: &mut state_dependencies,
+        nth_of_state_dependencies: &mut nth_of_state_dependencies,
+        document_state_dependencies: &mut document_state_dependencies,
     };
     s.visit(&mut visitor);
     needs_revalidation
