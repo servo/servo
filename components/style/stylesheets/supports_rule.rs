@@ -186,11 +186,18 @@ impl SupportsCondition {
         }
     }
 
+    /// Parses an `@import` condition as per
+    /// https://drafts.csswg.org/css-cascade-5/#typedef-import-conditions
+    pub fn parse_for_import<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        input.expect_function_matching("supports")?;
+        input.parse_nested_block(parse_condition_or_declaration)
+    }
+
     /// <https://drafts.csswg.org/css-conditional-3/#supports_condition_in_parens>
     fn parse_in_parens<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // Whitespace is normally taken care of in `Parser::next`,
-        // but we want to not include it in `pos` for the SupportsCondition::FutureSyntax cases.
-        while input.try_parse(Parser::expect_whitespace).is_ok() {}
+        // Whitespace is normally taken care of in `Parser::next`, but we want to not include it in
+        // `pos` for the SupportsCondition::FutureSyntax cases.
+        input.skip_whitespace();
         let pos = input.position();
         let location = input.current_source_location();
         match *input.next()? {
