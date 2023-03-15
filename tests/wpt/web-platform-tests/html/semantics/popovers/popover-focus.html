@@ -196,7 +196,7 @@
       assert_true(popover.matches(':open'));
       await clickOn(button); // This will *not* light dismiss, but will "toggle" the popover.
       assert_false(popover.matches(':open'));
-      assert_equals(document.activeElement, priorFocus, 'focus should return to the prior focus');
+      assert_equals(document.activeElement, button, 'focus should move to the button when clicked, and should stay there when the popover closes');
       assert_false(isElementVisible(popover));
 
       // Same thing, but the button is contained within the popover

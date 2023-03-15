@@ -58,17 +58,17 @@ testTransformValuesCloseTo("rotate(calc(infinity * 1deg))", 0.0001, "rotate(0deg
 testTransformValuesCloseTo("rotate(calc(-infinity * 1deg))", 0.0001, "rotate(0deg)");
 testTransformValuesCloseTo("rotate(calc(NaN * 1deg))", 0.0001, "rotate(0deg)");
 
-testTransformValuesCloseTo("rotate(calc(infinity * 1turn))", 0.0001, "rotate(0turn)");
-testTransformValuesCloseTo("rotate(calc(-infinity * 1turn))", 0.0001, "rotate(0turn)");
-testTransformValuesCloseTo("rotate(calc(NaN * 1turn))", 0.0001, "rotate(0turn)");
+testTransformValuesCloseTo("rotate(calc(infinity * 1turn))", 0.0001, "rotate(0deg)");
+testTransformValuesCloseTo("rotate(calc(-infinity * 1turn))", 0.0001, "rotate(0deg)");
+testTransformValuesCloseTo("rotate(calc(NaN * 1turn))", 0.0001, "rotate(0deg)");
 
-testTransformValuesCloseTo("rotate(calc(infinity * 1rad))", 0.0001, "rotate(0rad)");
-testTransformValuesCloseTo("rotate(calc(-infinity * 1rad))", 0.0001, "rotate(0rad)");
-testTransformValuesCloseTo("rotate(calc(NaN * 1rad))", 0.0001, "rotate(0rad)");
+testTransformValuesCloseTo("rotate(calc(infinity * 1rad))", 0.0001, "rotate(0deg)");
+testTransformValuesCloseTo("rotate(calc(-infinity * 1rad))", 0.0001, "rotate(0deg)");
+testTransformValuesCloseTo("rotate(calc(NaN * 1rad))", 0.0001, "rotate(0deg)");
 
-testTransformValuesCloseTo("rotate(calc(infinity * 1grad))", 0.0001, "rotate(0grad)");
-testTransformValuesCloseTo("rotate(calc(-infinity * 1grad))", 0.0001, "rotate(0grad)");
-testTransformValuesCloseTo("rotate(calc(NaN * 1grad))", 0.0001, "rotate(0grad)");
+testTransformValuesCloseTo("rotate(calc(infinity * 1grad))", 0.0001, "rotate(0deg)");
+testTransformValuesCloseTo("rotate(calc(-infinity * 1grad))", 0.0001, "rotate(0deg)");
+testTransformValuesCloseTo("rotate(calc(NaN * 1grad))", 0.0001, "rotate(0deg)");
 
 </script>
 </body>

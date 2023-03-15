@@ -1,10 +1,5 @@
 # META: timeout=long
-from base64 import decodebytes
-
 import pytest
-
-from . import assert_pdf
-from ... import recursive_compare
 
 pytestmark = pytest.mark.asyncio
 
@@ -106,7 +101,7 @@ pytestmark = pytest.mark.asyncio
     ],
 )
 async def test_page_ranges_document(
-    bidi_session, inline, top_context, get_pdf_content, ranges, expected
+    bidi_session, inline, top_context, assert_pdf_content, ranges, expected
 ):
     url = inline(
         """
@@ -132,9 +127,5 @@ div {page-break-after: always}
     value = await bidi_session.browsing_context.print(
         context=top_context["context"], page_ranges=ranges
     )
-    pdf = decodebytes(value.encode())
 
-    assert_pdf(pdf)
-
-    pdf_content = await get_pdf_content(value)
-    recursive_compare({"type": "array", "value": expected}, pdf_content)
+    await assert_pdf_content(value, expected)

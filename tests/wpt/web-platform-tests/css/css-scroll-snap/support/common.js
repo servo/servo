@@ -95,3 +95,16 @@ function waitForScrollTo(eventTarget, getValue, targetValue) {
       eventTarget.addEventListener('scroll', scrollListener);
   });
 }
+
+function waitForNextFrame() {
+  return new Promise(resolve => {
+    const start = performance.now();
+    requestAnimationFrame(frameTime => {
+      if (frameTime < start) {
+        requestAnimationFrame(resolve);
+      } else {
+        resolve();
+      }
+    });
+  });
+}

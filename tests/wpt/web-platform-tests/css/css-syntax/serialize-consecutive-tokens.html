@@ -104,4 +104,18 @@ testTokenPairs("+", "123em");
 
 testTokenPairs("/", "*");
 
+// Test that interior comments are preserved, but exterior ones are not.
+function testComments(text, t1, expected) {
+    const b = document.body;
+    test(()=>{
+        b.style.setProperty("--t1", t1);
+        b.style.setProperty("--result", text);
+        const result = getComputedStyle(b).getPropertyValue("--result");
+        assert_equals(result, expected);
+    }, `Comments are handled correctly when computing ${text} using t1:${t1}.`);
+}
+testComments("a/* comment */b", "", "a/* comment */b");
+testComments("a/* comment */var(--t1)", "b", "a/**/b");
+testComments("var(--t1)b", "a/* comment */", "a/**/b");
+
 </script>

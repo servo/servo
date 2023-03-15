@@ -11,7 +11,7 @@
   width: 100px;
 
   /* Properties under test. */
-  --foo: bar;
+  --foo:bar;
   margin-left: 2px;
 }
 
@@ -59,7 +59,7 @@ const tmpl = (test, idx) => {
 
 const tests = [
   {property: '--bar', expected: '[CSSUnparsedValue=]'},
-  {property: '--foo', expected: '[CSSUnparsedValue= bar]'},
+  {property: '--foo', expected: '[CSSUnparsedValue=bar]'},
   {property: 'empty-cells', expected: '[CSSKeywordValue=show]'},
   {property: 'margin-left', expected: '[CSSUnitValue=2px]'},
 ];

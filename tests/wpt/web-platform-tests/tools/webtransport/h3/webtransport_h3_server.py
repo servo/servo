@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import ssl
+import sys
 import threading
 import traceback
 from urllib.parse import urlparse
@@ -502,8 +503,15 @@ class WebTransportH3Server:
 
         ticket_store = SessionTicketStore()
 
+        # On Windows, the default event loop is ProactorEventLoop but it
+        # doesn't seem to work when aioquic detects a connection loss.
+        # Use SelectorEventLoop to work around the problem.
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(
+                asyncio.WindowsSelectorEventLoopPolicy())
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
+
         self.loop.run_until_complete(
             serve(
                 self.host,
