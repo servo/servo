@@ -1,4 +1,7 @@
-import asyncio
+import base64
+
+from tests.support.image import cm_to_px, png_dimensions, ImageDifference
+from tests.support.pdf import assert_pdf
 from typing import Any, Mapping
 
 import pytest
@@ -143,23 +146,23 @@ def add_and_remove_iframe(bidi_session, inline):
 
 
 @pytest.fixture
-def load_pdf(bidi_session, test_page_with_pdf_js, top_context):
+def load_pdf_bidi(bidi_session, test_page_with_pdf_js, top_context):
     """Load a PDF document in the browser using pdf.js"""
-    async def load_pdf(encoded_pdf_data, context=top_context["context"]):
+    async def load_pdf_bidi(encoded_pdf_data, context=top_context["context"]):
         url = test_page_with_pdf_js(encoded_pdf_data)
 
         await bidi_session.browsing_context.navigate(
             context=context, url=url, wait="complete"
         )
 
-    return load_pdf
+    return load_pdf_bidi
 
 
 @pytest.fixture
-def get_pdf_content(bidi_session, top_context, load_pdf):
+def get_pdf_content(bidi_session, top_context, load_pdf_bidi):
     """Load a PDF document in the browser using pdf.js and extract content from the document"""
     async def get_pdf_content(encoded_pdf_data, context=top_context["context"]):
-        await load_pdf(encoded_pdf_data=encoded_pdf_data, context=context)
+        await load_pdf_bidi(encoded_pdf_data=encoded_pdf_data, context=context)
 
         result = await bidi_session.script.call_function(
             function_declaration="""() => { return window.getText()}""",
@@ -170,3 +173,157 @@ def get_pdf_content(bidi_session, top_context, load_pdf):
         return result
 
     return get_pdf_content
+
+
+@pytest.fixture
+def assert_pdf_content(new_tab, get_pdf_content):
+    """Assert PDF with provided content"""
+    async def assert_pdf_content(pdf, expected_content):
+        assert_pdf(pdf)
+
+        pdf_content = await get_pdf_content(pdf, new_tab["context"])
+
+        assert pdf_content == {
+            "type": "array",
+            "value": expected_content,
+        }
+
+    return assert_pdf_content
+
+
+@pytest.fixture
+def assert_pdf_dimensions(render_pdf_to_png_bidi):
+    """Assert PDF dimensions"""
+    async def assert_pdf_dimensions(pdf, expected_dimensions):
+        assert_pdf(pdf)
+
+        png = await render_pdf_to_png_bidi(pdf)
+        width, height = png_dimensions(png)
+
+        assert cm_to_px(expected_dimensions["height"]) == height
+        assert cm_to_px(expected_dimensions["width"]) == width
+
+    return assert_pdf_dimensions
+
+
+@pytest.fixture
+def assert_pdf_image(
+    get_reference_png, render_pdf_to_png_bidi, compare_png_bidi
+):
+    """Assert PDF with image generated for provided html"""
+    async def assert_pdf_image(pdf, reference_html, expected):
+        assert_pdf(pdf)
+
+        reference_png = await get_reference_png(reference_html)
+        page_without_background_png = await render_pdf_to_png_bidi(pdf)
+        comparison_without_background = await compare_png_bidi(
+            reference_png,
+            page_without_background_png,
+        )
+
+        assert comparison_without_background.equal() == expected
+
+    return assert_pdf_image
+
+
+@pytest.fixture
+def compare_png_bidi(bidi_session, url):
+    async def compare_png_bidi(img1, img2):
+        """Calculate difference statistics between two PNG images.
+
+        :param img1: Bytes of first PNG image
+        :param img2: Bytes of second PNG image
+        :returns: ImageDifference representing the total number of different pixels,
+                and maximum per-channel difference between the images.
+        """
+        if img1 == img2:
+            return ImageDifference(0, 0)
+
+        width, height = png_dimensions(img1)
+        assert (width, height) == png_dimensions(img2)
+
+        context = await bidi_session.browsing_context.create(type_hint="tab")
+        await bidi_session.browsing_context.navigate(
+            context=context["context"],
+            url=url("/webdriver/tests/support/html/render.html"),
+            wait="complete",
+        )
+        result = await bidi_session.script.call_function(
+            function_declaration="""(img1, img2, width, height) => {
+            return compare(img1, img2, width, height)
+            }""",
+            target=ContextTarget(context["context"]),
+            arguments=[
+                {"type": "string", "value": base64.encodebytes(img1).decode()},
+                {"type": "string", "value": base64.encodebytes(img2).decode()},
+                {"type": "number", "value": width},
+                {"type": "number", "value": height},
+            ],
+            await_promise=True,
+        )
+        await bidi_session.browsing_context.close(context=context["context"])
+        assert result["type"] == "object"
+        assert set(item[0] for item in result["value"]) == {"totalPixels", "maxDifference"}
+        for item in result["value"]:
+            assert len(item) == 2
+            assert item[1]["type"] == "number"
+            if item[0] == "totalPixels":
+                total_pixels = item[1]["value"]
+            elif item[0] == "maxDifference":
+                max_difference = item[1]["value"]
+            else:
+                raise Exception(f"Unexpected object key ${item[0]}")
+        return ImageDifference(total_pixels, max_difference)
+    return compare_png_bidi
+
+
+@pytest.fixture
+def get_reference_png(
+    bidi_session, inline, render_pdf_to_png_bidi, top_context
+):
+    """Print to PDF provided content and render it to png"""
+    async def get_reference_png(reference_content, context=top_context["context"]):
+        reference_page = inline(reference_content)
+        await bidi_session.browsing_context.navigate(
+            context=context, url=reference_page, wait="complete"
+        )
+
+        reference_pdf = await bidi_session.browsing_context.print(
+            context=context,
+            background=True,
+        )
+
+        return await render_pdf_to_png_bidi(reference_pdf)
+
+    return get_reference_png
+
+
+@pytest.fixture
+def render_pdf_to_png_bidi(bidi_session, new_tab, url):
+    """Render a PDF document to png"""
+
+    async def render_pdf_to_png_bidi(
+        encoded_pdf_data, page=1
+    ):
+        await bidi_session.browsing_context.navigate(
+            context=new_tab["context"],
+            url=url(path="/print_pdf_runner.html"),
+            wait="complete",
+        )
+
+        result = await bidi_session.script.call_function(
+            function_declaration=f"""() => {{ return window.render("{encoded_pdf_data}"); }}""",
+            target=ContextTarget(new_tab["context"]),
+            await_promise=True,
+        )
+        value = result["value"]
+        index = page - 1
+
+        assert 0 <= index < len(value)
+
+        image_string = value[index]["value"]
+        image_string_without_data_type = image_string[image_string.find(",") + 1 :]
+
+        return base64.b64decode(image_string_without_data_type)
+
+    return render_pdf_to_png_bidi

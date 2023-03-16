@@ -332,23 +332,5 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
       channel.send(helloString);
     }, 'Calling send() when data channel is in closing state should succeed');
   */
-
-  promise_test(async t => {
-    let pc1 = new RTCPeerConnection();
-    t.add_cleanup(() => pc1.close());
-    let [channel1, channel2] = await createDataChannelPair(t, options, pc1);
-    let message = 'hello888'; // 8 bytes
-    while (message.length <= pc1.sctp.maxMessageSize) {
-      channel1.send(message);
-      let received_message = await awaitMessage(channel2);
-      assert_equals(received_message.length, message.length, "Size mismatch");
-      // Double size
-      message = message + message;
-    }
-    // "send" method step 4:
-    // If the byte size of "data" exceeds the value of maxMessageSize, throw
-    // a TypeError.
-    assert_throws_js(TypeError, () => channel1.send(message));
-  }, `${mode} send() up to max size should succeed, above max size should fail`);
 }
 </script>

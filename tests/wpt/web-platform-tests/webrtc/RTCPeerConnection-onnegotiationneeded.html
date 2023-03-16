@@ -386,6 +386,172 @@
   }, 'Calling setStreams should cause negotiationneeded to fire');
 
   promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const stream = new MediaStream();
+    transceiver.sender.setStreams(stream);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    const stream2 = new MediaStream();
+    transceiver.sender.setStreams(stream2);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+  }, 'Calling setStreams with a different stream as before should cause negotiationneeded to fire');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const stream = new MediaStream();
+    transceiver.sender.setStreams(stream);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    const stream2 = new MediaStream();
+    transceiver.sender.setStreams(stream, stream2);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+  }, 'Calling setStreams with an additional stream should cause negotiationneeded to fire');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const stream1 = new MediaStream();
+    const stream2 = new MediaStream();
+    transceiver.sender.setStreams(stream1, stream2);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    transceiver.sender.setStreams(stream2);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+  }, 'Calling setStreams with a stream removed should cause negotiationneeded to fire');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const stream1 = new MediaStream();
+    const stream2 = new MediaStream();
+    transceiver.sender.setStreams(stream1, stream2);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    transceiver.sender.setStreams();
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+  }, 'Calling setStreams with all streams removed should cause negotiationneeded to fire');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const stream = new MediaStream();
+    transceiver.sender.setStreams(stream);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    transceiver.sender.setStreams(stream);
+    const event = await Promise.race([
+      new Promise(r => pc.onnegotiationneeded = r),
+      new Promise(r => t.step_timeout(r, 10))
+    ]);
+    assert_equals(event, undefined, "No negotiationneeded event");
+  }, 'Calling setStreams with the same stream as before should not cause negotiationneeded to fire');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const stream = new MediaStream();
+    transceiver.sender.setStreams(stream);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    transceiver.sender.setStreams(stream, stream);
+    const event = await Promise.race([
+      new Promise(r => pc.onnegotiationneeded = r),
+      new Promise(r => t.step_timeout(r, 10))
+    ]);
+    assert_equals(event, undefined, "No negotiationneeded event");
+  }, 'Calling setStreams with duplicates of the same stream as before should not cause negotiationneeded to fire');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const stream1 = new MediaStream();
+    const stream2 = new MediaStream();
+    transceiver.sender.setStreams(stream1, stream2);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    transceiver.sender.setStreams(stream2, stream1);
+    const event = await Promise.race([
+      new Promise(r => pc.onnegotiationneeded = r),
+      new Promise(r => t.step_timeout(r, 10))
+    ]);
+    assert_equals(event, undefined, "No negotiationneeded event");
+  }, 'Calling setStreams with the same streams as before in a different order should not cause negotiationneeded to fire');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', {direction:'sendrecv'});
+    const stream1 = new MediaStream();
+    const stream2 = new MediaStream();
+    transceiver.sender.setStreams(stream1, stream2);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    transceiver.sender.setStreams(stream1, stream2, stream1);
+    const event = await Promise.race([
+      new Promise(r => pc.onnegotiationneeded = r),
+      new Promise(r => t.step_timeout(r, 10))
+    ]);
+    assert_equals(event, undefined, "No negotiationneeded event");
+  }, 'Calling setStreams with duplicates of the same streams as before should not cause negotiationneeded to fire');
+
+  promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();

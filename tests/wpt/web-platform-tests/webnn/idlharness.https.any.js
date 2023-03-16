@@ -34,24 +34,22 @@ idl_test(
         continue;
       }
 
-      for (const deviceType of DeviceTypeArray) {
-        if (isSync) {
-          self.context = navigator.ml.createContextSync({deviceType});
-        } else {
-          self.context = await navigator.ml.createContext({deviceType});
-        }
+      if (isSync) {
+        self.context = navigator.ml.createContextSync();
+      } else {
+        self.context = await navigator.ml.createContext();
+      }
 
-        self.builder = new MLGraphBuilder(self.context);
-        self.input = builder.input('input', {type: 'float32', dimensions: [1, 1, 5, 5]});
-        self.filter = builder.constant({type: 'float32', dimensions: [1, 1, 3, 3]}, new Float32Array(9).fill(1));
-        self.relu = builder.relu();
-        self.output = builder.conv2d(input, filter, {activation: relu, inputLayout: "nchw"});
+      self.builder = new MLGraphBuilder(self.context);
+      self.input = builder.input('input', {type: 'float32', dimensions: [1, 1, 5, 5]});
+      self.filter = builder.constant({type: 'float32', dimensions: [1, 1, 3, 3]}, new Float32Array(9).fill(1));
+      self.relu = builder.relu();
+      self.output = builder.conv2d(input, filter, {activation: relu, inputLayout: "nchw"});
 
-        if (isSync) {
-          self.graph = builder.buildSync({output});
-        } else {
-          self.graph = await builder.build({output});
-        }
+      if (isSync) {
+        self.graph = builder.buildSync({output});
+      } else {
+        self.graph = await builder.build({output});
       }
     }
   }

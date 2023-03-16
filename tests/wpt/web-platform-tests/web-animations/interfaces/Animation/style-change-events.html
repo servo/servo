@@ -164,6 +164,11 @@ const tests = {
   }),
   playState: UsePropertyTest(animation => animation.playState),
   pending: UsePropertyTest(animation => animation.pending),
+  // Strictly speaking, rangeStart and rangeEnd can change whether the effect
+  // is active, but only if the animation has a view timeline. Otherwise, it has
+  // no effect.
+  rangeStart: UsePropertyTest(animation => animation.rangeStart),
+  rangeEnd:  UsePropertyTest(animation => animation.rangeEnd),
   replaceState: UsePropertyTest(animation => animation.replaceState),
   ready: UsePropertyTest(animation => animation.ready),
   finished: UsePropertyTest(animation => {

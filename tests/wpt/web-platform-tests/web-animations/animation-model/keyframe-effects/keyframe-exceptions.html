@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://www.w3.org/TR/web-animations-1/#processing-a-keyframes-argument">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<title>Keyframes with invalid offsets</title>
+</head>
+<script>
+  test(() => {
+    assert_throws_js(TypeError,
+      function() {
+        document.documentElement.animate([
+          {offset: 0.6},
+          {offset: 0.4}
+        ]);
+      });
+  }, 'Offsets must be loosely sorted');
+
+  test(() => {
+      assert_throws_js(TypeError,
+      function() {
+        document.documentElement.animate([
+          {offset: 'whatever'}
+        ]);
+      });
+  }, 'Invalid offset');
+
+  test(() => {
+    assert_throws_js(TypeError,
+      function() {
+        document.documentElement.animate([
+          {offset: -1}
+        ]);
+      });
+  }, 'Offsets must be null or in the range [0,1]');
+</script>

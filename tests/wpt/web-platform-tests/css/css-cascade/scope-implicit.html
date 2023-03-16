@@ -89,3 +89,23 @@ test((t) => {
   assert_equals(getComputedStyle(outer).zIndex, 'auto');
 }, '@scope works with two identical stylesheets');
 </script>
+
+
+<template id=test_forgiving>
+  <div>
+    <style>
+      @scope ($invalid) {
+        #a { z-index:1; }
+      }
+    </style>
+    <div id=a></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_forgiving.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(a).zIndex, 'auto');
+}, '@scope with effectively empty :is() must not match anything');
+</script>

@@ -16,7 +16,7 @@ async function connectInWorker() {
     return new Promise(resolve => worker.addEventListener(
         'message', e => resolve(e.data)));
   }
-  worker.postMessage({ type: 'Ready' });
+  worker.postMessage({ type: 'ConnectEvent' });
 
   assert_equals('Ready', (await nextWorkerMessage()).type);
   let fakeDevice = navigator.usb.test.addFakeDevice(fakeDeviceInit);

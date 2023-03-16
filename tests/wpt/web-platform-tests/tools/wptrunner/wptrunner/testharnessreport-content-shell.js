@@ -1,6 +1,4 @@
 var props = {output:%(output)d, debug: %(debug)s};
-var start_loc = document.createElement('a');
-start_loc.href = location.href;
 setup(props);
 
 testRunner.dumpAsText();
@@ -9,7 +7,7 @@ testRunner.setPopupBlockingEnabled(false);
 testRunner.setDumpJavaScriptDialogs(false);
 
 add_completion_callback(function (tests, harness_status) {
-    var id = decodeURIComponent(start_loc.pathname) + decodeURIComponent(start_loc.search) + decodeURIComponent(start_loc.hash);
+    var id = decodeURIComponent(location.pathname) + decodeURIComponent(location.search) + decodeURIComponent(location.hash);
     var result_string = JSON.stringify([
         id,
         harness_status.status,

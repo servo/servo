@@ -628,7 +628,7 @@ class MarionettePrintProtocolPart(PrintProtocolPart):
         self.runner_handle = None
 
     def load_runner(self):
-        url = urljoin(self.parent.executor.server_url("http"), "/print_reftest_runner.html")
+        url = urljoin(self.parent.executor.server_url("http"), "/print_pdf_runner.html")
         self.logger.debug("Loading %s" % url)
         try:
             self.marionette.navigate(url)
@@ -655,7 +655,7 @@ class MarionettePrintProtocolPart(PrintProtocolPart):
                 "bottom": margin,
             },
             "shrinkToFit": False,
-            "printBackground": True,
+            "background": True,
         }
         return self.marionette._send_message("WebDriver:Print", body, key="value")
 

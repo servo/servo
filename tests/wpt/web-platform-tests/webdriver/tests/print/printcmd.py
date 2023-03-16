@@ -4,17 +4,9 @@ from base64 import decodebytes
 import pytest
 
 from tests.support.asserts import assert_error, assert_success
+from tests.support.pdf import assert_pdf
 
-
-def do_print(session, options):
-    return session.transport.send(
-        "POST", "session/{session_id}/print".format(**vars(session)),
-        options)
-
-
-def assert_pdf(data):
-    assert data.startswith(b"%PDF-"), "Decoded data starts with the PDF signature"
-    assert data.endswith(b"%%EOF\n"), "Decoded data ends with the EOF flag"
+from . import do_print
 
 
 def test_no_top_browsing_context(session, closed_window):
@@ -25,8 +17,7 @@ def test_no_top_browsing_context(session, closed_window):
 def test_no_browsing_context(session, closed_frame):
     response = do_print(session, {})
     value = assert_success(response)
-    pdf = decodebytes(value.encode())
-    assert_pdf(pdf)
+    assert_pdf(value)
 
 
 def test_html_document(session, inline):
@@ -38,9 +29,8 @@ def test_html_document(session, inline):
         "shrinkToFit": False
     })
     value = assert_success(response)
-    pdf = decodebytes(value.encode())
     # TODO: Test that the output is reasonable
-    assert_pdf(pdf)
+    assert_pdf(value)
 
 
 def test_large_html_document(session, inline):
@@ -76,7 +66,7 @@ def test_large_html_document(session, inline):
     # than 500kb would cause an error. If the resulting PDF is smaller than that
     # it could pass incorrectly.
     assert len(pdf) > 500000
-    assert_pdf(pdf)
+    assert_pdf(value)
 
 
 @pytest.mark.parametrize("ranges,expected", [
@@ -90,7 +80,7 @@ def test_large_html_document(session, inline):
     (["-5", "2-"], ["Page 1", "Page 2", "Page 3", "Page 4", "Page 5", "Page 6", "Page 7", "Page 8", "Page 9", "Page 10"]),
     ([], ["Page 1", "Page 2", "Page 3", "Page 4", "Page 5", "Page 6", "Page 7", "Page 8", "Page 9", "Page 10"]),
 ])
-def test_page_ranges_document(session, inline, load_pdf_document, ranges, expected):
+def test_page_ranges_document(session, inline, load_pdf_http, ranges, expected):
     session.url = inline("""
 <style>
 div {page-break-after: always}
@@ -111,11 +101,10 @@ div {page-break-after: always}
         "pageRanges": ranges
     })
     value = assert_success(response)
-    pdf = decodebytes(value.encode())
     # TODO: Test that the output is reasonable
-    assert_pdf(pdf)
+    assert_pdf(value)
 
-    load_pdf_document(value)
+    load_pdf_http(value)
     pages = session.execute_async_script("""let callback = arguments[arguments.length - 1];
 window.getText().then(pages => callback(pages));""")
     assert pages == expected

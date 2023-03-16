@@ -122,11 +122,13 @@
   promise_test(async t => {
     const pc = createPeerConnectionWithCleanup(t);
     const pc2 = createPeerConnectionWithCleanup(t);
-    const [track, mediaStream] = await getTrackFromUserMedia('audio');
-    pc.addTrack(track, mediaStream);
+    const [sendtrack, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(sendtrack, mediaStream);
     exchangeIceCandidates(pc, pc2);
-    await exchangeOfferAnswer(pc, pc2);
-    await listenToConnected(pc);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
     const statsReport = await pc.getStats();
     getRequiredStats(statsReport, 'peer-connection');
     getRequiredStats(statsReport, 'outbound-rtp');
@@ -135,11 +137,13 @@
   promise_test(async t => {
     const pc = createPeerConnectionWithCleanup(t);
     const pc2 = createPeerConnectionWithCleanup(t);
-    const [track, mediaStream] = await getTrackFromUserMedia('audio');
-    pc.addTrack(track);
+    const [sendtrack, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(sendtrack);
     exchangeIceCandidates(pc, pc2);
-    await exchangeOfferAnswer(pc, pc2);
-    await listenToConnected(pc);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
     const statsReport = await pc.getStats();
     getRequiredStats(statsReport, 'peer-connection');
     getRequiredStats(statsReport, 'outbound-rtp');
@@ -148,11 +152,13 @@
   promise_test(async t => {
     const pc = createPeerConnectionWithCleanup(t);
     const pc2 = createPeerConnectionWithCleanup(t);
-    const [track, mediaStream] = await getTrackFromUserMedia('audio');
-    pc.addTrack(track, mediaStream);
+    const [sendtrack, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(sendtrack, mediaStream);
     exchangeIceCandidates(pc, pc2);
-    await exchangeOfferAnswer(pc, pc2);
-    await listenToConnected(pc);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
     const statsReport = await pc.getStats();
     assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
   }, 'getStats() audio outbound-rtp contains all mandatory stats');
@@ -160,11 +166,13 @@
   promise_test(async t => {
     const pc = createPeerConnectionWithCleanup(t);
     const pc2 = createPeerConnectionWithCleanup(t);
-    const [track, mediaStream] = await getTrackFromUserMedia('video');
-    pc.addTrack(track, mediaStream);
+    const [sendtrack, mediaStream] = await getTrackFromUserMedia('video');
+    pc.addTrack(sendtrack, mediaStream);
     exchangeIceCandidates(pc, pc2);
-    await exchangeOfferAnswer(pc, pc2);
-    await listenToConnected(pc);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
     const statsReport = await pc.getStats();
     assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
   }, 'getStats() video outbound-rtp contains all mandatory stats');
@@ -177,8 +185,10 @@
     const [videoTrack, videoStream] = await getTrackFromUserMedia('video');
     pc.addTrack(videoTrack, videoStream);
     exchangeIceCandidates(pc, pc2);
-    await exchangeOfferAnswer(pc, pc2);
-    await listenToConnected(pc);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
     const statsReport = await pc.getStats();
     validateStatsReport(statsReport);
   }, 'getStats() audio and video validate all mandatory stats');
@@ -195,12 +205,14 @@
     const pc = createPeerConnectionWithCleanup(t);
     const pc2 = createPeerConnectionWithCleanup(t);
 
-    let [track, mediaStream] = await getTrackFromUserMedia('audio');
-    pc.addTrack(track, mediaStream);
+    let [sendtrack, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(sendtrack, mediaStream);
     exchangeIceCandidates(pc, pc2);
-    await exchangeOfferAnswer(pc, pc2);
-    await listenToConnected(pc);
-    const stats = await pc.getStats(track);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
+    const stats = await pc.getStats(sendtrack);
     getRequiredStats(stats, 'outbound-rtp');
   }, `getStats() on track associated with RTCRtpSender should return stats report containing outbound-rtp stats`);
 

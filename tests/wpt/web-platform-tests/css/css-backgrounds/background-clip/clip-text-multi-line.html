@@ -1,41 +1,40 @@
 <!DOCTYPE html>
-<html>
-<head>
-<title>CSS Test: background-clip: text paints multi-line text in the wrong place</title>
-<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
-<link rel="help" href="https://drafts.fxtf.org/fill-stroke-3/#propdef-fill-color">
-<link rel="author" href="mailto:mmaxfield@apple.com" title="Myles C. Maxfield">
-<link rel="match" href="clip-text-multi-line-ref.html">
-<link rel="stylesheet" href="/fonts/ahem.css">
-<style>
-#container {
-    position: relative;
-    padding: 3px;
-}
 
-span {
-    font: 48px "Ahem";
-    background-clip: text;
-    fill-color: rgba(0, 0, 0, 0);
-    background-image: linear-gradient(0deg, green 0%, green 100%);
-}
+  <meta charset="UTF-8">
 
-div.cover {
-    position: absolute;
-    background: green;
-}
-</style>
-</head>
-<body>
-<p>This test makes sure that multi-line elements with <code>background-clip: text</code> are placed correctly. The test passes if the top rectangle is (roughly) half as wide as the bottom rectangle.</p>
-<div id="container">
-<span>AAA<br>AAAAAA</span>
-<div class="cover" style="left: 0px; top: 0px; width: calc(48px * 3 + 3px); height: 3px;"></div>
-<div class="cover" style="left: 0px; top: 48px; width: calc(48px * 6 + 3px); height: 6px;"></div>
-<div class="cover" style="left: 0px; top: calc(48px * 2); width: calc(48px * 6 + 3px); height: 3px;"></div>
-<div class="cover" style="left: 0px; top: 0px; width: 3px; height: calc(48px * 2);"></div>
-<div class="cover" style="left: calc(48px * 3); top: 0px; width: 3px; height: 48px;"></div>
-<div class="cover" style="left: calc(48px * 6); top: 48px; width: 3px; height: 48px;"></div>
-</div>
-</body>
-</html>
+  <title>CSS Backgrounds Test: 'background-clip: text' and painting of multi-line text</title>
+
+  <!--
+
+  Inspired by
+
+  http://wpt.live/css/css-backgrounds/background-clip/clip-text-multi-line.html
+
+  For more info, see
+
+  https://github.com/web-platform-tests/wpt/pull/30812#issuecomment-1314514987
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="author" href="mailto:mmaxfield@apple.com" title="Myles C. Maxfield">
+  <link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+  <link rel="match" href="clip-text-multi-line-ref.html">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+
+  <style>
+  div
+    {
+      background-clip: text;
+      background-color: red;
+      background-image: linear-gradient(green, green);
+      color: transparent;
+      font-family: Ahem;
+      font-size: 30px;
+      line-height: 1.5;
+    }
+  </style>
+
+  <p>Test passes if there are 2 green stripes and if the top stripe is half the width of the bottom stripe.
+
+  <div>12345<br>1234567890</div>

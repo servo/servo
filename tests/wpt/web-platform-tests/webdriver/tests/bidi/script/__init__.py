@@ -7,6 +7,18 @@ def assert_handle(obj: Mapping[str, Any], should_contain_handle: bool) -> None:
     if should_contain_handle:
         assert "handle" in obj, f"Result should contain `handle`. Actual: {obj}"
         assert isinstance(obj["handle"], str), f"`handle` should be a string, but was {type(obj['handle'])}"
+
+        # Recursively check that handle is not found in any of the nested values.
+        if "value" in obj:
+            value = obj["value"]
+            if type(value) is list:
+                for v in value:
+                    assert_handle(v, False)
+
+            if type(value) is dict:
+                for v in value.values():
+                    assert_handle(v, False)
+
     else:
         assert "handle" not in obj, f"Result should not contain `handle`. Actual: {obj}"
 
