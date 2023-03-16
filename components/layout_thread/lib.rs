@@ -1146,7 +1146,8 @@ impl LayoutThread {
                 debug!("Layout done!");
 
                 // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let (builder, is_contentful) = display_list.convert_to_webrender(self.id);
+                let (builder, compositor_info, is_contentful) =
+                    display_list.convert_to_webrender(self.id);
 
                 let viewport_size = Size2D::new(
                     self.viewport_size.width.to_f32_px(),
@@ -1165,8 +1166,12 @@ impl LayoutThread {
                 self.paint_time_metrics
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                self.webrender_api
-                    .send_display_list(epoch, viewport_size, builder.finalize());
+                self.webrender_api.send_display_list(
+                    epoch,
+                    viewport_size,
+                    compositor_info,
+                    builder.finalize(),
+                );
             },
         );
     }
@@ -1594,11 +1599,8 @@ impl LayoutThread {
                         flags,
                     );
 
-                    rw_data.nodes_from_point_response = results
-                        .items
-                        .iter()
-                        .map(|item| UntrustedNodeAddress(item.tag.0 as *const c_void))
-                        .collect()
+                    rw_data.nodes_from_point_response =
+                        results.iter().map(|result| result.node).collect()
                 },
                 &QueryMsg::ElementInnerTextQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };

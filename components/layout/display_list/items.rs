@@ -12,6 +12,7 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
+use embedder_traits::Cursor;
 use euclid::{SideOffsets2D, Vector2D};
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{self, StackingContextId};
@@ -465,7 +466,7 @@ impl BaseDisplayItem {
         BaseDisplayItem {
             metadata: DisplayItemMetadata {
                 node: OpaqueNode(0),
-                pointing: None,
+                cursor: None,
             },
             // Create a rectangle of maximal size.
             clip_rect: LayoutRect::max_rect(),
@@ -542,7 +543,7 @@ pub struct DisplayItemMetadata {
     pub node: OpaqueNode,
     /// The value of the `cursor` property when the mouse hovers over this display item. If `None`,
     /// this display item is ineligible for pointer events (`pointer-events: none`).
-    pub pointing: Option<u16>,
+    pub cursor: Option<Cursor>,
 }
 
 #[derive(Clone, Eq, PartialEq, Serialize)]

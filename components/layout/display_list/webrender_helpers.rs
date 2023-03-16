@@ -10,6 +10,7 @@
 use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNodeType, ClipType};
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
+use script_traits::compositor::CompositorDisplayListInfo;
 use webrender_api::units::{LayoutPoint, LayoutVector2D};
 use webrender_api::{
     self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder,
@@ -22,6 +23,7 @@ struct ClipScrollState {
     spatial_ids: Vec<Option<SpatialId>>,
     active_clip_id: ClipId,
     active_spatial_id: SpatialId,
+    compositor_info: CompositorDisplayListInfo,
 }
 
 impl ClipScrollState {
@@ -34,6 +36,7 @@ impl ClipScrollState {
             spatial_ids: vec![None; size],
             active_clip_id: root_clip_id,
             active_spatial_id: root_scroll_node_id,
+            compositor_info: CompositorDisplayListInfo::default(),
         };
 
         // We need to register the WebRender root reference frame and root scroll node ids
@@ -82,7 +85,7 @@ impl DisplayList {
     pub fn convert_to_webrender(
         &mut self,
         pipeline_id: PipelineId,
-    ) -> (DisplayListBuilder, IsContentful) {
+    ) -> (DisplayListBuilder, CompositorDisplayListInfo, IsContentful) {
         let webrender_pipeline = pipeline_id.to_webrender();
         let mut state = ClipScrollState::new(self.clip_scroll_nodes.len(), webrender_pipeline);
 
@@ -99,7 +102,7 @@ impl DisplayList {
                 .0;
         }
 
-        (builder, is_contentful)
+        (builder, state.compositor_info, is_contentful)
     }
 }
 
@@ -132,9 +135,14 @@ impl DisplayItem {
             state.active_clip_id = cur_clip_id;
         }
 
-        let build_common_item_properties = |base: &BaseDisplayItem| {
-            let tag = match base.metadata.pointing {
-                Some(cursor) => Some((base.metadata.node.0 as u64, cursor)),
+        let mut build_common_item_properties = |base: &BaseDisplayItem| {
+            let tag = match base.metadata.cursor {
+                Some(cursor) => {
+                    let hit_test_index = state
+                        .compositor_info
+                        .add_hit_test_info(base.metadata.node.0 as u64, Some(cursor));
+                    Some((hit_test_index as u64, 0u16))
+                },
                 None => None,
             };
             CommonItemProperties {

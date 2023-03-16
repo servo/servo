@@ -1345,8 +1345,12 @@ impl LayoutThread {
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         ));
-        self.webrender_api
-            .send_display_list(epoch, viewport_size, display_list.wr.finalize());
+        self.webrender_api.send_display_list(
+            epoch,
+            viewport_size,
+            display_list.compositor_info,
+            display_list.wr.finalize(),
+        );
 
         if self.trace_layout {
             layout_debug::end_trace(self.generation.get());
