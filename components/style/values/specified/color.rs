@@ -14,7 +14,7 @@ use crate::values::generics::color::{GenericCaretColor, GenericColorMix, Generic
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Percentage;
 use crate::values::CustomIdent;
-use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
+use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 use itoa;
 use std::fmt::{self, Write};
@@ -409,9 +409,35 @@ impl SystemColor {
 }
 
 #[inline]
-fn new_absolute(color_space: ColorSpace, c1: f32, c2: f32, c3: f32, alpha: f32) -> Color {
+fn new_absolute(
+    color_space: ColorSpace,
+    c1: Option<f32>,
+    c2: Option<f32>,
+    c3: Option<f32>,
+    alpha: Option<f32>,
+) -> Color {
+    let mut flags = SerializationFlags::empty();
+
+    macro_rules! c {
+        ($v:expr,$flag:tt) => {{
+            if let Some(value) = $v {
+                value
+            } else {
+                flags |= SerializationFlags::$flag;
+                0.0
+            }
+        }};
+    }
+
+    let c1 = c!(c1, C1_IS_NONE);
+    let c2 = c!(c2, C2_IS_NONE);
+    let c3 = c!(c3, C3_IS_NONE);
+    let alpha = c!(alpha, ALPHA_IS_NONE);
+
+    let mut color = AbsoluteColor::new(color_space, ColorComponents(c1, c2, c3), alpha);
+    color.flags |= flags;
     Color::Absolute(Box::new(Absolute {
-        color: AbsoluteColor::new(color_space, ColorComponents(c1, c2, c3), alpha),
+        color,
         authored: None,
     }))
 }
@@ -421,38 +447,76 @@ impl cssparser::FromParsedColor for Color {
         Color::CurrentColor
     }
 
-    fn from_rgba(red: u8, green: u8, blue: u8, alpha: f32) -> Self {
+    fn from_rgba(red: Option<u8>, green: Option<u8>, blue: Option<u8>, alpha: Option<f32>) -> Self {
         new_absolute(
             ColorSpace::Srgb,
-            red as f32 / 255.0,
-            green as f32 / 255.0,
-            blue as f32 / 255.0,
+            red.map(|r| r as f32 / 255.0),
+            green.map(|g| g as f32 / 255.0),
+            blue.map(|b| b as f32 / 255.0),
             alpha,
         )
     }
 
-    fn from_lab(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
+    fn from_hsl(
+        hue: Option<f32>,
+        saturation: Option<f32>,
+        lightness: Option<f32>,
+        alpha: Option<f32>,
+    ) -> Self {
+        new_absolute(ColorSpace::Hsl, hue, saturation, lightness, alpha)
+    }
+
+    fn from_hwb(
+        hue: Option<f32>,
+        whiteness: Option<f32>,
+        blackness: Option<f32>,
+        alpha: Option<f32>,
+    ) -> Self {
+        new_absolute(ColorSpace::Hwb, hue, whiteness, blackness, alpha)
+    }
+
+    fn from_lab(
+        lightness: Option<f32>,
+        a: Option<f32>,
+        b: Option<f32>,
+        alpha: Option<f32>,
+    ) -> Self {
         new_absolute(ColorSpace::Lab, lightness, a, b, alpha)
     }
 
-    fn from_lch(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
+    fn from_lch(
+        lightness: Option<f32>,
+        chroma: Option<f32>,
+        hue: Option<f32>,
+        alpha: Option<f32>,
+    ) -> Self {
         new_absolute(ColorSpace::Lch, lightness, chroma, hue, alpha)
     }
 
-    fn from_oklab(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
+    fn from_oklab(
+        lightness: Option<f32>,
+        a: Option<f32>,
+        b: Option<f32>,
+        alpha: Option<f32>,
+    ) -> Self {
         new_absolute(ColorSpace::Oklab, lightness, a, b, alpha)
     }
 
-    fn from_oklch(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
+    fn from_oklch(
+        lightness: Option<f32>,
+        chroma: Option<f32>,
+        hue: Option<f32>,
+        alpha: Option<f32>,
+    ) -> Self {
         new_absolute(ColorSpace::Oklch, lightness, chroma, hue, alpha)
     }
 
     fn from_color_function(
         color_space: cssparser::PredefinedColorSpace,
-        c1: f32,
-        c2: f32,
-        c3: f32,
-        alpha: f32,
+        c1: Option<f32>,
+        c2: Option<f32>,
+        c3: Option<f32>,
+        alpha: Option<f32>,
     ) -> Self {
         let mut result = new_absolute(color_space.into(), c1, c2, c3, alpha);
         if let Color::Absolute(ref mut absolute) = result {
@@ -569,14 +633,17 @@ impl Color {
             Ok(mut color) => {
                 if let Color::Absolute(ref mut absolute) = color {
                     let enabled = {
-                        let is_srgb = matches!(absolute.color.color_space, ColorSpace::Srgb);
+                        let is_legacy_color = matches!(
+                            absolute.color.color_space,
+                            ColorSpace::Srgb | ColorSpace::Hsl
+                        );
                         let is_color_function = absolute
                             .color
                             .flags
                             .contains(SerializationFlags::AS_COLOR_FUNCTION);
                         let pref_enabled = allow_more_color_4();
 
-                        (is_srgb && !is_color_function) || pref_enabled
+                        (is_legacy_color && !is_color_function) || pref_enabled
                     };
                     if !enabled {
                         return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -731,23 +798,14 @@ impl Color {
             if !allow_quirks.allowed(context.quirks_mode) {
                 return Err(e);
             }
-            Color::parse_quirky_color(input)
-                .map(|rgba| {
-                    Color::from_absolute_color(AbsoluteColor::srgb(
-                        rgba.red as f32 / 255.0,
-                        rgba.green as f32 / 255.0,
-                        rgba.blue as f32 / 255.0,
-                        rgba.alpha, // alpha value is already a float and in range [0..1]
-                    ))
-                })
-                .map_err(|_| e)
+            Color::parse_quirky_color(input).map_err(|_| e)
         })
     }
 
     /// Parse a <quirky-color> value.
     ///
     /// <https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk>
-    fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<RGBA, ParseError<'i>> {
+    fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let (value, unit) = match *input.next()? {
             Token::Number {
@@ -763,7 +821,7 @@ impl Color {
                 if ident.len() != 3 && ident.len() != 6 {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-                return RGBA::parse_hash(ident.as_bytes()).map_err(|()| {
+                return cssparser::parse_hash_color(ident.as_bytes()).map_err(|()| {
                     location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
                 });
             },
@@ -808,7 +866,7 @@ impl Color {
                 .unwrap();
         }
         debug_assert_eq!(written, 6);
-        RGBA::parse_hash(&serialization)
+        cssparser::parse_hash_color(&serialization)
             .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }

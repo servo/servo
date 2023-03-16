@@ -26,11 +26,6 @@ impl ColorComponents {
 /// A color space representation in the CSS specification.
 ///
 /// https://drafts.csswg.org/css-color-4/#typedef-color-space
-///
-/// NOTE: Right now HSL and HWB colors can not be constructed by the user. They
-///       are converted to RGB in the parser. The parser should return the
-///       HSL/HWB values as is to avoid unnescessary conversions to/from RGB.
-///       See: https://bugzilla.mozilla.org/show_bug.cgi?id=1817035
 #[derive(
     Clone,
     Copy,
@@ -138,7 +133,15 @@ bitflags! {
     pub struct SerializationFlags : u8 {
         /// If set, serializes sRGB colors into `color(srgb ...)` instead of
         /// `rgba(...)`.
-        const AS_COLOR_FUNCTION = 0x01;
+        const AS_COLOR_FUNCTION = 1 << 0;
+        /// Whether the 1st color component is `none`.
+        const C1_IS_NONE = 1 << 1;
+        /// Whether the 2nd color component is `none`.
+        const C2_IS_NONE = 1 << 2;
+        /// Whether the 3rd color component is `none`.
+        const C3_IS_NONE = 1 << 3;
+        /// Whether the alpha component is `none`.
+        const ALPHA_IS_NONE = 1 << 4;
     }
 }
 
@@ -259,20 +262,69 @@ impl AbsoluteColor {
             return self.clone();
         }
 
+        // We have simplified conversions that do not need to convert to XYZ
+        // first.  This improves performance, because it skips 2 matrix
+        // multiplications and reduces float rounding errors.
+        match (self.color_space, color_space) {
+            (Srgb, Hsl) => {
+                return Self::new(
+                    color_space,
+                    convert::rgb_to_hsl(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Srgb, Hwb) => {
+                return Self::new(
+                    color_space,
+                    convert::rgb_to_hwb(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Hsl, Srgb) => {
+                return Self::new(
+                    color_space,
+                    convert::hsl_to_rgb(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Hwb, Srgb) => {
+                return Self::new(
+                    color_space,
+                    convert::hwb_to_rgb(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Lab, Lch) | (Oklab, Oklch) => {
+                return Self::new(
+                    color_space,
+                    convert::lab_to_lch(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Lch, Lab) | (Oklch, Oklab) => {
+                return Self::new(
+                    color_space,
+                    convert::lch_to_lab(&self.components),
+                    self.alpha,
+                );
+            },
+
+            _ => {},
+        }
+
         let (xyz, white_point) = match self.color_space {
-            Hsl => {
-                let rgb = convert::hsl_to_rgb(&self.components);
-                convert::to_xyz::<convert::Srgb>(&rgb)
-            },
-            Hwb => {
-                let rgb = convert::hwb_to_rgb(&self.components);
-                convert::to_xyz::<convert::Srgb>(&rgb)
-            },
             Lab => convert::to_xyz::<convert::Lab>(&self.components),
             Lch => convert::to_xyz::<convert::Lch>(&self.components),
             Oklab => convert::to_xyz::<convert::Oklab>(&self.components),
             Oklch => convert::to_xyz::<convert::Oklch>(&self.components),
             Srgb => convert::to_xyz::<convert::Srgb>(&self.components),
+            Hsl => convert::to_xyz::<convert::Hsl>(&self.components),
+            Hwb => convert::to_xyz::<convert::Hwb>(&self.components),
             SrgbLinear => convert::to_xyz::<convert::SrgbLinear>(&self.components),
             DisplayP3 => convert::to_xyz::<convert::DisplayP3>(&self.components),
             A98Rgb => convert::to_xyz::<convert::A98Rgb>(&self.components),
@@ -283,19 +335,13 @@ impl AbsoluteColor {
         };
 
         let result = match color_space {
-            Hsl => {
-                let rgb = convert::from_xyz::<convert::Srgb>(&xyz, white_point);
-                convert::rgb_to_hsl(&rgb)
-            },
-            Hwb => {
-                let rgb = convert::from_xyz::<convert::Srgb>(&xyz, white_point);
-                convert::rgb_to_hwb(&rgb)
-            },
             Lab => convert::from_xyz::<convert::Lab>(&xyz, white_point),
             Lch => convert::from_xyz::<convert::Lch>(&xyz, white_point),
             Oklab => convert::from_xyz::<convert::Oklab>(&xyz, white_point),
             Oklch => convert::from_xyz::<convert::Oklch>(&xyz, white_point),
             Srgb => convert::from_xyz::<convert::Srgb>(&xyz, white_point),
+            Hsl => convert::from_xyz::<convert::Hsl>(&xyz, white_point),
+            Hwb => convert::from_xyz::<convert::Hwb>(&xyz, white_point),
             SrgbLinear => convert::from_xyz::<convert::SrgbLinear>(&xyz, white_point),
             DisplayP3 => convert::from_xyz::<convert::DisplayP3>(&xyz, white_point),
             A98Rgb => convert::from_xyz::<convert::A98Rgb>(&xyz, white_point),
@@ -329,6 +375,21 @@ impl ToCss for AbsoluteColor {
     where
         W: Write,
     {
+        macro_rules! value_or_none {
+            ($v:expr,$flag:tt) => {{
+                if self.flags.contains(SerializationFlags::$flag) {
+                    None
+                } else {
+                    Some($v)
+                }
+            }};
+        }
+
+        let maybe_c1 = value_or_none!(self.components.0, C1_IS_NONE);
+        let maybe_c2 = value_or_none!(self.components.1, C2_IS_NONE);
+        let maybe_c3 = value_or_none!(self.components.2, C3_IS_NONE);
+        let maybe_alpha = value_or_none!(self.alpha, ALPHA_IS_NONE);
+
         match self.color_space {
             ColorSpace::Hsl => {
                 let rgb = convert::hsl_to_rgb(&self.components);
@@ -342,30 +403,28 @@ impl ToCss for AbsoluteColor {
             },
 
             ColorSpace::Srgb if !self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION) => {
+                // Althought we are passing Option<_> in here, the to_css fn
+                // knows that the "none" keyword is not supported in the
+                // rgb/rgba legacy syntax.
                 cssparser::ToCss::to_css(
-                    &cssparser::RGBA::from_floats(
-                        self.components.0,
-                        self.components.1,
-                        self.components.2,
-                        self.alpha(),
-                    ),
+                    &cssparser::RGBA::from_floats(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                     dest,
                 )
             },
             ColorSpace::Lab => cssparser::ToCss::to_css(
-                unsafe { color_components_as!(self, cssparser::Lab) },
+                &cssparser::Lab::new(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                 dest,
             ),
             ColorSpace::Lch => cssparser::ToCss::to_css(
-                unsafe { color_components_as!(self, cssparser::Lch) },
+                &cssparser::Lch::new(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                 dest,
             ),
             ColorSpace::Oklab => cssparser::ToCss::to_css(
-                unsafe { color_components_as!(self, cssparser::Oklab) },
+                &cssparser::Oklab::new(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                 dest,
             ),
             ColorSpace::Oklch => cssparser::ToCss::to_css(
-                unsafe { color_components_as!(self, cssparser::Oklch) },
+                &cssparser::Oklch::new(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                 dest,
             ),
             _ => {
@@ -393,10 +452,10 @@ impl ToCss for AbsoluteColor {
 
                 let color_function = cssparser::ColorFunction {
                     color_space,
-                    c1: self.components.0,
-                    c2: self.components.1,
-                    c3: self.components.2,
-                    alpha: self.alpha,
+                    c1: maybe_c1,
+                    c2: maybe_c2,
+                    c3: maybe_c3,
+                    alpha: maybe_alpha,
                 };
                 let color = cssparser::Color::ColorFunction(color_function);
                 cssparser::ToCss::to_css(&color, dest)
