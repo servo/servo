@@ -17,23 +17,13 @@ promise_test(async t => {
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   stream.getTracks().forEach(track => caller.addTrack(track, stream));
 
-  let metadataToBeLoaded;
-  callee.ontrack = (e) => {
-    const stream = e.streams[0];
-    const v = document.createElement('video');
-    v.autoplay = true;
-    v.srcObject = stream;
-    v.id = stream.id
-    metadataToBeLoaded = new Promise((resolve) => {
-      v.addEventListener('loadedmetadata', () => {
-        resolve();
-      });
-    });
-  };
+
   exchangeIceCandidates(caller, callee);
   const offer = await caller.createOffer();
   // remove the a=group:BUNDLE from the SDP when signaling.
   const sdp = offer.sdp.replace(/a=group:BUNDLE (.*)\r\n/, '');
+  const ontrack = new Promise(r => callee.ontrack = r);
+
   await callee.setRemoteDescription({type: 'offer', sdp});
   await caller.setLocalDescription(offer);
 
@@ -41,7 +31,14 @@ promise_test(async t => {
   await caller.setRemoteDescription(answer);
   await callee.setLocalDescription(answer);
 
-  await metadataToBeLoaded;
+  const {streams: [recvStream]} = await ontrack;
+  assert_equals(recvStream.getTracks().length, 2, "Tracks should be added to the stream before sRD resolves.");
+  const v = document.createElement('video');
+  v.autoplay = true;
+  v.srcObject = recvStream;
+  v.id = recvStream.id;
+  await new Promise(r => v.onloadedmetadata = r);
+
   const senders = caller.getSenders();
   const dtlsTransports = senders.map(s => s.transport);
   assert_equals(dtlsTransports.length, 2);
@@ -61,21 +58,9 @@ promise_test(async t => {
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   stream.getTracks().forEach(track => caller.addTrack(track, stream));
 
-  let metadataToBeLoaded;
-  callee.ontrack = (e) => {
-    const stream = e.streams[0];
-    const v = document.createElement('video');
-    v.autoplay = true;
-    v.srcObject = stream;
-    v.id = stream.id
-    metadataToBeLoaded = new Promise((resolve) => {
-      v.addEventListener('loadedmetadata', () => {
-        resolve();
-      });
-    });
-  };
   exchangeIceCandidates(caller, callee);
   const offer = await caller.createOffer();
+  const ontrack = new Promise(r => callee.ontrack = r);
   await callee.setRemoteDescription(offer);
   await caller.setLocalDescription(offer);
   const secondTransport = caller.getSenders()[1].transport; // Save a reference to this transport.
@@ -84,7 +69,14 @@ promise_test(async t => {
   await caller.setRemoteDescription(answer);
   await callee.setLocalDescription(answer);
 
-  await metadataToBeLoaded;
+  const {streams: [recvStream]} = await ontrack;
+  assert_equals(recvStream.getTracks().length, 2, "Tracks should be added to the stream before sRD resolves.");
+  const v = document.createElement('video');
+  v.autoplay = true;
+  v.srcObject = recvStream;
+  v.id = recvStream.id;
+  await new Promise(r => v.onloadedmetadata = r);
+
   const senders = caller.getSenders();
   const dtlsTransports = senders.map(s => s.transport);
   assert_equals(dtlsTransports.length, 2);

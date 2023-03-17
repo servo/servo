@@ -2,8 +2,8 @@ import copy
 import json
 import os
 
-import asyncio
 import pytest
+import pytest_asyncio
 import webdriver
 
 from urllib.parse import urlunsplit
@@ -17,8 +17,6 @@ from tests.support.http_request import HTTPRequest
 # The webdriver session can outlive a pytest session
 _current_session = None
 
-# The event loop needs to outlive the webdriver session
-_event_loop = None
 
 _custom_session = False
 
@@ -51,16 +49,6 @@ def pytest_generate_tests(metafunc):
         marker = metafunc.definition.get_closest_marker(name="capabilities")
         if marker:
             metafunc.parametrize("capabilities", marker.args, ids=None)
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Change event_loop fixture to global."""
-    global _event_loop
-
-    if _event_loop is None:
-        _event_loop = asyncio.get_event_loop_policy().new_event_loop()
-    return _event_loop
 
 
 @pytest.fixture
@@ -117,7 +105,7 @@ async def reset_current_session_if_necessary(caps):
             _current_session = None
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def session(capabilities, configuration):
     """Create and start a session for a test that does not itself test session creation.
 
@@ -154,7 +142,7 @@ async def session(capabilities, configuration):
     cleanup_session(_current_session)
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def bidi_session(capabilities, configuration):
     """Create and start a bidi session.
 
@@ -362,7 +350,7 @@ async function getText() {
     return test_page_with_pdf_js
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def top_context(bidi_session):
     contexts = await bidi_session.browsing_context.get_tree()
     return contexts[0]

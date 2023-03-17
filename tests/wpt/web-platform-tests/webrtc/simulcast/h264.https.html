@@ -27,5 +27,5 @@ promise_test(async t => {
   t.add_cleanup(() => pc2.close());
 
   return negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, {mimeType: 'video/H264'});
-}, 'H264 simulcast setup with two spatial layers');
+}, 'H264 simulcast setup with two streams');
 </script>

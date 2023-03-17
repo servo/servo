@@ -136,7 +136,7 @@
     exchangeIceCandidates(caller, callee);
     exchangeIceCandidates(callee, caller);
     await exchangeOfferAnswer(caller, callee);
-    await waitForIceStateChange(caller, ['connected', 'completed']);
+    await waitForIceStateChange(callee, ['connected', 'completed']);
     const receiver = callee.getReceivers()[0];
     const statsReport = await receiver.getStats();
     assert_stats_report_has_stats(statsReport, ['candidate-pair', 'local-candidate', 'remote-candidate']);

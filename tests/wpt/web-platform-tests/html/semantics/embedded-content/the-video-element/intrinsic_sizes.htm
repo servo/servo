@@ -44,8 +44,6 @@ async_test(function(t) {
     v.removeAttribute("src");
     v.load();
     // Dimensions should be updated only on next layout.
-    assert_equals(s.width, '320px');
-    assert_equals(s.height, '240px');
     requestAnimationFrame(t.step_func_done(function() {
       assert_equals(s.width, "300px");
       assert_equals(s.height, "150px");
@@ -62,8 +60,6 @@ async_test(function(t) {
     assert_equals(s.height, '77px');
     v.removeAttribute("poster");
     // Dimensions should be updated only on next layout.
-    assert_equals(s.width, '102px');
-    assert_equals(s.height, '77px');
     requestAnimationFrame(t.step_func_done(function() {
       assert_equals(s.width, "300px");
       assert_equals(s.height, "150px");

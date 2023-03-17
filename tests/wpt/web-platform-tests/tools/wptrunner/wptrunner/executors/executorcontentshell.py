@@ -264,6 +264,15 @@ class ContentShellTestharnessExecutor(TestharnessExecutor):
             if not text:
                 return (test.result_cls("ERROR", errors), [])
 
-            return self.convert_result(test, json.loads(text))
+            result_url, status, message, stack, subtest_results = json.loads(text)
+            if result_url != test.url:
+                # Suppress `convert_result`'s URL validation.
+                # See `testharnessreport-content-shell.js` for details.
+                self.logger.warning('Got results from %s, expected %s' % (result_url, test.url))
+                self.logger.warning('URL mismatch may be a false positive '
+                                    'if the test navigates')
+                result_url = test.url
+            raw_result = result_url, status, message, stack, subtest_results
+            return self.convert_result(test, raw_result)
         except BaseException as exception:
             return _convert_exception(test, exception, self.protocol.content_shell_errors.read_errors())

@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Tests</title>
+<meta name="timeout" content="long">
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../mediacapture-streams/permission-helper.js"></script>
+<script>
+promise_test(async t => {
+  assert_implements('getCapabilities' in RTCRtpSender, 'RTCRtpSender.getCapabilities not supported');
+  assert_implements(RTCRtpSender.getCapabilities('video').codecs.find(c => c.mimeType === 'video/VP9'), 'VP9 not supported');
+
+  const rids = [0, 1];
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  return negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, {mimeType: 'video/VP9'});
+}, 'VP9 simulcast setup with two streams');
+</script>

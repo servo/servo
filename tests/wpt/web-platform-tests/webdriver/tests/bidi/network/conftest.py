@@ -1,6 +1,7 @@
 import json
 
 import pytest
+import pytest_asyncio
 
 from webdriver.bidi.modules.script import ContextTarget
 
@@ -37,7 +38,7 @@ def fetch(bidi_session, top_context):
     return fetch
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def setup_network_test(
     bidi_session, subscribe_events, wait_for_event, top_context, url
 ):

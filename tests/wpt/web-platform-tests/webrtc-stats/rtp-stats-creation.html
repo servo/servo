@@ -38,7 +38,10 @@ promise_test(async (test) => {
   localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "audio"));
   localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "video"));
   exchangeIceCandidates(localPc, remotePc);
-  await exchangeOfferAnswer(localPc, remotePc);
+  await Promise.all([
+    exchangeOfferAnswer(localPc, remotePc),
+    new Promise(r => remotePc.ontrack = e => e.track.onunmute = r)
+  ]);
   const start = performance.now();
   while (true) {
     const report = await localPc.getStats();

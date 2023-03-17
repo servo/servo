@@ -670,7 +670,7 @@ SDPUtils.writeSctpDescription = function(media, sctp) {
 // recommends using a cryptographically random +ve 64-bit value
 // but right now this should be acceptable and within the right range
 SDPUtils.generateSessionId = function() {
-  return Math.random().toString().substr(2, 21);
+  return Math.floor((Math.random() * 4294967296) + 1);
 };
 
 // Write boilder plate for start of SDP

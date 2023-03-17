@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 from typing import Any, List, Mapping
 
 from webdriver.bidi.modules.script import ContextTarget, OwnershipModel
@@ -32,7 +33,7 @@ def call_function(bidi_session, top_context):
     return call_function
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def default_realm(bidi_session, top_context):
     realms = await bidi_session.script.get_realms(context=top_context["context"])
     return realms[0]["realm"]
