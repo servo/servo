@@ -37,7 +37,7 @@ class Transport:
         self.read_message_task: Optional[asyncio.Task[Any]] = None
 
     async def start(self) -> None:
-        self.connection = await websockets.client.connect(self.url)
+        self.connection = await websockets.connect(self.url)
         self.read_message_task = self.loop.create_task(self.read_messages())
 
         for msg in self.send_buf:

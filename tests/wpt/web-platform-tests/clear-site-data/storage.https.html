@@ -35,7 +35,7 @@
           .then(() => {
             return new Promise(function(resolve, reject) {
               promise_test(function(t) {
-                return navigator.serviceWorker.getRegistration("support/").then(function(reg) {
+                return navigator.serviceWorker.getRegistration("support/page_using_service_worker.html").then(function(reg) {
                   return wait_for_state(t, reg.installing || reg.waiting || reg.active, 'activated');
                 }).then(resolve, reject);
               });

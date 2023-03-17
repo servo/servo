@@ -11,7 +11,7 @@
   width: 100px;
 
   /* Properties under test. */
-  --foo: bar;
+  --foo:bar;
   margin-left: 2px;
 }
 
@@ -37,7 +37,7 @@ registerLayout('test', class {
   async layout(children, edges, constraints, styleMap) {
     const expected = [
       {property: '--bar', value: '[CSSUnparsedValue=]'},
-      {property: '--foo', value: '[CSSUnparsedValue= bar]'},
+      {property: '--foo', value: '[CSSUnparsedValue=bar]'},
       {property: 'empty-cells', value: '[CSSKeywordValue=show]'},
       {property: 'margin-left', value: '[CSSUnitValue=2px]'},
     ];

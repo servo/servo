@@ -2,9 +2,6 @@
 
 const ExecutionArray = ['sync', 'async'];
 
-// https://webmachinelearning.github.io/webnn/#enumdef-mldevicetype
-const DeviceTypeArray = ['cpu', 'gpu'];
-
 // https://webmachinelearning.github.io/webnn/#enumdef-mloperandtype
 const TypedArrayDict = {
   float32: Float32Array,
@@ -604,33 +601,29 @@ const testWebNNOperation = (operationName, buildFunc) => {
       // test sync
       operationNameArray.forEach((subOperationName) => {
         const tests = loadTests(subOperationName);
-        DeviceTypeArray.forEach(deviceType => {
-          setup(() => {
-            context = navigator.ml.createContextSync({deviceType});
-            builder = new MLGraphBuilder(context);
-          });
-          for (const subTest of tests) {
-            test(() => {
-              runSync(subOperationName, context, builder, subTest, buildFunc);
-            }, `${subTest.name} / ${deviceType} / ${executionType}`);
-          }
+        setup(() => {
+          context = navigator.ml.createContextSync();
+          builder = new MLGraphBuilder(context);
         });
+        for (const subTest of tests) {
+          test(() => {
+            runSync(subOperationName, context, builder, subTest, buildFunc);
+          }, `${subTest.name} / ${executionType}`);
+        }
       });
     } else {
       // test async
       operationNameArray.forEach((subOperationName) => {
         const tests = loadTests(subOperationName);
-        DeviceTypeArray.forEach(deviceType => {
-          promise_setup(async () => {
-            context = await navigator.ml.createContext({deviceType});
-            builder = new MLGraphBuilder(context);
-          });
-          for (const subTest of tests) {
-            promise_test(async () => {
-              await run(subOperationName, context, builder, subTest, buildFunc);
-            }, `${subTest.name} / ${deviceType} / ${executionType}`);
-          }
+        promise_setup(async () => {
+          context = await navigator.ml.createContext();
+          builder = new MLGraphBuilder(context);
         });
+        for (const subTest of tests) {
+          promise_test(async () => {
+            await run(subOperationName, context, builder, subTest, buildFunc);
+          }, `${subTest.name} / ${executionType}`);
+        }
       });
     }
   });

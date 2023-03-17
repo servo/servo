@@ -4,10 +4,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
-  #target { color: red; }
+  .target { color: red; }
 </style>
-<style id="styleElement"></style>
-<div id="target"></div>
+<div id="target" class="target"></div>
 <script>
   const testCases = [
     {
@@ -31,14 +30,11 @@
       matches: false
     }
   ];
-
-  let styleElement = document.querySelector("#styleElement");
-
-  styleElement.remove();
-
+  let target = document.getElementById("target");
   for (let testCase of testCases) {
     promise_test(async t => {
-      styleElement.innerText = "@import url(data:text/css,#target{color:green}) " + testCase.importCondition + ";";
+      let styleElement = document.createElement("style");
+      styleElement.innerText = "@import url(data:text/css,.target{color:green}) " + testCase.importCondition + ";";
 
       await new Promise(resolve => {
         styleElement.onload = resolve;

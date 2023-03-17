@@ -52,7 +52,7 @@ async def test_rejected_promise(bidi_session, top_context, result_ownership, sho
                          [("root", True), ("none", False), (None, False)])
 async def test_return_value(bidi_session, top_context, await_promise, result_ownership, should_contain_handle):
     result = await bidi_session.script.call_function(
-        function_declaration="async function(){return {a:1}}",
+        function_declaration="async function(){return {a: {b:1}}}",
         await_promise=await_promise,
         result_ownership=result_ownership,
         target=ContextTarget(top_context["context"]))

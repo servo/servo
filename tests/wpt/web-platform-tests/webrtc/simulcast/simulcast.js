@@ -193,7 +193,8 @@ function swapRidAndMidExtensionsInSimulcastAnswer(answer, localDescription, rids
   return midToRid(answer, localDescription, rids);
 }
 
-async function negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, codec) {
+async function negotiateSimulcastAndWaitForVideo(
+    t, rids, pc1, pc2, codec, scalabilityMode = undefined) {
   exchangeIceCandidates(pc1, pc2);
 
   const metadataToBeLoaded = [];
@@ -217,6 +218,9 @@ async function negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, codec) {
   // get {90p, 180p, 360p}.
   let scaleResolutionDownBy = 2;
   for (let i = sendEncodings.length - 1; i >= 0; --i) {
+    if (scalabilityMode) {
+      sendEncodings[i].scalabilityMode = scalabilityMode;
+    }
     sendEncodings[i].scaleResolutionDownBy = scaleResolutionDownBy;
     scaleResolutionDownBy *= 2;
   }

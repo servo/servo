@@ -20,7 +20,7 @@ promise_test(async t => {
                     resolve("entry-found");
             }
         })).observe({type: 'long-animation-frame', buffered: true});
-        t.step_timeout(() => resolve("timeout"), no_long_frame_timeout);
+        t.step_timeout(() => resolve("timeout"), waiting_for_long_frame_timeout);
     });
     assert_equals(result, "entry-found");
 }, 'PerformanceObserver with buffered flag can see previous long-animation-frame entries.');

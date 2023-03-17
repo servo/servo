@@ -1,6 +1,9 @@
+import base64
+
 import pytest
 from webdriver.error import NoSuchAlertException
 
+from tests.support.image import png_dimensions, ImageDifference
 from tests.support.sync import Poll
 
 
@@ -178,9 +181,60 @@ def stale_element(current_session, get_test_page):
 
 
 @pytest.fixture
-def load_pdf_document(current_session, test_page_with_pdf_js):
+def load_pdf_http(current_session, test_page_with_pdf_js):
     """Load a PDF document in the browser using pdf.js"""
-    def load_pdf_document(encoded_pdf_data):
+    def load_pdf_http(encoded_pdf_data):
         current_session.url = test_page_with_pdf_js(encoded_pdf_data)
 
-    return load_pdf_document
+    return load_pdf_http
+
+
+@pytest.fixture
+def render_pdf_to_png_http(current_session, url):
+    """Render a PDF document to png"""
+
+    def render_pdf_to_png_http(
+        encoded_pdf_data, page=1
+    ):
+        current_session.url = url(path="/print_pdf_runner.html")
+        result = current_session.execute_async_script(f"""arguments[0](window.render("{encoded_pdf_data}"))""")
+        index = page - 1
+
+        assert 0 <= index < len(result)
+
+        image_string = result[index]
+        image_string_without_data_type = image_string[image_string.find(",") + 1 :]
+
+        return base64.b64decode(image_string_without_data_type)
+
+    return render_pdf_to_png_http
+
+
+@pytest.fixture
+def compare_png_http(current_session, url):
+    def compare_png_http(img1, img2):
+        """Calculate difference statistics between two PNG images.
+
+        :param img1: Bytes of first PNG image
+        :param img2: Bytes of second PNG image
+        :returns: ImageDifference representing the total number of different pixels,
+                and maximum per-channel difference between the images.
+        """
+        if img1 == img2:
+            return ImageDifference(0, 0)
+
+        width, height = png_dimensions(img1)
+        assert (width, height) == png_dimensions(img2)
+
+        current_session.url = url("/webdriver/tests/support/html/render.html")
+        result = current_session.execute_async_script(
+            f"""const callback = arguments[arguments.length - 1]; callback(compare(arguments[0], arguments[1], arguments[2], arguments[3]))""",
+            args=[base64.encodebytes(img1).decode(), base64.encodebytes(img2).decode(), width, height],
+        )
+
+        assert "maxDifference" in result
+        assert "totalPixels" in result
+
+        return ImageDifference(result["totalPixels"], result["maxDifference"])
+
+    return compare_png_http

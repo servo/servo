@@ -1,0 +1,26 @@
+<!doctype html>
+<title>Scheduler: yield in Detached Scheduler</title>
+<link rel="help" href="https://github.com/WICG/scheduling-apis">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+
+  const frame = document.body.appendChild(document.createElement('iframe'));
+  const iframeDOMException = frame.contentWindow.DOMException;
+  const iframeScheduler = frame.contentWindow.scheduler;
+
+  let didRun = false;
+  iframeScheduler.yield().then(() => { didRun = true; });
+
+  document.body.removeChild(frame);
+  await promise_rejects_dom(t, 'NotSupportedError', iframeDOMException, iframeScheduler.yield());
+  await new Promise(resolve => t.step_timeout(resolve, 10));
+  assert_false(didRun, 'The continuation should not have run.');
+}, 'Test scheduler.yield() from an iframe that is removed');
+
+</script>

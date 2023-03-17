@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>@scope - nesting (&)</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<link rel="help" href="https://drafts.csswg.org/css-nesting-1/#nest-selector">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<main id=main></main>
+
+<template id=test_nest_scope_end>
+  <div>
+    <style>
+      @scope (.a) to (& > &) {
+        * { z-index:1; }
+      }
+    </style>
+    <div class=a> <!-- This scope is limited by the element below. -->
+      <div class=a> <!-- This scope is limited by its own root. -->
+        <div id=below></div>
+      </div>
+    </div>
+  </div>
+  <div id=outside></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_nest_scope_end.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(below).zIndex, 'auto');
+  assert_equals(getComputedStyle(outside).zIndex, 'auto');
+}, 'Nesting-selector in <scope-end>');
+</script>
+
+<template id=test_nest_scope_end_implicit_scope>
+  <div>
+    <style>
+      /* (.b) behaves like (:scope .b), due :scope being prepended
+          implicitly. */
+      @scope (.a) to (.b) {
+        :scope { z-index:1; }
+      }
+
+      /* Should not match, since <scope-end> refers to the scope itself. */
+      @scope (.a) to (.b:scope) {
+        :scope { z-index:42; }
+      }
+    </style>
+    <div class="a b">
+      <div class=b>
+        <div id=below></div>
+      </div>
+    </div>
+  </div>
+  <div id=outside></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_nest_scope_end_implicit_scope.content.cloneNode(true));
+  let a = document.querySelector('.a');
+  let b = document.querySelector('.a > .b');
+  assert_equals(getComputedStyle(a).zIndex, '1');
+  assert_equals(getComputedStyle(b).zIndex, 'auto');
+  assert_equals(getComputedStyle(below).zIndex, 'auto');
+  assert_equals(getComputedStyle(outside).zIndex, 'auto');
+}, 'Implicit :scope in <scope-end>');
+</script>
+
+<template id=test_relative_selector_scope_end>
+  <div>
+    <style>
+      @scope (.a) to (> .b) {
+        *, :scope { z-index:1; }
+      }
+    </style>
+    <div class="a b">
+      <div class=b>
+        <div id=below></div>
+      </div>
+    </div>
+  </div>
+  <div id=outside></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_relative_selector_scope_end.content.cloneNode(true));
+  let a = document.querySelector('.a');
+  let b = document.querySelector('.a > .b');
+  assert_equals(getComputedStyle(a).zIndex, '1');
+  assert_equals(getComputedStyle(b).zIndex, 'auto');
+  assert_equals(getComputedStyle(below).zIndex, 'auto');
+  assert_equals(getComputedStyle(outside).zIndex, 'auto');
+}, 'Relative selectors in <scope-end>');
+</script>

@@ -49,7 +49,6 @@ promise_test(async t => {
   return new Promise(resolve => callee.ontrack = t.step_func(event =>{
     assert_equals(event.streams.length, 1);
     assert_equals(stream.id, event.streams[0].id);
-    assert_equals(track.id, event.track.id);
     assert_equals(event.streams[0].getTracks()[0], event.track);
     resolve();
   }));

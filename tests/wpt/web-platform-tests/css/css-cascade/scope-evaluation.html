@@ -391,7 +391,7 @@ test_scope(document.currentScript, () => {
 
 <template>
   <style>
-    @scope (.a) to (.a) {
+    @scope (.a) to (:scope) {
       * { background-color: green; }
     }
   </style>

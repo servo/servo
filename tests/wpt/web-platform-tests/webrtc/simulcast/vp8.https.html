@@ -22,5 +22,5 @@ promise_test(async t => {
   t.add_cleanup(() => pc2.close());
 
   return negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, {mimeType: 'video/VP8'});
-}, 'VP8 simulcast setup with two spatial layers');
+}, 'VP8 simulcast setup with two streams');
 </script>

@@ -56,7 +56,7 @@ window.onload = () => {
   // Start with the provided examples:
   Array.from(document.getElementById('popovers').children).forEach(popover => {
     test((t) => {
-      assertIsFunctionalPopover(popover);
+      assertIsFunctionalPopover(popover, true);
     }, `The element ${popover.outerHTML} should behave as a popover.`);
   });
   Array.from(document.getElementById('nonpopovers').children).forEach(nonPopover => {
@@ -121,34 +121,34 @@ window.onload = () => {
 
   test((t) => {
     const popover = createPopover(t);
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     popover.removeAttribute('popover');
     assertNotAPopover(popover);
     popover.setAttribute('popover','AuTo');
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     popover.removeAttribute('popover');
     popover.setAttribute('PoPoVeR','AuTo');
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     // Via IDL also
     popover.popover = 'auto';
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     popover.popover = 'aUtO';
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     popover.popover = 'invalid'; // treated as "manual"
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
   },'Popover attribute value should be case insensitive');
 
   test((t) => {
     const popover = createPopover(t);
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     popover.setAttribute('popover','manual'); // Change popover type
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     popover.setAttribute('popover','invalid'); // Change popover type to something invalid
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     popover.popover = 'manual'; // Change popover type via IDL
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
     popover.popover = 'invalid'; // Make invalid via IDL (treated as "manual")
-    assertIsFunctionalPopover(popover);
+    assertIsFunctionalPopover(popover, true);
   },'Changing attribute values for popover should work');
 
   test((t) => {

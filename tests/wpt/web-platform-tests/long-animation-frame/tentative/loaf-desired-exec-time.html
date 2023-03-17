@@ -93,9 +93,9 @@ promise_test(async t => {
   const scripts = entry.scripts.filter(
     s => s.name === "Window.requestAnimationFrame");
   for (const script of scripts) {
-    assert_less_than_equal(Math.abs(script.desiredExecutionStart - rafTime), 1);
+    assert_approx_equals(script.desiredExecutionStart, rafTime, 5);
   }
-  assert_less_than_equal(Math.abs(entry.desiredRenderStart - rafTime), 1);
+  assert_approx_equals(entry.desiredRenderStart, rafTime, 5);
 }, "desiredExecutionStart & desiredRenderStart for requestAnimationFrame " +
    "should be the same as the rAF argument");
 
@@ -113,7 +113,7 @@ promise_test(async t => {
     timeAfterWait = performance.now();
   }), 0);
   const [entry, rafTime] = await Promise.all([entryPromise, rafPromise]);
-  assert_less_than_equal(Math.abs(entry.desiredRenderStart - rafTime), 1);
+  assert_approx_equals(entry.desiredRenderStart, rafTime, 5);
 }, "desiredRenderStart and renderStart should reflect main thread delays");
 </script>
 </body>

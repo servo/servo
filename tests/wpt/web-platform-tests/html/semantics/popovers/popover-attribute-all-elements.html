@@ -15,8 +15,8 @@
 <script>
 setup({ explicit_done: true });
 window.onload = () => {
-  // Loop through all HTML5 elements that render a box by default:
-  let elementsThatDontRender = ['audio','base','br','datalist','dialog','embed','head','link','meta','noscript','param','rp','script','slot','style','template','title','wbr'];
+  // Loop through all HTML elements that render a box by default:
+  let elementsThatDontRender = ['area', 'audio','base','br','datalist','dialog','embed','head','link','meta','noscript','optgroup','option','param','rp','script','slot','style','template','title','wbr'];
   const elements = HTML5_ELEMENTS.filter(el => !elementsThatDontRender.includes(el));
   elements.forEach(tag => {
     test((t) => {
@@ -24,7 +24,7 @@ window.onload = () => {
       element.setAttribute('popover','auto');
       document.body.appendChild(element);
       t.add_cleanup(() => element.remove());
-      assertIsFunctionalPopover(element);
+      assertIsFunctionalPopover(element, true);
     }, `A <${tag} popover> element should behave as a popover.`);
     test((t) => {
       const element = document.createElement(tag);
@@ -33,7 +33,15 @@ window.onload = () => {
       assertNotAPopover(element);
     }, `A <${tag}> element should *not* behave as a popover.`);
   });
-
+  elementsThatDontRender.forEach(tag => {
+    test((t) => {
+      const element = document.createElement(tag);
+      element.setAttribute('popover','auto');
+      document.body.appendChild(element);
+      t.add_cleanup(() => element.remove());
+      assertIsFunctionalPopover(element, false);
+    }, `A <${tag} popover> element should not be rendered.`);
+  });
   done();
 };
 </script>

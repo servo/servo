@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<script>
+// If document.open's behavior is modified to remove the url-rewriting behavior,
+// then this test can be deleted (https://github.com/whatwg/html/issues/3989).
+setup({ explicit_done: true });
+
+window.start = childDocument => {
+  const grandchildDocument =
+    childDocument.querySelector('iframe').contentDocument;
+
+  test(t => {
+    // Clean up the iframe so that the dangling document.open() doesn't cause a
+    // harness timeout.
+    t.add_cleanup(() => {
+      document.querySelector('iframe').remove();
+    });
+
+    assert_equals(childDocument.URL, 'about:srcdoc',
+      'Child document starting URL');
+    assert_equals(grandchildDocument.URL, 'about:blank',
+      'Grandchild document starting URL');
+    const originalChildBaseURL = childDocument.baseURI;
+
+    grandchildDocument.open("", "");
+    // Verify that the document.open() trick worked: the grandchild should now
+    // have the same url as the child, and have inherited the child's base url.
+    assert_equals(grandchildDocument.URL, 'about:srcdoc',
+      'Grandchild document after document.open() trick');
+    assert_equals(grandchildDocument.baseURI, originalChildBaseURL,
+      'Grandchild base URL must match child base URL');
+
+    // Give child a new base URL.
+    const baseElement = childDocument.createElement('base');
+    baseElement.href = get_host_info().REMOTE_ORIGIN;
+    childDocument.head.append(baseElement);
+
+    // Verify that changing the child's base url succeeded and did not affect
+    // the grandchild's base url.
+    const newChildBaseURL = childDocument.baseURI;
+    assert_equals(grandchildDocument.URL, 'about:srcdoc',
+      'Grandchild document after child gets new base URL');
+    assert_not_equals(newChildBaseURL, originalChildBaseURL,
+      'Child base URL must change');
+    assert_equals(grandchildDocument.baseURI, originalChildBaseURL,
+      'Grandchild base URL must not change');
+  });
+
+  done();
+};
+</script>
+
+<iframe srcdoc="<iframe></iframe><script>parent.start(document)</script>">
+</iframe>
