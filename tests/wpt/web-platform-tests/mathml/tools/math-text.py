@@ -19,7 +19,7 @@ pen.moveTo(0, -500)
 pen.lineTo(0, 500)
 pen.lineTo(1000, 500)
 pen.lineTo(1000, -500)
-pen.closePath();
+pen.closePath()
 
 glyph = font.createChar(ord("B"))
 pen = glyph.glyphPen()
@@ -27,7 +27,7 @@ pen.moveTo(0, 0)
 pen.lineTo(0, 1000)
 pen.lineTo(1000, 1000)
 pen.lineTo(1000, 0)
-pen.closePath();
+pen.closePath()
 
 glyph = font.createChar(ord("C"))
 pen = glyph.glyphPen()
@@ -35,7 +35,7 @@ pen.moveTo(0, -1000)
 pen.lineTo(0, 0)
 pen.lineTo(1000, 0)
 pen.lineTo(1000, -1000)
-pen.closePath();
+pen.closePath()
 
 font.os2_typoascent_add = False
 font.os2_typoascent = lineHeight // 2

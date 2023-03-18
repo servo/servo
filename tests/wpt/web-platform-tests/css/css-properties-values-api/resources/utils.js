@@ -195,10 +195,12 @@ function transition_test(options, description) {
     assert_equals(getComputedStyle(target).getPropertyValue(customProperty), options.from, "Element has the expected initial value");
 
     const transitionEventPromise = new Promise(resolve => {
-      target.addEventListener("transitionrun", event => {
+      let listener = event => {
+          target.removeEventListener("transitionrun", listener);
           assert_equals(event.propertyName, customProperty, "TransitionEvent has the expected property name");
           resolve();
-      });
+      };
+      target.addEventListener("transitionrun", listener);
     });
 
     target.style.transition = `${options.transitionProperty} 1s -500ms linear`;

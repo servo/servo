@@ -5,6 +5,7 @@
 <link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <script src="resources/popover-utils.js"></script>
 
 <script>
@@ -166,4 +167,38 @@
     assert_false(popover2.matches(':open'));
     assert_false(isElementVisible(popover2));
   }, "The popover stack is preserved across shadow-inclusive ancestors");
+</script>
+
+
+<div id=test5>
+  <template shadowrootmode=open>
+    <button popovertarget=p1>Test 5 Popover 1</button>
+    <div popover id=p1>Popover 1
+      <p>This should not get hidden when popover2 opens.</p>
+      <button popovertarget=p2>Click</button>
+    </div>
+    <div popover id=p2>Popover 2
+      <p>This should not hide popover1.</p>
+    </div>
+  </template>
+</div>
+<script>
+  promise_test(async function() {
+    polyfill_declarative_shadow_dom(test5);
+    const [popover1,popover2] = getPopoverReferences('test5');
+    popover1.showPopover();
+    popover2.showPopover();
+    // Both 1 and 2 should be open at this point.
+    assert_true(popover1.matches(':open'), 'popover1 not open');
+    assert_true(isElementVisible(popover1));
+    assert_true(popover2.matches(':open'), 'popover2 not open');
+    assert_true(isElementVisible(popover2));
+    // This should hide both of them.
+    popover1.hidePopover();
+    await waitForRender();
+    assert_false(popover1.matches(':open'));
+    assert_false(isElementVisible(popover1));
+    assert_false(popover2.matches(':open'));
+    assert_false(isElementVisible(popover2));
+  }, "Popover ancestor relationships are within a root, not within the document");
 </script>

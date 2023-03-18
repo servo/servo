@@ -6,10 +6,11 @@
 <div id="target"></div>
 <script>
 
-no_transition_test({
+transition_test({
   syntax: "<url>",
   from: 'url("https://example.com/from")',
   to: 'url("https://example.com/to")',
-}, 'A custom property of type <url> cannot yield a CSS Transition');
+  expected: 'url("https://example.com/to")',
+}, 'A custom property of type <url> can yield a discrete CSS Transition');
 
 </script>
