@@ -6,148 +6,172 @@
 <div id="target"></div>
 <script>
 
-no_transition_test({
+transition_test({
   syntax: "<angle>#",
   from: '100deg, 200deg',
   to: '300deg',
-}, 'A custom property of type <angle># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300deg',
+}, 'A custom property of type <angle># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<angle>+",
   from: '100deg 200deg',
   to: '300deg',
-}, 'A custom property of type <angle>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300deg',
+}, 'A custom property of type <angle>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<color>#",
   from: 'rgb(100, 100, 100), rgb(150, 150, 150)',
   to: 'rgb(200, 200, 200)',
-}, 'A custom property of type <color># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: 'rgb(200, 200, 200)',
+}, 'A custom property of type <color># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<color>+",
   from: 'rgb(100, 100, 100) rgb(150, 150, 150)',
   to: 'rgb(200, 200, 200)',
-}, 'A custom property of type <color>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: 'rgb(200, 200, 200)',
+}, 'A custom property of type <color>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<custom-ident>#",
   from: 'foo, bar',
   to: 'baz',
-}, 'A custom property of type <custom-ident># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: 'baz',
+}, 'A custom property of type <custom-ident># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<custom-ident>+",
   from: 'foo bar',
   to: 'baz',
-}, 'A custom property of type <custom-ident>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: 'baz',
+}, 'A custom property of type <custom-ident>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<image>#",
   from: 'url("https://example.com/foo"), url("https://example.com/bar")',
   to: 'url("https://example.com/to")',
-}, 'A custom property of type <image># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: 'url("https://example.com/to")',
+}, 'A custom property of type <image># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<image>+",
   from: 'url("https://example.com/foo") url("https://example.com/bar")',
   to: 'url("https://example.com/to")',
-}, 'A custom property of type <image>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: 'url("https://example.com/to")',
+}, 'A custom property of type <image>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<integer>#",
   from: '100, 200',
   to: '300',
-}, 'A custom property of type <integer># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300',
+}, 'A custom property of type <integer># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<integer>+",
   from: '100 200',
   to: '300',
-}, 'A custom property of type <integer>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300',
+}, 'A custom property of type <integer>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<length-percentage>#",
   from: '100px, 200px',
   to: '300%',
-}, 'A custom property of type <length-percentage># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300%',
+}, 'A custom property of type <length-percentage># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<length-percentage>+",
   from: '100px 200px',
   to: '300%',
-}, 'A custom property of type <length-percentage>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300%',
+}, 'A custom property of type <length-percentage>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<length>#",
   from: '100px, 200px',
   to: '300px',
-}, 'A custom property of type <length># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300px',
+}, 'A custom property of type <length># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<length>+",
   from: '100px 200px',
   to: '300px',
-}, 'A custom property of type <length>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300px',
+}, 'A custom property of type <length>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<number>#",
   from: '100, 200',
   to: '300',
-}, 'A custom property of type <number># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300',
+}, 'A custom property of type <number># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<number>+",
   from: '100 200',
   to: '300',
-}, 'A custom property of type <number>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300',
+}, 'A custom property of type <number>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<percentage>#",
   from: '100%, 200%',
   to: '300%',
-}, 'A custom property of type <percentage># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300%',
+}, 'A custom property of type <percentage># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<percentage>+",
   from: '100% 200%',
   to: '300%',
-}, 'A custom property of type <percentage>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300%',
+}, 'A custom property of type <percentage>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<resolution>#",
   from: '100dppx, 200dppx',
   to: '300dppx',
-}, 'A custom property of type <resolution># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300dppx',
+}, 'A custom property of type <resolution># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<resolution>+",
   from: '100dppx 200dppx',
   to: '300dppx',
-}, 'A custom property of type <resolution>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300dppx',
+}, 'A custom property of type <resolution>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<time>#",
   from: '100s, 200s',
   to: '300s',
-}, 'A custom property of type <time># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300s',
+}, 'A custom property of type <time># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<time>+",
   from: '100s 200s',
   to: '300s',
-}, 'A custom property of type <time>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: '300s',
+}, 'A custom property of type <time>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<url>#",
   from: 'url("https://example.com/foo"), url("https://example.com/bar")',
   to: 'url("https://example.com/to")',
-}, 'A custom property of type <url># does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: 'url("https://example.com/to")',
+}, 'A custom property of type <url># yields a discrete CSS Transition if the lists do not contain the same number of values');
 
-no_transition_test({
+transition_test({
   syntax: "<url>+",
   from: 'url("https://example.com/foo") url("https://example.com/bar")',
   to: 'url("https://example.com/to")',
-}, 'A custom property of type <url>+ does not yield a CSS Transition if the lists do not contain the same number of values');
+  expected: 'url("https://example.com/to")',
+}, 'A custom property of type <url>+ yields a discrete CSS Transition if the lists do not contain the same number of values');
 
 </script>

@@ -22,5 +22,6 @@ mathfont.drawRectangleGlyph(g, mathfont.em, mathfont.em, 0)
 f[verticalArrowCodePoint].verticalVariants = "uni21A8 size1 size2"
 # Part: (glyphName, isExtender, startConnector, endConnector, fullAdvance)
 f[verticalArrowCodePoint].verticalComponents = \
-  (("bot", False, 0, mathfont.em, v2 + v1), ("ext", True, mathfont.em, mathfont.em, mathfont.em));
+    (("bot", False, 0, mathfont.em, v2 + v1),
+     ("ext", True, mathfont.em, mathfont.em, mathfont.em))
 mathfont.save(f)

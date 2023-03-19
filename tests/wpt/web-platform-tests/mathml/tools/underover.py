@@ -3,8 +3,8 @@
 from utils import mathfont
 import fontforge
 
-breveCodePoint = 0x2D8 # accent operator
-degreeCodePoint = 0xB0 # nonaccent operator
+breveCodePoint = 0x2D8  # accent operator
+degreeCodePoint = 0xB0  # nonaccent operator
 accentBaseHeight = 4 * mathfont.em
 
 v = 3 * mathfont.em

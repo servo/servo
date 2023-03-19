@@ -42,8 +42,12 @@ xsltTransform = etree.XSLT(etree.XML('''\
 # Put the mathvariant transforms into a Python structure.
 mathvariantTransforms = {}
 root = xsltTransform(etree.parse(unicodeXML)).getroot()
+
+
 def parseCodePoint(aHexaString):
     return int("0x%s" % aHexaString[1:], 16)
+
+
 for entry in root:
     mathvariant = entry.get("mathvariant")
     baseChar = parseCodePoint(entry.get("baseChar"))
@@ -63,7 +67,8 @@ mathvariantTransforms["auto"] = mathvariantTransforms["italic"]
 for mathvariant in mathvariantTransforms:
     if mathvariant == "auto":
         continue
-    font = mathfont.create("mathvariant-%s" % mathvariant, "Copyright (c) 2016 MathML Association")
+    font = mathfont.create("mathvariant-%s" % mathvariant,
+                           "Copyright (c) 2016 MathML Association")
     for baseChar in mathvariantTransforms[mathvariant]:
         if baseChar not in font:
             mathfont.createGlyphFromValue(font, baseChar)
@@ -72,15 +77,21 @@ for mathvariant in mathvariantTransforms:
     mathfont.save(font)
 
 # Common function to generate test for MathML mathvariant / CSS text-transform.
+
+
 def generateTestFor(mathvariant, mathml):
     assert mathml or mathvariant == "auto", "These tests have been removed!"
     print("Generating tests for %s..." % mathvariant, end="")
     if mathml:
-        reftest = open("../relations/css-styling/mathvariant-%s.html" % mathvariant, "w")
-        reftestReference = open("../relations/css-styling/mathvariant-%s-ref.html" % mathvariant, "w")
+        reftest = open(
+            "../relations/css-styling/mathvariant-%s.html" % mathvariant, "w")
+        reftestReference = open(
+            "../relations/css-styling/mathvariant-%s-ref.html" % mathvariant, "w")
     else:
-        reftest = open("../../css/css-text/text-transform/math/text-transform-math-%s-001.html" % mathvariant, "w")
-        reftestReference = open("../../css/css-text/text-transform/math/text-transform-math-%s-001-ref.html" % mathvariant, "w")
+        reftest = open(
+            "../../css/css-text/text-transform/math/text-transform-math-%s-001.html" % mathvariant, "w")
+        reftestReference = open(
+            "../../css/css-text/text-transform/math/text-transform-math-%s-001-ref.html" % mathvariant, "w")
     source = '\
 <!DOCTYPE html>\n\
 <html>\n\
@@ -89,10 +100,12 @@ def generateTestFor(mathvariant, mathml):
 <title>%s</title>\n'
     if mathml:
         reftest.write(source % ("mathvariant %s" % mathvariant))
-        reftestReference.write(source % ("mathvariant %s (reference)" % mathvariant))
+        reftestReference.write(
+            source % ("mathvariant %s (reference)" % mathvariant))
     else:
         reftest.write(source % ("text-transform math-%s" % mathvariant))
-        reftestReference.write(source % ("text-transform math-%s (reference)" % mathvariant))
+        reftestReference.write(
+            source % ("text-transform math-%s (reference)" % mathvariant))
     if mathvariant == "auto":
         mathAssert = "Verify that a single-char <mi> is equivalent to an <mi> with the transformed italic unicode character."
         mapping = "italic"
@@ -100,7 +113,7 @@ def generateTestFor(mathvariant, mathml):
         mathAssert = "Verify that a single-char <mtext> with a %s mathvariant is equivalent to an <mtext> with the transformed unicode character." % mathvariant
         mapping = mathvariant
     if mathml:
-        source ='\
+        source = '\
 <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">\n\
 <link rel="help" href="https://w3c.github.io/mathml-core/#the-mathvariant-attribute">\n\
 <link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">\n\
@@ -151,14 +164,19 @@ def generateTestFor(mathvariant, mathml):
             tokenTag = '<mi>&#x%0X;</mi>' % baseChar
             tokenTagRef = '<mi>&#x%0X;</mi>' % transformedChar
         else:
-            tokenTag = '<mtext mathvariant="%s">&#x%0X;</mtext>' % (mathvariant, baseChar)
+            tokenTag = '<mtext mathvariant="%s">&#x%0X;</mtext>' % (
+                mathvariant, baseChar)
             tokenTagRef = '<mtext>&#x%0X;</mtext>' % transformedChar
         if mathml:
-            reftest.write('  <span><math class="testfont">%s</math>=<span>%05X</span></span>' % (tokenTag, transformedChar))
-            reftestReference.write('  <span><math class="testfont">%s</math>=<span>%05X</span></span>' % (tokenTagRef, transformedChar))
+            reftest.write('  <span><math class="testfont">%s</math>=<span>%05X</span></span>' %
+                          (tokenTag, transformedChar))
+            reftestReference.write(
+                '  <span><math class="testfont">%s</math>=<span>%05X</span></span>' % (tokenTagRef, transformedChar))
         else:
-            reftest.write('  <span><span class="testfont" style="text-transform: math-%s">&#x%0X;</span>=<span>%05X</span></span>' % (mathvariant, baseChar, transformedChar))
-            reftestReference.write('  <span><span class="testfont">&#x%0X;</span>=<span>%05X</span></span>' % (transformedChar, transformedChar))
+            reftest.write('  <span><span class="testfont" style="text-transform: math-%s">&#x%0X;</span>=<span>%05X</span></span>' %
+                          (mathvariant, baseChar, transformedChar))
+            reftestReference.write(
+                '  <span><span class="testfont">&#x%0X;</span>=<span>%05X</span></span>' % (transformedChar, transformedChar))
         charIndex += 1
         if charIndex % 10 == 0:
             reftest.write('<br/>')
@@ -171,6 +189,7 @@ def generateTestFor(mathvariant, mathml):
     reftest.close()
     reftestReference.close()
     print(" done.")
+
 
 # Generate css/css-text/text-transform/math/text-transform-math-auto-001.html
 generateTestFor(mathvariant="auto", mathml=False)

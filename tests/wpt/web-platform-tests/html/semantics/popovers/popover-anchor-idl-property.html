@@ -6,9 +6,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<button id=b1>This is an anchor button</button>
-<div popover id=p1 anchor=b1>This is a popover</div>
-<button id=b2 popovertarget=p1>This button invokes the popover but isn't an anchor</button>
+<div>
+  <button id=b1>This is an anchor button</button>
+  <div popover id=p1 anchor=b1>This is a popover</div>
+  <button id=b2 popovertarget=p1>This button invokes the popover but isn't an anchor</button>
+</div>
 
 <script>
   test(function() {
@@ -24,11 +26,13 @@
   }, "popover anchorElement is settable");
 </script>
 
-<button id=b1>button</button>
-<div id=p2>Anchored div</div>
+<div>
+  <button id=b3>button</button>
+  <div id=p2>Anchored div</div>
+</div>
 <style>
   * {margin:0;padding:0;}
-  #b1 {width: 200px;}
+  #b3 {width: 200px;}
   #p2 {
     position: absolute;
     left: anchor(right);
@@ -38,7 +42,7 @@
 <script>
   test(function() {
     assert_equals(p2.anchorElement,null);
-    const button = document.getElementById('b1');
+    const button = document.getElementById('b3');
     assert_true(!!button);
     p2.anchorElement = button;
     assert_equals(p2.getAttribute('anchor'),'','Idref should be empty after setting element');

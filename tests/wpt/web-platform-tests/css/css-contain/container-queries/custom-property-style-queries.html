@@ -365,3 +365,48 @@
     assert_equals(getComputedStyle(document.querySelector("#reg-initial-keyword")).color, green);
   }, "Match registered <length> custom property with initial value via initial keyword.");
 </script>
+
+<style>
+  #original-text {
+    --number: 100.00;
+    --spaces: a   b;
+  }
+  @container style(--number: 100.00) {
+    #original-text-number {
+      color: green;
+    }
+  }
+  @container style(--number: 100.0) {
+    #original-text-number {
+      color: red;
+    }
+  }
+  @container style(--number: 100) {
+    #original-text-number {
+      color: red;
+    }
+  }
+  @container style(--spaces: a   b) {
+    #original-text-spaces {
+      color: green;
+    }
+  }
+  @container style(--number: a b) {
+    #original-text-spaces {
+      color: red;
+    }
+  }
+</style>
+<div id="original-text">
+  <div id="original-text-number"></div>
+  <div id="original-text-spaces"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#original-text-number")).color, green);
+  }, "Should only match exact string for numbers in non-registered custom properties");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#original-text-spaces")).color, green);
+  }, "Spaces should not collapse in non-registered custom properties");
+</script>
