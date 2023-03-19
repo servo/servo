@@ -51,5 +51,7 @@ async_test(t => {
   );
 }, `${header} allows cross-origin iframes with ${attribute}.`);
 
+fetch_tests_from_worker(new Worker(
+'/compute-pressure/resources/compute-pressure-allowed-by-permissions-policy-worker.js'));
 </script>
 </body>

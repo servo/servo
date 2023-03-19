@@ -6,10 +6,11 @@
 <div id="target"></div>
 <script>
 
-no_transition_test({
+transition_test({
   syntax: "<custom-ident>",
   from: "from",
   to: "to",
-}, 'A custom property of type <custom-ident> cannot yield a CSS Transition');
+  expected: "to",
+}, 'A custom property of type <custom-ident> can yield a discrete CSS Transition');
 
 </script>

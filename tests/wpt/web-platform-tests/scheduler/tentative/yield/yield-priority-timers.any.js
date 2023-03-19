@@ -80,3 +80,15 @@ promise_test(async t => {
     assert_equals(ids.join(), config.expected);
   }
 }, 'yield() with timer tasks (signal option)');
+
+promise_test(async t => {
+  const {tasks, ids} = postTestTasks({priority: 'inherit'});
+  await Promise.all(tasks);
+  assert_equals(ids.join(), taskOrders['user-visible']);
+}, 'yield() with timer tasks (inherit priority)');
+
+promise_test(async t => {
+  const {tasks, ids} = postTestTasks({signal: 'inherit'});
+  await Promise.all(tasks);
+  assert_equals(ids.join(), taskOrders['user-visible']);
+}, 'yield() with timer tasks (inherit signal)');

@@ -5,6 +5,7 @@ from urllib.request import urlopen
 UnicodeXMLURL = "https://raw.githubusercontent.com/w3c/xml-entities/gh-pages/unicode.xml"
 InlineAxisOperatorsURL = "https://w3c.github.io/mathml-core/tables/inline-axis-operators.txt"
 
+
 def downloadWithProgressBar(url, outputDirectory="./", forceDownload=False):
 
     baseName = os.path.basename(url)
@@ -26,7 +27,8 @@ def downloadWithProgressBar(url, outputDirectory="./", forceDownload=False):
             chunk = request.read(chunkSize)
             downloaded += len(chunk)
             bar.update(downloaded)
-            if not chunk: break
+            if not chunk:
+                break
             fp.write(chunk)
         bar.finish()
 
