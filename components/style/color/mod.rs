@@ -130,7 +130,7 @@ bitflags! {
     /// Flags used when serializing colors.
     #[derive(Default, MallocSizeOf, ToShmem)]
     #[repr(C)]
-    pub struct SerializationFlags : u8 {
+    pub struct ColorFlags : u8 {
         /// If set, serializes sRGB colors into `color(srgb ...)` instead of
         /// `rgba(...)`.
         const AS_COLOR_FUNCTION = 1 << 0;
@@ -157,7 +157,7 @@ pub struct AbsoluteColor {
     /// The current color space that the components represent.
     pub color_space: ColorSpace,
     /// Extra flags used durring serialization of this color.
-    pub flags: SerializationFlags,
+    pub flags: ColorFlags,
 }
 
 /// Given an [`AbsoluteColor`], return the 4 float components as the type given,
@@ -207,7 +207,7 @@ impl AbsoluteColor {
             components,
             alpha: alpha.clamp(0.0, 1.0),
             color_space,
-            flags: SerializationFlags::empty(),
+            flags: ColorFlags::empty(),
         }
     }
 
@@ -242,7 +242,7 @@ impl AbsoluteColor {
     pub fn is_legacy_color(&self) -> bool {
         // rgb(), rgba(), hsl(), hsla(), hwb(), hwba()
         match self.color_space {
-            ColorSpace::Srgb => !self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION),
+            ColorSpace::Srgb => !self.flags.contains(ColorFlags::AS_COLOR_FUNCTION),
             ColorSpace::Hsl | ColorSpace::Hwb => true,
             _ => false,
         }
@@ -377,7 +377,7 @@ impl ToCss for AbsoluteColor {
     {
         macro_rules! value_or_none {
             ($v:expr,$flag:tt) => {{
-                if self.flags.contains(SerializationFlags::$flag) {
+                if self.flags.contains(ColorFlags::$flag) {
                     None
                 } else {
                     Some($v)
@@ -402,7 +402,7 @@ impl ToCss for AbsoluteColor {
                 Self::new(ColorSpace::Srgb, rgb, self.alpha).to_css(dest)
             },
 
-            ColorSpace::Srgb if !self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION) => {
+            ColorSpace::Srgb if !self.flags.contains(ColorFlags::AS_COLOR_FUNCTION) => {
                 // Althought we are passing Option<_> in here, the to_css fn
                 // knows that the "none" keyword is not supported in the
                 // rgb/rgba legacy syntax.
@@ -431,7 +431,7 @@ impl ToCss for AbsoluteColor {
                 let color_space = match self.color_space {
                     ColorSpace::Srgb => {
                         debug_assert!(
-                            self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION),
+                            self.flags.contains(ColorFlags::AS_COLOR_FUNCTION),
                              "The case without this flag should be handled in the wrapping match case!!"
                           );
 
