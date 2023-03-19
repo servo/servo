@@ -6,7 +6,7 @@
 
 use super::AllowQuirks;
 use crate::color::mix::ColorInterpolationMethod;
-use crate::color::{AbsoluteColor, ColorComponents, ColorSpace, SerializationFlags};
+use crate::color::{AbsoluteColor, ColorComponents, ColorFlags, ColorSpace};
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
@@ -416,14 +416,14 @@ fn new_absolute(
     c3: Option<f32>,
     alpha: Option<f32>,
 ) -> Color {
-    let mut flags = SerializationFlags::empty();
+    let mut flags = ColorFlags::empty();
 
     macro_rules! c {
         ($v:expr,$flag:tt) => {{
             if let Some(value) = $v {
                 value
             } else {
-                flags |= SerializationFlags::$flag;
+                flags |= ColorFlags::$flag;
                 0.0
             }
         }};
@@ -521,7 +521,7 @@ impl cssparser::FromParsedColor for Color {
         let mut result = new_absolute(color_space.into(), c1, c2, c3, alpha);
         if let Color::Absolute(ref mut absolute) = result {
             if matches!(absolute.color.color_space, ColorSpace::Srgb) {
-                absolute.color.flags |= SerializationFlags::AS_COLOR_FUNCTION;
+                absolute.color.flags |= ColorFlags::AS_COLOR_FUNCTION;
             }
         }
         result
@@ -637,10 +637,8 @@ impl Color {
                             absolute.color.color_space,
                             ColorSpace::Srgb | ColorSpace::Hsl
                         );
-                        let is_color_function = absolute
-                            .color
-                            .flags
-                            .contains(SerializationFlags::AS_COLOR_FUNCTION);
+                        let is_color_function =
+                            absolute.color.flags.contains(ColorFlags::AS_COLOR_FUNCTION);
                         let pref_enabled = allow_more_color_4();
 
                         (is_legacy_color && !is_color_function) || pref_enabled
