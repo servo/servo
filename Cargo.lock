@@ -6397,9 +6397,9 @@ checksum = "c666f0fed8e1e20e057af770af9077d72f3d5a33157b8537c1475dd8ffd6d32b"
 
 [[package]]
 name = "sw-composite"
-version = "0.7.15"
+version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b8d4f1dd38540e3f62c393ae78e874c94491c403025368183b018e3fb098b1f"
+checksum = "9ac8fb7895b4afa060ad731a32860db8755da3449a47e796d5ecf758db2671d4"
 
 [[package]]
 name = "swapper"
