@@ -1233,11 +1233,9 @@ impl LayoutThread {
                         flags,
                     );
 
-                    rw_data.nodes_from_point_response = results
-                        .items
-                        .iter()
-                        .map(|item| UntrustedNodeAddress(item.tag.0 as *const c_void))
-                        .collect()
+                    rw_data.nodes_from_point_response =
+                        results.iter().map(|result| result.node).collect()
+
                 },
                 &QueryMsg::ElementInnerTextQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
