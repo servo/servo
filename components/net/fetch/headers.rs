@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use headers::HeaderMap;
+use net_traits::fetch::headers::get_value_from_header_list;
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -154,20 +155,4 @@ fn collect_http_quoted_string(position: &mut Peekable<Chars>, extract_value: boo
 
     // Step 6, 7
     return value;
-}
-
-/// <https://fetch.spec.whatwg.org/#concept-header-list-get>
-pub fn get_value_from_header_list(name: &str, headers: &HeaderMap) -> Option<String> {
-    let values = headers
-        .get_all(name)
-        .iter()
-        .map(|val| val.to_str().unwrap());
-
-    // Step 1
-    if values.size_hint() == (0, Some(0)) {
-        return None;
-    }
-
-    // Step 2
-    return Some(values.collect::<Vec<&str>>().join(", "));
 }

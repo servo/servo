@@ -53,6 +53,11 @@ pub mod image {
     pub mod base;
 }
 
+/// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
+pub mod fetch {
+    pub mod headers;
+}
+
 /// A loading context, for context-specific sniffing, as defined in
 /// <https://mimesniff.spec.whatwg.org/#context-specific-sniffing>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

@@ -13,8 +13,9 @@ use crate::dom::globalscope::GlobalScope;
 use data_url::mime::Mime as DataUrlMime;
 use dom_struct::dom_struct;
 use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
-use net::fetch::headers::get_value_from_header_list;
-use net_traits::request::is_cors_safelisted_request_header;
+use net_traits::{
+    fetch::headers::get_value_from_header_list, request::is_cors_safelisted_request_header,
+};
 use std::cell::Cell;
 use std::str::{self, FromStr};
 
