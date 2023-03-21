@@ -242,7 +242,6 @@ pub fn create(
             HANDLER.0,
             UndefinedHandleValue,
             proto.get(),
-            // TODO: pass proper clasp
             &CLASS,
             false,
         ));
