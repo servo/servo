@@ -12,7 +12,7 @@ use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::jsstr_to_string;
 use js::glue::{AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps};
-use js::jsapi::{GetWellKnownSymbol, JS_SetImmutablePrototype, SymbolCode};
+use js::jsapi::{GetWellKnownSymbol, JS_SetImmutablePrototype, SymbolCode, JSPROP_READONLY};
 use js::jsapi::{
     Handle, HandleObject, JSClass, JSContext, JSErrNum, MutableHandleObject, UndefinedHandleValue,
 };
@@ -93,7 +93,7 @@ unsafe extern "C" fn get_own_property_descriptor(
             set_property_descriptor(
                 RustMutableHandle::from_raw(desc),
                 rval.handle(),
-                0,
+                JSPROP_READONLY.into(),
                 &mut *is_none,
             );
         }
