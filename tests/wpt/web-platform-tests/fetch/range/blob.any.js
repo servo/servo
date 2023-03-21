@@ -46,6 +46,33 @@ const supportedBlobRange = [
     content_range: "bytes 4-12/13",
     result: "much here",
   },
+  {
+    name: "Blob range with whitespace before and after hyphen",
+    data: ["Valid whitespace #1"],
+    type: "text/plain",
+    range: "bytes=5 - 10",
+    content_length: 6,
+    content_range: "bytes 5-10/19",
+    result: " white",
+  },
+  {
+    name: "Blob range with whitespace after hyphen",
+    data: ["Valid whitespace #2"],
+    type: "text/plain",
+    range: "bytes=-\t 5",
+    content_length: 5,
+    content_range: "bytes 14-18/19",
+    result: "ce #2",
+  },
+  {
+    name: "Blob range with whitespace around equals sign",
+    data: ["Valid whitespace #3"],
+    type: "text/plain",
+    range: "bytes \t =\t 6",
+    content_length: 13,
+    content_range: "bytes 6-18/19",
+    result: "whitespace #3",
+  },
 ];
 
 const unsupportedBlobRange = [
@@ -79,22 +106,6 @@ const unsupportedBlobRange = [
     type: "text/plain",
     headers: {
       "Range": "bytes=-"
-    }
-  },
-  {
-    name: "Blob range with invalid whitespace in range #1",
-    data: ["Invalid whitespace #1"],
-    type: "text/plain",
-    headers: {
-      "Range": "bytes=5 - 10"
-    }
-  },
-  {
-    name: "Blob range with invalid whitespace in range #2",
-    data: ["Invalid whitespace #2"],
-    type: "text/plain",
-    headers: {
-      "Range": "bytes=-\t 5"
     }
   },
   {
@@ -163,12 +174,12 @@ const unsupportedBlobRange = [
   },
 ];
 
-
 supportedBlobRange.forEach(({ name, data, type, range, content_length, content_range, result }) => {
-  promise_test(async () => {
-    let blob = new Blob(data, { "type" : type });
-    return fetch(URL.createObjectURL(blob), {
-      "method": "GET",
+  promise_test(async t => {
+    const blob = new Blob(data, { "type" : type });
+    const blobURL = URL.createObjectURL(blob);
+    t.add_cleanup(() => URL.revokeObjectURL(blobURL));
+    return fetch(blobURL, {
       "headers": {
         "Range": range
       }
@@ -186,12 +197,13 @@ supportedBlobRange.forEach(({ name, data, type, range, content_length, content_r
 });
 
 unsupportedBlobRange.forEach(({ name, data, type, headers }) => {
-  promise_test(function(test) {
-    let blob = new Blob(data, { "type" : type });
-    let promise = fetch(URL.createObjectURL(blob), {
-      "method": "GET",
+  promise_test(t => {
+    const blob = new Blob(data, { "type" : type });
+    const blobURL = URL.createObjectURL(blob);
+    t.add_cleanup(() => URL.revokeObjectURL(blobURL));
+    const promise = fetch(blobURL, {
       "headers": headers,
     });
-    return promise_rejects_js(test, TypeError, promise);
+    return promise_rejects_js(t, TypeError, promise);
   }, name);
 });

@@ -109,3 +109,65 @@ test((t) => {
   assert_equals(getComputedStyle(a).zIndex, 'auto');
 }, '@scope with effectively empty :is() must not match anything');
 </script>
+
+<template id=test_implicit_descendant>
+  <div id=div>
+    <style>
+      @scope {
+        #div { z-index:1; }
+      }
+    </style>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_implicit_descendant.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(div).zIndex, 'auto');
+}, 'Implicit @scope has implicitly added :scope descendant combinator');
+</script>
+
+<template id=test_implicit_relative>
+  <div id=outer>
+    <style>
+      @scope {
+        > div { z-index:1; }
+      }
+    </style>
+    <div id=child>
+      <div id=inner></div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_implicit_relative.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(outer).zIndex, 'auto');
+  assert_equals(getComputedStyle(child).zIndex, '1');
+  assert_equals(getComputedStyle(inner).zIndex, 'auto');
+}, 'Implicit @scope with inner relative selector');
+</script>
+
+<template id=test_implicit_descendant_nesting_selector>
+  <div id=div>
+    <style>
+      @scope {
+        /* Behaves like :scope */
+        & { z-index:1; }
+      }
+    </style>
+    <div id=inner></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_implicit_descendant_nesting_selector.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(div).zIndex, '1');
+  assert_equals(getComputedStyle(inner).zIndex, 'auto');
+}, 'Implicit @scope with inner nesting selector');
+</script>

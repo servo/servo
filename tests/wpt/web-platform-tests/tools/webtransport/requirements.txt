@@ -1,4 +1,1 @@
-# aioquic 0.9.15 is the last to support Python 3.6, but doesn't have prebuilt
-# wheels for Python 3.10, so use a different version depending on Python.
-aioquic==0.9.15; python_version == '3.6'
-aioquic==0.9.19; python_version != '3.6'
+aioquic==0.9.19

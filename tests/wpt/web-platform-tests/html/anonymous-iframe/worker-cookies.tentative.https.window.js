@@ -25,6 +25,7 @@ const workerFrom = context => {
   send(context, `
     for(deps of [
       "/common/utils.js",
+      "/resources/testharness.js",
       "/html/cross-origin-embedder-policy/credentialless/resources/common.js",
     ]) {
       await new Promise(resolve => {

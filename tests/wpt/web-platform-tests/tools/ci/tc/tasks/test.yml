@@ -108,14 +108,14 @@ components:
 
   browser-servo: {}
 
-  tox-python3_6:
+  tox-python3_7:
     env:
-      TOXENV: py36
+      TOXENV: py37
       PY_COLORS: "0"
     install:
-      - python3.6
-      - python3.6-distutils
-      - python3.6-dev
+      - python3.7
+      - python3.7-distutils
+      - python3.7-dev
 
   tox-python3_10:
     env:
@@ -409,13 +409,13 @@ tasks:
           - update_built
       command: "./tools/ci/ci_built_diff.sh"
 
-  - tools/ unittests (Python 3.6):
+  - tools/ unittests (Python 3.7):
       description: >-
-        Unit tests for tools running under Python 3.6, excluding wptrunner
+        Unit tests for tools running under Python 3.7, excluding wptrunner
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_6
+        - tox-python3_7
       command: ./tools/ci/ci_tools_unittest.sh
       env:
         HYPOTHESIS_PROFILE: ci
@@ -437,13 +437,13 @@ tasks:
         run-job:
           - tools_unittest
 
-  - tools/ integration tests (Python 3.6):
+  - tools/ integration tests (Python 3.7):
       description: >-
-        Integration tests for tools running under Python 3.6
+        Integration tests for tools running under Python 3.7
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_6
+        - tox-python3_7
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
@@ -481,13 +481,13 @@ tasks:
         run-job:
           - wpt_integration
 
-  - resources/ tests (Python 3.6):
+  - resources/ tests (Python 3.7):
       description: >-
-        Tests for testharness.js and other files in resources/ under Python 3.6
+        Tests for testharness.js and other files in resources/ under Python 3.7
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_6
+        - tox-python3_7
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools

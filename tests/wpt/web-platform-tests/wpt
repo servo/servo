@@ -2,8 +2,8 @@
 
 if __name__ == "__main__":
     import sys
-    if sys.version_info < (3, 6):
-        sys.stderr.write("wpt requires Python 3.6 or higher\n")
+    if sys.version_info < (3, 7):
+        sys.stderr.write("wpt requires Python 3.7 or higher\n")
         sys.exit(1)
 
     from tools.wpt import wpt
