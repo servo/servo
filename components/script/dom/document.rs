@@ -4799,7 +4799,9 @@ impl DocumentMethods for Document {
                         name == *self.name ||
                             !name.is_empty() && elem.get_id().as_ref() == Some(&self.name)
                     }),
-                    // TODO: Handle exposed objects.
+                    // TODO handle <embed> and <object>; these depend on whether the element is
+                    // “exposed”, a concept that doesn’t fully make sense until embed/object
+                    // behaviour is actually implemented
                     _ => false,
                 }
             }
@@ -5357,12 +5359,16 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
         HTMLElementTypeId::HTMLFormElement |
         HTMLElementTypeId::HTMLIFrameElement |
         HTMLElementTypeId::HTMLImageElement => true,
-        // TODO: Handle exposed objects.
+        // TODO handle <embed> and <object>; these depend on whether the element is
+        // “exposed”, a concept that doesn’t fully make sense until embed/object
+        // behaviour is actually implemented
         _ => false,
     }
 }
 
 fn is_named_element_with_id_attribute(elem: &Element) -> bool {
-    // TODO: Handle exposed objects.
+    // TODO handle <embed> and <object>; these depend on whether the element is
+    // “exposed”, a concept that doesn’t fully make sense until embed/object
+    // behaviour is actually implemented
     elem.is::<HTMLImageElement>() && elem.get_name().map_or(false, |name| !name.is_empty())
 }
