@@ -114,6 +114,14 @@ def test_no_elements_with_unknown_selector(session, get_test_page,selector):
     assert elements == []
 
 
+@pytest.mark.parametrize("shadow_root_id", [True, None, 1, [], {}])
+def test_invalid_shadow_root_id_argument(session, get_test_page, shadow_root_id):
+    session.url = get_test_page()
+
+    response = find_elements(session, shadow_root_id, ("css selector"), "input")
+    assert_error(response, "no such shadow root")
+
+
 @pytest.mark.parametrize("using", [("a"), (True), (None), (1), ([]), ({})])
 def test_invalid_using_argument(session, get_test_page, using):
     session.url = get_test_page()
@@ -155,14 +163,25 @@ def test_find_elements_equivalence(session, get_test_page):
                           ("partial link text", "link text"),
                           ("tag name", "a"),
                           ("xpath", "//a")])
-def test_find_elements(session, get_test_page, using, value):
-    session.url = get_test_page(shadow_doc="<div><a href=# id=linkText>full link text</a></div>")
-
-    host = session.find.css("custom-element", all=False)
-    shadow_root = host.shadow_root
+@pytest.mark.parametrize("mode", ["open", "closed"])
+def test_find_elements(session, get_test_page, using, value, mode):
+    session.url = get_test_page(
+        shadow_doc="<div><a href=# id=linkText>full link text</a></div>",
+        shadow_root_mode=mode,
+    )
+    shadow_root = session.find.css("custom-element", all=False).shadow_root
 
     response = find_elements(session, shadow_root.id, using, value)
-    assert_success(response)
+    response_value = assert_success(response)
+
+    assert len(response_value) == 1
+
+    # Script evaluation cannot use the DOM within a closed shadow root,
+    # that's why we assert on the copy of the shadow root on window.
+    expected = session.execute_script("""
+            return window._shadowRoot.querySelector('#linkText')
+        """)
+    assert_same_element(session, response_value[0], expected)
 
 
 @pytest.mark.parametrize("document,value", [

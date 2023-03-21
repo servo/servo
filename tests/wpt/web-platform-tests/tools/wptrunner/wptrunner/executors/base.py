@@ -644,6 +644,7 @@ class WdspecExecutor(TestExecutor):
         session_config = {"host": self.browser.host,
                           "port": self.browser.port,
                           "capabilities": self.capabilities,
+                          "timeout_multiplier": self.timeout_multiplier,
                           "webdriver": {
                               "binary": self.webdriver_binary,
                               "args": self.webdriver_args

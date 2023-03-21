@@ -40,9 +40,9 @@
   test_computed_value(`color`, `rgb(from lab(0 104.3 -50.9) r g b)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
   test_computed_value(`color`, `rgb(from lch(100 116 334) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
   test_computed_value(`color`, `rgb(from lch(0 116 334) r g b)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
-  test_computed_value(`color`, `rgb(from oklab(100 0.365 -0.16) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
+  test_computed_value(`color`, `rgb(from oklab(1 0.365 -0.16) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
   test_computed_value(`color`, `rgb(from oklab(0 0.365 -0.16) r g b)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(19, 0, 24).
-  test_computed_value(`color`, `rgb(from oklch(100 0.399 336.3) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
+  test_computed_value(`color`, `rgb(from oklch(1 0.399 336.3) r g b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
   test_computed_value(`color`, `rgb(from oklch(0 0.399 336.3) r g b)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(20, 0, 24).
 
   // Testing replacement with 0.
@@ -146,9 +146,9 @@
   test_computed_value(`color`, `hsl(from lab(0 104.3 -50.9) h s l)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
   test_computed_value(`color`, `hsl(from lch(100 116 334) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
   test_computed_value(`color`, `hsl(from lch(0 116 334) h s l)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
-  test_computed_value(`color`, `hsl(from oklab(100 0.365 -0.16) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
+  test_computed_value(`color`, `hsl(from oklab(1 0.365 -0.16) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
   test_computed_value(`color`, `hsl(from oklab(0 0.365 -0.16) h s l)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(19, 0, 24).
-  test_computed_value(`color`, `hsl(from oklch(100 0.399 336.3) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
+  test_computed_value(`color`, `hsl(from oklch(1 0.399 336.3) h s l)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
   test_computed_value(`color`, `hsl(from oklch(0 0.399 336.3) h s l)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(20, 0, 24).
 
   // Testing replacement with 0.
@@ -227,9 +227,9 @@
   test_computed_value(`color`, `hwb(from lab(0 104.3 -50.9) h w b)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
   test_computed_value(`color`, `hwb(from lch(100 116 334) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 150, 255).
   test_computed_value(`color`, `hwb(from lch(0 116 334) h w b)`, `rgb(42, 0, 34)`); // Naive clip based mapping would give rgb(90, 0, 76). NOTE: 0% lightness in Lab/LCH does not automatically correspond with sRGB black,
-  test_computed_value(`color`, `hwb(from oklab(100 0.365 -0.16) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
+  test_computed_value(`color`, `hwb(from oklab(1 0.365 -0.16) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 92, 255).
   test_computed_value(`color`, `hwb(from oklab(0 0.365 -0.16) h w b)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(19, 0, 24).
-  test_computed_value(`color`, `hwb(from oklch(100 0.399 336.3) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
+  test_computed_value(`color`, `hwb(from oklch(1 0.399 336.3) h w b)`, `rgb(255, 255, 255)`); // Naive clip based mapping would give rgb(255, 91, 255).
   test_computed_value(`color`, `hwb(from oklch(0 0.399 336.3) h w b)`, `rgb(0, 0, 0)`); // Naive clip based mapping would give rgb(20, 0, 24).
 
   // Testing replacement with 0.
@@ -357,66 +357,65 @@
   // oklab()
 
   // Testing no modifications.
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a b)`, `oklab(25 20 50)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a b / alpha)`, `oklab(25 20 50)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l a b / alpha)`, `oklab(25 20 50 / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(200 300 400 / 500%) l a b / alpha)`, `oklab(200 300 400)`);
-  test_computed_value(`color`, `oklab(from oklab(-200 -300 -400 / -500%) l a b / alpha)`, `oklab(0 -300 -400 / 0)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a b)`, `oklab(0.25 0.2 0.5)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a b / alpha)`, `oklab(0.25 0.2 0.5)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l a b / alpha)`, `oklab(0.25 0.2 0.5 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(2 3 4 / 500%) l a b / alpha)`, `oklab(1 3 4)`);
+  test_computed_value(`color`, `oklab(from oklab(-2 -3 -4 / -500%) l a b / alpha)`, `oklab(0 -3 -4 / 0)`);
 
   // Test nesting relative colors.
-  test_computed_value(`color`, `oklab(from oklab(from oklab(25 20 50) l a b) l a b)`, `oklab(25 20 50)`);
+  test_computed_value(`color`, `oklab(from oklab(from oklab(0.25 0.2 0.5) l a b) l a b)`, `oklab(0.25 0.2 0.5)`);
 
   // Testing non-oklab origin to see conversion.
   test_computed_value(`color`, `oklab(from color(display-p3 0 0 0) l a b / alpha)`, `oklab(0 0 0)`);
 
   // Testing replacement with 0.
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) 0 0 0)`, `oklab(0 0 0)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) 0 0 0 / 0)`, `oklab(0 0 0 / 0)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) 0 a b / alpha)`, `oklab(0 20 50)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l 0 b / alpha)`, `oklab(25 0 50)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a 0 / alpha)`, `oklab(25 20 0)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a b / 0)`, `oklab(25 20 50 / 0)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) 0 a b / alpha)`, `oklab(0 20 50 / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l 0 b / alpha)`, `oklab(25 0 50 / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l a 0 / alpha)`, `oklab(25 20 0 / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l a b / 0)`, `oklab(25 20 50 / 0)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) 0 0 0)`, `oklab(0 0 0)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) 0 0 0 / 0)`, `oklab(0 0 0 / 0)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) 0 a b / alpha)`, `oklab(0 0.2 0.5)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l 0 b / alpha)`, `oklab(0.25 0 0.5)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a 0 / alpha)`, `oklab(0.25 0.2 0)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a b / 0)`, `oklab(0.25 0.2 0.5 / 0)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) 0 a b / alpha)`, `oklab(0 0.2 0.5 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l 0 b / alpha)`, `oklab(0.25 0 0.5 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l a 0 / alpha)`, `oklab(0.25 0.2 0 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l a b / 0)`, `oklab(0.25 0.2 0.5 / 0)`);
 
   // Testing replacement with a constant.
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) 35 a b / alpha)`, `oklab(35 20 50)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l 35 b / alpha)`, `oklab(25 35 50)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a 35 / alpha)`, `oklab(25 20 35)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a b / .35)`, `oklab(25 20 50 / 0.35)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) 35 a b / alpha)`, `oklab(35 20 50 / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l 35 b / alpha)`, `oklab(25 35 50 / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l a 35 / alpha)`, `oklab(25 20 35 / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l a b / .35)`, `oklab(25 20 50 / 0.35)`);
-  test_computed_value(`color`, `oklab(from oklab(0.7 45 30 / 40%) 200 300 400 / 500)`, `oklab(200 300 400)`);
-  test_computed_value(`color`, `oklab(from oklab(0.7 45 30 / 40%) -200 -300 -400 / -500)`, `oklab(0 -300 -400 / 0)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) 0.35 a b / alpha)`, `oklab(0.35 0.2 0.5)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l 0.35 b / alpha)`, `oklab(0.25 0.35 0.5)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a 0.35 / alpha)`, `oklab(0.25 0.2 0.35)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a b / .35)`, `oklab(0.25 0.2 0.5 / 0.35)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) 0.35 a b / alpha)`, `oklab(0.35 0.2 0.5 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l 0.35 b / alpha)`, `oklab(0.25 0.35 0.5 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l a 0.35 / alpha)`, `oklab(0.25 0.2 0.35 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l a b / .35)`, `oklab(0.25 0.2 0.5 / 0.35)`);
+  test_computed_value(`color`, `oklab(from oklab(0.7 0.45 0.3 / 40%) 2 3 4 / 500)`, `oklab(1 3 4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.7 0.45 0.3 / 40%) -2 -3 -4 / -500)`, `oklab(0 -3 -4 / 0)`);
 
   // Testing valid permutation (types match).
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l b a)`, `oklab(25 50 20)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a a / a)`, `oklab(25 20 20)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l b a)`, `oklab(25 50 20)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l a a / a)`, `oklab(25 20 20)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l b a)`, `oklab(0.25 0.5 0.2)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a a / a)`, `oklab(0.25 0.2 0.2 / 0.2)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l b a)`, `oklab(0.25 0.5 0.2)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l a a / a)`, `oklab(0.25 0.2 0.2 / 0.2)`);
 
   // Testing with calc().
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) calc(l) calc(a) calc(b))`, `oklab(25 20 50)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) calc(l) calc(a) calc(b) / calc(alpha))`, `oklab(25 20 50 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) calc(l) calc(a) calc(b))`, `oklab(0.25 0.2 0.5)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) calc(l) calc(a) calc(b) / calc(alpha))`, `oklab(0.25 0.2 0.5 / 0.4)`);
 
   // Testing with 'none'.
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) none none none)`, `oklab(none none none)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) none none none / none)`, `oklab(none none none / none)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a none)`, `oklab(25 20 none)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a none / alpha)`, `oklab(25 20 none)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50) l a b / none)`, `oklab(25 20 50 / none)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l a none / alpha)`, `oklab(25 20 none / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / 40%) l a b / none)`, `oklab(25 20 50 / none)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) none none none)`, `oklab(none none none)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) none none none / none)`, `oklab(none none none / none)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a none)`, `oklab(0.25 0.2 none)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a none / alpha)`, `oklab(0.25 0.2 none)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5) l a b / none)`, `oklab(0.25 0.2 0.5 / none)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l a none / alpha)`, `oklab(0.25 0.2 none / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / 40%) l a b / none)`, `oklab(0.25 0.2 0.5 / none)`);
   // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
   test_computed_value(`color`, `oklab(from oklab(none none none) l a b)`, `oklab(0 0 0)`);
   test_computed_value(`color`, `oklab(from oklab(none none none / none) l a b / alpha)`, `oklab(0 0 0 / 0)`);
-  test_computed_value(`color`, `oklab(from oklab(25 none 50) l a b)`, `oklab(25 0 50)`);
-  test_computed_value(`color`, `oklab(from oklab(25 20 50 / none) l a b / alpha)`, `oklab(25 20 50 / 0)`);
-
+  test_computed_value(`color`, `oklab(from oklab(0.25 none 0.5) l a b)`, `oklab(0.25 0 0.5)`);
+  test_computed_value(`color`, `oklab(from oklab(0.25 0.2 0.5 / none) l a b / alpha)`, `oklab(0.25 0.2 0.5 / 0)`);
 
   // lab and oklab tests that require different results due to percent scaling differences.
   test_computed_value(`color`, `lab(from lab(.7 45 30) alpha b a / l)`, `lab(100 30 45 / 0.7)`);
@@ -426,12 +425,12 @@
   test_computed_value(`color`, `lab(from lab(.7 45 30 / 40%) alpha a b / alpha)`, `lab(40 45 30 / 0.4)`);
   test_computed_value(`color`, `lab(from lab(.7 45 30 / 40%) alpha a a / alpha)`, `lab(40 45 45 / 0.4)`);
 
-  test_computed_value(`color`, `oklab(from oklab(.7 45 30) alpha b a / l)`, `oklab(1 30 45 / 0.7)`);
-  test_computed_value(`color`, `oklab(from oklab(.7 45 30) alpha a b / alpha)`, `oklab(1 45 30)`);
-  test_computed_value(`color`, `oklab(from oklab(.7 45 30) alpha a a / alpha)`, `oklab(1 45 45)`);
-  test_computed_value(`color`, `oklab(from oklab(.7 45 30 / 40%) alpha b a / l)`, `oklab(0.4 30 45 / 0.7)`);
-  test_computed_value(`color`, `oklab(from oklab(.7 45 30 / 40%) alpha a b / alpha)`, `oklab(0.4 45 30 / 0.4)`);
-  test_computed_value(`color`, `oklab(from oklab(.7 45 30 / 40%) alpha a a / alpha)`, `oklab(0.4 45 45 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(.7 0.45 0.3) alpha b a / l)`, `oklab(1 0.3 0.45 / 0.7)`);
+  test_computed_value(`color`, `oklab(from oklab(.7 0.45 0.3) alpha a b / alpha)`, `oklab(1 0.45 0.3)`);
+  test_computed_value(`color`, `oklab(from oklab(.7 0.45 0.3) alpha a a / alpha)`, `oklab(1 0.45 0.45)`);
+  test_computed_value(`color`, `oklab(from oklab(.7 0.45 0.3 / 40%) alpha b a / l)`, `oklab(0.4 0.3 0.45 / 0.7)`);
+  test_computed_value(`color`, `oklab(from oklab(.7 0.45 0.3 / 40%) alpha a b / alpha)`, `oklab(0.4 0.45 0.3 / 0.4)`);
+  test_computed_value(`color`, `oklab(from oklab(.7 0.45 0.3 / 40%) alpha a a / alpha)`, `oklab(0.4 0.45 0.45 / 0.4)`);
 
   // lch()
 
@@ -507,73 +506,74 @@
   // oklch()
 
   // Testing no modifications.
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c h)`, `oklch(0.7 45 30)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c h / alpha)`, `oklch(0.7 45 30)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c h / alpha)`, `oklch(0.7 45 30 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(200 300 400 / 500%) l c h / alpha)`, `oklch(200 300 40)`);
-  test_computed_value(`color`, `oklch(from oklch(-200 -300 -400 / -500%) l c h / alpha)`, `oklch(0 0 320 / 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c h)`, `oklch(0.7 0.45 30)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c h / alpha)`, `oklch(0.7 0.45 30)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c h / alpha)`, `oklch(0.7 0.45 30 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(2 3 400 / 500%) l c h / alpha)`, `oklch(1 3 40)`);
+  test_computed_value(`color`, `oklch(from oklch(-2 -3 -400 / -500%) l c h / alpha)`, `oklch(0 0 320 / 0)`);
 
   // Test nesting relative colors.
-  test_computed_value(`color`, `oklch(from oklch(from oklch(0.7 45 30) l c h) l c h)`, `oklch(0.7 45 30)`);
+  test_computed_value(`color`, `oklch(from oklch(from oklch(0.7 0.45 30) l c h) l c h)`, `oklch(0.7 0.45 30)`);
 
   // Testing non-sRGB origin colors (no gamut mapping will happen since the destination is not a bounded RGB color space).
   test_computed_value(`color`, `oklch(from color(display-p3 0 0 0) l c h / alpha)`, `oklch(0 0 0)`);
+  // TODO: redo conversion with oklab(0.7 0.45 0.3)
   test_computed_value(`color`, `oklch(from oklab(0.7 45 30) l c h / alpha)`, `oklch(0.7 54.08327 33.690067)`);
 
   // Testing replacement with 0.
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) 0 0 0)`, `oklch(0 0 0)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) 0 0 0deg)`, `oklch(0 0 0)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) 0 0 0 / 0)`, `oklch(0 0 0 / 0)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) 0 0 0deg / 0)`, `oklch(0 0 0 / 0)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) 0 c h / alpha)`, `oklch(0 45 30)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l 0 h / alpha)`, `oklch(0.7 0 30)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c 0 / alpha)`, `oklch(0.7 45 0)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c 0deg / alpha)`, `oklch(0.7 45 0)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c h / 0)`, `oklch(0.7 45 30 / 0)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) 0 c h / alpha)`, `oklch(0 45 30 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l 0 h / alpha)`, `oklch(0.7 0 30 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c 0 / alpha)`, `oklch(0.7 45 0 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c 0deg / alpha)`, `oklch(0.7 45 0 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c h / 0)`, `oklch(0.7 45 30 / 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) 0 0 0)`, `oklch(0 0 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) 0 0 0deg)`, `oklch(0 0 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) 0 0 0 / 0)`, `oklch(0 0 0 / 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) 0 0 0deg / 0)`, `oklch(0 0 0 / 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) 0 c h / alpha)`, `oklch(0 0.45 30)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l 0 h / alpha)`, `oklch(0.7 0 30)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c 0 / alpha)`, `oklch(0.7 0.45 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c 0deg / alpha)`, `oklch(0.7 0.45 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c h / 0)`, `oklch(0.7 0.45 30 / 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) 0 c h / alpha)`, `oklch(0 0.45 30 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l 0 h / alpha)`, `oklch(0.7 0 30 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c 0 / alpha)`, `oklch(0.7 0.45 0 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c 0deg / alpha)`, `oklch(0.7 0.45 0 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c h / 0)`, `oklch(0.7 0.45 30 / 0)`);
 
   // Testing replacement with a constant.
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) 25 c h / alpha)`, `oklch(25 45 30)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l 25 h / alpha)`, `oklch(0.7 25 30)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c 25 / alpha)`, `oklch(0.7 45 25)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c 25deg / alpha)`, `oklch(0.7 45 25)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c h / .25)`, `oklch(0.7 45 30 / 0.25)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) 25 c h / alpha)`, `oklch(25 45 30 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l 25 h / alpha)`, `oklch(0.7 25 30 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c 25 / alpha)`, `oklch(0.7 45 25 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c 25deg / alpha)`, `oklch(0.7 45 25 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c h / .25)`, `oklch(0.7 45 30 / 0.25)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) 200 300 400 / 500)`, `oklch(200 300 40)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) -200 -300 -400 / -500)`, `oklch(0 0 320 / 0)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) 50 120 400deg / 500)`, `oklch(50 120 40)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) 50 120 -400deg / -500)`, `oklch(50 120 320 / 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) 0.25 c h / alpha)`, `oklch(0.25 0.45 30)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l 0.25 h / alpha)`, `oklch(0.7 0.25 30)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c 25 / alpha)`, `oklch(0.7 0.45 25)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c 25deg / alpha)`, `oklch(0.7 0.45 25)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c h / .25)`, `oklch(0.7 0.45 30 / 0.25)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) 0.25 c h / alpha)`, `oklch(0.25 0.45 30 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l 0.25 h / alpha)`, `oklch(0.7 0.25 30 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c 25 / alpha)`, `oklch(0.7 0.45 25 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c 25deg / alpha)`, `oklch(0.7 0.45 25 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c h / .25)`, `oklch(0.7 0.45 30 / 0.25)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) 2 3 400 / 500)`, `oklch(1 3 40)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) -2 -3 -400 / -500)`, `oklch(0 0 320 / 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) 0.5 1.2 400deg / 500)`, `oklch(0.5 1.2 40)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) 0.5 1.2 -400deg / -500)`, `oklch(0.5 1.2 320 / 0)`);
 
   // Testing valid permutation (types match).
   // NOTE: 'c' is a vaild hue, as hue is <angle>|<number>.
-  test_computed_value(`color`, `oklch(from oklch(.7 45 30) l c c / alpha)`, `oklch(0.7 45 45)`);
-  test_computed_value(`color`, `oklch(from oklch(.7 45 30 / 40%) l c c / alpha)`, `oklch(0.7 45 45 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(.7 0.45 30) l c c / alpha)`, `oklch(0.7 0.45 0.45)`);
+  test_computed_value(`color`, `oklch(from oklch(.7 0.45 30 / 40%) l c c / alpha)`, `oklch(0.7 0.45 0.45 / 0.4)`);
 
   // Testing with calc().
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) calc(l) calc(c) calc(h))`, `oklch(0.7 45 30)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) calc(l) calc(c) calc(h) / calc(alpha))`, `oklch(0.7 45 30 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) calc(l) calc(c) calc(h))`, `oklch(0.7 0.45 30)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) calc(l) calc(c) calc(h) / calc(alpha))`, `oklch(0.7 0.45 30 / 0.4)`);
 
   // Testing with 'none'.
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) none none none)`,                                   `oklch(none none none)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) none none none / none)`,                            `oklch(none none none / none)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c none)`,                                         `oklch(0.7 45 none)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c none / alpha)`,                                 `oklch(0.7 45 none)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30) l c h / none)`,                                     `oklch(0.7 45 30 / none)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c none / alpha)`,                           `oklch(0.7 45 none / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / 40%) l c h / none)`,                               `oklch(0.7 45 30 / none)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) none none none)`,                                   `oklch(none none none)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) none none none / none)`,                            `oklch(none none none / none)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c none)`,                                         `oklch(0.7 0.45 none)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c none / alpha)`,                                 `oklch(0.7 0.45 none)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30) l c h / none)`,                                     `oklch(0.7 0.45 30 / none)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c none / alpha)`,                           `oklch(0.7 0.45 none / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / 40%) l c h / none)`,                               `oklch(0.7 0.45 30 / none)`);
   // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
   test_computed_value(`color`, `oklch(from oklch(none none none) l c h)`,                                       `oklch(0 0 0)`);
   test_computed_value(`color`, `oklch(from oklch(none none none / none) l c h / alpha)`,                        `oklch(0 0 0 / 0)`);
   test_computed_value(`color`, `oklch(from oklch(0.7 none 30) l c h)`,                                          `oklch(0.7 0 30)`);
-  test_computed_value(`color`, `oklch(from oklch(0.7 45 30 / none) l c h / alpha)`,                             `oklch(0.7 45 30 / 0)`);
+  test_computed_value(`color`, `oklch(from oklch(0.7 0.45 30 / none) l c h / alpha)`,                             `oklch(0.7 0.45 30 / 0)`);
 
   // lch and oklch tests that require different results due to percent scaling differences.
   test_computed_value(`color`, `lch(from lch(.7 45 30) alpha c h / l)`, `lch(100 45 30 / 0.7)`);
@@ -583,12 +583,12 @@
   test_computed_value(`color`, `lch(from lch(.7 45 30 / 40%) alpha c h / alpha)`, `lch(40 45 30 / 0.4)`);
   test_computed_value(`color`, `lch(from lch(.7 45 30 / 40%) alpha c c / alpha)`, `lch(40 45 45 / 0.4)`);
 
-  test_computed_value(`color`, `oklch(from oklch(.7 45 30) alpha c h / l)`, `oklch(1 45 30 / 0.7)`);
-  test_computed_value(`color`, `oklch(from oklch(.7 45 30) alpha c h / alpha)`, `oklch(1 45 30)`);
-  test_computed_value(`color`, `oklch(from oklch(.7 45 30) alpha c c / alpha)`, `oklch(1 45 45)`);
-  test_computed_value(`color`, `oklch(from oklch(.7 45 30 / 40%) alpha c h / l)`, `oklch(0.4 45 30 / 0.7)`);
-  test_computed_value(`color`, `oklch(from oklch(.7 45 30 / 40%) alpha c h / alpha)`, `oklch(0.4 45 30 / 0.4)`);
-  test_computed_value(`color`, `oklch(from oklch(.7 45 30 / 40%) alpha c c / alpha)`, `oklch(0.4 45 45 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(.7 0.45 30) alpha c h / l)`, `oklch(1 0.45 30 / 0.7)`);
+  test_computed_value(`color`, `oklch(from oklch(.7 0.45 30) alpha c h / alpha)`, `oklch(1 0.45 30)`);
+  test_computed_value(`color`, `oklch(from oklch(.7 0.45 30) alpha c c / alpha)`, `oklch(1 0.45 0.45)`);
+  test_computed_value(`color`, `oklch(from oklch(.7 0.45 30 / 40%) alpha c h / l)`, `oklch(0.4 0.45 30 / 0.7)`);
+  test_computed_value(`color`, `oklch(from oklch(.7 0.45 30 / 40%) alpha c h / alpha)`, `oklch(0.4 0.45 30 / 0.4)`);
+  test_computed_value(`color`, `oklch(from oklch(.7 0.45 30 / 40%) alpha c c / alpha)`, `oklch(0.4 0.45 0.45 / 0.4)`);
 
 
   for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb", "display-p3" ]) {

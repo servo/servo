@@ -3,12 +3,18 @@
 <head>
 	<title>CSS Masking: Reftest reference</title>
 	<link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+	<meta name="flags" content="ahem">
+	<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
+body {
+	margin: 0;
+}
 div {
 	height: 20px;
 	background-color: green;
 	padding: 0;
 	margin: 0;
+	font: 20px/1 Ahem;
 }
 div:nth-child(odd) {
 	margin-bottom: 5px;

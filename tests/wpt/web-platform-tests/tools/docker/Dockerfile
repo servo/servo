@@ -39,7 +39,7 @@ RUN apt-get -qqy update \
     wget \
     xvfb
 
-# python3.6 is not available by default in new versions of Ubuntu.
+# Ensure all Python versions are available
 RUN apt-add-repository -y ppa:deadsnakes/ppa
 
 # Ensure a `python` binary exists

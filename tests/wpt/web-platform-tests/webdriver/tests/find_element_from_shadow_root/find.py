@@ -113,6 +113,14 @@ def test_no_such_element_with_unknown_selector(session, get_test_page, selector)
     assert_error(response, "no such element")
 
 
+@pytest.mark.parametrize("shadow_root_id", [True, None, 1, [], {}])
+def test_invalid_shadow_root_id_argument(session, get_test_page, shadow_root_id):
+    session.url = get_test_page()
+
+    response = find_element(session, shadow_root_id, "css selector", "input")
+    assert_error(response, "no such shadow root")
+
+
 @pytest.mark.parametrize("using", ["a", True, None, 1, [], {}])
 def test_invalid_using_argument(session, get_test_page, using):
     session.url = get_test_page()
@@ -154,19 +162,23 @@ def test_found_element_equivalence(session, get_test_page):
                           ("partial link text", "link text"),
                           ("tag name", "a"),
                           ("xpath", "//a")])
-def test_find_element(session, get_test_page, using, value):
-    session.url = get_test_page(shadow_doc="<div><a href=# id=linkText>full link text</a></div>")
-
-    host = session.find.css("custom-element", all=False)
-    shadow_root = host.shadow_root
-
-    expected = session.execute_script("""
-        return arguments[0].shadowRoot.querySelector('#linkText')
-        """, args=(host,))
+@pytest.mark.parametrize("mode", ["open", "closed"])
+def test_find_element(session, get_test_page, using, value, mode):
+    session.url = get_test_page(
+        shadow_doc="<div><a href=# id=linkText>full link text</a></div>",
+        shadow_root_mode=mode,
+    )
+    shadow_root = session.find.css("custom-element", all=False).shadow_root
 
     response = find_element(session, shadow_root.id, using, value)
-    value = assert_success(response)
-    assert_same_element(session, value, expected)
+    response_value = assert_success(response)
+
+    # Script evaluation cannot use the DOM within a closed shadow root,
+    # that's why we assert on the copy of the shadow root on window.
+    expected = session.execute_script("""
+            return window._shadowRoot.querySelector('#linkText')
+        """)
+    assert_same_element(session, response_value, expected)
 
 
 @pytest.mark.parametrize("document,value", [

@@ -145,17 +145,9 @@ async def test_cached_redirect(
     )
 
 
-@pytest.mark.parametrize(
-    "method",
-    [
-        "GET",
-        "HEAD",
-        "OPTIONS",
-    ],
-)
 @pytest.mark.asyncio
 async def test_cached_revalidate(
-    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test, method
+    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test
 ):
     network_events = await setup_network_test(
         events=[
@@ -168,11 +160,11 @@ async def test_cached_revalidate(
         f"/webdriver/tests/support/http_handlers/must-revalidate.py?nocache={random.random()}"
     )
     on_response_completed = wait_for_event("network.responseCompleted")
-    await fetch(revalidate_url, method=method)
+    await fetch(revalidate_url)
     await on_response_completed
 
     assert len(events) == 1
-    expected_request = {"method": method, "url": revalidate_url}
+    expected_request = {"method": "GET", "url": revalidate_url}
     expected_response = {
         "url": revalidate_url,
         "fromCache": False,
@@ -188,7 +180,7 @@ async def test_cached_revalidate(
 
     # Note that we pass a specific header so that the must-revalidate.py handler
     # can decide to return a 304 without having to use another URL.
-    await fetch(revalidate_url, method=method, headers={"return-304": "true"})
+    await fetch(revalidate_url, headers={"return-304": "true"})
     await on_response_completed
 
     assert len(events) == 2

@@ -228,6 +228,17 @@
                     test.done();
                 });
             }, "Get buffered range after removing sourcebuffer.");
+
+            mediasource_test(function(test, mediaElement, mediaSource)
+            {
+                mediaElement.pause();
+                mediaElement.addEventListener("error", test.unreached_func("Unexpected event 'error'"));
+                mediaElement.addEventListener("ended", test.step_func_done());
+
+                var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+                assert_equals(mediaSource.sourceBuffers[0].buffered , mediaSource.sourceBuffers[0].buffered);
+                test.done();
+            }, "buffered return the same object over multiple calls.");
         </script>
     </body>
 </html>

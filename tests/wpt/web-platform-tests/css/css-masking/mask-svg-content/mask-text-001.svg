@@ -6,6 +6,7 @@
 	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-masks"/>
 	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#MaskElement"/>
 	<html:link rel="match" href="reference/mask-text-001-ref.svg"/>
+	<html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 	<metadata class="flags">svg</metadata>
 	<desc class="assert">The masked target elements get scaled with negative
 	factors. Check if that influences masking. You should see 4 green

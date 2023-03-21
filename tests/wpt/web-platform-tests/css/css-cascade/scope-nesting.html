@@ -93,3 +93,28 @@ test((t) => {
   assert_equals(getComputedStyle(outside).zIndex, 'auto');
 }, 'Relative selectors in <scope-end>');
 </script>
+
+<template id=test_inner_nest>
+  <div>
+    <style>
+      @scope (.a) {
+        & + & {
+          z-index:1;
+        }
+      }
+    </style>
+    <div class=a>
+      <div id=inner1 class=a></div>
+      <div id=inner2 class=a></div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_inner_nest.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(inner1).zIndex, 'auto');
+  assert_equals(getComputedStyle(inner2).zIndex, '1');
+}, 'Nesting-selector in the scope\'s <stylesheet>');
+</script>

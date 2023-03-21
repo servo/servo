@@ -66,7 +66,7 @@ test_scope_invalidation(document.currentScript, () => {
 <template>
   <style>
     @scope (.a) {
-      .b { background-color: green; }
+      :scope { background-color: green; }
     }
   </style>
   <div class=b></div>
@@ -79,9 +79,8 @@ test_scope_invalidation(document.currentScript, () => {
   assert_green(b);
   b.classList.remove('a');
   assert_not_green(b);
-}, 'Element becoming scope root, with inner selector matching that root');
+}, 'Element becoming scope root, with inner :scope rule');
 </script>
-
 
 <template>
   <style>

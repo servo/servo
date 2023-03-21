@@ -71,9 +71,26 @@ test_scope(document.currentScript, () => {
 </template>
 <script>
 test_scope(document.currentScript, () => {
+  assert_not_green('.a');
+  assert_not_green('.a > span');
+}, 'Scope can not match its own root without :scope');
+</script>
+
+<template>
+  <style>
+    @scope (.a) {
+      :scope { background-color: green; }
+    }
+  </style>
+  <div class=a> <!-- green -->
+    <span>not green</span>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
   assert_green('.a');
   assert_not_green('.a > span');
-}, 'Single scope (self)');
+}, 'Selecting self with :scope');
 </script>
 
 <template>
@@ -354,7 +371,7 @@ test_scope(document.currentScript, () => {
 test_scope(document.currentScript, () => {
   assert_not_green('#above');
   assert_not_green('#adjacent');
-  assert_green('.a');
+  assert_not_green('.a');
   assert_green('.a > div');
   assert_not_green('.b');
   assert_not_green('#below');
@@ -382,7 +399,7 @@ test_scope(document.currentScript, () => {
 test_scope(document.currentScript, () => {
   assert_not_green('#above');
   assert_not_green('#adjacent');
-  assert_green('.a');
+  assert_not_green('.a');
   assert_green('.a > div');
   assert_green('.b');
   assert_not_green('#limit');
@@ -456,4 +473,41 @@ test_scope(document.currentScript, () => {
   // be on the ancestor chain.
   assert_not_green('.c');
 }, ':scope indirect adjacent sibling');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a) {
+      > span { background-color: green; }
+    }
+  </style>
+  <div class=a>
+    <span>green</span>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  assert_green('.a > span');
+}, 'Relative selector inside @scope');
+</script>
+
+
+<template>
+  <style>
+    @scope (.a) {
+      /* Can never match anything. */
+      :scope > :scope { background-color: green; }
+    }
+  </style>
+  <div class=a>
+    <div id=inner class=a>
+    </div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  assert_not_green('.a');
+  assert_not_green('#inner');
+}, ':scope in two different compounds');
 </script>
