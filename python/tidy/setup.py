@@ -17,7 +17,7 @@ install_requires = [
     "flake8==3.8.3",
     "toml==0.9.2",
     "colorama==0.3.7",
-    "voluptuous==0.11.5",
+    "voluptuous==0.12.1",
     "PyYAML==5.4",
 ]
 
