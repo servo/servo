@@ -65,7 +65,11 @@ impl Headers {
 impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-append
     fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
+        // Step 1
         let value = normalize_value(value);
+
+        // Step 2
+        // https://fetch.spec.whatwg.org/#headers-validate
         let (mut valid_name, valid_value) = validate_name_and_value(name, value)?;
         valid_name = valid_name.to_lowercase();
 
@@ -79,6 +83,7 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
 
+        // Step 3
         if self.guard.get() == Guard::RequestNoCors {
             let tmp_value = if let Some(value) =
                 get_value_from_header_list(&valid_name, &self.header_list.borrow())
@@ -96,11 +101,25 @@ impl HeadersMethods for Headers {
             }
         }
 
-        if self.guard.get() != Guard::RequestNoCors || valid_name != "range" {
-            self.header_list.borrow_mut().append(
-                HeaderName::from_str(&valid_name).unwrap(),
-                HeaderValue::from_bytes(&valid_value).unwrap(),
-            );
+        // Step 4
+        match HeaderValue::from_bytes(&valid_value) {
+            Ok(value) => {
+                self.header_list
+                    .borrow_mut()
+                    .append(HeaderName::from_str(&valid_name).unwrap(), value);
+            },
+            Err(_) => {
+                // can't add the header, but we don't need to panic the browser over it
+                warn!(
+                    "Servo thinks \"{:?}\" is a valid HTTP header value but HeaderValue doesn't.",
+                    valid_value
+                );
+            },
+        };
+
+        // Step 5
+        if self.guard.get() != Guard::RequestNoCors {
+            self.remove_privileged_no_cors_request_headers();
         }
 
         Ok(())
@@ -282,15 +301,19 @@ impl Headers {
                 for value in borrowed_header_list.get_all(name).iter() {
                     header_vec.push((name.to_owned(), value.as_bytes().to_vec()));
                 }
-            } else {
-                if let Some(value) = get_value_from_header_list(name, &borrowed_header_list) {
-                    header_vec.push((name.to_owned(), value.as_bytes().to_vec()));
-                }
+            } else if let Some(value) = get_value_from_header_list(name, &borrowed_header_list) {
+                header_vec.push((name.to_owned(), value.as_bytes().to_vec()));
             }
         }
 
         header_vec.sort_by(|a, b| a.0.cmp(&b.0));
         header_vec
+    }
+
+    // https://fetch.spec.whatwg.org/#ref-for-privileged-no-cors-request-header-name
+    pub fn remove_privileged_no_cors_request_headers(&self) {
+        // https://fetch.spec.whatwg.org/#privileged-no-cors-request-header-name
+        self.header_list.borrow_mut().remove("range");
     }
 }
 
