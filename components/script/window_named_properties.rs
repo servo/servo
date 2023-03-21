@@ -117,14 +117,14 @@ unsafe extern "C" fn get_own_property_descriptor(
         jsstr_to_string(*cx, id.to_string())
     } else if id.is_int() {
         // If the property key is an integer index, convert it to a String too.
-        // TODO(delan) will this interfere with indexed access on the Window object
-        // (window[index]), which should only return document-tree child navigables?
-        // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
+        // For indexed access on the window object, which may shadow this, see
+        // the getOwnPropertyDescriptor trap in dom/windowproxy.rs.
         id.to_int().to_string()
     } else if id.is_symbol() {
+        // Symbol properties were already handled above.
         unreachable!()
     } else {
-        unreachable!()
+        unimplemented!()
     };
     if s.is_empty() {
         return true;
