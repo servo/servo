@@ -7,13 +7,14 @@
 
 use crate::context::QuirksMode;
 use crate::dom::{TDocument, TElement, TNode, TShadowRoot};
+use crate::selector_parser::SelectorImpl;
 use crate::invalidation::element::invalidation_map::Dependency;
 use crate::invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
 use crate::invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
 use crate::values::AtomIdent;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode, NeedsSelectorFlags};
-use selectors::parser::{Combinator, Component, LocalName, SelectorImpl};
+use selectors::parser::{Combinator, Component, LocalName};
 use selectors::{Element, SelectorList};
 use smallvec::SmallVec;
 
@@ -376,6 +377,23 @@ where
     element.local_name() == &**chosen_name
 }
 
+fn get_id(component: &Component<SelectorImpl>) -> Option<&AtomIdent> {
+    use selectors::attr::AttrSelectorOperator;
+    Some(match component {
+        Component::ID(ref id) => id,
+        Component::AttributeInNoNamespace { ref operator, ref local_name, ref value, .. } => {
+            if *local_name != local_name!("id") {
+                return None;
+            }
+            if *operator != AttrSelectorOperator::Equal {
+                return None;
+            }
+            AtomIdent::cast(&value.0)
+        },
+        _ => return None,
+    })
+}
+
 /// Fast paths for querySelector with a single simple selector.
 fn query_selector_single_query<E, Q>(
     root: E::ConcreteNode,
@@ -387,12 +405,10 @@ where
     E: TElement,
     Q: SelectorQuery<E>,
 {
+    // TODO: Maybe we could implement a fast path for [name=""]?
     match *component {
         Component::ExplicitUniversalType => {
             collect_all_elements::<E, Q, _>(root, results, |_| true)
-        },
-        Component::ID(ref id) => {
-            collect_elements_with_id::<E, Q, _>(root, id, results, quirks_mode, |_| true);
         },
         Component::Class(ref class) => {
             let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
@@ -405,16 +421,22 @@ where
                 local_name_matches(element, local_name)
             })
         },
-        // TODO(emilio): More fast paths?
-        _ => return Err(()),
+        ref other => {
+            let id = match get_id(other) {
+                Some(id) => id,
+                // TODO(emilio): More fast paths?
+                None => return Err(()),
+            };
+            collect_elements_with_id::<E, Q, _>(root, id, results, quirks_mode, |_| true);
+        },
     }
 
     Ok(())
 }
 
-enum SimpleFilter<'a, Impl: SelectorImpl> {
+enum SimpleFilter<'a> {
     Class(&'a AtomIdent),
-    LocalName(&'a LocalName<Impl>),
+    LocalName(&'a LocalName<SelectorImpl>),
 }
 
 /// Fast paths for a given selector query.
@@ -468,60 +490,6 @@ where
 
         'component_loop: for component in &mut iter {
             match *component {
-                Component::ID(ref id) => {
-                    if combinator.is_none() {
-                        // In the rightmost compound, just find descendants of
-                        // root that match the selector list with that id.
-                        collect_elements_with_id::<E, Q, _>(root, id, results, quirks_mode, |e| {
-                            matching::matches_selector_list(selector_list, &e, matching_context)
-                        });
-
-                        return Ok(());
-                    }
-
-                    let elements = fast_connected_elements_with_id(root, id, quirks_mode)?;
-                    if elements.is_empty() {
-                        return Ok(());
-                    }
-
-                    // Results need to be in document order. Let's not bother
-                    // reordering or deduplicating nodes, which we would need to
-                    // do if one element with the given id were a descendant of
-                    // another element with that given id.
-                    if !Q::should_stop_after_first_match() && elements.len() > 1 {
-                        continue;
-                    }
-
-                    for element in elements {
-                        // If the element is not a descendant of the root, then
-                        // it may have descendants that match our selector that
-                        // _are_ descendants of the root, and other descendants
-                        // that match our selector that are _not_.
-                        //
-                        // So we can't just walk over the element's descendants
-                        // and match the selector against all of them, nor can
-                        // we skip looking at this element's descendants.
-                        //
-                        // Give up on trying to optimize based on this id and
-                        // keep walking our selector.
-                        if !connected_element_is_descendant_of(*element, root) {
-                            continue 'component_loop;
-                        }
-
-                        query_selector_slow::<E, Q>(
-                            element.as_node(),
-                            selector_list,
-                            results,
-                            matching_context,
-                        );
-
-                        if Q::should_stop_after_first_match() && !Q::is_empty(&results) {
-                            break;
-                        }
-                    }
-
-                    return Ok(());
-                },
                 Component::Class(ref class) => {
                     if combinator.is_none() {
                         simple_filter = Some(SimpleFilter::Class(class));
@@ -537,7 +505,61 @@ where
                         simple_filter = Some(SimpleFilter::LocalName(local_name));
                     }
                 },
-                _ => {},
+                ref other => {
+                    if let Some(id) = get_id(other) {
+                        if combinator.is_none() {
+                            // In the rightmost compound, just find descendants of root that match
+                            // the selector list with that id.
+                            collect_elements_with_id::<E, Q, _>(root, id, results, quirks_mode, |e| {
+                                matching::matches_selector_list(selector_list, &e, matching_context)
+                            });
+                            return Ok(());
+                        }
+
+                        let elements = fast_connected_elements_with_id(root, id, quirks_mode)?;
+                        if elements.is_empty() {
+                            return Ok(());
+                        }
+
+                        // Results need to be in document order. Let's not bother
+                        // reordering or deduplicating nodes, which we would need to
+                        // do if one element with the given id were a descendant of
+                        // another element with that given id.
+                        if !Q::should_stop_after_first_match() && elements.len() > 1 {
+                            continue;
+                        }
+
+                        for element in elements {
+                            // If the element is not a descendant of the root, then
+                            // it may have descendants that match our selector that
+                            // _are_ descendants of the root, and other descendants
+                            // that match our selector that are _not_.
+                            //
+                            // So we can't just walk over the element's descendants
+                            // and match the selector against all of them, nor can
+                            // we skip looking at this element's descendants.
+                            //
+                            // Give up on trying to optimize based on this id and
+                            // keep walking our selector.
+                            if !connected_element_is_descendant_of(*element, root) {
+                                continue 'component_loop;
+                            }
+
+                            query_selector_slow::<E, Q>(
+                                element.as_node(),
+                                selector_list,
+                                results,
+                                matching_context,
+                            );
+
+                            if Q::should_stop_after_first_match() && !Q::is_empty(&results) {
+                                break;
+                            }
+                        }
+
+                        return Ok(());
+                    }
+                },
             }
         }
 

@@ -380,6 +380,14 @@ impl AtomIdent {
             callback(&*atom)
         })
     }
+
+    /// Cast an atom ref to an AtomIdent ref.
+    #[inline]
+    pub fn cast<'a>(atom: &'a Atom) -> &'a Self {
+        let ptr = atom as *const _ as *const Self;
+        // safety: repr(transparent)
+        unsafe { &*ptr }
+    }
 }
 
 #[cfg(feature = "gecko")]
