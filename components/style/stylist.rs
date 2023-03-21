@@ -2004,12 +2004,16 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     ) -> bool {
         if self.in_selector_list_of.in_nth_of() {
             self.nth_of_attribute_dependencies.insert(name.clone());
-            self.nth_of_attribute_dependencies
-                .insert(lower_name.clone());
+            if name != lower_name {
+                self.nth_of_attribute_dependencies
+                    .insert(lower_name.clone());
+            }
         }
 
         self.attribute_dependencies.insert(name.clone());
-        self.attribute_dependencies.insert(lower_name.clone());
+        if name != lower_name {
+            self.attribute_dependencies.insert(lower_name.clone());
+        }
 
         true
     }
