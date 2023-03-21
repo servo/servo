@@ -11,13 +11,8 @@ use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::jsstr_to_string;
-use js::glue::{
-    AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps, RUST_SYMBOL_TO_JSID,
-};
-use js::jsapi::{
-    jsid, GetPropertyKeys, GetWellKnownSymbol, JS_SetImmutablePrototype, SymbolCode, JSITER_HIDDEN,
-    JSITER_OWNONLY, JSITER_SYMBOLS,
-};
+use js::glue::{AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps};
+use js::jsapi::{GetWellKnownSymbol, JS_SetImmutablePrototype, SymbolCode};
 use js::jsapi::{
     Handle, HandleObject, JSClass, JSContext, JSErrNum, MutableHandleObject, UndefinedHandleValue,
 };
@@ -124,7 +119,7 @@ unsafe extern "C" fn get_own_property_descriptor(
         // If the property key is an integer index, convert it to a String too.
         // TODO(delan) will this interfere with indexed access on the Window object
         // (window[index]), which should only return document-tree child navigables?
-        // https://html.spec.whatwg.org/#accessing-other-browsing-contexts
+        // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
         id.to_int().to_string()
     } else if id.is_symbol() {
         unreachable!()
