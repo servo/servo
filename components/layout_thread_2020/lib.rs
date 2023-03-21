@@ -1235,7 +1235,6 @@ impl LayoutThread {
 
                     rw_data.nodes_from_point_response =
                         results.iter().map(|result| result.node).collect()
-
                 },
                 &QueryMsg::ElementInnerTextQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
