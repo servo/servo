@@ -365,8 +365,8 @@ promise_test(t => fetchTest(t, {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
   },
-  server: Server.HTTPS_PRIVATE,
   target: {
+    server: Server.HTTPS_PRIVATE,
     behavior: {
       preflight: PreflightBehavior.noPnaHeader(token()),
       response: ResponseBehavior.allowCrossOrigin(),

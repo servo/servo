@@ -1,0 +1,33 @@
+Need tests for (likely not a complete list):
+
+* directFromSellerSignals.
+* All generateBid() and scoreAd() input parameters.
+* All interest group fields (passed to auction, have effect on auction).
+    Validation when joining/leaving interest group is covered.
+* Updates.
+* All auctionConfig parameters (including invalid auctionConfigs, and ones
+    with no buyers).
+* Interest group expiration.
+* Multiple buyers.
+* Multiple interest group with same owner.
+* Multiple origin auctions (buyer != publisher != seller).
+* Multiple frame tests (including join IG policy, run auction policy,
+    loading URNs in fencedframes in other frames, loading component
+    ad URNs in fenced frames of other frames, etc)
+* adAuctionConfig passed to reportResult().
+* trusted bidding / scoring signals.
+* Component ads.
+* Component auctions.
+* In reporting methods, browserSignals fields: dataVersion, topLevelSeller,
+    componentSeller, modifiedBid, adCost, madeHighestScoringOtherBid
+    (with interest group from another origin).
+* Loading ads in iframes.
+* In fencedframes window.fence.setReportEventDataForAutomaticBeacons()
+* Calling leaveAdInterestGroup() in the frame of a winning ad (and one
+    of its component ads)
+* Network errors / timeouts.
+
+If possible:
+* Aggregate reporting.
+* Join/leave permission delegation via .well-known files.
+* k-anonymity.

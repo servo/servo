@@ -205,6 +205,7 @@ function sourceResolveOptions({ server, treatAsPublic }) {
 //   - `response`: The result of calling one of `ResponseBehavior`'s methods.
 //   - `redirect`: A URL to which the target should redirect GET requests.
 function preflightUrl({ server, behavior }) {
+  assert_not_equals(server, undefined, 'server');
   const options = {...server};
   if (behavior) {
     const { preflight, response, redirect } = behavior;

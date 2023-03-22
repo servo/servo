@@ -19,23 +19,19 @@ var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 100, 50);
-var promise = new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", '/images/green.png');
-    xhr.responseType = 'blob';
-    xhr.send();
-    xhr.onload = function() {
-        resolve(xhr.response);
-    };
-});
-promise.then(function(response) {
-    createImageBitmap(response).then(bitmap => {
-        ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
-        ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
-        ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
-        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-    }, t_fail);
-}).then(t_pass, t_fail);
+const red = async () => await createImageBitmap(await (await fetch("/images/red.png")).blob());
+fetch('/images/red.png')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
+          ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
+          ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
+          ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
+          _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+      });
+  });
+t.done();
 
 });
 done();

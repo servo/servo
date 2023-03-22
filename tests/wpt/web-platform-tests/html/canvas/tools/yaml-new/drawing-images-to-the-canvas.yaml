@@ -35,55 +35,6 @@
     @assert pixel 99,49 ==~ 0,255,0,255;
   expected: green
 
-- name: 2d.drawImage.9arg.basic
-  canvasType: ['HTMLCanvas']
-  images:
-  - green.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('green.png'), 0, 0, 100, 50, 0, 0, 100, 50);
-    @assert pixel 0,0 ==~ 0,255,0,255;
-    @assert pixel 99,0 ==~ 0,255,0,255;
-    @assert pixel 0,49 ==~ 0,255,0,255;
-    @assert pixel 99,49 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.9arg.sourcepos
-  canvasType: ['HTMLCanvas']
-  images:
-  - rgrg-256x256.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('rgrg-256x256.png'), 140, 20, 100, 50, 0, 0, 100, 50);
-    @assert pixel 0,0 ==~ 0,255,0,255;
-    @assert pixel 99,0 ==~ 0,255,0,255;
-    @assert pixel 0,49 ==~ 0,255,0,255;
-    @assert pixel 99,49 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.9arg.sourcesize
-  canvasType: ['HTMLCanvas']
-  images:
-  - rgrg-256x256.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('rgrg-256x256.png'), 0, 0, 256, 256, 0, 0, 100, 50);
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 51, 26);
-    ctx.fillRect(49, 24, 51, 26);
-    @assert pixel 0,0 ==~ 0,255,0,255;
-    @assert pixel 99,0 ==~ 0,255,0,255;
-    @assert pixel 0,49 ==~ 0,255,0,255;
-    @assert pixel 99,49 ==~ 0,255,0,255;
-    @assert pixel 20,20 ==~ 0,255,0,255;
-    @assert pixel 80,20 ==~ 0,255,0,255;
-    @assert pixel 20,30 ==~ 0,255,0,255;
-    @assert pixel 80,30 ==~ 0,255,0,255;
-  expected: green
-
 - name: 2d.drawImage.9arg.destpos
   canvasType: ['HTMLCanvas']
   images:
@@ -198,114 +149,6 @@
   code: |
     @assert throws TypeError ctx.drawImage(document.createElement('p'), 0, 0);
 
-- name: 2d.drawImage.floatsource
-  canvasType: ['HTMLCanvas']
-  images:
-  - green.png
-  code: |
-    ctx.drawImage(document.getElementById('green.png'), 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
-    @assert pixel 50,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.zerosource
-  desc: drawImage with zero-sized source rectangle draws nothing without exception
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 1, 0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 10, 10, 1, 0, 0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 0, 0, 0, 100, 50);
-    @assert pixel 50,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.zerosource.image
-  desc: drawImage with zero-sized source rectangle from image draws nothing without exception
-  canvasType: ['HTMLCanvas']
-  images:
-  - red-zerowidth.svg
-  - red-zeroheight.svg
-  - red-zerosize.svg
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red-zerowidth.svg'), 0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red-zeroheight.svg'), 0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red-zerosize.svg'), 0, 0, 100, 50);
-    @assert pixel 50,25 == 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.negativesource
-  desc: Negative source width/height represents the correct rectangle
-  canvasType: ['HTMLCanvas']
-  mozilla: {throws: !!null ''}
-  images:
-  - ggrr-256x256.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 100, 78, -100, 50, 0, 0, 50, 50);
-    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 100, 128, -100, -50, 50, 0, 50, 50);
-    @assert pixel 1,1 ==~ 0,255,0,255;
-    @assert pixel 1,48 ==~ 0,255,0,255;
-    @assert pixel 98,1 ==~ 0,255,0,255;
-    @assert pixel 98,48 ==~ 0,255,0,255;
-    @assert pixel 48,1 ==~ 0,255,0,255;
-    @assert pixel 48,48 ==~ 0,255,0,255;
-    @assert pixel 51,1 ==~ 0,255,0,255;
-    @assert pixel 51,48 ==~ 0,255,0,255;
-    @assert pixel 25,25 ==~ 0,255,0,255;
-    @assert pixel 75,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.negativedest
-  desc: Negative destination width/height represents the correct rectangle
-  canvasType: ['HTMLCanvas']
-  mozilla: {throws: !!null ''}
-  images:
-  - ggrr-256x256.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 100, 78, 50, 50, 0, 50, 50, -50);
-    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 100, 128, 50, -50, 100, 50, -50, -50);
-    @assert pixel 1,1 ==~ 0,255,0,255;
-    @assert pixel 1,48 ==~ 0,255,0,255;
-    @assert pixel 98,1 ==~ 0,255,0,255;
-    @assert pixel 98,48 ==~ 0,255,0,255;
-    @assert pixel 48,1 ==~ 0,255,0,255;
-    @assert pixel 48,48 ==~ 0,255,0,255;
-    @assert pixel 51,1 ==~ 0,255,0,255;
-    @assert pixel 51,48 ==~ 0,255,0,255;
-    @assert pixel 25,25 ==~ 0,255,0,255;
-    @assert pixel 75,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.negativedir
-  desc: Negative dimensions do not affect the direction of the image
-  canvasType: ['HTMLCanvas']
-  mozilla: {throws: !!null ''}
-  images:
-  - ggrr-256x256.png
-  code: |
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 0, 178, 50, -100, 0, 0, 50, 100);
-    ctx.drawImage(document.getElementById('ggrr-256x256.png'), 0, 78, 50, 100, 50, 100, 50, -100);
-    @assert pixel 1,1 ==~ 0,255,0,255;
-    @assert pixel 1,48 ==~ 0,255,0,255;
-    @assert pixel 98,1 ==~ 0,255,0,255;
-    @assert pixel 98,48 ==~ 0,255,0,255;
-    @assert pixel 48,1 ==~ 0,255,0,255;
-    @assert pixel 48,48 ==~ 0,255,0,255;
-    @assert pixel 51,1 ==~ 0,255,0,255;
-    @assert pixel 51,48 ==~ 0,255,0,255;
-    @assert pixel 25,25 ==~ 0,255,0,255;
-    @assert pixel 75,25 ==~ 0,255,0,255;
-  expected: green
-
 - name: 2d.drawImage.outsidesource
   DISABLED: fix this to match the current spec (transparent black outside source)
   canvasType: ['HTMLCanvas']
@@ -403,17 +246,6 @@
     @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
 
-- name: 2d.drawImage.broken
-  canvasType: ['HTMLCanvas']
-  images:
-  - broken.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    var img = document.getElementById('broken.png');
-    @assert throws INVALID_STATE_ERR ctx.drawImage(img, 0, 0);
-  expected: green
-
 - name: 2d.drawImage.nonexistent
   canvasType: ['HTMLCanvas']
   images:
@@ -438,16 +270,6 @@
     canvas2.width = 0;
     canvas2.height = 0;
     @assert throws INVALID_STATE_ERR ctx.drawImage(canvas2, 0, 0);
-
-- name: 2d.drawImage.svg
-  desc: drawImage() of an SVG image
-  canvasType: ['HTMLCanvas']
-  images:
-  - green.svg
-  code: |
-    ctx.drawImage(document.getElementById('green.svg'), 0, 0);
-    @assert pixel 50,25 ==~ 0,255,0,255;
-  expected: green
 
 - name: 2d.drawImage.animated.gif
   desc: drawImage() of an animated GIF draws the first frame
@@ -475,107 +297,7 @@
     }), 500);
   expected: green
 
-- name: 2d.drawImage.animated.poster
-  desc: drawImage() of an APNG draws the poster frame
-  canvasType: ['HTMLCanvas']
-  images:
-  - anim-poster-gr.png
-  code: |
-    ctx.drawImage(document.getElementById('anim-poster-gr.png'), 0, 0);
-    @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
-  expected: green
-
-- name: 2d.drawImage.path
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.rect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0);
-    ctx.fill();
-    @assert pixel 50,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.transform
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.translate(100, 0);
-    ctx.drawImage(document.getElementById('red.png'), 0, 0);
-    @assert pixel 50,25 ==~ 0,255,0,255;
-  expected: green
-
 # TODO: drawImage shadows
-
-- name: 2d.drawImage.alpha
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.globalAlpha = 0;
-    ctx.drawImage(document.getElementById('red.png'), 0, 0);
-    @assert pixel 50,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.clip
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.rect(-10, -10, 1, 1);
-    ctx.clip();
-    ctx.drawImage(document.getElementById('red.png'), 0, 0);
-    @assert pixel 50,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.composite
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.globalCompositeOperation = 'destination-over';
-    ctx.drawImage(document.getElementById('red.png'), 0, 0);
-    @assert pixel 50,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.nowrap
-  desc: Stretched images do not get pixels wrapping around the edges
-  canvasType: ['HTMLCanvas']
-  images:
-  - redtransparent.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.drawImage(document.getElementById('redtransparent.png'), -1950, 0, 2000, 50);
-    @assert pixel 45,25 ==~ 0,255,0,255;
-    @assert pixel 50,25 ==~ 0,255,0,255;
-    @assert pixel 55,25 ==~ 0,255,0,255;
-  expected: green
-
-- name: 2d.drawImage.nonfinite
-  desc: drawImage() with Infinity/NaN is ignored
-  canvasType: ['HTMLCanvas']
-  images:
-  - red.png
-  code: |
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(0, 0, 100, 50);
-    var red = document.getElementById('red.png');
-    @nonfinite ctx.drawImage(<red>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
-    @nonfinite ctx.drawImage(<red>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
-    @nonfinite ctx.drawImage(<red>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
-    @assert pixel 50,25 == 0,255,0,255;
-  expected: green
 
 - name: 2d.drawImage.3arg
   canvasType: ['OffscreenCanvas']
@@ -661,78 +383,59 @@
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.9arg.basic
-  canvasType: ['OffscreenCanvas']
   images:
   - green.png
   timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/green.png')
+      .then(response => response.blob())
+        .then(blob => {
+        createImageBitmap(blob)
+          .then(bitmap => {
             ctx.drawImage(bitmap, 0, 0, 100, 50, 0, 0, 100, 50);
             @assert pixel 0,0 ==~ 0,255,0,255;
             @assert pixel 99,0 ==~ 0,255,0,255;
             @assert pixel 0,49 ==~ 0,255,0,255;
             @assert pixel 99,49 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.9arg.sourcepos
-  canvasType: ['OffscreenCanvas']
   images:
   - rgrg-256x256.png
   timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/rgrg-256x256.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/rgrg-256x256.png')
+      .then(response => response.blob())
+        .then(blob => {
+        createImageBitmap(blob)
+          .then(bitmap => {
             ctx.drawImage(bitmap, 140, 20, 100, 50, 0, 0, 100, 50);
             @assert pixel 0,0 ==~ 0,255,0,255;
             @assert pixel 99,0 ==~ 0,255,0,255;
             @assert pixel 0,49 ==~ 0,255,0,255;
             @assert pixel 99,49 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.9arg.sourcesize
-  canvasType: ['OffscreenCanvas']
   images:
   - rgrg-256x256.png
   timeout: long
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/rgrg-256x256.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/rgrg-256x256.png')
+      .then(response => response.blob())
+        .then(blob => {
+        createImageBitmap(blob)
+          .then(bitmap => {
             ctx.drawImage(bitmap, 0, 0, 256, 256, 0, 0, 100, 50);
             ctx.fillStyle = '#0f0';
             ctx.fillRect(0, 0, 51, 26);
@@ -745,8 +448,9 @@
             @assert pixel 80,20 ==~ 0,255,0,255;
             @assert pixel 20,30 ==~ 0,255,0,255;
             @assert pixel 80,30 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.9arg.destpos
   canvasType: ['OffscreenCanvas']
@@ -865,55 +569,43 @@
     @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
 
 - name: 2d.drawImage.floatsource
-  canvasType: ['OffscreenCanvas']
   timeout: long
   code: |
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
+    fetch('/images/red.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
+              ctx.drawImage(bitmap, 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
+              @assert pixel 50,25 ==~ 0,255,0,255;
+        });
     });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
-            ctx.drawImage(bitmap, 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
-            @assert pixel 50,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+  Expected: green
 
 - name: 2d.drawImage.zerosource
   desc: drawImage with zero-sized source rectangle draws nothing without exception
-  canvasType: ['OffscreenCanvas']
   timeout: long
   images:
   - red.png
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
-            ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
-            ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
-            ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
-            @assert pixel 50,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+    const red = async () => await createImageBitmap(await (await fetch("/images/red.png")).blob());
+    fetch('/images/red.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
+              ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
+              ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
+              ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
+              @assert pixel 50,25 ==~ 0,255,0,255;
+          });
+      });
+  expected: green
 
 - name: 2d.drawImage.zerosource.image
   desc: drawImage with zero-sized source rectangle from image draws nothing without exception
-  canvasType: ['OffscreenCanvas']
   images:
   - red-zerowidth.svg
   - red-zeroheight.svg
@@ -922,27 +614,21 @@
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red-zerowidth.svg');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
+    fetch('/images/red-zerowidth.svg')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
+              ctx.drawImage(bitmap, 0, 0, 100, 50);
+              ctx.drawImage(bitmap, 0, 0, 100, 50);
+              ctx.drawImage(bitmap, 0, 0, 100, 50);
+              @assert pixel 50,25 == 0,255,0,255;
+          });
     });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0, 100, 50);
-            ctx.drawImage(bitmap, 0, 0, 100, 50);
-            ctx.drawImage(bitmap, 0, 0, 100, 50);
-            @assert pixel 50,25 == 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+  expected: green
 
 - name: 2d.drawImage.negativesource
   desc: Negative source width/height represents the correct rectangle
-  canvasType: ['OffscreenCanvas']
   mozilla: {throws: !!null ''}
   images:
   - ggrr-256x256.png
@@ -950,17 +636,11 @@
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/ggrr-256x256.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/ggrr-256x256.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 100, 78, -100, 50, 0, 0, 50, 50);
             ctx.drawImage(bitmap, 100, 128, -100, -50, 50, 0, 50, 50);
             @assert pixel 1,1 ==~ 0,255,0,255;
@@ -973,12 +653,12 @@
             @assert pixel 51,48 ==~ 0,255,0,255;
             @assert pixel 25,25 ==~ 0,255,0,255;
             @assert pixel 75,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.negativedest
   desc: Negative destination width/height represents the correct rectangle
-  canvasType: ['OffscreenCanvas']
   mozilla: {throws: !!null ''}
   timeout: long
   images:
@@ -986,17 +666,11 @@
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/ggrr-256x256.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/ggrr-256x256.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 100, 78, 50, 50, 0, 50, 50, -50);
             ctx.drawImage(bitmap, 100, 128, 50, -50, 100, 50, -50, -50);
             @assert pixel 1,1 ==~ 0,255,0,255;
@@ -1009,12 +683,12 @@
             @assert pixel 51,48 ==~ 0,255,0,255;
             @assert pixel 25,25 ==~ 0,255,0,255;
             @assert pixel 75,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.negativedir
   desc: Negative dimensions do not affect the direction of the image
-  canvasType: ['OffscreenCanvas']
   mozilla: {throws: !!null ''}
   timeout: long
   images:
@@ -1022,17 +696,11 @@
   code: |
     ctx.fillStyle = '#f00';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/ggrr-256x256.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/ggrr-256x256.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 0, 178, 50, -100, 0, 0, 50, 100);
             ctx.drawImage(bitmap, 0, 78, 50, 100, 50, 100, 50, -100);
             @assert pixel 1,1 ==~ 0,255,0,255;
@@ -1045,8 +713,9 @@
             @assert pixel 51,48 ==~ 0,255,0,255;
             @assert pixel 25,25 ==~ 0,255,0,255;
             @assert pixel 75,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.outsidesource
   DISABLED: fix this to match the current spec (transparent black outside source)
@@ -1086,100 +755,76 @@
             @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 0, 0, 5, -5, 0, 0, 100, 50);
             @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap1, 110, 60, -20, -20, 0, 0, 100, 50);
             @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.broken
-  canvasType: ['OffscreenCanvas']
   timeout: long
   code: |
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/broken.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/broken.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.fillStyle = '#0f0';
             ctx.fillRect(0, 0, 100, 50);
             ctx.drawImage(bitmap, 0, 0);
             @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.svg
   desc: drawImage() of an SVG image
-  canvasType: ['OffscreenCanvas']
   timeout: long
   code: |
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/green.svg');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/green.svg')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 0, 0);
             @assert pixel 50,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.animated.poster
   desc: drawImage() of an APNG draws the poster frame
-  canvasType: ['OffscreenCanvas']
   images:
   - anim-poster-gr.png
   timeout: long
   code: |
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/anim-poster-gr.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('anim-poster-gr.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 0, 0);
             @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.path
-  canvasType: ['OffscreenCanvas']
   timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.rect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/red.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 0, 0);
             ctx.fill();
             @assert pixel 50,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.transform
-  canvasType: ['OffscreenCanvas']
   images:
   - red.png
   timeout: long
@@ -1187,24 +832,18 @@
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.translate(100, 0);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('red.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 0, 0);
             @assert pixel 50,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.alpha
-  canvasType: ['OffscreenCanvas']
   images:
   - red.png
   timeout: long
@@ -1212,24 +851,18 @@
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalAlpha = 0;
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/red.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 0, 0);
             @assert pixel 50,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.clip
-  canvasType: ['OffscreenCanvas']
   images:
   - red.png
   timeout: long
@@ -1238,24 +871,22 @@
     ctx.fillRect(0, 0, 100, 50);
     ctx.rect(-10, -10, 1, 1);
     ctx.clip();
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
+    fetch('/images/red.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.rect(-10, -10, 1, 1);
+            ctx.clip();
+            ctx.drawImage(document.getElementById('red.png'), 0, 0);
             @assert pixel 50,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.composite
-  canvasType: ['OffscreenCanvas']
   images:
   - red.png
   timeout: long
@@ -1263,72 +894,55 @@
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = 'destination-over';
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/red.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/red.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, 0, 0);
             @assert pixel 50,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.nowrap
   desc: Stretched images do not get pixels wrapping around the edges
-  canvasType: ['OffscreenCanvas']
   images:
   - redtransparent.png
   timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/redtransparent.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/redtransparent.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             ctx.drawImage(bitmap, -1950, 0, 2000, 50);
             @assert pixel 45,25 ==~ 0,255,0,255;
             @assert pixel 50,25 ==~ 0,255,0,255;
             @assert pixel 55,25 ==~ 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green
 
 - name: 2d.drawImage.nonfinite
   desc: drawImage() with Infinity/NaN is ignored
-  canvasType: ['OffscreenCanvas']
   images:
   - red.png
   timeout: long
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/redtransparent.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        createImageBitmap(response).then(bitmap => {
+    fetch('/images/redtransparent.png')
+      .then(response => response.blob())
+        .then(blob => {
+          createImageBitmap(blob)
+            .then(bitmap => {
             @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
             @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
             @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
             @assert pixel 50,25 == 0,255,0,255;
-        }, t_fail);
-    }).then(t_pass, t_fail);
+        });
+    });
+  expected: green

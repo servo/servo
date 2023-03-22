@@ -21,10 +21,18 @@ _addTest(function(canvas, ctx) {
 
 ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 100, 50);
-ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 1, 0, 0, 100, 50);
-ctx.drawImage(document.getElementById('red.png'), 10, 10, 1, 0, 0, 0, 100, 50);
-ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 0, 0, 0, 100, 50);
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+const red = async () => await createImageBitmap(await (await fetch("/images/red.png")).blob());
+fetch('/images/red.png')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
+          ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
+          ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
+          ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
+          _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+      });
+  });
 
 
 });

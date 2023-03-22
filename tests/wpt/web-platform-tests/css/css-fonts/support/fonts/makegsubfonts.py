@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os
 import textwrap
 from xml.etree import ElementTree

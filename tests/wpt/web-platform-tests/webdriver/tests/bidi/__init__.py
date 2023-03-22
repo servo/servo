@@ -66,6 +66,9 @@ def int_interval(start: int, end: int) -> Callable[[Any], None]:
 
     return _
 
+def positive_int(actual: Any) -> None:
+    assert isinstance(actual, int) and actual > 0
+
 
 async def create_console_api_message(bidi_session, context, text):
     await bidi_session.script.call_function(
