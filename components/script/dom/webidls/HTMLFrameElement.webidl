@@ -22,8 +22,8 @@ interface HTMLFrameElement : HTMLElement {
   // readonly attribute Document? contentDocument;
   // readonly attribute WindowProxy? contentWindow;
 
-  // [CEReactions, TreatNullAs=EmptyString]
+  // [CEReactions, LegacyNullToEmptyString]
   // attribute DOMString marginHeight;
-  // [CEReactions, TreatNullAs=EmptyString]
+  // [CEReactions, LegacyNullToEmptyString]
   // attribute DOMString marginWidth;
 };

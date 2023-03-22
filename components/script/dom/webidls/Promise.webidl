@@ -10,7 +10,7 @@ callback PromiseJobCallback = undefined();
 [TreatNonCallableAsNull]
 callback AnyCallback = any (any value);
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[LegacyNoInterfaceObject, Exposed=(Window,Worker)]
 // Need to escape "Promise" so it's treated as an identifier.
 interface _Promise {
 };

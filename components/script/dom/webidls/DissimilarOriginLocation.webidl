@@ -14,7 +14,7 @@
 // way to enforce security policy.
 
 // https://html.spec.whatwg.org/multipage/#location
-[Exposed=(Window,DissimilarOriginWindow), Unforgeable, NoInterfaceObject]
+[Exposed=(Window,DissimilarOriginWindow), LegacyUnforgeable, LegacyNoInterfaceObject]
 interface DissimilarOriginLocation {
   [Throws] attribute USVString href;
   [Throws] undefined assign(USVString url);

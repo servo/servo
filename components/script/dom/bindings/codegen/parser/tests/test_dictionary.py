@@ -1,5 +1,6 @@
 def WebIDLTest(parser, harness):
-    parser.parse("""
+    parser.parse(
+        """
       dictionary Dict2 : Dict1 {
         long child = 5;
         Dict1 aaandAnother;
@@ -8,27 +9,33 @@ def WebIDLTest(parser, harness):
         long parent;
         double otherParent;
       };
-    """)
+    """
+    )
     results = parser.finish()
 
-    dict1 = results[1];
-    dict2 = results[0];
+    dict1 = results[1]
+    dict2 = results[0]
 
     harness.check(len(dict1.members), 2, "Dict1 has two members")
     harness.check(len(dict2.members), 2, "Dict2 has four members")
 
-    harness.check(dict1.members[0].identifier.name, "otherParent",
-                  "'o' comes before 'p'")
-    harness.check(dict1.members[1].identifier.name, "parent",
-                  "'o' really comes before 'p'")
-    harness.check(dict2.members[0].identifier.name, "aaandAnother",
-                  "'a' comes before 'c'")
-    harness.check(dict2.members[1].identifier.name, "child",
-                  "'a' really comes before 'c'")
+    harness.check(
+        dict1.members[0].identifier.name, "otherParent", "'o' comes before 'p'"
+    )
+    harness.check(
+        dict1.members[1].identifier.name, "parent", "'o' really comes before 'p'"
+    )
+    harness.check(
+        dict2.members[0].identifier.name, "aaandAnother", "'a' comes before 'c'"
+    )
+    harness.check(
+        dict2.members[1].identifier.name, "child", "'a' really comes before 'c'"
+    )
 
     # Test partial dictionary.
-    parser = parser.reset();
-    parser.parse("""
+    parser = parser.reset()
+    parser.parse(
+        """
       dictionary A {
         long c;
         long g;
@@ -37,30 +44,29 @@ def WebIDLTest(parser, harness):
         long h;
         long d;
       };
-    """)
+    """
+    )
     results = parser.finish()
 
-    dict1 = results[0];
+    dict1 = results[0]
     harness.check(len(dict1.members), 4, "Dict1 has four members")
-    harness.check(dict1.members[0].identifier.name, "c",
-                  "c should be first")
-    harness.check(dict1.members[1].identifier.name, "d",
-                  "d should come after c")
-    harness.check(dict1.members[2].identifier.name, "g",
-                  "g should come after d")
-    harness.check(dict1.members[3].identifier.name, "h",
-                  "h should be last")
+    harness.check(dict1.members[0].identifier.name, "c", "c should be first")
+    harness.check(dict1.members[1].identifier.name, "d", "d should come after c")
+    harness.check(dict1.members[2].identifier.name, "g", "g should come after d")
+    harness.check(dict1.members[3].identifier.name, "h", "h should be last")
 
     # Now reset our parser
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
           dictionary Dict {
             long prop = 5;
             long prop;
           };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -68,28 +74,33 @@ def WebIDLTest(parser, harness):
     harness.ok(threw, "Should not allow name duplication in a dictionary")
 
     # Test no name duplication across normal and partial dictionary.
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
           dictionary A {
             long prop = 5;
           };
           partial dictionary A {
             long prop;
           };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Should not allow name duplication across normal and partial dictionary")
+    harness.ok(
+        threw, "Should not allow name duplication across normal and partial dictionary"
+    )
 
     # Now reset our parser again
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
           dictionary Dict1 : Dict2 {
             long prop = 5;
           };
@@ -99,24 +110,28 @@ def WebIDLTest(parser, harness):
           dictionary Dict3 {
             double prop;
           };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Should not allow name duplication in a dictionary and "
-               "its ancestor")
+    harness.ok(
+        threw, "Should not allow name duplication in a dictionary and " "its ancestor"
+    )
 
     # More reset
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
           interface Iface {};
           dictionary Dict : Iface {
             long prop;
           };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -127,10 +142,12 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A : B {};
             dictionary B : A {};
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -140,27 +157,33 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
-              [TreatNullAs=EmptyString] DOMString foo;
+              [LegacyNullToEmptyString] DOMString foo;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Should not allow [TreatNullAs] on dictionary members");
+    harness.ok(
+        threw, "Should not allow [LegacyNullToEmptyString] on dictionary members"
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(A arg);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -170,13 +193,15 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(optional A arg);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -186,47 +211,53 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo((A or DOMString) arg);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw,
-               "Trailing union arg containing a dictionary must be optional")
+    harness.ok(threw, "Trailing union arg containing a dictionary must be optional")
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(optional (A or DOMString) arg);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw,
-               "Trailing union arg containing a dictionary must have a default value")
+    harness.ok(
+        threw, "Trailing union arg containing a dictionary must have a default value"
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(A arg1, optional long arg2);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -236,13 +267,15 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(optional A arg1, optional long arg2);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -252,245 +285,289 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(A arg1, optional long arg2, long arg3);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(not threw,
-               "Dictionary arg followed by non-optional arg doesn't have to be optional")
+    harness.ok(
+        not threw,
+        "Dictionary arg followed by non-optional arg doesn't have to be optional",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo((A or DOMString) arg1, optional long arg2);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw,
-               "Union arg containing dictionary followed by optional arg must "
-               "be optional")
+    harness.ok(
+        threw,
+        "Union arg containing dictionary followed by optional arg must " "be optional",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(optional (A or DOMString) arg1, optional long arg2);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw,
-               "Union arg containing dictionary followed by optional arg must "
-               "have a default value")
+    harness.ok(
+        threw,
+        "Union arg containing dictionary followed by optional arg must "
+        "have a default value",
+    )
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
             dictionary A {
             };
             interface X {
               undefined doFoo(A arg1, long arg2);
             };
-        """)
+        """
+    )
     results = parser.finish()
     harness.ok(True, "Dictionary arg followed by required arg can be required")
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(optional A? arg1 = {});
             };
-        """)
+        """
+        )
         results = parser.finish()
     except Exception as x:
         threw = x
 
     harness.ok(threw, "Optional dictionary arg must not be nullable")
-    harness.ok("nullable" in str(threw),
-               "Must have the expected exception for optional nullable dictionary arg")
+    harness.ok(
+        "nullable" in str(threw),
+        "Must have the expected exception for optional nullable dictionary arg",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
               required long x;
             };
             interface X {
               undefined doFoo(A? arg1);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except Exception as x:
         threw = x
 
     harness.ok(threw, "Required dictionary arg must not be nullable")
-    harness.ok("nullable" in str(threw),
-               "Must have the expected exception for required nullable "
-               "dictionary arg")
+    harness.ok(
+        "nullable" in str(threw),
+        "Must have the expected exception for required nullable " "dictionary arg",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(optional (A or long)? arg1 = {});
             };
-        """)
+        """
+        )
         results = parser.finish()
     except Exception as x:
         threw = x
 
     harness.ok(threw, "Dictionary arg must not be in an optional nullable union")
-    harness.ok("nullable" in str(threw),
-               "Must have the expected exception for optional nullable union "
-               "arg containing dictionary")
+    harness.ok(
+        "nullable" in str(threw),
+        "Must have the expected exception for optional nullable union "
+        "arg containing dictionary",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
               required long x;
             };
             interface X {
               undefined doFoo((A or long)? arg1);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except Exception as x:
         threw = x
 
     harness.ok(threw, "Dictionary arg must not be in a required nullable union")
-    harness.ok("nullable" in str(threw),
-               "Must have the expected exception for required nullable union "
-               "arg containing dictionary")
+    harness.ok(
+        "nullable" in str(threw),
+        "Must have the expected exception for required nullable union "
+        "arg containing dictionary",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(sequence<A?> arg1);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(not threw,
-               "Nullable union should be allowed in a sequence argument")
+    harness.ok(not threw, "Nullable union should be allowed in a sequence argument")
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(optional (A or long?) arg1);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
-    harness.ok(threw,
-               "Dictionary must not be in a union with a nullable type")
+    harness.ok(threw, "Dictionary must not be in a union with a nullable type")
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary A {
             };
             interface X {
               undefined doFoo(optional (long? or A) arg1);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
-    harness.ok(threw,
-               "A nullable type must not be in a union with a dictionary")
+    harness.ok(threw, "A nullable type must not be in a union with a dictionary")
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         dictionary A {
         };
         interface X {
           A? doFoo();
         };
-    """)
+    """
+    )
     results = parser.finish()
     harness.ok(True, "Dictionary return value can be nullable")
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         dictionary A {
         };
         interface X {
           undefined doFoo(optional A arg = {});
         };
-    """)
+    """
+    )
     results = parser.finish()
     harness.ok(True, "Dictionary arg should actually parse")
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         dictionary A {
         };
         interface X {
           undefined doFoo(optional (A or DOMString) arg = {});
         };
-    """)
+    """
+    )
     results = parser.finish()
     harness.ok(True, "Union arg containing a dictionary should actually parse")
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         dictionary A {
         };
         interface X {
           undefined doFoo(optional (A or DOMString) arg = "abc");
         };
-    """)
+    """
+    )
     results = parser.finish()
-    harness.ok(True, "Union arg containing a dictionary with string default should actually parse")
+    harness.ok(
+        True,
+        "Union arg containing a dictionary with string default should actually parse",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               Foo foo;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -500,7 +577,8 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo3 : Foo {
               short d;
             };
@@ -516,78 +594,102 @@ def WebIDLTest(parser, harness):
             dictionary Foo {
               Foo1 b;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Member type must not be a Dictionary that "
-                      "inherits from its Dictionary.")
+    harness.ok(
+        threw,
+        "Member type must not be a Dictionary that " "inherits from its Dictionary.",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               (Foo or DOMString)[]? b;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Member type must not be a Nullable type "
-                      "whose inner type includes its Dictionary.")
+    harness.ok(
+        threw,
+        "Member type must not be a Nullable type "
+        "whose inner type includes its Dictionary.",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               (DOMString or Foo) b;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Member type must not be a Union type, one of "
-                      "whose member types includes its Dictionary.")
+    harness.ok(
+        threw,
+        "Member type must not be a Union type, one of "
+        "whose member types includes its Dictionary.",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               sequence<sequence<sequence<Foo>>> c;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Member type must not be a Sequence type "
-                      "whose element type includes its Dictionary.")
+    harness.ok(
+        threw,
+        "Member type must not be a Sequence type "
+        "whose element type includes its Dictionary.",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               (DOMString or Foo)[] d;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Member type must not be an Array type "
-                      "whose element type includes its Dictionary.")
+    harness.ok(
+        threw,
+        "Member type must not be an Array type "
+        "whose element type includes its Dictionary.",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               Foo1 b;
             };
@@ -603,34 +705,41 @@ def WebIDLTest(parser, harness):
             dictionary Foo1 : Foo2 {
               long a;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Member type must not be a Dictionary, one of whose "
-                      "members or inherited members has a type that includes "
-                      "its Dictionary.")
+    harness.ok(
+        threw,
+        "Member type must not be a Dictionary, one of whose "
+        "members or inherited members has a type that includes "
+        "its Dictionary.",
+    )
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
             };
 
             dictionary Bar {
               Foo? d;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
     harness.ok(threw, "Member type must not be a nullable dictionary")
 
-    parser = parser.reset();
-    parser.parse("""
+    parser = parser.reset()
+    parser.parse(
+        """
         dictionary Foo {
           unrestricted float  urFloat = 0;
           unrestricted float  urFloat2 = 1.1;
@@ -648,103 +757,117 @@ def WebIDLTest(parser, harness):
           unrestricted double  negativeInfUrDouble = -Infinity;
           unrestricted double  nanUrDouble = NaN;
         };
-    """)
+    """
+    )
     results = parser.finish()
     harness.ok(True, "Parsing default values for unrestricted types succeeded.")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               double f = Infinity;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
     harness.ok(threw, "Only unrestricted values can be initialized to Infinity")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               double f = -Infinity;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
     harness.ok(threw, "Only unrestricted values can be initialized to -Infinity")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               double f = NaN;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
     harness.ok(threw, "Only unrestricted values can be initialized to NaN")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               float f = Infinity;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
     harness.ok(threw, "Only unrestricted values can be initialized to Infinity")
 
-
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               float f = -Infinity;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
     harness.ok(threw, "Only unrestricted values can be initialized to -Infinity")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               float f = NaN;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
 
     harness.ok(threw, "Only unrestricted values can be initialized to NaN")
 
-    parser = parser.reset();
+    parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             dictionary Foo {
               long module;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True

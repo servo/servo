@@ -10,18 +10,21 @@ def WebIDLTest(parser, harness):
         interface Baz : Bar {
           getter long(DOMString name);
         };
-        """);
-    results = parser.finish();
+        """
+    )
+    results = parser.finish()
     harness.check(len(results), 3, "Should have three interfaces")
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             [LegacyUnenumerableNamedProperties]
             interface NoNamedGetter {
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -31,12 +34,14 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             [LegacyUnenumerableNamedProperties=Foo]
             interface ShouldNotHaveArg {
               getter long(DOMString name);
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -46,7 +51,8 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             [LegacyUnenumerableNamedProperties]
             interface Foo {
               getter long(DOMString name);
@@ -56,7 +62,8 @@ def WebIDLTest(parser, harness):
             interface Baz : Bar {
               getter long(DOMString name);
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:

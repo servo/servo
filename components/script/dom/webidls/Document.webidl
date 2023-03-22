@@ -84,10 +84,10 @@ dictionary ElementCreationOptions {
 };
 
 // https://html.spec.whatwg.org/multipage/#the-document-object
-// [OverrideBuiltins]
+// [LegacyOverrideBuiltIns]
 partial /*sealed*/ interface Document {
   // resource metadata management
-  [PutForwards=href, Unforgeable]
+  [PutForwards=href, LegacyUnforgeable]
   readonly attribute Location? location;
   [SetterThrows] attribute DOMString domain;
   readonly attribute DOMString referrer;
@@ -146,7 +146,7 @@ partial /*sealed*/ interface Document {
   // DOMString queryCommandValue(DOMString commandId);
 
   // special event handler IDL attributes that only apply to Document objects
-  [LenientThis] attribute EventHandler onreadystatechange;
+  [LegacyLenientThis] attribute EventHandler onreadystatechange;
 
   // also has obsolete members
 };
@@ -156,22 +156,22 @@ Document includes DocumentAndElementEventHandlers;
 // https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {
   [CEReactions]
-  attribute [TreatNullAs=EmptyString] DOMString fgColor;
+  attribute [LegacyNullToEmptyString] DOMString fgColor;
 
   // https://github.com/servo/servo/issues/8715
-  // [CEReactions, TreatNullAs=EmptyString]
+  // [CEReactions, LegacyNullToEmptyString]
   // attribute DOMString linkColor;
 
   // https://github.com/servo/servo/issues/8716
-  // [CEReactions, TreatNullAs=EmptyString]
+  // [CEReactions, LegacyNullToEmptyString]
   // attribute DOMString vlinkColor;
 
   // https://github.com/servo/servo/issues/8717
-  // [CEReactions, TreatNullAs=EmptyString]
+  // [CEReactions, LegacyNullToEmptyString]
   // attribute DOMString alinkColor;
 
   [CEReactions]
-  attribute [TreatNullAs=EmptyString] DOMString bgColor;
+  attribute [LegacyNullToEmptyString] DOMString bgColor;
 
   [SameObject]
   readonly attribute HTMLCollection anchors;
@@ -189,9 +189,9 @@ partial interface Document {
 
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Document {
-  [LenientSetter] readonly attribute boolean fullscreenEnabled;
-  [LenientSetter] readonly attribute Element? fullscreenElement;
-  [LenientSetter] readonly attribute boolean fullscreen; // historical
+  [LegacyLenientSetter] readonly attribute boolean fullscreenEnabled;
+  [LegacyLenientSetter] readonly attribute Element? fullscreenElement;
+  [LegacyLenientSetter] readonly attribute boolean fullscreen; // historical
 
   Promise<undefined> exitFullscreen();
 

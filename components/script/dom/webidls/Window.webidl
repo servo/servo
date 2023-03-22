@@ -6,13 +6,13 @@
 [Global=Window, Exposed=Window /*, LegacyUnenumerableNamedProperties */]
 /*sealed*/ interface Window : GlobalScope {
   // the current browsing context
-  [Unforgeable, CrossOriginReadable] readonly attribute WindowProxy window;
+  [LegacyUnforgeable, CrossOriginReadable] readonly attribute WindowProxy window;
   [BinaryName="Self_", Replaceable, CrossOriginReadable] readonly attribute WindowProxy self;
-  [Unforgeable] readonly attribute Document document;
+  [LegacyUnforgeable] readonly attribute Document document;
 
   attribute DOMString name;
 
-  [PutForwards=href, Unforgeable, CrossOriginReadable, CrossOriginWritable]
+  [PutForwards=href, LegacyUnforgeable, CrossOriginReadable, CrossOriginWritable]
     readonly attribute Location location;
   readonly attribute History history;
   [Pref="dom.customelements.enabled"]
@@ -35,7 +35,7 @@
   [Replaceable, CrossOriginReadable] readonly attribute unsigned long length;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
-  [Unforgeable, CrossOriginReadable] readonly attribute WindowProxy? top;
+  [LegacyUnforgeable, CrossOriginReadable] readonly attribute WindowProxy? top;
   [CrossOriginReadable] attribute any opener;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115

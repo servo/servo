@@ -1,7 +1,9 @@
 import WebIDL
 
+
 def WebIDLTest(parser, harness):
-    parser.parse("""
+    parser.parse(
+        """
         [SecureContext]
         interface TestSecureContextOnInterface {
           const octet TEST_CONSTANT = 0;
@@ -13,27 +15,47 @@ def WebIDLTest(parser, harness):
           readonly attribute byte testAttribute2;
           undefined testMethod2(byte foo);
         };
-    """)
+    """
+    )
     results = parser.finish()
-    harness.check(len(results[0].members), 6, "TestSecureContextOnInterface should have six members")
-    harness.ok(results[0].getExtendedAttribute("SecureContext"),
-               "Interface should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[0].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to constant members")
-    harness.ok(results[0].members[1].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to attribute members")
-    harness.ok(results[0].members[2].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to method members")
-    harness.ok(results[0].members[3].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to constant members from partial interface")
-    harness.ok(results[0].members[4].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to attribute members from partial interface")
-    harness.ok(results[0].members[5].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to method members from partial interface")
+    harness.check(
+        len(results[0].members),
+        6,
+        "TestSecureContextOnInterface should have six members",
+    )
+    harness.ok(
+        results[0].getExtendedAttribute("SecureContext"),
+        "Interface should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to constant members",
+    )
+    harness.ok(
+        results[0].members[1].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to attribute members",
+    )
+    harness.ok(
+        results[0].members[2].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to method members",
+    )
+    harness.ok(
+        results[0].members[3].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to constant members from partial interface",
+    )
+    harness.ok(
+        results[0].members[4].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to attribute members from partial interface",
+    )
+    harness.ok(
+        results[0].members[5].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to method members from partial interface",
+    )
 
     # Same thing, but with the partial interface specified first:
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         partial interface TestSecureContextOnInterfaceAfterPartialInterface {
           const octet TEST_CONSTANT_2 = 0;
           readonly attribute byte testAttribute2;
@@ -45,26 +67,46 @@ def WebIDLTest(parser, harness):
           readonly attribute byte testAttribute;
           undefined testMethod(byte foo);
         };
-     """)
+     """
+    )
     results = parser.finish()
-    harness.check(len(results[1].members), 6, "TestSecureContextOnInterfaceAfterPartialInterface should have six members")
-    harness.ok(results[1].getExtendedAttribute("SecureContext"),
-               "Interface should have [SecureContext] extended attribute")
-    harness.ok(results[1].members[0].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to constant members")
-    harness.ok(results[1].members[1].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to attribute members")
-    harness.ok(results[1].members[2].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to method members")
-    harness.ok(results[1].members[3].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to constant members from partial interface")
-    harness.ok(results[1].members[4].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to attribute members from partial interface")
-    harness.ok(results[1].members[5].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to method members from partial interface")
+    harness.check(
+        len(results[1].members),
+        6,
+        "TestSecureContextOnInterfaceAfterPartialInterface should have six members",
+    )
+    harness.ok(
+        results[1].getExtendedAttribute("SecureContext"),
+        "Interface should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[1].members[0].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to constant members",
+    )
+    harness.ok(
+        results[1].members[1].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to attribute members",
+    )
+    harness.ok(
+        results[1].members[2].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to method members",
+    )
+    harness.ok(
+        results[1].members[3].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to constant members from partial interface",
+    )
+    harness.ok(
+        results[1].members[4].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to attribute members from partial interface",
+    )
+    harness.ok(
+        results[1].members[5].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to method members from partial interface",
+    )
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         interface TestSecureContextOnPartialInterface {
           const octet TEST_CONSTANT = 0;
           readonly attribute byte testAttribute;
@@ -76,26 +118,46 @@ def WebIDLTest(parser, harness):
           readonly attribute byte testAttribute2;
           undefined testMethod2(byte foo);
         };
-    """)
+    """
+    )
     results = parser.finish()
-    harness.check(len(results[0].members), 6, "TestSecureContextOnPartialInterface should have six members")
-    harness.ok(results[0].getExtendedAttribute("SecureContext") is None,
-               "[SecureContext] should not propagate from a partial interface to the interface")
-    harness.ok(results[0].members[0].getExtendedAttribute("SecureContext") is None,
-               "[SecureContext] should not propagate from a partial interface to the interface's constant members")
-    harness.ok(results[0].members[1].getExtendedAttribute("SecureContext") is None,
-               "[SecureContext] should not propagate from a partial interface to the interface's attribute members")
-    harness.ok(results[0].members[2].getExtendedAttribute("SecureContext") is None,
-               "[SecureContext] should not propagate from a partial interface to the interface's method members")
-    harness.ok(results[0].members[3].getExtendedAttribute("SecureContext"),
-               "Constant members from [SecureContext] partial interface should be [SecureContext]")
-    harness.ok(results[0].members[4].getExtendedAttribute("SecureContext"),
-               "Attribute members from [SecureContext] partial interface should be [SecureContext]")
-    harness.ok(results[0].members[5].getExtendedAttribute("SecureContext"),
-               "Method members from [SecureContext] partial interface should be [SecureContext]")
+    harness.check(
+        len(results[0].members),
+        6,
+        "TestSecureContextOnPartialInterface should have six members",
+    )
+    harness.ok(
+        results[0].getExtendedAttribute("SecureContext") is None,
+        "[SecureContext] should not propagate from a partial interface to the interface",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext") is None,
+        "[SecureContext] should not propagate from a partial interface to the interface's constant members",
+    )
+    harness.ok(
+        results[0].members[1].getExtendedAttribute("SecureContext") is None,
+        "[SecureContext] should not propagate from a partial interface to the interface's attribute members",
+    )
+    harness.ok(
+        results[0].members[2].getExtendedAttribute("SecureContext") is None,
+        "[SecureContext] should not propagate from a partial interface to the interface's method members",
+    )
+    harness.ok(
+        results[0].members[3].getExtendedAttribute("SecureContext"),
+        "Constant members from [SecureContext] partial interface should be [SecureContext]",
+    )
+    harness.ok(
+        results[0].members[4].getExtendedAttribute("SecureContext"),
+        "Attribute members from [SecureContext] partial interface should be [SecureContext]",
+    )
+    harness.ok(
+        results[0].members[5].getExtendedAttribute("SecureContext"),
+        "Method members from [SecureContext] partial interface should be [SecureContext]",
+    )
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         interface TestSecureContextOnInterfaceMembers {
           const octet TEST_NON_SECURE_CONSTANT_1 = 0;
           [SecureContext]
@@ -110,32 +172,58 @@ def WebIDLTest(parser, harness):
           undefined testSecureMethod(byte foo);
           undefined testNonSecureMethod2(byte foo);
         };
-    """)
+    """
+    )
     results = parser.finish()
-    harness.check(len(results[0].members), 9, "TestSecureContextOnInterfaceMembers should have nine members")
-    harness.ok(results[0].getExtendedAttribute("SecureContext") is None,
-               "[SecureContext] on members should not propagate up to the interface")
-    harness.ok(results[0].members[0].getExtendedAttribute("SecureContext") is None,
-               "Constant should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[1].getExtendedAttribute("SecureContext"),
-               "Constant should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[2].getExtendedAttribute("SecureContext") is None,
-               "Constant should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[3].getExtendedAttribute("SecureContext") is None,
-               "Attribute should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[4].getExtendedAttribute("SecureContext"),
-               "Attribute should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[5].getExtendedAttribute("SecureContext") is None,
-               "Attribute should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[6].getExtendedAttribute("SecureContext") is None,
-               "Method should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[7].getExtendedAttribute("SecureContext"),
-               "Method should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[8].getExtendedAttribute("SecureContext") is None,
-               "Method should not have [SecureContext] extended attribute")
+    harness.check(
+        len(results[0].members),
+        9,
+        "TestSecureContextOnInterfaceMembers should have nine members",
+    )
+    harness.ok(
+        results[0].getExtendedAttribute("SecureContext") is None,
+        "[SecureContext] on members should not propagate up to the interface",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext") is None,
+        "Constant should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[1].getExtendedAttribute("SecureContext"),
+        "Constant should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[2].getExtendedAttribute("SecureContext") is None,
+        "Constant should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[3].getExtendedAttribute("SecureContext") is None,
+        "Attribute should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[4].getExtendedAttribute("SecureContext"),
+        "Attribute should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[5].getExtendedAttribute("SecureContext") is None,
+        "Attribute should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[6].getExtendedAttribute("SecureContext") is None,
+        "Method should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[7].getExtendedAttribute("SecureContext"),
+        "Method should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[8].getExtendedAttribute("SecureContext") is None,
+        "Method should not have [SecureContext] extended attribute",
+    )
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         interface TestSecureContextOnPartialInterfaceMembers {
         };
         partial interface TestSecureContextOnPartialInterfaceMembers {
@@ -152,37 +240,62 @@ def WebIDLTest(parser, harness):
           undefined testSecureMethod(byte foo);
           undefined testNonSecureMethod2(byte foo);
         };
-    """)
+    """
+    )
     results = parser.finish()
-    harness.check(len(results[0].members), 9, "TestSecureContextOnPartialInterfaceMembers should have nine members")
-    harness.ok(results[0].members[0].getExtendedAttribute("SecureContext") is None,
-               "Constant from partial interface should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[1].getExtendedAttribute("SecureContext"),
-               "Constant from partial interface should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[2].getExtendedAttribute("SecureContext") is None,
-               "Constant from partial interface should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[3].getExtendedAttribute("SecureContext") is None,
-               "Attribute from partial interface should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[4].getExtendedAttribute("SecureContext"),
-               "Attribute from partial interface should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[5].getExtendedAttribute("SecureContext") is None,
-               "Attribute from partial interface should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[6].getExtendedAttribute("SecureContext") is None,
-               "Method from partial interface should not have [SecureContext] extended attribute")
-    harness.ok(results[0].members[7].getExtendedAttribute("SecureContext"),
-               "Method from partial interface should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[8].getExtendedAttribute("SecureContext") is None,
-               "Method from partial interface should not have [SecureContext] extended attribute")
+    harness.check(
+        len(results[0].members),
+        9,
+        "TestSecureContextOnPartialInterfaceMembers should have nine members",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext") is None,
+        "Constant from partial interface should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[1].getExtendedAttribute("SecureContext"),
+        "Constant from partial interface should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[2].getExtendedAttribute("SecureContext") is None,
+        "Constant from partial interface should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[3].getExtendedAttribute("SecureContext") is None,
+        "Attribute from partial interface should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[4].getExtendedAttribute("SecureContext"),
+        "Attribute from partial interface should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[5].getExtendedAttribute("SecureContext") is None,
+        "Attribute from partial interface should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[6].getExtendedAttribute("SecureContext") is None,
+        "Method from partial interface should not have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[7].getExtendedAttribute("SecureContext"),
+        "Method from partial interface should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[8].getExtendedAttribute("SecureContext") is None,
+        "Method from partial interface should not have [SecureContext] extended attribute",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             [SecureContext=something]
             interface TestSecureContextTakesNoValue1 {
               const octet TEST_SECURE_CONSTANT = 0;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -191,7 +304,8 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface TestSecureContextForOverloads1 {
               [SecureContext]
               undefined testSecureMethod(byte foo);
@@ -199,16 +313,21 @@ def WebIDLTest(parser, harness):
             partial interface TestSecureContextForOverloads1 {
               undefined testSecureMethod(byte foo, byte bar);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
-    harness.ok(threw, "If [SecureContext] appears on an overloaded operation, then it MUST appear on all overloads")
+    harness.ok(
+        threw,
+        "If [SecureContext] appears on an overloaded operation, then it MUST appear on all overloads",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface TestSecureContextForOverloads2 {
               [SecureContext]
               undefined testSecureMethod(byte foo);
@@ -217,31 +336,40 @@ def WebIDLTest(parser, harness):
               [SecureContext]
               undefined testSecureMethod(byte foo, byte bar);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
-    harness.ok(not threw, "[SecureContext] can appear on an overloaded operation if it appears on all overloads")
+    harness.ok(
+        not threw,
+        "[SecureContext] can appear on an overloaded operation if it appears on all overloads",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             [SecureContext]
             interface TestSecureContextOnInterfaceAndMember {
               [SecureContext]
               undefined testSecureMethod(byte foo);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
-    harness.ok(threw, "[SecureContext] must not appear on an interface and interface member")
+    harness.ok(
+        threw, "[SecureContext] must not appear on an interface and interface member"
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface TestSecureContextOnPartialInterfaceAndMember {
             };
             [SecureContext]
@@ -249,16 +377,21 @@ def WebIDLTest(parser, harness):
               [SecureContext]
               undefined testSecureMethod(byte foo);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
-    harness.ok(threw, "[SecureContext] must not appear on a partial interface and one of the partial interface's member's")
+    harness.ok(
+        threw,
+        "[SecureContext] must not appear on a partial interface and one of the partial interface's member's",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             [SecureContext]
             interface TestSecureContextOnInterfaceAndPartialInterfaceMember {
             };
@@ -266,31 +399,41 @@ def WebIDLTest(parser, harness):
               [SecureContext]
               undefined testSecureMethod(byte foo);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
-    harness.ok(threw, "[SecureContext] must not appear on an interface and one of its partial interface's member's")
+    harness.ok(
+        threw,
+        "[SecureContext] must not appear on an interface and one of its partial interface's member's",
+    )
 
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             [SecureContext]
             interface TestSecureContextOnInheritedInterface {
             };
             interface TestSecureContextNotOnInheritingInterface : TestSecureContextOnInheritedInterface {
               undefined testSecureMethod(byte foo);
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
-    harness.ok(threw, "[SecureContext] must appear on interfaces that inherit from another [SecureContext] interface")
+    harness.ok(
+        threw,
+        "[SecureContext] must appear on interfaces that inherit from another [SecureContext] interface",
+    )
 
     # Test 'includes'.
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         [SecureContext]
         interface TestSecureContextInterfaceThatIncludesNonSecureContextMixin {
           const octet TEST_CONSTANT = 0;
@@ -301,31 +444,56 @@ def WebIDLTest(parser, harness):
           undefined testMethod2(byte foo);
         };
         TestSecureContextInterfaceThatIncludesNonSecureContextMixin includes TestNonSecureContextMixin;
-     """)
+     """
+    )
     results = parser.finish()
-    harness.check(len(results[0].members), 4, "TestSecureContextInterfaceThatImplementsNonSecureContextInterface should have four members")
-    harness.ok(results[0].getExtendedAttribute("SecureContext"),
-               "Interface should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[0].getExtendedAttribute("SecureContext"),
-               "[SecureContext] should propagate from interface to constant members even when other members are copied from a non-[SecureContext] interface")
-    harness.ok(results[0].members[1].getExtendedAttribute("SecureContext") is None,
-               "Constants copied from non-[SecureContext] mixin should not be [SecureContext]")
-    harness.ok(results[0].members[2].getExtendedAttribute("SecureContext") is None,
-               "Attributes copied from non-[SecureContext] mixin should not be [SecureContext]")
-    harness.ok(results[0].members[3].getExtendedAttribute("SecureContext") is None,
-               "Methods copied from non-[SecureContext] mixin should not be [SecureContext]")
+    harness.check(
+        len(results[0].members),
+        4,
+        "TestSecureContextInterfaceThatImplementsNonSecureContextInterface should have four members",
+    )
+    harness.ok(
+        results[0].getExtendedAttribute("SecureContext"),
+        "Interface should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext"),
+        "[SecureContext] should propagate from interface to constant members even when other members are copied from a non-[SecureContext] interface",
+    )
+    harness.ok(
+        results[0].members[1].getExtendedAttribute("SecureContext") is None,
+        "Constants copied from non-[SecureContext] mixin should not be [SecureContext]",
+    )
+    harness.ok(
+        results[0].members[2].getExtendedAttribute("SecureContext") is None,
+        "Attributes copied from non-[SecureContext] mixin should not be [SecureContext]",
+    )
+    harness.ok(
+        results[0].members[3].getExtendedAttribute("SecureContext") is None,
+        "Methods copied from non-[SecureContext] mixin should not be [SecureContext]",
+    )
 
-    # Test SecureContext and NoInterfaceObject
+    # Test SecureContext and LegacyNoInterfaceObject
     parser = parser.reset()
-    parser.parse("""
-        [NoInterfaceObject, SecureContext]
-        interface TestSecureContextNoInterfaceObject {
+    parser.parse(
+        """
+        [LegacyNoInterfaceObject, SecureContext]
+        interface TestSecureContextLegacyNoInterfaceObject {
           undefined testSecureMethod(byte foo);
         };
-    """)
+    """
+    )
     results = parser.finish()
-    harness.check(len(results[0].members), 1, "TestSecureContextNoInterfaceObject should have only one member")
-    harness.ok(results[0].getExtendedAttribute("SecureContext"),
-      "Interface should have [SecureContext] extended attribute")
-    harness.ok(results[0].members[0].getExtendedAttribute("SecureContext"),
-      "Interface member should have [SecureContext] extended attribute")
+    harness.check(
+        len(results[0].members),
+        1,
+        "TestSecureContextLegacyNoInterfaceObject should have only one member",
+    )
+    harness.ok(
+        results[0].getExtendedAttribute("SecureContext"),
+        "Interface should have [SecureContext] extended attribute",
+    )
+    harness.ok(
+        results[0].members[0].getExtendedAttribute("SecureContext"),
+        "Interface member should have [SecureContext] extended attribute",
+    )

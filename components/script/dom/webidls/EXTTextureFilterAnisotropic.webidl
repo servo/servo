@@ -6,7 +6,7 @@
  * https://www.khronos.org/registry/webgl/extensions/EXT_texture_filter_anisotropic/
  */
 
-[NoInterfaceObject, Exposed=Window]
+[LegacyNoInterfaceObject, Exposed=Window]
 interface EXTTextureFilterAnisotropic {
   const GLenum TEXTURE_MAX_ANISOTROPY_EXT       = 0x84FE;
   const GLenum MAX_TEXTURE_MAX_ANISOTROPY_EXT   = 0x84FF;

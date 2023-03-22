@@ -1,7 +1,9 @@
 import WebIDL
 
+
 def WebIDLTest(parser, harness):
-    parser.parse("""
+    parser.parse(
+        """
         interface TestNullableEquivalency1 {
           attribute long  a;
           attribute long? b;
@@ -53,22 +55,24 @@ def WebIDLTest(parser, harness):
           attribute object  a;
           attribute object? b;
         };
-    """)
+    """
+    )
 
     for decl in parser.finish():
         if decl.isInterface():
             checkEquivalent(decl, harness)
 
+
 def checkEquivalent(iface, harness):
     type1 = iface.members[0].type
     type2 = iface.members[1].type
 
-    harness.check(type1.nullable(), False, 'attr1 should not be nullable')
-    harness.check(type2.nullable(), True, 'attr2 should be nullable')
+    harness.check(type1.nullable(), False, "attr1 should not be nullable")
+    harness.check(type2.nullable(), True, "attr2 should be nullable")
 
     # We don't know about type1, but type2, the nullable type, definitely
     # shouldn't be builtin.
-    harness.check(type2.builtin, False, 'attr2 should not be builtin')
+    harness.check(type2.builtin, False, "attr2 should not be builtin")
 
     # Ensure that all attributes of type2 match those in type1, except for:
     #  - names on an ignore list,
@@ -78,10 +82,22 @@ def checkEquivalent(iface, harness):
     #
     # Yes, this is an ugly, fragile hack.  But it finds bugs...
     for attr in dir(type1):
-        if attr.startswith('_') or \
-           attr in ['nullable', 'builtin', 'filename', 'location',
-                    'inner', 'QName', 'getDeps', 'name', 'prettyName'] or \
-           (hasattr(type(type1), attr) and not callable(getattr(type1, attr))):
+        if (
+            attr.startswith("_")
+            or attr
+            in [
+                "nullable",
+                "builtin",
+                "filename",
+                "location",
+                "inner",
+                "QName",
+                "getDeps",
+                "name",
+                "prettyName",
+            ]
+            or (hasattr(type(type1), attr) and not callable(getattr(type1, attr)))
+        ):
             continue
 
         a1 = getattr(type1, attr)
@@ -96,20 +112,30 @@ def checkEquivalent(iface, harness):
             try:
                 a2 = getattr(type2, attr)
             except:
-                harness.ok(False, 'Missing %s attribute on type %s in %s' % (attr, type2, iface))
+                harness.ok(
+                    False,
+                    "Missing %s attribute on type %s in %s" % (attr, type2, iface),
+                )
                 continue
 
             if not callable(a2):
-                harness.ok(False, "%s attribute on type %s in %s wasn't callable" % (attr, type2, iface))
+                harness.ok(
+                    False,
+                    "%s attribute on type %s in %s wasn't callable"
+                    % (attr, type2, iface),
+                )
                 continue
 
             v2 = a2()
-            harness.check(v2, v1, '%s method return value' % attr)
+            harness.check(v2, v1, "%s method return value" % attr)
         else:
             try:
                 a2 = getattr(type2, attr)
             except:
-                harness.ok(False, 'Missing %s attribute on type %s in %s' % (attr, type2, iface))
+                harness.ok(
+                    False,
+                    "Missing %s attribute on type %s in %s" % (attr, type2, iface),
+                )
                 continue
 
-            harness.check(a2, a1, '%s attribute should match' % attr)
+            harness.check(a2, a1, "%s attribute should match" % attr)

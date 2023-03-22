@@ -24,7 +24,7 @@ def main():
     webidls = [name for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
-        with open(filename, "rb") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             parser.parse(f.read(), filename)
 
     add_css_properties_attributes(css_properties_json, parser)
@@ -72,7 +72,7 @@ def generate(config, name, filename):
 def add_css_properties_attributes(css_properties_json, parser):
     css_properties = json.load(open(css_properties_json, "rb"))
     idl = "partial interface CSSStyleDeclaration {\n%s\n};\n" % "\n".join(
-        "  [%sCEReactions, SetterThrows] attribute [TreatNullAs=EmptyString] DOMString %s;" % (
+        "  [%sCEReactions, SetterThrows] attribute [LegacyNullToEmptyString] DOMString %s;" % (
             ('Pref="%s", ' % data["pref"] if data["pref"] else ""),
             attribute_name
         )
@@ -80,7 +80,7 @@ def add_css_properties_attributes(css_properties_json, parser):
         for (property_name, data) in sorted(properties_list.items())
         for attribute_name in attribute_names(property_name)
     )
-    parser.parse(idl.encode("utf-8"), "CSSStyleDeclaration_generated.webidl")
+    parser.parse(idl, "CSSStyleDeclaration_generated.webidl")
 
 
 def attribute_names(property_name):
