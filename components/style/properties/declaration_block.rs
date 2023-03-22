@@ -754,6 +754,14 @@ impl PropertyDeclarationBlock {
         self.declarations.remove(i);
     }
 
+    /// Clears all the declarations from this block.
+    #[inline]
+    pub fn clear(&mut self) {
+        self.declarations_importance.clear();
+        self.declarations.clear();
+        self.longhands.clear();
+    }
+
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-removeproperty>
     ///
     /// `first_declaration` needs to be the result of
