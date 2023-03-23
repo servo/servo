@@ -151,6 +151,9 @@ unsafe extern "C" fn own_property_keys(
     _proxy: HandleObject,
     props: MutableHandleIdVector,
 ) -> bool {
+    // TODO is this all we need to return? compare with gecko:
+    // https://searchfox.org/mozilla-central/rev/af78418c4b5f2c8721d1a06486cf4cf0b33e1e8d/dom/base/WindowNamedPropertiesHandler.cpp#175-232
+    // see also https://github.com/whatwg/html/issues/9068
     rooted!(in(cx) let mut rooted = SymbolId(GetWellKnownSymbol(cx, SymbolCode::toStringTag)));
     AppendToIdVector(props, rooted.handle().into());
     true
