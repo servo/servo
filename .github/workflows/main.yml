@@ -175,6 +175,8 @@ jobs:
         run: python3 ./mach build --release
       - name: Lockfile check
         run: ./etc/ci/lockfile_changed.sh
+      - name: Tidy
+        run: python3 ./mach test-tidy --no-progress --all
       - name: Package binary
         run: tar -czf target.tar.gz target/release/servo resources
       - name: Archive binary
