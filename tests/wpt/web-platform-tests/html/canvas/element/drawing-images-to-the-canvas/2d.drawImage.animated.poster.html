@@ -19,8 +19,15 @@
 var t = async_test("drawImage() of an APNG draws the poster frame");
 _addTest(function(canvas, ctx) {
 
-ctx.drawImage(document.getElementById('anim-poster-gr.png'), 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+fetch('anim-poster-gr.png')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
+        ctx.drawImage(bitmap, 0, 0);
+        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+    });
+});
 
 
 });

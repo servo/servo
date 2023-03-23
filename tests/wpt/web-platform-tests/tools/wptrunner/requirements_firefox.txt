@@ -6,4 +6,4 @@ mozleak==0.2
 mozprofile==2.5.0
 mozrunner==8.2.1
 mozversion==2.3.0
-psutil==5.9.1
+psutil==5.9.4

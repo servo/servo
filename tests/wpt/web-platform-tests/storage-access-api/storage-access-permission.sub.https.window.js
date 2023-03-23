@@ -4,16 +4,17 @@
 'use strict';
 
 (async function() {
-  // This is cross-domain from the current document.
+  // These are cross-domain from the current document.
   const wwwAlt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
+  const www1Alt = "https://{{hosts[alt][www1]}}:{{ports[https][0]}}";
+  const responder_html = "/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js";
 
   if (window === window.top) {
     // Test the interaction between two (same-origin) iframes.
     promise_test(async (t) => {
-      const responder_html = `${wwwAlt}/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js`;
       const [frame1, frame2] = await Promise.all([
-        CreateFrame(responder_html),
-        CreateFrame(responder_html),
+        CreateFrame(wwwAlt + responder_html),
+        CreateFrame(wwwAlt + responder_html),
       ]);
 
       t.add_cleanup(async () => {
@@ -26,6 +27,24 @@
       const state = await observed;
       assert_equals(state, "granted");
     }, "Permissions grants are observable across same-origin iframes");
+
+    // Test the interaction between two cross-origin but same-site iframes.
+    promise_test(async (t) => {
+      const [frame1, frame2] = await Promise.all([
+        CreateFrame(wwwAlt + responder_html),
+        CreateFrame(www1Alt + responder_html),
+      ]);
+
+      t.add_cleanup(async () => {
+        await SetPermissionInFrame(frame1, [{ name: 'storage-access' }, 'prompt']);
+      });
+
+      const observed = ObservePermissionChange(frame2);
+      await SetPermissionInFrame(frame1, [{ name: 'storage-access' }, 'granted']);
+
+      const state = await observed;
+      assert_equals(state, "granted");
+    }, "Permissions grants are observable across same-site iframes");
 
     promise_test(async (t) => {
       // Finally run the simple tests below in a separate cross-origin iframe.

@@ -15,6 +15,7 @@ scripts = {
                              "conformance-checkers/tools/ins-del-datetime.py",
                              "conformance-checkers/tools/picture.py",
                              "conformance-checkers/tools/url.py"],
+    "css-images": ["css/css-images/tools/generate_object_view_box_tests.py"],
     "css-ui": ["css/css-ui/tools/appearance-build-webkit-reftests.py"],
     # FIXME: https://github.com/web-platform-tests/wpt/issues/32060
     # "css-text": ["css/css-text/line-breaking/tools/generate-segment-break-transformation-rules-tests.py"],

@@ -14,7 +14,9 @@ promise_test(async t => {
   // Traverse forward then immediately do a same-document push. This will
   // truncate the back forward list, and by the time the traverse commits, the
   // destination key will no longer be present in navigation.entries(). The
-  // traverse should abort.
+  // traverse should abort. Because the traverse aborts before the navigate
+  // event fires, the navigateerror event should not fire.
+  navigation.onnavigateerror = t.unreached_func("navigateerror should not fire");
   let forward_value = navigation.forward();
   await navigation.navigate("#clobber").finished;
   assert_equals(navigation.currentEntry.index, 1);

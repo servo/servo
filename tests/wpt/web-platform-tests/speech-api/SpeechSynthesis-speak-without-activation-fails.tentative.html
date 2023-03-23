@@ -10,7 +10,7 @@ async_test(t => {
   utter.onerror = t.step_func_done((e) => {
     assert_equals(e.error, "not-allowed");
   });
-  utter.onend = t.step_func_done(() => assert_unreached());
+  utter.onend = t.unreached_func('end event');
   speechSynthesis.speak(utter);
 }, 'speechSynthesis.speak requires user activation');
 </script>

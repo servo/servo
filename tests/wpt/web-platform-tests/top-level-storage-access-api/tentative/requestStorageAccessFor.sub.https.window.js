@@ -166,6 +166,50 @@ if (topLevelDocument) {
       '[' + testPrefix +
           '] document.requestStorageAccessFor() should be rejected when called with an opaque origin');
 
+  promise_test(
+      async (t) => {
+        const altOrigin = 'https://{{hosts[alt][www]}}:{{ports[https][0]}}';
+        const altEchoCookieHeaderUrl =
+            `${altOrigin}/storage-access-api/resources/echo-cookie-header.py`;
+
+        await MaybeSetStorageAccess('*', '*', 'blocked');
+        t.add_cleanup(async () => {
+          await test_driver.delete_all_cookies();
+          await test_driver.set_permission(
+              {name: 'top-level-storage-access', requestedOrigin: altOrigin},
+              'prompt');
+          await MaybeSetStorageAccess('*', '*', 'allowed');
+        });
+
+        await test_driver.set_permission(
+            {name: 'top-level-storage-access', requestedOrigin: altOrigin},
+            'granted');
+
+        // Set cross-site cookie for altOrigin. Note that this only works with
+        // an existing top-level storage access permission.
+        await fetch(
+            `${altOrigin}/cookies/resources/set-cookie.py?name=cookie&path=/&samesite=None&secure=`,
+            {mode: 'cors', credentials: 'include'});
+
+        const httpCookies1 = await fetch(altEchoCookieHeaderUrl, {
+                               mode: 'cors',
+                               credentials: 'include'
+                             }).then((resp) => resp.text());
+        assert_true(
+            httpCookies1.includes('cookie=1'),
+            'After obtaining top-level storage access, cross-site subresource requests with CORS mode should have cookie access.');
+
+        const httpCookies2 = await fetch(altEchoCookieHeaderUrl, {
+                               mode: 'no-cors',
+                               credentials: 'include'
+                             }).then((resp) => resp.text());
+        assert_false(
+            httpCookies2.includes('cookie=1'),
+            'Cross-site subresource requests without CORS mode cannot access cookie even with an existing permission.');
+      },
+      '[' + testPrefix +
+          '] Top-level storage access only allows cross-site subresource requests to access cookie when using CORS mode.');
+
 } else {
   promise_test(
       async t => {
@@ -175,4 +219,38 @@ if (topLevelDocument) {
       },
       '[' + testPrefix +
           '] document.requestStorageAccessFor() should be rejected when called in an iframe');
+
+  promise_test(
+      async (t) => {
+        const altOrigin = 'https://{{hosts[alt][www]}}:{{ports[https][0]}}';
+
+        await MaybeSetStorageAccess('*', '*', 'blocked');
+        t.add_cleanup(async () => {
+          await test_driver.delete_all_cookies();
+          await test_driver.set_permission(
+              {name: 'top-level-storage-access', requestedOrigin: altOrigin},
+              'prompt');
+          await MaybeSetStorageAccess('*', '*', 'allowed');
+        });
+
+        // Set cross-site cookie for altOrigin. Note that cookie won't be set
+        // even with an existing top-level storage access permission in an
+        // iframe.
+        await fetch(
+            `${altOrigin}/cookies/resources/set-cookie.py?name=cookie&path=/&samesite=None&secure=`,
+            {mode: 'cors', credentials: 'include'});
+
+        await test_driver.set_permission(
+            {name: 'top-level-storage-access', requestedOrigin: altOrigin},
+            'granted');
+
+        const httpCookies =
+            await fetch(
+                `${altOrigin}/storage-access-api/resources/echo-cookie-header.py`,
+                {mode: 'cors', credentials: 'include'})
+                .then((resp) => resp.text());
+        assert_false(httpCookies.includes('cookie=1'));
+      },
+      '[' + testPrefix +
+          '] Existing top-level storage access permission should not allow cookie access for the cross-site subresource requests made in a non-top-level context.');
 }

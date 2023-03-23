@@ -137,6 +137,16 @@ def test_primitives(session, inline, js_primitive, py_primitive):
     assert_success(response, py_primitive)
 
 
+def test_collection_dom_token_list(session, inline):
+    session.url = inline("""<div class="no cheese">""")
+    element = session.find.css("div", all=False)
+
+    response = get_element_property(session, element.id, "classList")
+    value = assert_success(response)
+
+    assert value == ["no", "cheese"]
+
+
 @pytest.mark.parametrize("js_primitive,py_primitive", [
     ("\"foobar\"", "foobar"),
     (42, 42),

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>View transitions: fragmented elements skipped</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+#spacer {
+  width: 100px;
+  height: 950px;
+  background: lightgreen;
+}
+#container {
+  width: 500px;
+  height: 500px;
+  columns: 2;
+}
+#target {
+  width: 200px;
+  height: 200px;
+  background: green;
+}
+#unrelated {
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+}
+</style>
+<div id=container>
+  <div id=spacer></div>
+  <div id=target></div>
+</div>
+<div id=unrelated></div>

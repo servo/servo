@@ -19,17 +19,11 @@ var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#f00';
 ctx.fillRect(0, 0, 100, 50);
-var promise = new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", '/images/rgrg-256x256.png');
-    xhr.responseType = 'blob';
-    xhr.send();
-    xhr.onload = function() {
-        resolve(xhr.response);
-    };
-});
-promise.then(function(response) {
-    createImageBitmap(response).then(bitmap => {
+fetch('/images/rgrg-256x256.png')
+  .then(response => response.blob())
+    .then(blob => {
+    createImageBitmap(blob)
+      .then(bitmap => {
         ctx.drawImage(bitmap, 0, 0, 256, 256, 0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
         ctx.fillRect(0, 0, 51, 26);
@@ -42,8 +36,9 @@ promise.then(function(response) {
         _assertPixelApprox(canvas, 80,20, 0,255,0,255, 2);
         _assertPixelApprox(canvas, 20,30, 0,255,0,255, 2);
         _assertPixelApprox(canvas, 80,30, 0,255,0,255, 2);
-    }, t_fail);
-}).then(t_pass, t_fail);
+    });
+});
+t.done();
 
 });
 done();
