@@ -39,6 +39,7 @@ use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
 use js::jsapi::{GetWellKnownSymbol, SymbolCode};
 use js::jsapi::{JSErrNum, SetDOMProxyInformation};
 use js::jsid::SymbolId;
+use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
@@ -193,7 +194,7 @@ pub unsafe fn ensure_expando_object(
 /// Set the property descriptor's object to `obj` and set it to enumerable,
 /// and writable if `readonly` is true.
 pub fn set_property_descriptor(
-    desc: MutableHandle<PropertyDescriptor>,
+    mut desc: MutableHandle<PropertyDescriptor>,
     value: HandleValue,
     attrs: u32,
     is_none: &mut bool,
