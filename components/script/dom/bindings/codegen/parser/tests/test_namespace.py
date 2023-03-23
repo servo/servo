@@ -5,13 +5,13 @@ def WebIDLTest(parser, harness):
           attribute any foo;
           any bar();
         };
-        """)
+        """
+    )
 
     results = parser.finish()
     harness.check(len(results), 1, "Should have a thing.")
-    harness.ok(results[0].isNamespace(), "Our thing should be a namespace");
-    harness.check(len(results[0].members), 2,
-                  "Should have two things in our namespace")
+    harness.ok(results[0].isNamespace(), "Our thing should be a namespace")
+    harness.check(len(results[0].members), 2, "Should have two things in our namespace")
     harness.ok(results[0].members[0].isAttr(), "First member is attribute")
     harness.ok(results[0].members[0].isStatic(), "Attribute should be static")
     harness.ok(results[0].members[1].isMethod(), "Second member is method")
@@ -26,17 +26,17 @@ def WebIDLTest(parser, harness):
         partial namespace MyNamespace {
           any bar();
         };
-        """)
+        """
+    )
 
     results = parser.finish()
     harness.check(len(results), 2, "Should have things.")
-    harness.ok(results[0].isNamespace(), "Our thing should be a namespace");
-    harness.check(len(results[0].members), 2,
-                  "Should have two things in our namespace")
+    harness.ok(results[0].isNamespace(), "Our thing should be a namespace")
+    harness.check(len(results[0].members), 2, "Should have two things in our namespace")
     harness.ok(results[0].members[0].isAttr(), "First member is attribute")
-    harness.ok(results[0].members[0].isStatic(), "Attribute should be static");
+    harness.ok(results[0].members[0].isStatic(), "Attribute should be static")
     harness.ok(results[0].members[1].isMethod(), "Second member is method")
-    harness.ok(results[0].members[1].isStatic(), "Operation should be static");
+    harness.ok(results[0].members[1].isStatic(), "Operation should be static")
 
     parser = parser.reset()
     parser.parse(
@@ -47,17 +47,17 @@ def WebIDLTest(parser, harness):
         namespace MyNamespace {
           attribute any foo;
         };
-        """)
+        """
+    )
 
     results = parser.finish()
     harness.check(len(results), 2, "Should have things.")
-    harness.ok(results[1].isNamespace(), "Our thing should be a namespace");
-    harness.check(len(results[1].members), 2,
-                  "Should have two things in our namespace")
+    harness.ok(results[1].isNamespace(), "Our thing should be a namespace")
+    harness.check(len(results[1].members), 2, "Should have two things in our namespace")
     harness.ok(results[1].members[0].isAttr(), "First member is attribute")
-    harness.ok(results[1].members[0].isStatic(), "Attribute should be static");
+    harness.ok(results[1].members[0].isStatic(), "Attribute should be static")
     harness.ok(results[1].members[1].isMethod(), "Second member is method")
-    harness.ok(results[1].members[1].isStatic(), "Operation should be static");
+    harness.ok(results[1].members[1].isStatic(), "Operation should be static")
 
     parser = parser.reset()
     threw = False
@@ -67,7 +67,8 @@ def WebIDLTest(parser, harness):
             namespace MyNamespace {
               static attribute any foo;
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -82,7 +83,8 @@ def WebIDLTest(parser, harness):
             namespace MyNamespace {
               static any bar();
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -101,7 +103,8 @@ def WebIDLTest(parser, harness):
             interface MyNamespace {
               any baz();
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -120,7 +123,8 @@ def WebIDLTest(parser, harness):
             namespace MyNamespace {
               any bar();
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -139,7 +143,8 @@ def WebIDLTest(parser, harness):
             namespace MyNamespace {
               any bar();
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -158,7 +163,8 @@ def WebIDLTest(parser, harness):
             interface MyNamespace {
               any bar();
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -177,7 +183,8 @@ def WebIDLTest(parser, harness):
             partial interface MyNamespace {
               any baz();
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -196,7 +203,8 @@ def WebIDLTest(parser, harness):
             namespace MyNamespace {
               any bar();
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -215,7 +223,8 @@ def WebIDLTest(parser, harness):
             partial namespace MyNamespace {
               any baz();
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:

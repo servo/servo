@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmloptionelement
-[Exposed=Window, NamedConstructor=Option(optional DOMString text = "", optional DOMString value,
+[Exposed=Window, LegacyFactoryFunction=Option(optional DOMString text = "", optional DOMString value,
                          optional boolean defaultSelected = false,
                          optional boolean selected = false)]
 interface HTMLOptionElement : HTMLElement {

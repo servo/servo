@@ -13,15 +13,15 @@
 // way to enforce security policy.
 
 // https://html.spec.whatwg.org/multipage/#window
-[Global, Exposed=(Window,DissimilarOriginWindow), NoInterfaceObject]
+[Global, Exposed=(Window,DissimilarOriginWindow), LegacyNoInterfaceObject]
 interface DissimilarOriginWindow : GlobalScope {
-  [Unforgeable] readonly attribute WindowProxy window;
+  [LegacyUnforgeable] readonly attribute WindowProxy window;
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
-  [Unforgeable] readonly attribute WindowProxy? parent;
-  [Unforgeable] readonly attribute WindowProxy? top;
+  [LegacyUnforgeable] readonly attribute WindowProxy? parent;
+  [LegacyUnforgeable] readonly attribute WindowProxy? top;
   [Replaceable] readonly attribute WindowProxy frames;
   [Replaceable] readonly attribute unsigned long length;
-  [Unforgeable] readonly attribute DissimilarOriginLocation location;
+  [LegacyUnforgeable] readonly attribute DissimilarOriginLocation location;
 
   undefined close();
   readonly attribute boolean closed;

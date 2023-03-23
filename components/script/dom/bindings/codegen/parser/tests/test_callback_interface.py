@@ -1,11 +1,14 @@
 import WebIDL
 
+
 def WebIDLTest(parser, harness):
-    parser.parse("""
+    parser.parse(
+        """
         callback interface TestCallbackInterface {
           attribute boolean bool;
         };
-    """)
+    """
+    )
 
     results = parser.finish()
 
@@ -16,13 +19,15 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface TestInterface {
             };
             callback interface TestCallbackInterface : TestInterface {
               attribute boolean bool;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -32,13 +37,15 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface TestInterface : TestCallbackInterface {
             };
             callback interface TestCallbackInterface {
               attribute boolean bool;
             };
-        """)
+        """
+        )
         results = parser.finish()
     except:
         threw = True
@@ -46,7 +53,8 @@ def WebIDLTest(parser, harness):
     harness.ok(threw, "Should not allow callback parent of non-callback interface")
 
     parser = parser.reset()
-    parser.parse("""
+    parser.parse(
+        """
         callback interface TestCallbackInterface1 {
           undefined foo();
         };
@@ -86,9 +94,13 @@ def WebIDLTest(parser, harness):
         callback interface TestCallbackInterface10 : TestCallbackInterface1 {
           undefined bar();
         };
-    """)
+    """
+    )
     results = parser.finish()
     for (i, iface) in enumerate(results):
-      harness.check(iface.isSingleOperationInterface(), i < 4,
-                    "Interface %s should be a single operation interface" %
-                    iface.identifier.name)
+        harness.check(
+            iface.isSingleOperationInterface(),
+            i < 4,
+            "Interface %s should be a single operation interface"
+            % iface.identifier.name,
+        )

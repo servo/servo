@@ -4,6 +4,7 @@ patch < debug.patch
 patch < callback-location.patch
 patch < union-typedef.patch
 patch < inline.patch
+patch < readable-stream.patch
 
 wget https://hg.mozilla.org/mozilla-central/archive/tip.zip/dom/bindings/parser/tests/ -O tests.zip
 rm -r tests

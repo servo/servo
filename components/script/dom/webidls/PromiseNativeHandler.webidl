@@ -7,7 +7,7 @@
 
 // Hack to allow us to have JS owning and properly tracing/CCing/etc a
 // PromiseNativeHandler.
-[NoInterfaceObject,
+[LegacyNoInterfaceObject,
  Exposed=(Window,Worker)]
 interface PromiseNativeHandler {
 };

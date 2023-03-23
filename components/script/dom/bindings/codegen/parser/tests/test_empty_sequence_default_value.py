@@ -1,13 +1,16 @@
 import WebIDL
 
+
 def WebIDLTest(parser, harness):
     threw = False
     try:
-        parser.parse("""
+        parser.parse(
+            """
             interface X {
               const sequence<long> foo = [];
             };
-        """)
+        """
+        )
 
         results = parser.finish()
     except Exception as x:
@@ -17,29 +20,35 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
 
-    parser.parse("""
+    parser.parse(
+        """
         interface X {
           undefined foo(optional sequence<long> arg = []);
         };
-    """)
-    results = parser.finish();
+    """
+    )
+    results = parser.finish()
 
-    harness.ok(isinstance(
-        results[0].members[0].signatures()[0][1][0].defaultValue,
-        WebIDL.IDLEmptySequenceValue),
-               "Should have IDLEmptySequenceValue as default value of argument")
+    harness.ok(
+        isinstance(
+            results[0].members[0].signatures()[0][1][0].defaultValue,
+            WebIDL.IDLEmptySequenceValue,
+        ),
+        "Should have IDLEmptySequenceValue as default value of argument",
+    )
 
     parser = parser.reset()
 
-    parser.parse("""
+    parser.parse(
+        """
         dictionary X {
           sequence<long> foo = [];
         };
-    """)
-    results = parser.finish();
+    """
+    )
+    results = parser.finish()
 
-    harness.ok(isinstance(results[0].members[0].defaultValue,
-                          WebIDL.IDLEmptySequenceValue),
-               "Should have IDLEmptySequenceValue as default value of "
-               "dictionary member")
-
+    harness.ok(
+        isinstance(results[0].members[0].defaultValue, WebIDL.IDLEmptySequenceValue),
+        "Should have IDLEmptySequenceValue as default value of " "dictionary member",
+    )

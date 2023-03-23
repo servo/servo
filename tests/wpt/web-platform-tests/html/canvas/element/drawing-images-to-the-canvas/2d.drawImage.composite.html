@@ -22,8 +22,15 @@ _addTest(function(canvas, ctx) {
 ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 100, 50);
 ctx.globalCompositeOperation = 'destination-over';
-ctx.drawImage(document.getElementById('red.png'), 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+fetch('/images/red.png')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
+        ctx.drawImage(bitmap, 0, 0);
+        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+    });
+});
 
 
 });

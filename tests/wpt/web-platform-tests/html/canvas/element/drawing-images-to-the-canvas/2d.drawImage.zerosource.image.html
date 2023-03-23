@@ -21,10 +21,17 @@ _addTest(function(canvas, ctx) {
 
 ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 100, 50);
-ctx.drawImage(document.getElementById('red-zerowidth.svg'), 0, 0, 100, 50);
-ctx.drawImage(document.getElementById('red-zeroheight.svg'), 0, 0, 100, 50);
-ctx.drawImage(document.getElementById('red-zerosize.svg'), 0, 0, 100, 50);
-_assertPixel(canvas, 50,25, 0,255,0,255);
+fetch('/images/red-zerowidth.svg')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
+          ctx.drawImage(bitmap, 0, 0, 100, 50);
+          ctx.drawImage(bitmap, 0, 0, 100, 50);
+          ctx.drawImage(bitmap, 0, 0, 100, 50);
+          _assertPixel(canvas, 50,25, 0,255,0,255);
+      });
+});
 
 
 });

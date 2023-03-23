@@ -1,11 +1,14 @@
 import WebIDL
 
+
 def WebIDLTest(parser, harness):
     try:
-        parser.parse("""
+        parser.parse(
+            """
             enum TestEmptyEnum {
             };
-        """)
+        """
+        )
 
         harness.ok(False, "Should have thrown!")
     except:

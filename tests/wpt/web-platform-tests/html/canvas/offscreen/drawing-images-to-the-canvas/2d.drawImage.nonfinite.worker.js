@@ -19,17 +19,11 @@ var ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 100, 50);
-var promise = new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", '/images/redtransparent.png');
-    xhr.responseType = 'blob';
-    xhr.send();
-    xhr.onload = function() {
-        resolve(xhr.response);
-    };
-});
-promise.then(function(response) {
-    createImageBitmap(response).then(bitmap => {
+fetch('/images/redtransparent.png')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
         ctx.drawImage(bitmap, Infinity, 0);
 ctx.drawImage(bitmap, -Infinity, 0);
 ctx.drawImage(bitmap, NaN, 0);
@@ -332,8 +326,9 @@ ctx.drawImage(bitmap, 0, 0, 100, 50, 0, Infinity, Infinity, Infinity);
 ctx.drawImage(bitmap, 0, 0, 100, 50, 0, Infinity, 100, Infinity);
 ctx.drawImage(bitmap, 0, 0, 100, 50, 0, 0, Infinity, Infinity);
         _assertPixel(canvas, 50,25, 0,255,0,255);
-    }, t_fail);
-}).then(t_pass, t_fail);
+    });
+});
+t.done();
 
 });
 done();

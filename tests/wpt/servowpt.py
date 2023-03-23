@@ -227,7 +227,7 @@ class TrackerDashboardFilter():
         self.headers = {
             "Content-Type": "application/json"
         }
-        if TRACKER_DASHBOARD_SECRET_ENV_VAR in os.environ:
+        if TRACKER_DASHBOARD_SECRET_ENV_VAR in os.environ and os.environ[TRACKER_DASHBOARD_SECRET_ENV_VAR]:
             self.url = f"{base_url}/dashboard/attempts"
             secret = os.environ[TRACKER_DASHBOARD_SECRET_ENV_VAR]
             self.headers["Authorization"] = f"Bearer {secret}"

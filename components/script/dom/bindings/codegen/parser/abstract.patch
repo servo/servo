@@ -1,12 +1,10 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -1883,7 +1883,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
-                   identifier == "LegacyUnenumerableNamedProperties" or
-                   identifier == "RunConstructorInCallerCompartment" or
-                   identifier == "WantsEventListenerHooks" or
--                  identifier == "Serializable"):
-+                  identifier == "Serializable" or
-+                  identifier == "Abstract"):
+@@ -1987,6 +1987,7 @@ class IDLInterface(IDLInterfaceOrNamespace):
+                 or identifier == "RunConstructorInCallerCompartment"
+                 or identifier == "WantsEventListenerHooks"
+                 or identifier == "Serializable"
++                or identifier == "Abstract"
+             ):
                  # Known extended attributes that do not take values
                  if not attr.noArguments():
-                     raise WebIDLError("[%s] must take no arguments" % identifier,

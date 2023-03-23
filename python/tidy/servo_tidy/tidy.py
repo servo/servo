@@ -536,6 +536,18 @@ def check_rust(file_name, lines):
 
     is_lib_rs_file = file_name.endswith("lib.rs")
 
+    PANIC_NOT_ALLOWED_PATHS = [
+        os.path.join("*", "components", "compositing", "compositor.rs"),
+        os.path.join("*", "components", "constellation", "*"),
+        os.path.join("*", "ports", "winit", "headed_window.rs"),
+        os.path.join("*", "ports", "winit", "headless_window.rs"),
+        os.path.join("*", "ports", "winit", "embedder.rs"),
+        os.path.join("*", "rust_tidy.rs"),  # This is for the tests.
+    ]
+    is_panic_not_allowed_rs_file = any([
+        glob.fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
+    print(file_name)
+
     prev_open_brace = False
     multi_line_string = False
     prev_crate = {}
@@ -547,6 +559,7 @@ def check_rust(file_name, lines):
     decl_message = "{} is not in alphabetical order"
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
     decl_found = "\n\t\033[91mfound: {}\033[0m"
+    panic_message = "unwrap() or panic!() found in code which should not panic."
 
     for idx, original_line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         # simplify the analysis
@@ -676,6 +689,11 @@ def check_rust(file_name, lines):
             else:
                 # not a feature attribute line, so empty previous name
                 prev_feature_name = ""
+
+        if is_panic_not_allowed_rs_file:
+            match = re.search(r"unwrap\(|panic!\(", line)
+            if match:
+                yield (idx + 1, panic_message)
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):

@@ -115,6 +115,8 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('use &T instead of &DomRoot<T>', next(errors)[2])
         self.assertEqual('encountered function signature with -> ()', next(errors)[2])
         self.assertEqual('operators should go at the end of the first line', next(errors)[2])
+        self.assertEqual('unwrap() or panic!() found in code which should not panic.', next(errors)[2])
+        self.assertEqual('unwrap() or panic!() found in code which should not panic.', next(errors)[2])
         self.assertNoMoreErrors(errors)
 
         feature_errors = tidy.collect_errors_for_files(iterFile('lib.rs'), [], [tidy.check_rust], print_text=False)

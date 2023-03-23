@@ -1,12 +1,10 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -7382,7 +7382,8 @@ class Parser(Tokenizer):
-             self.parser = yacc.yacc(module=self,
-                                     outputdir=outputdir,
-                                     tabmodule='webidlyacc',
--                                    errorlog=logger
-+                                    errorlog=logger,
-+                                    debug=False
-                                     # Pickling the grammar is a speedup in
-                                     # some cases (older Python?) but a
-                                     # significant slowdown in others.
+@@ -8827,6 +8827,7 @@ class Parser(Tokenizer):
+                 module=self,
+                 outputdir=outputdir,
+                 errorlog=logger,
++                debug=False,
+                 write_tables=False,
+                 # Pickling the grammar is a speedup in
+                 # some cases (older Python?) but a

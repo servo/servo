@@ -1,14 +1,12 @@
 // META: title=Buckets API: Tests for indexedDB API.
 // META: global=window,worker
 // META: script=resources/support-promises.js
+// META: script=/storage/buckets/resources/util.js
 
 promise_test(async testCase => {
+  await prepareForBucketTest(testCase);
   const inboxBucket = await navigator.storageBuckets.open('inbox_bucket');
   const outboxBucket = await navigator.storageBuckets.open('outbox_bucket');
-  testCase.add_cleanup(async () => {
-    await navigator.storageBuckets.delete('inbox_bucket');
-    await navigator.storageBuckets.delete('outbox_bucket');
-  });
 
   // Set up similar databases in two buckets.
   const inboxDb = await new Promise((resolve, reject) => {
@@ -77,6 +75,7 @@ promise_test(async testCase => {
 }, 'Basic test that buckets create independent databases.');
 
 promise_test(async testCase => {
+  await prepareForBucketTest(testCase);
   const inboxBucket = await navigator.storageBuckets.open('inbox');
   await navigator.storageBuckets.delete('inbox');
 

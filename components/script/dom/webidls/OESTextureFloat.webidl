@@ -6,6 +6,6 @@
  * https://www.khronos.org/registry/webgl/extensions/OES_texture_float/
  */
 
-[NoInterfaceObject, Exposed=Window]
+[LegacyNoInterfaceObject, Exposed=Window]
 interface OESTextureFloat {
 };

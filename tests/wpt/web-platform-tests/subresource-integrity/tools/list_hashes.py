@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from os import path, listdir
 from hashlib import sha512, sha384, sha256, md5
 from base64 import b64encode

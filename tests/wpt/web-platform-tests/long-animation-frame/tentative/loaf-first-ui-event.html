@@ -91,7 +91,7 @@ promise_test(async t => {
     document.body.appendChild(img);
     t.add_cleanup(() => img.remove());
     return promise;
-  }, s => s.name === "IMG.onload", t);
+  }, s => s.name === "IMG[src=/images/green.png].onload", t);
 
   const [entry] = await entryPromise;
   assert_equals(entry.firstUIEventTimestamp, 0);

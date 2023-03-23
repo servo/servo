@@ -32,3 +32,5 @@ jobs:
         run: python3 ./mach test-unit --release
       - name: Lockfile check
         run: ./etc/ci/lockfile_changed.sh
+      - name: Release build (Layout 2020)
+        run: python3 ./mach build --release --with-layout-2020

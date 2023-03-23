@@ -2,8 +2,11 @@
 <title>CSS Basic User Interface Test: appearance CSSOM</title>
 <link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
 <meta name="assert" content="CSSOM for the appearance/-webkit-appearance property is correct.">
+<meta name="variant" content="">
+<meta name="variant" content="?exclude=Invalid">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src="/common/subset-tests-by-key.js"></script>
 <button id=button>Test</button>
 <script>
   const button = document.getElementById('button');
@@ -191,7 +194,7 @@
   }
   for (const prop of ["-webkit-appearance", "appearance"]) {
     for (const value of values) {
-      test(() => {
+      subsetTestByKey(`Values`, test, () => {
         button.removeAttribute('style');
         button.style.setProperty(prop, value);
         assert_style_for_prop(button.style, prop, value);
@@ -204,7 +207,7 @@
     }
 
     for (const value of compat_values) {
-      test(() => {
+      subsetTestByKey(`Compat`, test, () => {
         button.removeAttribute('style');
         button.style.setProperty(prop, value);
         assert_style_for_prop(button.style, prop, [value, ""]);
@@ -217,7 +220,7 @@
     }
 
     for (const value of invalid_values) {
-      test(() => {
+      subsetTestByKey(`Invalid`, test, () => {
         button.removeAttribute('style');
         button.style.setProperty(prop, value);
         assert_style_for_prop(button.style, prop, "");
@@ -245,7 +248,7 @@
     "-tc-",
   ]) {
     const prop = `${prefix}appearance`;
-    test(() => {
+    subsetTestByKey(`Prefixes`, test, () => {
       button.removeAttribute('style');
       button.style.setProperty(prop, 'none');
       assert_equals(button.style.getPropertyValue(prop), '');

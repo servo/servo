@@ -5,7 +5,7 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[LegacyNoInterfaceObject, Exposed=(Window,Worker)]
 // Need to escape "ReadableStream" so it's treated as an identifier.
 interface _ReadableStream {
 };

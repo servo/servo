@@ -10,17 +10,17 @@
  * and create derivative works of this document.
  */
 
-[TreatNonObjectAsNull]
+[LegacyTreatNonObjectAsNull]
 callback EventHandlerNonNull = any (Event event);
 typedef EventHandlerNonNull? EventHandler;
 
-[TreatNonObjectAsNull]
+[LegacyTreatNonObjectAsNull]
 callback OnErrorEventHandlerNonNull = any ((Event or DOMString) event, optional DOMString source,
                                                optional unsigned long lineno, optional unsigned long column,
                                                optional any error);
 typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 
-[TreatNonObjectAsNull]
+[LegacyTreatNonObjectAsNull]
 callback OnBeforeUnloadEventHandlerNonNull = DOMString? (Event event);
 typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 
@@ -62,8 +62,8 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onloadedmetadata;
            attribute EventHandler onloadstart;
            attribute EventHandler onmousedown;
-           [LenientThis] attribute EventHandler onmouseenter;
-           [LenientThis] attribute EventHandler onmouseleave;
+           [LegacyLenientThis] attribute EventHandler onmouseenter;
+           [LegacyLenientThis] attribute EventHandler onmouseleave;
            attribute EventHandler onmousemove;
            attribute EventHandler onmouseout;
            attribute EventHandler onmouseover;

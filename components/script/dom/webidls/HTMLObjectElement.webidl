@@ -49,5 +49,5 @@ partial interface HTMLObjectElement {
   //         attribute DOMString codeBase;
   //         attribute DOMString codeType;
 
-  //[TreatNullAs=EmptyString] attribute DOMString border;
+  //[LegacyNullToEmptyString] attribute DOMString border;
 };

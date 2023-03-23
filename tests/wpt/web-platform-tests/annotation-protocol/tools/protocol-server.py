@@ -5,8 +5,6 @@
 # Developed by Benjamin Young (@bigbulehat) and Shane McCarron (@halindrome).
 # Sponsored by Spec-Ops (https://spec-ops.io)
 
-from __future__ import print_function
-
 import os
 import sys
 

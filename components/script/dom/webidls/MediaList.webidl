@@ -5,7 +5,7 @@
 // https://drafts.csswg.org/cssom/#the-medialist-interface
 [Exposed=Window]
 interface MediaList {
-  stringifier attribute [TreatNullAs=EmptyString] DOMString mediaText;
+  stringifier attribute [LegacyNullToEmptyString] DOMString mediaText;
   readonly attribute unsigned long length;
   getter DOMString? item(unsigned long index);
   undefined appendMedium(DOMString medium);

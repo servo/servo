@@ -35,7 +35,7 @@ if MYPY:
     from typing import Text
     from typing import Tuple
 
-DEFAULT_IGNORE_RULERS = ("resources/testharness*", "resources/testdriver*")
+DEFAULT_IGNORE_RULES = ("resources/testharness*", "resources/testdriver*")
 
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
@@ -189,7 +189,7 @@ def repo_files_changed(revish, include_uncommitted=False, include_new=False):
 def exclude_ignored(files, ignore_rules):
     # type: (Iterable[Text], Optional[Sequence[Text]]) -> Tuple[List[Text], List[Text]]
     if ignore_rules is None:
-        ignore_rules = DEFAULT_IGNORE_RULERS
+        ignore_rules = DEFAULT_IGNORE_RULES
     compiled_ignore_rules = [compile_ignore_rule(item) for item in set(ignore_rules)]
 
     changed = []
@@ -362,7 +362,7 @@ def get_parser():
                         "or the end matching anything other than a path separator and ** in that "
                         "position matching anything. This flag can be used multiple times for "
                         "multiple rules. Specifying this flag overrides the default: " +
-                        ", ".join(DEFAULT_IGNORE_RULERS))
+                        ", ".join(DEFAULT_IGNORE_RULES))
     parser.add_argument("--modified", action="store_true",
                         help="Include files under version control that have been "
                         "modified or staged")

@@ -1,6 +1,8 @@
 'use strict';
 
 directory_test(async (t, root_dir) => {
+  await prepareForBucketTest(t);
+
   const inboxBucket = await navigator.storageBuckets.open('inbox');
   const inboxRootDir = await inboxBucket.getDirectory();
 
@@ -12,6 +14,8 @@ directory_test(async (t, root_dir) => {
 }, 'isSameEntry works as expected with buckets');
 
 directory_test(async (t, root_dir) => {
+  await prepareForBucketTest(t);
+
   const inboxBucket = await navigator.storageBuckets.open('inbox');
   await navigator.storageBuckets.delete('inbox');
   const directoryPromise = inboxBucket.getDirectory();

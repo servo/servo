@@ -21,12 +21,18 @@ _addTest(function(canvas, ctx) {
 
 ctx.fillStyle = '#0f0';
 ctx.rect(0, 0, 100, 50);
-ctx.drawImage(document.getElementById('red.png'), 0, 0);
-ctx.fill();
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+fetch('/images/red.png')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
+        ctx.drawImage(bitmap, 0, 0);
+        ctx.fill();
+        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+    });
+});
 
 
 });
 </script>
-<img src="/images/red.png" id="red.png" class="resource">
 
