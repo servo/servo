@@ -30,7 +30,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{AssertUntransplantable, DomObject};
 use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use crate::dom::bindings::str::DOMString;
@@ -522,7 +522,11 @@ pub struct ScriptThread {
     documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies: DomRefCell<HashMap<BrowsingContextId, Dom<WindowProxy>>>,
+    ///
+    /// Safety: `AssertUntransplantable` is safe to be used here because
+    /// `ScriptThread` is rooted and not traced by other GC things.
+    window_proxies:
+        DomRefCell<HashMap<BrowsingContextId, Dom<AssertUntransplantable<WindowProxy>>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
@@ -1118,7 +1122,7 @@ impl ScriptThread {
                     .window_proxies
                     .borrow()
                     .get(&id)
-                    .map(|context| DomRoot::from_ref(&**context))
+                    .map(|context| DomRoot::from_ref(&***context))
             })
         })
     }
@@ -1129,7 +1133,7 @@ impl ScriptThread {
                 let script_thread = unsafe { &*script_thread };
                 for (_, proxy) in script_thread.window_proxies.borrow().iter() {
                     if proxy.get_name() == *name {
-                        return Some(DomRoot::from_ref(&**proxy));
+                        return Some(DomRoot::from_ref(&***proxy));
                     }
                 }
                 None
@@ -3145,9 +3149,13 @@ impl ScriptThread {
             opener,
             creator,
         );
-        self.window_proxies
-            .borrow_mut()
-            .insert(browsing_context_id, Dom::from_ref(&*window_proxy));
+
+        // Safety: See `ScriptThread::window_proxies`.
+        self.window_proxies.borrow_mut().insert(
+            browsing_context_id,
+            Dom::from_ref(unsafe { AssertUntransplantable::from_ref(&*window_proxy) }),
+        );
+
         Some(window_proxy)
     }
 
@@ -3202,9 +3210,13 @@ impl ScriptThread {
             opener,
             creator,
         );
-        self.window_proxies
-            .borrow_mut()
-            .insert(browsing_context_id, Dom::from_ref(&*window_proxy));
+
+        // Safety: See `ScriptThread::window_proxies`.
+        self.window_proxies.borrow_mut().insert(
+            browsing_context_id,
+            Dom::from_ref(unsafe { AssertUntransplantable::from_ref(&*window_proxy) }),
+        );
+
         window_proxy
     }
 

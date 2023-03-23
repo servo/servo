@@ -26,7 +26,7 @@
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector, Untransplantable};
 use crate::dom::bindings::trace::trace_reflector;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::Node;
@@ -362,7 +362,7 @@ impl<T: DomObject> Deref for Dom<T> {
     }
 }
 
-unsafe impl<T: DomObject> JSTraceable for Dom<T> {
+unsafe impl<T: DomObject + Untransplantable> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         let trace_string;
         let trace_info = if cfg!(debug_assertions) {
@@ -542,11 +542,11 @@ impl LayoutDom<'_, Node> {
 /// on `Dom<T>`.
 #[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable)]
-pub struct MutDom<T: DomObject> {
+pub struct MutDom<T: DomObject + Untransplantable> {
     val: UnsafeCell<Dom<T>>,
 }
 
-impl<T: DomObject> MutDom<T> {
+impl<T: DomObject + Untransplantable> MutDom<T> {
     /// Create a new `MutDom`.
     pub fn new(initial: &T) -> MutDom<T> {
         assert_in_script();
@@ -570,20 +570,20 @@ impl<T: DomObject> MutDom<T> {
     }
 }
 
-impl<T: DomObject> MallocSizeOf for MutDom<T> {
+impl<T: DomObject + Untransplantable> MallocSizeOf for MutDom<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // See comment on MallocSizeOf for Dom<T>.
         0
     }
 }
 
-impl<T: DomObject> PartialEq for MutDom<T> {
+impl<T: DomObject + Untransplantable> PartialEq for MutDom<T> {
     fn eq(&self, other: &Self) -> bool {
         unsafe { *self.val.get() == *other.val.get() }
     }
 }
 
-impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
+impl<T: DomObject + Untransplantable + PartialEq> PartialEq<T> for MutDom<T> {
     fn eq(&self, other: &T) -> bool {
         unsafe { **self.val.get() == *other }
     }
@@ -605,11 +605,11 @@ pub(crate) fn assert_in_layout() {
 /// on `Dom<T>`.
 #[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable)]
-pub struct MutNullableDom<T: DomObject> {
+pub struct MutNullableDom<T: DomObject + Untransplantable> {
     ptr: UnsafeCell<Option<Dom<T>>>,
 }
 
-impl<T: DomObject> MutNullableDom<T> {
+impl<T: DomObject + Untransplantable> MutNullableDom<T> {
     /// Create a new `MutNullableDom`.
     pub fn new(initial: Option<&T>) -> MutNullableDom<T> {
         assert_in_script();
@@ -666,19 +666,19 @@ impl<T: DomObject> MutNullableDom<T> {
     }
 }
 
-impl<T: DomObject> PartialEq for MutNullableDom<T> {
+impl<T: DomObject + Untransplantable> PartialEq for MutNullableDom<T> {
     fn eq(&self, other: &Self) -> bool {
         unsafe { *self.ptr.get() == *other.ptr.get() }
     }
 }
 
-impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
+impl<'a, T: DomObject + Untransplantable> PartialEq<Option<&'a T>> for MutNullableDom<T> {
     fn eq(&self, other: &Option<&T>) -> bool {
         unsafe { *self.ptr.get() == other.map(Dom::from_ref) }
     }
 }
 
-impl<T: DomObject> Default for MutNullableDom<T> {
+impl<T: DomObject + Untransplantable> Default for MutNullableDom<T> {
     #[allow(unrooted_must_root)]
     fn default() -> MutNullableDom<T> {
         assert_in_script();
@@ -688,7 +688,7 @@ impl<T: DomObject> Default for MutNullableDom<T> {
     }
 }
 
-impl<T: DomObject> MallocSizeOf for MutNullableDom<T> {
+impl<T: DomObject + Untransplantable> MallocSizeOf for MutNullableDom<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // See comment on MallocSizeOf for Dom<T>.
         0
@@ -740,11 +740,201 @@ impl<T: DomObject> MallocSizeOf for DomOnceCell<T> {
 }
 
 #[allow(unrooted_must_root)]
-unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
+unsafe impl<T: DomObject + Untransplantable> JSTraceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         if let Some(ptr) = self.ptr.as_ref() {
             ptr.trace(trc);
         }
+    }
+}
+
+/// Essentially a [`MutNullableDom`], but directly references the reflector
+/// so that, with a proper care, a cross-realm reference is prevented from
+/// being formed by transplantation.
+///
+/// This type can hold a reference to an un-[`Untransplantable`] DOM object.
+/// In turn, such objects also need this sort of type to hold references to
+/// other DOM objects whether they are transplantable or not (so the name is
+/// inaccurate, actually).
+///
+/// This should only be used as a field in other DOM objects; see warning
+/// on `Dom<T>`.
+#[unrooted_must_root_lint::must_root]
+pub struct MutNullableTransplantableDom<T: DomObject> {
+    /// A reference to the DOM object.
+    ptr: UnsafeCell<Option<ptr::NonNull<T>>>,
+    /// A tracable reference to the reflector.
+    reflector: Heap<*mut JSObject>,
+}
+
+impl<T: DomObject> MutNullableTransplantableDom<T> {
+    /// Create a new `MutNullableTransplantableDom`.
+    ///
+    /// # Safety
+    ///
+    /// The constructed `MutNullableTransplantableDom` must be pinned before
+    /// use.
+    ///
+    /// FIXME: `std::pin::Pin` might be able to express this better
+    pub unsafe fn new() -> MutNullableTransplantableDom<T> {
+        assert_in_script();
+        MutNullableTransplantableDom {
+            ptr: UnsafeCell::new(None),
+            reflector: Heap::default(),
+        }
+    }
+
+    /// Get a rooted DOM object out of this object.
+    #[allow(unrooted_must_root)]
+    pub fn get(&self) -> Option<DomRoot<T>> {
+        assert_in_script();
+        unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(o.as_ref())) }
+    }
+
+    /// Set this `MutNullableTransplantableDom` to the given value. The
+    /// reflector will be wrapped for `global`'s realm.
+    pub fn set(&self, val: Option<&T>, global: &crate::dom::globalscope::GlobalScope) {
+        assert_in_script();
+        unsafe {
+            if let Some(dom) = val {
+                let cx = global.get_cx();
+                let _ac = crate::realms::enter_realm(global);
+                rooted!(in(*cx) let mut reflector = *dom.reflector().get_jsobject());
+                js::jsapi::JS_WrapObject(*cx, reflector.handle_mut().into());
+                self.reflector.set(reflector.get());
+            } else {
+                self.reflector.set(std::ptr::null_mut());
+            }
+
+            *self.ptr.get() = val.map(Into::into);
+        }
+    }
+}
+
+unsafe impl<T: DomObject> JSTraceable for MutNullableTransplantableDom<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        self.reflector.trace(trc);
+    }
+}
+
+impl<T: DomObject> MallocSizeOf for MutNullableTransplantableDom<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // See comment on MallocSizeOf for Dom<T>.
+        0
+    }
+}
+
+/// Essentially a [`DomOnceCell`], but directly references the reflector
+/// so that, with a proper care, a cross-realm reference is prevented from
+/// being formed by transplantation.
+///
+/// This type can hold a reference to an un-[`Untransplantable`] DOM object.
+/// In turn, such objects also need this sort of type to hold references to
+/// other DOM objects whether they are transplantable or not (so the name is
+/// inaccurate, actually).
+///
+/// This should only be used as a field in other DOM objects; see warning
+/// on `Dom<T>`.
+#[unrooted_must_root_lint::must_root]
+pub struct TransplantableDomOnceCell<T: DomObject> {
+    /// A reference to the DOM object.
+    ptr: OnceCell<ptr::NonNull<T>>,
+    /// A tracable reference to the reflector.
+    ///
+    /// Invariant: `reflector` points to `ptr.reflector()` or its CCW.
+    reflector: Heap<*mut JSObject>,
+}
+
+impl<T: DomObject> TransplantableDomOnceCell<T> {
+    /// Create a new `TransplantableDomOnceCell`.
+    ///
+    /// # Safety
+    ///
+    /// The constructed `TransplantableDomOnceCell` must be pinned before
+    /// use.
+    ///
+    /// FIXME: `std::pin::Pin` might be able to express this better
+    pub unsafe fn new() -> TransplantableDomOnceCell<T> {
+        assert_in_script();
+        TransplantableDomOnceCell {
+            ptr: OnceCell::new(),
+            reflector: Heap::default(),
+        }
+    }
+
+    // FIXME: The compartment invariants will be violated if an incorrect global
+    //        scope is supplied. Should this method be `unsafe fn` because for
+    //        this reason, or shouldn't it be because there are currently
+    //        gazillions of other non-`unsafe` ways (`find_document` for one) to
+    //        obtain other realms' DOM objects?
+    /// Set this `TransplantableDomOnceCell` to the given value. The
+    /// reflector will be wrapped for `global`'s realm. Does nothing if it's
+    /// already set.
+    ///
+    /// # Errors
+    ///
+    /// This method returns `Ok(())` if the cell was empty and `Err(())` if
+    /// it was full.
+    pub fn set<'a>(
+        &self,
+        val: Option<&T>,
+        global: &crate::dom::globalscope::GlobalScope,
+    ) -> Result<(), ()> {
+        assert_in_script();
+
+        if self.ptr.as_ref().is_some() {
+            return Err(());
+        }
+
+        if let Some(dom) = val {
+            self.ptr.init_once(|| {
+                // We've already checked the emptiness of `self.ptr`
+                debug_assert!(self.ptr.as_ref().is_none());
+
+                // Initialize `self.reflector`.
+                let cx = global.get_cx();
+                let _ac = crate::realms::enter_realm(global);
+                rooted!(in(*cx) let mut reflector = *dom.reflector().get_jsobject());
+                unsafe { js::jsapi::JS_WrapObject(*cx, reflector.handle_mut().into()) };
+
+                // The above code isn't supposed to initialize `self` reentrantly
+                assert!(self.reflector.get().is_null());
+                self.reflector.set(reflector.get());
+
+                dom.into()
+            });
+        }
+        Ok(())
+    }
+
+    /// Get a reference to the DOM object.
+    pub fn as_ref(&self) -> Option<&T> {
+        self.ptr.as_ref().map(|ptr| unsafe { &*ptr.as_ptr() })
+    }
+
+    /// Rewrap the reflector with a new realm.
+    pub fn rewrap(&self, global: &crate::dom::globalscope::GlobalScope) {
+        if self.reflector.get().is_null() {
+            return;
+        }
+        let cx = global.get_cx();
+        let _ac = crate::realms::enter_realm(global);
+        rooted!(in(*cx) let mut reflector = self.reflector.get());
+        unsafe { js::jsapi::JS_WrapObject(*cx, reflector.handle_mut().into()) };
+        self.reflector.set(reflector.get());
+    }
+}
+
+unsafe impl<T: DomObject> JSTraceable for TransplantableDomOnceCell<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        self.reflector.trace(trc);
+    }
+}
+
+impl<T: DomObject> MallocSizeOf for TransplantableDomOnceCell<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // See comment on MallocSizeOf for Dom<T>.
+        0
     }
 }
 

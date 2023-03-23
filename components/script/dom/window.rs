@@ -24,7 +24,7 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, MutNullableTransplantableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
@@ -201,7 +201,7 @@ pub struct Window {
     image_cache: Arc<dyn ImageCache>,
     #[ignore_malloc_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
-    window_proxy: MutNullableDom<WindowProxy>,
+    window_proxy: MutNullableTransplantableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
     history: MutNullableDom<History>,
@@ -382,7 +382,7 @@ impl Window {
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            self.window_proxy.set(None);
+            self.window_proxy.set(None, &self.global().upcast());
             self.current_state.set(WindowState::Zombie);
             self.ignore_all_tasks();
         }
@@ -1682,7 +1682,7 @@ impl Window {
             let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
             if let Some(currently_active) = proxy.currently_active() {
                 if currently_active == pipeline_id {
-                    self.window_proxy.set(None);
+                    self.window_proxy.set(None, &self.global());
                 }
             }
         }
@@ -2190,7 +2190,7 @@ impl Window {
     #[allow(unsafe_code)]
     pub fn init_window_proxy(&self, window_proxy: &WindowProxy) {
         assert!(self.window_proxy.get().is_none());
-        self.window_proxy.set(Some(&window_proxy));
+        self.window_proxy.set(Some(&window_proxy), &self.global());
     }
 
     #[allow(unsafe_code)]
@@ -2596,7 +2596,8 @@ impl Window {
             location: Default::default(),
             history: Default::default(),
             custom_element_registry: Default::default(),
-            window_proxy: Default::default(),
+            // Safety: This field won't be assigned until it's pinned
+            window_proxy: unsafe { MutNullableTransplantableDom::new() },
             document: Default::default(),
             performance: Default::default(),
             navigation_start: Cell::new(navigation_start),

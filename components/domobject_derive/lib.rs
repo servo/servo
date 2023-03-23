@@ -12,7 +12,7 @@ extern crate syn;
 use proc_macro2;
 use quote::TokenStreamExt;
 
-#[proc_macro_derive(DomObject)]
+#[proc_macro_derive(DomObject, attributes(dom_object))]
 pub fn expand_token_stream(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse(input).unwrap();
     expand_dom_object(input).into()
@@ -28,6 +28,16 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     let (first_field, fields) = fields
         .split_first()
         .expect("#[derive(DomObject)] should not be applied on empty structs");
+
+    // Take additional parameters from `#[dom_object]` helper attributes (if any)
+    let mut args = Args::default();
+    for attr in input.attrs.iter() {
+        if attr.path.is_ident("dom_object") {
+            if let Err(e) = attr.parse_meta().and_then(|meta| args.parse_meta(&meta)) {
+                return e.to_compile_error().into();
+            }
+        }
+    }
 
     let first_field_name = first_field.ident.as_ref().unwrap();
     let mut field_types = vec![];
@@ -64,6 +74,14 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
         }
     };
 
+    if !args.transplantable {
+        items.append_all(quote! {
+            impl #impl_generics crate::dom::bindings::reflector::Untransplantable
+                for #name #ty_generics #where_clause
+            {}
+        });
+    }
+
     let mut params = proc_macro2::TokenStream::new();
     params.append_separated(input.generics.type_params().map(|param| &param.ident), ", ");
 
@@ -99,4 +117,30 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     };
 
     tokens
+}
+
+#[derive(Default)]
+struct Args {
+    transplantable: bool,
+}
+
+impl Args {
+    fn parse_meta(&mut self, meta: &syn::Meta) -> Result<(), syn::Error> {
+        match meta {
+            syn::Meta::List(list) => self.parse_meta_list(list),
+            _ => return Err(syn::Error::new_spanned(meta, "unrecognized parameter")),
+        }
+    }
+
+    fn parse_meta_list(&mut self, meta_list: &syn::MetaList) -> Result<(), syn::Error> {
+        for meta in meta_list.nested.iter() {
+            match meta {
+                syn::NestedMeta::Meta(syn::Meta::Path(path)) if path.is_ident("transplantable") => {
+                    self.transplantable = true;
+                },
+                _ => return Err(syn::Error::new_spanned(meta, "unrecognized parameter")),
+            }
+        }
+        Ok(())
+    }
 }

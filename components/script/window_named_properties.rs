@@ -15,7 +15,9 @@ use js::error::throw_type_error;
 use js::glue::RUST_JSID_TO_STRING;
 use js::glue::{CreateProxyHandler, NewProxyObject, ProxyTraps, RUST_JSID_IS_STRING};
 use js::jsapi::JS_SetImmutablePrototype;
-use js::jsapi::{Handle, HandleObject, JSClass, JSContext, JSErrNum, UndefinedHandleValue};
+use js::jsapi::{
+    Handle, HandleObject, JSClass, JSContext, JSErrNum, MutableHandleObject, UndefinedHandleValue,
+};
 use js::jsapi::{
     HandleId, JSClass_NON_NATIVE, MutableHandle, MutableHandleIdVector, ObjectOpResult,
     PropertyDescriptor, ProxyClassExtension, ProxyClassOps, ProxyObjectOps,
@@ -42,7 +44,7 @@ lazy_static! {
             ownPropertyKeys: Some(own_property_keys),
             delete_: Some(delete),
             enumerate: None,
-            getPrototypeIfOrdinary: None,
+            getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
             getPrototype: None,
             setPrototype: None,
             setImmutablePrototype: None,
@@ -150,6 +152,18 @@ unsafe extern "C" fn delete(
     result: *mut ObjectOpResult,
 ) -> bool {
     (*result).code_ = JSErrNum::JSMSG_CANT_DELETE_WINDOW_NAMED_PROPERTY as usize;
+    true
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn get_prototype_if_ordinary(
+    _cx: *mut JSContext,
+    proxy: HandleObject,
+    is_ordinary: *mut bool,
+    proto: MutableHandleObject,
+) -> bool {
+    *is_ordinary = true;
+    proto.set(js::jsapi::GetStaticPrototype(proxy.get()));
     true
 }
 

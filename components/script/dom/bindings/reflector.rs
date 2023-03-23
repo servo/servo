@@ -12,7 +12,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
-use std::default::Default;
+use std::{default::Default, ops::Deref};
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
@@ -119,4 +119,58 @@ pub trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
         &GlobalScope,
         Box<IterableIterator<Self>>,
     ) -> Root<Dom<IterableIterator<Self>>>;
+}
+
+/// A marker trait denoting DOM objects that are constrained to a single
+/// realm. It's implemented by most DOM objects with a notable exception being
+/// `WindowProxy`.
+///
+/// The reflectors of transplantable types may move between realms, and the
+/// compartment invariants [prohibit][1] tracable references from crossing
+/// compartment boundaries. For this reason, references to transplantable types
+/// must be held by `*TransplantableDom*<T>`, which are designed to handle
+/// cross-realm cases. Even when using such reference wrappers, a care must be
+/// taken to ensure cross-realm references do not occur. For instance,
+/// a transplantable DOM object must hold references to other DOM objects by
+/// `*TransplantableDom*<T>` because their realms can "move" in relative to
+/// the transplantable DOM object's.
+///
+/// [1]: https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/Garbage_collection#compartments
+pub trait Untransplantable: DomObject {}
+
+/// Unsafely adds [`Untransplantable`] to the wrapped [`DomObject`].
+#[derive(JSTraceable)]
+#[repr(transparent)]
+pub struct AssertUntransplantable<T: DomObject>(T);
+
+impl<T: DomObject> AssertUntransplantable<T> {
+    /// Wrap a reference with `AssertUntransplantable`.
+    ///
+    /// # Safety
+    ///
+    /// The constructed `&Self` must not be traced from a GC thing with an
+    /// associated compartment. For example, if you create `Dom<T>` from the
+    /// returned reference, storing it in a `DomObject` might be unsafe.
+    #[inline]
+    pub unsafe fn from_ref(x: &T) -> &Self {
+        // Safety: `*x` and `Self` has the same representation
+        &*(x as *const T as *const Self)
+    }
+}
+
+impl<T: DomObject> DomObject for AssertUntransplantable<T> {
+    #[inline]
+    fn reflector(&self) -> &Reflector {
+        self.0.reflector()
+    }
+}
+
+impl<T: DomObject> Untransplantable for AssertUntransplantable<T> {}
+
+impl<T: DomObject> Deref for AssertUntransplantable<T> {
+    type Target = T;
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
