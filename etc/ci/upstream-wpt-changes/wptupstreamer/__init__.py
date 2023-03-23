@@ -60,9 +60,14 @@ class LocalGitRepo:
         env.setdefault("GIT_AUTHOR_NAME", self.sync.github_name)
         env.setdefault("GIT_COMMITTER_NAME", self.sync.github_name)
 
-        return subprocess.check_output(
-            command_line, cwd=self.path, env=env, stderr=subprocess.STDOUT
-        ).decode("utf-8")
+        try:
+            return subprocess.check_output(
+                command_line, cwd=self.path, env=env, stderr=subprocess.STDOUT
+            ).decode("utf-8")
+        except subprocess.CalledProcessError as exception:
+            logging.warning("Process execution failed with output:\n%s",
+                            exception.output.decode("utf-8"))
+            raise exception
 
 
 @dataclasses.dataclass()
