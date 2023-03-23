@@ -42,8 +42,8 @@ async function verifyScrollStopped(test, target_div) {
   const y = target_div.scrollTop;
   return new Promise(resolve => {
     test.step_timeout(() => {
-      assert_equals(x, target_div.scrollLeft);
-      assert_equals(y, target_div.scrollTop);
+      assert_equals(target_div.scrollLeft, x);
+      assert_equals(target_div.scrollTop, y);
       resolve();
     }, unscaled_pause_time_in_ms);
   });

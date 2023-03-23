@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os, sys, json, json5, re
 import collections
 

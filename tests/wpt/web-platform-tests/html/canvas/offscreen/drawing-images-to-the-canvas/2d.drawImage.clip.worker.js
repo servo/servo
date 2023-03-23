@@ -21,21 +21,20 @@ ctx.fillStyle = '#0f0';
 ctx.fillRect(0, 0, 100, 50);
 ctx.rect(-10, -10, 1, 1);
 ctx.clip();
-var promise = new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", '/images/red.png');
-    xhr.responseType = 'blob';
-    xhr.send();
-    xhr.onload = function() {
-        resolve(xhr.response);
-    };
-});
-promise.then(function(response) {
-    createImageBitmap(response).then(bitmap => {
-        ctx.drawImage(bitmap, 0, 0);
+fetch('/images/red.png')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
+        ctx.fillStyle = '#0f0';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.rect(-10, -10, 1, 1);
+        ctx.clip();
+        ctx.drawImage(document.getElementById('red.png'), 0, 0);
         _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-    }, t_fail);
-}).then(t_pass, t_fail);
+    });
+});
+t.done();
 
 });
 done();

@@ -19,11 +19,17 @@
 var t = async_test("drawImage() of an SVG image");
 _addTest(function(canvas, ctx) {
 
-ctx.drawImage(document.getElementById('green.svg'), 0, 0);
-_assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+fetch('/images/green.svg')
+  .then(response => response.blob())
+    .then(blob => {
+      createImageBitmap(blob)
+        .then(bitmap => {
+        ctx.drawImage(bitmap, 0, 0);
+        _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
+    });
+});
 
 
 });
 </script>
-<img src="/images/green.svg" id="green.svg" class="resource">
 

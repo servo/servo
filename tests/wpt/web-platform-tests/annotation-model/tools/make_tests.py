@@ -1,8 +1,6 @@
 # This tool creates .html test files for the WPT harness from corresponding .test
 # files that it finds in the tree for this test collection.
 
-from __future__ import print_function
-
 import re
 import time
 import json
