@@ -14,7 +14,8 @@ from wptserve.utils import isomorphic_decode, isomorphic_encode
 #
 # Each uuid has a stash entry with a dictionary with two entries:
 #     "trackedRequests" is a list of all observed requested URLs with a
-#         dispatch of "track_get".
+#         dispatch of "track_get" or "track_post". POSTS are in the format
+#         "<url>, body: <body>".
 #     "errors" is a list of an errors that occurred.
 #
 # A dispatch of "request_list" will return the "trackedRequests" dictionary
@@ -60,6 +61,24 @@ def main(request, response):
             else:
                 server_state["trackedRequests"].append(request.url)
 
+            stash.put(uuid, server_state)
+            return simple_response(request, response, 200, b"OK", b"")
+
+        # Tracks a request that's expected to be a POST.
+        # In addition to the method, check the Content-Type, which is currently
+        # always text/plain, and compare the body against the expected body.
+        if dispatch == b"track_post":
+            contentType = request.headers.get(b"Content-Type", b"missing")
+            if request.method != "POST":
+                server_state["errors"].append(
+                    request.url + " has wrong method: " + request.method)
+            elif not contentType.startswith(b"text/plain"):
+                server_state["errors"].append(
+                    request.url + " has wrong Content-Type: " +
+                    contentType.decode("utf-8"))
+            else:
+                server_state["trackedRequests"].append(
+                    request.url + ", body: " + request.body.decode("utf-8"))
             stash.put(uuid, server_state)
             return simple_response(request, response, 200, b"OK", b"")
 

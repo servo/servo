@@ -23,6 +23,17 @@ def test_array(session):
     assert_success(response, [1, 2])
 
 
+def test_dom_token_list(session, inline):
+    session.url = inline("""<div class="no cheese">foo</div>""")
+    element = session.find.css("div", all=False)
+
+    response = execute_async_script(
+        session, "arguments[1](arguments[0].classList)", args=[element])
+    value = assert_success(response)
+
+    assert value == ["no", "cheese"]
+
+
 def test_file_list(session, tmpdir, inline):
     files = [tmpdir.join("foo.txt"), tmpdir.join("bar.txt")]
 

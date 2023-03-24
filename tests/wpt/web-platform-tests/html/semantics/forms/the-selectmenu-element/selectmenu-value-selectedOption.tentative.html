@@ -65,7 +65,7 @@ test(() => {
   assert_equals(selectMenu0.value, "");
   assert_equals(selectMenu0.selectedOption, null);
   selectMenu0.value = "something";
-  assert_equals(selectMenu0.value, "", "Setting value should have no effect if there is no matching option");
+  assert_equals(selectMenu0.value, "", "If there is no matching option, selectmenu should be cleared");
   assert_equals(selectMenu0.selectedOption, null);
 }, "Test that HTMLSelectMenu with no options has empty string for value and null for selectedOption");
 
@@ -78,9 +78,29 @@ test(() => {
   assert_equals(selectMenu1.selectedOption, document.getElementById("selectMenu1-option3"));
 
   selectMenu1.value = "I'm a div with no part attr";
-  assert_equals(selectMenu1.value, "three", "Setting value should have no effect if there is no matching option");
-  assert_equals(selectMenu1.selectedOption, document.getElementById("selectMenu1-option3"));
+  assert_equals(selectMenu1.value, "", "If there is no matching option selectmenu should be cleared");
+  assert_equals(selectMenu1.selectedOption, null);
 }, "Test value and selectedOption with HTMLOptionElement element option parts");
+
+test(() => {
+  const selectMenu1 = document.getElementById("selectMenu1");
+  selectMenu1.value = "one";
+  assert_equals(selectMenu1.value, "one");
+
+  selectMenu1.value = null;
+  assert_equals(selectMenu1.value, "");
+  assert_equals(selectMenu1.selectedOption, null);
+}, "Test value and selectedOption when value is null");
+
+test(() => {
+  const selectMenu1 = document.getElementById("selectMenu1");
+  selectMenu1.value = "one";
+  assert_equals(selectMenu1.value, "one");
+
+  selectMenu1.value = undefined;
+  assert_equals(selectMenu1.value, "");
+  assert_equals(selectMenu1.selectedOption, null);
+}, "Test value and selectedOption when value is undefined");
 
 test(() => {
   const selectMenu2 = document.getElementById("selectMenu2");

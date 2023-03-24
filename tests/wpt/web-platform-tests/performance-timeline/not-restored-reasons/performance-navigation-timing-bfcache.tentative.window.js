@@ -5,6 +5,7 @@
 // META: script=/common/utils.js
 // META: script=/html/browsers/browsing-the-web/back-forward-cache/resources/rc-helper.js
 // META: script=/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
+// META: timeout=long
 
 'use strict';
 

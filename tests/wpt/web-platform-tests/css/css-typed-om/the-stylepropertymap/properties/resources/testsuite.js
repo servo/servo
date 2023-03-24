@@ -148,8 +148,7 @@ const gTestSyntaxExamples = {
       {
         description: "a calc time",
         input: new CSSMathSum(new CSSUnitValue(0, 's'), new CSSUnitValue(0, 'ms')),
-        // Specified/computed calcs are usually simplified.
-        // FIXME: Test this properly
+        specifiedExpected: new CSSMathSum(new CSSUnitValue(0, 's'), new CSSUnitValue(0, 's')),
         defaultSpecified: (_, result) => assert_is_calc_sum(result),
         defaultComputed: (_, result) => assert_is_unit('s', result)
       }
@@ -311,7 +310,7 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
         'Specified value must be a CSSStyleValue');
 
       if (specified || example.defaultSpecified) {
-        (specified || example.defaultSpecified)(example.input, specifiedResult);
+        (specified || example.defaultSpecified)(example.specifiedExpected || example.input, specifiedResult);
       } else {
         assert_style_value_equals(specifiedResult, example.input,
           `Setting ${example.description} and getting its specified value`);

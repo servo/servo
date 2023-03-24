@@ -59,3 +59,18 @@ promise_test(async () => {
 promise_test(async () => {
   await fetchORB(`${path}/script.js`, null, contentType("text/javascript"));
 }, "ORB shouldn't block opaque text/javascript");
+
+// Test javascript validation can correctly decode the content with BOM.
+promise_test(async () => {
+  await fetchORB(`${path}/script-utf16-bom.js`, null, contentType("application/json"));
+}, "ORB shouldn't block opaque text/javascript (utf16 encoded with BOM)");
+
+// Test javascript validation can correctly decode the content with the http charset hint.
+promise_test(async () => {
+  await fetchORB(`${path}/script-utf16-without-bom.js`, null, contentType("application/json; charset=utf-16"));
+}, "ORB shouldn't block opaque text/javascript (utf16 encoded without BOM but charset is provided in content-type)");
+
+// Test javascript validation can correctly decode the content for iso-8559-1 (fallback decoder in Firefox).
+promise_test(async () => {
+  await fetchORB(`${path}/script-iso-8559-1.js`, null, contentType("application/json"));
+}, "ORB shouldn't block opaque text/javascript (iso-8559-1 encoded)");

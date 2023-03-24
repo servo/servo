@@ -1,13 +1,19 @@
 <!doctype html>
+<meta charset="utf-8">
+<meta name="flags" content="ahem">
 <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
 <link rel="help" href="https://html.spec.whatwg.org/#the-input-element">
 <link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
 <title>Test block-size of text-based inputs is consistent across writing-modes</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
 <style>
-    input { appearance: none }
+    input {
+        appearance: none;
+        font: 30px/1 Ahem;
+    }
 </style>
 
 <input id="horizontalInput">

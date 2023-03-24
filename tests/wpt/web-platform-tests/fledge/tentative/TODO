@@ -25,7 +25,7 @@ Need tests for (likely not a complete list):
 * In fencedframes window.fence.setReportEventDataForAutomaticBeacons()
 * Calling leaveAdInterestGroup() in the frame of a winning ad (and one
     of its component ads)
-* Network errors / timeouts.
+* Network timeouts.
 
 If possible:
 * Aggregate reporting.

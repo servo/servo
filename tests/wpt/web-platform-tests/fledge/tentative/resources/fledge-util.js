@@ -30,6 +30,17 @@ function createSellerReportUrl(uuid, id = '1') {
                           `seller_report_${id}`);
 }
 
+// Much like above ReportUrl methods, except designed for beacons, which
+// are expected to be POSTs.
+function createBidderBeaconUrl(uuid, id = '1') {
+  return createTrackerUrl(window.location.origin, uuid, `track_post`,
+                          `bidder_beacon_${id}`);
+}
+function createSellerBeaconUrl(uuid, id = '1') {
+  return createTrackerUrl(window.location.origin, uuid, `track_post`,
+                          `seller_beacon_${id}`);
+}
+
 // Generates a UUID and registers a cleanup method with the test fixture to
 // request a URL from the request tracking script that clears all data
 // associated with the generated uuid when requested.
@@ -44,9 +55,12 @@ function generateUuid(test) {
   return uuid;
 }
 
-// Repeatedly requests "request_list" URL until exactly the URLs listed
-// in "expectedRequests" have been observed by the request tracker script (in
+// Repeatedly requests "request_list" URL until exactly the entries in
+// "expectedRequests" have been observed by the request tracker script (in
 // any order, since report URLs are not guaranteed to be sent in any order).
+//
+// Elements of `expectedRequests` should either be URLs, in the case of GET
+// requests, or "<URL>, body: <body>" in the case of POST requests.
 //
 // If any other strings are received from the tracking script, or the tracker
 // script reports an error, fails the test.
@@ -129,9 +143,12 @@ function createDecisionScriptUrl(uuid, params = {}) {
 
 // Creates a renderUrl for an ad that runs the passed in "script". "uuid" has
 // no effect, beyond making the URL distinct between tests, and being verified
-// by the decision logic script before accepting a bid.
-function createRenderUrl(uuid) {
-  let url = new URL(`${BASE_URL}resources/fenced_frame.sub.html`);
+// by the decision logic script before accepting a bid. "uuid" is expected to
+// be last.
+function createRenderUrl(uuid, script) {
+  let url = new URL(`${BASE_URL}resources/fenced-frame.sub.py`);
+  if (script)
+    url.searchParams.append('script', script);
   url.searchParams.append('uuid', uuid);
   return url.toString();
 }
@@ -221,7 +238,7 @@ async function runBasicFledgeTestExpectingNoWinner(test, testConfig = {}) {
   await joinInterestGroup(test, uuid, testConfig.interestGroupOverrides);
   let result = await runBasicFledgeAuction(
       test, uuid, testConfig.auctionConfigOverrides);
-  assert_equals(result, null, 'Auction unexpectedly had a winner');
+  assert_true(result === null, 'Auction unexpectedly had a winner');
 }
 
 // Test helper for report phase of auctions that lets the caller specify the
@@ -232,11 +249,14 @@ async function runBasicFledgeTestExpectingNoWinner(test, testConfig = {}) {
 // the corresponding reporting method, the report is sent to an error URL.
 // Otherwise, the corresponding 'reportResult' / 'reportWin' values are run.
 //
+// `renderUrlOverride` allows the ad URL of the joined InterestGroup to
+// to be set by the caller.
+//
 // Requesting error report URLs causes waitForObservedRequests() to throw
 // rather than hang.
 async function runReportTest(test, uuid, reportResultSuccessCondition,
                              reportResult, reportWinSuccessCondition, reportWin,
-                             expectedReportUrls) {
+                             expectedReportUrls, renderUrlOverride) {
   if (reportResultSuccessCondition) {
     reportResult = `if (!(${reportResultSuccessCondition})) {
                       sendReportTo('${createSellerReportUrl(uuid, 'error')}');
@@ -265,6 +285,8 @@ async function runReportTest(test, uuid, reportResultSuccessCondition,
 
   let interestGroupOverrides =
       { biddingLogicUrl: createBiddingScriptUrl(biddingScriptUrlParams) };
+  if (renderUrlOverride)
+    interestGroupOverrides.ads = [{renderUrl: renderUrlOverride}]
 
   await joinInterestGroup(test, uuid, interestGroupOverrides);
   await runBasicFledgeAuctionAndNavigate(

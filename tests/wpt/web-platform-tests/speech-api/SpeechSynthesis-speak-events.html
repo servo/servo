@@ -8,7 +8,7 @@
 async function runStartEndTest(t, utterance) {
   const eventWatcher = new EventWatcher(t, utterance, ['start', 'end', 'error']);
   await test_driver.bless('speechSynthesis.speak',
-      () => speechSynthesis.speak(utterance));
+      () => { speechSynthesis.speak(utterance) });
   await eventWatcher.wait_for(['start', 'end']);
 }
 promise_test(async (t) => {

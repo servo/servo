@@ -26,7 +26,9 @@ def get_browser_args(product, channel):
             args.extend(["--install-browser", "--install-webdriver"])
         return args
     if product == "webkitgtk_minibrowser":
-        return ["--install-browser"]
+        # Using 4 parallel jobs gives 4x speed-up even on a 1-core machine and doesn't cause extra timeouts.
+        # See: https://github.com/web-platform-tests/wpt/issues/38723#issuecomment-1470938179
+        return ["--install-browser", "--processes=4"]
     return []
 
 
