@@ -169,3 +169,12 @@ where
         Ok(())
     }
 }
+
+impl<LengthPercent> Default for ViewTimelineInset<LengthPercent> {
+    fn default() -> Self {
+        Self {
+            start: GenericLengthPercentageOrAuto::auto(),
+            end: GenericLengthPercentageOrAuto::auto(),
+        }
+    }
+}
