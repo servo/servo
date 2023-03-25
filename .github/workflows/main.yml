@@ -184,6 +184,8 @@ jobs:
         with:
           name: release-binary
           path: target.tar.gz
+      - name: Release build (Layout 2020)
+        run: python3 ./mach build --release --with-layout-2020
 
   linux-wpt:
     if: contains(fromJSON('["auto", "try", "try-wpt"]'), github.ref_name)
