@@ -154,4 +154,34 @@
   :is(!& .foo, .b) { color: green; }
 }`, 'invalid rule containing ampersand is kept in serialization');
   });
+
+  test((t) => {
+    let main = document.createElement('main');
+    main.innerHTML = `
+      <style>
+        .a {
+          & { z-index:1; }
+          & #inner1 { z-index:1; }
+          .stuff, :is(&) #inner2 { z-index:1; }
+        }
+      </style>
+      <div id="outer" class="b">
+        <div id="inner1"></div>
+        <div id="inner2"></div>
+      </div>
+    `;
+    document.documentElement.append(main);
+    t.add_cleanup(() => main.remove());
+
+    assert_equals(getComputedStyle(outer).zIndex, 'auto');
+    assert_equals(getComputedStyle(inner1).zIndex, 'auto');
+    assert_equals(getComputedStyle(inner2).zIndex, 'auto');
+
+    // .a => .b
+    main.firstElementChild.sheet.cssRules[0].selectorText = '.b';
+
+    assert_equals(getComputedStyle(outer).zIndex, '1');
+    assert_equals(getComputedStyle(inner1).zIndex, '1');
+    assert_equals(getComputedStyle(inner2).zIndex, '1');
+  }, 'Mutating the selectorText of outer rule invalidates inner rules');
 </script>

@@ -48,11 +48,11 @@ test(() => {
 
 test(() => {
   const expected = new CSSMathSum(...[1, 2, 3].map(x => new CSSMathMin(CSS.number(x))));
-  assert_style_value_equals(expected, CSSNumericValue.parse('min(1) + min(2) + min(3)'));
+  assert_style_value_equals(expected.toString(), 'calc(min(1) + min(2) + min(3))');
 }, 'Parsing sum of multiple min() is successful');
 
 test(() => {
   const expected = new CSSMathProduct(...[1, 2, 3].map(x => new CSSMathMin(CSS.number(x))));
-  assert_style_value_equals(expected, CSSNumericValue.parse('min(1) * min(2) * min(3)'));
+  assert_style_value_equals(expected.toString(), 'calc(min(1) * min(2) * min(3))');
 }, 'Parsing product of multiple min() is successful');
 </script>

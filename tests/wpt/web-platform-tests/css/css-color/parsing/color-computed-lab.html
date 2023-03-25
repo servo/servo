@@ -47,6 +47,9 @@ test_computed_value("color", "lab(20 none none / none)", "lab(20 none none / non
 test_computed_value("color", "lab(none none none / 0.5)", "lab(none none none / 0.5)");
 test_computed_value("color", "lab(0 0 0 / none)", "lab(0 0 0 / none)");
 
+test_computed_value("color", "lab(calc(NaN) 0 0)", "lab(0 0 0)");
+test_computed_value("color", "lab(calc(0 / 0) 0 0)", "lab(0 0 0)");
+
 // oklab()
 test_computed_value("color", "oklab(0 0 0)", "oklab(0 0 0)");
 test_computed_value("color", "oklab(0 0 0 / 1)", "oklab(0 0 0)");
@@ -70,6 +73,9 @@ test_computed_value("color", "oklab(none none none)", "oklab(none none none)");
 test_computed_value("color", "oklab(0.2 none none / none)", "oklab(0.2 none none / none)");
 test_computed_value("color", "oklab(none none none / 0.5)", "oklab(none none none / 0.5)");
 test_computed_value("color", "oklab(0 0 0 / none)", "oklab(0 0 0 / none)");
+
+test_computed_value("color", "oklab(calc(NaN) 0 0)", "oklab(0 0 0)");
+test_computed_value("color", "oklab(calc(0 / 0) 0 0)", "oklab(0 0 0)");
 
 // These tests validate that lab lightness range is 0-100 and oklab lightness range is 0.0-1.0.
 test_computed_value("color", "lab(20% 0 10/0.5)", "lab(20 0 10 / 0.5)");
@@ -103,6 +109,9 @@ test_computed_value("color", "lch(20 none none / none)", "lch(20 none none / non
 test_computed_value("color", "lch(none none none / 0.5)", "lch(none none none / 0.5)");
 test_computed_value("color", "lch(0 0 0 / none)", "lch(0 0 0 / none)");
 
+test_computed_value("color", "lch(calc(NaN) 0 0)", "lch(0 0 0)");
+test_computed_value("color", "lch(calc(0 / 0) 0 0)", "lch(0 0 0)");
+
 // oklch()
 test_computed_value("color", "oklch(0 0 0deg)", "oklch(0 0 0)");
 test_computed_value("color", "oklch(0 0 0deg / 1)", "oklch(0 0 0)");
@@ -130,6 +139,9 @@ test_computed_value("color", "oklch(none none none)", "oklch(none none none)");
 test_computed_value("color", "oklch(0.2 none none / none)", "oklch(0.2 none none / none)");
 test_computed_value("color", "oklch(none none none / 0.5)", "oklch(none none none / 0.5)");
 test_computed_value("color", "oklch(0 0 0 / none)", "oklch(0 0 0 / none)");
+
+test_computed_value("color", "oklch(calc(NaN) 0 0)", "oklch(0 0 0)");
+test_computed_value("color", "oklch(calc(0 / 0) 0 0)", "oklch(0 0 0)");
 
 // These tests validate that lch lightness range is 0-100 and oklch lightness range is 0.0-1.0.
 test_computed_value("color", "lch(20% 0 10/0.5)", "lch(20 0 10 / 0.5)");

@@ -6,6 +6,13 @@
 def main(request, response):
     error = request.GET.first(b"error", None)
 
+    if error == b"close-connection":
+        # Close connection without writing anything, to simulate a network
+        # error. The write call is needed to avoid writing the default headers.
+        response.writer.write("")
+        response.close_connection = True
+        return
+
     if error == b"http-error":
         response.status = (404, b"OK")
     else:

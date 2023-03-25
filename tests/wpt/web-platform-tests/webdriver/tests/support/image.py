@@ -7,8 +7,8 @@ PPI = 96
 inch_in_cm = 2.54
 
 
-def cm_to_px(px):
-    return round(px * PPI / inch_in_cm)
+def cm_to_px(cm):
+    return round(cm * PPI / inch_in_cm)
 
 
 def px_to_cm(px):

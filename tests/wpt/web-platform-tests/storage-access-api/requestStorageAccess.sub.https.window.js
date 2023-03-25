@@ -29,15 +29,20 @@ promise_setup(async () => {
     { name: 'storage-access' }, 'prompt');
 });
 
-promise_test(async t => {
-  if (topLevelDocument || testPrefix.includes('same-origin')) {
-    await document.requestStorageAccess()
-    .catch(t.unreached_func("document.requestStorageAccess() call should resolve in top-level frame or same-origin iframe."));
-  } else {
-    return promise_rejects_dom(t, "NotAllowedError", document.requestStorageAccess(),
-    "document.requestStorageAccess() call without user gesture.");
-  }
-}, "[" + testPrefix + "] document.requestStorageAccess() should resolve in top-level frame or same-origin iframe, otherwise reject with a NotAllowedError with no user gesture.");
+promise_test(
+    async t => {
+      if (topLevelDocument || !testPrefix.includes('cross-site') ||
+          testPrefix.includes('ABA')) {
+        await document.requestStorageAccess().catch(t.unreached_func(
+            'document.requestStorageAccess() call should resolve in top-level frame or same-site iframe.'));
+      } else {
+        return promise_rejects_dom(
+            t, "NotAllowedError", document.requestStorageAccess(),
+            "document.requestStorageAccess() call without user gesture.");
+      }
+    },
+    '[' + testPrefix +
+        '] document.requestStorageAccess() should resolve in top-level frame or same-site iframe, otherwise reject with a NotAllowedError with no user gesture.');
 
 promise_test(
     async (t) => {
@@ -60,7 +65,7 @@ promise_test(
         '] document.requestStorageAccess() should be resolved with no user gesture when a permission grant exists, and ' +
         'should allow cookie access');
 
-if (!topLevelDocument && !testPrefix.includes('same-origin')) {
+if (testPrefix.includes('cross-site')) {
   promise_test(
       async t => {
         await RunCallbackWithGesture(() => {

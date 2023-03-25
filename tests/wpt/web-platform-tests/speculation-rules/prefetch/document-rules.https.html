@@ -13,6 +13,8 @@
 <meta name="variant" content="?include=not">
 <meta name="variant" content="?include=invalidPredicate">
 <meta name="variant" content="?include=linkInShadowTree">
+<meta name="variant" content="?include=linkHrefChanged">
+<meta name="variant" content="?include=newRuleSetAdded">
 
 <body>
 <script>
@@ -131,6 +133,38 @@
 
     assert_equals(await isUrlPrefetched(url), 1);
   }, 'test that matching link in a shadow tree is prefetched');
+
+  subsetTestByKey('linkHrefChanged', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    insertDocumentRule({href_matches: "*\\?*foo=bar*"});
+
+    const url = getPrefetchUrl();
+    const link = addLink(url);
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+
+    const matching_url = getPrefetchUrl({foo: 'bar'});
+    link.href = matching_url;
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(matching_url), 1);
+  }, 'test that changing the href of an invalid link to a matching value triggers a prefetch');
+
+  subsetTestByKey('newRuleSetAdded', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    insertDocumentRule({href_matches: "*\\?*foo=bar*"});
+    const url = getPrefetchUrl({fizz: "buzz"});
+    addLink(url);
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+
+    insertDocumentRule({href_matches: "*\\?*fizz=buzz*"});
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that adding a second rule set triggers prefetch');
 
 </script>
 </body>

@@ -41,6 +41,11 @@ for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophot
     test_valid_value("color", `color(${colorSpace} 10% none none / none)`, `color(${colorSpace} 0.1 none none / none)`);
     test_valid_value("color", `color(${colorSpace} none none none / 0.5)`, `color(${colorSpace} none none none / 0.5)`);
     test_valid_value("color", `color(${colorSpace} 0 0 0 / none)`, `color(${colorSpace} 0 0 0 / none)`);
+
+    test_valid_value("color", `color(${colorSpace} 0 calc(infinity) 0)`, `color(${colorSpace} 0 calc(infinity) 0)`);
+    test_valid_value("color", `color(${colorSpace} 0 calc(-infinity) 0)`, `color(${colorSpace} 0 calc(-infinity) 0)`);
+    test_valid_value("color", `color(${colorSpace} calc(NaN) 0 0)`, `color(${colorSpace} calc(NaN) 0 0)`);
+    test_valid_value("color", `color(${colorSpace} calc(0 / 0) 0 0)`, `color(${colorSpace} calc(NaN) 0 0)`);
 }
 
 for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
@@ -67,6 +72,11 @@ for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
     test_valid_value("color", `color(${colorSpace} 0.2 none none / none)`, `color(${resultColorSpace} 0.2 none none / none)`);
     test_valid_value("color", `color(${colorSpace} none none none / 0.5)`, `color(${resultColorSpace} none none none / 0.5)`);
     test_valid_value("color", `color(${colorSpace} 0 0 0 / none)`, `color(${resultColorSpace} 0 0 0 / none)`);
+
+    test_valid_value("color", `color(${colorSpace} 0 calc(infinity) 0)`, `color(${colorSpace} 0 calc(infinity) 0)`);
+    test_valid_value("color", `color(${colorSpace} 0 calc(-infinity) 0)`, `color(${colorSpace} 0 calc(-infinity) 0)`);
+    test_valid_value("color", `color(${colorSpace} calc(NaN) 0 0)`, `color(${colorSpace} calc(NaN) 0 0)`);
+    test_valid_value("color", `color(${colorSpace} calc(0 / 0) 0 0)`, `color(${colorSpace} calc(NaN) 0 0)`);
 }
 </script>
 </body>

@@ -16,12 +16,20 @@ function test_parsing(query, expected) {
 
 function test_resolution_parsing() {
     test_parsing("(min-resolution: 1x)");
+    test_parsing("(min-resolution: calc(1x))", "(min-resolution: calc(1dppx))");
     test_parsing("(resolution: 2x)");
+    test_parsing("(resolution: calc(2x))", "(resolution: calc(2dppx))");
     test_parsing("(max-resolution: 7x)");
+    test_parsing("(max-resolution: calc(7x))", "(max-resolution: calc(7dppx))");
 
     test_parsing("(resolution: 2dppx)");
     test_parsing("(resolution: 600dpi)");
     test_parsing("(resolution: 77dpcm)");
+
+    test_parsing("(resolution: calc(1x + 2x))", "(resolution: calc(3dppx))");
+    test_parsing("(resolution: calc(5x - 2x))", "(resolution: calc(3dppx))");
+    test_parsing("(resolution: calc(1x * 3))", "(resolution: calc(3dppx))");
+    test_parsing("(resolution: calc(6x / 2))", "(resolution: calc(3dppx))");
 }
 
 test_parsing("", "");

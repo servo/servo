@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<link rel=help href="https://html.spec.whatwg.org/#attr-associated-element">
+<link rel="author" href="masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=container>
+  <input aria-activedescendant=foo>
+  <p id=foo></p>
+</div>
+
+<script>
+  test(() => {
+    const container = document.getElementById('container');
+    const el = container.querySelector('input');
+    const target = container.querySelector('#foo');
+    assert_equals(el.ariaActiveDescendantElement,target);
+    container.remove();
+    assert_equals(el.ariaActiveDescendantElement,null,'idrefs should stop working when target is disconnected');
+    assert_equals(el.getAttribute('aria-activedescendant'),'foo','Attribute value is still ok');
+    document.body.appendChild(container);
+    assert_equals(el.ariaActiveDescendantElement,target,'functional when reconnected');
+    // Now set up an attr-associated element:
+    el.ariaActiveDescendantElement = target;
+    assert_equals(el.ariaActiveDescendantElement,target);
+    assert_equals(el.getAttribute('aria-activedescendant'),'','Content attribute is present but empty');
+    container.remove();
+    assert_equals(el.ariaActiveDescendantElement,target,'attr-associated element still functional');
+    assert_equals(el.getAttribute('aria-activedescendant'),'','Attribute still blank');
+    document.body.appendChild(container);
+    assert_equals(el.ariaActiveDescendantElement,target,'still functional when reconnected');
+  },'Element references should stay valid when content is disconnected');
+</script>
+

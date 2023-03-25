@@ -29,6 +29,37 @@ promise_test(async t => {
   assert_equals(r, undefined, "resetting sinkid on default audio output should always work");
 }, "setSinkId() after selectAudioOutput()");
 
+const src = "/media/movie_5.ogv";
+
+promise_test(async t => {
+  assert_not_equals(deviceId, undefined, "selectAudioOutput() resolved");
+  const video = document.createElement('video');
+  try {
+    document.body.appendChild(video);
+    video.src = src;
+    await new Promise(r => video.onloadeddata = r);
+    await video.setSinkId(deviceId);
+    assert_equals(video.sinkId, deviceId, "sinkId after setSinkId()");
+  } finally {
+    video.remove();
+  }
+}, "setSinkId() on video after loadeddata");
+
+promise_test(async t => {
+  assert_not_equals(deviceId, undefined, "selectAudioOutput() resolved");
+  const video = document.createElement('video');
+  try {
+    video.src = src;
+    video.autoplay = true;
+    video.loop = true;
+    await new Promise(r => video.onplay = r);
+    await video.setSinkId(deviceId);
+    assert_equals(video.sinkId, deviceId, "sinkId after setSinkId()");
+  } finally {
+    video.pause();
+  }
+}, "setSinkId() on video after play");
+
 // Use the same sinkId in another same-origin top-level browsing context.
 // "the identifier MUST be the same in documents of the same origin in
 // top-level browsing contexts."

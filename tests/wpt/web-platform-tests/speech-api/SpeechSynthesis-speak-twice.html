@@ -11,6 +11,7 @@ async_test(t => {
   test_driver.bless('speechSynthesis.speak', t.step_func(() => {
     // the utterance is short to make the test faster
     const utter = new SpeechSynthesisUtterance('1');
+    utter.onerror = t.unreached_func('error event');
     speechSynthesis.speak(utter);
     utter.onend = t.step_func(() => {
       speechSynthesis.speak(utter);

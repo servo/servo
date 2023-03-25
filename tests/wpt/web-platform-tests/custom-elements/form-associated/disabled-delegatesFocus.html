@@ -36,10 +36,21 @@
 </form>
 
 <script>
+  let focusinPropagated = false;
+  let focusoutPropagated = false;
+
+  const form = document.querySelector("form");
+  form.addEventListener("focusin", () => focusinPropagated = true);
+  form.addEventListener("focusout", () => focusoutPropagated = true);
+
   test(() => {
     const element = document.querySelector("custom-control");
     element.focus();
 
     assert_true(element.eventFired, "Focus event fired on custom control");
+    assert_true(focusinPropagated, "FocusIn event propagated through control");
+
+    element.blur();
+    assert_true(focusoutPropagated, "FocusOut event propagated through control");
   }, "Focus events fire on disabled form-associated custom elements with delegatesFocus");
 </script>

@@ -52,7 +52,7 @@ async function testWithMovePath(t, move_path) {
   t.add_cleanup(() => { target_div.removeEventListener('pointercancel', pointercancel_listener); });
 
   // Because we have several pointer moves, we choose bigger timeout.
-  const timeoutMs = 1000;
+  const timeoutMs = 3000;
   const targetPointercancelPromise = waitForPointercancelEvent(t, target_div, timeoutMs);
   const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div, timeoutMs);
 

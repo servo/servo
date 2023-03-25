@@ -30,18 +30,18 @@ queryParams.forEach((param) => {
 
 // TODO(crbug.com/1410556): when/if requestStorageAccessFor is standardized,
 // we should consider upstreaming these helpers.
-function RunRequestStorageAccessForInDetachedFrame(site) {
+function RunRequestStorageAccessForInDetachedFrame(origin) {
   const nestedFrame = document.createElement('iframe');
   document.body.append(nestedFrame);
   const inner_doc = nestedFrame.contentDocument;
   nestedFrame.remove();
-  return inner_doc.requestStorageAccessFor(site);
+  return inner_doc.requestStorageAccessFor(origin);
 }
 
-function RunRequestStorageAccessForViaDomParser(site) {
+function RunRequestStorageAccessForViaDomParser(origin) {
   const parser = new DOMParser();
   const doc = parser.parseFromString('<html></html>', 'text/html');
-  return doc.requestStorageAccessFor(site);
+  return doc.requestStorageAccessFor(origin);
 }
 
 // Common tests to run in all frames.
