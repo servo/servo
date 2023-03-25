@@ -118,7 +118,7 @@ impl HeadersMethods for Headers {
         };
 
         // Step 5
-        if self.guard.get() != Guard::RequestNoCors {
+        if self.guard.get() == Guard::RequestNoCors {
             self.remove_privileged_no_cors_request_headers();
         }
 
