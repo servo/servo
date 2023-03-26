@@ -26,49 +26,53 @@ fn get_header_value_as_list(name: &str, headers: &HeaderMap) -> Option<Vec<Strin
         return c != '\u{0022}' && c != '\u{002C}';
     }
 
+    // https://fetch.spec.whatwg.org/#header-value-get-decode-and-split
     // Step 1
     let initial_value = get_value_from_header_list(name, headers);
 
     if let Some(input) = initial_value {
-        // Step 4
-        let mut position = input.chars().peekable();
+        // Step 1
+        let input = input.into_iter().map(|u| char::from(u)).collect::<String>();
 
-        // Step 5
+        // Step 2
+        let mut position = s.chars().peekable();
+
+        // Step 3
         let mut values: Vec<String> = vec![];
 
-        // Step 6
+        // Step 4
         let mut value = String::new();
 
-        // Step 7
+        // Step 5
         while position.peek().is_some() {
-            // Step 7.1
+            // Step 5.1
             value += &*collect_sequence(&mut position, char_is_not_quote_or_comma);
 
-            // Step 7.2
+            // Step 5.2
             if let Some(&ch) = position.peek() {
                 if ch == '\u{0022}' {
-                    // Step 7.2.1.1
+                    // Step 5.2.1.1
                     value += &*collect_http_quoted_string(&mut position, false);
 
-                    // Step 7.2.1.2
+                    // Step 5.2.1.2
                     if position.peek().is_some() {
                         continue;
                     }
                 } else {
                     // ch == '\u{002C}'
 
-                    // Step 7.2.2.2
+                    // Step 5.2.2.2
                     position.next();
                 }
             }
 
-            // Step 7.3
+            // Step 5.3
             value = value.trim_matches(HTTP_TAB_OR_SPACE).to_string();
 
-            // Step 7.4
+            // Step 5.4
             values.push(value);
 
-            // Step 7.5
+            // Step 5.5
             value = String::new();
         }
 

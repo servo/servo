@@ -85,13 +85,12 @@ impl HeadersMethods for Headers {
 
         // Step 3
         if self.guard.get() == Guard::RequestNoCors {
-            let tmp_value = if let Some(value) =
+            let tmp_value = if let Some(mut value) =
                 get_value_from_header_list(&valid_name, &self.header_list.borrow())
             {
-                let mut l = value.as_bytes().to_vec();
-                l.extend(b", ");
-                l.extend(valid_value.clone());
-                l
+                value.extend(b", ");
+                value.extend(valid_value.clone());
+                value
             } else {
                 valid_value.clone()
             };
@@ -158,7 +157,7 @@ impl HeadersMethods for Headers {
         let valid_name = validate_name(name)?;
         Ok(
             get_value_from_header_list(&valid_name, &self.header_list.borrow())
-                .map(|v| ByteString::new(v.as_bytes().to_vec())),
+                .map(|v| ByteString::new(v)),
         )
     }
 
@@ -302,7 +301,7 @@ impl Headers {
                     header_vec.push((name.to_owned(), value.as_bytes().to_vec()));
                 }
             } else if let Some(value) = get_value_from_header_list(name, &borrowed_header_list) {
-                header_vec.push((name.to_owned(), value.as_bytes().to_vec()));
+                header_vec.push((name.to_owned(), value));
             }
         }
 
