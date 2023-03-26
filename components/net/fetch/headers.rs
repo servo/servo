@@ -26,16 +26,16 @@ fn get_header_value_as_list(name: &str, headers: &HeaderMap) -> Option<Vec<Strin
         return c != '\u{0022}' && c != '\u{002C}';
     }
 
-    // https://fetch.spec.whatwg.org/#header-value-get-decode-and-split
     // Step 1
     let initial_value = get_value_from_header_list(name, headers);
 
     if let Some(input) = initial_value {
+        // https://fetch.spec.whatwg.org/#header-value-get-decode-and-split
         // Step 1
         let input = input.into_iter().map(|u| char::from(u)).collect::<String>();
 
         // Step 2
-        let mut position = s.chars().peekable();
+        let mut position = input.chars().peekable();
 
         // Step 3
         let mut values: Vec<String> = vec![];
