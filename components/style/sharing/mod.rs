@@ -800,11 +800,6 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        debug_assert!(target.has_current_styles_for_traversal(
-            &candidate.element.borrow_data().unwrap(),
-            shared.traversal_flags,
-        ));
-
         debug!(
             "Sharing allowed between {:?} and {:?}",
             target.element, candidate.element
