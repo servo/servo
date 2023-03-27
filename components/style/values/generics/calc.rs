@@ -232,12 +232,12 @@ pub trait CalcNodeLeaf: Clone + Sized + PartialOrd + PartialEq + ToCss {
     where
         O: Fn(f32, f32) -> f32;
 
-    /// Multiplies the leaf by a given scalar number.
-    fn mul_by(&mut self, scalar: f32);
+    /// Map the value of this node with the given operation.
+    fn map(&mut self, op: impl FnMut(f32) -> f32);
 
     /// Negates the leaf.
     fn negate(&mut self) {
-        self.mul_by(-1.);
+        self.map(std::ops::Neg::neg);
     }
 
     /// Canonicalizes the expression if necessary.
@@ -248,9 +248,9 @@ pub trait CalcNodeLeaf: Clone + Sized + PartialOrd + PartialEq + ToCss {
 }
 
 impl<L: CalcNodeLeaf> CalcNode<L> {
-    /// Negates the node.
-    pub fn negate(&mut self) {
-        self.mul_by(-1.);
+    /// Negates the leaf.
+    fn negate(&mut self) {
+        self.map(std::ops::Neg::neg);
     }
 
     fn sort_key(&self) -> SortKey {
@@ -289,6 +289,47 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             },
             _ => Err(()),
         }
+    }
+
+    /// Map the value of this node with the given operation.
+    pub fn map(&mut self, mut op: impl FnMut(f32) -> f32) {
+        fn map_internal<L: CalcNodeLeaf>(node: &mut CalcNode<L>, op: &mut impl FnMut(f32) -> f32) {
+            match node {
+                CalcNode::Leaf(l) => l.map(op),
+                CalcNode::Sum(children) => {
+                    for node in &mut **children {
+                        map_internal(node, op);
+                    }
+                },
+                CalcNode::MinMax(children, _) => {
+                    for node in &mut **children {
+                        map_internal(node, op);
+                    }
+                },
+                CalcNode::Clamp { min, center, max } => {
+                    map_internal(min, op);
+                    map_internal(center, op);
+                    map_internal(max, op);
+                },
+                CalcNode::Round { value, step, .. } => {
+                    map_internal(value, op);
+                    map_internal(step, op);
+                },
+                CalcNode::ModRem {
+                    dividend, divisor, ..
+                } => {
+                    map_internal(dividend, op);
+                    map_internal(divisor, op);
+                },
+                CalcNode::Hypot(children) => {
+                    for node in &mut **children {
+                        map_internal(node, op);
+                    }
+                },
+            }
+        }
+
+        map_internal(self, &mut op);
     }
 
     /// Convert this `CalcNode` into a `CalcNode` with a different leaf kind.
@@ -573,7 +614,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
     /// Multiplies the node by a scalar.
     pub fn mul_by(&mut self, scalar: f32) {
         match *self {
-            Self::Leaf(ref mut l) => l.mul_by(scalar),
+            Self::Leaf(ref mut l) => l.map(|v| v * scalar),
             // Multiplication is distributive across this.
             Self::Sum(ref mut children) => {
                 for node in &mut **children {

@@ -238,31 +238,6 @@ impl generic::CalcNodeLeaf for Leaf {
         }
     }
 
-    fn mul_by(&mut self, scalar: f32) {
-        match *self {
-            Self::Length(ref mut l) => {
-                // FIXME: For consistency this should probably convert absolute
-                // lengths into pixels.
-                *l = *l * scalar;
-            },
-            Self::Number(ref mut n) => {
-                *n *= scalar;
-            },
-            Self::Angle(ref mut a) => {
-                *a = Angle::from_calc(a.degrees() * scalar);
-            },
-            Self::Resolution(ref mut r) => {
-                *r = Resolution::from_dppx(r.dppx() * scalar);
-            },
-            Self::Time(ref mut t) => {
-                *t = Time::from_seconds(t.seconds() * scalar);
-            },
-            Self::Percentage(ref mut p) => {
-                *p *= scalar;
-            },
-        }
-    }
-
     fn sort_key(&self) -> SortKey {
         match *self {
             Self::Number(..) => SortKey::Number,
@@ -414,6 +389,17 @@ impl generic::CalcNodeLeaf for Leaf {
                     debug_unreachable!();
                 }
             },
+        }
+    }
+
+    fn map(&mut self, mut op: impl FnMut(f32) -> f32) {
+        match self {
+            Leaf::Length(one) => *one = one.map(op),
+            Leaf::Angle(one) => *one = specified::Angle::from_calc(op(one.degrees())),
+            Leaf::Time(one) => *one = specified::Time::from_seconds(op(one.seconds())),
+            Leaf::Resolution(one) => *one = specified::Resolution::from_dppx(op(one.dppx())),
+            Leaf::Percentage(one) => *one = op(*one),
+            Leaf::Number(one) => *one = op(*one),
         }
     }
 }
@@ -738,7 +724,7 @@ impl CalcNode {
                         },
                         Token::Delim('-') => {
                             let mut rhs = Self::parse_product(context, input, allowed_units)?;
-                            rhs.negate();
+                            rhs.mul_by(-1.0);
                             sum.push(rhs);
                         },
                         _ => {
