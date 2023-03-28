@@ -563,6 +563,32 @@ fn eval_moz_platform(_: &Context, query_value: Option<Platform>) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_MatchesPlatform(query_value) }
 }
 
+/// Values for the scripting media feature.
+/// https://drafts.csswg.org/mediaqueries-5/#scripting
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
+#[repr(u8)]
+pub enum Scripting {
+    /// Scripting is not supported or not enabled
+    None,
+    /// Scripting is supported and enabled, but only for initial page load
+    /// We will never match this value as it is intended for non-browser user agents,
+    /// but it is part of the spec so we should still parse it.
+    /// See: https://github.com/w3c/csswg-drafts/issues/8621
+    InitialOnly,
+    /// Scripting is supported and enabled
+    Enabled
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#scripting
+fn eval_scripting(context: &Context, query_value: Option<Scripting>) -> bool {
+    let scripting =
+        unsafe { bindings::Gecko_MediaFeatures_Scripting(context.device().document()) };
+    match query_value {
+        Some(v) => v == scripting,
+        None => scripting != Scripting::None,
+    }
+}
+
 fn eval_moz_windows_non_native_menus(context: &Context) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_WindowsNonNativeMenus(context.device().document()) }
 }
@@ -643,7 +669,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 65] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 66] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -824,6 +850,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 65] = [
         atom!("video-dynamic-range"),
         AllowsRanges::No,
         keyword_evaluator!(eval_video_dynamic_range, DynamicRange),
+        FeatureFlags::empty(),
+    ),
+    feature!(
+        atom!("scripting"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_scripting, Scripting),
         FeatureFlags::empty(),
     ),
     // Evaluates to the preferred color scheme for content. Only useful in
