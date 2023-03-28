@@ -546,7 +546,6 @@ def check_rust(file_name, lines):
     ]
     is_panic_not_allowed_rs_file = any([
         glob.fnmatch.fnmatch(file_name, path) for path in PANIC_NOT_ALLOWED_PATHS])
-    print(file_name)
 
     prev_open_brace = False
     multi_line_string = False
