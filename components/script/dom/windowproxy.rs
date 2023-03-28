@@ -910,7 +910,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(
         window.to_jsval(cx, val.handle_mut());
         set_property_descriptor(
             MutableHandle::from_raw(desc),
-            val.handle().into(),
+            val.handle(),
             attrs,
             &mut *is_none,
         );

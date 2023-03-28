@@ -3290,6 +3290,13 @@ rooted!(in(*cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
 %s;
 assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
+        if self.descriptor.hasNamedPropertiesObject():
+            assert not self.haveUnscopables
+            code.append(CGGeneric("""\
+rooted!(in(*cx) let mut prototype_proto_proto = prototype_proto.get());
+dom::types::%s::create_named_properties_object(cx, prototype_proto_proto.handle(), prototype_proto.handle_mut());
+assert!(!prototype_proto.is_null());""" % name))
+
         properties = {
             "id": name,
             "unscopables": "unscopable_names" if self.haveUnscopables else "&[]",
@@ -5508,15 +5515,15 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs += " | JSPROP_READONLY"
             fillDescriptor = ("set_property_descriptor(\n"
                               "    MutableHandle::from_raw(desc),\n"
-                              "    result_root.handle(),\n"
+                              "    rval.handle(),\n"
                               "    (%s) as u32,\n"
                               "    &mut *is_none\n"
                               ");\n"
                               "return true;" % attrs)
             templateValues = {
-                'jsvalRef': 'result_root.handle_mut()',
+                'jsvalRef': 'rval.handle_mut()',
                 'successCode': fillDescriptor,
-                'pre': 'rooted!(in(*cx) let mut result_root = UndefinedValue());'
+                'pre': 'rooted!(in(*cx) let mut rval = UndefinedValue());'
             }
             get += ("if let Some(index) = index {\n"
                     + "    let this = UnwrapProxy(proxy);\n"
@@ -5524,8 +5531,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                     + CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n"
                     + "}\n")
 
-        namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if self.descriptor.supportsNamedProperties():
             attrs = []
             if not self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
                 attrs.append("JSPROP_ENUMERATE")
@@ -5537,15 +5543,15 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = "0"
             fillDescriptor = ("set_property_descriptor(\n"
                               "    MutableHandle::from_raw(desc),\n"
-                              "    result_root.handle(),\n"
+                              "    rval.handle(),\n"
                               "    (%s) as u32,\n"
                               "    &mut *is_none\n"
                               ");\n"
                               "return true;" % attrs)
             templateValues = {
-                'jsvalRef': 'result_root.handle_mut()',
+                'jsvalRef': 'rval.handle_mut()',
                 'successCode': fillDescriptor,
-                'pre': 'rooted!(in(*cx) let mut result_root = UndefinedValue());'
+                'pre': 'rooted!(in(*cx) let mut rval = UndefinedValue());'
             }
 
             # See the similar-looking in CGDOMJSProxyHandler_get for the spec quote.
@@ -5638,7 +5644,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     + CGIndenter(CGProxyNamedSetter(self.descriptor)).define()
                     + "    return (*opresult).succeed();\n"
                     + "}\n")
-        elif self.descriptor.operations['NamedGetter']:
+        elif self.descriptor.supportsNamedProperties():
             set += ("if id.is_string() || id.is_int() {\n"
                     + CGIndenter(CGProxyNamedGetter(self.descriptor)).define()
                     + "    if result.is_some() {\n"
@@ -5722,7 +5728,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 }
                 """)
 
-        if self.descriptor.operations['NamedGetter']:
+        if self.descriptor.supportsNamedProperties():
             body += dedent(
                 """
                 for name in (*unwrapped_proxy).SupportedPropertyNames() {
@@ -5844,11 +5850,10 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                         + "    return true;\n"
                         + "}\n\n")
 
-        namedGetter = self.descriptor.operations['NamedGetter']
         condition = "id.is_string() || id.is_int()"
         if indexedGetter:
             condition = "index.is_none() && (%s)" % condition
-        if namedGetter:
+        if self.descriptor.supportsNamedProperties():
             named = """\
 if %s {
     let mut has_on_proto = false;
@@ -5943,8 +5948,7 @@ if !expando.is_null() {
         else:
             getIndexedOrExpando = getFromExpando + "\n"
 
-        namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if self.descriptor.supportsNamedProperties():
             condition = "id.is_string() || id.is_int()"
             # From step 1:
             #     If O supports indexed properties and P is an array index, then:
@@ -6214,7 +6218,7 @@ class CGInterfaceTrait(CGThing):
                                ),
                                rettype)
 
-            if descriptor.proxy:
+            if descriptor.proxy or descriptor.isGlobal():
                 for name, operation in descriptor.operations.items():
                     if not operation or operation.isStringifier():
                         continue
