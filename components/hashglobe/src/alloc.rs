@@ -27,7 +27,7 @@ pub use self::platform::{alloc, dealloc, realloc};
 
 #[cfg(any(unix, target_os = "redox"))]
 mod platform {
-    extern crate libc;
+    use libc;
 
     #[cfg(not(any(target_os = "android")))]
     use std::ptr;

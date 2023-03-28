@@ -724,7 +724,6 @@ fn test_offset_calculation() {
 
 impl<K, V> RawTable<K, V> {
     unsafe fn new_uninitialized(capacity: usize) -> RawTable<K, V> {
-        extern crate libc;
         if let Ok(table) = Self::try_new_uninitialized(capacity) {
             table
         } else {
