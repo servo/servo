@@ -1,16 +1,11 @@
 name: Merge queue and try
 
 on:
-  # Triggers the workflow on push events but only for the master branch
   push:
-    branches: [ "auto", "try", "try-linux", "try-mac", "try-windows", "try-wpt"]
+    branches: ["auto", "try"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
-env:
-  RUST_BACKTRACE: 1
-  SHELL: /bin/bash
 
 jobs:
   decision:
@@ -35,242 +30,34 @@ jobs:
               });
 
   build-win:
-    if: contains(fromJSON('["auto", "try", "try-windows"]'), github.ref_name)
-    name: Build (Windows)
-    runs-on: windows-2019
+    name: Windows
     needs: ["decision"]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Copy to C drive
-        run: cp D:\a C:\ -Recurse
-      - name: Bootstrap
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: |
-          python -m pip install --upgrade pip virtualenv
-          python mach fetch
-      - name: Release build
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach build --release --media-stack=dummy
-      - name: Unit tests
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach test-unit --release
-      - name: Smoketest
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach smoketest --angle
+    uses: ./.github/workflows/windows.yml
+    with:
+      layout: '2013'
 
   build-mac:
-    if: contains(fromJSON('["auto", "try", "try-mac"]'), github.ref_name)
-    name: Build (macOS)
-    runs-on: macos-12
+    name: Mac
     needs: ["decision"]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      # TODO: Remove this step when the compatibility issue between mozjs and
-      #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
-      - name: Select Python 3.9
-        run: |
-          brew install python@3.9
-          cd $(dirname $(which python3.9))
-          rm -f python3 pip3
-          ln -s python3.9 python3
-          ln -s pip3.9 pip3
-      - name: Bootstrap
-        run: |
-          python3 -m pip install --upgrade pip virtualenv
-          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
-          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
-          rm -rf /usr/local/etc/openssl
-          rm -rf /usr/local/etc/openssl@1.1
-          brew install openssl@1.1 gnu-tar
-      - name: Release build
-        run: |
-          export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
-          export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
-          export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
-          export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
-          python3 ./mach build --release
-      - name: Smoketest
-        run: python3 ./mach smoketest
-      - name: Unit tests
-        run: python3 ./mach test-unit --release
-      - name: Test package
-        run: python3 ./mach package --release
-      - name: Package smoketest
-        run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
-      - name: Package binary
-        run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
-      - name: Archive binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-binary-macos
-          path: target.tar.gz
-
-  # mac-wpt:
-  #   name: Mac WPT Tests
-  #   runs-on: macos-12
-  #   needs: ["build-mac"]
-  #   env:
-  #     max_chunk_id: 20
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 2
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: release-binary-macos
-  #     # TODO: Remove this step when the compatibility issue between mozjs and
-  #     #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
-  #     - name: Select Python 3.9
-  #       run: |
-  #         brew install python@3.9
-  #         cd $(dirname $(which python3.9))
-  #         rm -f python3 pip3
-  #         ln -s python3.9 python3
-  #         ln -s pip3.9 pip3
-  #     - name: Prep test environment
-  #       run: |
-  #         gtar -xzf target.tar.gz
-  #         python3 -m pip install --upgrade pip virtualenv
-  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
-  #     - name: Smoketest
-  #       run: python3 ./mach smoketest
-  #     - name: Run tests
-  #       run: |
-  #         python3 ./mach test-wpt \
-  #           --release --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
-  #           --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-  #           --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-  #           --filter-intermittents=filtered-wpt-summary.${{ matrix.chunk_id }}.log
-  #     - name: Archive logs
-  #       uses: actions/upload-artifact@v3
-  #       if: ${{ failure() }}
-  #       with:
-  #         name: wpt${{ matrix.chunk_id }}-logs-macos
-  #         path: |
-  #           test-wpt.${{ matrix.chunk_id }}.log
-  #           filtered-wpt-summary.${{ matrix.chunk_id }}.log
+    uses: ./.github/workflows/mac.yml
+    with:
+      layout: '2013'
 
   build-linux:
-    if: contains(fromJSON('["auto", "try", "try-linux", "try-wpt"]'), github.ref_name)
-    name: Build (Linux)
-    runs-on: ubuntu-20.04
+    name: Linux
     needs: ["decision"]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Bootstrap Python
-        run: python3 -m pip install --upgrade pip virtualenv
-      - name: Bootstrap dependencies
-        run: sudo apt update && python3 ./mach bootstrap
-      - name: Release build
-        run: python3 ./mach build --release
-      - name: Lockfile check
-        run: ./etc/ci/lockfile_changed.sh
-      - name: Tidy
-        run: python3 ./mach test-tidy --no-progress --all
-      - name: Package binary
-        run: tar -czf target.tar.gz target/release/servo resources
-      - name: Archive binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-binary
-          path: target.tar.gz
-      - name: Release build (Layout 2020)
-        run: python3 ./mach build --release --with-layout-2020
+    uses: ./.github/workflows/linux.yml
+    with:
+      layout: '2013'
+      wpt: true
 
-  linux-wpt:
-    if: contains(fromJSON('["auto", "try", "try-wpt"]'), github.ref_name)
-    name: Linux WPT Tests
-    runs-on: ubuntu-20.04
-    needs: ["build-linux"]
-    env:
-      max_chunk_id: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - uses: actions/download-artifact@v3
-        with:
-          name: release-binary
-          path: release-binary
-      - name: unPackage binary
-        run: tar -xzf release-binary/target.tar.gz
-      - name: Prep test environment
-        run: |
-          python3 -m pip install --upgrade pip virtualenv
-          sudo apt update
-          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
-          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
-          sudo apt install ./libffi6_3.2.1-8_amd64.deb
-          python3 ./mach bootstrap-gstreamer
-      - name: Run tests
-        run: |
-          python3 ./mach test-wpt \
-            --release --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw test-wpt.${{ matrix.chunk_id }}.log \
-            --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
-            --filter-intermittents filtered-test-wpt.${{ matrix.chunk_id }}.json
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET }}
-      - name: Archive filtered results
-        uses: actions/upload-artifact@v3
-        if: ${{ always() }}
-        with:
-          name: wpt-filtered-results-linux
-          path: |
-            filtered-test-wpt.${{ matrix.chunk_id }}.json
-            unexpected-test-wpt.${{ matrix.chunk_id }}.log
-      - name: Archive logs
-        uses: actions/upload-artifact@v3
-        if: ${{ failure() }}
-        with:
-          name: wpt-logs-linux
-          path: |
-            test-wpt.${{ matrix.chunk_id }}.log
-            filtered-wpt-results.${{ matrix.chunk_id }}.json
-
-  report_test_results:
-    name: Reporting test results
-    runs-on: ubuntu-latest
-    if: "!cancelled() && success('build-linux') && contains(fromJSON('[\"auto\", \"try\", \"try-wpt\"]'), github.ref_name)"
-    needs:
-      - "linux-wpt"
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - uses: actions/download-artifact@v3
-        with:
-          name: wpt-filtered-results-linux
-          path: wpt-filtered-results-linux
-      - name: Create aggregated unexpected results
-        run: cat wpt-filtered-results-linux/*.log > unexpected-test-wpt.log
-      - name: Archive aggregate results
-        uses: actions/upload-artifact@v3
-        with:
-          name: wpt-filtered-results-linux
-          path: |
-            unexpected-test-wpt.log
-      - name: Comment on PR with results
-        run: etc/ci/report_aggregated_expected_results.py wpt-filtered-results-linux/*.json
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-linux-layout-2020:
+    name: Linux (layout-2020)
+    needs: ["decision"]
+    uses: ./.github/workflows/linux.yml
+    with:
+      layout: '2020'
+      wpt: false
 
   build_result:
     name: homu build finished
@@ -282,13 +69,12 @@ jobs:
       - "build-win"
       - "build-mac"
       - "build-linux"
-      - "linux-wpt"
-      # - "mac-wpt"
+      - "build-linux-layout-2020"
 
     steps:
       - name: Mark the job as successful
         run: exit 0
-        if: "!contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled')"
+        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
       - name: Mark the job as unsuccessful
         run: exit 1
         if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')

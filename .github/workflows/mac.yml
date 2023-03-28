@@ -1,0 +1,134 @@
+name: Mac workflow
+
+on:
+  workflow_call:
+    inputs:
+      layout:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      layout:
+        required: true
+        type: choice
+        options: ["2013", "2020"]
+  push:
+    branches: ["try-mac"]
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
+
+jobs:
+  build-mac:
+    name: Build
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      # TODO: Remove this step when the compatibility issue between mozjs and
+      #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
+      - name: Select Python 3.9
+        run: |
+          brew install python@3.9
+          cd $(dirname $(which python3.9))
+          rm -f python3 pip3
+          ln -s python3.9 python3
+          ln -s pip3.9 pip3
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
+          rm -rf /usr/local/etc/openssl
+          rm -rf /usr/local/etc/openssl@1.1
+          brew install openssl@1.1 gnu-tar
+      - name: Release build
+        run: |
+          export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
+          export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
+          export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+          export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
+          python3 ./mach build --release --with-${{ env.LAYOUT }}
+      - name: Smoketest
+        run: python3 ./mach smoketest
+      - name: Unit tests
+        run: python3 ./mach test-unit --release --with-${{ env.LAYOUT }}
+      - name: Test package
+        run: python3 ./mach package --release
+      - name: Package smoketest
+        run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
+      - name: Package binary
+        run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
+      - name: Archive binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-${{ env.LAYOUT }}-binary-macos
+          path: target.tar.gz
+
+  # mac-wpt:
+  #   name: Mac WPT Tests
+  #   runs-on: macos-12
+  #   needs: ["build-mac"]
+  #   env:
+  #     max_chunk_id: 20
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 2
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: release-binary-macos
+  #     # TODO: Remove this step when the compatibility issue between mozjs and
+  #     #       Homebrew's Python 3.10 formula (servo/rust-mozjs#559) is fixed
+  #     - name: Select Python 3.9
+  #       run: |
+  #         brew install python@3.9
+  #         cd $(dirname $(which python3.9))
+  #         rm -f python3 pip3
+  #         ln -s python3.9 python3
+  #         ln -s pip3.9 pip3
+  #     - name: Prep test environment
+  #       run: |
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt \
+  #           --release --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
+  #           --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
+  #           --log-raw test-wpt.${{ matrix.chunk_id }}.log \
+  #           --filter-intermittents=filtered-wpt-summary.${{ matrix.chunk_id }}.log
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v3
+  #       if: ${{ failure() }}
+  #       with:
+  #         name: wpt${{ matrix.chunk_id }}-logs-macos
+  #         path: |
+  #           test-wpt.${{ matrix.chunk_id }}.log
+  #           filtered-wpt-summary.${{ matrix.chunk_id }}.log
+
+  build_result:
+    name: homu build finished
+    runs-on: ubuntu-latest
+    if: always()
+    # needs all build to detect cancellation
+    needs:
+      - "build-mac"
+
+    steps:
+      - name: Mark the job as successful
+        run: exit 0
+        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+      - name: Mark the job as unsuccessful
+        run: exit 1
+        if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')

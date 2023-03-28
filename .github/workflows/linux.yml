@@ -1,0 +1,170 @@
+name: Linux workflow
+on:
+  workflow_call:
+    inputs:
+      layout:
+        required: true
+        type: string
+      wpt:
+        required: true
+        type: boolean
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      layout:
+        required: true
+        type: choice
+        options: ["2013", "2020"]
+      wpt:
+        default: true
+        required: true
+        type: boolean
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: ["try-linux", "try-wpt"]
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
+
+jobs:
+  build-linux:
+    if: github.repository == 'servo/servo' || github.event_name == 'push'
+    name: Build
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: Bootstrap Python
+        run: python3 -m pip install --upgrade pip virtualenv
+      - name: Bootstrap dependencies
+        run: sudo apt update && python3 ./mach bootstrap
+      - name: Tidy
+        run: python3 ./mach test-tidy --no-progress --all
+      - name: Release build
+        run: python3 ./mach build --release --with-${{ env.LAYOUT }}
+      - name: Smoketest
+        run: xvfb-run python3 ./mach smoketest
+      - name: Unit tests
+        if: ${{ inputs.unit-tests }}
+        run: python3 ./mach test-unit --release --with-${{ env.LAYOUT }}
+      - name: Lockfile check
+        run: ./etc/ci/lockfile_changed.sh
+      - name: Package binary
+        run: tar -czf target.tar.gz target/release/servo resources
+      - name: Archive binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.LAYOUT }}-release-binary
+          path: target.tar.gz
+
+  linux-wpt:
+    if: ${{ github.ref_name == 'try-wpt' || inputs.wpt }}
+    name: Linux WPT Tests
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    env:
+      max_chunk_id: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.LAYOUT }}-release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt \
+            --release --processes $(nproc) --timeout-multiplier 2 \
+            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
+            --log-raw test-wpt.${{ matrix.chunk_id }}.log \
+            --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
+            --filter-intermittents filtered-test-wpt.${{ matrix.chunk_id }}.json
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET }}
+      - name: Archive filtered results
+        uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: wpt-filtered-results-linux-${{ env.LAYOUT }}
+          path: |
+            filtered-test-wpt.${{ matrix.chunk_id }}.json
+            unexpected-test-wpt.${{ matrix.chunk_id }}.log
+      - name: Archive logs
+        uses: actions/upload-artifact@v3
+        if: ${{ failure() }}
+        with:
+          name: wpt-logs-linux-${{ env.LAYOUT }}
+          path: |
+            test-wpt.${{ matrix.chunk_id }}.log
+            filtered-wpt-results.${{ matrix.chunk_id }}.json
+
+  report-test-results:
+    name: Reporting test results
+    runs-on: ubuntu-latest
+    if: "!cancelled() && success('build-linux') && ${{ github.ref_name == 'try-wpt' || inputs.wpt }}"
+    needs:
+      - "linux-wpt"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v3
+        with:
+          name: wpt-filtered-results-linux-${{ env.LAYOUT }}
+          path: wpt-filtered-results-linux
+      - name: Create aggregated unexpected results
+        run: cat wpt-filtered-results-linux/*.log > unexpected-test-wpt.log
+      - name: Archive aggregate results
+        uses: actions/upload-artifact@v3
+        with:
+          name: wpt-filtered-results-linux-${{ env.LAYOUT }}
+          path: |
+            unexpected-test-wpt.log
+      - name: Comment on PR with results
+        run: etc/ci/report_aggregated_expected_results.py wpt-filtered-results-linux/*.json
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_result:
+    name: homu build finished
+    runs-on: ubuntu-latest
+    if: always()
+    # needs all build to detect cancellation
+    needs:
+      - "build-linux"
+      - "linux-wpt"
+      - "report-test-results"
+
+    steps:
+      - name: Mark the job as successful
+        run: exit 0
+        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+      - name: Mark the job as unsuccessful
+        run: exit 1
+        if: contains(join(needs.*.result, ','), 'failure') || contains(join(needs.*.result, ','), 'cancelled')
