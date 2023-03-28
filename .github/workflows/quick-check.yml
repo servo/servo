@@ -11,7 +11,6 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       layout: '2013'
-      wpt: false
       unit-tests: true
 
   build-linux-layout-2020:
@@ -19,6 +18,5 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       layout: '2020'
-      wpt: false
       # TODO: unit tests on layout-2020
       unit-tests: false

@@ -49,7 +49,7 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       layout: '2013'
-      wpt: true
+      wpt: 'test'
 
   build-linux-layout-2020:
     name: Linux (layout-2020)
@@ -57,7 +57,6 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       layout: '2020'
-      wpt: false
 
   build_result:
     name: homu build finished
