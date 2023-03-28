@@ -871,7 +871,7 @@ dependencies = [
  "euclid",
  "gfx_traits",
  "gleam",
- "image 0.24.5",
+ "image 0.24.6",
  "ipc-channel",
  "keyboard-types",
  "libc",
@@ -2154,9 +2154,9 @@ dependencies = [
 
 [[package]]
 name = "gif"
-version = "0.11.4"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3edd93c6756b4dfaf2709eafcc345ba2636565295c198a9cfbf75fa5e3e00b06"
+checksum = "80792593675e051cf94a4b111980da2ba60d4a83e43e0048c5693baab3977045"
 dependencies = [
  "color_quant",
  "weezl",
@@ -2878,9 +2878,9 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.5"
+version = "0.24.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69b7ea949b537b0fd0af141fff8c77690f2ce96f4f41f042ccb6c69c6c965945"
+checksum = "527909aa81e20ac3a44803521443a765550f09b5130c2c2fa1ea59c2f8f50a3a"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -2891,7 +2891,7 @@ dependencies = [
  "num-rational 0.4.0",
  "num-traits",
  "png 0.17.7",
- "scoped_threadpool",
+ "qoi",
  "tiff",
 ]
 
@@ -4054,7 +4054,7 @@ dependencies = [
  "http",
  "hyper 0.14.5",
  "hyper_serde",
- "image 0.24.5",
+ "image 0.24.6",
  "ipc-channel",
  "lazy_static",
  "log",
@@ -4891,6 +4891,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qoi"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f6d64c71eb498fe9eae14ce4ec935c555749aef511cca85b5568910d6e48001"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "quickcheck"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5242,12 +5251,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
 
 [[package]]
-name = "scoped_threadpool"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d51f5df5af43ab3f1360b429fa5e0152ac5ce8c0bd6485cae490332e96846a8"
-
-[[package]]
 name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5285,7 +5288,7 @@ dependencies = [
  "html5ever",
  "http",
  "hyper_serde",
- "image 0.24.5",
+ "image 0.24.6",
  "indexmap",
  "ipc-channel",
  "itertools",
@@ -5576,7 +5579,7 @@ dependencies = [
  "clipboard",
  "euclid",
  "getopts",
- "image 0.24.5",
+ "image 0.24.6",
  "keyboard-types",
  "lazy_static",
  "libc",
@@ -7280,7 +7283,7 @@ dependencies = [
  "euclid",
  "headers",
  "http",
- "image 0.24.5",
+ "image 0.24.6",
  "ipc-channel",
  "keyboard-types",
  "log",
