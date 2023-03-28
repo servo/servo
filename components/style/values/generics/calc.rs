@@ -449,8 +449,19 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             },
             Self::MinMax(ref nodes, op) => {
                 let mut result = nodes[0].resolve_internal(leaf_to_output_fn)?;
+
+                if result.is_nan() {
+                    return Ok(result);
+                }
+
                 for node in nodes.iter().skip(1) {
                     let candidate = node.resolve_internal(leaf_to_output_fn)?;
+
+                    if candidate.is_nan() {
+                        result = candidate;
+                        break;
+                    }
+
                     let candidate_wins = match op {
                         MinMaxOp::Min => candidate < result,
                         MinMaxOp::Max => candidate > result,
@@ -477,6 +488,11 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 if result < min {
                     result = min
                 }
+
+                if min.is_nan() || center.is_nan() || max.is_nan() {
+                    result = <O as Float>::nan();
+                }
+
                 result
             },
             Self::Round {
