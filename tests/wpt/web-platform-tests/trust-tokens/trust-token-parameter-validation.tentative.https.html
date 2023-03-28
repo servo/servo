@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>JavaScript: the Trust Token API Fetch method correctly validates its parameters</title>
+<title>JavaScript: the Private Token API Fetch method correctly validates its parameters</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -9,80 +9,92 @@
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
-        trustToken: {}
+        privateToken: {}
       });
     });
-  }, 'Trust Tokens fetches require present `type` values.');
+  }, 'Private Token fetches require present `type` values.');
 
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
-        trustToken: {
+        privateToken: {
           type: "invalid"
         }
       });
     });
-  }, 'Trust Tokens fetches require valid `type` values.');
+  }, 'Private Token fetches require valid `type` values.');
 
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
-        trustToken: {
-          type: "token-request",
+        privateToken: {
+          type: "private-state-token",
+          version: 1,
+          operation: "token-request",
           refreshPolicy: "not a member of the refreshPolicy enum",
         }
       });
     });
-  }, 'Trust Tokens fetches require valid `refreshPolicy:` values, if provided.');
+  }, 'Private Token fetches require valid `refreshPolicy:` values, if provided.');
 
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
-        trustToken: {
-          type: "send-redemption-record",
+        privateToken: {
+          type: "private-state-token",
+          version: 1,
+          operation: "send-redemption-record",
           issuers: []
         }
       });
     });
-  }, 'Trust Tokens signing operations require at least one issuer URL');
+  }, 'Private Token signing operations require at least one issuer URL');
 
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
-        trustToken: {
-          type: "send-redemption-record",
+        privateToken: {
+          type: "private-state-token",
+          version: 1,
+          operation: "send-redemption-record",
           issuers: [3]
         }
       });
     });
-  }, 'Trust Tokens signing operations require string issuer URLs, if provided.');
+  }, 'Private Token signing operations require string issuer URLs, if provided.');
 
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
-        trustToken: {
-          type: "send-redemption-record",
+        privateToken: {
+          type: "private-state-token",
+          version: 1,
+          operation: "send-redemption-record",
           issuers: ["not a valid URL"]
         }
       });
     });
-  }, 'Trust Tokens signing operations require valid issuer URLs, if provided.');
+  }, 'Private Token signing operations require valid issuer URLs, if provided.');
 
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
-        trustToken: {
-          type: "send-redemption-record",
+        privateToken: {
+          type: "private-state-token",
+          version: 1,
+          operation: "send-redemption-record",
           issuers: ["http://not-secure.com"]
         }
       });
     });
-  }, 'Trust Tokens fetches require secure issuer URLs, if provided.');
+  }, 'Private Token fetches require secure issuer URLs, if provided.');
 
   test(() => {
     new Request('https://example.com', {
-      trustToken: {
-        type: "send-redemption-record",
+      privateToken: {
+        type: "private-state-token",
+        version: 1,
+        operation: "send-redemption-record",
         issuers: ["http://localhost"]
       }
     });

@@ -41,7 +41,7 @@ function runTest() {
     await resetTargetScrollState(t, target_div);
     await waitForCompositorReady();
 
-    const timeout = 1000; // Because we have two pauses we need longer timeout
+    const timeout = 3000; // Because we have two pauses we need longer timeout
     const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div, timeout);
     verifyNoScrollendOnDocument(t);
 

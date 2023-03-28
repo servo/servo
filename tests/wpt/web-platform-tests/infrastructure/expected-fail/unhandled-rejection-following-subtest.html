@@ -4,6 +4,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+setup({ explicit_done: true });
+window.addEventListener('unhandledrejection', () => { done(); }, {once: true});
 test(function() {});
 Promise.reject(new Error("error outside any setup or test"));
 </script>

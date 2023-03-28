@@ -47,20 +47,51 @@ def get_hash(data, container=None):
 
 
 class Html5libInstall:
-    def __init__(self, rev=None):
+    def __init__(self, rev=None, tests_rev=None):
         self.html5lib_dir = None
         self.rev = rev
+        self.tests_rev = tests_rev
 
     def __enter__(self):
         self.html5lib_dir = tempfile.TemporaryDirectory()
         html5lib_path = self.html5lib_dir.__enter__()
-        subprocess.check_call(["git", "clone", "--no-checkout", "https://github.com/html5lib/html5lib-python.git", "html5lib"],
-                              cwd=html5lib_path)
+        html5lib_python_path = os.path.join(html5lib_path, "html5lib")
+        html5lib_tests_path = os.path.join(
+            html5lib_python_path, "html5lib", "tests", "testdata"
+        )
+
+        subprocess.check_call(
+            [
+                "git",
+                "clone",
+                "--no-checkout",
+                "https://github.com/html5lib/html5lib-python.git",
+                "html5lib",
+            ],
+            cwd=html5lib_path,
+        )
+
         rev = self.rev if self.rev is not None else "origin/master"
-        subprocess.check_call(["git", "checkout", rev],
-                              cwd=os.path.join(html5lib_path, "html5lib"))
+        subprocess.check_call(
+            ["git", "checkout", rev], cwd=html5lib_python_path
+        )
+
+        subprocess.check_call(
+            [
+                "git",
+                "submodule",
+                "update",
+                "--init",
+                "--recursive",
+            ],
+            cwd=html5lib_python_path,
+        )
+
         subprocess.check_call(["pip", "install", "-e", "html5lib"], cwd=html5lib_path)
         reload(site)
+
+        tests_rev = self.tests_rev if self.tests_rev is not None else "origin/master"
+        subprocess.check_call(["git", "checkout", tests_rev], cwd=html5lib_tests_path)
 
     def __exit__(self, *args, **kwargs):
         subprocess.call(["pip", "uninstall", "-y", "html5lib"], cwd=self.html5lib_dir.name)
@@ -132,10 +163,13 @@ def main():
 
     test_files = []
     inner_html_files = []
-    with open(os.path.join(script_dir, "html5lib_revision"), "r") as f:
+    with open(os.path.join(script_dir, "html5lib_python_revision"), "r") as f:
         html5lib_rev = f.read().strip()
 
-    with Html5libInstall(html5lib_rev):
+    with open(os.path.join(script_dir, "html5lib_tests_revision"), "r") as f:
+        html5lib_tests_rev = f.read().strip()
+
+    with Html5libInstall(html5lib_rev, html5lib_tests_rev):
         from html5lib.tests import support
 
         if len(sys.argv) > 2:

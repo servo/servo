@@ -14,6 +14,12 @@ test_no_interpolation({
 });
 
 test_no_interpolation({
+  property: 'counter-increment',
+  from: 'add 5',
+  to: 'add 123'
+});
+
+test_no_interpolation({
   property: 'counter-reset',
   from: 'initial',
   to: 'add 123'

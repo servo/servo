@@ -76,4 +76,26 @@ a=setup:actpass
   }, testcase.description + ' header extension is supported.');
 });
 
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  pc.addTransceiver('video');
+  const offer = await pc.createOffer();
+  const section = SDPUtils.splitSections(offer.sdp)[1];
+  const extensions = SDPUtils.matchPrefix(section, 'a=extmap:')
+    .map(line => SDPUtils.parseExtmap(line));
+  const extension_not_mid = extensions.find(e => e.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid');
+  await pc.setRemoteDescription({type :'offer', sdp: offer.sdp.replace(extension_not_mid.uri, 'bogus')});
+
+  await pc.setLocalDescription();
+  const answer_section = SDPUtils.splitSections(pc.localDescription.sdp)[1];
+  const answer_extensions = SDPUtils.matchPrefix(answer_section, 'a=extmap:')
+    .map(line => SDPUtils.parseExtmap(line));
+  assert_equals(answer_extensions.length, extensions.length - 1);
+  assert_false(!!extensions.find(e => e.uri === 'bogus'));
+  for (const answer_extension of answer_extensions) {
+    assert_true(!!extensions.find(e => e.uri === answer_extension.uri));
+  }
+}, 'Negotiates the subset of supported extensions offered');
 </script>

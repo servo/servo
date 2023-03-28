@@ -1,6 +1,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/common/utils.js
 // META: script=resources/fledge-util.js
+// META: timeout=long
 
 // The tests in this file focus on simple auctions (one bidder, one seller, one
 // origin, one frame) which have no winning bid, either due to errors or due to
@@ -10,6 +11,7 @@
 // appended to script URLs to make the python scripts that generate bidding
 // logic and decision logic scripts with errors.
 const COMMON_SCRIPT_ERRORS = [
+  'error=close-connection',
   'error=http-error',
   'error=no-content-type',
   'error=wrong-content-type',

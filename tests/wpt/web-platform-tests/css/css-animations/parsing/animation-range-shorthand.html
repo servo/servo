@@ -5,7 +5,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/shorthand-testcommon.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target" style="font-size:10px"></div>
 <script>
+test_valid_value("animation-range", "normal");
+test_valid_value("animation-range", "normal normal", "normal");
 test_valid_value("animation-range", "cover");
 test_valid_value("animation-range", "contain");
 test_valid_value("animation-range", "entry");
@@ -37,6 +41,41 @@ test_valid_value("animation-range", "entry 50% exit 50%");
 test_valid_value("animation-range",
                  "cover 50% entry 50%, contain 50% exit 50%");
 
+test_computed_value("animation-range", "normal");
+test_computed_value("animation-range", "normal normal", "normal");
+test_computed_value("animation-range", "cover");
+test_computed_value("animation-range", "contain");
+test_computed_value("animation-range", "entry");
+test_computed_value("animation-range", "entry-crossing");
+test_computed_value("animation-range", "exit");
+test_computed_value("animation-range", "exit-crossing");
+test_computed_value("animation-range", "entry, exit");
+
+test_computed_value("animation-range", "entry 0% entry 100%", "entry");
+test_computed_value("animation-range", "entry-crossing 0% entry-crossing 100%",
+                 "entry-crossing");
+test_computed_value("animation-range", "exit 0% exit 100%", "exit");
+test_computed_value("animation-range", "exit-crossing 0% exit-crossing 100%",
+                 "exit-crossing");
+test_computed_value("animation-range", "cover 0% cover 100%", "cover");
+test_computed_value("animation-range", "contain 0% contain 100%", "contain");
+test_computed_value("animation-range",
+                 "entry calc(10% - 10%) entry calc(50% + 50%)", "entry");
+test_computed_value("animation-range", "cover 50%");
+test_computed_value("animation-range", "contain 50%");
+test_computed_value("animation-range", "entry 50%");
+test_computed_value("animation-range", "entry-crossing 50%");
+test_computed_value("animation-range", "exit 50%");
+test_computed_value("animation-range", "exit-crossing 50%");
+test_computed_value("animation-range", "entry 50px exit 100px");
+test_computed_value("animation-range", "exit calc(10% + 50px)");
+
+test_computed_value("animation-range", "entry 50% exit 50%");
+test_computed_value("animation-range",
+                 "cover 50% entry 50%, contain 50% exit 50%");
+
+test_computed_value("animation-range", "entry 10em exit 20em", "entry 100px exit 200px");
+
 test_invalid_value("animation-range", "entry 50% 0s", "entry 50%");
 test_invalid_value("animation-range", "0s entry 50%");
 test_invalid_value("animation-range", "1s");
@@ -59,14 +98,39 @@ test_invalid_value("animation-range", "thing 100%");
 test_invalid_value("animation-range", "thing 100px");
 test_invalid_value("animation-range", "100% thing");
 
+test_shorthand_value('animation-range', 'normal', {
+  'animation-range-start': 'normal',
+  'animation-range-end': 'normal',
+});
+
+test_shorthand_value('animation-range', 'normal normal', {
+  'animation-range-start': 'normal',
+  'animation-range-end': 'normal',
+});
+
+test_shorthand_value('animation-range', 'normal entry 100%', {
+  'animation-range-start': 'normal',
+  'animation-range-end': 'entry',
+});
+
+test_shorthand_value('animation-range', 'normal entry 10%', {
+  'animation-range-start': 'normal',
+  'animation-range-end': 'entry 10%',
+});
+
 test_shorthand_value('animation-range', 'cover', {
-  'animation-range-start': 'cover 0%',
-  'animation-range-end': 'cover 100%',
+  'animation-range-start': 'cover',
+  'animation-range-end': 'cover',
 });
 
 test_shorthand_value('animation-range', 'contain', {
-  'animation-range-start': 'contain 0%',
-  'animation-range-end': 'contain 100%',
+  'animation-range-start': 'contain',
+  'animation-range-end': 'contain',
+});
+
+test_shorthand_value('animation-range', 'contain 100% contain 0%', {
+  'animation-range-start': 'contain 100%',
+  'animation-range-end': 'contain 0%',
 });
 
 test_shorthand_value('animation-range', 'entry 10% exit 20%', {
@@ -80,12 +144,17 @@ test_shorthand_value('animation-range', 'entry calc(10% + 10px) exit 20px', {
 });
 
 test_shorthand_value('animation-range', 'entry, exit', {
-  'animation-range-start': 'entry 0%, exit 0%',
-  'animation-range-end': 'entry 100%, exit 100%',
+  'animation-range-start': 'entry, exit',
+  'animation-range-end': 'entry, exit',
 });
 
 test_shorthand_value('animation-range', 'entry 0%, exit', {
-  'animation-range-start': 'entry 0%, exit 0%',
-  'animation-range-end': 'auto, exit 100%',
+  'animation-range-start': 'entry, exit',
+  'animation-range-end': 'entry, exit',
+});
+
+test_shorthand_value('animation-range', 'exit calc(10% + 50px)', {
+  'animation-range-start': 'exit calc(10% + 50px)',
+  'animation-range-end': 'exit',
 });
 </script>

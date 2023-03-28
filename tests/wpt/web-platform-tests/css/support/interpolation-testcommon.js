@@ -274,6 +274,8 @@
     } else if (expectations === expectNotAnimatable) {
       expectations = interpolationMethod.notAnimatableExpectations(from, to, interpolationTest.options.underlying);
       applyUnderlying = true;
+    } else if (interpolationTest.options[interpolationMethod.name]) {
+      expectations = interpolationTest.options[interpolationMethod.name];
     }
 
     // Setup a standard equality function if an override is not provided.
