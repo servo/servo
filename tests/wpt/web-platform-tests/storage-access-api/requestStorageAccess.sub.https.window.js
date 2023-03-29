@@ -1,4 +1,5 @@
 // META: script=helpers.js
+// META: script=/cookies/resources/cookie-helper.sub.js
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 'use strict';
@@ -35,6 +36,9 @@ promise_test(
           testPrefix.includes('ABA')) {
         await document.requestStorageAccess().catch(t.unreached_func(
             'document.requestStorageAccess() call should resolve in top-level frame or same-site iframe.'));
+
+        assert_true(await CanAccessCookiesViaHTTP(), 'After obtaining storage access, subresource requests from the frame should send and set cookies.');
+        assert_true(CanAccessCookiesViaJS(), 'After obtaining storage access, scripts in the frame should be able to access cookies.');
       } else {
         return promise_rejects_dom(
             t, "NotAllowedError", document.requestStorageAccess(),
@@ -54,12 +58,8 @@ promise_test(
 
       await document.requestStorageAccess();
 
-      await fetch(`${window.location.origin}/cookies/resources/set-cookie.py?name=cookie&path=/&samesite=None&secure=`)
-          .then((resp) => resp.text());
-      const httpCookies = await fetch(`${window.location.origin}/storage-access-api/resources/echo-cookie-header.py`)
-          .then((resp) => resp.text());
-      assert_true(httpCookies.includes('cookie=1'),
-          'After obtaining storage access, subresource requests from the frame should send and set cookies.');
+      assert_true(await CanAccessCookiesViaHTTP(), 'After obtaining storage access, subresource requests from the frame should send and set cookies.');
+      assert_true(CanAccessCookiesViaJS(), 'After obtaining storage access, scripts in the frame should be able to access cookies.');
     },
     '[' + testPrefix +
         '] document.requestStorageAccess() should be resolved with no user gesture when a permission grant exists, and ' +
@@ -92,6 +92,9 @@ if (testPrefix.includes('cross-site')) {
   promise_test(
       async () => {
         await document.requestStorageAccess();
+
+        assert_true(await CanAccessCookiesViaHTTP(), 'After obtaining storage access, subresource requests from the frame should send and set cookies.');
+        assert_true(CanAccessCookiesViaJS(), 'After obtaining storage access, scripts in the frame should be able to access cookies.');
       },
       `[${testPrefix}] document.requestStorageAccess() should resolve without permission grant or user gesture`);
 
@@ -101,6 +104,9 @@ if (testPrefix.includes('cross-site')) {
             {name: 'storage-access'}, 'denied');
 
         await document.requestStorageAccess();
+
+        assert_true(await CanAccessCookiesViaHTTP(), 'After obtaining storage access, subresource requests from the frame should send and set cookies.');
+        assert_true(CanAccessCookiesViaJS(), 'After obtaining storage access, scripts in the frame should be able to access cookies.');
       },
       `[${testPrefix}] document.requestStorageAccess() should resolve with denied permission`);
 }

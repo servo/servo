@@ -3,8 +3,10 @@ Need tests for (likely not a complete list):
 * directFromSellerSignals.
 * All generateBid() and scoreAd() input parameters.
 * All interest group fields (passed to auction, have effect on auction).
-    Validation when joining/leaving interest group is covered.
-* Updates.
+    Validation when joining/leaving interest group is already covered.
+* Filtering/prioritization (including bidding signals influencing priorities)
+* Size restrictions.
+* Updates (both after auction and triggered).
 * All auctionConfig parameters (including invalid auctionConfigs, and ones
     with no buyers).
 * Interest group expiration.
@@ -15,9 +17,10 @@ Need tests for (likely not a complete list):
     loading URNs in fencedframes in other frames, loading component
     ad URNs in fenced frames of other frames, etc)
 * adAuctionConfig passed to reportResult().
-* trusted bidding / scoring signals.
+* trusted scoring signals.
 * Component ads.
 * Component auctions.
+* browserSignals fields in scoring/bidding methods.
 * In reporting methods, browserSignals fields: dataVersion, topLevelSeller,
     componentSeller, modifiedBid, adCost, madeHighestScoringOtherBid
     (with interest group from another origin).
@@ -26,8 +29,20 @@ Need tests for (likely not a complete list):
 * Calling leaveAdInterestGroup() in the frame of a winning ad (and one
     of its component ads)
 * Network timeouts.
+* Validate specific escaping behavior logic (still under discussion). There
+    are a number of different rules for which characters are escaped, and
+    whether spacess are escaped as "%20" or "+".
+* Reports not sent if ad not used.
+* Ties.
+* Interactions with local network access API, which requires public
+    networks to send CORS preflights for requests made over local networks.
+    Needs testing with public publisher pages running auctions with
+    sellers / buyers / update URLs on local networks.
 
 If possible:
 * Aggregate reporting.
 * Join/leave permission delegation via .well-known files.
 * k-anonymity.
+* Signals request batching. This is an optional feature, so can't require it,
+    but maybe a test where batching could be used, and make sure things work,
+    whether batching is used or not?

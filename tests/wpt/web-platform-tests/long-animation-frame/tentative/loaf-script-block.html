@@ -4,6 +4,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
 <script src="resources/utils.js"></script>
 
 <body>
@@ -30,16 +31,18 @@ test_self_script_block(t => {
 }, new URL("resources/busy.js", location.href).href, "classic-script");
 
 test_self_script_block(t => {
+    const uid = token();
     const script = document.createElement("script");
-    script.src = "resources/busy.js";
+    script.src = `resources/busy.js?token=${uid}`;
     script.type = "module";
     document.body.appendChild(script);
 }, new URL("resources/busy.js", location.href).href, "module-script");
 
 test_self_script_block(t => {
+    const uid = token();
     const script = document.createElement("script");
     script.type = "module";
-    script.innerHTML = `import("./resources/busy.js?import");`;
+    script.innerHTML = `import("./resources/busy.js?import=${uid}");`;
     document.body.appendChild(script);
 }, new URL("resources/busy.js?import", location.href).href, "execute-script");
 

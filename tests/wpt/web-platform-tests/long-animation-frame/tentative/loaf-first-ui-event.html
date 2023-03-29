@@ -93,8 +93,8 @@ promise_test(async t => {
     return promise;
   }, s => s.name === "IMG[src=/images/green.png].onload", t);
 
-  const [entry] = await entryPromise;
-  assert_equals(entry.firstUIEventTimestamp, 0);
+  const [entry, script] = await entryPromise;
+  assert_not_equals(entry.firstUIEventTimestamp, script.desiredExecutionStart);
 }, "Non-UI events don't affect firstUIEventTimestamp");
 
 </script>

@@ -34,7 +34,7 @@ window.addEventListener("message", async (event) => {
     case "observe_permission_change":
       const status = await navigator.permissions.query({name: "storage-access"});
       status.addEventListener("change", (event) => {
-        reply(status.state)
+        reply(event.target.state)
       }, { once: true });
       break;
     case "reload":

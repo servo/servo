@@ -2,6 +2,8 @@
 // META: script=/common/utils.js
 // META: script=resources/fledge-util.js
 
+"use strict;"
+
 // These tests are focused on joinAdInterestGroup() and leaveAdInterestGroup().
 // Most join tests do not run auctions, but instead only check the result of
 // the returned promise, since testing that interest groups are actually

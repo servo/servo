@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>setAppBadge iframe</title>
+<script>
+  async function callSetAppBadge() {
+    const postMessageData = { message: "callSetAppBadge" };
+
+    try {
+      await navigator.setAppBadge();
+      postMessageData.status = "success";
+    } catch (e) {
+      if (e instanceof DOMException) {
+        postMessageData.status = "error";
+        postMessageData.exceptionType = e.name;
+      } else {
+        postMessageData.status = "unknown_error";
+        postMessageData.error = e.toString();
+      }
+    } finally {
+      window.parent.postMessage(postMessageData, "*");
+    }
+  }
+
+  window.addEventListener("message", async (event) => {
+    switch (event.data) {
+      case "callSetAppBadge":
+        await callSetAppBadge();
+        break;
+      default:
+        throw new Error(`Unexpected message: ${event.data}`);
+    }
+  });
+</script>

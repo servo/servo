@@ -76,7 +76,14 @@
       // Initially using a document timeline, so the keyframes should be
       // ignored.
       let frames = anim.effect.getKeyframes();
-      let expected = [];
+      let expected = [
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" }
+      ];
       assert_frame_lists_equal(frames, expected);
 
       // Once a view-timeline is added, the kefyrames must update to reflect
@@ -88,13 +95,15 @@
 
       frames = anim.effect.getKeyframes();
       expected = [
-        { offset: -1, computedOffset: -1, easing: "linear", composite: "auto",
-          marginLeft: "0px", opacity: "0" },
         { offset:  0, computedOffset: 0, easing: "linear", composite: "replace",
           marginRight: "10px" },
         { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
           marginLeft: "10px" },
-        { offset: 2, computedOffset: 2, easing: "linear", composite: "auto",
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 2, easing: "linear", composite: "auto",
           marginRight: "0px", opacity: "1" },
       ];
       assert_frame_lists_equal(frames, expected);
@@ -105,13 +114,15 @@
       await waitForNextFrame();
       frames = anim.effect.getKeyframes();
       expected = [
-        { offset: -1/3, computedOffset: -1/3, easing: "linear",
-          composite: "auto", marginLeft: "0px", opacity: "0" },
         { offset:  0, computedOffset: 0, easing: "linear", composite: "replace",
           marginRight: "10px" },
         { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
           marginLeft: "10px" },
-        { offset: 4/3, computedOffset: 4/3, easing: "linear", composite: "auto",
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1/3, easing: "linear",
+          composite: "auto", marginLeft: "0px", opacity: "0" },
+        { offset:  { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 4/3, easing: "linear", composite: "auto",
           marginRight: "0px", opacity: "1" },
       ];
       assert_frame_lists_equal(frames, expected);
@@ -120,9 +131,15 @@
       assert_equals(getComputedStyle(target).animationTimeline, 'auto',
                     'Switch back to document timeline');
       frames = anim.effect.getKeyframes();
-      expected = [];
+      expected = [
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" }
+      ];
       assert_frame_lists_equal(frames, expected);
-
     }, 'getKeyframes with timeline-offsets');
   }
 
