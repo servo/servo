@@ -29,3 +29,10 @@ promise_test(async () => {
   const text = await resp.text();
   assert_equals(text, "", "null bodies result in empty text");
 }, `Response.body is null for responses with method=HEAD`);
+
+promise_test(async (t) => {
+  const integrity = "sha384-UT6f7WCFp32YJnp1is4l/ZYnOeQKpE8xjmdkLOwZ3nIP+tmT2aMRFQGJomjVf5cE";
+  const url = `${RESOURCES_DIR}status.py?code=204&content=hello-world`;
+  const promise = fetch(url, { method: "GET", integrity });
+  promise_rejects_js(t, TypeError, promise);
+}, "Null body status with subresource integrity should abort");

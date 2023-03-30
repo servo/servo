@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+
+<head>
+  <meta http-equiv="Content-Security-Policy"
+    content="script-src 'nonce-1' 'nonce-2' 'nonce-3' 'nonce-4' 'nonce-5' 'strict-dynamic'">
+</head>
+<script src="/common/utils.js" nonce="1"></script>
+<script src="/resources/testharness.js" nonce="2"></script>
+<script src="/resources/testharnessreport.js" nonce="3"></script>
+<script src="utils.js" nonce="4"></script>
+<script src="csp-script-src.js" nonce="5"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  writeValueToServer(params.get('key'), "csp is ignored unexpectedly");
+</script>

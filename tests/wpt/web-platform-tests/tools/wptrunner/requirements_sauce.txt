@@ -1,2 +1,2 @@
-selenium==4.8.2
+selenium==4.8.3
 requests==2.28.2

@@ -3,6 +3,8 @@
 // META: script=resources/fledge-util.js
 // META: timeout=long
 
+"use strict;"
+
 // The tests in this file focus on simple auctions (one bidder, one seller, one
 // origin, one frame) which have no winning bid, either due to errors or due to
 // there being no bids, except where tests fit better with another set of tests.
