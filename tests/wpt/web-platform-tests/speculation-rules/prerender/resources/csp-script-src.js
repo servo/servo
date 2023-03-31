@@ -3,7 +3,7 @@ const params = new URLSearchParams(location.search);
 // Take a key used for storing a test result in the server.
 const key = params.get('key');
 
-// Speculation rules injection is not blocked in the csp-script-src 'self' test.
+// Speculation rules injection is blocked in the csp-script-src 'self' test.
 const block = location.pathname.endsWith('csp-script-src-self.html');
 
 // The main test page (csp-script-src-*.html) in the parent directory) will load

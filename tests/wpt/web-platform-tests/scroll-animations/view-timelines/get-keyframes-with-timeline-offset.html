@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- TODO(kevers): Insert link once resolutions present in spec -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/web-animations/resources/keyframe-utils.js"></script>
+<script src="support/testcommon.js"></script>
+<title>Reported keyframes containing timeline offset</title>
+</head>
+<style type="text/css">
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin: 800px 10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+  }
+</style>
+<body>
+  <div id=scroller>
+    <div id=target></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    function createAnimation(t, keyframes, use_view_timeline = true) {
+      const options = {
+        rangeStart: { rangeName: 'contain', offset: CSS.percent(0) },
+        rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+        duration: 'auto',
+        fill: 'both'
+      };
+      if (use_view_timeline) {
+        options.timeline = new ViewTimeline( { subject: target });
+      }
+      const anim = target.animate(keyframes, options);
+      t.add_cleanup(() => {
+        anim.cancel();
+      });
+      return anim;
+    }
+
+    promise_test(async t => {
+      let anim = createAnimation(t, [
+        { offset: "contain 25%", marginLeft: "0px", opacity: "0" },
+        { offset: "contain 75%", marginRight: "0px", opacity: "1" }
+      ]);
+      let frames = anim.effect.getKeyframes();
+      let expected = [
+        { offset: { rangeName: 'contain', offset: CSS.percent(25) },
+          computedOffset: 0.25, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'contain', offset: CSS.percent(75) },
+          computedOffset: 0.75, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+    }, 'Report specified timeline offsets');
+
+    promise_test(async t => {
+      let anim = createAnimation(t, [
+        { offset: "cover 0%", marginLeft: "0px", opacity: "0" },
+        { offset: "cover 100%", marginRight: "0px", opacity: "1" }
+      ]);
+      let frames = anim.effect.getKeyframes();
+      let expected = [
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 2, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+    }, 'Computed offsets can be outside [0,1] for keyframes with timeline ' +
+       'offsets');
+
+    promise_test(async t => {
+      let anim = createAnimation(t, [
+        { offset: "contain 75%", marginLeft: "0px", opacity: "0" },
+        { offset: "contain 25%", marginRight: "0px", opacity: "1" }
+      ]);
+      let frames = anim.effect.getKeyframes();
+      let expected = [
+        { offset: { rangeName: 'contain', offset: CSS.percent(75) },
+          computedOffset: 0.75, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'contain', offset: CSS.percent(25) },
+          computedOffset: 0.25, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+    }, 'Retain specified ordering of keyframes with timeline offsets');
+
+    promise_test(async t => {
+      let anim = createAnimation(t, [
+        { offset: "cover 0%", marginLeft: "0px", opacity: "0" },
+        { offset: "cover 100%", marginRight: "0px", opacity: "1" }
+      ], /* use_view_timeline */ false);
+      let frames = anim.effect.getKeyframes();
+      let expected = [
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+    }, 'Include unreachable keyframes');
+
+
+    promise_test(async t => {
+      let anim = createAnimation(t, [
+        { offset: "cover 0%", marginLeft: "0px", opacity: 0 },
+        { offset: "cover 100%", marginRight: "0px", opacity: 1 },
+        { opacity: 0 },
+        { opacity: 0.5 },
+        { opacity: 1.0 }
+      ]);
+      let frames = anim.effect.getKeyframes();
+      let expected = [
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 2, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" },
+        { offset: null, computedOffset: 0, easing: "linear", composite: "auto",
+          opacity: "0" },
+        { offset: null, computedOffset: 0.5, easing: "linear",
+          composite: "auto", opacity: "0.5" },
+        { offset: null, computedOffset: 1.0, easing: "linear",
+          composite: "auto", opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+
+      anim = createAnimation(t, [
+        { opacity: 0 },
+        { offset: "cover 0%", marginLeft: "0px", opacity: 0 },
+        { opacity: 0.5 },
+        { offset: "cover 100%", marginRight: "0px", opacity: 1 },
+        { opacity: 1.0 }
+      ]);
+      frames = anim.effect.getKeyframes();
+      expected = [
+        { offset: null, computedOffset: 0, easing: "linear", composite: "auto",
+          opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: null, computedOffset: 0.5, easing: "linear",
+          composite: "auto", opacity: "0.5" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 2, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" },
+        { offset: null, computedOffset: 1.0, easing: "linear",
+          composite: "auto", opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+
+      anim = createAnimation(t, [
+        { opacity: 0.2, offset: 0.2 },
+        { offset: "cover 0%", marginLeft: "0px", opacity: 0 },
+        { opacity: 0.4 },
+        { opacity: 0.6 },
+        { offset: "cover 100%", marginRight: "0px", opacity: 1 },
+        { opacity: 0.8, offset: 0.8 }
+      ]);
+      frames = anim.effect.getKeyframes();
+      expected = [
+        { offset: 0.2, computedOffset: 0.2, easing: "linear", composite: "auto",
+          opacity: "0.2" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1, easing: "linear", composite: "auto",
+          marginLeft: "0px", opacity: "0" },
+        { offset: null, computedOffset: 0.4, easing: "linear",
+          composite: "auto", opacity: "0.4" },
+        { offset: null, computedOffset: 0.6, easing: "linear",
+          composite: "auto", opacity: "0.6" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 2, easing: "linear", composite: "auto",
+          marginRight: "0px", opacity: "1" },
+        { offset: 0.8, computedOffset: 0.8, easing: "linear", composite: "auto",
+          opacity: "0.8" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+    }, 'Mix of computed and timeline offsets.');
+  }
+
+  window.onload = runTest;
+</script>
+</html>

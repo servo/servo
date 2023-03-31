@@ -25,8 +25,14 @@ assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatr
 assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 0], 0]}); });
 assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 0], [0, Infinity]]}); });
 assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatrix", kernelMatrix: []}); });
+assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [1]}); });
+assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [1, 2, 3, 4]}); });
+assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[], []]}); });
+assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 2], []]}); });
+assert_throws_js(TypeError, function() { new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[], [1, 2]]}); });
 // This should not throw an error
 ctx.filter = new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[]]});
+ctx.filter = new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1]]});
 t.done();
 
 });

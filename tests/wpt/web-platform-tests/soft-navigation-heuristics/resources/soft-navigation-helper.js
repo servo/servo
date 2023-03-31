@@ -49,12 +49,17 @@ const testNavigationApi = (testName, navigateEventHandler, link) => {
   promise_test(async t => {
     const preClickLcp = await getLcpEntries();
     navigation.addEventListener('navigate', navigateEventHandler);
+    const navigated = new Promise(resolve => {
+      navigation.addEventListener('navigatesuccess', resolve);
+      navigation.addEventListener('navigateerror', resolve);
+    });
     click(link);
     await new Promise(resolve => {
       (new PerformanceObserver(() => resolve())).observe({
         type: 'soft-navigation'
       });
     });
+    await navigated;
     assert_equals(document.softNavigations, 1, 'Soft Navigation detected');
     await validateSoftNavigationEntry(1, () => {}, 'foobar.html');
 

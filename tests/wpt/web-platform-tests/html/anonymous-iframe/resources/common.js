@@ -38,9 +38,10 @@ const newFencedFrame = (child_origin) => {
     "|header(Supports-Loading-Mode,fenced-frame)";
   const sub_document_token = token();
   const fencedframe = document.createElement('fencedframe');
-  fencedframe.src = child_origin + executor_path +
+  const url = child_origin + executor_path +
     support_loading_mode_fenced_frame +
     `&uuid=${sub_document_token}`;
+  fencedframe.config = new FencedFrameConfig(url);
   document.body.appendChild(fencedframe);
   return sub_document_token;
 };
