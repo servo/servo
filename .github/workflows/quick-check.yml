@@ -3,34 +3,20 @@ on:
   pull_request:
   push:
     branches:
-      [ "**", "!master", "!auto", "!try", "!try-linux", "!try-mac", "!try-windows", "!try-wpt", "!dependabot/**"]
-
-env:
-  RUST_BACKTRACE: 1
-  SHELL: /bin/bash
+      ["**", "!master", "!auto", "!try", "!try-linux", "!try-mac", "!try-windows", "!try-wpt", "!dependabot/**"]
 
 jobs:
   build-linux:
-    if: github.repository == 'servo/servo' || github.event_name == 'push'
-    name: Build (Linux)
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-      - name: Bootstrap Python
-        run: python3 -m pip install --upgrade pip virtualenv
-      - name: Bootstrap dependencies
-        run: sudo apt update && python3 ./mach bootstrap
-      - name: Tidy
-        run: python3 ./mach test-tidy --no-progress --all
-      - name: Release build
-        run: python3 ./mach build --release
-      - name: Smoketest
-        run: xvfb-run python3 ./mach smoketest
-      - name: Unit tests
-        run: python3 ./mach test-unit --release
-      - name: Lockfile check
-        run: ./etc/ci/lockfile_changed.sh
-      - name: Release build (Layout 2020)
-        run: python3 ./mach build --release --with-layout-2020
+    name: Linux
+    uses: ./.github/workflows/linux.yml
+    with:
+      layout: '2013'
+      unit-tests: true
+
+  build-linux-layout-2020:
+    name: Linux (layout-2020)
+    uses: ./.github/workflows/linux.yml
+    with:
+      layout: '2020'
+      # TODO: unit tests on layout-2020
+      unit-tests: false
