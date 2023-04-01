@@ -12,9 +12,9 @@ set -o pipefail
 # results and amend the last commit with the new results.
 function unsafe_update_metadata_chunk() {
     ./mach update-wpt \
-        "wpt-logs-linux/test-wpt.layout-2013.${1}.log" || return 1
+        "wpt-logs-linux-layout-2013/test-wpt.${1}.log" || return 1
     ./mach update-wpt --layout-2020 \
-        "wpt-logs-linux/test-wpt.layout-2020.${1}.log" || return 2
+        "wpt-logs-linux-layout-2020/test-wpt.${1}.log" || return 2
 
     # Ensure any new directories or ini files are included in these changes.
     git add tests/wpt/metadata \
