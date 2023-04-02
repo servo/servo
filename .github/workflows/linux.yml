@@ -34,6 +34,10 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+  CCACHE: "sccache"
+  CARGO_INCREMENTAL: 0
 
 jobs:
   build-linux:
@@ -44,6 +48,8 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip virtualenv
       - name: Bootstrap dependencies
