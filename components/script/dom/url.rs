@@ -111,6 +111,27 @@ impl URL {
         Ok(result)
     }
 
+    // https://url.spec.whatwg.org/#dom-url-canparse
+    pub fn CanParse(_global: &GlobalScope, url: USVString, base: Option<USVString>) -> bool {
+        // Step 1.
+        let parsed_base = match base {
+            None => None,
+            Some(base) => match ServoUrl::parse(&base.0) {
+                Ok(base) => Some(base),
+                Err(_) => {
+                    // Step 2.1
+                    return false;
+                },
+            },
+        };
+        match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {
+            // Step 3
+            Ok(_) => true,
+            // Step 2.2
+            Err(_) => false,
+        }
+    }
+
     // https://w3c.github.io/FileAPI/#dfn-createObjectURL
     pub fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
         // XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
