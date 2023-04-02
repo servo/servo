@@ -113,7 +113,7 @@ const workingTestCases = [
 
 for (testCase of errorTestCases) {
   const filterOptions = {...{filter: "turbulence"}, ...testCase};
-  assert_throws_js(TypeError, function() { CanvasFilter(filterOptions); });
+  assert_throws_js(TypeError, function() { new CanvasFilter(filterOptions); });
 }
 
 for (testCase of workingTestCases) {

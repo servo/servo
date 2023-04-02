@@ -17,9 +17,9 @@ promise_test(async t => {
     });
   }
   const popover = document.querySelector('[popover]');
-  assert_false(popover.matches(':open'));
+  assert_false(popover.matches(':popover-open'));
   popover.showPopover();
-  assert_true(popover.matches(':open'));
+  assert_true(popover.matches(':popover-open'));
   popover.remove(); // Shouldn't cause any issues
   document.body.click(); // Shouldn't cause light dismiss problems
   await loadCompleted(); // The document should finish loading

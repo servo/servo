@@ -26,7 +26,9 @@
         assert_greater_than_equal(
             j, 0, "Sequence element " + event + " is not included in " +
             expected.slice(i));
-        i = j;
+        // Ensure duplicates in actual aren't silently accepted by skipping
+        // past the matched element.
+        i = j + 1;
       }
       return true;
     }
@@ -145,6 +147,19 @@
         await stopPromise;
         assert_array_equals(events, ["start", "error", "data", "stop"]);
     }, "MediaRecorder will fire start event even if a track is removed synchronously");
+
+    promise_test(async t => {
+        const {stream} = createFlowingAudioVideoStream(t);
+        const recorder = new MediaRecorder(stream);
+        const events = recordEvents(recorder,
+            ["start", "stop", "dataavailable", "pause", "resume", "error"]);
+        const dataPromise = new Promise(r => recorder.ondataavailable = r);
+        recorder.start(0);
+        await dataPromise;
+        recorder.stop();
+        await new Promise (r => recorder.onstop = r);
+        assertSequenceIn(events, ["start", "dataavailable", "stop"]);
+    }, "MediaRecorder will fire only start and stop events in a basic recording flow.");
 
 </script>
 </body>

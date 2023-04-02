@@ -273,6 +273,7 @@ const PrecisionMetrics = {
   averagePool2d: {ULP: {float32: getAveragePool2dPrecisionTolerance, float16: getAveragePool2dPrecisionTolerance}},
   maxPool2d: {ULP: {float32: 0, float16: 0}},
   // End Pooling operations
+  prelu: {ULP: {float32: 1, float16: 1}},
   // Begin Reduction operations
   reduceMax: {ULP: {float32: 0, float16: 0}},
   reduceMean: {ULP: {float32: getReductionPrecisionTolerance, float16: getReductionPrecisionTolerance}},

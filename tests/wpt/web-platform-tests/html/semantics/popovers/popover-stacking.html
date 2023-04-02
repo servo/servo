@@ -90,18 +90,18 @@
     const clickToActivate = example.querySelector('.clickme');
     test(function() {
       assert_true(!!descr && !!ancestor && !!child);
-      assert_false(ancestor.matches(':open'));
-      assert_false(child.matches(':open'));
+      assert_false(ancestor.matches(':popover-open'));
+      assert_false(child.matches(':popover-open'));
       ancestor.showPopover();
       if (clickToActivate)
         clickToActivate.click();
       else
         child.showPopover();
-      assert_true(child.matches(':open'));
-      assert_true(ancestor.matches(':open'));
+      assert_true(child.matches(':popover-open'));
+      assert_true(ancestor.matches(':popover-open'));
       ancestor.hidePopover();
-      assert_false(ancestor.matches(':open'));
-      assert_false(child.matches(':open'));
+      assert_false(ancestor.matches(':popover-open'));
+      assert_false(child.matches(':popover-open'));
     },descr);
   }
 
@@ -110,7 +110,7 @@
   function assertState(...states) {
     assert_equals(popovers.length,states.length);
     for(let i=0;i<popovers.length;++i) {
-      assert_equals(popovers[i].matches(':open'),states[i],`Popover #${i+1} incorrect state`);
+      assert_equals(popovers[i].matches(':popover-open'),states[i],`Popover #${i+1} incorrect state`);
     }
   }
   test(function() {

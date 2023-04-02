@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+<html class=reftest-wait>
 <title>View transitions: massive element on top of viewport and completely offscreen (ref)</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
 <style>
 .target_at_bottom_edge {
   position: fixed;
@@ -13,7 +17,6 @@
   contain: paint;
   inline-size: 100px;
   block-size: 40000px;
-  view-transition-name: target;
 }
 
 .top {
@@ -41,3 +44,14 @@
   <div id="scrollblue" class="bottom">This text is at the bottom of the box</div>
 </div>
 </body>
+<script>
+  async function delayScreenshot() {
+    let frames = 4;
+    for (let i = 0; i < frames; i++)
+      await waitForAtLeastOneFrame();
+    takeScreenshot();
+  }
+
+  onload = delayScreenshot();
+</script>
+</html>

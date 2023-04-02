@@ -75,18 +75,25 @@ def send_blocking_command(bidi_session):
 
 @pytest.fixture
 def wait_for_event(bidi_session, event_loop):
-    """Wait until the BiDi session emits an event and resolve  the event data."""
+    """Wait until the BiDi session emits an event and resolve the event data."""
+    remove_listeners = []
     def wait_for_event(event_name: str):
         future = event_loop.create_future()
 
         async def on_event(method, data):
             remove_listener()
+            remove_listeners.remove(remove_listener)
             future.set_result(data)
 
         remove_listener = bidi_session.add_event_listener(event_name, on_event)
-
+        remove_listeners.append(remove_listener)
         return future
-    return wait_for_event
+
+    yield wait_for_event
+
+    # Cleanup any leftover callback for which no event was captured.
+    for remove_listener in remove_listeners:
+        remove_listener()
 
 @pytest.fixture
 def current_time(bidi_session, top_context):

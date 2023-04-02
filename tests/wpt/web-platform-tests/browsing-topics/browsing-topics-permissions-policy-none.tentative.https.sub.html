@@ -2,6 +2,7 @@
 <body>
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
+  <script src=/browsing-topics/resources/navigation-header-util.sub.js></script>
   <script src=/browsing-topics/resources/permissions-policy-util.sub.js></script>
   <script>
     'use strict';
@@ -42,5 +43,17 @@
       let topics_header = await response.text();
       assert_equals(topics_header, "NO_TOPICS_HEADER");
     }, header + 'disallows the \'Sec-Browsing-Topics\' header to be sent for the cross-origin topics fetch request.');
+
+    async_test(t => {
+      test_topics_iframe_navigation_header(
+          t, /*has_browsing_topics_attribute=*/true, /*is_same_origin=*/true,
+          expect_topics_header_unavailable);
+    }, header + ' disallows the \'Sec-Browsing-Topics\' header to be sent for the same-origin iframe navigation request.');
+
+    async_test(t => {
+      test_topics_iframe_navigation_header(
+          t, /*has_browsing_topics_attribute=*/true, /*is_same_origin=*/false,
+          expect_topics_header_unavailable);
+    }, header + ' disallows the \'Sec-Browsing-Topics\' header to be sent for the cross-origin iframe navigation request.');
   </script>
 </body>

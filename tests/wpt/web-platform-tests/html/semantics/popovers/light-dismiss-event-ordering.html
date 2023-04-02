@@ -28,7 +28,7 @@ for (const capture of [true, false]) {
       }, {capture, once: true});
       // Click away from the popover to activate light dismiss.
       await clickOn(target);
-      assert_equals(document.querySelectorAll(':open').length, 0,
+      assert_equals(document.querySelectorAll(':popover-open').length, 0,
         'The popover should be closed via light dismiss even when preventDefault is called.');
 
       popover.showPopover();
@@ -37,7 +37,7 @@ for (const capture of [true, false]) {
       }, {capture, once: true});
       // Click away from the popover to activate light dismiss.
       await clickOn(target);
-      assert_equals(document.querySelectorAll(':open').length, 0,
+      assert_equals(document.querySelectorAll(':popover-open').length, 0,
         'The popover should be closed via light dismiss even when stopPropagation is called.');
 
     }, `Tests the interactions between popover light dismiss and pointer/mouse events. eventName: ${eventName}, capture: ${capture}`);
@@ -75,7 +75,7 @@ promise_test(async t => {
   assert_array_equals(events, expectedEvents,
     'pointer and popover events should be fired in the correct order.');
 
-  assert_equals(document.querySelectorAll(':open').length, 0,
+  assert_equals(document.querySelectorAll(':popover-open').length, 0,
     'The popover should be closed via light dismiss.');
 
 }, 'Tests the order of pointer/mouse events during popover light dismiss.');

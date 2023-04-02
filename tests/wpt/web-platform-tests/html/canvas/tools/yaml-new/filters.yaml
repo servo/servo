@@ -154,8 +154,14 @@
     @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 0], 0]});
     @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 0], [0, Infinity]]});
     @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: []});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [1]});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [1, 2, 3, 4]});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[], []]});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 2], []]});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[], [1, 2]]});
     // This should not throw an error
     ctx.filter = new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[]]});
+    ctx.filter = new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1]]});
 
 - name: 2d.filter.canvasFilterObject.componentTransfer.linear.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with linear type
@@ -441,7 +447,7 @@
 
     for (testCase of errorTestCases) {
       const filterOptions = {...{filter: "turbulence"}, ...testCase};
-      @assert throws TypeError CanvasFilter(filterOptions);
+      @assert throws TypeError new CanvasFilter(filterOptions);
     }
 
     for (testCase of workingTestCases) {

@@ -1,5 +1,6 @@
 import pytest
 from tests.support.sync import AsyncPoll
+from webdriver.bidi.modules.script import ContextTarget
 
 from ... import int_interval
 from .. import assert_navigation_info
@@ -119,3 +120,18 @@ async def test_new_context(bidi_session, subscribe_events, wait_for_event, type_
     event = await on_entry
 
     assert_navigation_info(event, {"context": new_context["context"], "url": "about:blank"})
+
+
+async def test_document_write(bidi_session, subscribe_events, top_context, wait_for_event):
+    await subscribe_events(events=[DOM_CONTENT_LOADED_EVENT])
+
+    on_entry = wait_for_event(DOM_CONTENT_LOADED_EVENT)
+
+    await bidi_session.script.evaluate(
+        expression="""document.open(); document.write("<h1>Replaced</h1>"); document.close();""",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False
+    )
+
+    event = await on_entry
+    assert_navigation_info(event, {"context": top_context["context"]})
