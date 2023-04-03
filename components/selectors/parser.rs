@@ -1698,7 +1698,7 @@ pub enum Component<Impl: SelectorImpl> {
     /// Used only for relative selectors, which starts with a combinator
     /// (With an implied descendant combinator if not specified).
     ///
-    /// https://drafts.csswg.org/csswg-drafts/selectors-4/#typedef-relative-selector
+    /// https://drafts.csswg.org/selectors-4/#typedef-relative-selector
     RelativeSelectorAnchor,
 }
 

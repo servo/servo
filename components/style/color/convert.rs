@@ -7,7 +7,7 @@
 //! Algorithms, matrices and constants are from the [color-4] specification,
 //! unless otherwise specified:
 //!
-//! https://drafts.csswg.org/csswg-drafts/css-color-4/#color-conversion-code
+//! https://drafts.csswg.org/css-color-4/#color-conversion-code
 //!
 //! NOTE: Matrices has to be transposed from the examples in the spec for use
 //! with the `euclid` library.
@@ -220,7 +220,7 @@ fn convert_white_point(from: WhitePoint, to: WhitePoint, components: &mut ColorC
 /// - Convert to sRGB linear light in target color space.
 /// - Convert to sRGB gamma encoded in target color space.
 ///
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#color-conversion
+/// https://drafts.csswg.org/css-color-4/#color-conversion
 pub trait ColorSpaceConversion {
     /// The white point that the implementer is represented in.
     const WHITE_POINT: WhitePoint;
@@ -273,7 +273,7 @@ pub fn from_xyz<To: ColorSpaceConversion>(
 }
 
 /// The sRGB color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-sRGB
+/// https://drafts.csswg.org/css-color-4/#predefined-sRGB
 pub struct Srgb;
 
 impl Srgb {
@@ -381,7 +381,7 @@ impl ColorSpaceConversion for Hwb {
 }
 
 /// The same as sRGB color space, except the transfer function is linear light.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-sRGB-linear
+/// https://drafts.csswg.org/css-color-4/#predefined-sRGB-linear
 pub struct SrgbLinear;
 
 impl ColorSpaceConversion for SrgbLinear {
@@ -407,7 +407,7 @@ impl ColorSpaceConversion for SrgbLinear {
 }
 
 /// The Display-P3 color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-display-p3
+/// https://drafts.csswg.org/css-color-4/#predefined-display-p3
 pub struct DisplayP3;
 
 impl DisplayP3 {
@@ -449,7 +449,7 @@ impl ColorSpaceConversion for DisplayP3 {
 }
 
 /// The a98-rgb color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-a98-rgb
+/// https://drafts.csswg.org/css-color-4/#predefined-a98-rgb
 pub struct A98Rgb;
 
 impl A98Rgb {
@@ -492,7 +492,7 @@ impl ColorSpaceConversion for A98Rgb {
 }
 
 /// The ProPhoto RGB color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-prophoto-rgb
+/// https://drafts.csswg.org/css-color-4/#predefined-prophoto-rgb
 pub struct ProphotoRgb;
 
 impl ProphotoRgb {
@@ -553,7 +553,7 @@ impl ColorSpaceConversion for ProphotoRgb {
 }
 
 /// The Rec.2020 color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-rec2020
+/// https://drafts.csswg.org/css-color-4/#predefined-rec2020
 pub struct Rec2020;
 
 impl Rec2020 {
@@ -614,7 +614,7 @@ impl ColorSpaceConversion for Rec2020 {
 }
 
 /// A color in the XYZ coordinate space with a D50 white reference.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-xyz
+/// https://drafts.csswg.org/css-color-4/#predefined-xyz
 pub struct XyzD50;
 
 impl ColorSpaceConversion for XyzD50 {
@@ -638,7 +638,7 @@ impl ColorSpaceConversion for XyzD50 {
 }
 
 /// A color in the XYZ coordinate space with a D65 white reference.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-xyz
+/// https://drafts.csswg.org/css-color-4/#predefined-xyz
 pub struct XyzD65;
 
 impl ColorSpaceConversion for XyzD65 {
@@ -662,7 +662,7 @@ impl ColorSpaceConversion for XyzD65 {
 }
 
 /// The Lab color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#specifying-lab-lch
+/// https://drafts.csswg.org/css-color-4/#specifying-lab-lch
 pub struct Lab;
 
 impl Lab {
@@ -743,7 +743,7 @@ impl ColorSpaceConversion for Lab {
 }
 
 /// The Lch color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#specifying-lab-lch
+/// https://drafts.csswg.org/css-color-4/#specifying-lab-lch
 pub struct Lch;
 
 impl ColorSpaceConversion for Lch {
@@ -784,7 +784,7 @@ impl ColorSpaceConversion for Lch {
 }
 
 /// The Oklab color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#specifying-oklab-oklch
+/// https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch
 pub struct Oklab;
 
 impl Oklab {
@@ -848,8 +848,7 @@ impl ColorSpaceConversion for Oklab {
 }
 
 /// The Oklch color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#specifying-oklab-oklch
-
+/// https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch
 pub struct Oklch;
 
 impl ColorSpaceConversion for Oklch {
