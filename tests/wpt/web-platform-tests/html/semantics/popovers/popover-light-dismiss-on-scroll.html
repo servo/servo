@@ -40,7 +40,7 @@
   const popovers = document.querySelectorAll('[popover]');
   function assertAll(showing) {
     for(let popover of popovers) {
-      assert_equals(popover.matches(':open'),showing);
+      assert_equals(popover.matches(':popover-open'),showing);
     }
   }
   async_test(t => {

@@ -604,3 +604,45 @@ async def test_node_within_dom_collection(
     )
 
     recursive_compare(expected, result)
+
+
+@pytest.mark.parametrize("shadow_root_mode", ["open", "closed"])
+@pytest.mark.asyncio
+async def test_custom_element_with_shadow_root(
+    bidi_session, get_test_page, top_context, shadow_root_mode
+):
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=get_test_page(shadow_root_mode=shadow_root_mode),
+        wait="complete",
+    )
+
+    result = await bidi_session.script.evaluate(
+        expression="""document.querySelector("#custom-element");""",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+
+    recursive_compare({
+        "type": "node",
+        "sharedId": any_string,
+        "value": {
+            "attributes": {
+                "id": "custom-element",
+            },
+            "childNodeCount": 0,
+            "children": [],
+            "localName": "custom-element",
+            "namespaceURI": "http://www.w3.org/1999/xhtml",
+            "nodeType": 1,
+            "shadowRoot": {
+                "sharedId": any_string,
+                "type": "node",
+                "value": {
+                    "childNodeCount": 1,
+                    "mode": shadow_root_mode,
+                    "nodeType": 11,
+                }
+            },
+        }
+    }, result)

@@ -3,6 +3,8 @@
 // META: script=resources/fledge-util.js
 // META: timeout=long
 
+"use strict;"
+
 // Simplified version of reportTest() for validating arguments to reporting
 // methods. Only takes expressions to check in reporting methods. "uuid" is
 // optional, and one is generated if not passed one.

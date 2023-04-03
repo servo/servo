@@ -18,6 +18,12 @@ self.addEventListener('fetch', event => {
     }));
 
     const stream = new ReadableStream({
+      pull(c) {
+        if (url.searchParams.get('enqueue') === 'true') {
+          url.searchParams.delete('enqueue');
+          c.enqueue(new Uint8Array([65]));
+        }
+      },
       cancel() {
         map.get(id).label = 'cancelled';
       }

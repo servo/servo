@@ -40,15 +40,15 @@
     setup({ explicit_done: true });
 
     popover2.showPopover();
-    assert_false(popover1.matches(':open'));
-    assert_true(popover2.matches(':open'));
+    assert_false(popover1.matches(':popover-open'));
+    assert_true(popover2.matches(':popover-open'));
     await clickOn(button1);
     test(t => {
       // Button1 is the anchor for popover1, and an ancestor of popover2.
       // Since popover2 is open, but not popover1, button1 should not be
       // the anchor of any open popover. So popover2 should be closed.
-      assert_false(popover2.matches(':open'));
-      assert_true(popover1.matches(':open'));
+      assert_false(popover2.matches(':popover-open'));
+      assert_true(popover1.matches(':popover-open'));
     },'Nested popovers (inside anchor elements) do not affect light dismiss');
 
     done();

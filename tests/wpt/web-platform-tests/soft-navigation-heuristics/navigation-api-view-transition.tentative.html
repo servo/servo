@@ -26,17 +26,19 @@
         timestamps[counter]["eventStart"] = performance.now();
         e.intercept({
           async handler() {
-            await document.startViewTransition(async () => {
+            const lcp_promise = new Promise(resolve => {
+             (new PerformanceObserver(list => resolve())).observe(
+               {type: 'largest-contentful-paint',
+                includeSoftNavigationObservations: true});
+             });
+            const transition = document.startViewTransition(async () => {
               const main = document.getElementById('main');
               main.innerHTML = '<img id="image" src="/images/blue.png?' +
                 Math.random() + '">';
               const img = document.getElementById("image");
-              await new Promise(resolve => {
-               (new PerformanceObserver(list => resolve())).observe(
-                 {type: 'largest-contentful-paint',
-                  includeSoftNavigationObservations: true});
-               });
             });
+            await transition.updateCallbackDone;
+            await lcp_promise;
           }
         });
       };

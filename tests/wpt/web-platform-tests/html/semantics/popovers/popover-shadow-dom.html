@@ -58,7 +58,7 @@
   test(function() {
     const popover = getPopoverReferences('test1')[0];
     popover.showPopover();
-    assert_true(popover.matches(':open'));
+    assert_true(popover.matches(':popover-open'));
     assert_true(isElementVisible(popover));
     popover.hidePopover(); // Cleanup
   }, "Popovers located inside shadow DOM can still be shown");
@@ -85,12 +85,12 @@
   test(function() {
     const [popover1,popover2] = getPopoverReferences('test2');
     popover1.showPopover();
-    assert_true(popover1.matches(':open'));
+    assert_true(popover1.matches(':popover-open'));
     assert_true(isElementVisible(popover1));
     popover2.showPopover();
-    assert_false(popover1.matches(':open'), 'popover1 open'); // P1 was closed by P2
+    assert_false(popover1.matches(':popover-open'), 'popover1 open'); // P1 was closed by P2
     assert_false(isElementVisible(popover1), 'popover1 visible');
-    assert_true(popover2.matches(':open'), 'popover2 open'); // P2 is open
+    assert_true(popover2.matches(':popover-open'), 'popover2 open'); // P2 is open
     assert_true(isElementVisible(popover2), 'popover2 visible');
     popover2.hidePopover(); // Cleanup
   }, "anchor references do not cross shadow boundaries");
@@ -115,20 +115,20 @@
   promise_test(async function() {
     const [popover1,popover2] = getPopoverReferences('test3');
     popover1.showPopover();
-    assert_true(popover1.matches(':open'));
+    assert_true(popover1.matches(':popover-open'));
     assert_true(isElementVisible(popover1));
     // Showing popover2 should not close popover1, since it is a flat
     // tree ancestor of popover2's anchor button.
     popover2.showPopover();
-    assert_true(popover2.matches(':open'));
+    assert_true(popover2.matches(':popover-open'));
     assert_true(isElementVisible(popover2));
-    assert_true(popover1.matches(':open'));
+    assert_true(popover1.matches(':popover-open'));
     assert_true(isElementVisible(popover1));
     popover1.hidePopover();
     await waitForRender();
-    assert_false(popover1.matches(':open'));
+    assert_false(popover1.matches(':popover-open'));
     assert_false(isElementVisible(popover1));
-    assert_false(popover2.matches(':open'));
+    assert_false(popover2.matches(':popover-open'));
     assert_false(isElementVisible(popover2));
   }, "anchor references use the flat tree not the DOM tree");
 </script>
@@ -155,16 +155,16 @@
     popover1.showPopover();
     popover2.showPopover();
     // Both 1 and 2 should be open at this point.
-    assert_true(popover1.matches(':open'), 'popover1 not open');
+    assert_true(popover1.matches(':popover-open'), 'popover1 not open');
     assert_true(isElementVisible(popover1));
-    assert_true(popover2.matches(':open'), 'popover2 not open');
+    assert_true(popover2.matches(':popover-open'), 'popover2 not open');
     assert_true(isElementVisible(popover2));
     // This should hide both of them.
     popover1.hidePopover();
     await waitForRender();
-    assert_false(popover1.matches(':open'));
+    assert_false(popover1.matches(':popover-open'));
     assert_false(isElementVisible(popover1));
-    assert_false(popover2.matches(':open'));
+    assert_false(popover2.matches(':popover-open'));
     assert_false(isElementVisible(popover2));
   }, "The popover stack is preserved across shadow-inclusive ancestors");
 </script>
@@ -189,16 +189,16 @@
     popover1.showPopover();
     popover2.showPopover();
     // Both 1 and 2 should be open at this point.
-    assert_true(popover1.matches(':open'), 'popover1 not open');
+    assert_true(popover1.matches(':popover-open'), 'popover1 not open');
     assert_true(isElementVisible(popover1));
-    assert_true(popover2.matches(':open'), 'popover2 not open');
+    assert_true(popover2.matches(':popover-open'), 'popover2 not open');
     assert_true(isElementVisible(popover2));
     // This should hide both of them.
     popover1.hidePopover();
     await waitForRender();
-    assert_false(popover1.matches(':open'));
+    assert_false(popover1.matches(':popover-open'));
     assert_false(isElementVisible(popover1));
-    assert_false(popover2.matches(':open'));
+    assert_false(popover2.matches(':popover-open'));
     assert_false(isElementVisible(popover2));
   }, "Popover ancestor relationships are within a root, not within the document");
 </script>

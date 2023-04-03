@@ -16,6 +16,6 @@ test(() => {
   });
   assert_throws_dom('InvalidStateError', () => popover2.showPopover(),
     "popover1's beforetoggle event handler removes popover2 so showPopover should throw.");
-  assert_false(popover2.matches(':open'), 'popover2 should not match :open once it is closed.');
+  assert_false(popover2.matches(':popover-open'), 'popover2 should not match :popover-open once it is closed.');
 }, 'Removing a popover while it is opening and force closing another popover should throw an exception.');
 </script>

@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  await navigation.navigate("#push").finished;
+  navigation.onnavigate = () => history.replaceState(null, "", "#");
+  await assertBothRejectDOM(t, navigation.back(), "AbortError");
+}, "replaceState inside a navigate event for navigation.back()");
+</script>
