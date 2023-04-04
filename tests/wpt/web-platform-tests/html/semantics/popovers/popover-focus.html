@@ -91,7 +91,7 @@
         expectedFocusedElement = priorFocus;
       }
       assert_true(!!expectedFocusedElement);
-      assert_false(popover.matches(':open'));
+      assert_false(popover.matches(':popover-open'));
 
       // Directly show and hide the popover:
       priorFocus.focus();
@@ -130,7 +130,7 @@
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by popover.showPopover()`);
       assert_equals(popover.popover, 'auto', 'All popovers in this test should start as popover=auto');
       popover.popover = 'manual';
-      assert_false(popover.matches(':open'), 'Changing the popover type should hide the popover');
+      assert_false(popover.matches(':popover-open'), 'Changing the popover type should hide the popover');
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus when the type is changed');
       assert_false(isElementVisible(popover));
       popover.popover = 'auto';
@@ -152,7 +152,7 @@
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by popover.showPopover()`);
       const dialog = document.body.appendChild(document.createElement('dialog'));
       dialog.showModal();
-      assert_false(popover.matches(':open'), 'Opening a modal dialog should hide the popover');
+      assert_false(popover.matches(':popover-open'), 'Opening a modal dialog should hide the popover');
       assert_not_equals(document.activeElement, priorFocus, 'prior element should *not* get focus when a modal dialog is shown');
       assert_false(isElementVisible(popover));
       dialog.close();
@@ -162,7 +162,7 @@
       const button = addInvoker(t, popover);
       priorFocus.focus();
       button.click();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by button.click()`);
 
       // Make sure Escape works in the invoker case:
@@ -173,19 +173,19 @@
       // Make sure we can directly focus the (already open) popover:
       priorFocus.focus();
       button.click();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       assert_equals(document.activeElement, expectedFocusedElement, `${testName} activated by button.click()`);
       popover.focus();
       assert_equals(document.activeElement, popover.hasAttribute('tabindex') ? popover : expectedFocusedElement, `${testName} directly focus with popover.focus()`);
       button.click(); // Button is set to toggle the popover
-      assert_false(popover.matches(':open'));
+      assert_false(popover.matches(':popover-open'));
       assert_equals(document.activeElement, priorFocus, 'prior element should get focus on button-toggled hide');
       assert_false(isElementVisible(popover));
     }, "Popover focus test: " + testName);
 
     promise_test(async t => {
       const priorFocus = addPriorFocus(t);
-      assert_false(popover.matches(':open'), 'popover should start out hidden');
+      assert_false(popover.matches(':popover-open'), 'popover should start out hidden');
       let button = addInvoker(t, popover);
       assert_equals(button.getAttribute('popovertarget'), popover.id, 'This test assumes the button uses `popovertarget`.');
       assert_not_equals(button, priorFocus, 'Stranger things have happened');
@@ -193,9 +193,9 @@
       priorFocus.focus();
       assert_equals(document.activeElement, priorFocus);
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       await clickOn(button); // This will *not* light dismiss, but will "toggle" the popover.
-      assert_false(popover.matches(':open'));
+      assert_false(popover.matches(':popover-open'));
       assert_equals(document.activeElement, button, 'focus should move to the button when clicked, and should stay there when the popover closes');
       assert_false(isElementVisible(popover));
 
@@ -206,13 +206,13 @@
       t.add_cleanup(() => button.remove());
       priorFocus.focus();
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       const changesFocus = !popover.hasAttribute('data-no-focus');
       if (changesFocus) {
         assert_not_equals(document.activeElement, priorFocus, 'focus should shift for this element');
       }
       await clickOn(button);
-      assert_false(popover.matches(':open'), 'clicking button should hide the popover');
+      assert_false(popover.matches(':popover-open'), 'clicking button should hide the popover');
       assert_equals(document.activeElement, priorFocus, 'Contained button should return focus to the previously focused element');
       assert_false(isElementVisible(popover));
 
@@ -221,9 +221,9 @@
       document.body.appendChild(button);
       priorFocus.focus();
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       await clickOn(button); // This will light dismiss the popover, focus the prior focus, then focus this button.
-      assert_false(popover.matches(':open'), 'clicking button should hide the popover (via light dismiss)');
+      assert_false(popover.matches(':popover-open'), 'clicking button should hide the popover (via light dismiss)');
       assert_equals(document.activeElement, button, 'Focus should go to unrelated button on light dismiss');
       assert_false(isElementVisible(popover));
     }, "Popover button click focus test: " + testName);
@@ -234,12 +234,12 @@
         return;
       }
       const priorFocus = addPriorFocus(t);
-      assert_false(popover.matches(':open'), 'popover should start out hidden');
+      assert_false(popover.matches(':popover-open'), 'popover should start out hidden');
 
       // Move the prior focus out of the document
       priorFocus.focus();
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       const newFocus = document.activeElement;
       assert_not_equals(newFocus, priorFocus, 'focus should shift for this element');
       priorFocus.remove();
@@ -252,11 +252,11 @@
       // Move the prior focus inside the (already open) popover
       priorFocus.focus();
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       assert_false(popover.contains(priorFocus), 'Start with a non-contained prior focus');
       popover.appendChild(priorFocus); // Move inside the popover
       assert_true(popover.contains(priorFocus));
-      assert_true(popover.matches(':open'), 'popover should stay open');
+      assert_true(popover.matches(':popover-open'), 'popover should stay open');
       popover.hidePopover();
       assert_false(isElementVisible(popover));
       assert_not_equals(document.activeElement, priorFocus, 'focused element is display:none inside the popover');

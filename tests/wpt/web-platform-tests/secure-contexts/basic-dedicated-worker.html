@@ -16,6 +16,7 @@
       var t4 = async_test("HTTPS nested worker");
       var t5 = async_test("HTTP worker from HTTPS subframe");
       var t6 = async_test("HTTPS worker from HTTPS subframe");
+      var t7 = async_test("Worker from data URL");
 
       var w1 = new Worker(http_dir + "support/dedicated-worker-script.js");
       w1.onmessage = t1.step_func_done(function(e) {
@@ -89,6 +90,14 @@
       var ifr = document.createElement("iframe");
       ifr.src = https_dir + "support/https-subframe-dedicated.html";
       document.body.appendChild(ifr);
+
+      var w7 = new Worker("data:text/javascript,postMessage(isSecureContext);");
+      w7.onmessage = t7.step_func_done(function(e) {
+        assert_false(e.data);
+      });
+      w7.onerror = t7.step_func_done(function(e) {
+        assert_unreached("isSecureContext should be supported");
+      });
     </script>
   </body>
 </html>

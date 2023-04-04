@@ -90,7 +90,7 @@ function showDefaultopenPopoversOnLoad() {
           return;
         switch (p.popover) {
           case 'auto':
-            if (!document.querySelector('[popover]:open'))
+            if (!document.querySelector('[popover]:popover-open'))
               p.showPopover();
             return;
           case 'manual':
@@ -121,12 +121,10 @@ function assertPopoverVisibility(popover, isPopover, expectedVisibility, message
   // Check other things related to being visible or not:
   if (isVisible) {
     assert_not_equals(window.getComputedStyle(popover).display,'none');
-    assert_equals(popover.matches(':open'),isPopover,`${message}: Visible popovers should match :open`);
-    assert_false(popover.matches(':closed'),`${message}: Visible popovers and *all* non-popovers should *not* match :closed`);
+    assert_equals(popover.matches(':popover-open'),isPopover,`${message}: Visible popovers should match :popover-open`);
   } else {
     assert_equals(window.getComputedStyle(popover).display,'none',`${message}: Non-showing popovers should have display:none`);
-    assert_false(popover.matches(':open'),`${message}: Non-showing popovers should *not* match :open`);
-    assert_equals(popover.matches(':closed'),isPopover,`${message}: Non-showing popovers should match :closed`);
+    assert_false(popover.matches(':popover-open'),`${message}: Non-showing popovers should *not* match :popover-open`);
   }
 }
 

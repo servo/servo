@@ -9,39 +9,9 @@
 // Some tests are run at the top-level, and an iframe is added to validate API
 // behavior in that context.
 
-// Prefix each test case with an indicator so we know what context they are run
-// in if they are used in multiple iframes.
-let testPrefix = 'insecure-context';
-
-// Keep track of if we run these tests in a nested context, we don't want to
-// recurse forever.
-let topLevelDocument = true;
-
-// The query string allows derivation of test conditions, like whether the tests
-// are running in a top-level context.
-const queryParams = window.location.search.substring(1).split('&');
-queryParams.forEach((param) => {
-  if (param.toLowerCase() == 'rootdocument=false') {
-    topLevelDocument = false;
-  } else if (param.split('=')[0].toLowerCase() == 'testcase') {
-    testPrefix = param.split('=')[1];
-  }
-});
-
-// TODO(crbug.com/1410556): when/if requestStorageAccessFor is standardized,
-// we should consider upstreaming these helpers.
-function RunRequestStorageAccessForInDetachedFrame(origin) {
-  const nestedFrame = document.createElement('iframe');
-  document.body.append(nestedFrame);
-  const inner_doc = nestedFrame.contentDocument;
-  nestedFrame.remove();
-  return inner_doc.requestStorageAccessFor(origin);
-}
-
-function RunRequestStorageAccessForViaDomParser(origin) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString('<html></html>', 'text/html');
-  return doc.requestStorageAccessFor(origin);
+const {testPrefix, topLevelDocument} = processQueryParams();
+if (!topLevelDocument) {
+  test_driver.set_test_context(window.top);
 }
 
 // Common tests to run in all frames.
@@ -66,7 +36,7 @@ if (topLevelDocument) {
     const description =
         'document.requestStorageAccessFor() call in a detached frame';
     // Can't use promise_rejects_dom here because the exception is from the wrong global.
-    return RunRequestStorageAccessForInDetachedFrame('https://foo.com')
+    return CreateDetachedFrame().requestStorageAccessFor('https://foo.com')
         .then(t.unreached_func('Should have rejected: ' + description))
         .catch((e) => {
           assert_equals(e.name, 'InvalidStateError', description);
@@ -76,7 +46,7 @@ if (topLevelDocument) {
   promise_test(async t => {
     const description =
         'document.requestStorageAccessFor() in a detached DOMParser result';
-    return RunRequestStorageAccessForViaDomParser('https://foo.com')
+    return CreateDocumentViaDOMParser().requestStorageAccessFor('https://foo.com')
         .then(t.unreached_func('Should have rejected: ' + description))
         .catch((e) => {
           assert_equals(e.name, 'InvalidStateError', description);
@@ -86,8 +56,10 @@ if (topLevelDocument) {
   // Create a test with a single-child same-origin iframe.
   // This will validate that calls to requestStorageAccessFor are rejected
   // in non-top-level contexts.
-  RunTestsInIFrame(
-      './resources/requestStorageAccessFor-iframe.html?testCase=frame-on-insecure-page&rootdocument=false');
+  promise_test(() => {
+    return RunTestsInIFrame(
+      './resources/requestStorageAccessFor-iframe.html?testCase=frame-on-insecure-page');
+  });
 
   promise_test(
       async t => {

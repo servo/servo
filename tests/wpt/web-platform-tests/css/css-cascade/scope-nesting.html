@@ -118,3 +118,53 @@ test((t) => {
   assert_equals(getComputedStyle(inner2).zIndex, '1');
 }, 'Nesting-selector in the scope\'s <stylesheet>');
 </script>
+
+<template id=test_parent_in_pseudo_scope>
+  <div>
+    <style>
+      @scope (#div) {
+        :scope {
+          z-index: 1;
+          & {
+            z-index: 2;
+          }
+        }
+      }
+    </style>
+    <div id=div></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_parent_in_pseudo_scope.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(div).zIndex, '2');
+}, 'Nesting-selector within :scope rule');
+</script>
+
+<template id=test_parent_in_pseudo_scope_double>
+  <div>
+    <style>
+      @scope (#div) {
+        :scope {
+          z-index: 1;
+          & {
+            & {
+              z-index: 2;
+            }
+          }
+        }
+      }
+    </style>
+    <div id=div></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_parent_in_pseudo_scope_double.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(div).zIndex, '2');
+}, 'Nesting-selector within :scope rule (double nested)');
+</script>

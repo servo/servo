@@ -9,6 +9,7 @@ var validRequestHeaders = [
   ["sec", "OK"],
   ["secb", "OK"],
   ["Set-Cookie2", "OK"],
+  ["User-Agent", "OK"],
 ];
 var invalidRequestHeaders = [
   ["Accept-Charset", "KO"],

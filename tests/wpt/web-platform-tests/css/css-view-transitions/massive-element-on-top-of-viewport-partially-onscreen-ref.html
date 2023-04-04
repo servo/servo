@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+<html class=reftest-wait>
 <title>View transitions: massive element on top of viewport partially onscreen (ref)</title>
 <link rel="help" href="https://github.com/WICG/view-transitions">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/utils.js"></script>
+
 <style>
 .target {
   contain: paint;
@@ -46,4 +50,5 @@
 </body>
 <script>
   scrollblue.scrollIntoView();
+  onload = delayScreenshot();
 </script>

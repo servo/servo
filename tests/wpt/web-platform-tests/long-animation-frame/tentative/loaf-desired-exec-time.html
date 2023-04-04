@@ -14,6 +14,8 @@
 <div id="log"></div>
 <script>
 
+const INTERNAL_OVERHEAD_DELAY_EPSILON = 5;
+
 promise_test(async t => {
   const button = document.createElement("button");
   button.innerText = "Click";
@@ -93,9 +95,9 @@ promise_test(async t => {
   const scripts = entry.scripts.filter(
     s => s.name === "Window.requestAnimationFrame");
   for (const script of scripts) {
-    assert_approx_equals(script.desiredExecutionStart, rafTime, 5);
+    assert_approx_equals(script.desiredExecutionStart, rafTime, INTERNAL_OVERHEAD_DELAY_EPSILON);
   }
-  assert_approx_equals(entry.desiredRenderStart, rafTime, 5);
+  assert_approx_equals(entry.desiredRenderStart, rafTime, INTERNAL_OVERHEAD_DELAY_EPSILON);
 }, "desiredExecutionStart & desiredRenderStart for requestAnimationFrame " +
    "should be the same as the rAF argument");
 
@@ -113,7 +115,7 @@ promise_test(async t => {
     timeAfterWait = performance.now();
   }), 0);
   const [entry, rafTime] = await Promise.all([entryPromise, rafPromise]);
-  assert_approx_equals(entry.desiredRenderStart, rafTime, 5);
+  assert_approx_equals(entry.desiredRenderStart, rafTime, INTERNAL_OVERHEAD_DELAY_EPSILON);
 }, "desiredRenderStart and renderStart should reflect main thread delays");
 </script>
 </body>

@@ -19,7 +19,6 @@
         timestamps[counter]["eventStart"] = performance.now();
         e.intercept({handler: async () => {
           await addImageToMain();
-          main.appendChild(img);
         }});
       }, link);
   </script>

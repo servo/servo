@@ -5,26 +5,21 @@ from webdriver.bidi.modules.script import ContextTarget
 
 pytestmark = pytest.mark.asyncio
 
+DOCUMENT_FRAGMENT_NODE = 11
+ELEMENT_NODE = 1
 
-@pytest.mark.parametrize(
-    "expression, expected_node_type",
-    [
-        ("""return document.querySelector("div#with-children")""", 1),
-        ("""return document.querySelector("custom-element").shadowRoot""", 11),
-    ],
-    ids=["Element", "ShadowRoot"],
-)
-async def test_web_reference_created_in_classic(
+
+async def test_web_element_reference_created_in_classic(
     bidi_session,
     current_session,
     get_test_page,
     top_context,
-    expression,
-    expected_node_type
 ):
     current_session.url = get_test_page()
 
-    node = current_session.execute_script(expression)
+    node = current_session.execute_script(
+        """return document.querySelector("div#with-children")"""
+    )
     shared_id = node.id
 
     # Use element reference from WebDriver classic in WebDriver BiDi
@@ -35,38 +30,72 @@ async def test_web_reference_created_in_classic(
         target=ContextTarget(top_context["context"]),
     )
 
-    assert result == {"type": "number", "value": expected_node_type}
+    assert result == {"type": "number", "value": ELEMENT_NODE}
 
 
-@pytest.mark.parametrize(
-    "expression, expected",
-    [
-        ("""document.querySelector("div#with-children")""", 1),
-        ("""document.querySelector("custom-element").shadowRoot""", 11),
-    ],
-    ids=["Element", "ShadowRoot"],
-)
-async def test_web_reference_created_in_bidi(
+async def test_web_element_reference_created_in_bidi(
     bidi_session,
     current_session,
     get_test_page,
     top_context,
-    expression,
-    expected
 ):
     current_session.url = get_test_page()
 
     result = await bidi_session.script.evaluate(
-        expression=expression,
+        expression="""document.querySelector("div#with-children")""",
         target=ContextTarget(top_context["context"]),
         await_promise=False,
     )
 
     nodeType = result["value"]["nodeType"]
-    assert nodeType == expected
+    assert nodeType == ELEMENT_NODE
 
-    # Use web reference from WebDriver BiDi in WebDriver classic
-    types = {1: Element, 11: ShadowRoot}
-    node = types[nodeType](current_session, result["sharedId"])
-    nodeType = current_session.execute_script("""return arguments[0].nodeType""", args=(node,))
-    assert nodeType == expected
+    # Use element reference from WebDriver BiDi in WebDriver classic
+    node = Element(current_session, result["sharedId"])
+    nodeType = current_session.execute_script(
+        """return arguments[0].nodeType""", args=(node,)
+    )
+    assert nodeType == ELEMENT_NODE
+
+
+@pytest.mark.parametrize("shadow_root_mode", ["open", "closed"])
+async def test_shadow_root_reference_created_in_classic(
+    bidi_session, current_session, get_test_page, top_context, shadow_root_mode
+):
+    current_session.url = get_test_page(shadow_root_mode=shadow_root_mode)
+
+    node = current_session.execute_script(
+        """return document.querySelector("custom-element")"""
+    )
+    shared_id = node.shadow_root.id
+
+    # Use shadow root reference from WebDriver classic in WebDriver BiDi
+    result = await bidi_session.script.call_function(
+        function_declaration="(node)=>{return node.nodeType}",
+        arguments=[{"sharedId": shared_id}],
+        await_promise=False,
+        target=ContextTarget(top_context["context"]),
+    )
+
+    assert result == {"type": "number", "value": DOCUMENT_FRAGMENT_NODE}
+
+
+@pytest.mark.parametrize("shadow_root_mode", ["open", "closed"])
+async def test_shadow_root_reference_created_in_bidi(
+    bidi_session, current_session, get_test_page, top_context, shadow_root_mode
+):
+    current_session.url = get_test_page(shadow_root_mode=shadow_root_mode)
+
+    result = await bidi_session.script.evaluate(
+        expression="""document.querySelector("custom-element")""",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+    shared_id_for_shadow_root = result["value"]["shadowRoot"]["sharedId"]
+
+    # Use shadow root reference from WebDriver BiDi in WebDriver classic
+    node = ShadowRoot(current_session, shared_id_for_shadow_root)
+    nodeType = current_session.execute_script(
+        """return arguments[0].nodeType""", args=(node,)
+    )
+    assert nodeType == DOCUMENT_FRAGMENT_NODE

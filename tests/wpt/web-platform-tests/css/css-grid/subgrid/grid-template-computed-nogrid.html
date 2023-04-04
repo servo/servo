@@ -48,5 +48,22 @@ test_computed_value("grid-template-columns", "subgrid [a] repeat(auto-fill, [c] 
 test_computed_value("grid-template-columns", "subgrid [a b] repeat(auto-fill, [c] [d e]) [g]");
 test_computed_value("grid-template-columns", "subgrid [a] [b] repeat(auto-fill, [c] [d e]) [g h]");
 test_computed_value("grid-template-columns", "subgrid [a] [b] repeat(auto-fill, [c] [d e])");
-
+test_computed_value("grid-template-columns", "subgrid [a] repeat(2, [c] [d e])");
+test_computed_value("grid-template-columns", "subgrid repeat(1, [])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [a])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [a] [])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [] [a] [])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [] [] []) repeat(auto-fill, [] [] [])");
+test_computed_value("grid-template-columns", "subgrid repeat(1, [a b])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [a b])");
+test_computed_value("grid-template-columns", "subgrid repeat(1, [a] [b])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [a] [b])");
+test_computed_value("grid-template-columns", "subgrid [a] repeat(2, [b])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [a]) [b]");
+test_computed_value("grid-template-columns", "subgrid [a] repeat(2, [b] [c d]) [e]");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [a b]) repeat(auto-fill, [c] [d e])");
+test_computed_value("grid-template-columns", "subgrid repeat(auto-fill, [a] [b c]) repeat(2, [d e])");
+test_computed_value("grid-template-columns", "subgrid repeat(2, [a b]) repeat(auto-fill, [c] [d e]) repeat(2, [f g])");
+test_computed_value("grid-template-columns", "subgrid [a] [b c] repeat(2, [d e]) [f] [g h] repeat(auto-fill, [i] [j k]) [l] repeat(2, [m n]) [o]");
 </script>

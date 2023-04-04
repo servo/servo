@@ -13,17 +13,17 @@
     test((t) => {
       const popover1 = document.querySelector('#popover1');
       popover1.showPopover();
-      assert_true(popover1.matches(':open'));
+      assert_true(popover1.matches(':popover-open'));
       assert_true(!document.querySelector('#popover2'));
       document.open();
       document.write('<!DOCTYPE html><div popover id=popover2>Popover</div>');
       document.close();
       assert_true(!document.querySelector('#popover1'),'popover1 should be removed from the document');
       assert_true(!!document.querySelector('#popover2'),'popover2 should be in the document');
-      assert_false(popover1.matches(':open'),'popover1 should have been hidden when it was removed from the document');
-      assert_false(popover1.matches(':open'),'popover2 shouldn\'t be showing yet');
+      assert_false(popover1.matches(':popover-open'),'popover1 should have been hidden when it was removed from the document');
+      assert_false(popover1.matches(':popover-open'),'popover2 shouldn\'t be showing yet');
       popover2.showPopover();
-      assert_true(popover2.matches(':open'),'popover2 should be able to be shown');
+      assert_true(popover2.matches(':popover-open'),'popover2 should be able to be shown');
       popover2.hidePopover();
     },'document.open should not break popovers');
   };

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  body { margin: 0; }
+</style>
+<div style="line-height:20px;">
+  <div style="position:absolute; width:100%; bottom:0; background:hotpink;">footer</div>
+  <div style="position:absolute; width:100%; bottom:-100vh; background:hotpink;">footer</div>
+  <div style="position:absolute; width:100%; bottom:-200vh; background:hotpink;">footer</div>
+  <div style="height:calc(300vh - 25px); background:black;"></div>
+  <div style="break-before:page;">PASS</div>
+  <div style="background:hotpink;">
+    footer
+  </div>
+</div>
+There should be a footer on every page, and the word PASS should be seen here,
+on the fourth page, just above the final footer.<br>
