@@ -11,6 +11,7 @@
 
 # This allows using types that are defined later in the file.
 from __future__ import annotations
+from datetime import datetime
 
 import json
 import os
@@ -61,7 +62,8 @@ class Item:
     def to_string(self, bullet: str = "", indent: str = ""):
         output = f"{indent}{bullet}{self.title}\n"
         if self.body:
-            output += textwrap.indent(f"{self.body}\n", " " * len(indent + bullet))
+            output += textwrap.indent(f"{self.body}\n",
+                                      " " * len(indent + bullet))
         output += "\n".join([child.to_string("• ", indent + "  ")
                              for child in self.children])
         return output.rstrip()
@@ -80,7 +82,8 @@ class Item:
         if self.children:
             # Some tests have dozens of failing tests, which overwhelm the
             # output. Limit the output for subtests in GitHub comment output.
-            max_children = len(self.children) if level < 2 else SUBTEST_RESULT_TRUNCATION
+            max_children = len(
+                self.children) if level < 2 else SUBTEST_RESULT_TRUNCATION
             if len(self.children) > max_children:
                 children = self.children[:max_children]
                 children.append(Item(
@@ -88,7 +91,8 @@ class Item:
                     "", []))
             else:
                 children = self.children
-            container = ElementTree.SubElement(result, "div" if not level else "ul")
+            container = ElementTree.SubElement(
+                result, "div" if not level else "ul")
             for child in children:
                 container.append(child.to_html(level + 1))
 
@@ -154,18 +158,69 @@ def get_pr_number() -> Optional[str]:
     return match.group(1) if match else None
 
 
+def create_check_run(body: str):
+    # https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-runs
+    conclusion = 'neutral'
+    # get conclusion
+    results = json.loads(os.environ.get("RESULTS", "{}"))
+    if "cancelled" in results:
+        conclusion = 'cancelled'
+    if "failure" in results:
+        conclusion = 'failure'
+    if all(r == 'success' for r in results):
+        conclusion = 'success'
+
+    github_token = os.environ.get("GITHUB_TOKEN")
+    github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
+    if "sha" not in github_context:
+        return None
+    if "repository" not in github_context:
+        return None
+    repo = github_context["repository"]
+    data = {
+        'name': 'WPT',
+        'head_sha': github_context["sha"],
+        'status': 'completed',
+        'started_at': datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        'conclusion': conclusion,
+        'completed_at': datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        'output': {
+            'title': 'Aggregated WPT report',
+            'summary': body,
+            # 'text': '',
+            'images': [{'alt': 'WPT logo', 'image_url': 'https://avatars.githubusercontent.com/u/37226233'}]
+        },
+        'actions': [
+            # {'label': 'Fix', 'identifier': 'fix_errors', 'description': 'Allow us to fix these errors for you'}
+        ]
+    }
+
+    subprocess.Popen(["curl", "-L",
+                      "-X", "POST",
+                      "-H", "Accept: application/vnd.github+json",
+                      "-H", f"Authorization: Bearer {github_token}",
+                      "-H", "X-GitHub-Api-Version: 2022-11-28",
+                      f"https://api.github.com/repos/{repo}/check-runs",
+                      "-d", json.dumps(data)]).wait()
+
+
 def main():
     results = get_results()
     if not results:
         print("Did not find any unexpected results.")
+        create_check_run("Did not find any unexpected results.")
         return
 
     print(results.to_string())
 
     pr_number = get_pr_number()
+    html_string = ElementTree.tostring(
+        results.to_html(), encoding="unicode")
+    create_check_run(html_string)
+
     if pr_number:
-        html_string = ElementTree.tostring(results.to_html(), encoding="unicode")
-        process = subprocess.Popen(['gh', 'pr', 'comment', pr_number, '-F', '-'], stdin=subprocess.PIPE)
+        process = subprocess.Popen(
+            ['gh', 'pr', 'comment', pr_number, '-F', '-'], stdin=subprocess.PIPE)
         process.communicate(input=html_string.encode("utf-8"))[0]
     else:
         print("Could not find PR number in environment. Not making GitHub comment.")
