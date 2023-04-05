@@ -325,32 +325,34 @@ impl<'ln> GeckoNode<'ln> {
     #[inline]
     fn is_in_shadow_tree(&self) -> bool {
         use crate::gecko_bindings::structs::NODE_IS_IN_SHADOW_TREE;
-        self.flags() & (NODE_IS_IN_SHADOW_TREE as u32) != 0
+        self.flags() & NODE_IS_IN_SHADOW_TREE  != 0
     }
 
-    /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
-    /// Make sure to mirror any modifications in both places.
+    /// Returns true if we know for sure that `flattened_tree_parent` and `parent_node` return the
+    /// same thing.
+    ///
+    /// TODO(emilio): Measure and consider not doing this fast-path, it's only a function call and
+    /// from profiles it seems that keeping this fast path makes the compiler not inline
+    /// `flattened_tree_parent` as a whole, so we're not gaining much either.
     #[inline]
     fn flattened_tree_parent_is_parent(&self) -> bool {
         use crate::gecko_bindings::structs::*;
         let flags = self.flags();
 
-        // FIXME(emilio): The shadow tree condition seems it shouldn't be needed
-        // anymore, if we check for slots.
-        if self.is_in_shadow_tree() {
+        let parent = match self.parent_node() {
+            Some(p) => p,
+            None => return true,
+        };
+
+        if parent.is_shadow_root() {
             return false;
         }
 
-        let parent = unsafe { self.0.mParent.as_ref() }.map(GeckoNode);
-        let parent_el = parent.and_then(|p| p.as_element());
-        if flags & (NODE_IS_NATIVE_ANONYMOUS_ROOT as u32) != 0 &&
-            parent_el.map_or(false, |el| el.is_root())
-        {
-            return false;
-        }
-
-        if let Some(parent) = parent_el {
-            if parent.shadow_root().is_some() {
+        if let Some(parent) = parent.as_element() {
+            if flags & NODE_IS_NATIVE_ANONYMOUS_ROOT != 0 && parent.is_root() {
+                return false;
+            }
+            if parent.shadow_root().is_some() || parent.is_html_slot_element() {
                 return false;
             }
         }
@@ -360,10 +362,6 @@ impl<'ln> GeckoNode<'ln> {
 
     #[inline]
     fn flattened_tree_parent(&self) -> Option<Self> {
-        // TODO(emilio): Measure and consider not doing this fast-path and take
-        // always the common path, it's only a function call and from profiles
-        // it seems that keeping this fast path makes the compiler not inline
-        // `flattened_tree_parent`.
         if self.flattened_tree_parent_is_parent() {
             debug_assert_eq!(
                 unsafe {
@@ -374,12 +372,10 @@ impl<'ln> GeckoNode<'ln> {
                 self.parent_node(),
                 "Fast path stopped holding!"
             );
-
             return self.parent_node();
         }
 
-        // NOTE(emilio): If this call is too expensive, we could manually
-        // inline more aggressively.
+        // NOTE(emilio): If this call is too expensive, we could manually inline more aggressively.
         unsafe {
             bindings::Gecko_GetFlattenedTreeParentNode(self.0)
                 .as_ref()
@@ -651,20 +647,6 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn closest_anon_subtree_root_parent(&self) -> Option<Self> {
-        debug_assert!(self.is_in_native_anonymous_subtree());
-        let mut current = *self;
-
-        loop {
-            if current.is_root_of_native_anonymous_subtree() {
-                return current.traversal_parent();
-            }
-
-            current = current.traversal_parent()?;
-        }
-    }
-
-    #[inline]
     fn may_have_anonymous_children(&self) -> bool {
         self.as_node()
             .get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
@@ -690,13 +672,13 @@ impl<'le> GeckoElement<'le> {
     /// Returns true if this element has descendants for lazy frame construction.
     #[inline]
     pub fn descendants_need_frames(&self) -> bool {
-        self.flags() & (NODE_DESCENDANTS_NEED_FRAMES as u32) != 0
+        self.flags() & NODE_DESCENDANTS_NEED_FRAMES != 0
     }
 
     /// Returns true if this element needs lazy frame construction.
     #[inline]
     pub fn needs_frame(&self) -> bool {
-        self.flags() & (NODE_NEEDS_FRAME as u32) != 0
+        self.flags() & NODE_NEEDS_FRAME != 0
     }
 
     /// Returns a reference to the DOM slots for this Element, if they exist.
@@ -754,7 +736,7 @@ impl<'le> GeckoElement<'le> {
     fn has_properties(&self) -> bool {
         use crate::gecko_bindings::structs::NODE_HAS_PROPERTIES;
 
-        (self.flags() & NODE_HAS_PROPERTIES as u32) != 0
+        self.flags() & NODE_HAS_PROPERTIES != 0
     }
 
     #[inline]
@@ -822,7 +804,7 @@ impl<'le> GeckoElement<'le> {
     #[inline]
     fn is_root_of_native_anonymous_subtree(&self) -> bool {
         use crate::gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-        return self.flags() & (NODE_IS_NATIVE_ANONYMOUS_ROOT as u32) != 0;
+        return self.flags() & NODE_IS_NATIVE_ANONYMOUS_ROOT != 0;
     }
 
     /// Returns true if this node is the shadow root of an use-element shadow tree.
@@ -905,19 +887,19 @@ fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
     use crate::gecko_bindings::structs::*;
     let mut gecko_flags = 0u32;
     if flags.contains(ElementSelectorFlags::HAS_SLOW_SELECTOR) {
-        gecko_flags |= NODE_HAS_SLOW_SELECTOR as u32;
+        gecko_flags |= NODE_HAS_SLOW_SELECTOR;
     }
     if flags.contains(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
-        gecko_flags |= NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS as u32;
+        gecko_flags |= NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
     }
     if flags.contains(ElementSelectorFlags::HAS_SLOW_SELECTOR_NTH_OF) {
-        gecko_flags |= NODE_HAS_SLOW_SELECTOR_NTH_OF as u32;
+        gecko_flags |= NODE_HAS_SLOW_SELECTOR_NTH_OF;
     }
     if flags.contains(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
-        gecko_flags |= NODE_HAS_EDGE_CHILD_SELECTOR as u32;
+        gecko_flags |= NODE_HAS_EDGE_CHILD_SELECTOR;
     }
     if flags.contains(ElementSelectorFlags::HAS_EMPTY_SELECTOR) {
-        gecko_flags |= NODE_HAS_EMPTY_SELECTOR as u32;
+        gecko_flags |= NODE_HAS_EMPTY_SELECTOR;
     }
 
     gecko_flags
@@ -974,8 +956,7 @@ impl<'le> TElement for GeckoElement<'le> {
         // StyleChildrenIterator::IsNeeded does, except that it might return
         // true if we used to (but no longer) have anonymous content from
         // ::before/::after, or nsIAnonymousContentCreators.
-        if self.is_in_native_anonymous_subtree() ||
-            self.is_html_slot_element() ||
+        if self.is_html_slot_element() ||
             self.shadow_root().is_some() ||
             self.may_have_anonymous_children()
         {
@@ -1296,52 +1277,52 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn has_snapshot(&self) -> bool {
-        self.flags() & (ELEMENT_HAS_SNAPSHOT as u32) != 0
+        self.flags() & ELEMENT_HAS_SNAPSHOT != 0
     }
 
     #[inline]
     fn handled_snapshot(&self) -> bool {
-        self.flags() & (ELEMENT_HANDLED_SNAPSHOT as u32) != 0
+        self.flags() & ELEMENT_HANDLED_SNAPSHOT != 0
     }
 
     unsafe fn set_handled_snapshot(&self) {
         debug_assert!(self.has_data());
-        self.set_flags(ELEMENT_HANDLED_SNAPSHOT as u32)
+        self.set_flags(ELEMENT_HANDLED_SNAPSHOT)
     }
 
     #[inline]
     fn has_dirty_descendants(&self) -> bool {
-        self.flags() & (ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
+        self.flags() & ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO != 0
     }
 
     unsafe fn set_dirty_descendants(&self) {
         debug_assert!(self.has_data());
         debug!("Setting dirty descendants: {:?}", self);
-        self.set_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.set_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO)
     }
 
     unsafe fn unset_dirty_descendants(&self) {
-        self.unset_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.unset_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO)
     }
 
     #[inline]
     fn has_animation_only_dirty_descendants(&self) -> bool {
-        self.flags() & (ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
+        self.flags() & ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO != 0
     }
 
     unsafe fn set_animation_only_dirty_descendants(&self) {
-        self.set_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.set_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO)
     }
 
     unsafe fn unset_animation_only_dirty_descendants(&self) {
-        self.unset_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.unset_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO)
     }
 
     unsafe fn clear_descendant_bits(&self) {
         self.unset_flags(
-            ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
-                ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
-                NODE_DESCENDANTS_NEED_FRAMES as u32,
+            ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO |
+                ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO |
+                NODE_DESCENDANTS_NEED_FRAMES,
         )
     }
 
@@ -1349,21 +1330,19 @@ impl<'le> TElement for GeckoElement<'le> {
         self.state().intersects(ElementState::VISITED)
     }
 
-    /// This logic is duplicated in Gecko's nsINode::IsInNativeAnonymousSubtree.
+    /// We want to match rules from the same tree in all cases, except for native anonymous content
+    /// that _isn't_ part directly of a UA widget (e.g., such generated by form controls, or
+    /// pseudo-elements).
     #[inline]
-    fn is_in_native_anonymous_subtree(&self) -> bool {
-        use crate::gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-        self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) != 0
-    }
-
-    #[inline]
-    fn matches_user_and_author_rules(&self) -> bool {
-        !self.is_in_native_anonymous_subtree()
+    fn matches_user_and_content_rules(&self) -> bool {
+        use crate::gecko_bindings::structs::{NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE, NODE_HAS_BEEN_IN_UA_WIDGET};
+        let flags = self.flags();
+        (flags & NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE) == 0 || (flags & NODE_HAS_BEEN_IN_UA_WIDGET) != 0
     }
 
     #[inline]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
-        if !self.is_in_native_anonymous_subtree() {
+        if self.matches_user_and_content_rules() {
             return None;
         }
 
@@ -1371,8 +1350,7 @@ impl<'le> TElement for GeckoElement<'le> {
             return None;
         }
 
-        let pseudo_type = unsafe { bindings::Gecko_GetImplementedPseudo(self.0) };
-        PseudoElement::from_pseudo_type(pseudo_type)
+        PseudoElement::from_pseudo_type(unsafe { bindings::Gecko_GetImplementedPseudo(self.0) })
     }
 
     #[inline]
@@ -1396,10 +1374,10 @@ impl<'le> TElement for GeckoElement<'le> {
     unsafe fn clear_data(&self) {
         let ptr = self.0.mServoData.get();
         self.unset_flags(
-            ELEMENT_HAS_SNAPSHOT as u32 |
-                ELEMENT_HANDLED_SNAPSHOT as u32 |
+            ELEMENT_HAS_SNAPSHOT |
+                ELEMENT_HANDLED_SNAPSHOT |
                 structs::Element_kAllServoDescendantBits |
-                NODE_NEEDS_FRAME as u32,
+                NODE_NEEDS_FRAME,
         );
         if !ptr.is_null() {
             debug!("Dropping ElementData for {:?}", self);
@@ -1826,7 +1804,15 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         debug_assert!(self.is_pseudo_element());
-        self.closest_anon_subtree_root_parent()
+        debug_assert!(!self.matches_user_and_content_rules());
+        let mut current = *self;
+        loop {
+            if current.is_root_of_native_anonymous_subtree() {
+                return current.traversal_parent();
+            }
+
+            current = current.traversal_parent()?;
+        }
     }
 
     #[inline]
@@ -1977,6 +1963,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             .as_node()
             .parent_node()
             .map_or(false, |p| p.is_document()));
+        // XXX this should always return true at this point, shouldn't it?
         unsafe { bindings::Gecko_IsRootElement(self.0) }
     }
 
@@ -2102,7 +2089,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 }
                 true
             },
-            NonTSPseudoClass::MozNativeAnonymous => self.is_in_native_anonymous_subtree(),
+            NonTSPseudoClass::MozNativeAnonymous => !self.matches_user_and_content_rules(),
             NonTSPseudoClass::MozUseShadowTreeRoot => self.is_root_of_use_element_shadow_tree(),
             NonTSPseudoClass::MozTableBorderNonzero => unsafe {
                 bindings::Gecko_IsTableBorderNonzero(self.0)

@@ -584,8 +584,8 @@ impl<E: TElement> StyleSharingCache<E> {
             },
         };
 
-        if element.is_in_native_anonymous_subtree() {
-            debug!("Failing to insert into the cache: NAC");
+        if !element.matches_user_and_content_rules() {
+            debug!("Failing to insert into the cache: no tree rules:");
             return;
         }
 
@@ -674,8 +674,8 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if target.is_in_native_anonymous_subtree() {
-            debug!("{:?} Cannot share style: NAC", target.element);
+        if !target.matches_user_and_content_rules() {
+            debug!("{:?} Cannot share style: content rules", target.element);
             return None;
         }
 
@@ -699,7 +699,7 @@ impl<E: TElement> StyleSharingCache<E> {
         nth_index_cache: &mut NthIndexCache,
         shared_context: &SharedStyleContext,
     ) -> Option<ResolvedElementStyles> {
-        debug_assert!(!target.is_in_native_anonymous_subtree());
+        debug_assert!(target.matches_user_and_content_rules());
 
         // Check that we have the same parent, or at least that the parents
         // share styles and permit sharing across their children. The latter
@@ -762,8 +762,8 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if target.matches_user_and_author_rules() !=
-            candidate.element.matches_user_and_author_rules()
+        if target.matches_user_and_content_rules() !=
+            candidate.element.matches_user_and_content_rules()
         {
             trace!("Miss: User and Author Rules");
             return None;
