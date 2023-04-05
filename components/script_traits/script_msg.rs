@@ -41,20 +41,13 @@ use style_traits::CSSPixel;
 use webgpu::{wgpu, WebGPU, WebGPUResponseResult};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
-/// A particular iframe's size, associated with a browsing context.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct IFrameSize {
-    /// The child browsing context for this iframe.
-    pub id: BrowsingContextId,
-    /// The size of the iframe.
-    pub size: Size2D<f32, CSSPixel>,
-}
-
 /// An iframe sizing operation.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct IFrameSizeMsg {
-    /// The iframe sizing data.
-    pub data: IFrameSize,
+    /// The child browsing context for this iframe.
+    pub browsing_context_id: BrowsingContextId,
+    /// The size of the iframe.
+    pub size: Size2D<f32, CSSPixel>,
     /// The kind of sizing operation.
     pub type_: WindowSizeType,
 }

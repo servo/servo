@@ -4,7 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeExt;
-use crate::fragments::{DebugId, Fragment, ImageFragment};
+use crate::fragments::{DebugId, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::flow_relative::{Rect, Vec2};
 use crate::geom::PhysicalSize;
 use crate::sizing::ContentSizes;
@@ -12,6 +12,7 @@ use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use ipc_channel::ipc::{self, IpcSender};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::Image;
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use servo_arc::Arc as ServoArc;
@@ -41,6 +42,9 @@ pub(crate) struct ReplacedContent {
 ///
 /// * For SVG, see https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS
 ///   and again https://github.com/w3c/csswg-drafts/issues/4572.
+///
+/// * IFrames do not have intrinsic width and height or intrinsic ratio according
+///   to https://drafts.csswg.org/css-images/#intrinsic-dimensions.
 #[derive(Debug, Serialize)]
 pub(crate) struct IntrinsicSizes {
     pub width: Option<Length>,
@@ -76,8 +80,15 @@ pub(crate) struct CanvasInfo {
 }
 
 #[derive(Debug, Serialize)]
+pub(crate) struct IFrameInfo {
+    pub pipeline_id: PipelineId,
+    pub browsing_context_id: BrowsingContextId,
+}
+
+#[derive(Debug, Serialize)]
 pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
+    IFrame(IFrameInfo),
     Canvas(CanvasInfo),
 }
 
@@ -85,35 +96,51 @@ impl ReplacedContent {
     pub fn for_element<'dom>(element: impl NodeExt<'dom>) -> Option<Self> {
         let (kind, intrinsic_size_in_dots) = {
             if let Some((image, intrinsic_size_in_dots)) = element.as_image() {
-                (ReplacedContentKind::Image(image), intrinsic_size_in_dots)
+                (
+                    ReplacedContentKind::Image(image),
+                    Some(intrinsic_size_in_dots),
+                )
             } else if let Some((canvas_info, intrinsic_size_in_dots)) = element.as_canvas() {
                 (
                     ReplacedContentKind::Canvas(canvas_info),
-                    intrinsic_size_in_dots,
+                    Some(intrinsic_size_in_dots),
+                )
+            } else if let Some((pipeline_id, browsing_context_id)) = element.as_iframe() {
+                (
+                    ReplacedContentKind::IFrame(IFrameInfo {
+                        pipeline_id,
+                        browsing_context_id,
+                    }),
+                    None,
                 )
             } else {
                 return None;
             }
         };
 
-        // FIXME: should 'image-resolution' (when implemented) be used *instead* of
-        // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
-
-        // https://drafts.csswg.org/css-images-4/#the-image-resolution
-        let dppx = 1.0;
-
-        let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
-        let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
-
-        return Some(Self {
-            kind,
-            intrinsic: IntrinsicSizes {
-                width: Some(Length::new(width)),
-                height: Some(Length::new(height)),
-                // FIXME https://github.com/w3c/csswg-drafts/issues/4572
-                ratio: Some(width / height),
+        let intrinsic = intrinsic_size_in_dots.map_or_else(
+            || IntrinsicSizes {
+                width: None,
+                height: None,
+                ratio: None,
             },
-        });
+            |intrinsic_size_in_dots| {
+                // FIXME: should 'image-resolution' (when implemented) be used *instead* of
+                // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
+                // https://drafts.csswg.org/css-images-4/#the-image-resolution
+                let dppx = 1.0;
+                let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
+                let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
+                IntrinsicSizes {
+                    width: Some(Length::new(width)),
+                    height: Some(Length::new(height)),
+                    // FIXME https://github.com/w3c/csswg-drafts/issues/4572
+                    ratio: Some(width / height),
+                }
+            },
+        );
+
+        return Some(Self { kind, intrinsic });
     }
 
     pub fn from_image_url<'dom>(
@@ -203,6 +230,18 @@ impl ReplacedContent {
                 })
                 .into_iter()
                 .collect(),
+            ReplacedContentKind::IFrame(iframe) => {
+                vec![Fragment::IFrame(IFrameFragment {
+                    debug_id: DebugId::new(),
+                    style: style.clone(),
+                    pipeline_id: iframe.pipeline_id,
+                    browsing_context_id: iframe.browsing_context_id,
+                    rect: Rect {
+                        start_corner: Vec2::zero(),
+                        size,
+                    },
+                })]
+            },
             ReplacedContentKind::Canvas(canvas_info) => {
                 if self.intrinsic.width == Some(Length::zero()) ||
                     self.intrinsic.height == Some(Length::zero())
@@ -264,6 +303,7 @@ impl ReplacedContent {
 
         let default_object_size = || {
             // FIXME:
+            // https://drafts.csswg.org/css-images/#default-object-size
             // “If 300px is too wide to fit the device, UAs should use the width of
             //  the largest rectangle that has a 2:1 ratio and fits the device instead.”
             // “height of the largest rectangle that has a 2:1 ratio, has a height not greater

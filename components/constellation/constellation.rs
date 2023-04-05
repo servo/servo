@@ -3106,13 +3106,18 @@ where
     }
 
     fn handle_iframe_size_msg(&mut self, iframe_sizes: Vec<IFrameSizeMsg>) {
-        for IFrameSizeMsg { data, type_ } in iframe_sizes {
+        for IFrameSizeMsg {
+            browsing_context_id,
+            size,
+            type_,
+        } in iframe_sizes
+        {
             let window_size = WindowSizeData {
-                initial_viewport: data.size,
+                initial_viewport: size,
                 device_pixel_ratio: self.window_size.device_pixel_ratio,
             };
 
-            self.resize_browsing_context(window_size, type_, data.id);
+            self.resize_browsing_context(window_size, type_, browsing_context_id);
         }
     }
 

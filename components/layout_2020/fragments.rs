@@ -13,6 +13,7 @@ use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 #[cfg(not(debug_assertions))]
 use serde::ser::{Serialize, Serializer};
 use servo_arc::Arc as ServoArc;
@@ -70,6 +71,7 @@ pub(crate) enum Fragment {
     AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment),
     Text(TextFragment),
     Image(ImageFragment),
+    IFrame(IFrameFragment),
 }
 
 #[derive(Serialize)]
@@ -174,6 +176,16 @@ pub(crate) struct ImageFragment {
     pub image_key: ImageKey,
 }
 
+#[derive(Serialize)]
+pub(crate) struct IFrameFragment {
+    pub debug_id: DebugId,
+    pub pipeline_id: PipelineId,
+    pub browsing_context_id: BrowsingContextId,
+    pub rect: Rect<Length>,
+    #[serde(skip_serializing)]
+    pub style: ServoArc<ComputedValues>,
+}
+
 impl Fragment {
     pub fn offset_inline(&mut self, offset: &Length) {
         let position = match self {
@@ -182,6 +194,7 @@ impl Fragment {
             Fragment::Anonymous(f) => &mut f.rect.start_corner,
             Fragment::Text(f) => &mut f.rect.start_corner,
             Fragment::Image(f) => &mut f.rect.start_corner,
+            Fragment::IFrame(f) => &mut f.rect.start_corner,
         };
 
         position.inline += *offset;
@@ -193,7 +206,8 @@ impl Fragment {
             Fragment::Text(fragment) => Some(fragment.tag),
             Fragment::AbsoluteOrFixedPositioned(_) |
             Fragment::Anonymous(_) |
-            Fragment::Image(_) => None,
+            Fragment::Image(_) |
+            Fragment::IFrame(_) => None,
         }
     }
 
@@ -204,6 +218,7 @@ impl Fragment {
             Fragment::Anonymous(fragment) => fragment.print(tree),
             Fragment::Text(fragment) => fragment.print(tree),
             Fragment::Image(fragment) => fragment.print(tree),
+            Fragment::IFrame(fragment) => fragment.print(tree),
         }
     }
 
@@ -219,6 +234,9 @@ impl Fragment {
                 .rect
                 .to_physical(fragment.parent_style.writing_mode, &containing_block),
             Fragment::Image(fragment) => fragment
+                .rect
+                .to_physical(fragment.style.writing_mode, &containing_block),
+            Fragment::IFrame(fragment) => fragment
                 .rect
                 .to_physical(fragment.style.writing_mode, &containing_block),
         }
@@ -458,6 +476,16 @@ impl ImageFragment {
             "Image\
                 \nrect={:?}",
             self.rect
+        ));
+    }
+}
+
+impl IFrameFragment {
+    pub fn print(&self, tree: &mut PrintTree) {
+        tree.add_item(format!(
+            "IFrame\
+                \npipeline={:?} rect={:?}",
+            self.pipeline_id, self.rect
         ));
     }
 }

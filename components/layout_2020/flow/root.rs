@@ -475,6 +475,7 @@ impl FragmentTree {
                     .to_physical(fragment.parent_style.writing_mode, &containing_block),
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
+                Fragment::IFrame(_) |
                 Fragment::Anonymous(_) => return None,
             };
 
@@ -506,6 +507,7 @@ impl FragmentTree {
                 Fragment::Box(_) |
                 Fragment::Text(_) |
                 Fragment::Image(_) |
+                Fragment::IFrame(_) |
                 Fragment::Anonymous(_) => return None,
             };
 

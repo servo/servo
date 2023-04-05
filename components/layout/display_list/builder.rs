@@ -43,10 +43,9 @@ use gfx::text::glyph::ByteIndex;
 use gfx::text::TextRun;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use ipc_channel::ipc;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
-use script_traits::IFrameSize;
 use servo_config::opts;
 use servo_geometry::{self, MaxRect};
 use std::default::Default;
@@ -68,7 +67,7 @@ use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::PaintWorklet;
 use style::values::specified::ui::CursorKind;
 use style::values::RGBA;
-use style_traits::ToCss;
+use style_traits::{CSSPixel, ToCss};
 use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
 use webrender_api::{ColorU, ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle};
@@ -328,7 +327,7 @@ pub struct DisplayListBuildState<'a> {
 
     /// Vector containing iframe sizes, used to inform the constellation about
     /// new iframe sizes
-    pub iframe_sizes: Vec<IFrameSize>,
+    pub iframe_sizes: FnvHashMap<BrowsingContextId, euclid::Size2D<f32, CSSPixel>>,
 
     /// Stores text runs to answer text queries used to place a cursor inside text.
     pub indexable_text: IndexableText,
@@ -350,7 +349,7 @@ impl<'a> DisplayListBuildState<'a> {
             current_clipping_and_scrolling: ClippingAndScrolling::simple(
                 ClipScrollNodeIndex::root_scroll_node(),
             ),
-            iframe_sizes: Vec::new(),
+            iframe_sizes: FnvHashMap::default(),
             indexable_text: IndexableText::default(),
         }
     }
@@ -1838,10 +1837,10 @@ impl Fragment {
 
                     // XXXjdm: This sleight-of-hand to convert LayoutRect -> Size2D<CSSPixel>
                     //         looks bogus.
-                    state.iframe_sizes.push(IFrameSize {
-                        id: browsing_context_id,
-                        size: euclid::Size2D::new(bounds.size.width, bounds.size.height),
-                    });
+                    state.iframe_sizes.insert(
+                        browsing_context_id,
+                        euclid::Size2D::new(bounds.size.width, bounds.size.height),
+                    );
 
                     let pipeline_id = match fragment_info.pipeline_id {
                         Some(pipeline_id) => pipeline_id,

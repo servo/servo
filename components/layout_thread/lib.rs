@@ -216,7 +216,7 @@ pub struct LayoutThread {
     layout_query_waiting_time: Histogram,
 
     /// The sizes of all iframes encountered during the last layout operation.
-    last_iframe_sizes: RefCell<HashMap<BrowsingContextId, Size2D<f32, CSSPixel>>>,
+    last_iframe_sizes: RefCell<FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>>,
 
     /// Flag that indicates if LayoutThread is busy handling a request.
     busy: Arc<AtomicBool>,
@@ -1008,6 +1008,49 @@ impl LayoutThread {
         );
     }
 
+    /// Update the recorded iframe sizes of the contents of this layout thread and
+    /// when these sizes changes, send a message to the constellation informing it
+    /// of the new sizes.
+    fn update_iframe_sizes(
+        &self,
+        new_iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
+    ) {
+        let old_iframe_sizes =
+            std::mem::replace(&mut *self.last_iframe_sizes.borrow_mut(), new_iframe_sizes);
+
+        if self.last_iframe_sizes.borrow().is_empty() {
+            return;
+        }
+
+        let size_messages: Vec<_> = self
+            .last_iframe_sizes
+            .borrow()
+            .iter()
+            .filter_map(|(browsing_context_id, size)| {
+                match old_iframe_sizes.get(&browsing_context_id) {
+                    Some(old_size) if old_size != size => Some(IFrameSizeMsg {
+                        browsing_context_id: *browsing_context_id,
+                        size: *size,
+                        type_: WindowSizeType::Resize,
+                    }),
+                    None => Some(IFrameSizeMsg {
+                        browsing_context_id: *browsing_context_id,
+                        size: *size,
+                        type_: WindowSizeType::Initial,
+                    }),
+                    _ => None,
+                }
+            })
+            .collect();
+
+        if !size_messages.is_empty() {
+            let msg = ConstellationMsg::IFrameSizes(size_messages);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Layout resize to constellation failed ({}).", e);
+            }
+        }
+    }
+
     /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the
     /// reflow type need it, builds the display list.
     fn compute_abs_pos_and_build_display_list(
@@ -1068,48 +1111,10 @@ impl LayoutThread {
                         build_state.root_stacking_context.bounds = origin;
                         build_state.root_stacking_context.overflow = origin;
 
-                        if !build_state.iframe_sizes.is_empty() {
-                            // build_state.iframe_sizes is only used here, so its okay to replace
-                            // it with an empty vector
-                            let iframe_sizes =
-                                std::mem::replace(&mut build_state.iframe_sizes, vec![]);
-                            // Collect the last frame's iframe sizes to compute any differences.
-                            // Every frame starts with a fresh collection so that any removed
-                            // iframes do not linger.
-                            let last_iframe_sizes = std::mem::replace(
-                                &mut *self.last_iframe_sizes.borrow_mut(),
-                                HashMap::default(),
-                            );
-                            let mut size_messages = vec![];
-                            for new_size in iframe_sizes {
-                                // Only notify the constellation about existing iframes
-                                // that have a new size, or iframes that did not previously
-                                // exist.
-                                if let Some(old_size) = last_iframe_sizes.get(&new_size.id) {
-                                    if *old_size != new_size.size {
-                                        size_messages.push(IFrameSizeMsg {
-                                            data: new_size,
-                                            type_: WindowSizeType::Resize,
-                                        });
-                                    }
-                                } else {
-                                    size_messages.push(IFrameSizeMsg {
-                                        data: new_size,
-                                        type_: WindowSizeType::Initial,
-                                    });
-                                }
-                                self.last_iframe_sizes
-                                    .borrow_mut()
-                                    .insert(new_size.id, new_size.size);
-                            }
-
-                            if !size_messages.is_empty() {
-                                let msg = ConstellationMsg::IFrameSizes(size_messages);
-                                if let Err(e) = self.constellation_chan.send(msg) {
-                                    warn!("Layout resize to constellation failed ({}).", e);
-                                }
-                            }
-                        }
+                        // We will not use build_state.iframe_sizes again, so it's safe to move it.
+                        let iframe_sizes =
+                            std::mem::replace(&mut build_state.iframe_sizes, FnvHashMap::default());
+                        self.update_iframe_sizes(iframe_sizes);
 
                         rw_data.indexable_text = std::mem::replace(
                             &mut build_state.indexable_text,
