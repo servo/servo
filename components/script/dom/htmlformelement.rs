@@ -659,20 +659,15 @@ impl HTMLFormElement {
         let mut result = String::new();
 
         // Step 2
-        let encoding = self.pick_encoding();
-
-        // Step 3
-        let charset = encoding.name();
-
-        for entry in form_data.iter_mut() {
-            // Step 4, 5
-            let value = entry.replace_value(charset);
-
-            // Step 6
-            result.push_str(&*format!("{}={}\r\n", entry.name, value));
+        for entry in form_data.iter() {
+            let value = match &entry.value {
+                FormDatumValue::File(f) => f.name(),
+                FormDatumValue::String(s) => s,
+            };
+            result.push_str(&format!("{}={}\r\n", entry.name, value));
         }
 
-        // Step 7
+        // Step 3
         result
     }
 
