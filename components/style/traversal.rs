@@ -422,7 +422,7 @@ pub fn recalc_style_at<E, D, F>(
     if let Some(restyle_kind) = restyle_kind {
         child_restyle_requirement = compute_style(traversal_data, context, element, data, restyle_kind);
 
-        if element.is_in_native_anonymous_subtree() {
+        if !element.matches_user_and_content_rules() {
             // We must always cascade native anonymous subtrees, since they
             // may have pseudo-elements underneath that would inherit from the
             // closest non-NAC ancestor instead of us.

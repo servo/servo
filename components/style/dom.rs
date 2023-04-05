@@ -388,10 +388,10 @@ pub trait TElement:
         true
     }
 
-    /// Whether this element should match user and author rules.
+    /// Whether this element should match user and content rules.
     ///
     /// We use this for Native Anonymous Content in Gecko.
-    fn matches_user_and_author_rules(&self) -> bool {
+    fn matches_user_and_content_rules(&self) -> bool {
         true
     }
 
@@ -651,11 +651,6 @@ pub trait TElement:
         false
     }
 
-    /// Returns true if this element is in a native anonymous subtree.
-    fn is_in_native_anonymous_subtree(&self) -> bool {
-        false
-    }
-
     /// Returns the pseudo-element implemented by this element, if any.
     ///
     /// Gecko traverses pseudo-elements during the style traversal, and we need
@@ -791,11 +786,8 @@ pub trait TElement:
         use crate::rule_collector::containing_shadow_ignoring_svg_use;
 
         let target = self.rule_hash_target();
-        if !target.matches_user_and_author_rules() {
-            return false;
-        }
-
-        let mut doc_rules_apply = true;
+        let matches_user_and_content_rules = target.matches_user_and_content_rules();
+        let mut doc_rules_apply = matches_user_and_content_rules;
 
         // Use the same rules to look for the containing host as we do for rule
         // collection.
@@ -843,9 +835,9 @@ pub trait TElement:
                         },
                         None => {
                             // TODO(emilio): Should probably distinguish with
-                            // MatchesDocumentRules::{No,Yes,IfPart} or
-                            // something so that we could skip some work.
-                            doc_rules_apply = true;
+                            // MatchesDocumentRules::{No,Yes,IfPart} or something so that we could
+                            // skip some work.
+                            doc_rules_apply = matches_user_and_content_rules;
                             break;
                         },
                     }

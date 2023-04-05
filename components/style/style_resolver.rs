@@ -219,7 +219,7 @@ where
     ) -> PrimaryStyle {
         // Before doing the cascade, check the sharing cache and see if we can
         // reuse the style via rule node identity.
-        let may_reuse = !self.element.is_in_native_anonymous_subtree() &&
+        let may_reuse = self.element.matches_user_and_content_rules() &&
             parent_style.is_some() &&
             inputs.rules.is_some();
 
