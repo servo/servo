@@ -23,4 +23,6 @@
       parent.opener.postMessage(details, parent.opener.origin);
     }
   });
+
+  window.parent.postMessage("iframe-is-ready", window.parent.origin);
 </script>

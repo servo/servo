@@ -15,9 +15,9 @@
   const manual = container.querySelectorAll('[popover=manual]')[0];
   const manual2 = container.querySelectorAll('[popover=manual]')[1];
   function assert_state_1(autoOpen,manualOpen,manual2Open) {
-    assert_equals(auto.matches(':open'),autoOpen,'auto open state is incorrect');
-    assert_equals(manual.matches(':open'),manualOpen,'manual open state is incorrect');
-    assert_equals(manual2.matches(':open'),manual2Open,'manual2 open state is incorrect');
+    assert_equals(auto.matches(':popover-open'),autoOpen,'auto open state is incorrect');
+    assert_equals(manual.matches(':popover-open'),manualOpen,'manual open state is incorrect');
+    assert_equals(manual2.matches(':popover-open'),manual2Open,'manual2 open state is incorrect');
   }
   test(() => {
     assert_state_1(false,false,false);

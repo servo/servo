@@ -11,18 +11,17 @@
 <div id="log"></div>
 <script>
 
-
 test_self_user_callback(t =>
-    t.step_timeout(() => busy_wait()), "Window.setTimeout");
+    t.step_timeout(() => busy_wait()), "TimerHandler:setTimeout");
 
 test_self_user_callback(() => {
     const interval = setInterval(() => {
         busy_wait();
         clearInterval(interval);
     }, 10);
-}, "Window.setInterval");
+}, "TimerHandler:setInterval");
 test_self_user_callback(() =>
-    requestAnimationFrame(() => busy_wait()), "Window.requestAnimationFrame");
+    requestAnimationFrame(() => busy_wait()), "FrameRequestCallback");
 
 test_self_user_callback(t => {
     const element = document.createElement("div");
@@ -32,7 +31,7 @@ test_self_user_callback(t => {
             busy_wait(very_long_frame_duration);
             observer.disconnect();
         }).observe(element);
-}, "ResizeObserver.callback");
+}, "ResizeObserverCallback");
 
 test_self_user_callback(t => {
     const element = document.createElement("div");
@@ -43,10 +42,15 @@ test_self_user_callback(t => {
         observer.disconnect();
     }).observe(element);
     document.body.appendChild(element);
-}, "IntersectionObserver.callback");
+}, "IntersectionObserverCallback");
 
 test_self_user_callback(t =>
-    scheduler.postTask(() => busy_wait()), "Scheduler.postTask");
+    scheduler.postTask(() => busy_wait()), "SchedulerPostTaskCallback");
+
+  test_self_user_callback(t => {
+    new PerformanceObserver(() => busy_wait()).observe(
+      {type: "navigation", buffered: true});
+}, "PerformanceObserverCallback");
 
 </script>
 </body>

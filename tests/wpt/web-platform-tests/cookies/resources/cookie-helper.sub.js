@@ -60,20 +60,14 @@ function assert_cookie(origin, obj, name, value, present) {
 // Remove the cookie named |name| from |origin|, then set it on |origin| anew.
 // If |origin| matches `self.origin`, also assert (via `document.cookie`) that
 // the cookie was correctly removed and reset.
-function create_cookie(origin, name, value, extras) {
+async function create_cookie(origin, name, value, extras) {
   alert("Create_cookie: " + origin + "/cookies/resources/drop.py?name=" + name);
-  return credFetch(origin + "/cookies/resources/drop.py?name=" + name)
-    .then(_ => {
-      if (origin == self.origin)
-        assert_dom_cookie(name, value, false);
-    })
-    .then(_ => {
-      return credFetch(origin + "/cookies/resources/set.py?" + name + "=" + value + ";path=/;" + extras)
-        .then(_ => {
-          if (origin == self.origin)
-            assert_dom_cookie(name, value, true);
-        });
-    });
+  await credFetch(origin + "/cookies/resources/drop.py?name=" + name);
+  if (origin == self.origin)
+    assert_dom_cookie(name, value, false);
+  await credFetch(origin + "/cookies/resources/set.py?" + name + "=" + value + ";path=/;" + extras);
+  if (origin == self.origin)
+    assert_dom_cookie(name, value, true);
 }
 
 //

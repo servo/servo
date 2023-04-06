@@ -41,8 +41,8 @@
     let details = {};
 
     const iframe = document.createElement("iframe");
-    iframe.src = `https://{{host}}:{{ports[https][0]}}${testPath()}/resources`+
-    `/partitioned-estimate-usage-details-service-workers-helper-frame.html`
+    iframe.src = `https://{{host}}:{{ports[https][0]}}${testPath()}/resources` +
+      `/partitioned-estimate-usage-details-service-workers-helper-frame.html`
     document.body.appendChild(iframe);
 
     async_test(test => {
@@ -50,14 +50,16 @@
         return;
 
       let service_worker_registration;
-      test.step(async () => {
-        details.init = await usageDetails();
-        service_worker_registration = await createSomeUsage();
-        details.after = await usageDetails();
-        assert_greater_than(details.after, details.init);
+      window.addEventListener("message", test.step_func(async event => {
+        if (event.data === "iframe-is-ready") {
+          details.init = await usageDetails();
+          service_worker_registration = await createSomeUsage();
+          details.after = await usageDetails();
+          assert_greater_than(details.after, details.init);
 
-        iframe.contentWindow.postMessage("get-details", iframe.origin);
-      });
+          iframe.contentWindow.postMessage("get-details", iframe.origin);
+        }
+      }));
 
       window.addEventListener("message", test.step_func(event => {
         if (event.data.source === "same-site") {

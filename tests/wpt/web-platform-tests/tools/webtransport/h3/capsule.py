@@ -10,11 +10,14 @@ from aioquic.buffer import UINT_VAR_MAX_SIZE, Buffer, BufferReadError  # type: i
 
 class CapsuleType(IntEnum):
     # Defined in
-    # https://www.ietf.org/archive/id/draft-ietf-masque-h3-datagram-03.html.
-    DATAGRAM = 0xff37a0
-    REGISTER_DATAGRAM_CONTEXT = 0xff37a1
-    REGISTER_DATAGRAM_NO_CONTEXT = 0xff37a2
-    CLOSE_DATAGRAM_CONTEXT = 0xff37a3
+    # https://datatracker.ietf.org/doc/html/draft-ietf-masque-h3-datagram-04#section-8.2
+    DATAGRAM_DRAFT04 = 0xff37a0
+    REGISTER_DATAGRAM_CONTEXT_DRAFT04 = 0xff37a1
+    REGISTER_DATAGRAM_NO_CONTEXT_DRAFT04 = 0xff37a2
+    CLOSE_DATAGRAM_CONTEXT_DRAFT04 = 0xff37a3
+    # Defined in
+    # https://datatracker.ietf.org/doc/html/rfc9297#section-5.4
+    DATAGRAM_RFC = 0x00
     # Defined in
     # https://www.ietf.org/archive/id/draft-ietf-webtrans-http3-01.html.
     CLOSE_WEBTRANSPORT_SESSION = 0x2843
@@ -25,6 +28,7 @@ class H3Capsule:
     Represents the Capsule concept defined in
     https://ietf-wg-masque.github.io/draft-ietf-masque-h3-datagram/draft-ietf-masque-h3-datagram.html#name-capsules.
     """
+
     def __init__(self, type: int, data: bytes) -> None:
         """
         :param type the type of this Capsule. We don't use CapsuleType here
@@ -50,6 +54,7 @@ class H3CapsuleDecoder:
     A decoder of H3Capsule. This is a streaming decoder and can handle multiple
     decoders.
     """
+
     def __init__(self) -> None:
         self._buffer: Optional[Buffer] = None
         self._type: Optional[int] = None

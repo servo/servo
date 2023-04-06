@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>Tests un-fragmentable flex item is pushed to the next column without overflowing the flex container.</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1743890">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <style>
+  .multicol {
+    column-count: 4;
+    column-gap: 0;
+    column-fill: auto;
+    background: red;
+    width: 100px;
+    height: 100px;
+  }
+
+  .multicol > div {
+    background: green;
+  }
+
+  .flexbox {
+    display: flex;
+    flex-direction: column;
+    height: 280px;
+    justify-content: space-between;
+    border: 5px solid green;
+  }
+
+  .flexbox > div {
+    contain: size;
+    width: 15px;
+    height: 40px;
+  }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="multicol">
+    <!-- This div makes the flexbox not at the top of first column. -->
+    <div style="width: 100%; height: 50px;"></div>
+
+    <div class="flexbox">
+      <div></div>
+      <div></div>
+    </div>
+
+    <div style="width: 100%; height: 60px;"></div>
+  </div>
+</html>

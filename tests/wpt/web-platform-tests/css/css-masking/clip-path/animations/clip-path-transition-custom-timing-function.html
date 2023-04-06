@@ -3,44 +3,23 @@
 <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
 <link rel="match" href="clip-path-animation-custom-timing-function-ref.html">
 <style>
-  .transition {
-    clip-path: inset(45%);
-    transition-property: clip-path;
-    transition-duration: 1000000s;
-    transition-timing-function: cubic-bezier(0, 9, 1, 9);
-    transition-delay: -500000s;
-  }
-
   .green {
     background-color: green;
-    position: fixed;
-    left: 0px;
-    top: 0px;
     width: 200px;
     height: 200px;
-  }
 
-  /* for this test to succeed, the red rect needs to be entirely
-  occluded by the inner green rect, requiring extrapolation
-  beyond the largest keyframe. */
-  .red {
-    background-color: red;
-    position: fixed;
-    left: 50px;
-    top: 50px;
-    width: 100px;
-    height: 100px;
+    clip-path: inset(45%);
+    transition-property: clip-path;
+    transition-duration: 10000000s;
+    transition-timing-function: cubic-bezier(0, 9, 1, 9);
+    transition-delay: -5220715s;
   }
 
 </style>
 <script src="/common/reftest-wait.js"></script>
 
 <body>
-  <div class="green">
-    <div class="red">
-      <div class="green transition" id="target"></div>
-    </div>
-  </div>
+  <div class="green" id="target"></div>
 
   <script>
     function update() {

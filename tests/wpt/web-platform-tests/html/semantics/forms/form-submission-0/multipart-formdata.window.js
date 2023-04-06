@@ -344,3 +344,14 @@ formTest({
   },
   description: "character not in encoding in filename",
 });
+
+formTest({
+  name: "\uD800",
+  value: "\uD800",
+  formEncoding: "windows-1252",
+  expected: {
+    name: "&#65533;",
+    value: "&#65533;"
+  },
+  description: "lone surrogate in name and value",
+});

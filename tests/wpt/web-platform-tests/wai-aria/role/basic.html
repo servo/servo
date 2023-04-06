@@ -11,13 +11,13 @@
 
 promise_test(async t => {
   const role = await test_driver.get_computed_role(document.getElementById('d'));
-  assert_true(role == "group");
+  assert_equals(role, "group");
 }, "tests explicit role");
 
 
 promise_test(async t => {
   const role = await test_driver.get_computed_role(document.getElementById('h'));
-  assert_true(role == "heading");
+  assert_equals(role, "heading");
 }, "tests implicit role");
 
 </script>

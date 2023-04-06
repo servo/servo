@@ -1966,6 +1966,7 @@ class MockXRInputSource {
       timestamp: 0n,
       axes: [],
       buttons: [],
+      touchEvents: [],
       mapping: GamepadMapping.GamepadMappingStandard,
       displayId: 0,
     };
