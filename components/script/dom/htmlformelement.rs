@@ -1744,17 +1744,10 @@ pub fn encode_multipart_form_data(
     let mut result = vec![];
 
     // Step 2
-    let charset = encoding.name();
-
-    // Step 3
     for entry in form_data.iter_mut() {
-        // 3.1
-        if entry.name.to_ascii_lowercase() == "_charset_" && entry.ty == "hidden" {
-            entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
-        }
-        // TODO: 3.2
+        // TODO: Step 2.1
 
-        // Step 4
+        // Step 3
         // https://tools.ietf.org/html/rfc7578#section-4
         // NOTE(izgzhen): The encoding here expected by most servers seems different from
         // what spec says (that it should start with a '\r\n').
@@ -1772,6 +1765,7 @@ pub fn encode_multipart_form_data(
                 result.append(&mut bytes);
             },
             FormDatumValue::File(ref f) => {
+                let charset = encoding.name();
                 let extra = if charset.to_lowercase() == "utf-8" {
                     format!(
                         "filename=\"{}\"",
