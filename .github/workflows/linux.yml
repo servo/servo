@@ -50,7 +50,6 @@ env:
 
 jobs:
   build-linux:
-    if: github.repository == 'servo/servo' || github.event_name == 'push'
     name: Build
     runs-on: ubuntu-20.04
     steps:
