@@ -34,6 +34,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
+  PACKAGE: "${{ contains(inputs.layout, '2020') && 'linux-layout2020' || 'linux' }}"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
   CCACHE: "sccache"
@@ -65,6 +66,13 @@ jobs:
         run: python3 ./mach test-unit --release --with-${{ env.LAYOUT }}
       - name: Lockfile check
         run: ./etc/ci/lockfile_changed.sh
+      - name: Package
+        run: python3 ./mach package --release
+      - name: Upload Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PACKAGE }}
+          path: target/release/servo-tech-demo.tar.gz
       - name: Package binary
         run: tar -czf target.tar.gz target/release/servo resources
       - name: Archive binary

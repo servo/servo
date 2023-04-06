@@ -35,6 +35,7 @@ jobs:
     uses: ./.github/workflows/windows.yml
     with:
       layout: '2013'
+      unit-tests: true
 
   build-mac:
     name: Mac
@@ -42,6 +43,7 @@ jobs:
     uses: ./.github/workflows/mac.yml
     with:
       layout: '2013'
+      unit-tests: true
 
   build-linux:
     name: Linux
