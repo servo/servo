@@ -10,6 +10,10 @@ on:
         required: false
         default: false
         type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       layout:
@@ -17,6 +21,10 @@ on:
         type: choice
         options: ["2013", "2020"]
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
         required: false
         default: false
         type: boolean
@@ -81,6 +89,12 @@ jobs:
         with:
           name: ${{ env.PACKAGE }}
           path: target/release/servo-tech-demo.dmg
+      - name: Upload
+        if: ${{ inputs.upload }}
+        run: python3 ./mach upload-nightly mac --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
       - name: Package binary
         run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
       - name: Archive binary

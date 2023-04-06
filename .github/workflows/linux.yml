@@ -12,6 +12,10 @@ on:
         required: false
         default: false
         type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       layout:
@@ -24,6 +28,10 @@ on:
         type: choice
         options: ["test", "sync"]
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
         required: false
         default: false
         type: boolean
@@ -73,6 +81,11 @@ jobs:
         with:
           name: ${{ env.PACKAGE }}
           path: target/release/servo-tech-demo.tar.gz
+      - name: Upload
+        if: ${{ inputs.upload }}
+        run: python3 ./mach upload-nightly ${{ env.PACKAGE }} --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
       - name: Package binary
         run: tar -czf target.tar.gz target/release/servo resources
       - name: Archive binary

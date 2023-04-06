@@ -10,6 +10,10 @@ on:
         required: false
         default: false
         type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       layout:
@@ -17,6 +21,10 @@ on:
         type: choice
         options: ["2013", "2020"]
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
         required: false
         default: false
         type: boolean
@@ -67,7 +75,16 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.PACKAGE }}
-          path: target/release/msi/Servo.exe
+          # These files are available
+          # MSI Installer: C:\a\servo\servo\target\release\msi\Installer.msi
+          # Bundle: C:\a\servo\servo\target\release\msi\Servo.exe
+          # Zip: C:\a\servo\servo\target\release\msi\Servo.zip
+          path: C:\\a\\servo\\servo\\target/release/msi/Servo.exe
+      - name: Upload
+        if: ${{ inputs.upload }}
+        run: python mach upload-nightly windows-msvc --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
 
   build_result:
     name: homu build finished
