@@ -154,25 +154,25 @@ window.onload = () => {
   test((t) => {
     const popover = createPopover(t);
     popover.showPopover();
-    assert_true(popover.matches(':open'));
+    assert_true(popover.matches(':popover-open'));
     if (popoverHintSupported()) {
       popover.setAttribute('popover','hint'); // Change popover type
-      assert_false(popover.matches(':open'));
+      assert_false(popover.matches(':popover-open'));
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
     }
     popover.setAttribute('popover','manual');
-    assert_false(popover.matches(':open'));
+    assert_false(popover.matches(':popover-open'));
     popover.showPopover();
-    assert_true(popover.matches(':open'));
+    assert_true(popover.matches(':popover-open'));
     popover.setAttribute('popover','invalid');
-    assert_true(popover.matches(':open'),'From "manual" to "invalid" (which is interpreted as "manual") should not close the popover');
+    assert_true(popover.matches(':popover-open'),'From "manual" to "invalid" (which is interpreted as "manual") should not close the popover');
     popover.setAttribute('popover','auto');
-    assert_false(popover.matches(':open'),'From "invalid" ("manual") to "auto" should hide the popover');
+    assert_false(popover.matches(':popover-open'),'From "invalid" ("manual") to "auto" should hide the popover');
     popover.showPopover();
-    assert_true(popover.matches(':open'));
+    assert_true(popover.matches(':popover-open'));
     popover.setAttribute('popover','invalid');
-    assert_false(popover.matches(':open'),'From "auto" to "invalid" (which is interpreted as "manual") should close the popover');
+    assert_false(popover.matches(':popover-open'),'From "auto" to "invalid" (which is interpreted as "manual") should close the popover');
   },'Changing attribute values should close open popovers');
 
   const validTypes = popoverHintSupported() ? ["auto","hint","manual"] : ["auto","manual"];
@@ -181,21 +181,37 @@ window.onload = () => {
       const popover = createPopover(t);
       popover.setAttribute('popover',type);
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       popover.remove();
-      assert_false(popover.matches(':open'));
+      assert_false(popover.matches(':popover-open'));
       document.body.appendChild(popover);
-      assert_false(popover.matches(':open'));
+      assert_false(popover.matches(':popover-open'));
     },`Removing a visible popover=${type} element from the document should close the popover`);
 
     test((t) => {
       const popover = createPopover(t);
       popover.setAttribute('popover',type);
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       assert_false(popover.matches(':modal'));
       popover.hidePopover();
     },`A showing popover=${type} does not match :modal`);
+
+    test((t) => {
+      const popover = createPopover(t);
+      popover.setAttribute('popover',type);
+      assert_false(popover.matches(':popover-open'));
+      // FIXME: Once :open/:closed are defined in HTML we should remove these two constants.
+      const openPseudoClassIsSupported = CSS.supports('selector(:open))');
+      const closePseudoClassIsSupported = CSS.supports('selector(:closed))');
+      assert_false(openPseudoClassIsSupported && popover.matches(':open'),'popovers never match :open');
+      assert_false(closePseudoClassIsSupported && popover.matches(':closed'),'popovers never match :closed');
+      popover.showPopover();
+      assert_true(popover.matches(':popover-open'));
+      assert_false(openPseudoClassIsSupported && popover.matches(':open'),'popovers never match :open');
+      assert_false(closePseudoClassIsSupported && popover.matches(':closed'),'popovers never match :closed');
+      popover.hidePopover();
+    },`A popover=${type} never matches :open or :closed`);
   });
 
   test((t) => {
@@ -209,11 +225,11 @@ window.onload = () => {
         return;
       popover.setAttribute('popover','manual');
     },{once: true});
-    assert_true(other_popover.matches(':open'));
-    assert_false(popover.matches(':open'));
+    assert_true(other_popover.matches(':popover-open'));
+    assert_false(popover.matches(':popover-open'));
     assert_throws_dom('InvalidStateError', () => popover.showPopover());
-    assert_false(other_popover.matches(':open'),'unrelated popover is hidden');
-    assert_false(popover.matches(':open'),'popover is not shown if its type changed during show');
+    assert_false(other_popover.matches(':popover-open'),'unrelated popover is hidden');
+    assert_false(popover.matches(':popover-open'),'popover is not shown if its type changed during show');
   },`Changing the popover type in a "beforetoggle" event handler should throw an exception (during showPopover())`);
 
   test((t) => {
@@ -236,11 +252,11 @@ window.onload = () => {
         return;
       assert_true(nested_popover_hidden,'The nested popover should be hidden first');
     },{once: true});
-    assert_true(popover.matches(':open'));
-    assert_true(other_popover.matches(':open'));
+    assert_true(popover.matches(':popover-open'));
+    assert_true(other_popover.matches(':popover-open'));
     assert_throws_dom('InvalidStateError', () => popover.hidePopover());
-    assert_false(other_popover.matches(':open'),'unrelated popover is hidden');
-    assert_false(popover.matches(':open'),'popover is still hidden if its type changed during hide event');
+    assert_false(other_popover.matches(':popover-open'),'unrelated popover is hidden');
+    assert_false(popover.matches(':popover-open'),'popover is still hidden if its type changed during hide event');
     assert_throws_dom("InvalidStateError",() => other_popover.hidePopover(),'Nested popover should already be hidden');
   },`Changing the popover type in a "beforetoggle" event handler should throw an exception (during hidePopover())`);
 
@@ -277,7 +293,7 @@ window.onload = () => {
             const popover = createPopover(t);
             setPopoverValue(popover,type,method);
             popover.showPopover();
-            assert_true(popover.matches(':open'));
+            assert_true(popover.matches(':popover-open'));
             let gotEvent = false;
             popover.addEventListener('beforetoggle', (e) => {
               if (e.newState !== "closed")
@@ -288,7 +304,7 @@ window.onload = () => {
             setPopoverValue(popover,newType,method);
             if (type===interpretedType(newType,method)) {
               // Keeping the type the same should not hide it or fire events.
-              assert_true(popover.matches(':open'),'popover should remain open when not changing the type');
+              assert_true(popover.matches(':popover-open'),'popover should remain open when not changing the type');
               assert_false(gotEvent);
               try {
                 popover.hidePopover(); // Cleanup
@@ -297,7 +313,7 @@ window.onload = () => {
               // Changing the type at all should hide the popover. The hide event
               // handler should run, set a new type, and that type should end up
               // as the final result.
-              assert_false(popover.matches(':open'));
+              assert_false(popover.matches(':popover-open'));
               if (inEventType === undefined || (method ==="idl" && inEventType === null)) {
                 assert_throws_dom("NotSupportedError",() => popover.showPopover(),'We should have removed the popover attribute, so showPopover should throw');
               } else {
@@ -306,16 +322,16 @@ window.onload = () => {
                 assert_equals(popover.popover, interpretedType(inEventType,method),'IDL attribute');
                 // Make sure the type is really correct, via behavior.
                 popover.showPopover(); // Show it
-                assert_true(popover.matches(':open'),'Popover should function');
+                assert_true(popover.matches(':popover-open'),'Popover should function');
                 await clickOn(outsideElement); // Try to light dismiss
                 switch (interpretedType(inEventType,method)) {
                   case 'manual':
-                    assert_true(popover.matches(':open'),'A popover=manual should not light-dismiss');
+                    assert_true(popover.matches(':popover-open'),'A popover=manual should not light-dismiss');
                     popover.hidePopover();
                     break;
                   case 'auto':
                   case 'hint':
-                    assert_false(popover.matches(':open'),'A popover=auto should light-dismiss');
+                    assert_false(popover.matches(':popover-open'),'A popover=auto should light-dismiss');
                     break;
                 }
               }

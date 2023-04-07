@@ -14,6 +14,7 @@
       var t2 = async_test("Nested worker in shared worker");
       var t3 = async_test("Shared worker from https subframe");
       var t4 = async_test("Nested worker from shared worker from https subframe");
+      var t5 = async_test("Shared worker from data URL");
       // Tests for SharedWorkers used from other workers (not supported right
       // now) would go here.
 
@@ -64,6 +65,20 @@
       var ifr = document.createElement("iframe");
       ifr.src = https_dir2 + "support/https-subframe-shared.html";
       document.body.appendChild(ifr);
+
+      t5.step(function() {
+        var w = new SharedWorker(
+          `data:text/javascript,addEventListener("connect", function (e) {
+             var port = e.ports[0];
+             port.start();
+             port.postMessage(isSecureContext);
+          });`
+        );
+        w.port.onmessage = t5.step_func_done(function(e) {
+          assert_false(e.data);
+        });
+        w.port.start();
+      });
     </script>
   </body>
 </html>

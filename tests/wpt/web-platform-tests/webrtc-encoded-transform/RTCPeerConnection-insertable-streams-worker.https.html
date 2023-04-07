@@ -117,6 +117,80 @@ promise_test(async t => {
   return onmessagePromise;
 }, 'RTCRtpSender readable stream transferred to a Worker and the Worker sends an RTCEncodedVideoFrame back');
 
+promise_test(async t => {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const videoTrack = stream.getVideoTracks()[0];
+  t.add_cleanup(() => videoTrack.stop());
+
+  const videoSender = caller.addTrack(videoTrack)
+  const senderStreams = videoSender.createEncodedStreams();
+
+  const senderWorker = new Worker('RTCPeerConnection-worker-transform.js')
+  t.add_cleanup(() => senderWorker.terminate());
+  senderWorker.postMessage(
+    {
+      readableStream: senderStreams.readable,
+      writableStream: senderStreams.writable,
+      insertError: true
+    },
+    [senderStreams.readable, senderStreams.writable]);
+
+  const onmessagePromise = new Promise(resolve => {
+    senderWorker.onmessage = t.step_func(message => {
+      assert_false(message.data.success);
+      assert_true(message.data.error instanceof TypeError);
+      resolve();
+    });
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
+
+  return onmessagePromise;
+}, 'Video RTCRtpSender insertable streams transferred to a worker, which tries to write an invalid frame');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const audioTrack = stream.getAudioTracks()[0];
+  t.add_cleanup(() => audioTrack.stop());
+
+  const audioSender = caller.addTrack(audioTrack)
+  const senderStreams = audioSender.createEncodedStreams();
+
+  const senderWorker = new Worker('RTCPeerConnection-worker-transform.js')
+  t.add_cleanup(() => senderWorker.terminate());
+  senderWorker.postMessage(
+    {
+      readableStream: senderStreams.readable,
+      writableStream: senderStreams.writable,
+      insertError: true
+    },
+    [senderStreams.readable, senderStreams.writable]);
+
+  const onmessagePromise = new Promise(resolve => {
+    senderWorker.onmessage = t.step_func(message => {
+      assert_false(message.data.success);
+      assert_true(message.data.error instanceof TypeError);
+      resolve();
+    });
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
+
+  return onmessagePromise;
+}, 'Audio RTCRtpSender insertable streams transferred to a worker, which tries to write an invalid frame');
+
 </script>
 </body>
 </html>

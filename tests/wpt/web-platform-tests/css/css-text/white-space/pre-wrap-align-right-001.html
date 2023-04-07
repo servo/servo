@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text test: white-space:pre-wrap vs text-align</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<meta name="assert" content="white-space at end of line must hang">
+<link rel="match" href="reference/pre-wrap-align-right-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.test {
+  font: 20px Ahem, monospace;
+  width: 15ch;
+  border: 1px solid gray;
+  padding: 5px;
+  white-space: pre-wrap;
+  text-align: right;
+}
+</style>
+</head>
+
+<p>The text on each line should be neatly right-aligned:</p>
+
+<div class=test>one two three four five
+six seven eight nine ten.
+un deux trois quatre cinq
+six sept huit neuf dix</div>

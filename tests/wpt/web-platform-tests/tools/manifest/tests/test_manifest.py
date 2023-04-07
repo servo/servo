@@ -121,8 +121,8 @@ def manifest_tree(draw):
     return output
 
 
-@pytest.mark.skipif(sys.version_info.major == 3 and sys.version_info.minor == 10,
-                    reason="Deadlock on shutdown with Python 3.10")
+@pytest.mark.skipif(sys.version_info[:3] in ((3, 10, 10), (3, 11, 2)),
+                    reason="https://github.com/python/cpython/issues/102126")
 @h.given(manifest_tree())
 # FIXME: Workaround for https://github.com/web-platform-tests/wpt/issues/22758
 @h.settings(suppress_health_check=(h.HealthCheck.too_slow,))
@@ -142,8 +142,8 @@ def test_manifest_to_json(s):
     assert loaded.to_json() == json_str
 
 
-@pytest.mark.skipif(sys.version_info.major == 3 and sys.version_info.minor == 10,
-                    reason="Deadlock on shutdown with Python 3.10")
+@pytest.mark.skipif(sys.version_info[:3] in ((3, 10, 10), (3, 11, 2)),
+                    reason="https://github.com/python/cpython/issues/102126")
 @h.given(manifest_tree())
 # FIXME: Workaround for https://github.com/web-platform-tests/wpt/issues/22758
 @h.settings(suppress_health_check=(h.HealthCheck.too_slow,))

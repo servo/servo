@@ -253,6 +253,14 @@ function test_image_type_parsing() {
   );
   test_invalid_value_variants(
     'background-image',
+    "image-set(url(example.png) type('image/png' 'image/png'))"
+  );
+  test_invalid_value_variants(
+    'background-image',
+    "image-set(url(example.png) type(url('image/png')))"
+  );
+  test_invalid_value_variants(
+    'background-image',
     "image-set(url(example.png) 1xtype('image/png'))"
   );
   test_invalid_value_variants(

@@ -1,16 +1,59 @@
 <!doctype html>
 <title>Support for the :user-invalid pseudo-class</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
 <link rel="help" href="https://drafts.csswg.org/selectors/#user-pseudos">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<input value="bar" pattern="foo">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+input {
+  border: 2px solid black;
+}
+
+input:user-valid {
+  border-color: green;
+}
+
+input:user-invalid {
+  border-color: red;
+}
+</style>
+
+<input id="initially-invalid" type="email" value="foo">
+
 <script>
-test(() => {
-  const input = document.querySelector('input');
+promise_test(async () => {
+  const input = document.querySelector("#initially-invalid");
   assert_false(input.validity.valid, "Should be invalid");
   // The selector can't match because no interaction has happened.
   assert_false(input.matches(':user-invalid'));
-}, ':user-invalid selector should be supported');
+
+  assert_false(input.matches(":user-valid"), "Initially does not match :user-valid");
+  assert_false(input.matches(":user-invalid"), "Initially does not match :user-invalid");
+
+  await test_driver.click(input);
+  input.blur();
+
+  assert_false(input.matches(":user-valid"), "No change happened, still does not match :user-valid");
+  assert_false(input.matches(":user-invalid"), "No change happened, still does not match :user-invalid");
+
+  await test_driver.click(input);
+  await test_driver.send_keys(input, "not an email");
+  input.blur();
+
+  assert_true(input.matches(":user-invalid"), "Typed an invalid email, :user-invalid now matches");
+  assert_false(input.matches(":user-valid"), "Typed an invalid email, :user-valid does not match");
+
+  input.value = "";
+  await test_driver.click(input);
+  await test_driver.send_keys(input, "test@example.com");
+  input.blur();
+
+  assert_true(input.matches(":user-valid"), "Put a valid email, :user-valid now matches");
+  assert_false(input.matches(":user-invalid"), "Put an valid email, :user-invalid no longer matches");
+}, ':user-invalid selector should respond to user action');
 
 // historical: https://github.com/w3c/csswg-drafts/issues/1329
 test(() => {

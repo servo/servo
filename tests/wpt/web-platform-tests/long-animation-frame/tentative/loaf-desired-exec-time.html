@@ -14,6 +14,8 @@
 <div id="log"></div>
 <script>
 
+const INTERNAL_OVERHEAD_DELAY_EPSILON = 5;
+
 promise_test(async t => {
   const button = document.createElement("button");
   button.innerText = "Click";
@@ -53,8 +55,8 @@ promise_test(async t => {
     timeAfterSetup = performance.now();
   });
   const entry = await entryPromise;
-  const script = entry.scripts.find(s => s.name === "Window.setTimeout");
-  assert_greater_than_equal(script.desiredExecutionStart, timeBeforeSetup + delay);
+  const script = entry.scripts.find(s => s.name === "TimerHandler:setTimeout");
+  assert_greater_than_equal(script.desiredExecutionStart, timeBeforeSetup + delay - 5);
   assert_less_than_equal(script.desiredExecutionStart, timeAfterSetup + delay);
 }, "desiredExecutionStart for setTimeout should be the setup time + delay");
 
@@ -70,7 +72,7 @@ promise_test(async t => {
     timeAfterSetup = performance.now();
   });
   const entry = await entryPromise;
-  const script = entry.scripts.find(s => s.name === "Scheduler.postTask");
+  const script = entry.scripts.find(s => s.name === "SchedulerPostTaskCallback");
   assert_greater_than_equal(script.desiredExecutionStart, timeBeforeSetup);
   assert_less_than_equal(script.desiredExecutionStart, timeAfterSetup);
 }, "desiredExecutionStart for Scheduler.postTask should be the time it was called");
@@ -80,7 +82,7 @@ promise_test(async t => {
   const rafPromise = new Promise(resolve => {
     // We fire two rAFs to ensure both of them receive the same
     // desiredExecutionStart
-    requestAnimationFrame(rafTime => {
+  requestAnimationFrame(rafTime => {
       busy_wait();
     })
     requestAnimationFrame(rafTime => {
@@ -91,11 +93,11 @@ promise_test(async t => {
   const entry = await entryPromise;
   const rafTime = await rafPromise;
   const scripts = entry.scripts.filter(
-    s => s.name === "Window.requestAnimationFrame");
+    s => s.name === "FrameRequestCallback");
   for (const script of scripts) {
-    assert_approx_equals(script.desiredExecutionStart, rafTime, 5);
+    assert_approx_equals(script.desiredExecutionStart, rafTime, INTERNAL_OVERHEAD_DELAY_EPSILON);
   }
-  assert_approx_equals(entry.desiredRenderStart, rafTime, 5);
+  assert_approx_equals(entry.desiredRenderStart, rafTime, INTERNAL_OVERHEAD_DELAY_EPSILON);
 }, "desiredExecutionStart & desiredRenderStart for requestAnimationFrame " +
    "should be the same as the rAF argument");
 
@@ -113,7 +115,7 @@ promise_test(async t => {
     timeAfterWait = performance.now();
   }), 0);
   const [entry, rafTime] = await Promise.all([entryPromise, rafPromise]);
-  assert_approx_equals(entry.desiredRenderStart, rafTime, 5);
+  assert_approx_equals(entry.desiredRenderStart, rafTime, INTERNAL_OVERHEAD_DELAY_EPSILON);
 }, "desiredRenderStart and renderStart should reflect main thread delays");
 </script>
 </body>

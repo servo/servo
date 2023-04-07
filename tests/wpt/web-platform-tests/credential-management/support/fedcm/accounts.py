@@ -10,6 +10,8 @@ def main(request, response):
   if request.headers.get(b"Origin"):
     return (534, [], "Should not have Origin")
 
+  response.headers.set(b"Content-Type", b"application/json")
+
   return """
 {
  "accounts": [{

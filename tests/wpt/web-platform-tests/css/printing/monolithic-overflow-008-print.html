@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1402540">
+<link rel="match" href="reference/monolithic-overflow-4-pages-print-ref.html">
+<style>
+  body { margin: 0; }
+</style>
+<div style="display:grid; background:yellow;">
+  <div>
+    <div style="contain:size; height:350vh; width:50px; background:hotpink;"></div>
+    Yellow background, page 4.
+  </div>
+</div>
+White background, page 4. There should be a hotpink rectangle inside a yellow
+block, starting at the first page, and ending right before the first piece of
+text.

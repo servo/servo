@@ -60,14 +60,14 @@
     container.scrollLeft = 750;
     await waitForNextFrame();
 
-    // auto ==> cover 0% to cover 100%
+    // normal ==> cover 0% to cover 100%
     // cover 0% @ 600px
     // cover 100% @ 900px
     // expected opacity = (750 - 600) / (900 - 600) = 0.5
-    assert_equals(anim.rangeStart, 'auto', 'Initial value for rangeStart');
-    assert_equals(anim.rangeEnd, 'auto', 'Initial value for rangeEnd');
+    assert_equals(anim.rangeStart, 'normal', 'Initial value for rangeStart');
+    assert_equals(anim.rangeEnd, 'normal', 'Initial value for rangeEnd');
     assert_equals(getComputedStyle(target).opacity, '0.5',
-                  'Opacity with range set to [auto, auto]');
+                  'Opacity with range set to [normal, normal]');
 
     // contain 0% @ 700px
     // cover 100% @ 900px
@@ -103,18 +103,18 @@
         parseFloat(getComputedStyle(target).opacity), 0.739130, 1e-6,
         'opacity with range set to [entry -20px, exit-crossing 10%]');
 
-    // auto [start] @ 600px
+    // normal [start] @ 600px
     // contain 100% @ 800px
     // expected opacity = (750 - 600) / (800 - 600) = 0.75
-    anim.rangeStart = "auto";
+    anim.rangeStart = "normal";
     anim.rangeEnd = "contain calc(60% + 40%)";
-    assert_equals(anim.rangeStart, 'auto','rangeStart set to auto');
+    assert_equals(anim.rangeStart, 'normal','rangeStart set to normal');
     assert_timeline_offset(
         anim.rangeEnd,
         { rangeName: 'contain', offset: CSS.percent(100) },
         'rangeEnd set to contain 100%');
     assert_equals(getComputedStyle(target).opacity, '0.75',
-                  'opacity with range set to [auto, contain 100%]');
+                  'opacity with range set to [normal, contain 100%]');
   }, 'Getting and setting the animation range');
 </script>
 </html>

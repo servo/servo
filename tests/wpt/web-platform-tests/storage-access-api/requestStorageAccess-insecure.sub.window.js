@@ -13,7 +13,7 @@
 const {testPrefix, topLevelDocument} = processQueryParams();
 
 // Common tests to run in all frames.
-test(() => {
+promise_test(async () => {
   assert_not_equals(document.requestStorageAccess, undefined);
 }, "[" + testPrefix + "] document.requestStorageAccess() should exist on the document interface");
 
@@ -30,14 +30,14 @@ if (topLevelDocument) {
   promise_test(t => {
     const description = "document.requestStorageAccess() call in a detached frame";
     // Can't use `promise_rejects_dom` here, since the error comes from the wrong global.
-    return RunRequestStorageAccessInDetachedFrame()
+    return CreateDetachedFrame().requestStorageAccess()
       .then(t.unreached_func("Should have rejected: " + description), (e) => {
         assert_equals(e.name, 'InvalidStateError', description);
       });
   }, "[non-fully-active] document.requestStorageAccess() should reject when run in a detached frame");
 
   promise_test(t => {
-    return promise_rejects_dom(t, 'InvalidStateError', RunRequestStorageAccessViaDomParser(),
+    return promise_rejects_dom(t, 'InvalidStateError', CreateDocumentViaDOMParser().requestStorageAccess(),
      "document.requestStorageAccess() in a detached DOMParser result");
   }, "[non-fully-active] document.requestStorageAccess() should reject when run in a detached DOMParser document");
 

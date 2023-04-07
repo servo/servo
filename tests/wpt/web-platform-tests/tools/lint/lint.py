@@ -1134,7 +1134,7 @@ file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_me
 try:
     subprocess.check_output(["git", "--version"])
     all_paths_lints += [check_git_ignore]
-except subprocess.CalledProcessError:
+except (subprocess.CalledProcessError, FileNotFoundError):
     print('No git present; skipping .gitignore lint.')
 
 if __name__ == "__main__":

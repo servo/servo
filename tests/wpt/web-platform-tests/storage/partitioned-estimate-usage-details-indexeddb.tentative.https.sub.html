@@ -46,14 +46,16 @@
         return;
 
       let db;
-      test.step(async () => {
-        details.init = await usageDetails();
-        db = await createSomeUsage(test);
-        details.after = await usageDetails();
-        assert_greater_than(details.after, details.init);
+      window.addEventListener("message", test.step_func(async event => {
+        if (event.data === "iframe-is-ready") {
+          details.init = await usageDetails();
+          db = await createSomeUsage(test);
+          details.after = await usageDetails();
+          assert_greater_than(details.after, details.init);
 
-        iframe.contentWindow.postMessage("get-details", iframe.origin);
-      });
+          iframe.contentWindow.postMessage("get-details", iframe.origin);
+        }
+      }));
 
       window.addEventListener("message", test.step_func(event => {
         if (event.data.source === "same-site") {

@@ -242,7 +242,11 @@ async function tryDecompress(input, format) {
       }
       out = out.concat(Array.from(value));
     } catch (e) {
-      return { result: 'error' };
+      if (e instanceof TypeError) {
+        return { result: 'error' };
+      } else {
+        return { result: e.name };
+      }
     }
   }
   const expectedOutput = 'expected output';
@@ -297,3 +301,18 @@ for (const { format, baseInput, fields } of expectations) {
     }
   }
 }
+
+promise_test(async () => {
+  // Data generated in Python:
+  // ```py
+  // h = b"thequickbrownfoxjumped\x00"
+  // words = h.split()
+  // zdict = b''.join(words)
+  // co = zlib.compressobj(zdict=zdict)
+  // cd = co.compress(h) + co.flush()
+  // ```
+  const { result } = await tryDecompress(new Uint8Array([
+    0x78, 0xbb, 0x74, 0xee, 0x09, 0x59, 0x2b, 0xc1, 0x2e, 0x0c, 0x00, 0x74, 0xee, 0x09, 0x59
+  ]), 'deflate');
+  assert_equals(result, 'error', 'Data compressed with a dictionary should throw TypeError');
+}, 'the deflate input compressed with dictionary should give an error')

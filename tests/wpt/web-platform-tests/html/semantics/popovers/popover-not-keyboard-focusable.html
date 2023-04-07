@@ -24,12 +24,12 @@ promise_test(async () => {
   b1.focus();
   assert_equals(document.activeElement,b1);
   popover.showPopover();
-  assert_true(popover.matches(':open'));
+  assert_true(popover.matches(':popover-open'));
   assert_equals(document.activeElement,b1);
   // Tab once
   await new test_driver.send_keys(document.body,'\uE004'); // Tab
   assert_equals(document.activeElement, b2, 'Keyboard focus should skip the open popover');
-  assert_true(popover.matches(':open'),'changing focus should not close the popover');
+  assert_true(popover.matches(':popover-open'),'changing focus should not close the popover');
   popover.hidePopover();
 
   // Add a focusable button to the popover and make sure we can focus that
@@ -41,8 +41,8 @@ promise_test(async () => {
   // Tab once
   await new test_driver.send_keys(document.body,'\uE004'); // Tab
   assert_equals(document.activeElement, button, 'Keyboard focus should go to the contained button');
-  assert_true(popover.matches(':open'),'changing focus to the popover should leave it showing');
+  assert_true(popover.matches(':popover-open'),'changing focus to the popover should leave it showing');
   popover.hidePopover();
-  assert_false(popover.matches(':open'));
+  assert_false(popover.matches(':popover-open'));
 }, "Popover should not be keyboard focusable");
 </script>

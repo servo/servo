@@ -19,7 +19,8 @@
     width: 200px;
     height: 200px;
   }
-  #target {
+  /* Reset specificity to allow animation-range-* from .restrict-range to win. */
+  :where(#target) {
     margin: 800px 0px;
     width: 100px;
     height: 100px;

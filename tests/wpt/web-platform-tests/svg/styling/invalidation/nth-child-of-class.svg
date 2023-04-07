@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait">
   <title>CSS Selectors Invalidation: :nth-child(... of class) in SVG</title>
   <h:link rel="match" href="nth-child-of-class-ref.svg"/>
   <h:link rel="help" href="https://drafts.csswg.org/selectors-4/#nth-child-pseudo"/>

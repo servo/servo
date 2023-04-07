@@ -1161,10 +1161,13 @@
     pc1.getTransceivers()[1].direction = "sendrecv";
     offer = await pc1.createOffer();
     await pc2.setRemoteDescription(offer);
-    await pc1.setLocalDescription(offer);
-    answer = await pc2.createAnswer();
+    // Set these up before sLD, since that sets [[Receptive]] to true, which
+    // could allow an unmute to occur from a packet that was sent before we
+    // negotiated inactive!
     gotUnmuteAudio1 = gotUnmuteEvent(pc1.getTransceivers()[0].receiver.track);
     gotUnmuteVideo1 = gotUnmuteEvent(pc1.getTransceivers()[1].receiver.track);
+    await pc1.setLocalDescription(offer);
+    answer = await pc2.createAnswer();
     gotUnmuteAudio2 = gotUnmuteEvent(pc2.getTransceivers()[0].receiver.track);
     gotUnmuteVideo2 = gotUnmuteEvent(pc2.getTransceivers()[1].receiver.track);
     await pc1.setRemoteDescription(answer);

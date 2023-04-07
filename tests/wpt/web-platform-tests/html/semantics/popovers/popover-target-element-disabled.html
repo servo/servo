@@ -12,9 +12,9 @@
 test(() => {
   outerpopover.showPopover();
   innerpopover.showPopover();
-  assert_true(innerpopover.matches(':open'),
+  assert_true(innerpopover.matches(':popover-open'),
     'The inner popover should be able to open successfully.');
-  assert_false(outerpopover.matches(':open'),
+  assert_false(outerpopover.matches(':popover-open'),
     'The outer popover should be closed by opening the inner one.');
 }, 'Disabled popover*target buttons should not affect the popover heirarchy.');
 </script>
@@ -27,15 +27,15 @@ test(() => {
 test(() => {
   outerpopover2.showPopover();
   innerpopover2.showPopover();
-  assert_true(innerpopover2.matches(':open'),
+  assert_true(innerpopover2.matches(':popover-open'),
     'The inner popover should be able to open successfully.');
-  assert_true(outerpopover2.matches(':open'),
+  assert_true(outerpopover2.matches(':popover-open'),
     'The outer popover should stay open when opening the inner one.');
 
   togglebutton2.disabled = true;
-  assert_false(innerpopover2.matches(':open'),
+  assert_false(innerpopover2.matches(':popover-open'),
     'The inner popover should be closed when the hierarchy is broken.');
-  assert_false(outerpopover2.matches(':open'),
+  assert_false(outerpopover2.matches(':popover-open'),
     'The outer popover should be closed when the hierarchy is broken.');
 }, 'Disabling popover*target buttons when popovers are open should still cause all popovers to be closed when the formerly outer popover is closed.');
 </script>
@@ -48,15 +48,15 @@ test(() => {
 test(() => {
   outerpopover3.showPopover();
   innerpopover3.showPopover();
-  assert_true(innerpopover3.matches(':open'),
+  assert_true(innerpopover3.matches(':popover-open'),
     'The inner popover should be able to open successfully.');
-  assert_true(outerpopover3.matches(':open'),
+  assert_true(outerpopover3.matches(':popover-open'),
     'The outer popover should stay open when opening the inner one.');
 
   togglebutton3.disabled = true;
-  assert_false(innerpopover3.matches(':open'),
+  assert_false(innerpopover3.matches(':popover-open'),
     'The inner popover be should be closed when the hierarchy is broken.');
-  assert_false(outerpopover3.matches(':open'),
+  assert_false(outerpopover3.matches(':popover-open'),
     'The outer popover be should be closed when the hierarchy is broken.');
 }, 'Disabling popover*target buttons when popovers are open should still cause all popovers to be closed when the formerly inner popover is closed.');
 </script>
@@ -70,15 +70,15 @@ test(() => {
 test(() => {
   outerpopover4.showPopover();
   innerpopover4.showPopover();
-  assert_true(innerpopover4.matches(':open'),
+  assert_true(innerpopover4.matches(':popover-open'),
     'The inner popover should be able to open successfully.');
-  assert_true(outerpopover4.matches(':open'),
+  assert_true(outerpopover4.matches(':popover-open'),
     'The outer popover should stay open when opening the inner one.');
 
   togglebutton4.setAttribute('form', 'submitform');
-  assert_false(innerpopover4.matches(':open'),
+  assert_false(innerpopover4.matches(':popover-open'),
     'The inner popover be should be closed when the hierarchy is broken.');
-  assert_false(outerpopover4.matches(':open'),
+  assert_false(outerpopover4.matches(':popover-open'),
     'The outer popover be should be closed when the hierarchy is broken.');
 }, 'Setting the form attribute on popover*target buttons when popovers are open should close all popovers.');
 </script>
@@ -91,15 +91,15 @@ test(() => {
 test(() => {
   outerpopover5.showPopover();
   innerpopover5.showPopover();
-  assert_true(innerpopover5.matches(':open'),
+  assert_true(innerpopover5.matches(':popover-open'),
     'The inner popover should be able to open successfully.');
-  assert_true(outerpopover5.matches(':open'),
+  assert_true(outerpopover5.matches(':popover-open'),
     'The outer popover should stay open when opening the inner one.');
 
   togglebutton5.setAttribute('type', 'text');
-  assert_false(innerpopover5.matches(':open'),
+  assert_false(innerpopover5.matches(':popover-open'),
     'The inner popover be should be closed when the hierarchy is broken.');
-  assert_false(outerpopover5.matches(':open'),
+  assert_false(outerpopover5.matches(':popover-open'),
     'The outer popover be should be closed when the hierarchy is broken.');
 }, 'Changing the input type on a popover*target button when popovers are open should close all popovers.');
 </script>
@@ -112,15 +112,15 @@ test(() => {
 test(() => {
   outerpopover6.showPopover();
   innerpopover6.showPopover();
-  assert_true(innerpopover6.matches(':open'),
+  assert_true(innerpopover6.matches(':popover-open'),
     'The inner popover should be able to open successfully.');
-  assert_true(outerpopover6.matches(':open'),
+  assert_true(outerpopover6.matches(':popover-open'),
     'The outer popover should stay open when opening the inner one.');
 
   togglebutton6.remove();
-  assert_false(innerpopover6.matches(':open'),
+  assert_false(innerpopover6.matches(':popover-open'),
     'The inner popover be should be closed when the hierarchy is broken.');
-  assert_false(outerpopover6.matches(':open'),
+  assert_false(outerpopover6.matches(':popover-open'),
     'The outer popover be should be closed when the hierarchy is broken.');
 }, 'Disconnecting popover*target buttons when popovers are open should close all popovers.');
 </script>
@@ -133,15 +133,15 @@ test(() => {
 test(() => {
   outerpopover7.showPopover();
   innerpopover7.showPopover();
-  assert_true(innerpopover7.matches(':open'),
+  assert_true(innerpopover7.matches(':popover-open'),
     'The inner popover should be able to open successfully.');
-  assert_true(outerpopover7.matches(':open'),
+  assert_true(outerpopover7.matches(':popover-open'),
     'The outer popover should stay open when opening the inner one.');
 
   togglebutton7.setAttribute('popovertarget', 'otherpopover7');
-  assert_false(innerpopover7.matches(':open'),
+  assert_false(innerpopover7.matches(':popover-open'),
     'The inner popover be should be closed when the hierarchy is broken.');
-  assert_false(outerpopover7.matches(':open'),
+  assert_false(outerpopover7.matches(':popover-open'),
     'The outer popover be should be closed when the hierarchy is broken.');
 }, 'Changing the popovertarget attribute to break the chain should close all popovers.');
 </script>
@@ -158,19 +158,19 @@ test(() => {
   outerpopover8.showPopover();
   middlepopover8.showPopover();
   innerpopover8.showPopover();
-  assert_true(innerpopover8.matches(':open'),
+  assert_true(innerpopover8.matches(':popover-open'),
     'The inner popover should be able to open successfully.');
-  assert_true(middlepopover8.matches(':open'),
+  assert_true(middlepopover8.matches(':popover-open'),
     'The middle popover should stay open when opening the inner one.');
-  assert_true(outerpopover8.matches(':open'),
+  assert_true(outerpopover8.matches(':popover-open'),
     'The outer popover should stay open when opening the inner one.');
 
   togglebutton8.setAttribute('popovertarget', 'otherpopover8');
-  assert_true(innerpopover8.matches(':open'),
+  assert_true(innerpopover8.matches(':popover-open'),
     'The inner popover should remain open.');
-  assert_true(middlepopover8.matches(':open'),
+  assert_true(middlepopover8.matches(':popover-open'),
     'The middle popover should remain open.');
-  assert_true(outerpopover8.matches(':open'),
+  assert_true(outerpopover8.matches(':popover-open'),
     'The outer popover should remain open.');
 }, `Modifying popovertarget on a button which doesn't break the chain shouldn't close any popovers.`);
 </script>

@@ -1,8 +1,17 @@
+"use strict;"
+
 const FULL_URL = window.location.href;
 const BASE_URL = FULL_URL.substring(0, FULL_URL.lastIndexOf('/') + 1);
 const BASE_PATH = (new URL(BASE_URL)).pathname;
 
 const DEFAULT_INTEREST_GROUP_NAME = 'default name';
+
+// Unlike other URLs, the trustedBiddingSignalsUrl can't have a query string
+// that's set by tests, since FLEDGE controls it entirely, so tests that
+// exercise it use a fixed URL string. Special keys and interest group names
+// control the response.
+const TRUSTED_BIDDING_SIGNALS_URL =
+    `${BASE_URL}resources/trusted-bidding-signals.py`;
 
 // Creates a URL that will be sent to the URL request tracker script.
 // `uuid` is used to identify the stash shard to use.
@@ -10,7 +19,7 @@ const DEFAULT_INTEREST_GROUP_NAME = 'default name';
 // `id` can be used to uniquely identify tracked requests. It has no effect
 //     on behavior of the script; it only serves to make the URL unique.
 function createTrackerUrl(origin, uuid, dispatch, id = null) {
-  let url = new URL(`${origin}${BASE_PATH}resources/request_tracker.py`);
+  let url = new URL(`${origin}${BASE_PATH}resources/request-tracker.py`);
   url.searchParams.append('uuid', uuid);
   url.searchParams.append('dispatch', dispatch);
   if (id)
@@ -82,7 +91,7 @@ async function waitForObservedRequests(uuid, expectedRequests) {
 
     // Fail on errors reported by the tracker script.
     if (trackerData.errors.length > 0) {
-      throw 'Errors reported by request_tracker.py:' +
+      throw 'Errors reported by request-tracker.py:' +
           JSON.stringify(trackerData.errors);
     }
 
@@ -208,6 +217,7 @@ async function runBasicFledgeAuction(test, uuid, auctionConfigOverrides = {}) {
         uuid,
         { reportResult: `sendReportTo('${createSellerReportUrl(uuid)}');` }),
     interestGroupBuyers: [window.location.origin],
+    resolveToConfig: true,
     ...auctionConfigOverrides
   };
   return await navigator.runAdAuction(auctionConfig);
@@ -219,15 +229,27 @@ async function runBasicFledgeAuction(test, uuid, auctionConfigOverrides = {}) {
 // fenced frame to finish loading, since there's no API that can do that.
 async function runBasicFledgeAuctionAndNavigate(test, uuid,
                                                 auctionConfigOverrides = {}) {
-  let url = await runBasicFledgeAuction(test, uuid, auctionConfigOverrides);
-  assert_equals(typeof url, 'string',
-                `Wrong value type returned from auction: ${typeof url}`);
+  let config = await runBasicFledgeAuction(test, uuid, auctionConfigOverrides);
+  assert_true(config instanceof FencedFrameConfig,
+      `Wrong value type returned from auction: ${config.constructor.type}`);
 
   let fencedFrame = document.createElement('fencedframe');
   fencedFrame.mode = 'opaque-ads';
-  fencedFrame.src = url;
+  fencedFrame.config = config;
   document.body.appendChild(fencedFrame);
   test.add_cleanup(() => { document.body.removeChild(fencedFrame); });
+}
+
+// Joins an interest group and runs an auction, expecting a winner to be
+// returned. "testConfig" can optionally modify the interest group or
+// auctionConfig.
+async function runBasicFledgeTestExpectingWinner(test, testConfig = {}) {
+  const uuid = generateUuid(test);
+  await joinInterestGroup(test, uuid, testConfig.interestGroupOverrides);
+  let config = await runBasicFledgeAuction(
+      test, uuid, testConfig.auctionConfigOverrides);
+  assert_true(config instanceof FencedFrameConfig,
+      `Wrong value type returned from auction: ${config.constructor.type}`);
 }
 
 // Joins an interest group and runs an auction, expecting no winner to be

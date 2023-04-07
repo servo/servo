@@ -53,17 +53,36 @@ iframeTest(SCOPE + '?stream&use-fetch-stream', (t, iwin) => {
   assert_equals(iwin.document.body.textContent, 'PASS\n');
 }, 'Main resource built from a ReadableStream - fetch stream');
 
-iframeTest(SCOPE, async (t, iwin) => {
-  const id = token();
-  let response = await iwin.fetch('?stream&observe-cancel&id=${id}');
-  response.body.cancel();
+for (const enqueue of [true, false]) {
+  const withStream = enqueue ? 'with nonempty stream' : 'with empty stream';
+  iframeTest(SCOPE, async (t, iwin) => {
+    const id = token();
+    let response = await iwin.fetch(`?stream&observe-cancel&id=${id}&enqueue=${enqueue}`);
+    response.body.cancel();
 
-  // Wait for a while to avoid a race between the cancel handling and the
-  // second fetch request.
-  await new Promise(r => step_timeout(r, 10));
+    // Wait for a while to avoid a race between the cancel handling and the
+    // second fetch request.
+    await new Promise(r => step_timeout(r, 10));
 
-  response = await iwin.fetch('?stream&query-cancel&id=${id}');
-  assert_equals(await response.text(), 'cancelled');
-}, 'Cancellation in the page should be observable in the service worker');
+    response = await iwin.fetch(`?stream&query-cancel&id=${id}`);
+    assert_equals(await response.text(), 'cancelled');
+  }, `Cancellation in the page should be observable in the service worker ${withStream}`);
+
+  iframeTest(SCOPE, async (t, iwin) => {
+    const id = token();
+    const controller = new AbortController();
+    let response = await iwin.fetch(`?stream&observe-cancel&id=${id}&enqueue=${enqueue}`, {
+      signal: controller.signal
+    });
+    controller.abort();
+
+    // Wait for a while to avoid a race between the cancel handling and the
+    // second fetch request.
+    await new Promise(r => step_timeout(r, 10));
+
+    response = await iwin.fetch(`?stream&query-cancel&id=${id}`);
+    assert_equals(await response.text(), 'cancelled');
+  }, `Abort in the page should be observable in the service worker ${withStream}`);
+}
 
 </script>

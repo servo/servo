@@ -48,6 +48,8 @@ test_computed_value('animation-timeline', 'scroll(horizontal)');
 test_computed_value('animation-timeline', 'scroll(vertical)');
 test_computed_value('animation-timeline', 'scroll(root)');
 test_computed_value('animation-timeline', 'scroll(nearest)', 'scroll()');
+test_computed_value('animation-timeline', 'scroll(self)');
+test_computed_value('animation-timeline', 'scroll(self), scroll(nearest)', 'scroll(self), scroll()');
 test_computed_value('animation-timeline', 'scroll(inline nearest)', 'scroll(inline)');
 test_computed_value('animation-timeline', 'scroll(vertical root)');
 

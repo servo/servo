@@ -3,16 +3,29 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <div id=log></div>
+<attachment></attachment>
 <applet name=war align=left></applet>
+<layer></layer>
+<nolayer></nolayer>
 <script>
 test(() => {
   assert_array_equals(document.applets, []);
 }, "document.applets is always empty");
 
+[
+  "attachment",
+  "applet",
+  "layer",
+  "nolayer"
+].forEach(name => {
+  test(() => {
+    const ap = document.getElementsByTagName(name)[0];
+    assert_true(ap instanceof window.HTMLUnknownElement);
+  }, `<${name}> is HTMLUnknownElement`);
+});
+
 test(() => {
-  const ap = document.getElementsByTagName("applet")[0];
   assert_equals(self.HTMLAppletElement, undefined);
-  assert_true(ap instanceof window.HTMLUnknownElement);
 }, "HTMLAppletElement is no more")
 
 test(() => {

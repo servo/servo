@@ -2,6 +2,8 @@
 // META: script=/common/utils.js
 // META: script=resources/fledge-util.js
 
+"use strict;"
+
 // These tests are focused on joinAdInterestGroup() and leaveAdInterestGroup().
 // Most join tests do not run auctions, but instead only check the result of
 // the returned promise, since testing that interest groups are actually
@@ -510,9 +512,10 @@ promise_test(async test => {
   // the previously joined interest group, and re-run the auction. There should
   // be a winner this time.
   await joinInterestGroup(test, uuid);
-  let url = await runBasicFledgeAuction(test, uuid);
-  assert_true('string' === typeof url,
-              'Wrong value type returned from auction: ' + typeof url);
+  let config = await runBasicFledgeAuction(test, uuid);
+  assert_true(config instanceof FencedFrameConfig,
+              'Wrong value type returned from auction: ' +
+              config.constructor.name);
 
   // Re-join the first interest group, and re-run the auction. The interest
   // group should be overwritten again, and there should be no winner.
@@ -526,9 +529,10 @@ promise_test(async test => {
 
   // Join an interest group, run an auction to make sure it was joined.
   await joinInterestGroup(test, uuid);
-  let url = await runBasicFledgeAuction(test, uuid);
-  assert_true('string' === typeof url,
-              'Wrong value type returned from auction: ' + typeof url);
+  let config = await runBasicFledgeAuction(test, uuid);
+  assert_true(config instanceof FencedFrameConfig,
+              'Wrong value type returned from auction: ' +
+              config.constructor.name);
 
   // Leave the interest group, re-run the auction. There should be no winner.
   await leaveInterestGroup();

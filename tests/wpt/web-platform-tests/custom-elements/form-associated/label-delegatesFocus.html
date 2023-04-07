@@ -30,7 +30,10 @@ window.onload = () => {
     const label = document.querySelector('label');
     const customElement = document.querySelector('my-custom-element');
     const input = customElement.shadowRoot.querySelector('input');
-    await test_driver.click(label);
+    await new Promise((resolve) => {
+      input.addEventListener("focus", resolve, {once: true});
+      test_driver.click(label);
+    });
     assert_equals(document.activeElement, customElement);
     assert_equals(customElement.shadowRoot.activeElement, input);
   }, `Clicking on a label for a form associated custom element with delegatesFocus should focus the custom element's focus delegate.`);

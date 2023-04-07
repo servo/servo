@@ -17,13 +17,13 @@
       const frame2Doc = document.getElementById('frame2').contentDocument;
       const popover = frame1Doc.querySelector('[popover]');
       assert_true(!!popover);
-      assert_false(popover.matches(':open'));
+      assert_false(popover.matches(':popover-open'));
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
       frame2Doc.body.appendChild(popover);
-      assert_false(popover.matches(':open'));
+      assert_false(popover.matches(':popover-open'));
       popover.showPopover();
-      assert_true(popover.matches(':open'));
+      assert_true(popover.matches(':popover-open'));
     }, 'Moving popover between documents shouldn\'t cause issues');
   };
 </script>
