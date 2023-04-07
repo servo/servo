@@ -131,12 +131,29 @@ class MockGitHubAPIServer():
                     return ('', 204)
             return ('', 404)
 
-        @self.app.route("/repos/<org>/<repo>/pulls", methods=['GET'])
-        def get_pulls(org, repo):
+        @self.app.route("/search/issues", methods=['GET'])
+        def search():
+            params = {}
+            param_strings = flask.request.args.get("q", "").split(" ")
+            for string in param_strings:
+                parts = string.split(":")
+                params[parts[0]] = parts[1]
+
+            assert params["is"] == "pr"
+            assert params["state"] == "open"
+            assert "author" in params
+            assert "head" in params
+            head_ref = f"{params['author']}:{params['head']}"
+
             for pull_request in self.pulls:
-                if pull_request.head == flask.request.args["head"]:
-                    return json.dumps([{"number": pull_request.number}])
-            return json.dumps([])
+                if pull_request.head == head_ref:
+                    return json.dumps({
+                        "total_count": 1,
+                        "items": [{
+                            "number": pull_request.number
+                        }]
+                    })
+            return json.dumps({"total_count": 0, "items": []})
 
         @self.app.route("/repos/<org>/<repo>/pulls", methods=['POST'])
         def create_pull_request(org, repo):

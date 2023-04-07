@@ -172,6 +172,12 @@ class CreateOrUpdateBranchForPRStep(Step):
 
             # Push the branch upstream (forcing to overwrite any existing changes).
             if not run.sync.suppress_force_push:
+
+                # In order to push to our downstream branch we need to ensure that
+                # the local repository isn't a shallow clone. Shallow clones are
+                # commonly created by GitHub actions.
+                run.sync.local_wpt_repo.run("fetch", "--unshallow", "origin")
+
                 user = run.sync.github_username
                 token = run.sync.github_api_token
                 repo = run.sync.downstream_wpt_repo
@@ -198,7 +204,11 @@ class RemoveBranchForPRStep(Step):
         self.name += f":{run.sync.downstream_wpt.get_branch(self.branch_name)}"
         logging.info("  -> Removing branch used for upstream PR")
         if not run.sync.suppress_force_push:
-            run.sync.local_wpt_repo.run("push", "origin", "--delete",
+            user = run.sync.github_username
+            token = run.sync.github_api_token
+            repo = run.sync.downstream_wpt_repo
+            remote_url = f"https://{user}:{token}@github.com/{repo}.git"
+            run.sync.local_wpt_repo.run("push", remote_url, "--delete",
                                         self.branch_name)
 
 
