@@ -845,8 +845,8 @@ install them, let us know by filing a bug!")
                 action='store_true',
                 help='Build with frame pointer enabled, used by the background hang monitor.',
             ),
-            CommandArgument('--with-layout-2020', default=None, action='store_true'),
-            CommandArgument('--with-layout-2013', default=None, action='store_true'),
+            CommandArgument('--with-layout-2020', '--layout-2020', default=None, action='store_true'),
+            CommandArgument('--with-layout-2013', '--layout-2013', default=None, action='store_true'),
             CommandArgument('--without-wgl', default=None, action='store_true'),
         ]
 
