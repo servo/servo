@@ -97,10 +97,12 @@ function test_loaf_script(cb, name, type, label) {
   promise_test(async t => {
     let [entry, script] = [];
     [entry, script] = await expect_long_frame_with_script(cb,
-      script => (script.type === type && script.duration >= very_long_frame_duration), t);
+      script => (
+        script.type === type &&
+        script.name.startsWith(name) &&
+        script.duration >= very_long_frame_duration), t);
 
     assert_true(!!entry, "Entry detected");
-    assert_equals(script.name, name);
     assert_greater_than_equal(script.duration, very_long_frame_duration);
     assert_greater_than_equal(entry.duration, script.duration);
     assert_greater_than_equal(script.executionStart, script.startTime);
@@ -112,8 +114,8 @@ function test_loaf_script(cb, name, type, label) {
 
 }
 
-function test_self_user_callback(cb, name) {
-    test_loaf_script(cb, name, "user-callback");
+function test_self_user_callback(cb, name, label) {
+    test_loaf_script(cb, name, "user-callback", label);
 }
 
 function test_self_event_listener(cb, name) {

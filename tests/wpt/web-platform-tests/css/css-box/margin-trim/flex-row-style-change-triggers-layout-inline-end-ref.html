@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<meta name="assert" content="Flex items react to change in their flexbox's margin-trim value">
+<style>
+flexbox {
+    display: flex;
+    width: min-content;
+    flex-wrap: wrap;
+    border: 1px solid black;
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+}
+.margin {
+    margin-inline-end: 10px;
+}
+</style>
+</head>
+<body>
+    <flexbox>
+        <item class="margin"></item>
+    </flexbox>
+    <flexbox>
+        <item></item>
+    </flexbox>
+</body>
+</html>

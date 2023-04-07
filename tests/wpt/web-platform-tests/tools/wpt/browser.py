@@ -201,6 +201,7 @@ class Firefox(Browser):
             ("win", "x86"): "win",
             ("win", "AMD64"): "win64",
             ("macos", "x86_64"): "osx",
+            ("macos", "arm64"): "osx",
         }
         os_key = (self.platform, uname[4])
 

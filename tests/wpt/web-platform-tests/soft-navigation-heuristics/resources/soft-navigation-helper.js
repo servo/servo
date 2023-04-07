@@ -2,6 +2,8 @@ var counter = 0;
 var clicked;
 var timestamps = []
 const MAX_CLICKS = 50;
+// Entries for one hard navigation + 50 soft navigations.
+const MAX_PAINT_ENTRIES = 51;
 const URL = "foobar.html";
 const readValue = (value, defaultValue) => {
   return value != undefined ? value : defaultValue;
@@ -41,7 +43,7 @@ const testSoftNavigation =
         await validateSoftNavigationEntry(
             clicks, extraValidations, pushUrl);
 
-        await runEntryValidations(preClickLcp);
+        await runEntryValidations(preClickLcp, clicks + 1);
       }, testName);
     };
 
@@ -49,12 +51,17 @@ const testNavigationApi = (testName, navigateEventHandler, link) => {
   promise_test(async t => {
     const preClickLcp = await getLcpEntries();
     navigation.addEventListener('navigate', navigateEventHandler);
+    const navigated = new Promise(resolve => {
+      navigation.addEventListener('navigatesuccess', resolve);
+      navigation.addEventListener('navigateerror', resolve);
+    });
     click(link);
     await new Promise(resolve => {
       (new PerformanceObserver(() => resolve())).observe({
         type: 'soft-navigation'
       });
     });
+    await navigated;
     assert_equals(document.softNavigations, 1, 'Soft Navigation detected');
     await validateSoftNavigationEntry(1, () => {}, 'foobar.html');
 
@@ -80,10 +87,9 @@ const testSoftNavigationNotDetected = options => {
     }, options.testName);
   };
 
-const runEntryValidations = async preClickLcp => {
-  await doubleRaf();
-  validatePaintEntries('first-contentful-paint');
-  validatePaintEntries('first-paint');
+const runEntryValidations = async (preClickLcp, entries_expected_number = 2) => {
+  await validatePaintEntries('first-contentful-paint', entries_expected_number);
+  await validatePaintEntries('first-paint', entries_expected_number);
   const postClickLcp = await getLcpEntries();
   const postClickLcpWithoutSoftNavs = await getLcpEntriesWithoutSoftNavs();
   assert_greater_than(
@@ -106,12 +112,6 @@ const click = link => {
     timestamps[counter] = {"syncPostClick": performance.now()};
   }
 }
-
-const doubleRaf = () => {
-  return new Promise(r => {
-    requestAnimationFrame(()=>requestAnimationFrame(r));
-  });
-};
 
 const setEvent = (t, button, pushState, addContent, pushUrl, eventType) => {
   const eventObject = (eventType == "click") ? button : window;
@@ -175,10 +175,16 @@ const validateSoftNavigationEntry = async (clicks, extraValidations,
 
 };
 
-const validatePaintEntries = async (type, entries_number = 2) => {
+const validatePaintEntries = async (type, entries_number) => {
+  const expected_entries_number = Math.min(entries_number, MAX_PAINT_ENTRIES);
   const entries = await new Promise(resolve => {
-    (new PerformanceObserver(list => resolve(
-      list.getEntriesByName(type)))).observe(
+    const entries = [];
+    (new PerformanceObserver(list => {
+      entries.push(...list.getEntriesByName(type));
+      if (entries.length >= expected_entries_number) {
+        resolve(entries);
+      }
+    })).observe(
       {type: 'paint', buffered: true, includeSoftNavigationObservations: true});
     });
   const entries_without_softnavs = await new Promise(resolve => {
@@ -186,10 +192,7 @@ const validatePaintEntries = async (type, entries_number = 2) => {
       list.getEntriesByName(type)))).observe(
       {type: 'paint', buffered: true});
     });
-  // TODO(crbug/1372997): investigate why this is not failing when multiple
-  // clicks are fired. Also, make sure the observer waits on the number of
-  // required clicks, instead of counting on double rAF.
-  assert_equals(entries.length, entries_number,
+  assert_equals(entries.length, expected_entries_number,
     `There are ${entries_number} entries for ${type}`);
   assert_equals(entries_without_softnavs.length, 1,
     `There is one non-softnav entry for ${type}`);

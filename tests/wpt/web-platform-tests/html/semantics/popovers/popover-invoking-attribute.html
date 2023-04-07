@@ -90,19 +90,19 @@ window.addEventListener('load', () => {
               document.body.appendChild(popover);
               test.add_cleanup(() => {popover.remove();});
               assert_equals(invoker.popoverTargetElement,popover,'target element should be returned once it\'s in the document');
-              assert_false(popover.matches(':open'));
+              assert_false(popover.matches(':popover-open'));
               await testcase.invokeFn(invoker);
               assert_equals(document.activeElement,invoker,'Focus should end up on the invoker');
               expectedBehavior = testcase.getExpectedLogic(action);
               switch (expectedBehavior) {
                 case "toggle":
                 case "show":
-                  assert_true(popover.matches(':open'),'Toggle or show should show the popover');
+                  assert_true(popover.matches(':popover-open'),'Toggle or show should show the popover');
                   popover.hidePopover(); // Hide the popover
                   break;
                 case "hide":
                 case "none":
-                  assert_false(popover.matches(':open'),'Hide or none should leave the popover hidden');
+                  assert_false(popover.matches(':popover-open'),'Hide or none should leave the popover hidden');
                   break;
                 default:
                   assert_unreached();
@@ -112,18 +112,18 @@ window.addEventListener('load', () => {
                 // a control that has no expected behavior may hide an open popover via light dismiss.
                 return;
               }
-              assert_false(popover.matches(':open'));
+              assert_false(popover.matches(':popover-open'));
               popover.showPopover(); // Show the popover directly
               assert_equals(document.activeElement,invoker,'The popover should not shift focus');
-              assert_true(popover.matches(':open'));
+              assert_true(popover.matches(':popover-open'));
               await testcase.invokeFn(invoker);
               switch (expectedBehavior) {
                 case "toggle":
                 case "hide":
-                  assert_false(popover.matches(':open'),'Toggle or hide should hide the popover');
+                  assert_false(popover.matches(':popover-open'),'Toggle or hide should hide the popover');
                   break;
                 case "show":
-                  assert_true(popover.matches(':open'),'Show should leave the popover showing');
+                  assert_true(popover.matches(':popover-open'),'Show should leave the popover showing');
                   break;
                 default:
                   assert_unreached();
@@ -163,7 +163,7 @@ popover.addEventListener('beforetoggle',(e) => {
   });
 
 async function assertState(expectOpen,expectShow,expectHide) {
-  assert_equals(popover.matches(':open'),expectOpen,'Popover open state is incorrect');
+  assert_equals(popover.matches(':popover-open'),expectOpen,'Popover open state is incorrect');
   await new Promise(resolve => requestAnimationFrame(resolve));
   assert_equals(showCount,expectShow,'Show count is incorrect');
   assert_equals(hideCount,expectHide,'Hide count is incorrect');

@@ -69,6 +69,7 @@
         ('xor',              '1-aB', '1-aA'),
         ('copy',             '1',    '0'),
         ('lighter',          '1',    '1'),
+        ('clear',            '0',    '0'),
     ]
 
     # The ones that change the output when src = (0,0,0,0):

@@ -24,7 +24,7 @@ const examples = [
     createElement: () => Object.assign(document.createElement('div'), {popover: 'auto'}),
     trigger: function() {this.element.showPopover()},
     close: function() {this.element.hidePopover()},
-    isTopLayer: function() {return this.element.matches(':open')},
+    isTopLayer: function() {return this.element.matches(':popover-open')},
   },
   {
     type: types.modalDialog,

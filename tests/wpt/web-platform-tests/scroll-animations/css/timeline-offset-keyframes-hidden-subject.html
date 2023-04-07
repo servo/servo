@@ -68,15 +68,17 @@
 
       let frames = anim.effect.getKeyframes();
       let expected_resolved_offsets = [
-        { offset: -1/3, computedOffset: -1/3, easing: "linear",
-          composite: "auto", marginLeft: "0px" },
         { offset:  0, computedOffset: 0, easing: "linear", composite: "replace",
           marginRight: "10px", opacity: "1" },
         { offset: 1/2, computedOffset: 1/2, easing: "linear",
           composite: "auto", opacity: "0.5" },
         { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
           marginLeft: "10px", opacity: "1" },
-        { offset: 4/3, computedOffset: 4/3, easing: "linear", composite: "auto",
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: -1/3, easing: "linear",
+          composite: "auto", marginLeft: "0px" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: 4/3, easing: "linear", composite: "auto",
           marginRight: "0px" },
       ];
       assert_frame_lists_equal(frames, expected_resolved_offsets,
@@ -92,7 +94,13 @@
         { offset: 0.5, computedOffset: 0.5, opacity: "0.5", easing: "linear",
           composite: "auto", },
         { offset: 1, computedOffset: 1, opacity: "1", easing: "linear",
-          composite: "replace" }
+          composite: "replace" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: null, easing: "linear",
+          composite: "auto", marginLeft: "0px" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginRight: "0px" }
       ];
       assert_frame_lists_equal(frames, expected_unresolved_offsets,
                                'Keyframes with invalid view timeline');

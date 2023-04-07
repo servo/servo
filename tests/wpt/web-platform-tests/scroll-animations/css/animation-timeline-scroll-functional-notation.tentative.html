@@ -113,6 +113,24 @@ promise_test(async t => {
 }, 'animation-timeline: scroll(root)');
 
 promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, 'block-content');
+  container.style.animation = "anim 10s linear";
+  container.style.animationTimeline = "scroll(self)";
+
+  await scrollTop(container, 50);
+  assert_equals(getComputedStyle(container).translate, '100px');
+}, 'animation-timeline: scroll(self)');
+
+promise_test(async t => {
+  let [container, div] = createTargetWithStuff(t, 'block-content');
+  div.style.animation = "anim 10s linear";
+  div.style.animationTimeline = "scroll(self)";
+
+  await scrollTop(container, 50);
+  assert_equals(getComputedStyle(div).translate, 'none');
+}, 'animation-timeline: scroll(self), on non-scroller');
+
+promise_test(async t => {
   let [container, div] = createTargetWithStuff(t, 'inline-content');
   div.style.animation = "anim 10s linear";
   div.style.animationTimeline = "scroll(inline)";

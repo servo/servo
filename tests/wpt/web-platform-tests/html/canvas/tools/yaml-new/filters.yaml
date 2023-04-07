@@ -154,8 +154,14 @@
     @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 0], 0]});
     @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 0], [0, Infinity]]});
     @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: []});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [1]});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [1, 2, 3, 4]});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[], []]});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1, 2], []]});
+    @assert throws TypeError new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[], [1, 2]]});
     // This should not throw an error
     ctx.filter = new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[]]});
+    ctx.filter = new CanvasFilter({filter: "convolveMatrix", kernelMatrix: [[1]]});
 
 - name: 2d.filter.canvasFilterObject.componentTransfer.linear.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with linear type
@@ -341,6 +347,169 @@
         _assertPixelApprox(canvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, 2);
     }
 
+- name: 2d.filter.canvasFilterObject.dropShadow.tentative
+  desc: Test CanvasFilter() dropShadow object.
+  size: 620, 320
+  code: |
+    ctx.fillStyle = 'teal';
+    ctx.fillRect(0, 0, 620, 50);
+    ctx.fillRect(0, 100, 620, 50);
+    ctx.fillRect(0, 200, 620, 50);
+
+    ctx.fillStyle = 'crimson';
+
+    // Parameter defaults.
+    ctx.filter = new CanvasFilter({filter: "dropShadow"});
+    ctx.fillRect(10, 10, 80, 80);
+
+    // All parameters specified.
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: 15, dy: 10, stdDeviation: 5,
+       floodColor: "purple", floodOpacity: 0.7});
+    ctx.fillRect(110, 10, 80, 80);
+
+    // Named color.
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: 10, dy: 10, stdDeviation: 3,
+       floodColor: "purple"});
+    ctx.fillRect(10, 110, 80, 80);
+
+    // System color.
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: 15, dy: 10, stdDeviation: 3,
+       floodColor: "LinkText"});
+    ctx.fillRect(110, 110, 80, 80);
+
+    // No blur.
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: 10, dy: 15, stdDeviation: 0,
+       floodColor: "purple"});
+    ctx.fillRect(210, 110, 80, 80);
+
+    // Numerical color.
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: 9, dy: 12, stdDeviation: 3,
+       floodColor: "rgba(20, 50, 130, 1)"});
+    ctx.fillRect(310, 110, 80, 80);
+
+    // Transparent floodColor.
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: 15, dy: 10, stdDeviation: 3,
+       floodColor: "rgba(20, 50, 130, 0.7)"});
+    ctx.fillRect(410, 110, 80, 80);
+
+    // Transparent floodColor and floodOpacity.
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: 15, dy: 10, stdDeviation: 3,
+       floodColor: "rgba(20, 50, 130, 0.7)", floodOpacity: 0.7});
+    ctx.fillRect(510, 110, 80, 80);
+
+    // Degenerate parameter values.
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: [-5], dy: [], stdDeviation: null,
+       floodColor: "purple", floodOpacity: [2]});
+    ctx.fillRect(10, 210, 80, 80);
+
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: null, dy: '5', stdDeviation: -5,
+       floodColor: "purple", floodOpacity: '0.8'});
+    ctx.fillRect(110, 210, 80, 80);
+
+    ctx.filter = new CanvasFilter(
+      {filter: "dropShadow", dx: true, dy: ['10'], stdDeviation: false,
+       floodColor: "purple", floodOpacity: ['0.4']});
+    ctx.fillRect(210, 210, 80, 80);
+  html_reference: |
+    <style>
+      .background {
+        background-color: teal;
+        position: absolute;
+        left: 0px;
+        width: 620px;
+        height: 50px;
+      }
+
+      .testcase {
+        position: absolute;
+        background-color: crimson;
+        width: 80px;
+        height: 80px;
+      }
+    </style>
+
+    <div style="position: relative">
+      <div class='background' style="top: 0px;"></div>
+      <div class='background' style="top: 100px;"></div>
+      <div class='background' style="top: 200px;"></div>
+
+      <div class='testcase'
+           style="left: 10px; top: 10px;
+                  filter: drop-shadow(2px 2px 2px black);">
+      </div>
+      <div class='testcase'
+           style="left: 110px; top: 10px;
+                  filter: drop-shadow(15px 10px 5px rgba(128, 0, 128, 0.7));">
+      </div>
+      <div class='testcase'
+           style="left: 10px; top: 110px;
+                  filter: drop-shadow(10px 10px 3px purple)">
+      </div>
+      <div class='testcase'
+           style="left: 110px; top: 110px;
+                  filter: drop-shadow(15px 10px 3px LinkText)">
+      </div>
+      <div class='testcase'
+           style="left: 210px; top: 110px;
+                  filter: drop-shadow(10px 15px 0px purple)">
+      </div>
+      <div class='testcase'
+           style="left: 310px; top: 110px;
+                  filter: drop-shadow(9px 12px 3px rgba(20, 50, 130, 1))">
+      </div>
+      <div class='testcase'
+           style="left: 410px; top: 110px;
+                  filter: drop-shadow(15px 10px 3px rgba(20, 50, 130, 0.7))">
+      </div>
+      <div class='testcase'
+           style="left: 510px; top: 110px;
+                  filter: drop-shadow(15px 10px 3px rgba(20, 50, 130, 0.49))">
+      </div>
+
+      <div class='testcase'
+           style="left: 10px; top: 210px;
+                  filter: drop-shadow(-5px 0px 0px purple);">
+      </div>
+      <div class='testcase'
+           style="left: 110px; top: 210px;
+                  filter: drop-shadow(0px 5px 0px rgba(128, 0, 128, 0.8));">
+      </div>
+      <div class='testcase'
+           style="left: 210px; top: 210px;
+                  filter: drop-shadow(1px 10px 0px rgba(128, 0, 128, 0.4));">
+      </div>
+    </div>
+
+- name: 2d.filter.canvasFilterObject.dropShadow.exceptions.tentative
+  desc: Test exceptions on CanvasFilter() dropShadow object
+  code: |
+    @unroll @assert new CanvasFilter({\
+        filter: 'dropShadow', \
+        <dx | dy | stdDeviation | floodOpacity>: \
+        <10 | -1 | 0.5 | null | true | false | [] | [20] | '30'>});
+    @unroll @assert new CanvasFilter({\
+        filter: 'dropShadow', \
+        <floodColor>: \
+        <'red' | 'canvas' | 'rgba(4, -3, 0.5, 1)' | '#aabbccdd' | '#abcd'>});
+
+    @unroll @assert throws TypeError new CanvasFilter({\
+        filter: 'dropShadow', \
+        <dx | dy | stdDeviation | floodOpacity>: \
+        <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2]>});
+    @unroll @assert throws TypeError new CanvasFilter({\
+        filter: 'dropShadow', \
+        <floodColor>: \
+        <'test' | 'rgba(NaN, 3, 2, 1)' | 10 | undefined | null | NaN>});
+
 - name: 2d.filter.canvasFilterObject.turbulence.inputTypes.tentative
   desc: Test exceptions on CanvasFilter() turbulence object
   code: |
@@ -441,7 +610,7 @@
 
     for (testCase of errorTestCases) {
       const filterOptions = {...{filter: "turbulence"}, ...testCase};
-      @assert throws TypeError CanvasFilter(filterOptions);
+      @assert throws TypeError new CanvasFilter(filterOptions);
     }
 
     for (testCase of workingTestCases) {

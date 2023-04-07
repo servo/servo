@@ -208,13 +208,13 @@
     const selectMenu1Popover = document.getElementById("selectMenu1-popover");
     const selectMenu1Button = document.getElementById("selectMenu1-button");
     const selectMenu1Child2 = document.getElementById("selectMenu1-child2");
-    assert_false(selectMenu1Popover.matches(':open'));
+    assert_false(selectMenu1Popover.matches(':popover-open'));
     selectMenu1Button.click();
-    assert_false(selectMenu1Popover.matches(':open'), "Clicking a button part that is a descendant of the listbox part should have no effect");
+    assert_false(selectMenu1Popover.matches(':popover-open'), "Clicking a button part that is a descendant of the listbox part should have no effect");
 
     assert_equals(selectMenu1.value, "one");
     await clickOn(selectMenu1);
-    assert_true(selectMenu1Popover.matches(':open'));
+    assert_true(selectMenu1Popover.matches(':popover-open'));
     await clickOn(selectMenu1Child2);
     assert_equals(selectMenu1.value, "two", "Clicking an <option> should change the value");
   }, "To receive button part controller code, an element labeled as a button must not be a descendant of the listbox part in a flat tree traversal");
@@ -226,9 +226,9 @@
     const selectMenu2Child2 = document.getElementById("selectMenu2-child2");
     const selectMenu2Child4 = document.getElementById("selectMenu2-child4");
 
-    assert_false(selectMenu2Popover.matches(':open'));
+    assert_false(selectMenu2Popover.matches(':popover-open'));
     await clickOn(selectMenu2Button);
-    assert_false(selectMenu2Popover.matches(':open'), "Clicking a button part should not show an invalid listbox part");
+    assert_false(selectMenu2Popover.matches(':popover-open'), "Clicking a button part should not show an invalid listbox part");
 
     assert_equals(selectMenu2.value, "three");
     await clickOn(selectMenu2Button);

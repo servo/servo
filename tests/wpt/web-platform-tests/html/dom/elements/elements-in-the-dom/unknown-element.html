@@ -6,11 +6,17 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-test(function() {
-  var elt = document.createElement("xxx");
-  assert_true(window.HTMLUnknownElement && elt instanceof HTMLUnknownElement,
-              "not an instance of HTMLUnknownElement");
-  assert_true(window.HTMLSpanElement && !(elt instanceof HTMLSpanElement),
-              "an instance of HTMLSpanElement");
+[
+  "applet",
+  "attachment",
+  "layer",
+  "nolayer",
+  "xxx"
+].forEach(name => {
+  test(() => {
+    const elt = document.createElement("xxx");
+    assert_true(window.HTMLUnknownElement && elt instanceof HTMLUnknownElement, "not an instance of HTMLUnknownElement");
+    assert_true(window.HTMLSpanElement && !(elt instanceof HTMLSpanElement), "an instance of HTMLSpanElement");
+  }, `<${name}> is an HTMLUnknownElement`);
 });
 </script>

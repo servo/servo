@@ -213,3 +213,11 @@ formTest({
   expected: "\xE1=&#128169;\r\n",
   description: "character not in encoding in filename",
 });
+
+formTest({
+  name: "\uD800",
+  value: "\uD800",
+  formEncoding: "windows-1252",
+  expected: "&#65533;=&#65533;\r\n",
+  description: "lone surrogate in name and value",
+});

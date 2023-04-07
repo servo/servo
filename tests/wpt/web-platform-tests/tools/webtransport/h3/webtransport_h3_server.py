@@ -7,6 +7,7 @@ import ssl
 import sys
 import threading
 import traceback
+from enum import IntEnum
 from urllib.parse import urlparse
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -14,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from aioquic.buffer import Buffer  # type: ignore
 from aioquic.asyncio import QuicConnectionProtocol, serve  # type: ignore
 from aioquic.asyncio.client import connect  # type: ignore
-from aioquic.h3.connection import H3_ALPN, FrameType, H3Connection, ProtocolError, Setting  # type: ignore
+from aioquic.h3.connection import H3_ALPN, FrameType, H3Connection, ProtocolError  # type: ignore
 from aioquic.h3.events import H3Event, HeadersReceived, WebTransportStreamDataReceived, DatagramReceived, DataReceived  # type: ignore
 from aioquic.quic.configuration import QuicConfiguration  # type: ignore
 from aioquic.quic.connection import logger as quic_connection_logger  # type: ignore
@@ -44,46 +45,49 @@ _doc_root: str = ""
 quic_connection_logger.setLevel(logging.WARNING)
 
 
-class H3ConnectionWithDatagram04(H3Connection):
+class H3DatagramSetting(IntEnum):
+    # https://datatracker.ietf.org/doc/html/draft-ietf-masque-h3-datagram-04#section-8.1
+    DRAFT04 = 0xffd277
+    # https://datatracker.ietf.org/doc/html/rfc9220#section-5-2.2.1
+    RFC = 0x33
+
+
+class H3ConnectionWithDatagram(H3Connection):
     """
     A H3Connection subclass, to make it work with the latest
     HTTP Datagram protocol.
     """
-    H3_DATAGRAM_04 = 0xffd277
-    # https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-h3-websockets-00#section-5
+    # https://datatracker.ietf.org/doc/html/rfc9220#name-iana-considerations
     ENABLE_CONNECT_PROTOCOL = 0x08
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._supports_h3_datagram_04 = False
+        self._datagram_setting: Optional[H3DatagramSetting] = None
 
     def _validate_settings(self, settings: Dict[int, int]) -> None:
-        H3_DATAGRAM_04 = H3ConnectionWithDatagram04.H3_DATAGRAM_04
-        if H3_DATAGRAM_04 in settings and settings[H3_DATAGRAM_04] == 1:
-            settings[Setting.H3_DATAGRAM] = 1
-            self._supports_h3_datagram_04 = True
-        return super()._validate_settings(settings)
+        super()._validate_settings(settings)
+        if settings.get(H3DatagramSetting.RFC) == 1:
+            self._datagram_setting = H3DatagramSetting.RFC
+        elif settings.get(H3DatagramSetting.DRAFT04) == 1:
+            self._datagram_setting = H3DatagramSetting.DRAFT04
 
     def _get_local_settings(self) -> Dict[int, int]:
-        H3_DATAGRAM_04 = H3ConnectionWithDatagram04.H3_DATAGRAM_04
         settings = super()._get_local_settings()
-        settings[H3_DATAGRAM_04] = 1
-        settings[H3ConnectionWithDatagram04.ENABLE_CONNECT_PROTOCOL] = 1
+        settings[H3DatagramSetting.RFC] = 1
+        settings[H3DatagramSetting.DRAFT04] = 1
+        settings[H3ConnectionWithDatagram.ENABLE_CONNECT_PROTOCOL] = 1
         return settings
 
     @property
-    def supports_h3_datagram_04(self) -> bool:
-        """
-        True if the client supports the latest HTTP Datagram protocol.
-        """
-        return self._supports_h3_datagram_04
+    def datagram_setting(self) -> Optional[H3DatagramSetting]:
+        return self._datagram_setting
 
 
 class WebTransportH3Protocol(QuicConnectionProtocol):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._handler: Optional[Any] = None
-        self._http: Optional[H3ConnectionWithDatagram04] = None
+        self._http: Optional[H3ConnectionWithDatagram] = None
         self._session_stream_id: Optional[int] = None
         self._close_info: Optional[Tuple[int, bytes]] = None
         self._capsule_decoder_for_session_stream: H3CapsuleDecoder =\
@@ -93,9 +97,9 @@ class WebTransportH3Protocol(QuicConnectionProtocol):
 
     def quic_event_received(self, event: QuicEvent) -> None:
         if isinstance(event, ProtocolNegotiated):
-            self._http = H3ConnectionWithDatagram04(
+            self._http = H3ConnectionWithDatagram(
                 self._quic, enable_webtransport=True)
-            if not self._http.supports_h3_datagram_04:
+            if self._http.datagram_setting != H3DatagramSetting.DRAFT04:
                 self._allow_datagrams = True
 
         if self._http is not None:
@@ -130,7 +134,7 @@ class WebTransportH3Protocol(QuicConnectionProtocol):
 
         if isinstance(event, DataReceived) and\
            self._session_stream_id == event.stream_id:
-            if self._http and not self._http.supports_h3_datagram_04 and\
+            if self._http and not self._http.datagram_setting and\
                len(event.data) > 0:
                 raise ProtocolError('Unexpected data on the session stream')
             self._receive_data_on_session_stream(
@@ -146,47 +150,74 @@ class WebTransportH3Protocol(QuicConnectionProtocol):
                     self._handler.datagram_received(data=event.data)
 
     def _receive_data_on_session_stream(self, data: bytes, fin: bool) -> None:
-        self._capsule_decoder_for_session_stream.append(data)
+        assert self._http is not None
+        if len(data) > 0:
+            self._capsule_decoder_for_session_stream.append(data)
         if fin:
             self._capsule_decoder_for_session_stream.final()
         for capsule in self._capsule_decoder_for_session_stream:
-            if capsule.type in {CapsuleType.DATAGRAM,
-                                CapsuleType.REGISTER_DATAGRAM_CONTEXT,
-                                CapsuleType.CLOSE_DATAGRAM_CONTEXT}:
-                raise ProtocolError(
-                    f"Unimplemented capsule type: {capsule.type}")
-            if capsule.type in {CapsuleType.REGISTER_DATAGRAM_NO_CONTEXT,
-                                CapsuleType.CLOSE_WEBTRANSPORT_SESSION}:
-                # We'll handle this case below.
-                pass
-            else:
-                # We should ignore unknown capsules.
-                continue
-
             if self._close_info is not None:
                 raise ProtocolError((
                     "Receiving a capsule with type = {} after receiving " +
                     "CLOSE_WEBTRANSPORT_SESSION").format(capsule.type))
+            assert self._http.datagram_setting is not None
+            if self._http.datagram_setting == H3DatagramSetting.RFC:
+                self._receive_h3_datagram_rfc_capsule_data(
+                    capsule=capsule, fin=fin)
+            elif self._http.datagram_setting == H3DatagramSetting.DRAFT04:
+                self._receive_h3_datagram_draft04_capsule_data(
+                    capsule=capsule, fin=fin)
 
-            if capsule.type == CapsuleType.REGISTER_DATAGRAM_NO_CONTEXT:
-                buffer = Buffer(data=capsule.data)
-                format_type = buffer.pull_uint_var()
-                # https://ietf-wg-webtrans.github.io/draft-ietf-webtrans-http3/draft-ietf-webtrans-http3.html#name-datagram-format-type
-                WEBTRANPORT_FORMAT_TYPE = 0xff7c00
-                if format_type != WEBTRANPORT_FORMAT_TYPE:
-                    raise ProtocolError(
-                        "Unexpected datagram format type: {}".format(
-                            format_type))
-                self._allow_datagrams = True
-            elif capsule.type == CapsuleType.CLOSE_WEBTRANSPORT_SESSION:
-                buffer = Buffer(data=capsule.data)
-                code = buffer.pull_uint32()
-                # 4 bytes for the uint32.
-                reason = buffer.pull_bytes(len(capsule.data) - 4)
-                # TODO(yutakahirano): Make sure `reason` is a UTF-8 text.
-                self._close_info = (code, reason)
-                if fin:
-                    self._call_session_closed(self._close_info, abruptly=False)
+    def _receive_h3_datagram_rfc_capsule_data(self, capsule: H3Capsule, fin: bool) -> None:
+        if capsule.type == CapsuleType.DATAGRAM_RFC:
+            raise ProtocolError(
+                f"Unimplemented capsule type: {capsule.type}")
+        elif capsule.type == CapsuleType.CLOSE_WEBTRANSPORT_SESSION:
+            self._set_close_info_and_may_close_session(
+                data=capsule.data, fin=fin)
+        else:
+            # Ignore unknown capsules.
+            return
+
+    def _receive_h3_datagram_draft04_capsule_data(
+            self, capsule: H3Capsule, fin: bool) -> None:
+        if capsule.type in {CapsuleType.DATAGRAM_DRAFT04,
+                            CapsuleType.REGISTER_DATAGRAM_CONTEXT_DRAFT04,
+                            CapsuleType.CLOSE_DATAGRAM_CONTEXT_DRAFT04}:
+            raise ProtocolError(
+                f"Unimplemented capsule type: {capsule.type}")
+        if capsule.type in {CapsuleType.REGISTER_DATAGRAM_NO_CONTEXT_DRAFT04,
+                            CapsuleType.CLOSE_WEBTRANSPORT_SESSION}:
+            # We'll handle this case below.
+            pass
+        else:
+            # We should ignore unknown capsules.
+            return
+
+        if capsule.type == CapsuleType.REGISTER_DATAGRAM_NO_CONTEXT_DRAFT04:
+            buffer = Buffer(data=capsule.data)
+            format_type = buffer.pull_uint_var()
+            # https://ietf-wg-webtrans.github.io/draft-ietf-webtrans-http3/draft-ietf-webtrans-http3.html#name-datagram-format-type
+            WEBTRANPORT_FORMAT_TYPE = 0xff7c00
+            if format_type != WEBTRANPORT_FORMAT_TYPE:
+                raise ProtocolError(
+                    "Unexpected datagram format type: {}".format(
+                        format_type))
+            self._allow_datagrams = True
+        elif capsule.type == CapsuleType.CLOSE_WEBTRANSPORT_SESSION:
+            self._set_close_info_and_may_close_session(
+                data=capsule.data, fin=fin)
+
+    def _set_close_info_and_may_close_session(
+            self, data: bytes, fin: bool) -> None:
+        buffer = Buffer(data=data)
+        code = buffer.pull_uint32()
+        # 4 bytes for the uint32.
+        reason = buffer.pull_bytes(len(data) - 4)
+        # TODO(bashi): Make sure `reason` is a UTF-8 text.
+        self._close_info = (code, reason)
+        if fin:
+            self._call_session_closed(self._close_info, abruptly=False)
 
     def _send_error_response(self, stream_id: int, status_code: int) -> None:
         assert self._http is not None
@@ -308,7 +339,8 @@ class WebTransportSession:
             buffer.push_bytes(reason)
             capsule =\
                 H3Capsule(CapsuleType.CLOSE_WEBTRANSPORT_SESSION, buffer.data)
-            self._http.send_data(session_stream_id, capsule.encode(), end_stream=False)
+            self._http.send_data(
+                session_stream_id, capsule.encode(), end_stream=False)
 
         self._http.send_data(session_stream_id, b'', end_stream=True)
         # TODO(yutakahirano): Reset all other streams.
@@ -366,9 +398,9 @@ class WebTransportSession:
                 "Sending a datagram while that's now allowed - discarding it")
             return
         flow_id = self.session_id
-        if self._http.supports_h3_datagram_04:
-            # The REGISTER_DATAGRAM_NO_CONTEXT capsule was on the session
-            # stream, so we must have the ID of the stream.
+        if self._http.datagram_setting is not None:
+            # We must have a WebTransport Session ID at this point because
+            # an extended CONNECT request is already received.
             assert self._protocol._session_stream_id is not None
             # TODO(yutakahirano): Make sure if this is the correct logic.
             # Chrome always use 0 for the initial stream and the initial flow
@@ -439,6 +471,7 @@ class SessionTicketStore:
     """
     Simple in-memory store for session tickets.
     """
+
     def __init__(self) -> None:
         self.tickets: Dict[bytes, SessionTicket] = {}
 
@@ -460,6 +493,7 @@ class WebTransportH3Server:
     :param key_path: Path to key file to use.
     :param logger: a Logger object for this server.
     """
+
     def __init__(self, host: str, port: int, doc_root: str, cert_path: str,
                  key_path: str, logger: Optional[logging.Logger]) -> None:
         self.host = host

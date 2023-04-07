@@ -129,7 +129,7 @@ async function isUrlPrefetched(url) {
 // Must also include /common/utils.js and /common/dispatcher/dispatcher.js to use this.
 async function spawnWindow(t, options = {}, uuid = token()) {
   let agent = new PrefetchAgent(uuid, t);
-  let w = window.open(agent.getExecutorURL(options), options);
+  let w = window.open(agent.getExecutorURL(options), '_blank', options);
   t.add_cleanup(() => w.close());
   return agent;
 }

@@ -21,5 +21,7 @@ def main(request, response):
   if not request.POST.get(b"disclosure_text_shown"):
     return (538, [], "Missing 'disclosure_text_shown' POST parameter")
 
+  response.headers.set(b"Content-Type", b"application/json")
+
   account_id = request.POST.get(b"account_id")
   return "{\"token\": \"account_id=" + account_id.decode("utf-8") + "\"}"

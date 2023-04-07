@@ -23,6 +23,8 @@ def main(request, response):
 
   request.server.stash.put(keys.CLIENT_METADATA_COUNTER_KEY, str(counter).encode())
 
+  response.headers.set(b"Content-Type", b"application/json")
+
   return """
 {{
   "privacy_policy_url": "https://privacypolicy{0}.com"

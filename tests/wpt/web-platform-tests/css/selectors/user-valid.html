@@ -1,14 +1,55 @@
 <!doctype html>
 <title>Support for the :user-valid pseudo-class</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
 <link rel="help" href="https://drafts.csswg.org/selectors/#user-pseudos">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<input>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+input {
+  border: 2px solid black;
+}
+
+input:user-valid {
+  border-color: green;
+}
+
+input:user-invalid {
+  border-color: red;
+}
+</style>
+
+<input id="initially-valid" type="email">
+
 <script>
-test(() => {
-  const input = document.querySelector('input');
+promise_test(async () => {
+  const input = document.querySelector("#initially-valid");
   assert_true(input.validity.valid);
   // The selector can't match because no interaction has happened.
   assert_false(input.matches(':user-valid'));
-}, ':user-valid selector should be supported');
+
+  assert_false(input.matches(":user-valid"), "Initially does not match :user-valid");
+  assert_false(input.matches(":user-invalid"), "Initially does not match :user-invalid");
+
+  await test_driver.click(input);
+  input.blur();
+
+  assert_false(input.matches(":user-valid"), "No change happened, still does not match :user-valid");
+  assert_false(input.matches(":user-invalid"), "No change happened, still does not match :user-invalid");
+
+  await test_driver.click(input);
+  await test_driver.send_keys(input, "test@example.com");
+  input.blur();
+
+  assert_true(input.matches(":user-valid"), "Typed a valid email, :user-valid now matches");
+  assert_false(input.matches(":user-invalid"), "Typed a valid email, :user-invalid does not match");
+
+  input.required = true;
+  input.value = "";
+
+  assert_false(input.matches(":user-valid"), "Cleared required input, :user-valid no longer matches");
+  assert_true(input.matches(":user-invalid"), "Cleared required input, :user-invalid now matches");
+}, ":user-valid selector should respond to user action");
 </script>

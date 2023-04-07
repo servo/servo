@@ -91,7 +91,9 @@ function runTest() {
     verifyNoScrollendOnDocument(t);
 
     const bounds = target_div.getBoundingClientRect();
-    const x = bounds.right - scrollbar_width / 2;
+    // Some versions of webdriver have been known to frown at non-int arguments
+    // to pointerMove.
+    const x = bounds.right - Math.round(scrollbar_width / 2);
     const y = bounds.bottom - 20;
     await new test_driver.Actions()
         .addPointer('TestPointer', 'mouse')
@@ -118,11 +120,13 @@ function runTest() {
     await resetTargetScrollState(t, target_div);
     await waitForCompositorReady();
 
-    const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div);
+    const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div, 1000);
     verifyNoScrollendOnDocument(t);
 
     const bounds = target_div.getBoundingClientRect();
-    const x = bounds.right - scrollbar_width / 2;
+    // Some versions of webdriver have been known to frown at non-int arguments
+    // to pointerMove.
+    const x = bounds.right - Math.round(scrollbar_width / 2);
     const y = bounds.top + 30;
     const dy = 30;
     await new test_driver.Actions()
