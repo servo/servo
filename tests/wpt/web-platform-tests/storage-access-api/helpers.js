@@ -227,10 +227,17 @@ function FrameInitiatedNavigation(frame, url) {
   return load;
 }
 
-// Makes a subresource request to the provided host in the given frame, and returns the cookies in the response.
-function FetchFromFrame(frame, host) {
+// Makes a subresource request to the provided host in the given frame, and
+// returns the cookies that were included in the request.
+function FetchSubresourceCookiesFromFrame(frame, host) {
+  return FetchFromFrame(frame, `${host}/storage-access-api/resources/echo-cookie-header.py`);
+}
+
+// Makes a subresource request to the provided host in the given frame, and
+// returns the response.
+function FetchFromFrame(frame, url) {
   return PostMessageAndAwaitReply(
-    { command: "subresource cookies", host }, frame.contentWindow);
+    { command: "cors fetch", url }, frame.contentWindow);
 }
 
 // Tries to set storage access policy, ignoring any errors.
