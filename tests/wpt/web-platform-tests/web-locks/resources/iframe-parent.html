@@ -4,6 +4,7 @@
 'use strict';
 
 async function onLoad() {
+  // Nested Step 5: wpt/web-locks/partitioned-web-locks.tentative.https.html
   // Load the innermost child iframe and its content.
   const params = new URLSearchParams(self.location.search);
   const frame = document.createElement('iframe');
@@ -11,6 +12,7 @@ async function onLoad() {
   document.body.appendChild(frame);
 
   self.addEventListener('message', evt => {
+    // Nested Step 6: wpt/web-locks/partitioned-web-locks.tentative.https.html
     // Pass any operations request messages to the
     // innermost child iframe.
     if (evt.data.op){
@@ -20,6 +22,7 @@ async function onLoad() {
         frame.contentWindow.postMessage(evt.data, '*');
       });
     }
+    // Nested Step 8: wpt/web-locks/partitioned-web-locks.tentative.https.html
     else {
       // All other messages, should be sent back to the
       // top-level site.

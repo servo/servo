@@ -482,8 +482,7 @@ for (testCase of SIMPLE_JOIN_LEAVE_TEST_CASES) {
       assert_true(joinExceptionThrown, 'Exception not thrown on join.');
     }
 
-    let leave_promise = navigator.leaveAdInterestGroup(testCase.interestGroup,
-                                                       INTEREST_GROUP_LIFETIME_SECS);
+    let leave_promise = navigator.leaveAdInterestGroup(testCase.interestGroup);
     assert_true(leave_promise instanceof Promise, "leave should return a promise");
     if (testCase.expectLeaveSucces) {
       assert_equals(await leave_promise, undefined);
