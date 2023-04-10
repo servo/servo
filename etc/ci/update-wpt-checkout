@@ -101,11 +101,6 @@ function unsafe_open_pull_request() {
     # is unnecessary.
     git checkout "${BRANCH_NAME}" || return 0
 
-    if [[ -z "${WPT_SYNC_TOKEN+set}" && "${TASKCLUSTER_PROXY_URL+set}" == "set" ]]; then
-        SECRET_RESPONSE=$(curl ${TASKCLUSTER_PROXY_URL}/api/secrets/v1/secret/project/servo/wpt-sync)
-        WPT_SYNC_TOKEN=`echo "${SECRET_RESPONSE}" | jq --raw-output '.secret.token'`
-    fi
-
     if [[ -z "${WPT_SYNC_TOKEN+set}" ]]; then
         echo "Github auth token missing from WPT_SYNC_TOKEN."
         return 1
