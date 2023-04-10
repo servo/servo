@@ -21,7 +21,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import six.moves.urllib as urllib
+import urllib
 import xml
 
 from mach.decorators import (

@@ -9,35 +9,36 @@
 
 from __future__ import print_function
 
-from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
-from glob import glob
-import shutil
+import contextlib
+import distro
+import functools
 import gzip
 import itertools
+import json
 import locale
 import os
-from os import path
 import platform
-import distro
 import re
-import contextlib
-import subprocess
-from subprocess import PIPE
+import shutil
 import six
+import subprocess
 import sys
 import tarfile
+import urllib
 import zipfile
-import functools
+
+from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
+from glob import glob
+from os import path
+from subprocess import PIPE
+
+import toml
+
 from xml.etree.ElementTree import XML
 from servo.util import download_file
-import six.moves.urllib as urllib
 from .bootstrap import check_gstreamer_lib
-
 from mach.decorators import CommandArgument
 from mach.registrar import Registrar
-import toml
-import json
-
 from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple
 

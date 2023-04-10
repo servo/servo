@@ -11,12 +11,12 @@ from __future__ import print_function, unicode_literals
 from os import path, listdir, getcwd
 from time import time
 
+import json
 import signal
+import subprocess
 import sys
 import tempfile
-import six.moves.urllib as urllib
-import json
-import subprocess
+import urllib
 
 from mach.decorators import (
     CommandArgument,

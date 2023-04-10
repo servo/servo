@@ -10,7 +10,7 @@ import os
 import distro
 import subprocess
 import six
-import six.moves.urllib as urllib
+import urllib
 from subprocess import PIPE
 from zipfile import BadZipfile
 

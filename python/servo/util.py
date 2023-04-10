@@ -14,14 +14,14 @@ import os
 import os.path
 import platform
 import shutil
-from socket import error as socket_error
 import stat
-from io import BytesIO
 import sys
 import time
+import urllib
 import zipfile
-import six.moves.urllib as urllib
 
+from io import BytesIO
+from socket import error as socket_error
 
 try:
     from ssl import HAS_SNI
