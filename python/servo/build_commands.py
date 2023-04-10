@@ -23,6 +23,8 @@ import stat
 
 from time import time
 
+import notifypy
+
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -34,113 +36,6 @@ from mach_bootstrap import _get_exec_path
 from servo.command_base import CommandBase, cd, call, check_call, append_to_path_env, gstreamer_root
 from servo.gstreamer import windows_dlls, windows_plugins, macos_dylibs, macos_plugins
 from servo.util import host_triple
-
-
-def format_duration(seconds):
-    return str(datetime.timedelta(seconds=int(seconds)))
-
-
-def notify_linux(title, text):
-    try:
-        import dbus
-        bus = dbus.SessionBus()
-        notify_obj = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
-        method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
-        method(title, 0, "", text, "", [], {"transient": True}, -1)
-    except ImportError:
-        raise Exception("Optional Python module 'dbus' is not installed.")
-
-
-def notify_win(title, text):
-    try:
-        from servo.win32_toast import WindowsToast
-        w = WindowsToast()
-        w.balloon_tip(title, text)
-    except WindowsError:
-        from ctypes import Structure, windll, POINTER, sizeof
-        from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
-
-        class FLASHWINDOW(Structure):
-            _fields_ = [("cbSize", UINT),
-                        ("hwnd", HANDLE),
-                        ("dwFlags", DWORD),
-                        ("uCount", UINT),
-                        ("dwTimeout", DWORD)]
-
-        FlashWindowExProto = WINFUNCTYPE(BOOL, POINTER(FLASHWINDOW))
-        FlashWindowEx = FlashWindowExProto(("FlashWindowEx", windll.user32))
-        FLASHW_CAPTION = 0x01
-        FLASHW_TRAY = 0x02
-        FLASHW_TIMERNOFG = 0x0C
-
-        params = FLASHWINDOW(sizeof(FLASHWINDOW),
-                             windll.kernel32.GetConsoleWindow(),
-                             FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
-        FlashWindowEx(params)
-
-
-def notify_darwin(title, text):
-    try:
-        import Foundation
-
-        bundleDict = Foundation.NSBundle.mainBundle().infoDictionary()
-        bundleIdentifier = 'CFBundleIdentifier'
-        if bundleIdentifier not in bundleDict:
-            bundleDict[bundleIdentifier] = 'mach'
-
-        note = Foundation.NSUserNotification.alloc().init()
-        note.setTitle_(title)
-        note.setInformativeText_(text)
-
-        now = Foundation.NSDate.dateWithTimeInterval_sinceDate_(0, Foundation.NSDate.date())
-        note.setDeliveryDate_(now)
-
-        centre = Foundation.NSUserNotificationCenter.defaultUserNotificationCenter()
-        centre.scheduleNotification_(note)
-    except ImportError:
-        raise Exception("Optional Python module 'pyobjc' is not installed.")
-
-
-def notify_with_command(command):
-    def notify(title, text):
-        if call([command, title, text]) != 0:
-            raise Exception("Could not run '%s'." % command)
-    return notify
-
-
-def notify_build_done(config, elapsed, success=True):
-    """Generate desktop notification when build is complete and the
-    elapsed build time was longer than 30 seconds."""
-    if elapsed > 30:
-        notify(config, "Servo build",
-               "%s in %s" % ("Completed" if success else "FAILED", format_duration(elapsed)))
-
-
-def notify(config, title, text):
-    """Generate a desktop notification using appropriate means on
-    supported platforms Linux, Windows, and Mac OS.  On unsupported
-    platforms, this function acts as a no-op.
-
-    If notify-command is set in the [tools] section of the configuration,
-    that is used instead."""
-    notify_command = config["tools"].get("notify-command")
-    if notify_command:
-        func = notify_with_command(notify_command)
-    else:
-        platforms = {
-            "linux": notify_linux,
-            "linux2": notify_linux,
-            "win32": notify_win,
-            "darwin": notify_darwin
-        }
-        func = platforms.get(sys.platform)
-
-    if func is not None:
-        try:
-            func(title, text)
-        except Exception as e:
-            extra = getattr(e, "message", "")
-            print("[Warning] Could not generate notification! %s" % extra, file=sys.stderr)
 
 
 @CommandProvider
@@ -752,9 +647,12 @@ class MachCommands(CommandBase):
                     pass
 
         # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(self.config, elapsed, status == 0)
 
-        print("Build %s in %s" % ("Completed" if status == 0 else "FAILED", format_duration(elapsed)))
+        elapsed_delta = datetime.timedelta(seconds=int(elapsed))
+        build_message = f"{'Succeeded' if status == 0 else 'Failed'} in {elapsed_delta}"
+        self.notify("Servo build", build_message)
+        print(build_message)
+
         return status
 
     @Command('clean',
@@ -813,6 +711,52 @@ class MachCommands(CommandBase):
                     shutil.rmtree(artifact)
                 else:
                     os.remove(artifact)
+
+    def notify(self, title: str, message: str):
+        """Generate desktop notification when build is complete and the
+        elapsed build time was longer than 30 seconds.
+
+        If notify-command is set in the [tools] section of the configuration,
+        that is used instead."""
+        notify_command = self.config["tools"].get("notify-command")
+
+        # notifypy does not know how to send transient notifications, so we use a custom
+        # notifier on Linux. If transient notifications are not used, then notifications
+        # pile up in the notification center and must be cleared manually.
+        class LinuxNotifier(notifypy.BaseNotifier):
+            def __init__(self, **kwargs):
+                pass
+
+            def send_notification(self, **kwargs):
+                try:
+                    import dbus
+                    bus = dbus.SessionBus()
+                    notify_obj = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+                    method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
+                    method(
+                        kwargs.get("application_name"),
+                        0,  # Don't replace previous notification.
+                        kwargs.get("notification_icon", ""),
+                        kwargs.get("notification_title"),
+                        kwargs.get("notification_subtitle"),
+                        [],  # actions
+                        {"transient": True},  # hints
+                        -1  # timeout
+                    )
+                except ImportError:
+                    raise Exception("Optional Python module 'dbus' is not installed.")
+                return True
+
+        if notify_command:
+            if call([notify_command, title, message]) != 0:
+                raise Exception("Could not run '%s'." % notify_command)
+        else:
+            notifier = LinuxNotifier if sys.platform.startswith("linux") else None
+            notification = notifypy.Notify(use_custom_notifier=notifier)
+            notification.title = title
+            notification.message = message
+            notification.icon = path.join(self.get_top_dir(), "resources", "servo_64.png")
+            notification.send(block=False)
 
 
 def angle_root(target, nuget_env):

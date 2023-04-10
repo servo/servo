@@ -9,7 +9,6 @@
 
 from __future__ import print_function, unicode_literals
 from os import path, listdir, getcwd
-from time import time
 
 import signal
 import sys
@@ -25,7 +24,6 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase, cd, call
-from servo.build_commands import notify_build_done
 from servo.util import get_static_rust_lang_org_dist, get_urlopen_kwargs
 
 
@@ -53,12 +51,7 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         env = self.build_env()
 
-        build_start = time()
         status = self.run_cargo_build_like_command("check", params, env=env, features=features, **kwargs)
-        elapsed = time() - build_start
-
-        notify_build_done(self.config, elapsed, status == 0)
-
         if status == 0:
             print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
 
