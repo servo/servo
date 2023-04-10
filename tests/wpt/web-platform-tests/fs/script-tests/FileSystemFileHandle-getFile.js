@@ -40,3 +40,13 @@ directory_test(async (t, root) => {
 
   assert_less_than(first_mtime, second_mtime);
 }, 'getFile() returns last modified time');
+
+directory_test(async (t, root) => {
+  const fileName = "fileAttributesTest.txt";
+
+  const fileHandle = await createEmptyFile(t, fileName, root);
+  assert_equals(fileHandle.name, fileName);
+
+  const file = await fileHandle.getFile();
+  assert_equals(file.name, fileName);
+}, 'getFile() returns expected name');
