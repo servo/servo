@@ -132,9 +132,6 @@ where
     visited_handling: VisitedHandlingMode,
 
     /// The current nesting level of selectors that we're matching.
-    ///
-    /// FIXME(emilio): Consider putting the mutable stuff in a Cell, then make
-    /// MatchingContext immutable again.
     nesting_level: usize,
 
     /// Whether we're inside a negation or not.
