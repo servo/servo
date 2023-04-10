@@ -5,7 +5,8 @@
 from __future__ import print_function
 
 import json
-from six.moves.urllib.parse import urljoin
+import urllib
+
 requests = None
 
 class GitHubError(Exception):
@@ -36,7 +37,7 @@ class GitHub(object):
         return self._request("PUT", path, data=data)
 
     def _request(self, method, path, data=None):
-        url = urljoin(self.url_base, path)
+        url = urllib.parse.urljoin(self.url_base, path)
 
         kwargs = {"headers": self.headers,
                   "auth": self.auth}
@@ -96,7 +97,7 @@ class GitHubRepo(object):
         return PullRequest.from_number(self, number)
 
     def path(self, suffix):
-        return urljoin(self.url_base, suffix)
+        return urllib.parse.urljoin(self.url_base, suffix)
 
 
 class PullRequest(object):
@@ -126,7 +127,7 @@ class PullRequest(object):
         return cls(repo, data)
 
     def path(self, suffix):
-        return urljoin(self.repo.path("pulls/%i/" % self.number), suffix)
+        return urllib.parse.urljoin(self.repo.path("pulls/%i/" % self.number), suffix)
 
     @property
     def issue(self):
@@ -160,7 +161,7 @@ class Issue(object):
         return cls(repo, data)
 
     def path(self, suffix):
-        return urljoin(self.repo.path("issues/%i/" % self.number), suffix)
+        return urllib.parse.urljoin(self.repo.path("issues/%i/" % self.number), suffix)
 
     def add_label(self, label):
         """Add a label to the issue.

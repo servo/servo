@@ -4,7 +4,7 @@ import os
 import re
 import subprocess
 import sys
-import six.moves.urllib as urllib
+import urllib
 from six.moves import input
 from six import iteritems
 

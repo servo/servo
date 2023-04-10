@@ -10,6 +10,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import base64
+import glob
 import json
 import os
 import os.path as path
@@ -18,8 +19,7 @@ import re
 import subprocess
 import sys
 import traceback
-import six.moves.urllib as urllib
-import glob
+import urllib
 
 from mach.decorators import (
     CommandArgument,

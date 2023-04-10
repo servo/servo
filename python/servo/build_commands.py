@@ -15,11 +15,11 @@ import os
 import os.path as path
 import platform
 import shutil
+import stat
 import subprocess
 import sys
-import six.moves.urllib as urllib
+import urllib
 import zipfile
-import stat
 
 from time import time
 
