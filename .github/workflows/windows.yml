@@ -6,12 +6,28 @@ on:
       layout:
         required: true
         type: string
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       layout:
         required: true
         type: choice
         options: ["2013", "2020"]
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
   push:
     branches: ["try-windows"]
 
@@ -19,6 +35,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
+  PACKAGE: "${{ contains(inputs.layout, '2020') && 'windows-msvc-layout2020' || 'windows-msvc' }}"
 
 jobs:
   build-win:
@@ -30,6 +47,12 @@ jobs:
           fetch-depth: 2
       - name: Copy to C drive
         run: cp D:\a C:\ -Recurse
+      - name: wix311-binaries
+        shell: powershell
+        run: |
+          Start-BitsTransfer -Source https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip -Destination C:\\wix311-binaries.zip
+          Expand-Archive C:\\wix311-binaries.zip -DestinationPath C:\\wix
+          echo "C:\\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bootstrap
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
@@ -38,12 +61,30 @@ jobs:
       - name: Release build
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach build --release --media-stack=dummy --with-${{ env.LAYOUT }}
-      - name: Unit tests
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach test-unit --release --with-${{ env.LAYOUT }}
       - name: Smoketest
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach smoketest --angle
+      - name: Unit tests
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        if: ${{ inputs.unit-tests }}
+        run: python mach test-unit --release --with-${{ env.LAYOUT }}
+      - name: Package
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach package --release
+      - name: Upload Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PACKAGE }}
+          # These files are available
+          # MSI Installer: C:\a\servo\servo\target\release\msi\Installer.msi
+          # Bundle: C:\a\servo\servo\target\release\msi\Servo.exe
+          # Zip: C:\a\servo\servo\target\release\msi\Servo.zip
+          path: C:\\a\\servo\\servo\\target/release/msi/Servo.exe
+      - name: Upload
+        if: ${{ inputs.upload }}
+        run: python mach upload-nightly windows-msvc --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
 
   build_result:
     name: homu build finished
