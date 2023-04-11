@@ -329,6 +329,13 @@ fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
             return !context.in_ua_or_chrome_sheet() &&
                 !static_prefs::pref!("layout.css.prefers-reduced-transparency.enabled");
         }
+
+        // inverted-colors is always enabled in the ua and chrome. On
+        // the web it is hidden behind a preferenc.
+        if *feature == atom!("inverted-colors") {
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.inverted-colors.enabled");
+        }
     }
     false
 }

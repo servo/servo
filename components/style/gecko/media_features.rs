@@ -297,6 +297,35 @@ fn eval_forced_colors(context: &Context, query_value: Option<ForcedColors>) -> b
     }
 }
 
+/// Possible values for the inverted-colors media query.
+/// https://drafts.csswg.org/mediaqueries-5/#inverted
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[repr(u8)]
+enum InvertedColors {
+    /// Colors are displayed normally.
+    None,
+    /// All pixels within the displayed area have been inverted.
+    Inverted,
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#inverted
+fn eval_inverted_colors(
+    context: &Context,
+    query_value: Option<InvertedColors>,
+) -> bool {
+    let inverted_colors =
+        unsafe { bindings::Gecko_MediaFeatures_InvertedColors(context.device().document()) };
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return inverted_colors,
+    };
+
+    match query_value {
+        InvertedColors::None => !inverted_colors,
+        InvertedColors::Inverted => inverted_colors,
+    }
+}
+
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
 #[repr(u8)]
 enum OverflowBlock {
@@ -669,7 +698,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 66] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 67] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -814,6 +843,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 66] = [
         atom!("forced-colors"),
         AllowsRanges::No,
         keyword_evaluator!(eval_forced_colors, ForcedColors),
+        FeatureFlags::empty(),
+    ),
+    feature!(
+        atom!("inverted-colors"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_inverted_colors, InvertedColors),
         FeatureFlags::empty(),
     ),
     feature!(
