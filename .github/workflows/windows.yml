@@ -82,6 +82,7 @@ jobs:
           path: C:\\a\\servo\\servo\\target/release/msi/Servo.exe
       - name: Upload
         if: ${{ inputs.upload }}
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach upload-nightly windows-msvc --secret-from-environment
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
