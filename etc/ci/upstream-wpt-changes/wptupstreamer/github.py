@@ -76,18 +76,30 @@ class GithubRepository:
         """If this repository has an open pull request with the
         given source head reference targeting the master branch,
         return the first matching pull request, otherwise return None."""
-        # Frustratingly, this is different from what you need for opening a pull request.
-        head = f"{branch.repo.org}:{branch.name}"
-        response = authenticated(
-            self.sync, "GET", f"{self.pulls_url}?head={head}&base=master&state=open"
-        )
+
+        params = "+".join([
+            "is:pr",
+            "state:open",
+            f"repo:{self.repo}",
+            f"author:{branch.repo.org}",
+            f"head:{branch.name}",
+        ])
+        response = authenticated(self.sync, "GET", f"search/issues?q={params}")
         if int(response.status_code / 100) != 2:
             return None
 
         json = response.json()
-        if not json or not isinstance(json, list):
+        if not isinstance(json, dict) or \
+           "total_count" not in json or \
+           "items" not in json:
+            raise ValueError(
+                f"Got unexpected response from GitHub search: {response.text}"
+            )
+
+        if json["total_count"] < 1:
             return None
-        return self.get_pull_request(json[0]["number"])
+
+        return self.get_pull_request(json["items"][0]["number"])
 
     def open_pull_request(self, branch: GithubBranch, title: str, body: str):
         data = {

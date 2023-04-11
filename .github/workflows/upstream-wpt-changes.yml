@@ -25,7 +25,12 @@ jobs:
         with:
           path: wpt
           repository: 'web-platform-tests/wpt'
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # The token here must be the token that we will use to push to the
+          # WPT repository and not the token used for GitHub actions, because
+          # the checkout action sets up an `extraheader` authorization override
+          # using the token specified here.
+          # See https://github.com/actions/checkout/issues/162.
+          token: ${{ secrets.WPT_SYNC_TOKEN }}
       - name: Install requirements
         run: pip install -r servo/etc/ci/upstream-wpt-changes/requirements.txt
       - name: Process pull request
