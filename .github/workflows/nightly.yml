@@ -19,6 +19,7 @@ jobs:
     with:
       layout: '2013'
       upload: true
+    secrets: inherit
 
   upload-mac:
     # This job is only useful when run on upstream servo.
@@ -28,6 +29,7 @@ jobs:
     with:
       layout: '2013'
       upload: true
+    secrets: inherit
 
   upload-linux:
     # This job is only useful when run on upstream servo.
@@ -37,6 +39,7 @@ jobs:
     with:
       layout: '2013'
       upload: true
+    secrets: inherit
 
   upload-linux-2020:
     # This job is only useful when run on upstream servo.
@@ -46,3 +49,4 @@ jobs:
     with:
       layout: '2020'
       upload: true
+    secrets: inherit
