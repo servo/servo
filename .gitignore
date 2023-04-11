@@ -75,4 +75,4 @@ support/hololens/.vs/
 layout_trace*
 
 # Package managers
-etc/taskcluster/macos/Brewfile.lock.json
+etc/homebrew/Brewfile.lock.json

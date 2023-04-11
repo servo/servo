@@ -63,8 +63,8 @@ jobs:
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip virtualenv
-          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
-          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
+          brew bundle install --verbose --no-upgrade --file=etc/homebrew/Brewfile
+          brew bundle install --verbose --no-upgrade --file=etc/homebrew/Brewfile-build
           rm -rf /usr/local/etc/openssl
           rm -rf /usr/local/etc/openssl@1.1
           brew install openssl@1.1 gnu-tar
@@ -133,7 +133,7 @@ jobs:
   #       run: |
   #         gtar -xzf target.tar.gz
   #         python3 -m pip install --upgrade pip virtualenv
-  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #         brew bundle install --verbose --no-upgrade --file=etc/homebrew/Brewfile
   #     - name: Smoketest
   #       run: python3 ./mach smoketest
   #     - name: Run tests

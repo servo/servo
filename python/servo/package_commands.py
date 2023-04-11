@@ -21,7 +21,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import urllib
 import xml
 
 from mach.decorators import (
@@ -96,15 +95,6 @@ else:
         except Exception as e:
             shutil.rmtree(dir_name)
             raise e
-
-
-def get_taskcluster_secret(name):
-    url = (
-        os.environ.get("TASKCLUSTER_PROXY_URL", "http://taskcluster")
-        + "/api/secrets/v1/secret/project/servo/"
-        + name
-    )
-    return json.load(urllib.request.urlopen(url))["secret"]
 
 
 def otool(s):
@@ -601,23 +591,16 @@ class PackageCommands(CommandBase):
     @CommandArgument('platform',
                      choices=PACKAGES.keys(),
                      help='Package platform type to upload')
-    @CommandArgument('--secret-from-taskcluster',
-                     action='store_true',
-                     help='Retrieve the appropriate secrets from taskcluster.')
     @CommandArgument('--secret-from-environment',
                      action='store_true',
                      help='Retrieve the appropriate secrets from the environment.')
-    def upload_nightly(self, platform, secret_from_taskcluster, secret_from_environment):
+    def upload_nightly(self, platform, secret_from_environment):
         import boto3
 
         def get_s3_secret():
             aws_access_key = None
             aws_secret_access_key = None
-            if secret_from_taskcluster:
-                secret = get_taskcluster_secret("s3-upload-credentials")
-                aws_access_key = secret["aws_access_key_id"]
-                aws_secret_access_key = secret["aws_secret_access_key"]
-            elif secret_from_environment:
+            if secret_from_environment:
                 secret = json.loads(os.environ['S3_UPLOAD_CREDENTIALS'])
                 aws_access_key = secret["aws_access_key_id"]
                 aws_secret_access_key = secret["aws_secret_access_key"]
@@ -758,10 +741,7 @@ class PackageCommands(CommandBase):
                     '--message=Version Bump: {}'.format(brew_version),
                 ])
 
-                if secret_from_taskcluster:
-                    token = get_taskcluster_secret('github-homebrew-token')["token"]
-                else:
-                    token = os.environ['GITHUB_HOMEBREW_TOKEN']
+                token = os.environ['GITHUB_HOMEBREW_TOKEN']
 
                 push_url = 'https://{}@github.com/servo/homebrew-servo.git'
                 # TODO(aneeshusa): Use subprocess.DEVNULL with Python 3.3+
@@ -804,8 +784,6 @@ def setup_uwp_signing(ms_app_store, publisher):
     if ms_app_store:
         return ["/p:AppxPackageSigningEnabled=false"]
 
-    is_tc = "TASKCLUSTER_PROXY_URL" in os.environ
-
     def run_powershell_cmd(cmd):
         try:
             return (
@@ -818,10 +796,7 @@ def setup_uwp_signing(ms_app_store, publisher):
             exit(1)
 
     pfx = None
-    if is_tc:
-        print("Packaging on TC. Using secret certificate")
-        pfx = get_taskcluster_secret("windows-codesign-cert/latest")["pfx"]["base64"]
-    elif 'CODESIGN_CERT' in os.environ:
+    if 'CODESIGN_CERT' in os.environ:
         pfx = os.environ['CODESIGN_CERT']
 
     if pfx:
@@ -832,10 +807,7 @@ def setup_uwp_signing(ms_app_store, publisher):
     # Powershell command that lists all certificates for publisher
     cmd = '(dir cert: -Recurse | Where-Object {$_.Issuer -eq "' + publisher + '"}).Thumbprint'
     certs = list(set(run_powershell_cmd(cmd).splitlines()))
-    if not certs and is_tc:
-        print("Error: No certificate installed for publisher " + publisher)
-        exit(1)
-    if not certs and not is_tc:
+    if not certs:
         print("No certificate installed for publisher " + publisher)
         print("Creating and installing a temporary certificate")
         # PowerShell command that creates and install signing certificate for publisher
