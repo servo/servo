@@ -1,6 +1,8 @@
+# This action is meant as a quick check to be run when pushing to
+# branches on forks. This allows forks to test the build and unit
+# tests automatically without opening a pull request.
 name: Quick check
 on:
-  pull_request:
   push:
     branches:
       ["**", "!master", "!auto", "!try", "!try-linux", "!try-mac", "!try-windows", "!try-wpt", "!dependabot/**"]
@@ -8,6 +10,7 @@ on:
 jobs:
   build-linux:
     name: Linux
+    if: github.repository != 'servo/servo' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/linux.yml
     with:
       layout: '2013'
@@ -15,6 +18,7 @@ jobs:
 
   build-linux-layout-2020:
     name: Linux (layout-2020)
+    if: github.repository != 'servo/servo' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/linux.yml
     with:
       layout: '2020'

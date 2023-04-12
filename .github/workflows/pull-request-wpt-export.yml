@@ -1,4 +1,4 @@
-name: WPT export
+name: Pull request (WPT export)
 on:
   pull_request_target:
     types: ['opened', 'synchronize', 'reopened', 'edited', 'closed']
