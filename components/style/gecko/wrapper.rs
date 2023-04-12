@@ -1560,20 +1560,31 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn match_element_lang(&self, override_lang: Option<Option<AttrValue>>, value: &Lang) -> bool {
-        // Gecko supports :lang() from CSS Selectors 3, which only accepts a
-        // single language tag, and which performs simple dash-prefix matching
-        // on it.
+        // Gecko supports :lang() from CSS Selectors 4, which accepts a list
+        // of language tags, and does BCP47-style range matching.
         let override_lang_ptr = match override_lang {
             Some(Some(ref atom)) => atom.as_ptr(),
             _ => ptr::null_mut(),
         };
-        unsafe {
-            Gecko_MatchLang(
-                self.0,
-                override_lang_ptr,
-                override_lang.is_some(),
-                value.as_slice().as_ptr(),
-            )
+        match value {
+            Lang::Single(lang) => unsafe {
+                Gecko_MatchLang(
+                    self.0,
+                    override_lang_ptr,
+                    override_lang.is_some(),
+                    lang.as_slice().as_ptr(),
+                )
+            },
+            Lang::List(list) => {
+                list.iter().any(|lang| unsafe {
+                    Gecko_MatchLang(
+                        self.0,
+                        override_lang_ptr,
+                        override_lang.is_some(),
+                        lang.as_slice().as_ptr(),
+                    )
+                })
+            },
         }
     }
 
