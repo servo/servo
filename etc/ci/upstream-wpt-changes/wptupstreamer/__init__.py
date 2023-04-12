@@ -50,7 +50,7 @@ class LocalGitRepo:
         self.path = path
         self.sync = sync
 
-    def run(self, *args, env: dict = {}):
+    def run_without_encoding(self, *args, env: dict = {}):
         command_line = ["git"] + list(args)
         logging.info("  → Execution (cwd='%s'): %s",
                      self.path, " ".join(command_line))
@@ -63,11 +63,18 @@ class LocalGitRepo:
         try:
             return subprocess.check_output(
                 command_line, cwd=self.path, env=env, stderr=subprocess.STDOUT
-            ).decode("utf-8")
+            )
         except subprocess.CalledProcessError as exception:
             logging.warning("Process execution failed with output:\n%s",
-                            exception.output.decode("utf-8"))
+                            exception.output.decode("utf-8", errors="surrogateescape"))
             raise exception
+
+    def run(self, *args, env: dict = {}):
+        return (
+            self
+            .run_without_encoding(*args, env=env)
+            .decode("utf-8", errors="surrogateescape")
+        )
 
 
 @dataclasses.dataclass()

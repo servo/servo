@@ -229,7 +229,7 @@ class TestApplyCommitsToWPT(unittest.TestCase):
 
     def run_test(self, pr_number: int, commit_data: dict):
         def make_commit(data):
-            with open(os.path.join(TESTS_DIR, data[2]), encoding="utf-8") as file:
+            with open(os.path.join(TESTS_DIR, data[2]), "rb") as file:
                 return {"author": data[0], "message": data[1], "diff": file.read()}
 
         commits = [make_commit(data) for data in commit_data]
@@ -272,6 +272,15 @@ class TestApplyCommitsToWPT(unittest.TestCase):
             [
                 ["test author <test@author>", "test commit message", "18746.diff"],
                 ["another person <two@author>", "a different message", "wpt.diff"],
+                ["another person <two@author>", "adding some non-utf8 chaos", "add-non-utf8-file.diff"],
+            ],
+        )
+
+    def test_non_utf8_commit(self):
+        self.run_test(
+            100,
+            [
+                ["test author <nonutf8@author>", "adding some non-utf8 chaos", "add-non-utf8-file.diff"],
             ],
         )
 
@@ -453,6 +462,17 @@ class TestFullSyncRun(unittest.TestCase):
                 "CommentStep:servo/servo#18746:🤖 This change no longer contains upstreamable changes "
                 "to WPT; closed existing upstream pull request (wpt/wpt#1).",
             ]
+        )
+
+    def test_opened_upstreamable_pr_with_non_utf8_file_contents(self):
+        self.assertListEqual(
+            self.run_test("opened.json", ["add-non-utf8-file.diff"]),
+            [
+                "CreateOrUpdateBranchForPRStep:1:servo-wpt-sync/wpt/servo_export_18746",
+                "OpenPRStep:servo-wpt-sync/wpt/servo_export_18746→wpt/wpt#1",
+                "CommentStep:servo/servo#18746:🤖 Opened new upstream WPT pull request "
+                "(wpt/wpt#1) with upstreamable changes.",
+            ],
         )
 
     def test_open_new_upstreamable_pr_with_preexisting_upstream_pr_not_apply_cleanly_to_upstream(
