@@ -1,9 +1,9 @@
-name: WPT import
+name: Scheduled WPT import
 
 on:
   schedule:
-    # Run this job at 00:00 everyday
-    - cron: "0 0 * * *"
+    # Run this job every Sunday at 00:00.
+    - cron: "0 0 * * 0"
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -66,7 +66,7 @@ jobs:
           export CURRENT_DATE=$(date +"%d-%m-%Y")
           echo $CURRENT_DATE
           echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
-          ./etc/ci/wpt-nightly-update.sh
+          ./etc/ci/wpt-scheduled-update.sh
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
