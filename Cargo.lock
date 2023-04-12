@@ -4415,7 +4415,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba683f1641c11041c59d5d93689187abcab3c1349dc6d9d70c550c9f9360802f"
 dependencies = [
  "cfg-if 1.0.0",
- "redox_syscall 0.2.13",
+ "redox_syscall 0.2.16",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -4474,7 +4474,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "instant",
  "libc",
- "redox_syscall 0.2.13",
+ "redox_syscall 0.2.16",
  "smallvec",
  "winapi",
 ]
@@ -4487,7 +4487,7 @@ checksum = "ba1ef8814b5c993410bb3adfad7a5ed269563e4a2f90c41f5d85be7fb47133bf"
 dependencies = [
  "cfg-if 1.0.0",
  "libc",
- "redox_syscall 0.2.13",
+ "redox_syscall 0.2.16",
  "smallvec",
  "windows-sys 0.42.0",
 ]
@@ -5085,9 +5085,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.2.13"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62f25bc4c7e55e0b0b7a1d43fb893f4fa1361d0abe38b9ce4f323c2adfe6ef42"
+checksum = "fb5a58c1855b4b6819d59012155603f0b22ad30cad752600aadfcb695265519a"
 dependencies = [
  "bitflags",
 ]
@@ -5108,7 +5108,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
 dependencies = [
  "getrandom 0.2.8",
- "redox_syscall 0.2.13",
+ "redox_syscall 0.2.16",
  "thiserror",
 ]
 
@@ -6432,7 +6432,7 @@ checksum = "af18f7ae1acd354b992402e9ec5864359d693cd8a79dcbef59f76891701c1e95"
 dependencies = [
  "cfg-if 1.0.0",
  "fastrand",
- "redox_syscall 0.2.13",
+ "redox_syscall 0.2.16",
  "rustix",
  "windows-sys 0.42.0",
 ]
