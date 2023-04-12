@@ -19,7 +19,8 @@ use dom::{DocumentState, ElementState};
 use selectors::parser::SelectorParseErrorKind;
 use selectors::SelectorList;
 use std::fmt;
-use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss as ToCss_};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
+use thin_vec::ThinVec;
 
 pub use crate::gecko::pseudo_element::{
     PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT,
@@ -38,13 +39,9 @@ bitflags! {
 }
 
 /// The type used to store the language argument to the `:lang` pseudo-class.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
-pub enum Lang {
-    /// A single language code.
-    Single(AtomIdent),
-    /// A list of language codes.
-    List(Box<Vec<AtomIdent>>),
-}
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[css(comma)]
+pub struct Lang(#[css(iterable)] pub ThinVec<AtomIdent>);
 
 macro_rules! pseudo_class_name {
     ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
@@ -66,10 +63,6 @@ macro_rules! pseudo_class_name {
 }
 apply_non_ts_list!(pseudo_class_name);
 
-impl OneOrMoreSeparated for AtomIdent {
-    type S = Comma;
-}
-
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
     where
@@ -79,12 +72,9 @@ impl ToCss for NonTSPseudoClass {
             ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
-                    NonTSPseudoClass::Lang(ref s) => {
+                    NonTSPseudoClass::Lang(ref lang) => {
                         dest.write_str(":lang(")?;
-                        match &s {
-                            Lang::Single(lang) => cssparser::ToCss::to_css(lang, dest)?,
-                            Lang::List(list) => list.to_css(&mut CssWriter::new(dest))?,
-                        }
+                        lang.to_css(&mut CssWriter::new(dest))?;
                         return dest.write_char(')');
                     },
                     NonTSPseudoClass::MozLocaleDir(ref dir) => {
@@ -394,11 +384,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 if result.is_empty() {
                     return Err(parser.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-                if result.len() == 1 {
-                    NonTSPseudoClass::Lang(Lang::Single(result[0].clone()))
-                } else {
-                    NonTSPseudoClass::Lang(Lang::List(Box::new(result)))
-                }
+                NonTSPseudoClass::Lang(Lang(result.into()))
             },
             "-moz-locale-dir" => {
                 NonTSPseudoClass::MozLocaleDir(Direction::parse(parser)?)
@@ -448,7 +434,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         if starts_with_ignore_ascii_case(&name, "-moz-tree-") {
             // Tree pseudo-elements can have zero or more arguments, separated
             // by either comma or space.
-            let mut args = Vec::new();
+            let mut args = ThinVec::new();
             loop {
                 let location = parser.current_source_location();
                 match parser.next() {
@@ -462,7 +448,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                     _ => unreachable!("Parser::next() shouldn't return any other error"),
                 }
             }
-            let args = args.into_boxed_slice();
             if let Some(pseudo) = PseudoElement::tree_pseudo_element(&name, args) {
                 if self.is_pseudo_element_enabled(&pseudo) {
                     return Ok(pseudo);

@@ -1566,26 +1566,14 @@ impl<'le> TElement for GeckoElement<'le> {
             Some(Some(ref atom)) => atom.as_ptr(),
             _ => ptr::null_mut(),
         };
-        match value {
-            Lang::Single(lang) => unsafe {
-                Gecko_MatchLang(
-                    self.0,
-                    override_lang_ptr,
-                    override_lang.is_some(),
-                    lang.as_slice().as_ptr(),
-                )
-            },
-            Lang::List(list) => {
-                list.iter().any(|lang| unsafe {
-                    Gecko_MatchLang(
-                        self.0,
-                        override_lang_ptr,
-                        override_lang.is_some(),
-                        lang.as_slice().as_ptr(),
-                    )
-                })
-            },
-        }
+        value.0.iter().any(|lang| unsafe {
+            Gecko_MatchLang(
+                self.0,
+                override_lang_ptr,
+                override_lang.is_some(),
+                lang.as_slice().as_ptr(),
+            )
+        })
     }
 
     fn is_html_document_body_element(&self) -> bool {

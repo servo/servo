@@ -3396,6 +3396,7 @@ dependencies = [
  "smallbitvec",
  "smallvec",
  "string_cache",
+ "thin-vec",
  "time 0.1.45",
  "tokio",
  "url",
@@ -5711,6 +5712,7 @@ dependencies = [
  "string_cache",
  "style_derive",
  "style_traits",
+ "thin-vec",
  "time 0.1.45",
  "to_shmem",
  "to_shmem_derive",
@@ -5925,6 +5927,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 
 [[package]]
+name = "thin-vec"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aac81b6fd6beb5884b0cf3321b8117e6e5d47ecb6fc89f414cfdcca8b2fe2dd8"
+
+[[package]]
 name = "thiserror"
 version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6060,6 +6068,7 @@ dependencies = [
  "smallbitvec",
  "smallvec",
  "string_cache",
+ "thin-vec",
 ]
 
 [[package]]
