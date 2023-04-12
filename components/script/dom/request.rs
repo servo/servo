@@ -50,7 +50,6 @@ pub struct Request {
     request: DomRefCell<NetTraitsRequest>,
     body_stream: MutNullableDom<ReadableStream>,
     headers: MutNullableDom<Headers>,
-    mime_type: DomRefCell<Vec<u8>>,
 }
 
 impl Request {
@@ -60,7 +59,6 @@ impl Request {
             request: DomRefCell::new(net_request_from_global(global, url)),
             body_stream: MutNullableDom::new(None),
             headers: Default::default(),
-            mime_type: DomRefCell::new("".to_string().into_bytes()),
         }
     }
 
@@ -444,8 +442,6 @@ impl Request {
         r.request.borrow_mut().body = input_body;
 
         // Step 41
-        let extracted_mime_type = r.Headers().extract_mime_type();
-        *r.mime_type.borrow_mut() = extracted_mime_type;
 
         // Step 42
         Ok(r)
@@ -462,7 +458,6 @@ impl Request {
     fn clone_from(r: &Request) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
-        let mime_type = r.mime_type.borrow().clone();
         let headers_guard = r.Headers().get_guard();
         let r_clone = Request::new(&r.global(), url);
         r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
@@ -471,7 +466,6 @@ impl Request {
             borrowed_r_request.origin = req.origin.clone();
         }
         *r_clone.request.borrow_mut() = req.clone();
-        *r_clone.mime_type.borrow_mut() = mime_type;
         r_clone.Headers().copy_from_headers(r.Headers())?;
         r_clone.Headers().set_guard(headers_guard);
         Ok(r_clone)
@@ -682,7 +676,8 @@ impl BodyMixin for Request {
     }
 
     fn get_mime_type(&self) -> Vec<u8> {
-        self.mime_type.borrow().clone()
+        let headers = self.Headers();
+        headers.extract_mime_type()
     }
 }
 

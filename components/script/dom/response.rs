@@ -37,7 +37,6 @@ use url::Position;
 pub struct Response {
     reflector_: Reflector,
     headers_reflector: MutNullableDom<Headers>,
-    mime_type: DomRefCell<Vec<u8>>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_malloc_size_of = "Defined in hyper"]
     status: DomRefCell<Option<StatusCode>>,
@@ -62,7 +61,6 @@ impl Response {
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
-            mime_type: DomRefCell::new("".to_string().into_bytes()),
             status: DomRefCell::new(Some(StatusCode::OK)),
             raw_status: DomRefCell::new(Some((200, b"".to_vec()))),
             response_type: DomRefCell::new(DOMResponseType::Default),
@@ -153,7 +151,6 @@ impl Response {
         }
 
         // Step 8
-        *r.mime_type.borrow_mut() = r.Headers().extract_mime_type();
 
         // Step 9
         // TODO: `entry settings object` is not implemented in Servo yet.
@@ -242,7 +239,8 @@ impl BodyMixin for Response {
     }
 
     fn get_mime_type(&self) -> Vec<u8> {
-        self.mime_type.borrow().clone()
+        let headers = self.Headers();
+        headers.extract_mime_type()
     }
 }
 
@@ -404,7 +402,6 @@ impl Response {
             Some(hyper_headers) => hyper_headers.into_inner(),
             None => HyperHeaders::new(),
         });
-        *self.mime_type.borrow_mut() = self.Headers().extract_mime_type();
     }
 
     pub fn set_raw_status(&self, status: Option<(u16, Vec<u8>)>) {
