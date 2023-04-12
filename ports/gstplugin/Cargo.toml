@@ -35,5 +35,5 @@ surfman-chains-api = "0.2"
 webxr = { git = "https://github.com/servo/webxr", features = ["glwindow"] }
 
 [build-dependencies]
-gst-plugin-version-helper = "0.2"
+gst-plugin-version-helper = "0.7"
 
