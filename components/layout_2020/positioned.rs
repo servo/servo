@@ -15,7 +15,7 @@ use rayon::iter::{IntoParallelRefMutIterator, ParallelExtend};
 use rayon_croissant::ParallelIteratorExt;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage};
+use style::values::computed::{CSSPixelLength, Length, LengthPercentage};
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 
@@ -424,7 +424,7 @@ impl HoistedAbsolutelyPositionedBox {
             .style()
             .padding_border_margin(&containing_block.into());
 
-        let size = match &absolutely_positioned_box.context {
+        let computed_size = match &absolutely_positioned_box.context {
             IndependentFormattingContext::Replaced(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
@@ -445,32 +445,32 @@ impl HoistedAbsolutelyPositionedBox {
 
         let shared_fragment = self.fragment.borrow();
 
-        let inline_axis = solve_axis(
-            cbis,
-            pbm.padding_border_sums.inline,
-            pbm.margin.inline_start,
-            pbm.margin.inline_end,
-            /* avoid_negative_margin_start */ true,
-            &shared_fragment.box_offsets.inline,
-            size.inline,
-        );
-
-        let block_axis = solve_axis(
-            cbis,
-            pbm.padding_border_sums.block,
-            pbm.margin.block_start,
-            pbm.margin.block_end,
-            /* avoid_negative_margin_start */ false,
-            &shared_fragment.box_offsets.block,
-            size.block,
-        );
-
-        let margin = Sides {
-            inline_start: inline_axis.margin_start,
-            inline_end: inline_axis.margin_end,
-            block_start: block_axis.margin_start,
-            block_end: block_axis.margin_end,
+        let solve_inline_axis = |computed_size| {
+            solve_axis(
+                cbis,
+                pbm.padding_border_sums.inline,
+                pbm.margin.inline_start,
+                pbm.margin.inline_end,
+                /* avoid_negative_margin_start */ true,
+                &shared_fragment.box_offsets.inline,
+                computed_size,
+            )
         };
+        let solve_block_axis = |computed_size| {
+            solve_axis(
+                // TODO(delan) shouldn’t this be cbbs?
+                cbis,
+                pbm.padding_border_sums.block,
+                pbm.margin.block_start,
+                pbm.margin.block_end,
+                /* avoid_negative_margin_start */ false,
+                &shared_fragment.box_offsets.block,
+                computed_size,
+            )
+        };
+
+        let mut inline_axis = solve_inline_axis(computed_size.inline);
+        let mut block_axis = solve_block_axis(computed_size.block);
 
         let mut positioning_context =
             PositioningContext::new_for_style(absolutely_positioned_box.context.style()).unwrap();
@@ -482,53 +482,132 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
                     let style = &replaced.style;
-                    content_size = size.auto_is(|| unreachable!());
+                    content_size = computed_size.auto_is(|| unreachable!());
                     fragments = replaced
                         .contents
                         .make_fragments(style, content_size.clone());
                 },
                 IndependentFormattingContext::NonReplaced(non_replaced) => {
+                    // https://drafts.csswg.org/css2/#min-max-widths
+                    // https://drafts.csswg.org/css2/#min-max-heights
+                    let min_size = non_replaced
+                        .style
+                        .content_min_box_size(&containing_block.into(), &pbm)
+                        .auto_is(|| Length::zero());
+                    let max_size = non_replaced
+                        .style
+                        .content_max_box_size(&containing_block.into(), &pbm);
+
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-                    let inline_size = inline_axis.size.auto_is(|| {
+                    let mut inline_size = inline_axis.size.auto_is(|| {
                         let anchor = match inline_axis.anchor {
                             Anchor::Start(start) => start,
                             Anchor::End(end) => end,
                         };
+                        let margin_sum = inline_axis.margin_start + inline_axis.margin_end;
                         let available_size =
-                            cbis - anchor - pbm.padding_border_sums.inline - margin.inline_sum();
+                            cbis - anchor - pbm.padding_border_sums.inline - margin_sum;
                         non_replaced
                             .inline_content_sizes(layout_context)
                             .shrink_to_fit(available_size)
                     });
 
-                    let containing_block_for_children = ContainingBlock {
-                        inline_size,
-                        block_size: block_axis.size,
-                        style: &non_replaced.style,
-                    };
-                    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-                    assert_eq!(
-                        containing_block.style.writing_mode,
-                        containing_block_for_children.style.writing_mode,
-                        "Mixed writing modes are not supported yet"
-                    );
-                    let dummy_tree_rank = 0;
-                    let independent_layout = non_replaced.layout(
-                        layout_context,
-                        &mut positioning_context,
-                        &containing_block_for_children,
-                        dummy_tree_rank,
-                    );
+                    // If the tentative used inline size is greater than ‘max-inline-size’,
+                    // recalculate the inline size and margins with ‘max-inline-size’ as the
+                    // computed ‘inline-size’. We can assume the new inline size won’t be ‘auto’,
+                    // because a non-‘auto’ computed ‘inline-size’ always becomes the used value.
+                    // https://drafts.csswg.org/css2/#min-max-widths (step 2)
+                    if let Some(max) = max_size.inline {
+                        if inline_size > max {
+                            inline_axis = solve_inline_axis(LengthOrAuto::LengthPercentage(max));
+                            inline_size = inline_axis.size.auto_is(|| unreachable!());
+                        }
+                    }
 
-                    content_size = Vec2 {
-                        inline: inline_size,
-                        block: block_axis
-                            .size
-                            .auto_is(|| independent_layout.content_block_size),
+                    // If the tentative used inline size is less than ‘min-inline-size’,
+                    // recalculate the inline size and margins with ‘min-inline-size’ as the
+                    // computed ‘inline-size’. We can assume the new inline size won’t be ‘auto’,
+                    // because a non-‘auto’ computed ‘inline-size’ always becomes the used value.
+                    // https://drafts.csswg.org/css2/#min-max-widths (step 3)
+                    if inline_size < min_size.inline {
+                        inline_axis =
+                            solve_inline_axis(LengthOrAuto::LengthPercentage(min_size.inline));
+                        inline_size = inline_axis.size.auto_is(|| unreachable!());
+                    }
+
+                    struct Result {
+                        content_size: Vec2<CSSPixelLength>,
+                        fragments: Vec<Fragment>,
+                    }
+
+                    // If we end up recalculating the block size and margins below, we also need
+                    // to relayout the children with a containing block of that size, otherwise
+                    // percentages may be resolved incorrectly.
+                    let mut try_layout = |size| {
+                        let containing_block_for_children = ContainingBlock {
+                            inline_size,
+                            block_size: size,
+                            style: &non_replaced.style,
+                        };
+                        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+                        assert_eq!(
+                            containing_block.style.writing_mode,
+                            containing_block_for_children.style.writing_mode,
+                            "Mixed writing modes are not supported yet"
+                        );
+                        let dummy_tree_rank = 0;
+                        let independent_layout = non_replaced.layout(
+                            layout_context,
+                            &mut positioning_context,
+                            &containing_block_for_children,
+                            dummy_tree_rank,
+                        );
+                        let block_size = size.auto_is(|| independent_layout.content_block_size);
+                        Result {
+                            content_size: Vec2 {
+                                inline: inline_size,
+                                block: block_size,
+                            },
+                            fragments: independent_layout.fragments,
+                        }
                     };
-                    fragments = independent_layout.fragments
+
+                    let mut result = try_layout(block_axis.size);
+
+                    // If the tentative used block size is greater than ‘max-block-size’,
+                    // recalculate the block size and margins with ‘max-block-size’ as the
+                    // computed ‘block-size’. We can assume the new block size won’t be ‘auto’,
+                    // because a non-‘auto’ computed ‘block-size’ always becomes the used value.
+                    // https://drafts.csswg.org/css2/#min-max-heights (step 2)
+                    if let Some(max) = max_size.block {
+                        if result.content_size.block > max {
+                            block_axis = solve_block_axis(LengthOrAuto::LengthPercentage(max));
+                            result = try_layout(LengthOrAuto::LengthPercentage(max));
+                        }
+                    }
+
+                    // If the tentative used block size is less than ‘min-block-size’,
+                    // recalculate the block size and margins with ‘min-block-size’ as the
+                    // computed ‘block-size’. We can assume the new block size won’t be ‘auto’,
+                    // because a non-‘auto’ computed ‘block-size’ always becomes the used value.
+                    // https://drafts.csswg.org/css2/#min-max-heights (step 3)
+                    if result.content_size.block < min_size.block {
+                        block_axis =
+                            solve_block_axis(LengthOrAuto::LengthPercentage(min_size.block));
+                        result = try_layout(LengthOrAuto::LengthPercentage(min_size.block));
+                    }
+
+                    content_size = result.content_size;
+                    fragments = result.fragments;
                 },
+            };
+
+            let margin = Sides {
+                inline_start: inline_axis.margin_start,
+                inline_end: inline_axis.margin_end,
+                block_start: block_axis.margin_start,
+                block_end: block_axis.margin_end,
             };
 
             let pb = &pbm.padding + &pbm.border;
@@ -601,24 +680,24 @@ fn solve_axis(
     computed_margin_end: LengthOrAuto,
     avoid_negative_margin_start: bool,
     box_offsets: &AbsoluteBoxOffsets,
-    size: LengthOrAuto,
+    computed_size: LengthOrAuto,
 ) -> AxisResult {
     match box_offsets {
         AbsoluteBoxOffsets::StaticStart { start } => AxisResult {
             anchor: Anchor::Start(*start),
-            size,
+            size: computed_size,
             margin_start: computed_margin_start.auto_is(Length::zero),
             margin_end: computed_margin_end.auto_is(Length::zero),
         },
         AbsoluteBoxOffsets::Start { start } => AxisResult {
             anchor: Anchor::Start(start.percentage_relative_to(containing_size)),
-            size,
+            size: computed_size,
             margin_start: computed_margin_start.auto_is(Length::zero),
             margin_end: computed_margin_end.auto_is(Length::zero),
         },
         AbsoluteBoxOffsets::End { end } => AxisResult {
             anchor: Anchor::End(end.percentage_relative_to(containing_size)),
-            size,
+            size: computed_size,
             margin_start: computed_margin_start.auto_is(Length::zero),
             margin_end: computed_margin_end.auto_is(Length::zero),
         },
@@ -629,7 +708,7 @@ fn solve_axis(
             let margin_start;
             let margin_end;
             let used_size;
-            if let LengthOrAuto::LengthPercentage(s) = size {
+            if let LengthOrAuto::LengthPercentage(s) = computed_size {
                 used_size = s;
                 let margins = containing_size - start - end - padding_border_sum - s;
                 match (computed_margin_start, computed_margin_end) {
@@ -661,7 +740,9 @@ fn solve_axis(
             } else {
                 margin_start = computed_margin_start.auto_is(Length::zero);
                 margin_end = computed_margin_end.auto_is(Length::zero);
-                // FIXME(nox): What happens if that is negative?
+
+                // This may be negative, but the caller will later effectively
+                // clamp it to ‘min-inline-size’ or ‘min-block-size’.
                 used_size =
                     containing_size - start - end - padding_border_sum - margin_start - margin_end
             };
