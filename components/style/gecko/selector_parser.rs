@@ -19,7 +19,7 @@ use dom::{DocumentState, ElementState};
 use selectors::parser::SelectorParseErrorKind;
 use selectors::SelectorList;
 use std::fmt;
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
+use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 
 pub use crate::gecko::pseudo_element::{
     PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT,
@@ -38,7 +38,13 @@ bitflags! {
 }
 
 /// The type used to store the language argument to the `:lang` pseudo-class.
-pub type Lang = AtomIdent;
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
+pub enum Lang {
+    /// A single language code.
+    Single(AtomIdent),
+    /// A list of language codes.
+    List(Box<Vec<AtomIdent>>),
+}
 
 macro_rules! pseudo_class_name {
     ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
@@ -60,6 +66,10 @@ macro_rules! pseudo_class_name {
 }
 apply_non_ts_list!(pseudo_class_name);
 
+impl OneOrMoreSeparated for AtomIdent {
+    type S = Comma;
+}
+
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
     where
@@ -71,7 +81,10 @@ impl ToCss for NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     NonTSPseudoClass::Lang(ref s) => {
                         dest.write_str(":lang(")?;
-                        cssparser::ToCss::to_css(s, dest)?;
+                        match &s {
+                            Lang::Single(lang) => cssparser::ToCss::to_css(lang, dest)?,
+                            Lang::List(list) => list.to_css(&mut CssWriter::new(dest))?,
+                        }
                         return dest.write_char(')');
                     },
                     NonTSPseudoClass::MozLocaleDir(ref dir) => {
@@ -375,8 +388,17 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         let pseudo_class = match_ignore_ascii_case! { &name,
             "lang" => {
-                let name = parser.expect_ident_or_string()?;
-                NonTSPseudoClass::Lang(Lang::from(name.as_ref()))
+                let result = parser.parse_comma_separated(|input| {
+                    Ok(AtomIdent::from(input.expect_ident_or_string()?.as_ref()))
+                })?;
+                if result.is_empty() {
+                    return Err(parser.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                }
+                if result.len() == 1 {
+                    NonTSPseudoClass::Lang(Lang::Single(result[0].clone()))
+                } else {
+                    NonTSPseudoClass::Lang(Lang::List(Box::new(result)))
+                }
             },
             "-moz-locale-dir" => {
                 NonTSPseudoClass::MozLocaleDir(Direction::parse(parser)?)
