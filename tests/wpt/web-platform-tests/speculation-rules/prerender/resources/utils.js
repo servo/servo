@@ -192,7 +192,8 @@ function createFrame(url) {
 
 // `opt` provides additional query params for the prerendered URL.
 // `init_opt` provides additional query params for the page that triggers
-// the prerender.
+// the prerender. If `init_opt.prefetch` is set to true, prefetch is also
+// triggered before the prerendering.
 // `rule_extras` provides additional parameters for the speculation rule used
 // to trigger prerendering.
 async function create_prerendered_page(t, opt = {}, init_opt = {}, rule_extras = {}) {
@@ -216,6 +217,23 @@ async function create_prerendered_page(t, opt = {}, init_opt = {}, rule_extras =
   for (const p in opt)
     params.set(p, opt[p]);
   const url = `${baseUrl}?${params.toString()}`;
+
+  if (init_opt.prefetch) {
+    await init_remote.execute_script((url, rule_extras) => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.innerText = 'Activate (prefetch)';
+        document.body.appendChild(a);
+        const rules = document.createElement('script');
+        rules.type = "speculationrules";
+        rules.text = JSON.stringify(
+            {prefetch: [{source: 'list', urls: [url], ...rule_extras}]});
+        document.head.appendChild(rules);
+    }, [url, rule_extras]);
+
+    // Wait for the completion of the prefetch.
+    await new Promise(resolve => t.step_timeout(resolve, 3000));
+  }
 
   await init_remote.execute_script((url, rule_extras) => {
       const a = document.createElement('a');
@@ -266,10 +284,16 @@ async function create_prerendered_page(t, opt = {}, init_opt = {}, rule_extras =
       throw new Error('Should not be prerendering at this point')
   }
 
+  // Get the number of network requests for the prerendered page URL.
+  async function getNetworkRequestCount() {
+    return await (await fetch(url + '&get-fetch-count')).text();
+  }
+
   return {
     exec: (fn, args) => prerender_remote.execute_script(fn, args),
     activate,
-    tryToActivate
+    tryToActivate,
+    getNetworkRequestCount
   };
 }
 

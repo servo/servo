@@ -70,6 +70,56 @@ promise_test(async t => {
   assert_equals(vid.videoWidth, cv.width);
   assert_equals(vid.videoHeight, cv.height);
 }, "Test that a video element rendering a disabled video track reports correct intrinsic dimensions");
+
+promise_test(async t => {
+  const originalWidth = cv.width;
+  const originalHeight = cv.height;
+
+  const vid2 = document.createElement("video");
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "red";
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  const stream = cv.captureStream();
+  const stream2 = stream.clone();
+  t.add_cleanup(() => {
+    for (let track of [...stream.getTracks(), ...stream2.getTracks()]) {
+      track.stop();
+    }
+    vid.srcObject = null;
+    vid2.srcObject = null;
+    cv.width = originalWidth;
+    cv.height = originalHeight;
+  });
+
+  stream.getTracks()[0].enabled = false;
+
+  vid.srcObject = stream;
+  vid2.srcObject = stream2;
+  vid.play();
+  vid2.play();
+  await Promise.all([
+    new Promise(r => vid.onresize = r),
+    new Promise(r => vid2.onresize = r),
+  ]);
+
+  // Test "flow" of the disabled track by checking for "resize" events on a
+  // video element rendering that track. They should not fire. As a reference,
+  // we look for two "resize" events on a different video element rendering an
+  // enabled clone of the disabled track. We look for two and not one event
+  // because then we don't rely on any ordering of events coming from the two
+  // video elements.
+  let resized = 0;
+  vid.addEventListener("resize", () => ++resized);
+
+  for (let i = 0; i < 2; ++i) {
+    cv.width = cv.width / 2;
+    cv.height = cv.height / 2;
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    await new Promise(r => vid2.onresize = r);
+  }
+
+  assert_equals(resized, 0);
+}, "Test that frames don't flow for a disabled video track");
 </script>
 </body>
 </html>

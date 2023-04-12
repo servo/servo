@@ -73,6 +73,15 @@ function createCredential(opts) {
     return navigator.credentials.create(createArgs.options);
 }
 
+function assertCredential(credential) {
+    var options = cloneObject(getCredentialDefaultArgs);
+    let challengeBytes = new Uint8Array(16);
+    window.crypto.getRandomValues(challengeBytes);
+    options.challenge = challengeBytes;
+    options.allowCredentials = [{type: 'public-key', id: credential.rawId}];
+    return navigator.credentials.get({publicKey: options});
+}
+
 function createRandomString(len) {
     var text = "";
     var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

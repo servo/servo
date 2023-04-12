@@ -184,3 +184,30 @@ test((t) => {
   controller.setPriority('background');
   assert_true(fired);
 }, "TaskSignal.any() propagates priority after returning an aborted signal");
+
+test((t) => {
+  // Add a dependent in the initial event dispatch stage.
+  let controller = new TaskController();
+  let fired = false;
+  controller.signal.onprioritychange = t.step_func(() => {
+    fired = true;
+    const newSignal = TaskSignal.any([], {priority: controller.signal});
+    assert_equals(newSignal.priority, 'background');
+    newSignal.onprioritychange = t.unreached_func('onprioritychange called');
+  });
+  controller.setPriority('background');
+  assert_true(fired);
+
+  // Add a dependent while signaling prioritychange on dependents.
+  fired = false;
+  controller = new TaskController();
+  const signal = TaskSignal.any([], {priority: controller.signal});
+  signal.onprioritychange = t.step_func(() => {
+    fired = true;
+    const newSignal = TaskSignal.any([], {priority: signal});
+    assert_equals(newSignal.priority, 'background');
+    newSignal.onprioritychange = t.unreached_func('onprioritychange called');
+  });
+  controller.setPriority('background');
+  assert_true(fired);
+}, "TaskSignal.any() does not fire prioritychange for dependents added during prioritychange");

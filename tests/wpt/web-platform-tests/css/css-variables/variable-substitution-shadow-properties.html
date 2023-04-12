@@ -21,6 +21,7 @@
 <body>
     <div id="log"></div>
     <div class="testArea" id="box-shadow" style="--foo: rgb(0, 128, 0); box-shadow: 1px 1px 1px 1px var(--foo);">box-shadow</div>
+    <div class="testArea" id="box-shadow-with-comment" style="--foo: 1px /* hello */ rgb(0, 128, 0); box-shadow: 1px 1px 1px var(--foo);">box-shadow</div>
     <div class="testArea" id="text-shadow" style="--foo: rgb(0, 128, 0); text-shadow: 1px 1px 1px var(--foo);">text-shadow</div>
     <script type="text/javascript">
         "use strict";
@@ -28,10 +29,17 @@
         let templates = [
             {
                 testName:"box-shadow",
+                property:"box-shadow",
+                expectedValue:"rgb(0, 128, 0) 1px 1px 1px 1px",
+            },
+            {
+                testName:"box-shadow-with-comment",
+                property:"box-shadow",
                 expectedValue:"rgb(0, 128, 0) 1px 1px 1px 1px",
             },
             {
                 testName:"text-shadow",
+                property:"text-shadow",
                 expectedValue:"rgb(0, 128, 0) 1px 1px 1px",
             },
         ];
@@ -40,7 +48,7 @@
             test( function () {
                 let target = document.getElementById(template.testName);
                 let computedStyle = window.getComputedStyle(target);
-                let value = computedStyle.getPropertyValue(template.testName);
+                let value = computedStyle.getPropertyValue(template.property);
                 assert_equals(value, template.expectedValue, "Expected Value should match actual value");
             }, template.testName);
         });

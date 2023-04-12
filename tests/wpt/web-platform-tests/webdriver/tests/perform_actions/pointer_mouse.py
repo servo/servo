@@ -99,7 +99,7 @@ def test_click_element_center(session, test_actions_page, mouse_chain):
 
 
 def test_click_navigation(session, url, inline):
-    destination = url("/webdriver/tests/actions/support/test_actions_wdspec.html")
+    destination = url("/webdriver/tests/support/html/test_actions.html")
     start = inline("<a href=\"{}\" id=\"link\">destination</a>".format(destination))
 
     def click(link):

@@ -11,6 +11,7 @@
 
     <meta name="flags" content="image">
     <meta name="assert" content="Check if 'background-size' is 'auto 61px' and 'background-repeat' is 'round', then the height of the corresponding background image is rounded (70px in this test) so that it fits a whole number of times (3 in this test) in the background positioning area, and the width of the background image is rescaled (70px in this test) to keep the original aspect ratio.">
+    <meta name="fuzzy" content="maxDifference=0-70; totalPixels=0-7294">
     <style>
         div {
             background-color: red;

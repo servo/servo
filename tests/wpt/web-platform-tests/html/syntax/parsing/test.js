@@ -211,7 +211,12 @@ function test_fragment(iframe, t, test_id, uri_encoded_input, escaped_expected, 
      container_elem = document.createElement(container);
   }
   container_elem.innerHTML = input_string;
-  var serialized_dom = test_serializer(container_elem);
+  var serialized_dom;
+  if (container_elem.namespaceURI === namespaces["html"] && container_elem.localName === "template") {
+    serialized_dom = test_serializer(container_elem.content);
+  } else {
+    serialized_dom = test_serializer(container_elem);
+  }
   current_tests[iframe.id].actual = serialized_dom;
   serialized_dom = convert_innerHTML(serialized_dom);
   assert_equals(serialized_dom, expected);
@@ -220,6 +225,7 @@ function test_fragment(iframe, t, test_id, uri_encoded_input, escaped_expected, 
 
 function convert_innerHTML(serialized_dom) {
   var lines = serialized_dom.split("\n");
+  assert_not_equals(lines[0], "<template>", "template is never the innerHTML context object");
   lines[0] = "#document";
   return lines.join("\n");
 }
