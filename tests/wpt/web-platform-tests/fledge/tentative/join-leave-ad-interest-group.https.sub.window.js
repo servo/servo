@@ -461,9 +461,34 @@ const SIMPLE_JOIN_LEAVE_TEST_CASES = [
                      matter: 'at',
                      all: [3,4,5] }
   },
+
+  // Interest group dictionaries must be less than 50 KiB (51200 bytes), so test
+  // that here by using a large name on an otherwise valid interest group
+  // dictionary. The first case is the largest name value that still results in
+  // a valid dictionary, whereas the second test case produces a dictionary
+  // that's one byte too large.
+  { expectJoinSucces: true,
+    expectLeaveSucces: true,
+    interestGroup: { ...BASE_INTEREST_GROUP,
+                     name: 'a'.repeat(51152) },
+    testCaseName: "Largest possible interest group dictionary",
+  },
+  { expectJoinSucces: false,
+    expectLeaveSucces: true,
+    interestGroup: { ...BASE_INTEREST_GROUP,
+                     name: 'a'.repeat(51153) },
+    testCaseName: "Oversized interest group dictionary",
+  },
 ];
 
 for (testCase of SIMPLE_JOIN_LEAVE_TEST_CASES) {
+  var test_name = 'Join and leave interest group: ';
+  if ('testCaseName' in testCase) {
+    test_name += testCase.testCaseName;
+  } else {
+    test_name += JSON.stringify(testCase);
+  }
+
   promise_test((async (testCase) => {
     const INTEREST_GROUP_LIFETIME_SECS = 1;
 
@@ -495,7 +520,7 @@ for (testCase of SIMPLE_JOIN_LEAVE_TEST_CASES) {
       }
       assert_true(leaveExceptionThrown, 'Exception not thrown on leave.');
     }
-  }).bind(undefined, testCase), 'Join and leave interest group: ' + JSON.stringify(testCase));
+  }).bind(undefined, testCase), test_name);
 }
 
 promise_test(async test => {

@@ -86,7 +86,7 @@ def modifier_key(session):
 
 @pytest.fixture
 def test_actions_page(session, url):
-    session.url = url("/webdriver/tests/perform_actions/support/test_actions_wdspec.html")
+    session.url = url("/webdriver/tests/support/html/test_actions.html")
 
 
 @pytest.fixture

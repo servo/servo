@@ -44,25 +44,29 @@ test_shorthand_value('view-timeline', 'abc vertical',
 {
   'view-timeline-name': 'abc',
   'view-timeline-axis': 'vertical',
+  'view-timeline-attachment': 'local',
 });
-test_shorthand_value('view-timeline', 'abc vertical, def',
+test_shorthand_value('view-timeline', 'abc vertical defer, def',
 {
   'view-timeline-name': 'abc, def',
   'view-timeline-axis': 'vertical, block',
+  'view-timeline-attachment': 'defer, local',
 });
 test_shorthand_value('view-timeline', 'abc, def',
 {
   'view-timeline-name': 'abc, def',
   'view-timeline-axis': 'block, block',
+  'view-timeline-attachment': 'local, local',
 });
-test_shorthand_value('view-timeline', 'inline horizontal',
+test_shorthand_value('view-timeline', 'inline horizontal ancestor',
 {
   'view-timeline-name': 'inline',
   'view-timeline-axis': 'horizontal',
+  'view-timeline-attachment': 'ancestor',
 });
 
 function test_shorthand_contraction(shorthand, longhands, expected) {
-  let longhands_fmt = Object.entries(longhands).map((e) => `${e[0]}:${e[1]}`).join(';');
+  let longhands_fmt = Object.entries(longhands).map((e) => `${e[0]}:${e[1]}:${e[2]}`).join(';');
   test((t) => {
     t.add_cleanup(() => {
       for (let shorthand of Object.keys(longhands))
@@ -78,16 +82,19 @@ function test_shorthand_contraction(shorthand, longhands, expected) {
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': 'abc',
   'view-timeline-axis': 'inline',
-}, 'abc inline');
+  'view-timeline-attachment': 'ancestor',
+}, 'abc inline ancestor');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': 'a, b',
   'view-timeline-axis': 'inline, block',
-}, 'a inline, b');
+  'view-timeline-attachment': 'defer, local',
+}, 'a inline defer, b');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': 'none, none',
   'view-timeline-axis': 'block, block',
+  'view-timeline-attachment': 'local, local',
 }, 'none, none');
 
 // Longhands with different lengths:
@@ -95,10 +102,12 @@ test_shorthand_contraction('view-timeline', {
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': 'a, b, c',
   'view-timeline-axis': 'inline, inline',
+  'view-timeline-attachment': 'local, local',
 }, '');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': 'a, b',
   'view-timeline-axis': 'inline, inline, inline',
+  'view-timeline-attachment': 'local, local',
 }, '');
 </script>

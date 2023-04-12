@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight painting with display:contents</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://crbug.com/1429198">
+<meta name="assert" value="Checks that highlight painting does not crash when the originating element has decorations that are ineffective due to ‘display’ being ‘contents’.">
+<style>
+    body { display: contents; text-decoration: underline; }
+    ::selection { /* force full highlight overlay painting */ text-decoration: line-through; }
+</style>
+test
+<script>
+    document.execCommand("selectAll");
+</script>

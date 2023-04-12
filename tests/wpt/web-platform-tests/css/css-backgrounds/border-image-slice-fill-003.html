@@ -18,6 +18,7 @@
 
   <meta content="" name="flags">
   <meta content="This test checks the rendering process of selecting the middle part of the border-image to be preserved. Since 'border-image-slice' is '100', then the 8 surrounding areas of the border-image area are selecting the white areas of the border-image and 50px of (and into) the red area. The middle part must be filled with red and green area. In which case, only the horizontal center and the vertical center of the border-image must fill the middle area. Therefore, only the green 100x100 area of the border-image must be painted into the middle area. This test also checks that since the border-style is 'none', then the computed value of 'border-width' must be 0px. Therefore the border belt of the div can not be painted with the 8 sliced border-image areas. So, we should see no red in this test." name="assert">
+  <meta name="fuzzy" content="maxDifference=0-112; totalPixels=0-199" />
 
   <style>
   div

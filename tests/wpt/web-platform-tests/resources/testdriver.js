@@ -691,9 +691,9 @@
          */
         in_automation: false,
 
-        click: function(element, coords) {
+        async click(element, coords) {
             if (this.in_automation) {
-                return Promise.reject(new Error('Not implemented'));
+                throw new Error("click() is not implemented by testdriver-vendor.js");
             }
 
             return new Promise(function(resolve, reject) {
@@ -701,21 +701,21 @@
             });
         },
 
-        delete_all_cookies: function(context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async delete_all_cookies(context=null) {
+            throw new Error("delete_all_cookies() is not implemented by testdriver-vendor.js");
         },
 
-        get_all_cookies: function(context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async get_all_cookies(context=null) {
+            throw new Error("get_all_cookies() is not implemented by testdriver-vendor.js");
         },
 
-        get_named_cookie: function(name, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async get_named_cookie(name, context=null) {
+            throw new Error("get_named_cookie() is not implemented by testdriver-vendor.js");
         },
 
-        send_keys: function(element, keys) {
+        async send_keys(element, keys) {
             if (this.in_automation) {
-                return Promise.reject(new Error('Not implemented'));
+                throw new Error("send_keys() is not implemented by testdriver-vendor.js");
             }
 
             return new Promise(function(resolve, reject) {
@@ -745,65 +745,64 @@
             });
         },
 
-        freeze: function(context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async freeze(context=null) {
+            throw new Error("freeze() is not implemented by testdriver-vendor.js");
         },
 
-        minimize_window: function(context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async minimize_window(context=null) {
+            throw new Error("minimize_window() is not implemented by testdriver-vendor.js");
         },
 
-        set_window_rect: function(rect, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async set_window_rect(rect, context=null) {
+            throw new Error("set_window_rect() is not implemented by testdriver-vendor.js");
         },
 
-        action_sequence: function(actions, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async action_sequence(actions, context=null) {
+            throw new Error("action_sequence() is not implemented by testdriver-vendor.js");
         },
 
-        generate_test_report: function(message, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async generate_test_report(message, context=null) {
+            throw new Error("generate_test_report() is not implemented by testdriver-vendor.js");
         },
 
-
-        set_permission: function(permission_params, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async set_permission(permission_params, context=null) {
+            throw new Error("set_permission() is not implemented by testdriver-vendor.js");
         },
 
-        add_virtual_authenticator: function(config, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async add_virtual_authenticator(config, context=null) {
+            throw new Error("add_virtual_authenticator() is not implemented by testdriver-vendor.js");
         },
 
-        remove_virtual_authenticator: function(authenticator_id, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async remove_virtual_authenticator(authenticator_id, context=null) {
+            throw new Error("remove_virtual_authenticator() is not implemented by testdriver-vendor.js");
         },
 
-        add_credential: function(authenticator_id, credential, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async add_credential(authenticator_id, credential, context=null) {
+            throw new Error("add_credential() is not implemented by testdriver-vendor.js");
         },
 
-        get_credentials: function(authenticator_id, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async get_credentials(authenticator_id, context=null) {
+            throw new Error("get_credentials() is not implemented by testdriver-vendor.js");
         },
 
-        remove_credential: function(authenticator_id, credential_id, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async remove_credential(authenticator_id, credential_id, context=null) {
+            throw new Error("remove_credential() is not implemented by testdriver-vendor.js");
         },
 
-        remove_all_credentials: function(authenticator_id, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async remove_all_credentials(authenticator_id, context=null) {
+            throw new Error("remove_all_credentials() is not implemented by testdriver-vendor.js");
         },
 
-        set_user_verified: function(authenticator_id, uv, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async set_user_verified(authenticator_id, uv, context=null) {
+            throw new Error("set_user_verified() is not implemented by testdriver-vendor.js");
         },
 
-        set_storage_access: function(origin, embedding_origin, blocked, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async set_storage_access(origin, embedding_origin, blocked, context=null) {
+            throw new Error("set_storage_access() is not implemented by testdriver-vendor.js");
         },
 
-        set_spc_transaction_mode: function(mode, context=null) {
-            return Promise.reject(new Error("unimplemented"));
+        async set_spc_transaction_mode(mode, context=null) {
+            throw new Error("set_spc_transaction_mode() is not implemented by testdriver-vendor.js");
         },
 
     };

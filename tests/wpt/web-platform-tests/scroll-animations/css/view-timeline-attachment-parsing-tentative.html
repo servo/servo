@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+
+<script>
+
+test_valid_value('view-timeline-attachment', 'initial');
+test_valid_value('view-timeline-attachment', 'inherit');
+test_valid_value('view-timeline-attachment', 'unset');
+test_valid_value('view-timeline-attachment', 'revert');
+
+test_valid_value('view-timeline-attachment', 'local');
+test_valid_value('view-timeline-attachment', 'defer');
+test_valid_value('view-timeline-attachment', 'ancestor');
+test_valid_value('view-timeline-attachment', 'local, defer');
+test_valid_value('view-timeline-attachment', 'defer, ancestor');
+test_valid_value('view-timeline-attachment', 'local, defer, ancestor, local');
+test_valid_value('view-timeline-attachment', 'local, local, local, local');
+
+test_invalid_value('view-timeline-attachment', 'abc');
+test_invalid_value('view-timeline-attachment', '10px');
+test_invalid_value('view-timeline-attachment', 'auto');
+test_invalid_value('view-timeline-attachment', 'none');
+test_invalid_value('view-timeline-attachment', 'local defer');
+test_invalid_value('view-timeline-attachment', 'local / defer');
+
+</script>

@@ -45,29 +45,33 @@ test_computed_value('scroll-timeline', 'horizontal block', 'horizontal');
 test_computed_value('scroll-timeline', 'a, b, c');
 test_computed_value('scroll-timeline', 'a inline, b block, c vertical', 'a inline, b, c vertical');
 
-test_shorthand_value('scroll-timeline', 'abc vertical',
+test_shorthand_value('scroll-timeline', 'abc vertical local',
 {
   'scroll-timeline-name': 'abc',
   'scroll-timeline-axis': 'vertical',
+  'scroll-timeline-attachment': 'local',
 });
-test_shorthand_value('scroll-timeline', 'inline horizontal',
+test_shorthand_value('scroll-timeline', 'inline horizontal defer',
 {
   'scroll-timeline-name': 'inline',
   'scroll-timeline-axis': 'horizontal',
+  'scroll-timeline-attachment': 'defer',
 });
-test_shorthand_value('scroll-timeline', 'abc vertical, def',
+test_shorthand_value('scroll-timeline', 'abc vertical ancestor, def',
 {
   'scroll-timeline-name': 'abc, def',
   'scroll-timeline-axis': 'vertical, block',
+  'scroll-timeline-attachment': 'ancestor, local',
 });
 test_shorthand_value('scroll-timeline', 'abc, def',
 {
   'scroll-timeline-name': 'abc, def',
   'scroll-timeline-axis': 'block, block',
+  'scroll-timeline-attachment': 'local, local',
 });
 
 function test_shorthand_contraction(shorthand, longhands, expected) {
-  let longhands_fmt = Object.entries(longhands).map((e) => `${e[0]}:${e[1]}`).join(';');
+  let longhands_fmt = Object.entries(longhands).map((e) => `${e[0]}:${e[1]}:${e[2]}`).join(';');
   test((t) => {
     t.add_cleanup(() => {
       for (let shorthand of Object.keys(longhands))
@@ -83,16 +87,19 @@ function test_shorthand_contraction(shorthand, longhands, expected) {
 test_shorthand_contraction('scroll-timeline', {
   'scroll-timeline-name': 'abc',
   'scroll-timeline-axis': 'inline',
-}, 'abc inline');
+  'scroll-timeline-attachment': 'defer',
+}, 'abc inline defer');
 
 test_shorthand_contraction('scroll-timeline', {
   'scroll-timeline-name': 'a, b',
   'scroll-timeline-axis': 'inline, block',
-}, 'a inline, b');
+  'scroll-timeline-attachment': 'ancestor, local',
+}, 'a inline ancestor, b');
 
 test_shorthand_contraction('scroll-timeline', {
   'scroll-timeline-name': 'none, none',
   'scroll-timeline-axis': 'block, block',
+  'scroll-timeline-attachment': 'local, local',
 }, 'none, none');
 
 // Longhands with different lengths:
@@ -100,10 +107,12 @@ test_shorthand_contraction('scroll-timeline', {
 test_shorthand_contraction('scroll-timeline', {
   'scroll-timeline-name': 'a, b, c',
   'scroll-timeline-axis': 'inline, inline',
+  'scroll-timeline-attachment': 'local, local',
 }, '');
 
 test_shorthand_contraction('scroll-timeline', {
   'scroll-timeline-name': 'a, b',
   'scroll-timeline-axis': 'inline, inline, inline',
+  'scroll-timeline-attachment': 'local, local',
 }, '');
 </script>

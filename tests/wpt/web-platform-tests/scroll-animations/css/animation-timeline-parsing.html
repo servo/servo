@@ -33,7 +33,7 @@ test_invalid_value('animation-timeline', '"test"');
 //
 // animation-timeline: scroll(<axis>? <scroller>?);
 // <axis> = block | inline | vertical | horizontal
-// <scroller> = root | nearest
+// <scroller> = root | nearest | self
 test_valid_value('animation-timeline', 'scroll()');
 test_valid_value('animation-timeline', 'scroll(block)', 'scroll()');
 test_valid_value('animation-timeline', 'scroll(inline)');
@@ -43,9 +43,11 @@ test_valid_value('animation-timeline', 'scroll(root)');
 test_valid_value('animation-timeline', 'scroll(nearest)', 'scroll()');
 test_valid_value('animation-timeline', 'scroll(self)');
 test_valid_value('animation-timeline', 'scroll(inline nearest)', 'scroll(inline)');
-test_valid_value('animation-timeline', 'scroll(vertical root)');
+test_valid_value('animation-timeline', 'scroll(nearest inline)', 'scroll(inline)');
+test_valid_value('animation-timeline', 'scroll(block self)', 'scroll(self)');
+test_valid_value('animation-timeline', 'scroll(self block)', 'scroll(self)');
+test_valid_value('animation-timeline', 'scroll(vertical root)', 'scroll(root vertical)');
 
-test_invalid_value('animation-timeline', 'scroll(root block)');
 test_invalid_value('animation-timeline', 'scroll(abc root)');
 test_invalid_value('animation-timeline', 'scroll(abc)');
 test_invalid_value('animation-timeline', 'scroll(vertical abc)');

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #outer { scroll-timeline-attachment: defer; }
+  #target { scroll-timeline-attachment: ancestor; }
+</style>
+<div id="outer">
+  <div id="target"></div>
+</div>
+<script>
+test_computed_value('scroll-timeline-attachment', 'initial', 'local');
+test_computed_value('scroll-timeline-attachment', 'inherit', 'defer');
+test_computed_value('scroll-timeline-attachment', 'unset', 'local');
+test_computed_value('scroll-timeline-attachment', 'revert', 'local');
+test_computed_value('scroll-timeline-attachment', 'local');
+test_computed_value('scroll-timeline-attachment', 'defer');
+test_computed_value('scroll-timeline-attachment', 'ancestor');
+test_computed_value('scroll-timeline-attachment', 'local, defer');
+test_computed_value('scroll-timeline-attachment', 'defer, ancestor');
+test_computed_value('scroll-timeline-attachment', 'local, defer, ancestor');
+test_computed_value('scroll-timeline-attachment', 'local, local, local, local');
+
+test(() => {
+  let style = getComputedStyle(document.getElementById('target'));
+  assert_not_equals(Array.from(style).indexOf('scroll-timeline-attachment'), -1);
+}, 'The scroll-timeline-attachment property shows up in CSSStyleDeclaration enumeration');
+
+test(() => {
+  let style = document.getElementById('target').style;
+  assert_not_equals(style.cssText.indexOf('scroll-timeline-attachment'), -1);
+}, 'The scroll-timeline-attachment property shows up in CSSStyleDeclaration.cssText');
+
+</script>
