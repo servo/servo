@@ -235,12 +235,12 @@ checksum = "73b5e5f48b927f04e952dedc932f31995a65a0bf65ec971c74436e51bf6e970d"
 
 [[package]]
 name = "atty"
-version = "0.2.11"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a7d5b8723950951411ee34d271d99dddcc2035a16ab25310ea2c8cfd4369652"
+checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
 dependencies = [
+ "hermit-abi",
  "libc",
- "termion",
  "winapi",
 ]
 
@@ -4253,12 +4253,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "numtoa"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8f8bdf33df195859076e54ab11ee78a1b208382d3a26ec40d142ffc1ecc49ef"
-
-[[package]]
 name = "objc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5091,12 +5085,6 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.1.56"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2439c63f3f6139d1b57529d16bc3b8bb855230c8efcc5d3a896c8bea7c3b1e84"
-
-[[package]]
-name = "redox_syscall"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62f25bc4c7e55e0b0b7a1d43fb893f4fa1361d0abe38b9ce4f323c2adfe6ef42"
@@ -5111,15 +5099,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb02a9aee8e8c7ad8d86890f1e16b49e0bbbffc9961ff3788c31d57c98bcbf03"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "redox_termios"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e891cfe48e9100a70a3b6eb652fef28920c117d366339687bd5576160db0f76"
-dependencies = [
- "redox_syscall 0.1.56",
 ]
 
 [[package]]
@@ -6480,18 +6459,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "termion"
-version = "1.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "077185e2eac69c3f8379a4298e1e07cd36beb962290d4a51199acf0fdc10607e"
-dependencies = [
- "libc",
- "numtoa",
- "redox_syscall 0.2.13",
- "redox_termios",
-]
-
-[[package]]
 name = "textwrap"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6554,12 +6521,12 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.1.42"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db8dcfca086c1143c9270ac42a2bbd8a7ee477b78ac8e45b19abfb0cbede4b6f"
+checksum = "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
 dependencies = [
  "libc",
- "redox_syscall 0.1.56",
+ "wasi 0.10.0+wasi-snapshot-preview1",
  "winapi",
 ]
 
@@ -7092,6 +7059,12 @@ name = "wasi"
 version = "0.9.0+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cccddf32554fecc6acb585f82a32a72e28b48f8c4c1883ddfeeeaa96f7d8e519"
+
+[[package]]
+name = "wasi"
+version = "0.10.0+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "wasi"
