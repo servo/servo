@@ -77,6 +77,7 @@ string_cache = { version = "0.8", optional = true }
 style_derive = { path = "../style_derive" }
 style_traits = { workspace = true }
 time = "0.1"
+thin-vec = { version = "0.2.1", features = ["gecko-ffi"] }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
 uluru = "3.0"
