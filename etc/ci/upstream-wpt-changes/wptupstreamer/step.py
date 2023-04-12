@@ -114,7 +114,9 @@ class CreateOrUpdateBranchForPRStep(Step):
             # TODO: If we could cleverly parse and manipulate the full commit diff
             # we could avoid cloning the servo repository altogether and only
             # have to fetch the commit diffs from GitHub.
-            diff = local_servo_repo.run(
+            # NB: The output of git show might include binary files or non-UTF8 text,
+            # so store the content of the diff as a `bytes`.
+            diff = local_servo_repo.run_without_encoding(
                 "show", "--binary", "--format=%b", sha, "--", UPSTREAMABLE_PATH
             )
 
@@ -140,7 +142,7 @@ class CreateOrUpdateBranchForPRStep(Step):
         strip_count = UPSTREAMABLE_PATH.count("/") + 1
 
         try:
-            with open(patch_path, "w", encoding="utf-8") as file:
+            with open(patch_path, "wb") as file:
                 file.write(commit["diff"])
             run.sync.local_wpt_repo.run(
                 "apply", PATCH_FILE_NAME, "-p", str(strip_count)
