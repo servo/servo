@@ -10,6 +10,7 @@ use crate::media_queries::MediaList;
 use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
+use crate::stylesheets::supports_rule::SupportsCondition;
 use crate::stylesheets::layer_rule::LayerName;
 use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::values::CssUrl;
@@ -24,9 +25,13 @@ use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 pub enum ImportSheet {
     /// A bonafide stylesheet.
     Sheet(crate::gecko::data::GeckoStyleSheet),
+
     /// An @import created while parsing off-main-thread, whose Gecko sheet has
     /// yet to be created and attached.
     Pending,
+
+    /// An @import created with a false <supports-condition>, so will never be fetched.
+    Refused,
 }
 
 #[cfg(feature = "gecko")]
@@ -41,6 +46,11 @@ impl ImportSheet {
         ImportSheet::Pending
     }
 
+    /// Creates a refused ImportSheet for a load that will not happen.
+    pub fn new_refused() -> Self {
+        ImportSheet::Refused
+    }
+
     /// Returns a reference to the GeckoStyleSheet in this ImportSheet, if it
     /// exists.
     pub fn as_sheet(&self) -> Option<&crate::gecko::data::GeckoStyleSheet> {
@@ -52,6 +62,7 @@ impl ImportSheet {
                 }
                 Some(s)
             },
+            ImportSheet::Refused |
             ImportSheet::Pending => None,
         }
     }
@@ -88,6 +99,7 @@ impl DeepCloneWithLock for ImportSheet {
                 ImportSheet::Sheet(unsafe { GeckoStyleSheet::from_addrefed(clone) })
             },
             ImportSheet::Pending => ImportSheet::Pending,
+            ImportSheet::Refused => ImportSheet::Refused,
         }
     }
 }
@@ -131,6 +143,16 @@ pub struct ImportLayer {
     pub name: Option<LayerName>,
 }
 
+/// The supports condition in an import rule.
+#[derive(Debug, Clone)]
+pub struct ImportSupportsCondition {
+    /// The supports condition.
+    pub condition: SupportsCondition,
+
+    /// If the import is enabled, from the result of the import condition.
+    pub enabled: bool
+}
+
 impl ToCss for ImportLayer {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -160,6 +182,9 @@ pub struct ImportRule {
     /// ImportSheet just has stub behavior until it appears.
     pub stylesheet: ImportSheet,
 
+    /// A <supports-condition> for the rule.
+    pub supports: Option<ImportSupportsCondition>,
+
     /// A `layer()` function name.
     pub layer: Option<ImportLayer>,
 
@@ -185,6 +210,7 @@ impl DeepCloneWithLock for ImportRule {
         ImportRule {
             url: self.url.clone(),
             stylesheet: self.stylesheet.deep_clone_with_lock(lock, guard, params),
+            supports: self.supports.clone(),
             layer: self.layer.clone(),
             source_location: self.source_location.clone(),
         }
@@ -195,6 +221,12 @@ impl ToCssWithGuard for ImportRule {
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@import ")?;
         self.url.to_css(&mut CssWriter::new(dest))?;
+
+        if let Some(ref supports) = self.supports {
+            dest.write_str(" supports(")?;
+            supports.condition.to_css(&mut CssWriter::new(dest))?;
+            dest.write_char(')')?;
+        }
 
         if let Some(media) = self.stylesheet.media(guard) {
             if !media.is_empty() {
