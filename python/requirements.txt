@@ -33,4 +33,7 @@ certifi
 # For Python3 compatibility
 six == 1.15
 
+# For sending build notifications.
+notify-py == 0.3.42
+
 -e python/tidy
