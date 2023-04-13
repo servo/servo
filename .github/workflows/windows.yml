@@ -47,6 +47,13 @@ jobs:
           fetch-depth: 2
       - name: Copy to C drive
         run: cp D:\a C:\ -Recurse
+      - name: Install GStreamer
+        shell: powershell
+        run: |
+          Start-BitsTransfer -Source https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi
+          Start-Process msiexec.exe -Wait -ArgumentList "/i gstreamer-1.0-msvc-x86_64-1.16.0.msi /quiet /qn /norestart ADDLOCAL=ALL"
+          Start-BitsTransfer -Source https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi
+          Start-Process msiexec.exe -Wait -ArgumentList "/i gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi /quiet /qn /norestart ADDLOCAL=ALL"
       - name: wix311-binaries
         shell: powershell
         run: |
@@ -60,7 +67,7 @@ jobs:
           python mach fetch
       - name: Release build
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach build --release --media-stack=dummy --with-${{ env.LAYOUT }}
+        run: python mach build --release --with-${{ env.LAYOUT }}
       - name: Smoketest
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach smoketest --angle
