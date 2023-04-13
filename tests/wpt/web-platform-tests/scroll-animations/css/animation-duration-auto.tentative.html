@@ -13,7 +13,7 @@
     width: 100px;
     height: 100px;
   }
-  #scroller > div {
+  #scroller > #content {
     height: 200px;
     width: 200px;
   }
@@ -36,9 +36,9 @@
 </style>
 <main>
   <div id=scroller>
-    <div></div>
+    <div id=content></div>
+    <div id=element></div>
   </div>
-  <div id=element></div>
 </main>
 <script>
   promise_test(async (t) => {

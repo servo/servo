@@ -13,8 +13,6 @@ Header = Tuple[str, str]
 Status = Tuple[int, str]
 Response = Tuple[Status, List[Header], str]
 
-CLEAR_STASH = isomorphic_encode("clear_stash")
-
 
 def decode_headers(headers: dict) -> dict:
   """Decodes the headers from wptserve.
@@ -40,14 +38,8 @@ def handle_post_report(request: Request, headers: List[Header]) -> Response:
   """Handles POST request for reports.
 
   Retrieves the report from the request body and stores the report in the
-  stash. If clear_stash is specified in the query params, clears the stash.
+  stash.
   """
-  if request.GET.get(CLEAR_STASH):
-    clear_stash(request.server.stash)
-    return (200, "OK"), headers, json.dumps({
-        "code": 200,
-        "message": "Stash successfully cleared.",
-    })
   store_report(
       request.server.stash, get_request_origin(request), {
           "body": request.body.decode("utf-8"),
@@ -95,12 +87,6 @@ def take_reports(stash: Stash, origin: str) -> List[str]:
     reports = reports_dict.pop(origin, [])
     stash.put(REPORTS, reports_dict)
   return reports
-
-
-def clear_stash(stash: Stash) -> None:
-  "Clears the stash."
-  stash.take(REPORTS)
-  return None
 
 
 def handle_reports(request: Request) -> Response:

@@ -28,8 +28,8 @@ async_test(t => {
     assert_equals(e.data.formData, null, "formData");
     assert_equals(e.data.destination.url, link.href, "destination.url");
     assert_true(e.data.destination.sameDocument, "destination.sameDocument");
-    assert_equals(e.data.destination.key, null, "destination.key");
-    assert_equals(e.data.destination.id, null, "destination.id");
+    assert_equals(e.data.destination.key, "", "destination.key");
+    assert_equals(e.data.destination.id, "", "destination.id");
     assert_equals(e.data.destination.index, -1, "destination.index");
   });
 

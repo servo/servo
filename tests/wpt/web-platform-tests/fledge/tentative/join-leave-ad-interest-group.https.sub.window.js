@@ -462,21 +462,21 @@ const SIMPLE_JOIN_LEAVE_TEST_CASES = [
                      all: [3,4,5] }
   },
 
-  // Interest group dictionaries must be less than 50 KiB (51200 bytes), so test
-  // that here by using a large name on an otherwise valid interest group
+  // Interest group dictionaries must be less than 1 MB (1048576 bytes), so
+  // test that here by using a large name on an otherwise valid interest group
   // dictionary. The first case is the largest name value that still results in
   // a valid dictionary, whereas the second test case produces a dictionary
   // that's one byte too large.
   { expectJoinSucces: true,
     expectLeaveSucces: true,
     interestGroup: { ...BASE_INTEREST_GROUP,
-                     name: 'a'.repeat(51152) },
+                     name: 'a'.repeat(1048528) },
     testCaseName: "Largest possible interest group dictionary",
   },
   { expectJoinSucces: false,
     expectLeaveSucces: true,
     interestGroup: { ...BASE_INTEREST_GROUP,
-                     name: 'a'.repeat(51153) },
+                     name: 'a'.repeat(1048529) },
     testCaseName: "Oversized interest group dictionary",
   },
 ];

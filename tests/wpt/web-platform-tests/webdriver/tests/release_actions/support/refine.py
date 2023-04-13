@@ -1,5 +1,5 @@
 def get_events(session):
-    """Return list of key events recorded in the test_keys_page fixture."""
+    """Return list of key events recorded in the test_actions_page fixture."""
     events = session.execute_script("return allEvents.events;") or []
     # `key` values in `allEvents` may be escaped (see `escapeSurrogateHalf` in
     # test_keys_wdspec.html), so this converts them back into unicode literals.

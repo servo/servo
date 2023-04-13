@@ -118,6 +118,21 @@ async def test_params_arguments_handle_invalid_type(
             target=ContextTarget(top_context["context"]))
 
 
+async def test_params_arguments_handle_unknown_value(
+    bidi_session, top_context
+):
+    serialized_value = {
+        "handle": "foo",
+    }
+
+    with pytest.raises(error.NoSuchHandleException):
+        await bidi_session.script.call_function(
+            function_declaration="(arg) => arg",
+            arguments=[serialized_value],
+            await_promise=False,
+            target=ContextTarget(top_context["context"]))
+
+
 @pytest.mark.parametrize("value", [None, False, 42, {}, []])
 async def test_params_arguments_sharedId_invalid_type(
     bidi_session, top_context, value

@@ -15,5 +15,23 @@ function window_state_context(t) {
         rect = await test_driver.minimize_window();
     }
 
-    return {minimize, restore};
+    function visibilityEventPromise() {
+      return new Promise(resolve => new PerformanceObserver(
+        (entries, observer) => { observer.disconnect(); resolve(); }).observe(
+          {type: "visibility-state"}))
+    }
+
+    async function minimizeAndWait() {
+      const promise = visibilityEventPromise();
+      await Promise.all([minimize(), promise]);
+      await new Promise(resolve => t.step_timeout(resolve, 0));
+    }
+
+    async function restoreAndWait() {
+      const promise = visibilityEventPromise();
+      await Promise.all([restore(), promise]);
+      await new Promise(resolve => t.step_timeout(resolve, 0));
+    }
+
+    return {minimize, restore, minimizeAndWait, restoreAndWait};
 }
