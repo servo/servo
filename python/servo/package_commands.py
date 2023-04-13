@@ -618,24 +618,28 @@ class PackageCommands(CommandBase):
                 path.basename(package)
             )
 
-        def upload_to_github_release(platform, package, package_hash_fileobj):
+        def upload_to_github_release(platform, package, package_hash):
             if not github_release_id:
                 return
+
             extension = path.basename(package).partition('.')[2]
             g = Github(os.environ['NIGHTLY_REPO_TOKEN'])
             nightly_repo = g.get_repo(os.environ['NIGHTLY_REPO'])
             release = nightly_repo.get_release(github_release_id)
+            package_hash_fileobj = io.BytesIO(package_hash.encode('utf-8'))
+
             if '2020' in platform:
                 asset_name = f'servo-latest-layout-2020.{extension}'
             else:
                 asset_name = f'servo-latest.{extension}'
+
             release.upload_asset(package, name=asset_name)
             release.upload_asset_from_memory(
                 package_hash_fileobj,
                 package_hash_fileobj.getbuffer().nbytes,
                 name=f'{asset_name}.sha256')
 
-        def upload_to_s3(platform, package, package_hash_fileobj, timestamp):
+        def upload_to_s3(platform, package, package_hash, timestamp):
             (aws_access_key, aws_secret_access_key) = get_s3_secret()
             s3 = boto3.client(
                 's3',
@@ -658,6 +662,7 @@ class PackageCommands(CommandBase):
             extension = path.basename(package).partition('.')[2]
             latest_upload_key = '{}/servo-latest.{}'.format(nightly_dir, extension)
 
+            package_hash_fileobj = io.BytesIO(package_hash.encode('utf-8'))
             latest_hash_upload_key = f'{latest_upload_key}.sha256'
 
             s3.upload_file(package, BUCKET, package_upload_key)
@@ -786,10 +791,9 @@ class PackageCommands(CommandBase):
                         break
                     sha256_digest.update(data)
             package_hash = sha256_digest.hexdigest()
-            package_hash_fileobj = io.BytesIO(package_hash.encode('utf-8'))
 
-            upload_to_s3(platform, package, package_hash_fileobj, timestamp)
-            upload_to_github_release(platform, package, package_hash_fileobj)
+            upload_to_s3(platform, package, package_hash, timestamp)
+            upload_to_github_release(platform, package, package_hash)
 
         if platform == 'maven':
             for package in PACKAGES[platform]:
