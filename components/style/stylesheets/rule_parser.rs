@@ -264,14 +264,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     }).ok()
                 };
 
-                #[cfg(feature = "gecko")]
-                let layers_enabled = static_prefs::pref!("layout.css.cascade-layers.enabled");
-                #[cfg(feature = "servo")]
-                let layers_enabled = false;
-
-                let layer = if !layers_enabled {
-                    None
-                } else if input.try_parse(|input| input.expect_ident_matching("layer")).is_ok() {
+                let layer = if input.try_parse(|input| input.expect_ident_matching("layer")).is_ok() {
                     Some(ImportLayer {
                         name: None,
                     })

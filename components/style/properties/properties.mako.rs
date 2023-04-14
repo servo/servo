@@ -1188,14 +1188,6 @@ impl CSSWideKeyword {
     }
 }
 
-#[inline]
-fn cascade_layes_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.cascade-layers.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
 impl CSSWideKeyword {
     /// Parses a CSS wide keyword from a CSS identifier.
     pub fn from_ident(ident: &str) -> Result<Self, ()> {
@@ -1204,7 +1196,7 @@ impl CSSWideKeyword {
             "inherit" => CSSWideKeyword::Inherit,
             "unset" => CSSWideKeyword::Unset,
             "revert" => CSSWideKeyword::Revert,
-            "revert-layer" if cascade_layes_enabled() => CSSWideKeyword::RevertLayer,
+            "revert-layer" => CSSWideKeyword::RevertLayer,
             _ => return Err(()),
         })
     }
