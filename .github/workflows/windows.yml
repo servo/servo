@@ -36,6 +36,8 @@ env:
   SHELL: /bin/bash
   LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
   PACKAGE: "${{ contains(inputs.layout, '2020') && 'windows-msvc-layout2020' || 'windows-msvc' }}"
+  CCACHE: "ccache"
+  CARGO_INCREMENTAL: 0
 
 jobs:
   build-win:
@@ -60,6 +62,8 @@ jobs:
           Start-BitsTransfer -Source https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip -Destination C:\\wix311-binaries.zip
           Expand-Archive C:\\wix311-binaries.zip -DestinationPath C:\\wix
           echo "C:\\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
       - name: Bootstrap
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
