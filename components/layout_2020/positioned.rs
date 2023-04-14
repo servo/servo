@@ -458,8 +458,7 @@ impl HoistedAbsolutelyPositionedBox {
         };
         let solve_block_axis = |computed_size| {
             solve_axis(
-                // TODO(delan) shouldn’t this be cbbs?
-                cbis,
+                cbbs,
                 pbm.padding_border_sums.block,
                 pbm.margin.block_start,
                 pbm.margin.block_end,
