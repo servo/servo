@@ -272,10 +272,6 @@ impl Headers {
         self.guard.get()
     }
 
-    pub fn empty_header_list(&self) {
-        *self.header_list.borrow_mut() = HyperHeaders::new();
-    }
-
     pub fn set_headers(&self, hyper_headers: HyperHeaders) {
         *self.header_list.borrow_mut() = hyper_headers;
     }
