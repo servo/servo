@@ -105,7 +105,7 @@ dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
 };
 
 dictionary RTCSentRtpStreamStats : RTCRtpStreamStats {
-             unsigned long      packetsSent;
+             unsigned long long packetsSent;
              unsigned long long bytesSent;
 };
 

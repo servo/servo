@@ -9,26 +9,7 @@
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
-        privateToken: {}
-      });
-    });
-  }, 'Private Token fetches require present `type` values.');
-
-  test(() => {
-    assert_throws_js(TypeError, () => {
-      new Request('https://example.com', {
         privateToken: {
-          type: "invalid"
-        }
-      });
-    });
-  }, 'Private Token fetches require valid `type` values.');
-
-  test(() => {
-    assert_throws_js(TypeError, () => {
-      new Request('https://example.com', {
-        privateToken: {
-          type: "private-state-token",
           version: 1,
           operation: "token-request",
           refreshPolicy: "not a member of the refreshPolicy enum",
@@ -41,7 +22,6 @@
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         privateToken: {
-          type: "private-state-token",
           version: 1,
           operation: "send-redemption-record",
           issuers: []
@@ -54,7 +34,6 @@
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         privateToken: {
-          type: "private-state-token",
           version: 1,
           operation: "send-redemption-record",
           issuers: [3]
@@ -67,7 +46,6 @@
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         privateToken: {
-          type: "private-state-token",
           version: 1,
           operation: "send-redemption-record",
           issuers: ["not a valid URL"]
@@ -80,7 +58,6 @@
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         privateToken: {
-          type: "private-state-token",
           version: 1,
           operation: "send-redemption-record",
           issuers: ["http://not-secure.com"]
@@ -92,7 +69,6 @@
   test(() => {
     new Request('https://example.com', {
       privateToken: {
-        type: "private-state-token",
         version: 1,
         operation: "send-redemption-record",
         issuers: ["http://localhost"]

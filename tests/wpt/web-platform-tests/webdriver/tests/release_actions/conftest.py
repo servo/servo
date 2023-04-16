@@ -28,7 +28,7 @@ def release_actions(session, request):
 
 @pytest.fixture
 def key_reporter(session, test_actions_page, request):
-    """Represents focused input element from `test_keys_page` fixture."""
+    """Represents focused input element from `test_actions_page` fixture."""
     input_el = session.find.css("#keys", all=False)
     input_el.click()
     session.execute_script("resetEvents();")

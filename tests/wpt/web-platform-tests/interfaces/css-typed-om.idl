@@ -13,9 +13,7 @@ interface CSSStyleValue {
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface StylePropertyMapReadOnly {
     iterable<USVString, sequence<CSSStyleValue>>;
-    any get(USVString property);
-    /* 'any' means (undefined or CSSStyleValue) here,
-       see https://github.com/heycam/webidl/issues/60 */
+    (undefined or CSSStyleValue) get(USVString property);
     sequence<CSSStyleValue> getAll(USVString property);
     boolean has(USVString property);
     readonly attribute unsigned long size;

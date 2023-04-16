@@ -1,0 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_provoking_vertex Extension Specification (https://registry.khronos.org/webgl/extensions/WEBGL_provoking_vertex/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_provoking_vertex {
+    const GLenum FIRST_VERTEX_CONVENTION_WEBGL = 0x8E4D;
+    const GLenum LAST_VERTEX_CONVENTION_WEBGL  = 0x8E4E; // default
+    const GLenum PROVOKING_VERTEX_WEBGL        = 0x8E4F;
+
+    undefined provokingVertexWEBGL(GLenum provokeMode);
+};

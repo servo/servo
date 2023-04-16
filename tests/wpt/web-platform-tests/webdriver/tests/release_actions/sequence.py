@@ -1,7 +1,7 @@
 # META: timeout=long
 
 from tests.release_actions.support.refine import get_events, get_keys
-from tests.support.helpers import filter_dict
+from tests.support.helpers import filter_dict, filter_supported_key_events
 
 
 def test_release_no_actions_sends_no_events(session, key_reporter):
@@ -25,11 +25,7 @@ def test_release_char_sequence_sends_keyup_events_in_reverse(session,
         {"code": "KeyA", "key": "a", "type": "keyup"},
     ]
     all_events = get_events(session)
-    events = [filter_dict(e, expected[0]) for e in all_events]
-    if len(events) > 0 and events[0]["code"] is None:
-        # Remove 'code' entry if browser doesn't support it
-        expected = [filter_dict(e, {"key": "", "type": ""}) for e in expected]
-        events = [filter_dict(e, expected[0]) for e in events]
+    (events, expected) = filter_supported_key_events(all_events, expected)
     assert events == expected
 
 

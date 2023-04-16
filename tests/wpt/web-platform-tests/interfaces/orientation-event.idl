@@ -30,10 +30,6 @@ partial interface Window {
 };
 
 partial interface Window {
-    attribute EventHandler oncompassneedscalibration;
-};
-
-partial interface Window {
     [SecureContext] attribute EventHandler ondevicemotion;
 };
 

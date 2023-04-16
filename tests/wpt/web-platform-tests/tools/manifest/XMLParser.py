@@ -62,7 +62,7 @@ class XMLParser:
         self._parser.EndElementHandler = self._end
         self._parser.CharacterDataHandler = self._data
         self._parser.ExternalEntityRefHandler = self._external
-        self._parser.SkippedEntityHandler = self._skipped  # type: ignore
+        self._parser.SkippedEntityHandler = self._skipped
         # used for our horrible re-encoding hack
         self._fed_data = []  # type: Optional[List[bytes]]
         self._read_encoding = None  # type: Optional[Text]

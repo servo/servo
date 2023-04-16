@@ -37,7 +37,7 @@ self.SubAppsServiceTest = (() => {
 
     remove() {
       return Promise.resolve({
-        result: testInternal.serviceResultCode,
+        result: testInternal.removeCallReturnValue,
       });
     }
   }
@@ -48,6 +48,7 @@ self.SubAppsServiceTest = (() => {
     serviceResultCode: 0,
     addCallReturnValue: [],
     listCallReturnValue: [],
+    removeCallReturnValue: [],
   }
 
   class SubAppsServiceTestChromium {
@@ -55,7 +56,7 @@ self.SubAppsServiceTest = (() => {
       Object.freeze(this);  // Make it immutable.
     }
 
-    initialize(service_result_code, add_call_return_value, list_call_return_value) {
+    initialize(service_result_code, add_call_return_value, list_call_return_value, remove_call_return_value) {
       if (!testInternal.initialized) {
         testInternal = {
           mockSubAppsService: new MockSubAppsService(),
@@ -63,6 +64,7 @@ self.SubAppsServiceTest = (() => {
           serviceResultCode: service_result_code,
           addCallReturnValue: add_call_return_value,
           listCallReturnValue: list_call_return_value,
+          removeCallReturnValue: remove_call_return_value,
         };
       };
     }
@@ -76,6 +78,7 @@ self.SubAppsServiceTest = (() => {
           serviceResultCode: 0,
           addCallReturnValue: [],
           listCallReturnValue: [],
+          removeCallReturnValue: [],
         };
         await new Promise(resolve => setTimeout(resolve, 0));
       }

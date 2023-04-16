@@ -13,7 +13,8 @@ latest_channels = {
     'edgechromium': 'dev',
     'safari': 'preview',
     'servo': 'nightly',
-    'webkitgtk_minibrowser': 'nightly'
+    'webkitgtk_minibrowser': 'nightly',
+    'wktr': 'main',
 }
 
 channel_by_name = {
@@ -44,7 +45,7 @@ def get_parser():
     parser = argparse.ArgumentParser(
         parents=[channel_args],
         description="Install a given browser or webdriver frontend.")
-    parser.add_argument('browser', choices=['firefox', 'chrome', 'chromium', 'servo', 'safari'],
+    parser.add_argument('browser', choices=['firefox', 'chrome', 'chromium', 'servo', 'safari', 'wktr'],
                         help='name of web browser product')
     parser.add_argument('component', choices=['browser', 'webdriver'],
                         help='name of component')
@@ -107,7 +108,12 @@ def install(name, component, destination, channel="nightly", logger=None, downlo
 
     method = prefix + suffix
 
-    browser_cls = getattr(browser, name.title())
+    if name == "wktr":
+        canonical_name = "WebKitTestRunner"
+    else:
+        canonical_name = name.title()
+
+    browser_cls = getattr(browser, canonical_name)
     logger.info('Now installing %s %s...', name, component)
     kwargs = {}
     if download_only and rename:

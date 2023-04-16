@@ -1,5 +1,5 @@
 import {PressureManager, PressureManagerReceiver, PressureStatus} from '/gen/services/device/public/mojom/pressure_manager.mojom.m.js'
-import {PressureFactor, PressureState} from '/gen/services/device/public/mojom/pressure_update.mojom.m.js'
+import {PressureFactor, PressureSource, PressureState} from '/gen/services/device/public/mojom/pressure_update.mojom.m.js'
 
 class MockPressureService {
   constructor() {
@@ -9,11 +9,8 @@ class MockPressureService {
     this.interceptor_.oninterfacerequest = e => {
       this.receiver_.$.bindHandle(e.handle);
     };
-    this.receiver_.onConnectionError.addListener(() => {
-      this.stopPlatformCollector();
-      this.observer_ = null;
-    });
     this.reset();
+    this.mojomSourceType_ = new Map([['cpu', PressureSource.kCpu]]);
     this.mojomStateType_ = new Map([
       ['nominal', PressureState.kNominal], ['fair', PressureState.kFair],
       ['serious', PressureState.kSerious], ['critical', PressureState.kCritical]
@@ -40,22 +37,27 @@ class MockPressureService {
   }
 
   reset() {
-    this.observer_ = null;
+    this.observers_ = [];
     this.pressureUpdate_ = null;
     this.pressureServiceReadingTimerId_ = null;
     this.pressureStatus_ = PressureStatus.kOk;
     this.updatesDelivered_ = 0;
   }
 
-  async addClient(observer) {
-    if (this.observer_ !== null)
-      throw new Error('BindObserver() has already been called');
+  async addClient(observer, source) {
+    if (this.observers_.indexOf(observer) >= 0)
+      throw new Error('addClient() has already been called');
 
-    this.observer_ = observer;
-    this.observer_.onConnectionError.addListener(() => {
-      this.stopPlatformCollector();
-      this.observer_ = null;
+    // TODO(crbug.com/1342184): Consider other sources.
+    // For now, "cpu" is the only source.
+    if (source !== PressureSource.kCpu)
+      throw new Error('Call addClient() with a wrong PressureSource');
+
+    observer.onConnectionError.addListener(() => {
+      // Remove this observer from observer array.
+      this.observers_.splice(this.observers_.indexOf(observer), 1);
     });
+    this.observers_.push(observer);
 
     return {status: this.pressureStatus_};
   }
@@ -83,20 +85,21 @@ class MockPressureService {
     const epochDeltaInMs = unixEpoch - windowsEpoch;
 
     const timeout = (1 / sampleRate) * 1000;
-    this.pressureServiceReadingTimerId_ = window.setInterval(() => {
-      if (this.pressureUpdate_ === null || this.observer_ === null)
+    this.pressureServiceReadingTimerId_ = self.setInterval(() => {
+      if (this.pressureUpdate_ === null || this.observers_.length === 0)
         return;
       this.pressureUpdate_.timestamp = {
         internalValue: BigInt((new Date().getTime() + epochDeltaInMs) * 1000)
       };
-      this.observer_.onPressureUpdated(this.pressureUpdate_);
+      for (let observer of this.observers_)
+        observer.onPressureUpdated(this.pressureUpdate_);
       this.updatesDelivered_++;
     }, timeout);
   }
 
   stopPlatformCollector() {
     if (this.pressureServiceReadingTimerId_ != null) {
-      window.clearInterval(this.pressureServiceReadingTimerId_);
+      self.clearInterval(this.pressureServiceReadingTimerId_);
       this.pressureServiceReadingTimerId_ = null;
     }
     this.updatesDelivered_ = 0;
@@ -106,7 +109,10 @@ class MockPressureService {
     return this.updatesDelivered_;
   }
 
-  setPressureUpdate(state, factors) {
+  setPressureUpdate(source, state, factors) {
+    if (!this.mojomSourceType_.has(source))
+      throw new Error(`PressureSource '${source}' is invalid`);
+
     if (!this.mojomStateType_.has(state))
       throw new Error(`PressureState '${state}' is invalid`);
 
@@ -120,6 +126,7 @@ class MockPressureService {
     }
 
     this.pressureUpdate_ = {
+      source: this.mojomSourceType_.get(source),
       state: this.mojomStateType_.get(state),
       factors: pressureFactors,
     };

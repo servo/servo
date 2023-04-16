@@ -3,16 +3,14 @@
 // (https://github.com/w3c/webref)
 // Source: Compute Pressure Level 1 (https://w3c.github.io/compute-pressure/)
 
-enum PressureState { "nominal", "fair", "serious", "critical" };
+enum PressureSource { "thermals", "cpu" };
 
-enum PressureFactor { "thermal", "power-supply" };
+enum PressureState { "nominal", "fair", "serious", "critical" };
 
 callback PressureUpdateCallback = undefined (
   sequence<PressureRecord> changes,
   PressureObserver observer
 );
-
-enum PressureSource { "cpu" };
 
 [Exposed=(DedicatedWorker,SharedWorker,Window), SecureContext]
 interface PressureObserver {
@@ -30,7 +28,6 @@ interface PressureObserver {
 interface PressureRecord {
   readonly attribute PressureSource source;
   readonly attribute PressureState state;
-  readonly attribute FrozenArray<PressureFactor> factors;
   readonly attribute DOMHighResTimeStamp time;
   [Default] object toJSON();
 };

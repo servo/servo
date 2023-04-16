@@ -146,7 +146,7 @@ interface MLGraphBuilder {
 dictionary MLBatchNormalizationOptions {
   MLOperand scale;
   MLOperand bias;
-  long axis = 1;
+  unsigned long axis = 1;
   float epsilon = 1e-5;
   MLActivation activation;
 };
@@ -167,7 +167,7 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand concat(sequence<MLOperand> inputs, long axis);
+  MLOperand concat(sequence<MLOperand> inputs, unsigned long axis);
 };
 
 enum MLConv2dFilterOperandLayout {
@@ -409,7 +409,10 @@ dictionary MLPadOptions {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand pad(MLOperand input, MLOperand padding, optional MLPadOptions options = {});
+  MLOperand pad(MLOperand input,
+                sequence<unsigned long> beginningPadding,
+                sequence<unsigned long> endingPadding,
+                optional MLPadOptions options = {});
 };
 
 enum MLRoundingType {
@@ -434,8 +437,12 @@ partial interface MLGraphBuilder {
   MLOperand maxPool2d(MLOperand input, optional MLPool2dOptions options = {});
 };
 
+partial interface MLGraphBuilder {
+  MLOperand prelu(MLOperand x, MLOperand slope);
+};
+
 dictionary MLReduceOptions {
-  sequence<long> axes = null;
+  sequence<unsigned long> axes = null;
   boolean keepDimensions = false;
 };
 
@@ -466,7 +473,7 @@ dictionary MLResample2dOptions {
   MLInterpolationMode mode = "nearest-neighbor";
   sequence<float> scales;
   sequence<unsigned long> sizes;
-  sequence<long> axes;
+  sequence<unsigned long> axes;
 };
 
 partial interface MLGraphBuilder {
@@ -483,7 +490,7 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLSliceOptions {
-  sequence<long> axes;
+  sequence<unsigned long> axes;
 };
 
 partial interface MLGraphBuilder {
@@ -511,7 +518,7 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLSplitOptions {
-  long axis = 0;
+  unsigned long axis = 0;
 };
 
 partial interface MLGraphBuilder {
@@ -521,7 +528,7 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLSqueezeOptions {
-  sequence<long> axes;
+  sequence<unsigned long> axes;
 };
 
 partial interface MLGraphBuilder {
@@ -534,7 +541,7 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLTransposeOptions {
-  sequence<long> permutation;
+  sequence<unsigned long> permutation;
 };
 
 partial interface MLGraphBuilder {

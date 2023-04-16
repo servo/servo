@@ -26,6 +26,7 @@ dictionary BluetoothLEScanFilterInit {
 
 dictionary RequestDeviceOptions {
   sequence<BluetoothLEScanFilterInit> filters;
+  sequence<BluetoothLEScanFilterInit> exclusionFilters;
   sequence<BluetoothServiceUUID> optionalServices = [];
   sequence<unsigned short> optionalManufacturerData = [];
   boolean acceptAllDevices = false;

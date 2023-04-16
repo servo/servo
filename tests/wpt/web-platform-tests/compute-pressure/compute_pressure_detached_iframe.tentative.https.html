@@ -3,6 +3,8 @@
 <title>PressureObserver on DOMWindow of detached iframe</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="resources/pressure-helpers.js"></script>
 <body>
 <script>
 'use strict';
@@ -21,9 +23,7 @@ promise_test(async t => {
   document.body.appendChild(iframe);
   const frame_window = iframe.contentWindow;
 
-  const observer = new frame_window.PressureObserver(
-      () => {},
-      {sampleRate: 1});
+  const observer = new frame_window.PressureObserver(() => {});
   const iframe_DOMException = frame_window.DOMException;
 
   iframe.remove();
@@ -38,9 +38,7 @@ promise_test(async t => {
   document.body.appendChild(iframe);
   const frame_window = iframe.contentWindow;
 
-  const observer = new frame_window.PressureObserver(
-      () => {},
-      {sampleRate: 1});
+  const observer = new frame_window.PressureObserver(() => {});
 
   await observer.observe('cpu');
 
@@ -50,43 +48,43 @@ promise_test(async t => {
   observer.disconnect();
 }, 'PressureObserver.disconnect() on detached frame returns');
 
-promise_test(async t => {
+pressure_test(async (t, mockPressureService) => {
   const iframe = document.createElement('iframe');
   document.body.appendChild(iframe);
   const frame_window = iframe.contentWindow;
 
-  const observer = new frame_window.PressureObserver(
-      () => {},
-      {sampleRate: 1});
+  const observer = new frame_window.PressureObserver(() => {});
   const iframe_DOMException = frame_window.DOMException;
 
   // await is intentionally not used here. We want to remove the iframe while
   // the returned Promise settles.
-  const observe_promise = observer.observe('cpu');
+  observer.observe('cpu');
   iframe.remove();
 
   // Establish an observer and wait for changes in the main frame. This should
   // keep the test running long enough to catch any crash from the observe()
   // call in the removed iframe's PressureObserver.
   const changes = await new Promise((resolve, reject) => {
-    const observer = new PressureObserver(
-        resolve, {sampleRate: 1});
+    const observer = new PressureObserver(resolve);
     t.add_cleanup(() => observer.disconnect());
     observer.observe('cpu').catch(reject);
+    mockPressureService.setPressureUpdate('cpu', 'critical');
+    mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
   });
-  assert_in_array(changes[0].state, ['nominal', 'fair', 'serious', 'critical'],
-                  'cpu pressure state');
+  assert_equals(changes[0].state, 'critical');
 }, 'Detaching frame while PressureObserver.observe() settles');
 
-promise_test(async t => {
+pressure_test(async (t, mockPressureService) => {
   const iframe = document.createElement('iframe');
   document.body.appendChild(iframe);
   const frame_window = iframe.contentWindow;
   const observer = new frame_window.PressureObserver(() => {
     assert_unreached('The observer callback should not be called');
-  }, {sampleRate: 1});
+  });
 
   await observer.observe('cpu');
+  mockPressureService.setPressureUpdate('cpu', 'critical');
+  mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
 
   iframe.remove();
 

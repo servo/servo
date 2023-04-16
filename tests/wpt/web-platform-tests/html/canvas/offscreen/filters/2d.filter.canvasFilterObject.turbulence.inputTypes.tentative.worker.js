@@ -24,7 +24,7 @@ const errorTestCases = [
   {baseFrequency: Infinity},
   {baseFrequency: undefined},
   {baseFrequency: -Infinity},
-  {baseFrequency: "test"},
+  {baseFrequency: 'test'},
 
   {numOctaves: {}},
   {numOctaves: -1},
@@ -33,7 +33,7 @@ const errorTestCases = [
   {numOctaves: undefined},
   {numOctaves: -Infinity},
   {numOctaves: [1, 1]},
-  {numOctaves: "test"},
+  {numOctaves: 'test'},
 
   {seed: {}},
   {seed: NaN},
@@ -41,7 +41,7 @@ const errorTestCases = [
   {seed: undefined},
   {seed: -Infinity},
   {seed: [1, 1]},
-  {seed: "test"},
+  {seed: 'test'},
 
   {stitchTiles: {}},
   {stitchTiles: NaN},
@@ -49,14 +49,14 @@ const errorTestCases = [
   {stitchTiles: undefined},
   {stitchTiles: -Infinity},
   {stitchTiles: [1, 1]},
-  {stitchTiles: "test"},
+  {stitchTiles: 'test'},
   {stitchTiles: null},
   {stitchTiles: []},
   {stitchTiles: [10]},
   {stitchTiles: 30},
   {stitchTiles: false},
   {stitchTiles: true},
-  {stitchTiles: "10"},
+  {stitchTiles: '10'},
   {stitchTiles: -1},
 
   {type: {}},
@@ -65,14 +65,14 @@ const errorTestCases = [
   {type: undefined},
   {type: -Infinity},
   {type: [1, 1]},
-  {type: "test"},
+  {type: 'test'},
   {type: null},
   {type: []},
   {type: [10]},
   {type: 30},
   {type: false},
   {type: true},
-  {type: "10"},
+  {type: '10'},
   {type: -1},
 ]
 
@@ -85,7 +85,7 @@ const workingTestCases = [
   {baseFrequency: 30},
   {baseFrequency: false},
   {baseFrequency: true},
-  {baseFrequency: "10"},
+  {baseFrequency: '10'},
 
   {numOctaves: null},
   {numOctaves: []},
@@ -93,7 +93,7 @@ const workingTestCases = [
   {numOctaves: 30},
   {numOctaves: false},
   {numOctaves: true},
-  {numOctaves: "10"},
+  {numOctaves: '10'},
 
   {seed: null},
   {seed: []},
@@ -101,23 +101,23 @@ const workingTestCases = [
   {seed: 30},
   {seed: false},
   {seed: true},
-  {seed: "10"},
+  {seed: '10'},
   {seed: -1},
 
-  {stitchTiles: "stitch"},
-  {stitchTiles: "noStitch"},
+  {stitchTiles: 'stitch'},
+  {stitchTiles: 'noStitch'},
 
-  {type: "fractalNoise"},
-  {type: "turbulence"},
+  {type: 'fractalNoise'},
+  {type: 'turbulence'},
 ]
 
 for (testCase of errorTestCases) {
-  const filterOptions = {...{filter: "turbulence"}, ...testCase};
+  const filterOptions = {...{filter: 'turbulence'}, ...testCase};
   assert_throws_js(TypeError, function() { new CanvasFilter(filterOptions); });
 }
 
 for (testCase of workingTestCases) {
-  const filterOptions = {...{filter: "turbulence"}, ...testCase};
+  const filterOptions = {...{filter: 'turbulence'}, ...testCase};
   _assert(new CanvasFilter(filterOptions) != null, "new CanvasFilter(filterOptions) != null");
 }
 t.done();

@@ -16,10 +16,10 @@ t.step(function() {
 var canvas = new OffscreenCanvas(100, 50);
 var ctx = canvas.getContext('2d');
 
-ctx.filter = new CanvasFilter({filter: "componentTransfer",
-    funcR: {type: "identity"},
-    funcG: {type: "identity"},
-    funcB: {type: "identity"},
+ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+    funcR: {type: 'identity'},
+    funcG: {type: 'identity'},
+    funcB: {type: 'identity'},
 });
 
 const inputColors = [

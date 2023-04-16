@@ -3,7 +3,7 @@
 import json
 import os
 import sys
-from io import BytesIO
+from io import BytesIO, StringIO
 from unittest import mock
 
 import pytest
@@ -116,7 +116,7 @@ def create_updater(tests, url_base="/", **kwargs):
 
 
 def create_log(entries):
-    data = BytesIO()
+    data = StringIO()
     if isinstance(entries, list):
         logger = structuredlog.StructuredLogger("expected_test")
         handler = handlers.StreamHandler(data, formatters.JSONFormatter())
@@ -127,7 +127,7 @@ def create_log(entries):
             getattr(logger, action)(**kwargs)
         logger.remove_handler(handler)
     else:
-        data.write(json.dumps(entries).encode())
+        data.write(json.dumps(entries))
     data.seek(0)
     return data
 

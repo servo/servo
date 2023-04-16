@@ -1,0 +1,54 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Fenced frame (https://wicg.github.io/fenced-frame/)
+
+[Exposed=Window]
+interface HTMLFencedFrameElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions] attribute FencedFrameConfig? config;
+  [CEReactions] attribute DOMString width;
+  [CEReactions] attribute DOMString height;
+};
+
+enum OpaqueProperty {"opaque"};
+
+typedef (unsigned long or OpaqueProperty) FencedFrameConfigSize;
+typedef (USVString or OpaqueProperty) FencedFrameConfigURL;
+
+[Exposed=Window]
+interface FencedFrameConfig {
+  constructor(USVString url);
+  readonly attribute FencedFrameConfigURL? url;
+  readonly attribute FencedFrameConfigSize? width;
+  readonly attribute FencedFrameConfigSize? height;
+};
+
+enum FenceReportingDestination {
+  "buyer",
+  "seller",
+  "component-seller",
+  "direct-seller",
+  "shared-storage-select-url",
+};
+
+dictionary FenceEvent {
+  required DOMString eventType;
+  required DOMString eventData;
+  required sequence<FenceReportingDestination> destination;
+};
+
+typedef (FenceEvent or DOMString) ReportEventType;
+
+[Exposed=Window]
+interface Fence {
+    undefined reportEvent(ReportEventType event);
+    undefined setReportEventDataForAutomaticBeacons(FenceEvent event);
+    sequence<FencedFrameConfig> getNestedConfigs();
+};
+
+partial interface Window {
+  // Collection of fenced frame APIs
+  readonly attribute Fence? fence;
+};

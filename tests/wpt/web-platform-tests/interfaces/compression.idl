@@ -3,14 +3,20 @@
 // (https://github.com/w3c/webref)
 // Source: Compression Streams (https://wicg.github.io/compression/)
 
+enum CompressionFormat {
+  "deflate",
+  "deflate-raw",
+  "gzip",
+};
+
 [Exposed=*]
 interface CompressionStream {
-  constructor(DOMString format);
+  constructor(CompressionFormat format);
 };
 CompressionStream includes GenericTransformStream;
 
 [Exposed=*]
 interface DecompressionStream {
-  constructor(DOMString format);
+  constructor(CompressionFormat format);
 };
 DecompressionStream includes GenericTransformStream;

@@ -6,7 +6,7 @@ import pytest
 
 from tests.perform_actions.support.keys import ALL_EVENTS, Keys, ALTERNATIVE_KEY_NAMES
 from tests.perform_actions.support.refine import get_events, get_keys
-from tests.support.helpers import filter_dict
+from tests.support.helpers import filter_dict, filter_supported_key_events
 
 
 def test_keyup_only_sends_no_events(session, key_reporter, key_chain):
@@ -48,11 +48,7 @@ def test_modifier_key_sends_correct_events(session, key_reporter, key_chain, key
         {"code": code, "key": value, "type": "keyup"},
     ]
 
-    events = [filter_dict(e, expected[0]) for e in all_events]
-    if len(events) > 0 and events[0]["code"] is None:
-        # Remove 'code' entry if browser doesn't support it
-        expected = [filter_dict(e, {"key": "", "type": ""}) for e in expected]
-        events = [filter_dict(e, expected[0]) for e in events]
+    (events, expected) = filter_supported_key_events(all_events, expected)
     assert events == expected
 
     assert len(get_keys(key_reporter)) == 0
@@ -85,12 +81,8 @@ def test_non_printable_key_sends_events(session, key_reporter, key_chain, key, e
         alt_expected[0]["key"] = ALTERNATIVE_KEY_NAMES[event]
         alt_expected[2]["key"] = ALTERNATIVE_KEY_NAMES[event]
 
-    events = [filter_dict(e, expected[0]) for e in all_events]
-    if len(events) > 0 and events[0]["code"] is None:
-        # Remove 'code' entry if browser doesn't support it
-        expected = [filter_dict(e, {"key": "", "type": ""}) for e in expected]
-        alt_expected = [filter_dict(e, {"key": "", "type": ""}) for e in alt_expected]
-        events = [filter_dict(e, expected[0]) for e in events]
+    (_, expected) = filter_supported_key_events(all_events, expected)
+    (events, alt_expected) = filter_supported_key_events(all_events, alt_expected)
     if len(events) == 2:
         # most browsers don't send a keypress for non-printable keys
         assert events == [expected[0], expected[2]] or events == [alt_expected[0], alt_expected[2]]
@@ -124,11 +116,7 @@ def test_printable_key_sends_correct_events(session, key_reporter, key_chain, va
         {"code": code, "key": value, "type": "keyup"},
     ]
 
-    events = [filter_dict(e, expected[0]) for e in all_events]
-    if len(events) > 0 and events[0]["code"] is None:
-        # Remove 'code' entry if browser doesn't support it
-        expected = [filter_dict(e, {"key": "", "type": ""}) for e in expected]
-        events = [filter_dict(e, expected[0]) for e in events]
+    (events, expected) = filter_supported_key_events(all_events, expected)
     assert events == expected
 
     assert get_keys(key_reporter) == value
@@ -148,11 +136,7 @@ def test_sequence_of_keydown_printable_keys_sends_events(session, key_reporter, 
         {"code": "KeyB", "key": "b", "type": "keypress"},
     ]
 
-    events = [filter_dict(e, expected[0]) for e in all_events]
-    if len(events) > 0 and events[0]["code"] is None:
-        # Remove 'code' entry if browser doesn't support it
-        expected = [filter_dict(e, {"key": "", "type": ""}) for e in expected]
-        events = [filter_dict(e, expected[0]) for e in events]
+    (events, expected) = filter_supported_key_events(all_events, expected)
     assert events == expected
 
     assert get_keys(key_reporter) == "ab"
@@ -171,11 +155,7 @@ def test_sequence_of_keydown_printable_characters_sends_events(session, key_repo
         {"code": "KeyF", "key": "f", "type": "keyup"},
     ]
 
-    events = [filter_dict(e, expected[0]) for e in all_events]
-    if len(events) > 0 and events[0]["code"] is None:
-        # Remove 'code' entry if browser doesn't support it
-        expected = [filter_dict(e, {"key": "", "type": ""}) for e in expected]
-        events = [filter_dict(e, expected[0]) for e in events]
+    (events, expected) = filter_supported_key_events(all_events, expected)
     assert events == expected
 
     assert get_keys(key_reporter) == "ef"

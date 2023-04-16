@@ -16,61 +16,88 @@ async function negotiate(pc1, pc2) {
   await pc1.setRemoteDescription(pc2.localDescription);
 }
 
-test(function(t) {
-  const pc = new RTCPeerConnection();
-  t.add_cleanup(() => pc.close());
-  const transceiver = pc.addTransceiver('video');
-  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
-  let capability = capabilities.find((capability) => {
-      return capability.uri == "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.direction != "stopped";
-  });
-  assert_not_equals(capability, undefined);
-}, `the video transceiver.getHeaderExtensionsToNegotiate() includes mandatory extensions`);
+['audio', 'video'].forEach(kind => {
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver(kind);
+    const capabilities = transceiver.getHeaderExtensionsToNegotiate();
+    const capability = capabilities.find((capability) => {
+        return capability.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid';
+    });
+    assert_not_equals(capability, undefined);
+    assert_equals(capability.direction, 'sendrecv');
+  }, `the ${kind} transceiver.getHeaderExtensionsToNegotiate() includes mandatory extensions`);
+});
 
-test(function(t) {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
   const transceiver = pc.addTransceiver('audio');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
-  let capability = capabilities.find((capability) => {
-      return capability.uri == "urn:ietf:params:rtp-hdrext:sdes:mid" &&
-             capability.direction != "stopped";
-  });
-  assert_not_equals(capability, undefined);
-}, `the audio transceiver.getHeaderExtensionsToNegotiate() includes mandatory extensions`);
-
-test(function(t) {
-  const pc = new RTCPeerConnection();
-  t.add_cleanup(() => pc.close());
-  const transceiver = pc.addTransceiver('audio');
-  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
-  capabilities[0].uri = "";
+  capabilities[0].uri = '';
   assert_throws_js(TypeError, () => {
     transceiver.setHeaderExtensionsToNegotiate(capabilities);
   }, 'transceiver should throw TypeError when setting an empty URI');
 }, `setHeaderExtensionsToNegotiate throws TypeError on encountering missing URI`);
 
-test(function(t) {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
   const transceiver = pc.addTransceiver('audio');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
-  capabilities[0].uri = "4711";
+  capabilities[0].direction = '';
+  assert_throws_js(TypeError, () => {
+    transceiver.setHeaderExtensionsToNegotiate(capabilities);
+  }, 'transceiver should throw TypeError when setting an empty direction');
+}, `setHeaderExtensionsToNegotiate throws TypeError on encountering missing direction`);
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const transceiver = pc.addTransceiver('audio');
+  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
+  capabilities[0].uri = '4711';
   assert_throws_dom('InvalidModificationError', () => {
     transceiver.setHeaderExtensionsToNegotiate(capabilities);
   }, 'transceiver should throw InvalidModificationError when setting an unknown URI');
 }, `setHeaderExtensionsToNegotiate throws InvalidModificationError on encountering unknown URI`);
 
-test(function(t) {
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const transceiver = pc.addTransceiver('video');
+  const capabilities = transceiver.getHeaderExtensionsToNegotiate().filter(capability => {
+    return capability.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid';
+  });
+  assert_throws_dom('InvalidModificationError', () => {
+    transceiver.setHeaderExtensionsToNegotiate(capabilities);
+  }, 'transceiver should throw InvalidModificationError when removing elements from the list');
+}, `setHeaderExtensionsToNegotiate throws InvalidModificationError when removing elements from the list`);
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const transceiver = pc.addTransceiver('video');
+  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
+  capabilities.push({
+    uri: '4711',
+    direction: 'recvonly',
+  });
+  assert_throws_dom('InvalidModificationError', () => {
+    transceiver.setHeaderExtensionsToNegotiate(capabilities);
+  }, 'transceiver should throw InvalidModificationError when adding elements to the list');
+}, `setHeaderExtensionsToNegotiate throws InvalidModificationError when adding elements to the list`);
+
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
   const transceiver = pc.addTransceiver('audio');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
   let capability = capabilities.find((capability) => {
-      return capability.uri == "urn:ietf:params:rtp-hdrext:sdes:mid";
+      return capability.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid';
   });
-  ["sendonly", "recvonly", "inactive", "stopped"].map(direction => {
+  ['sendonly', 'recvonly', 'inactive', 'stopped'].map(direction => {
     capability.direction = direction;
     assert_throws_dom('InvalidModificationError', () => {
       transceiver.setHeaderExtensionsToNegotiate(capabilities);
@@ -78,23 +105,23 @@ test(function(t) {
   });
 }, `setHeaderExtensionsToNegotiate throws InvalidModificationError when setting a mandatory header extension\'s direction to something else than "sendrecv"`);
 
-test(function(t) {
+test(t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
   const transceiver = pc.addTransceiver('audio');
   let capabilities = transceiver.getHeaderExtensionsToNegotiate();
   let selected_capability = capabilities.find((capability) => {
-      return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
   });
-  selected_capability.direction = "stopped";
-  const offered_capabilities = transceiver.getHeaderExtensionsToNegotiate;
+  selected_capability.direction = 'stopped';
+  const offered_capabilities = transceiver.getHeaderExtensionsToNegotiate();
   let altered_capability = capabilities.find((capability) => {
-      return capability.uri == selected_capability.uri &&
-             capability.direction == "stopped";
+      return capability.uri === selected_capability.uri &&
+             capability.direction === 'stopped';
   });
   assert_not_equals(altered_capability, undefined);
-}, `modified direction set by setHeaderExtensionsToNegotiate is visible in headerExtensionsOffered`);
+}, `modified direction set by setHeaderExtensionsToNegotiate is visible in subsequent getHeaderExtensionsToNegotiate`);
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -102,19 +129,16 @@ promise_test(async t => {
   const transceiver = pc.addTransceiver('video');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
   const offer = await pc.createOffer();
-  const extmaps = offer
-                      .sdp
-                      .split("\n")
-                      .filter(line => { return line.includes("a=extmap:"); })
-                      .join("\n");
+  const extensions = SDPUtils.matchPrefix(SDPUtils.splitSections(offer.sdp)[1], 'a=extmap:')
+    .map(line => SDPUtils.parseExtmap(line));
   for (const capability of capabilities) {
-    if (capability.direction == "stopped") {
-      assert_false(extmaps.includes(capability.uri));
+    if (capability.direction === 'stopped') {
+      assert_equals(undefined, extensions.find(e => e.uri === capability.uri));
     } else {
-      assert_true(extmaps.includes(capability.uri));
+      assert_not_equals(undefined, extensions.find(e => e.uri === capability.uri));
     }
   }
-}, `unstopped extensions turn up in offer`);
+}, `Unstopped extensions turn up in offer`);
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -122,25 +146,22 @@ promise_test(async t => {
   const transceiver = pc.addTransceiver('video');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
   const selected_capability = capabilities.find((capability) => {
-      return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
   });
-  selected_capability.direction = "stopped";
+  selected_capability.direction = 'stopped';
   transceiver.setHeaderExtensionsToNegotiate(capabilities);
   const offer = await pc.createOffer();
-  const extmaps = offer
-                      .sdp
-                      .split("\n")
-                      .filter(line => { return line.includes("a=extmap:"); })
-                      .join("\n");
+  const extensions = SDPUtils.matchPrefix(SDPUtils.splitSections(offer.sdp)[1], 'a=extmap:')
+    .map(line => SDPUtils.parseExtmap(line));
   for (const capability of capabilities) {
-    if (capability.direction == "stopped") {
-      assert_false(extmaps.includes(capability.uri));
+    if (capability.direction === 'stopped') {
+      assert_equals(undefined, extensions.find(e => e.uri === capability.uri));
     } else {
-      assert_true(extmaps.includes(capability.uri));
+      assert_not_equals(undefined, extensions.find(e => e.uri === capability.uri));
     }
   }
-}, `stopped extensions do not turn up in offers`);
+}, `Stopped extensions do not turn up in offers`);
 
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
@@ -152,60 +173,49 @@ promise_test(async t => {
   const transceiver = pc1.addTransceiver('video');
   const capabilities = transceiver.getHeaderExtensionsToNegotiate();
   const selected_capability = capabilities.find((capability) => {
-      return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
   });
-  selected_capability.direction = "stopped";
+  selected_capability.direction = 'stopped';
+  transceiver.setHeaderExtensionsToNegotiate(capabilities);
+
+  await negotiate(pc1, pc2);
+  const negotiated_capabilites = transceiver.getNegotiatedHeaderExtensions();
+
+  assert_equals(capabilities.length, negotiated_capabilites.length);
+}, `The set of negotiated extensions has the same size as the set of extensions to negotiate`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  // Disable a non-mandatory extension before first negotiation.
+  const transceiver = pc1.addTransceiver('video');
+  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
+  const selected_capability = capabilities.find((capability) => {
+      return capability.direction === 'sendrecv' &&
+             capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid';
+  });
+  selected_capability.direction = 'stopped';
   transceiver.setHeaderExtensionsToNegotiate(capabilities);
 
   await negotiate(pc1, pc2);
   const negotiated_capabilites = transceiver.getNegotiatedHeaderExtensions();
 
   // Attempt enabling the extension.
-  selected_capability.direction = "sendrecv";
+  selected_capability.direction = 'sendrecv';
 
   // The enabled extension should not be part of the negotiated set.
   transceiver.setHeaderExtensionsToNegotiate(capabilities);
   await negotiate(pc1, pc2);
   assert_not_equals(
       transceiver.getNegotiatedHeaderExtensions().find(capability => {
-        return capability.uri == selected_capability.uri &&
-               capability.direction == "sendrecv";
+        return capability.uri === selected_capability.uri &&
+               capability.direction === 'sendrecv';
       }), undefined);
-}, `the set of negotiated extensions grows with subsequent offers`);
-
-promise_test(async t => {
-  const pc1 = new RTCPeerConnection();
-  t.add_cleanup(() => pc1.close());
-  const pc2 = new RTCPeerConnection();
-  t.add_cleanup(() => pc2.close());
-
-  // Disable a non-mandatory extension before first negotiation.
-  const transceiver = pc1.addTransceiver('video');
-  const capabilities = transceiver.getHeaderExtensionsToNegotiate();
-  const selected_capability = capabilities.find((capability) => {
-      return capability.direction == "sendrecv" &&
-             capability.uri != "urn:ietf:params:rtp-hdrext:sdes:mid";
-  });
-  selected_capability.direction = "stopped";
-  transceiver.setHeaderExtensionsToNegotiate(capabilities);
-
-  await negotiate(pc1, pc2);
-  const negotiated_capabilites = transceiver.getNegotiatedHeaderExtensions();
-
-  for (const capability of negotiated_capabilites) {
-    assert_not_equals(capabilities.find((cap) => {
-      return cap.uri == capability.uri && cap.direction != "stopped";
-    }), undefined);
-  }
-  for (const capability of capabilities) {
-    if (capability.direction != "stopped") {
-      assert_not_equals(negotiated_capabilites.find((cap) => {
-        return cap.uri == capability.uri;
-      }), undefined);
-    }
-  }
-}, `the set of negotiated extensions is the set of unstopped extensions`);
+}, `Header extensions can be reactivated in subsequent offers`);
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -235,6 +245,51 @@ promise_test(async t => {
   assert_equals(extensions.length, 2);
   assert_false(!!extensions[0].find(extension => extension.uri === extensionUri));
   assert_true(!!extensions[1].find(extension => extension.uri === extensionUri));
-}, 'Extensions can be deactivated on a per-mline basis');
+}, 'Header extensions can be deactivated on a per-mline basis');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const t1 = pc1.addTransceiver('video');
+
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  // Get the transceiver after it is created by SRD.
+  const t2 = pc2.getTransceivers()[0];
+  const t2_capabilities = t2.getHeaderExtensionsToNegotiate();
+  const t2_capability_to_stop = t2_capabilities
+    .find(capability => capability.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid');
+  assert_not_equals(undefined, t2_capability_to_stop);
+  t2_capability_to_stop.direction = 'stopped';
+  t2.setHeaderExtensionsToNegotiate(t2_capabilities);
+
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const t1_negotiated = t1.getNegotiatedHeaderExtensions()
+    .find(extension => extension.uri === t2_capability_to_stop.uri);
+  assert_not_equals(undefined, t1_negotiated);
+  assert_equals(t1_negotiated.direction, 'stopped');
+  const t1_capability = t1.getHeaderExtensionsToNegotiate()
+    .find(extension => extension.uri === t2_capability_to_stop.uri);
+  assert_not_equals(undefined, t1_capability);
+  assert_equals(t1_capability.direction, 'sendrecv');
+}, 'Extensions not negotiated by the peer are `stopped` in getNegotiatedHeaderExtensions');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const transceiver = pc.addTransceiver('video');
+  const negotiated_capabilites = transceiver.getNegotiatedHeaderExtensions();
+  assert_equals(negotiated_capabilites.length,
+                transceiver.getHeaderExtensionsToNegotiate().length);
+  for (const capability of negotiated_capabilites) {
+    assert_equals(capability.direction, 'stopped');
+  }
+}, 'Prior to negotiation, getNegotiatedHeaderExtensions() returns `stopped` for all extensions.');
 
 </script>

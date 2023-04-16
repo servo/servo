@@ -104,19 +104,19 @@ dictionary MediaTrackConstraintSet {
 };
 
 dictionary MediaTrackSettings {
-  long width;
-  long height;
+  unsigned long width;
+  unsigned long height;
   double aspectRatio;
   double frameRate;
   DOMString facingMode;
   DOMString resizeMode;
-  long sampleRate;
-  long sampleSize;
+  unsigned long sampleRate;
+  unsigned long sampleSize;
   boolean echoCancellation;
   boolean autoGainControl;
   boolean noiseSuppression;
   double latency;
-  long channelCount;
+  unsigned long channelCount;
   DOMString deviceId;
   DOMString groupId;
 };

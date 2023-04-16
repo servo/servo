@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Contact Picker API (https://w3c.github.io/contact-picker/spec/)
+// Source: Contact Picker API (https://w3c.github.io/contact-picker/)
 
 [Exposed=Window]
 partial interface Navigator {

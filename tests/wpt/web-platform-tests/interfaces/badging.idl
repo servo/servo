@@ -4,14 +4,10 @@
 // Source: Badging API (https://w3c.github.io/badging/)
 
 [SecureContext]
-partial interface Navigator {
-  Promise<undefined> setClientBadge(optional [EnforceRange] unsigned long long contents);
-  Promise<undefined> clearClientBadge();
-};
-
-[SecureContext]
 interface mixin NavigatorBadge {
-  Promise<undefined> setAppBadge(optional [EnforceRange] unsigned long long contents);
+  Promise<undefined> setAppBadge(
+    optional [EnforceRange] unsigned long long contents
+  );
   Promise<undefined> clearAppBadge();
 };
 

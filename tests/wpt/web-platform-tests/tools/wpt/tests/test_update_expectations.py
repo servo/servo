@@ -6,8 +6,8 @@ import os
 import pytest
 
 from tools.wpt import wpt
-from tools.wptrunner.wptrunner import manifestexpected
-from tools.wptrunner.wptrunner.manifestupdate import get_test_name
+from wptrunner import manifestexpected
+from wptrunner.manifestupdate import get_test_name
 from localpaths import repo_root
 
 @pytest.fixture

@@ -334,3 +334,17 @@ def render_pdf_to_png_bidi(bidi_session, new_tab, url):
         return base64.b64decode(image_string_without_data_type)
 
     return render_pdf_to_png_bidi
+
+
+@pytest.fixture
+def test_actions_page_bidi(bidi_session, url, top_context):
+    """Navigate to test_actions.html."""
+
+    async def test_actions_page_bidi(context=top_context):
+        await bidi_session.browsing_context.navigate(
+            context=context["context"],
+            url=url("/webdriver/tests/support/html/test_actions.html"),
+            wait="complete",
+        )
+
+    return test_actions_page_bidi

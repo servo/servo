@@ -10,7 +10,6 @@
     assert_throws_dom("InvalidStateError", () => {
       let request = new XMLHttpRequest();
       request.setPrivateToken({
-        type: 'private-state-token',
         version: 1,
         operation: 'token-request'
       });
@@ -23,7 +22,6 @@
       request.open('GET', 'https://privatetoken.example');
       request.send();
       request.setPrivateToken({
-        type: 'private-state-token',
         version: 1,
         operation: 'token-request'
       });
@@ -34,26 +32,7 @@
     assert_throws_js(TypeError, () => {
       let request = new XMLHttpRequest();
       request.open('GET', 'https://privatetoken.example');
-      request.setPrivateToken({});
-    });
-  }, 'Private Token operations require present `type` values.');
-
-  test(() => {
-    assert_throws_js(TypeError, () => {
-      let request = new XMLHttpRequest();
-      request.open('GET', 'https://privatetoken.example');
       request.setPrivateToken({
-        type: "invalid"
-      });
-    });
-  }, 'Private Token operations require valid `type` values.');
-
-  test(() => {
-    assert_throws_js(TypeError, () => {
-      let request = new XMLHttpRequest();
-      request.open('GET', 'https://privatetoken.example');
-      request.setPrivateToken({
-        type: "private-state-token",
         version: 1,
         operation: "token-request",
         refreshPolicy: "not a member of the refreshPolicy enum",
@@ -66,7 +45,6 @@
       let request = new XMLHttpRequest();
       request.open('GET', 'https://privatetoken.example');
       request.setPrivateToken({
-        type: "private-state-token",
         version: 1,
         operation: "send-redemption-record",
         issuers: []
@@ -79,7 +57,6 @@
       let request = new XMLHttpRequest();
       request.open('GET', 'https://privatetoken.example');
       request.setPrivateToken({
-        type: "private-state-token",
         version: 1,
         operation: "send-redemption-record",
         issuers: [3]
@@ -92,7 +69,6 @@
       let request = new XMLHttpRequest();
       request.open('GET', 'https://privatetoken.example');
       request.setPrivateToken({
-        type: "private-state-token",
         version: 1,
         operation: "send-redemption-record",
         issuers: ["not a valid URL"]
@@ -105,7 +81,6 @@
       let request = new XMLHttpRequest();
       request.open('GET', 'https://privatetoken.example');
       request.setPrivateToken({
-        type: "private-state-token",
         version: 1,
         operation: "send-redemption-record",
         issuers: ["http://not-secure.com"]
@@ -117,7 +92,6 @@
     let request = new XMLHttpRequest();
     request.open('GET', 'https://privatetoken.example');
     request.setPrivateToken({
-      type: "private-state-token",
       version: 1,
       operation: "send-redemption-record",
       issuers: ["http://localhost"]

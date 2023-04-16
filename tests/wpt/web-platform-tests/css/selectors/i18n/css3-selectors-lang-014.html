@@ -28,8 +28,8 @@ This tests a detail related to :lang support. If :lang is not supported, a messa
 <script>
 test(function() {
 assert_equals(document.getElementById('colonlangcontroltest').offsetWidth, 0)
-assert_equals(document.getElementById('box').offsetWidth, 50);
-}, "A :lang value with language and region subtags will NOT match a lang attribute value with language, script and region subtags.");
+assert_in_array(document.getElementById('box').offsetWidth, [50, 100]);
+}, "A :lang value with language and region subtags will match a lang attribute value with language, script and region subtags under CSS Selectors 4, but not Selectors 3.");
 </script>
 
 <div id='log'></div>

@@ -7,7 +7,7 @@ import stat
 import subprocess
 import tempfile
 from abc import ABCMeta, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from distutils.spawn import find_executable
 from urllib.parse import urlsplit
 
@@ -92,6 +92,36 @@ class Browser:
             os.makedirs(dest)
 
         return dest
+
+    def download_from_url(
+        self, url, dest=None, channel=None, rename=None, default_name="download"
+    ):
+        """Download a URL into a dest/channel
+        :param url: The URL to download
+        :param dest: Directory in which to put the dowloaded
+        :param channel: Browser channel to append to the dest
+        :param rename: Optional name for the download; the original extension
+                       is preserved
+        :param default_name: The default name for the download if none is
+                             provided and none can be found from the network
+        :return: The path to the downloaded package/installer
+        """
+        self.logger.info("Downloading from %s" % url)
+
+        dest = self._get_browser_binary_dir(dest, channel)
+
+        resp = get(url)
+        filename = get_download_filename(resp, default_name)
+        if rename:
+            filename = "%s%s" % (rename, get_ext(filename))
+
+        output_path = os.path.join(dest, filename)
+
+        with open(output_path, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=64 * 1024):
+                f.write(chunk)
+
+        return output_path
 
     @abstractmethod
     def download(self, dest=None, channel=None, rename=None):
@@ -1891,23 +1921,108 @@ class WebKitTestRunner(Browser):
     product = "wktr"
     requirements = None
 
-    def download(self, dest=None, channel=None, rename=None):
+    def _find_apple_port_builds(self, channel="main"):
+        if channel != "main":
+            raise ValueError(f"unable to get builds for branch {channel}")
+
+        system_version, _, _ = platform.mac_ver()
+        if system_version in SpecifierSet("==13.*"):
+            platform_key = "mac-ventura-x86_64%20arm64"
+        elif system_version in SpecifierSet("==12.*"):
+            platform_key = "mac-monterey-x86_64%20arm64"
+        else:
+            raise ValueError(
+                f"don't know what platform to use for macOS {system_version}"
+            )
+
+        # This should match http://github.com/WebKit/WebKit/blob/main/Websites/webkit.org/wp-content/themes/webkit/build-archives.php
+        build_index = get(
+            f"https://q1tzqfy48e.execute-api.us-west-2.amazonaws.com/v3/latest/{platform_key}-release"
+        ).json()
+
+        builds = []
+
+        for entry in build_index["Items"]:
+            creation_time = datetime.fromtimestamp(
+                int(entry["creationTime"]["N"]), timezone.utc
+            )
+            identifier = entry["identifier"]["S"]
+            s3_url = entry["s3_url"]["S"]
+
+            builds.append((s3_url, identifier, creation_time))
+
+        return builds
+
+    def _download_metadata_apple_port(self, channel="main"):
+        digit_re = re.compile("([0-9]+)")
+
+        def natsort(string_to_split):
+            split = digit_re.split(string_to_split)
+            # this converts the split numbers into tuples so that "01" < "1"
+            split[1::2] = [(int(i), i) for i in split[1::2]]
+            return split
+
+        builds = sorted(
+            self._find_apple_port_builds(channel),
+            key=lambda x: natsort(x[1]),
+            reverse=True,
+        )
+        latest_build = builds[0]
+
+        return {
+            "url": latest_build[0],
+            "identifier": latest_build[1],
+            "creation_time": latest_build[2],
+        }
+
+    def download(
+        self, dest=None, channel="main", rename=None, version=None, revision=None
+    ):
+        if platform.system() == "Darwin":
+            meta = self._download_metadata_apple_port(channel)
+        else:
+            raise ValueError("Unsupported platform")
+
+        output_path = self.download_from_url(
+            meta["url"],
+            dest=dest,
+            channel=channel,
+            rename=rename,
+        )
+
+        dest = os.path.dirname(output_path)  # This is the actual, used dest.
+
+        self.last_revision_used = meta["identifier"]
+        with open(os.path.join(dest, "identifier"), "w") as f:
+            f.write(self.last_revision_used)
+
+        return output_path
+
+    def install(self, dest=None, channel="main"):
+        dest = self._get_browser_binary_dir(dest, channel)
+        installer_path = self.download(dest=dest, channel=channel)
+        self.logger.info(f"Extracting to {dest}")
+        with open(installer_path, "rb") as f:
+            unzip(f, dest)
+
+    def install_webdriver(self, dest=None, channel="main", browser_binary=None):
         raise NotImplementedError
 
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
+    def find_binary(self, venv_path=None, channel="main"):
+        path = self._get_browser_binary_dir(venv_path, channel)
+        return find_executable("WebKitTestRunner", os.path.join(path, "Release"))
 
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
-
-    def find_binary(self, venv_path=None, channel=None):
-        return None
-
-    def find_webdriver(self, venv_path=None, channel=None):
+    def find_webdriver(self, venv_path=None, channel="main"):
         return None
 
     def version(self, binary=None, webdriver_binary=None):
-        return None
+        dirname = os.path.dirname(binary)
+        identifier = os.path.join(dirname, "identifier")
+        if not os.path.exists(identifier):
+            return None
+
+        with open(identifier, "r") as f:
+            return f.read().strip()
 
 
 class WebKitGTKMiniBrowser(WebKit):

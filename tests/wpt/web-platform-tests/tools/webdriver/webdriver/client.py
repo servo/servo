@@ -310,27 +310,24 @@ class Window:
 
         return handles
 
-    # The many "type: ignore" comments here and below are to silence mypy's
-    # "Decorated property not supported" error, which is due to a limitation
-    # in mypy, see https://github.com/python/mypy/issues/1362.
-    @property  # type: ignore
+    @property
     @command
     def rect(self):
         return self.session.send_session_command("GET", "window/rect")
 
-    @rect.setter  # type: ignore
+    @rect.setter
     @command
     def rect(self, new_rect):
         self.session.send_session_command("POST", "window/rect", new_rect)
 
-    @property  # type: ignore
+    @property
     @command
     def size(self):
         """Gets the window size as a tuple of `(width, height)`."""
         rect = self.rect
         return (rect["width"], rect["height"])
 
-    @size.setter  # type: ignore
+    @size.setter
     @command
     def size(self, new_size):
         """Set window size by passing a tuple of `(width, height)`."""
@@ -343,14 +340,14 @@ class Window:
             # for Android. Revert this once it is implemented.
             pass
 
-    @property  # type: ignore
+    @property
     @command
     def position(self):
         """Gets the window position as a tuple of `(x, y)`."""
         rect = self.rect
         return (rect["x"], rect["y"])
 
-    @position.setter  # type: ignore
+    @position.setter
     @command
     def position(self, new_position):
         """Set window position by passing a tuple of `(x, y)`."""
@@ -475,12 +472,12 @@ class UserPrompt:
     def accept(self):
         self.session.send_session_command("POST", "alert/accept")
 
-    @property  # type: ignore
+    @property
     @command
     def text(self):
         return self.session.send_session_command("GET", "alert/text")
 
-    @text.setter  # type: ignore
+    @text.setter
     @command
     def text(self, value):
         body = {"text": value}
@@ -660,12 +657,12 @@ class Session:
         url = urlparse.urljoin("session/%s/" % self.session_id, uri)
         return self.send_command(method, url, body, timeout)
 
-    @property  # type: ignore
+    @property
     @command
     def url(self):
         return self.send_session_command("GET", "url")
 
-    @url.setter  # type: ignore
+    @url.setter
     @command
     def url(self, url):
         if urlparse.urlsplit(url).netloc is None:
@@ -685,12 +682,12 @@ class Session:
     def refresh(self):
         return self.send_session_command("POST", "refresh")
 
-    @property  # type: ignore
+    @property
     @command
     def title(self):
         return self.send_session_command("GET", "title")
 
-    @property  # type: ignore
+    @property
     @command
     def source(self):
         return self.send_session_command("GET", "source")
@@ -702,12 +699,12 @@ class Session:
 
         return value["handle"]
 
-    @property  # type: ignore
+    @property
     @command
     def window_handle(self):
         return self.send_session_command("GET", "window")
 
-    @window_handle.setter  # type: ignore
+    @window_handle.setter
     @command
     def window_handle(self, handle):
         body = {"handle": handle}
@@ -723,12 +720,12 @@ class Session:
 
         return self.send_session_command("POST", url, body)
 
-    @property  # type: ignore
+    @property
     @command
     def handles(self):
         return self.send_session_command("GET", "window/handles")
 
-    @property  # type: ignore
+    @property
     @command
     def active_element(self):
         return self.send_session_command("GET", "element/active")
@@ -855,12 +852,12 @@ class Element:
     def send_keys(self, text):
         return self.send_element_command("POST", "value", {"text": text})
 
-    @property  # type: ignore
+    @property
     @command
     def text(self):
         return self.send_element_command("GET", "text")
 
-    @property  # type: ignore
+    @property
     @command
     def name(self):
         return self.send_element_command("GET", "name")
@@ -869,12 +866,12 @@ class Element:
     def style(self, property_name):
         return self.send_element_command("GET", "css/%s" % property_name)
 
-    @property  # type: ignore
+    @property
     @command
     def rect(self):
         return self.send_element_command("GET", "rect")
 
-    @property  # type: ignore
+    @property
     @command
     def selected(self):
         return self.send_element_command("GET", "selected")
@@ -883,7 +880,7 @@ class Element:
     def screenshot(self):
         return self.send_element_command("GET", "screenshot")
 
-    @property  # type: ignore
+    @property
     @command
     def shadow_root(self):
         return self.send_element_command("GET", "shadow")

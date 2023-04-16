@@ -151,3 +151,83 @@ promise_test(async t => {
   }
   reader.releaseLock();
 }, 'Can read data from a unidirectional stream with BYOB reader');
+
+promise_test(async t => {
+  // Establish a WebTransport session.
+  const wt = new WebTransport(webtransport_url('echo.py'));
+  await wt.ready;
+
+  // Create a bidirectional stream.
+  const bidi_stream = await wt.createBidirectionalStream();
+
+  // Write a message to the writable end, and close it.
+  const writer = bidi_stream.writable.getWriter();
+  const bytes = new Uint8Array(16384);
+  const [reply] = await Promise.all([
+    read_stream(bidi_stream.readable),
+    writer.write(bytes),
+    writer.write(bytes),
+    writer.write(bytes),
+    writer.close()
+  ]);
+  let len = 0;
+  for (chunk of reply) {
+    len += chunk.length;
+  }
+  // Check that the message from the readable end matches the writable end.
+  assert_equals(len, 3*bytes.length);
+}, 'Transfer large chunks of data on a bidirectional stream');
+
+promise_test(async t => {
+  // Establish a WebTransport session.
+  const wt = new WebTransport(webtransport_url('echo.py'));
+  await wt.ready;
+
+  // Create a unidirectional stream.
+  const uni_stream = await wt.createUnidirectionalStream();
+
+  // Write a message to the writable end, and close it.
+  const writer = uni_stream.getWriter();
+  const bytes = new Uint8Array(16384);
+  await Promise.all([
+    writer.write(bytes),
+    writer.write(bytes),
+    writer.write(bytes),
+    writer.close()
+  ]);
+  // XXX Update once chrome fixes https://crbug.com/929585
+  // The echo handler creates a new unidirectional stream to echo back data from
+  // the server to client. Accept the unidirectional stream.
+  const readable = wt.incomingUnidirectionalStreams;
+  const stream_reader = readable.getReader();
+  const { value: recv_stream } = await stream_reader.read();
+  stream_reader.releaseLock();
+
+  // Read the data on the readable end.
+  const reply = await read_stream(recv_stream);
+  let len = 0;
+  for (chunk of reply) {
+    len += chunk.length;
+  }
+  // Check that the message from the readable end matches the writable end.
+  assert_equals(len, 3*bytes.length);
+}, 'Transfer large chunks of data on a unidirectional stream');
+
+promise_test(async t => {
+  // Establish a WebTransport session.
+  const wt = new WebTransport(webtransport_url('echo.py'));
+  await wt.ready;
+
+  // Create a bidirectional stream.
+  const bidi_stream = await wt.createBidirectionalStream();
+
+  // Close the writable end with no data at all.
+  const writer = bidi_stream.writable.getWriter();
+  writer.close();
+
+  // Read the data on the readable end.
+  const chunks = await read_stream(bidi_stream.readable);
+  assert_equals(chunks.length, 0);
+
+  await bidi_stream.readable.closed;
+}, 'Closing the stream with no data still resolves the read request');

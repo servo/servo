@@ -15,8 +15,8 @@ async_test(t => {
     assert_equals(e.downloadRequest, null);
     assert_equals(e.destination.url, location.href);
     assert_false(e.destination.sameDocument);
-    assert_equals(e.destination.key, null);
-    assert_equals(e.destination.id, null);
+    assert_equals(e.destination.key, "");
+    assert_equals(e.destination.id, "");
     assert_equals(e.destination.index, -1);
     assert_not_equals(e.formData, null);
   });

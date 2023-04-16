@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-attachment">
+<link rel="match" href="background-attachment-fixed-inline-scrolled-ref.html">
+<meta name="assert" content="Background with background-attachment-fixed on an inline element should be fixed to the viewport">
+<style>
+body {
+  /* suppress scrollbars */
+  overflow: hidden;
+}
+#target {
+  background-attachment: fixed;
+  background-image: linear-gradient(green 50%, yellow 50%);
+  font-size: 130px;
+  line-height: 100px;
+}
+</style>
+<span id="target">
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+</span>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    scrollTo(0, 300);
+    document.documentElement.classList.remove("reftest-wait");
+  });
+});
+</script>

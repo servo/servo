@@ -1,9 +1,11 @@
 // META: timeout=long
 // META: script=/common/get-host-info.sub.js
+// META: script=/resources/test-only-api.js
+// META: script=resources/pressure-helpers.js
 
 'use strict';
 
-promise_test(async t => {
+pressure_test(async (t, mockPressureService) => {
   const iframe = document.createElement('iframe');
   iframe.src = get_host_info().HTTPS_REMOTE_ORIGIN +
       '/compute-pressure/resources/support-iframe.html';
@@ -20,11 +22,13 @@ promise_test(async t => {
     iframe.remove();
   });
   await observer.observe('cpu');
+  mockPressureService.setPressureUpdate('cpu', 'critical');
+  mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
 
-  return new Promise(resolve => t.step_timeout(resolve, 2000));
+  return new Promise(resolve => t.step_timeout(resolve, 1000));
 }, 'Observer in main frame should not receive PressureRecord when focused on cross-origin iframe');
 
-promise_test(async t => {
+pressure_test(async (t, mockPressureService) => {
   const iframe = document.createElement('iframe');
   iframe.src = get_host_info().HTTPS_REMOTE_ORIGIN +
       '/compute-pressure/resources/support-iframe.html';
@@ -49,5 +53,7 @@ promise_test(async t => {
       }
     }, {once: true});
     iframe.contentWindow.postMessage({command: 'start'}, '*');
+    mockPressureService.setPressureUpdate('cpu', 'critical');
+    mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
   });
 }, 'Observer in iframe should not receive PressureRecord when focused on cross-origin main frame');

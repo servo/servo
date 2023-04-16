@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Text Fragments (https://wicg.github.io/scroll-to-text-fragment/)
+// Source: URL Fragment Text Directives (https://wicg.github.io/scroll-to-text-fragment/)
 
 [Exposed=Window]
 interface FragmentDirective {

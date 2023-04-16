@@ -245,6 +245,16 @@ def filter_dict(source, d):
     return {k: source[k] for k in d.keys()}
 
 
+def filter_supported_key_events(all_events, expected):
+    events = [filter_dict(e, expected[0]) for e in all_events]
+    if len(events) > 0 and events[0]["code"] is None:
+        # Remove 'code' entry if browser doesn't support it
+        expected = [filter_dict(e, {"key": "", "type": ""}) for e in expected]
+        events = [filter_dict(e, expected[0]) for e in events]
+
+    return (events, expected)
+
+
 def wait_for_new_handle(session, handles_before):
     def find_new_handle(session):
         new_handles = list(set(session.handles) - set(handles_before))

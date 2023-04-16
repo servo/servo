@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<title>Tests that anchor functions can be inherited from in-flow elements</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1382151">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+.cb {
+  width: 200px;
+  height: 200px;
+  transform: scale(1);
+}
+
+.anchor {
+  width: 100px;
+  height: 100px;
+  top: 50px;
+  left: 50px;
+  position: relative;
+  background: red;
+  anchor-name: --a;
+}
+
+.target {
+  position: absolute;
+  background: green;
+  top: inherit;
+  bottom: inherit;
+  left: inherit;
+  right: inherit;
+  width: inherit;
+  min-width: inherit;
+  max-width: inherit;
+  height: inherit;
+  min-height: inherit;
+  max-height: inherit;
+}
+
+.inset-parent {
+  top: anchor(--a top);
+  bottom: anchor(--a bottom);
+  left: anchor(--a left);
+  right: anchor(--a right);
+}
+
+.size-parent {
+  width: anchor-size(--a width);
+  height: anchor-size(--a height);
+  top: 50px;
+  left: 50px;
+}
+
+.min-size-parent {
+  min-width: anchor-size(--a width);
+  min-height: anchor-size(--a height);
+  top: 50px;
+  left: 50px;
+  bottom: 200px;
+  right: 200px;
+}
+
+.max-size-parent {
+  max-width: anchor-size(--a width);
+  max-height: anchor-size(--a height);
+  top: 50px;
+  left: 50px;
+  bottom: 0px;
+  right: 0px;
+}
+
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+
+<p>In each test case, we should see a filled green square with no red.</p>
+
+<div class=cb>
+  <div class="anchor"></div>
+  <div class="inset-parent">
+    <div class="target"
+         data-offset-x=50 data-offset-y=50
+         data-expected-width=100 data-expected-height=100></div>
+  </div>
+</div>
+
+<div class=cb>
+  <div class="anchor"></div>
+  <div class="size-parent">
+    <div class="target"
+         data-offset-x=50 data-offset-y=50
+         data-expected-width=100 data-expected-height=100></div>
+  </div>
+</div>
+
+<div class=cb>
+  <div class="anchor"></div>
+  <div class="min-size-parent">
+    <div class="target"
+         data-offset-x=50 data-offset-y=50
+         data-expected-width=100 data-expected-height=100></div>
+  </div>
+</div>
+
+<div class=cb>
+  <div class="anchor"></div>
+  <div class="max-size-parent">
+    <div class="target"
+         data-offset-x=50 data-offset-y=50
+         data-expected-width=100 data-expected-height=100></div>
+  </div>
+</div>
+
+</body>

@@ -208,11 +208,11 @@ function createVideoFrame(ts) {
   });
 }
 
-function canSerializeVideoFrame(target, vf, transfer) {
+function canSerializeVideoFrame(target, vf) {
   return canPostVideoFrame(target, vf, false);
 };
 
-function canTransferVideoFrame(target, vf, transfer) {
+function canTransferVideoFrame(target, vf) {
   return canPostVideoFrame(target, vf, true);
 };
 

@@ -29,7 +29,7 @@ async def test_realm(bidi_session, top_context, call_function):
         target=RealmTarget(remote_value["realm"]),
     )
 
-    with pytest.raises(error.InvalidArgumentException):
+    with pytest.raises(error.NoSuchHandleException):
         await call_function("arg => arg.a", [remote_value["result"]])
 
 
@@ -83,7 +83,7 @@ async def test_sandbox(bidi_session, top_context, call_function):
         target=ContextTarget(top_context["context"], "basic_sandbox"),
     )
 
-    with pytest.raises(error.InvalidArgumentException):
+    with pytest.raises(error.NoSuchHandleException):
         await call_function("arg => arg.a", [sandbox_value], sandbox="basic_sandbox")
 
     # Disown the non-sandboxed remote value from the top context
@@ -91,5 +91,5 @@ async def test_sandbox(bidi_session, top_context, call_function):
         handles=[remote_value["handle"]], target=ContextTarget(top_context["context"])
     )
 
-    with pytest.raises(error.InvalidArgumentException):
+    with pytest.raises(error.NoSuchHandleException):
         await call_function("arg => arg.a", [remote_value], sandbox="basic_sandbox")

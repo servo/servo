@@ -95,6 +95,7 @@ class TestUsingH2Server:
                                    http2=True, verify=False)
 
     def teardown_method(self, test_method):
+        self.client.close()
         self.server.stop()
 
 

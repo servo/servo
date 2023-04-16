@@ -258,6 +258,8 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
     def suite_start(self, data):
         if self.start_timestamp_seconds is None:
             self.start_timestamp_seconds = self._get_time(data)
+        if 'run_info' in data:
+            self.flag_specific = data['run_info'].get('flag_specific', '')
 
     def test_start(self, data):
         test_name = data["test"]
@@ -325,6 +327,7 @@ class ChromiumFormatter(base.BaseFormatter):  # type: ignore
             "version": 3,
             "seconds_since_epoch": self.start_timestamp_seconds,
             "num_failures_by_type": self.num_failures_by_status,
+            "flag_name": self.flag_specific,
             "tests": self.tests
         }
         return json.dumps(final_result)
