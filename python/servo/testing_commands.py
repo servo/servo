@@ -22,6 +22,11 @@ import subprocess
 from xml.etree.ElementTree import XML
 from six import iteritems
 
+import wpt
+import wpt.manifestupdate
+import wpt.run
+import wpt.update
+
 from mach.registrar import Registrar
 from mach.decorators import (
     CommandArgument,
@@ -29,24 +34,18 @@ from mach.decorators import (
     Command,
 )
 
+from servo_tidy import tidy
 from servo.command_base import (
     CommandBase,
     call, check_call, check_output,
 )
-from servo.util import host_triple
-
-from wptrunner import wptcommandline
-from update import updatecommandline
-from servo_tidy import tidy
 from servo_tidy_tests import test_tidy
+from servo.util import host_triple
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
-
-sys.path.insert(0, os.path.join(PROJECT_TOPLEVEL_PATH, 'tests', 'wpt'))
-import servowpt  # noqa: E402
 
 CLANGFMT_CPP_DIRS = ["support/hololens/"]
 CLANGFMT_VERSION = "15"
@@ -65,45 +64,6 @@ TEST_SUITES = OrderedDict([
 ])
 
 TEST_SUITES_BY_PREFIX = {path: k for k, v in iteritems(TEST_SUITES) if "paths" in v for path in v["paths"]}
-
-
-def create_parser_wpt():
-    import mozlog.commandline
-    parser = wptcommandline.create_parser()
-    parser.add_argument('--release', default=False, action="store_true",
-                        help="Run with a release build of servo")
-    parser.add_argument('--rr-chaos', default=False, action="store_true",
-                        help="Run under chaos mode in rr until a failure is captured")
-    parser.add_argument('--pref', default=[], action="append", dest="prefs",
-                        help="Pass preferences to servo")
-    parser.add_argument('--layout-2020', '--with-layout-2020', default=False,
-                        action="store_true", help="Use expected results for the 2020 layout engine")
-    parser.add_argument('--log-servojson', action="append", type=mozlog.commandline.log_file,
-                        help="Servo's JSON logger of unexpected results")
-    parser.add_argument('--always-succeed', default=False, action="store_true",
-                        help="Always yield exit code of zero")
-    parser.add_argument('--no-default-test-types', default=False, action="store_true",
-                        help="Run all of the test types provided by wptrunner or specified explicitly by --test-types")
-    parser.add_argument('--filter-intermittents', default=None, action="store",
-                        help="Filter intermittents against known intermittents "
-                             "and save the filtered output to the given file.")
-    parser.add_argument('--log-raw-unexpected', default=None, action="store",
-                        help="Raw structured log messages for unexpected results."
-                             " '--log-raw' Must also be passed in order to use this.")
-    return parser
-
-
-def create_parser_manifest_update():
-    import manifestupdate
-    return manifestupdate.create_parser()
-
-
-def run_update(topdir, check_clean=False, rebuild=False, **kwargs):
-    import manifestupdate
-    from wptrunner import wptlogging
-    logger = wptlogging.setup(kwargs, {"mach": sys.stdout})
-    wpt_dir = os.path.abspath(os.path.join(topdir, 'tests', 'wpt'))
-    return manifestupdate.update(logger, wpt_dir, check_clean, rebuild)
 
 
 @CommandProvider
@@ -353,7 +313,7 @@ class MachCommands(CommandBase):
             if no_wpt:
                 manifest_dirty = False
             else:
-                manifest_dirty = run_update(self.context.topdir, check_clean=True)
+                manifest_dirty = wpt.manifestupdate.update(check_clean=True)
             tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo, no_wpt=no_wpt)
             self.install_rustfmt()
             rustfmt_failed = self.call_rustup_run(["cargo", "fmt", "--", "--check"])
@@ -399,7 +359,7 @@ class MachCommands(CommandBase):
     @Command('test-wpt-failure',
              description='Run the tests harness that verifies that the test failures are reported correctly',
              category='testing',
-             parser=create_parser_wpt)
+             parser=wpt.create_parser)
     def test_wpt_failure(self, **kwargs):
         kwargs["pause_after_test"] = False
         kwargs["include"] = ["infrastructure/failing-test.html"]
@@ -408,7 +368,7 @@ class MachCommands(CommandBase):
     @Command('test-wpt',
              description='Run the regular web platform test suite',
              category='testing',
-             parser=create_parser_wpt)
+             parser=wpt.create_parser)
     def test_wpt(self, **kwargs):
         ret = self.run_test_list_or_dispatch(kwargs["test_list"], "wpt", self._test_wpt, **kwargs)
         if kwargs["always_succeed"]:
@@ -419,7 +379,7 @@ class MachCommands(CommandBase):
     @Command('test-wpt-android',
              description='Run the web platform test suite in an Android emulator',
              category='testing',
-             parser=create_parser_wpt)
+             parser=wpt.create_parser)
     def test_wpt_android(self, release=False, dev=False, binary_args=None, **kwargs):
         kwargs.update(
             release=release,
@@ -433,7 +393,7 @@ class MachCommands(CommandBase):
 
     def _test_wpt(self, android=False, **kwargs):
         self.set_run_env(android)
-        return servowpt.run_tests(**kwargs)
+        return wpt.run.run_tests(**kwargs)
 
     # Helper to ensure all specified paths are handled, otherwise dispatch to appropriate test suite.
     def run_test_list_or_dispatch(self, requested_paths, correct_suite, correct_function, **kwargs):
@@ -454,9 +414,9 @@ class MachCommands(CommandBase):
     @Command('update-manifest',
              description='Run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
              category='testing',
-             parser=create_parser_manifest_update)
+             parser=wpt.manifestupdate.create_parser)
     def update_manifest(self, **kwargs):
-        return run_update(self.context.topdir, **kwargs)
+        return wpt.manifestupdate.update(check_clean=False)
 
     @Command('fmt',
              description='Format the Rust and CPP source files with rustfmt and clang-format',
@@ -474,13 +434,13 @@ class MachCommands(CommandBase):
     @Command('update-wpt',
              description='Update the web platform tests',
              category='testing',
-             parser=updatecommandline.create_parser())
+             parser=wpt.update.create_parser)
     def update_wpt(self, **kwargs):
         patch = kwargs.get("patch", False)
         if not patch and kwargs["sync"]:
             print("Are you sure you don't want a patch?")
             return 1
-        return servowpt.update_tests(**kwargs)
+        return wpt.update.update_tests(**kwargs)
 
     @Command('test-android-startup',
              description='Extremely minimal testing of Servo for Android',
@@ -826,7 +786,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
             proc = subprocess.Popen("%s %s" % (editor, test_path), shell=True)
 
         if not kwargs["no_run"]:
-            p = create_parser_wpt()
+            p = wpt.create_parser()
             args = []
             if kwargs["release"]:
                 args.append("--release")

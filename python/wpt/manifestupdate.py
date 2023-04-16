@@ -3,28 +3,21 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import argparse
-import imp
 import os
 import sys
 import tempfile
 from collections import defaultdict
 from six import iterkeys, iteritems
 
+from . import SERVO_ROOT, WPT_PATH
 from mozlog.structured import commandline
+
+# This must happen after importing from "." since it adds WPT
+# tools to the Python system path.
+import manifest as wptmanifest
+
 from wptrunner.wptcommandline import get_test_paths, set_from_config
-
-manifest = None
-
-
-servo_root = os.path.join(os.path.dirname(__file__),
-                          os.pardir,
-                          os.pardir)
-
-
-def do_delayed_imports(wpt_dir):
-    global manifest
-    sys.path.insert(0, os.path.join(wpt_dir, "tools", "manifest"))
-    import manifest  # noqa
+from wptrunner import wptlogging
 
 
 def create_parser():
@@ -38,19 +31,16 @@ def create_parser():
     return p
 
 
-def update(logger, wpt_dir, check_clean=True, rebuild=False):
-    localpaths = imp.load_source("localpaths",  # noqa
-                                 os.path.join(wpt_dir, "web-platform-tests", "tools", "localpaths.py"))
-    kwargs = {"config": os.path.join(wpt_dir, "config.ini"),
-              "manifest_path": os.path.join(wpt_dir, "metadata"),
+def update(check_clean=True, rebuild=False, **kwargs):
+    logger = wptlogging.setup(kwargs, {"mach": sys.stdout})
+    kwargs = {"config": os.path.join(WPT_PATH, "config.ini"),
+              "manifest_path": os.path.join(WPT_PATH, "metadata"),
               "tests_root": None,
               "metadata_root": None}
 
     set_from_config(kwargs)
     config = kwargs["config"]
     test_paths = get_test_paths(config)
-
-    do_delayed_imports(wpt_dir)
 
     if check_clean:
         return _check_clean(logger, test_paths)
@@ -63,13 +53,13 @@ def _update(logger, test_paths, rebuild):
         manifest_path = os.path.join(paths["metadata_path"], "MANIFEST.json")
         cache_subdir = os.path.relpath(os.path.dirname(manifest_path),
                                        os.path.dirname(__file__))
-        manifest.manifest.load_and_update(paths["tests_path"],
-                                          manifest_path,
-                                          url_base,
-                                          working_copy=True,
-                                          rebuild=rebuild,
-                                          cache_root=os.path.join(servo_root, ".wpt",
-                                                                  cache_subdir))
+        wptmanifest.manifest.load_and_update(paths["tests_path"],
+                                             manifest_path,
+                                             url_base,
+                                             working_copy=True,
+                                             rebuild=rebuild,
+                                             cache_root=os.path.join(SERVO_ROOT, ".wpt",
+                                                                     cache_subdir))
     return 0
 
 
@@ -80,26 +70,26 @@ def _check_clean(logger, test_paths):
         tests_path = paths["tests_path"]
         manifest_path = os.path.join(paths["metadata_path"], "MANIFEST.json")
 
-        old_manifest = manifest.manifest.load_and_update(tests_path,
-                                                         manifest_path,
-                                                         url_base,
-                                                         working_copy=False,
-                                                         update=False,
-                                                         write_manifest=False,)
+        old_manifest = wptmanifest.manifest.load_and_update(tests_path,
+                                                            manifest_path,
+                                                            url_base,
+                                                            working_copy=False,
+                                                            update=False,
+                                                            write_manifest=False)
 
         # Even if no cache is specified, one will be used automatically by the
         # VCS integration. Create a brand new cache every time to ensure that
         # the VCS integration always thinks that any file modifications in the
         # working directory are new and interesting.
         cache_root = tempfile.mkdtemp()
-        new_manifest = manifest.manifest.load_and_update(tests_path,
-                                                         manifest_path,
-                                                         url_base,
-                                                         working_copy=True,
-                                                         update=True,
-                                                         cache_root=cache_root,
-                                                         write_manifest=False,
-                                                         allow_cached=False)
+        new_manifest = wptmanifest.manifest.load_and_update(tests_path,
+                                                            manifest_path,
+                                                            url_base,
+                                                            working_copy=True,
+                                                            update=True,
+                                                            cache_root=cache_root,
+                                                            write_manifest=False,
+                                                            allow_cached=False)
 
         manifests_by_path[manifest_path] = (old_manifest, new_manifest)
 

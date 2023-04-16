@@ -35,7 +35,7 @@ function unsafe_pull_from_upstream() {
 
     # Fetch all changes from upstream WPT and automatically transpose them
     # into a single servo commit.
-    ./mach update-wpt --sync --no-upstream --patch || return 2
+    ./mach update-wpt --sync --patch || return 2
 
     # If there was no new commit created, there are no changes that need syncing.
     # Skip the remaining steps.

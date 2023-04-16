@@ -32,9 +32,9 @@ jobs:
           # See https://github.com/actions/checkout/issues/162.
           token: ${{ secrets.WPT_SYNC_TOKEN }}
       - name: Install requirements
-        run: pip install -r servo/etc/ci/upstream-wpt-changes/requirements.txt
+        run: pip install -r servo/python/wpt/requirements.txt
       - name: Process pull request
-        run: servo/etc/ci/upstream-wpt-changes/upstream-wpt-changes.py
+        run: servo/python/wpt/upstream.py
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
