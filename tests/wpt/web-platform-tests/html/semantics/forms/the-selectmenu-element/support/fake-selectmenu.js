@@ -10,17 +10,21 @@ function createFakeSelectmenu(selectedValueText) {
     <style>
     .fake-selectmenu {
       display: inline-block;
+      user-select: none;
+      font-family: sans-serif;
+      font-size: .875em;
     }
 
     .fake-selectmenu-internal-selectmenu-button {
       display: inline-flex;
       align-items: center;
-      background-color: #ffffff;
-      padding: 0 0 0 3px;
-      border: 1px solid #767676;
-      border-radius: 2px;
       cursor: default;
       appearance: none;
+      background-color: Field;
+      color: ButtonText;
+      border: 1px solid ButtonBorder;
+      border-radius: 0.25em;
+      padding: 0.25em;
     }
 
     .fake-selectmenu-internal-selectmenu-button-icon {

@@ -265,6 +265,9 @@ Consider installing certutil via your OS package manager or directly.""")
             kwargs["headless"] = True
             logger.info("Running in headless mode, pass --no-headless to disable")
 
+        if kwargs["browser_channel"] == "nightly" and kwargs["enable_webtransport_h3"] is None:
+            kwargs["enable_webtransport_h3"] = True
+
         # Turn off Firefox WebRTC ICE logging on WPT (turned on by mozrunner)
         safe_unsetenv('R_LOG_LEVEL')
         safe_unsetenv('R_LOG_DESTINATION')
@@ -691,10 +694,16 @@ class WebKitTestRunner(BrowserSetup):
     browser_cls = browser.WebKitTestRunner
 
     def install(self, channel=None):
-        raise NotImplementedError
+        if self.prompt_install(self.name):
+            return self.browser.install(self.venv.path, channel=channel)
 
     def setup_kwargs(self, kwargs):
-        pass
+        if kwargs["binary"] is None:
+            binary = self.browser.find_binary(self.venv.path, channel=kwargs["browser_channel"])
+
+            if binary is None:
+                raise WptrunError("Unable to find binary in PATH")
+            kwargs["binary"] = binary
 
 
 class WebKitGTKMiniBrowser(BrowserSetup):

@@ -127,6 +127,12 @@ interface HTMLElement : Element {
   [CEReactions] attribute [LegacyNullToEmptyString] DOMString outerText;
 
   ElementInternals attachInternals();
+
+  // The popover API
+  undefined showPopover();
+  undefined hidePopover();
+  undefined togglePopover(optional boolean force);
+  [CEReactions] attribute DOMString? popover;
 };
 
 HTMLElement includes GlobalEventHandlers;
@@ -202,6 +208,7 @@ interface HTMLLinkElement : HTMLElement {
   [CEReactions] attribute DOMString referrerPolicy;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
   [CEReactions] attribute boolean disabled;
+  [CEReactions] attribute DOMString fetchPriority;
 
   // also has obsolete members
 };
@@ -430,6 +437,7 @@ interface HTMLImageElement : HTMLElement {
   [CEReactions] attribute DOMString referrerPolicy;
   [CEReactions] attribute DOMString decoding;
   [CEReactions] attribute DOMString loading;
+  [CEReactions] attribute DOMString fetchPriority;
 
   Promise<undefined> decode();
 
@@ -929,6 +937,7 @@ interface HTMLInputElement : HTMLElement {
 
   // also has obsolete members
 };
+HTMLInputElement includes PopoverInvokerElement;
 
 [Exposed=Window]
 interface HTMLButtonElement : HTMLElement {
@@ -954,6 +963,7 @@ interface HTMLButtonElement : HTMLElement {
 
   readonly attribute NodeList labels;
 };
+HTMLButtonElement includes PopoverInvokerElement;
 
 [Exposed=Window]
 interface HTMLSelectElement : HTMLElement {
@@ -1214,6 +1224,7 @@ interface HTMLScriptElement : HTMLElement {
   [CEReactions] attribute DOMString integrity;
   [CEReactions] attribute DOMString referrerPolicy;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
+  [CEReactions] attribute DOMString fetchPriority;
 
   static boolean supports(DOMString type);
 
@@ -1704,6 +1715,23 @@ dictionary DragEventInit : MouseEventInit {
   DataTransfer? dataTransfer = null;
 };
 
+interface mixin PopoverInvokerElement {
+  [CEReactions] attribute Element? popoverTargetElement;
+  [CEReactions] attribute DOMString popoverTargetAction;
+};
+
+[Exposed=Window]
+interface ToggleEvent : Event {
+  constructor(DOMString type, optional ToggleEventInit eventInitDict = {});
+  readonly attribute DOMString oldState;
+  readonly attribute DOMString newState;
+};
+
+dictionary ToggleEventInit : EventInit {
+  DOMString oldState = "";
+  DOMString newState = "";
+};
+
 [Global=Window,
  Exposed=Window,
  LegacyUnenumerableNamedProperties]
@@ -1737,10 +1765,11 @@ interface Window : EventTarget {
   [Replaceable] readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
   WindowProxy? open(optional USVString url = "", optional DOMString target = "_blank", optional [LegacyNullToEmptyString] DOMString features = "");
-  getter object (DOMString name);
+
   // Since this is the global object, the IDL named getter adds a NamedPropertiesObject exotic
   // object on the prototype chain. Indeed, this does not make the global object an exotic object.
   // Indexed access is taken care of by the WindowProxy exotic object.
+  getter object (DOMString name);
 
   // the user agent
   readonly attribute Navigator navigator;
@@ -1893,6 +1922,7 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler onauxclick;
   attribute EventHandler onbeforeinput;
   attribute EventHandler onbeforematch;
+  attribute EventHandler onbeforetoggle;
   attribute EventHandler onblur;
   attribute EventHandler oncancel;
   attribute EventHandler oncanplay;

@@ -1,7 +1,6 @@
 import functools
 from typing import (
     Any,
-    Awaitable,
     Callable,
     Optional,
     Mapping,
@@ -79,10 +78,6 @@ class command:
 
         # Overwrite the method on the owner class with the wrapper
         setattr(owner, name, inner)
-
-    def __call__(*args: Any, **kwargs: Any) -> Awaitable[Any]:
-        # This isn't really used, but mypy doesn't understand __set_name__
-        pass
 
 
 class BidiModule:

@@ -1,0 +1,29 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Private State Token API (https://wicg.github.io/trust-token-api/)
+
+enum RefreshPolicy { "none", "refresh" };
+
+enum TokenType { "private-state-token" };
+
+enum TokenVersion { "1" };
+
+enum OperationType { "token-request", "send-redemption-record", "token-redemption" };
+
+dictionary PrivateToken {
+  required TokenType type;
+  required TokenVersion version;
+  required OperationType operation;
+  RefreshPolicy refreshPolicy = "none";
+  sequence<USVString> issuers;
+};
+
+partial dictionary RequestInit {
+  PrivateToken privateToken;
+};
+
+partial interface Document {
+  Promise<boolean> hasPrivateTokens(USVString issuer, USVString type);
+  Promise<boolean> hasRedemptionRecord(USVString issuer, USVString type);
+};

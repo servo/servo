@@ -145,7 +145,7 @@ class BidiSession:
         await self.transport.start()
 
         if self.session_id is None:
-            self.session_id, self.capabilities = await self.session.new(
+            self.session_id, self.capabilities = await self.session.new(  # type: ignore
                 capabilities=self.requested_capabilities)
 
     async def send_command(

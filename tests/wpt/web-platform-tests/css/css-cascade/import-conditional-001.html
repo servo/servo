@@ -16,8 +16,10 @@
   @import "support/test-red.css"
     (max-width: 1px), nonsense;
   div {
+    box-sizing: border-box;
     width: 100px;
     height: 100px;
+    padding: 5px; /* Avoids text antialiasing issues */
     background: red;
   }
   </style>

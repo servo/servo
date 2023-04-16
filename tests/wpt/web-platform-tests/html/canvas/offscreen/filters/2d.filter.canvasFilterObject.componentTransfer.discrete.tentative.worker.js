@@ -37,10 +37,10 @@ function getColor(inputColor, tableValues) {
 tableValuesR = [0, 0, 1, 1];
 tableValuesG = [2, 0, 0.5, 3];
 tableValuesB = [1, -1, 5, 0];
-ctx.filter = new CanvasFilter({filter: "componentTransfer",
-    funcR: {type: "discrete", tableValues: tableValuesR},
-    funcG: {type: "discrete", tableValues: tableValuesG},
-    funcB: {type: "discrete", tableValues: tableValuesB},
+ctx.filter = new CanvasFilter({filter: 'componentTransfer',
+    funcR: {type: 'discrete', tableValues: tableValuesR},
+    funcG: {type: 'discrete', tableValues: tableValuesG},
+    funcB: {type: 'discrete', tableValues: tableValuesB},
 });
 
 const inputColors = [

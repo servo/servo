@@ -51,7 +51,6 @@
       // scrollTop=200 to 400 is the entry range
       container.scrollTop = 200;
       await waitForNextFrame();
-      const anim = document.getAnimations()[0];
       assert_equals(getComputedStyle(subject).opacity, '0',
                     'Effect at entry 0%');
 

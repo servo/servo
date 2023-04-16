@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: WebRTC 1.0: Real-Time Communication Between Browsers (https://w3c.github.io/webrtc-pc/)
+// Source: WebRTC: Real-Time Communication in Browsers (https://w3c.github.io/webrtc-pc/)
 
 dictionary RTCConfiguration {
   sequence<RTCIceServer> iceServers = [];
@@ -51,29 +51,29 @@ enum RTCSignalingState {
 };
 
 enum RTCIceGatheringState {
-"new",
-"gathering",
-"complete"
-     };
+  "new",
+  "gathering",
+  "complete"
+};
 
 enum RTCPeerConnectionState {
-"closed",
-"failed",
-"disconnected",
-"new",
-"connecting",
-"connected"
-     };
+  "closed",
+  "failed",
+  "disconnected",
+  "new",
+  "connecting",
+  "connected"
+};
 
 enum RTCIceConnectionState {
-"closed",
-"failed",
-"disconnected",
-"new",
-"checking",
-"completed",
-"connected"
-     };
+  "closed",
+  "failed",
+  "disconnected",
+  "new",
+  "checking",
+  "completed",
+  "connected"
+};
 
 [Exposed=Window]
 interface RTCPeerConnection : EventTarget  {
@@ -332,12 +332,15 @@ dictionary RTCRtpHeaderExtensionParameters {
   boolean encrypted = false;
 };
 
-dictionary RTCRtpCodecParameters {
-  required octet payloadType;
+dictionary RTCRtpCodec {
   required DOMString mimeType;
   required unsigned long clockRate;
   unsigned short channels;
   DOMString sdpFmtpLine;
+};
+
+dictionary RTCRtpCodecParameters : RTCRtpCodec {
+  required octet payloadType;
 };
 
 dictionary RTCRtpCapabilities {
@@ -345,15 +348,11 @@ dictionary RTCRtpCapabilities {
   required sequence<RTCRtpHeaderExtensionCapability> headerExtensions;
 };
 
-dictionary RTCRtpCodecCapability {
-  required DOMString mimeType;
-  required unsigned long clockRate;
-  unsigned short channels;
-  DOMString sdpFmtpLine;
+dictionary RTCRtpCodecCapability : RTCRtpCodec {
 };
 
 dictionary RTCRtpHeaderExtensionCapability {
-  DOMString uri;
+  required DOMString uri;
 };
 
 [Exposed=Window]

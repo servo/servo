@@ -1,0 +1,109 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: FLEDGE (https://wicg.github.io/turtledove/)
+
+[SecureContext]
+partial interface Navigator {
+  Promise<undefined> joinAdInterestGroup(AuctionAdInterestGroup group, double durationSeconds);
+};
+
+dictionary AuctionAd {
+  required USVString renderURL;
+  any metadata;
+};
+
+dictionary AuctionAdInterestGroup {
+  required USVString owner;
+  required USVString name;
+
+  double priority = 0.0;
+  boolean enableBiddingSignalsPrioritization = false;
+  record<DOMString, double> priorityVector;
+  record<DOMString, double> prioritySignalsOverrides;
+
+  DOMString executionMode = "compatibility";
+  USVString biddingLogicURL;
+  USVString biddingWasmHelperURL;
+  USVString dailyUpdateURL;
+  USVString trustedBiddingSignalsURL;
+  sequence<USVString> trustedBiddingSignalsKeys;
+  any userBiddingSignals;
+  sequence<AuctionAd> ads;
+  sequence<AuctionAd> adComponents;
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<undefined> leaveAdInterestGroup(AuctionAdInterestGroupKey group);
+};
+
+dictionary AuctionAdInterestGroupKey {
+  required USVString owner;
+  required USVString name;
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<USVString?> runAdAuction(AuctionAdConfig config);
+};
+
+dictionary AuctionAdConfig {
+  required USVString seller;
+  required USVString decisionLogicURL;
+  USVString trustedScoringSignalsURL;
+  sequence<USVString> interestGroupBuyers;
+  any auctionSignals;
+  any sellerSignals;
+  USVString directFromSellerSignals;
+  unsigned long long sellerTimeout;
+  unsigned short sellerExperimentGroupId;
+  record<USVString, any> perBuyerSignals;
+  record<USVString, unsigned long long> perBuyerTimeouts;
+  record<USVString, unsigned short> perBuyerGroupLimits;
+  record<USVString, unsigned short> perBuyerExperimentGroupIds;
+  record<USVString, record<USVString, double>> perBuyerPrioritySignals;
+  sequence<AuctionAdConfig> componentAuctions = [];
+  AbortSignal? signal;
+};
+
+[Exposed=InterestGroupBiddingScriptRunnerGlobalScope,
+Global=InterestGroupBiddingScriptRunnerGlobalScope]
+interface InterestGroupBiddingScriptRunnerGlobalScope {
+  boolean setBid();
+  boolean setBid(GenerateBidOutput generateBidOutput);
+  undefined setPriority(double priority);
+  undefined setPrioritySignalsOverride(DOMString key, double priority);
+};
+
+[Exposed=InterestGroupScoringScriptRunnerGlobalScope,
+Global=InterestGroupScoringScriptRunnerGlobalScope]
+interface InterestGroupScoringScriptRunnerGlobalScope {
+};
+
+[Exposed=InterestGroupReportingScriptRunnerGlobalScope,
+Global=InterestGroupReportingScriptRunnerGlobalScope]
+interface InterestGroupReportingScriptRunnerGlobalScope {
+  undefined sendReportTo(DOMString url);
+};
+
+dictionary AdRender {
+  required DOMString url;
+  required DOMString width;
+  required DOMString height;
+};
+
+dictionary GenerateBidOutput {
+  required double bid;
+  required (DOMString or AdRender) adRender;
+  DOMString ad;
+  sequence<(DOMString or AdRender)> adComponents;
+  double adCost;
+  double modelingSignals;
+  boolean allowComponentAuction = false;
+};
+
+[SecureContext]
+partial interface Navigator {
+  undefined updateAdInterestGroups();
+};

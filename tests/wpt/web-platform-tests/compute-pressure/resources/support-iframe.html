@@ -11,7 +11,7 @@ async function messageHandler(e) {
             resolve('success');
         });
         observer.observe('cpu');
-        window.setTimeout(() => { reject('timeout'); }, 2000);
+        window.setTimeout(() => { reject('timeout'); }, 1000);
     });
   } else {
     return Promise.reject(`unknown command "${e.data.command}"`);

@@ -28,6 +28,7 @@
     animation-duration: 10s;
     animation-timing-function: linear;
     animation-timeline: top_timeline;
+    position: absolute;
   }
   /* Ensure stable expectations if feature is not supported */
   @supports not (animation-timeline:foo) {
@@ -35,8 +36,10 @@
   }
 </style>
 <main>
-  <div id=scroller1><div></div></div>
-  <div id=element></div>
+  <div id=scroller1>
+    <div></div>
+    <div id=element></div>
+  </div>
 </main>
 <script>
   window.onload = async () => {

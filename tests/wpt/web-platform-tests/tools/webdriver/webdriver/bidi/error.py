@@ -38,6 +38,9 @@ class InvalidArgumentException(BidiException):
 class NoSuchFrameException(BidiException):
     error_code = "no such frame"
 
+class NoSuchHandleException(BidiException):
+    error_code = "no such handle"
+
 
 class NoSuchNodeException(BidiException):
     error_code = "no such node"

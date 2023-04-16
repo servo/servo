@@ -5,10 +5,12 @@
 // META: script=/picture-in-picture/resources/picture-in-picture-helpers.js
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
+// META: script=/resources/test-only-api.js
+// META: script=resources/pressure-helpers.js
 
 'use strict';
 
-promise_test(async t => {
+pressure_test(async (t, mockPressureService) => {
   const video = await loadVideo();
   document.body.appendChild(video);
   const pipWindow = await requestPictureInPictureWithTrustedClick(video);
@@ -38,10 +40,12 @@ promise_test(async t => {
       video.remove();
     });
     observer.observe('cpu');
+    mockPressureService.setPressureUpdate('cpu', 'critical');
+    mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
   });
 }, 'Observer should receive PressureRecord if associated document is the initiator of active Picture-in-Picture session');
 
-promise_test(async t => {
+pressure_test(async (t, mockPressureService) => {
   await setMediaPermission();
   const stream =
       await navigator.mediaDevices.getUserMedia({video: true, audio: true});
@@ -67,5 +71,7 @@ promise_test(async t => {
       stream.getTracks().forEach(track => track.stop());
     });
     observer.observe('cpu');
+    mockPressureService.setPressureUpdate('cpu', 'critical');
+    mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
   });
 }, 'Observer should receive PressureRecord if browsing context is capturing');

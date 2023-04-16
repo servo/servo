@@ -4,12 +4,7 @@
 <link rel="stylesheet" href="/fonts/ahem.css">
 
 <selectmenu id="selectMenu0">
-  <div popover slot="listbox" behavior="listbox">
-    <option>
-      option with image displayed
-      <img src="/images/green-256x256.png">
-    </option>
-  </div>
+  <option>option with image displayed</option>
 </selectmenu>
 <div id=fakelistbox>
   option with image displayed
@@ -17,15 +12,16 @@
 </div>
 
 <style>
-  html {
+  html,selectmenu {
     font-family: Ahem;
   }
   #fakelistbox {
     /* Per spec: */
     display: block;
     position: fixed;
-    top: 20px;
+    top: 30px;
     left: 0;
+    font-size: 0.765625em /* 0.875 * 0.875 */;
     /* Per settings in test file: */
     width: fit-content;
     height: fit-content;
@@ -43,6 +39,6 @@
     position: absolute;
     top: 0px;
     left: 0px;
-    height: 20px;
+    height: 30px;
   }
 </style>

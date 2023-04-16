@@ -3,7 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: EditContext API (https://w3c.github.io/edit-context/)
 
-partial interface Element {
+partial interface HTMLElement {
      attribute EditContext? editContext;
 };
 
@@ -20,8 +20,8 @@ interface EditContext : EventTarget {
     undefined updateText(unsigned long rangeStart, unsigned long rangeEnd,
         DOMString text);
     undefined updateSelection(unsigned long start, unsigned long end);
-    undefined updateControlBound(DOMRect controlBound);
-    undefined updateSelectionBound(DOMRect selectionBound);
+    undefined updateControlBounds(DOMRect controlBounds);
+    undefined updateSelectionBounds(DOMRect selectionBounds);
     undefined updateCharacterBounds(unsigned long rangeStart, sequence<DOMRect> characterBounds);
 
     sequence<Element> attachedElements();
@@ -31,9 +31,9 @@ interface EditContext : EventTarget {
     readonly attribute unsigned long selectionEnd;
     readonly attribute unsigned long compositionRangeStart;
     readonly attribute unsigned long compositionRangeEnd;
-    readonly attribute boolean isInComposition;
-    readonly attribute DOMRect controlBound;
-    readonly attribute DOMRect selectionBound;
+    readonly attribute boolean isComposing;
+    readonly attribute DOMRect controlBounds;
+    readonly attribute DOMRect selectionBounds;
     readonly attribute unsigned long characterBoundsRangeStart;
     sequence<DOMRect> characterBounds();
 
@@ -44,7 +44,7 @@ interface EditContext : EventTarget {
     attribute EventHandler oncompositionend;
 };
 
-dictionary TextUpdateEventInit {
+dictionary TextUpdateEventInit : EventInit {
     unsigned long updateRangeStart;
     unsigned long updateRangeEnd;
     DOMString text;
@@ -56,7 +56,7 @@ dictionary TextUpdateEventInit {
 
 [Exposed=Window]
 interface TextUpdateEvent : Event {
-    constructor(optional TextUpdateEventInit options = {});
+    constructor(DOMString type, optional TextUpdateEventInit options = {});
     readonly attribute unsigned long updateRangeStart;
     readonly attribute unsigned long updateRangeEnd;
     readonly attribute DOMString text;
@@ -79,35 +79,33 @@ dictionary TextFormatInit {
 [Exposed=Window]
 interface TextFormat {
     constructor(optional TextFormatInit options = {});
-    attribute unsigned long rangeStart;
-    attribute unsigned long rangeEnd;
-    attribute DOMString textColor;
-    attribute DOMString backgroundColor;
-    attribute DOMString underlineStyle;
-    attribute DOMString underlineThickness;
-    attribute DOMString underlineColor;
+    readonly attribute unsigned long rangeStart;
+    readonly attribute unsigned long rangeEnd;
+    readonly attribute DOMString textColor;
+    readonly attribute DOMString backgroundColor;
+    readonly attribute DOMString underlineStyle;
+    readonly attribute DOMString underlineThickness;
+    readonly attribute DOMString underlineColor;
 };
 
-dictionary TextFormatUpdateEventInit {
+dictionary TextFormatUpdateEventInit : EventInit {
     sequence<TextFormat> textFormats;
 };
 
 [Exposed=Window]
 interface TextFormatUpdateEvent : Event {
-    constructor(optional TextFormatUpdateEventInit options = {});
-
+    constructor(DOMString type, optional TextFormatUpdateEventInit options = {});
     sequence<TextFormat> getTextFormats();
 };
 
-dictionary CharacterBoundsUpdateEventInit {
+dictionary CharacterBoundsUpdateEventInit : EventInit {
     unsigned long rangeStart;
     unsigned long rangeEnd;
 };
 
 [Exposed=Window]
 interface CharacterBoundsUpdateEvent : Event {
-    constructor(optional CharacterBoundsUpdateEventInit options = {});
-
+    constructor(DOMString type, optional CharacterBoundsUpdateEventInit options = {});
     readonly attribute unsigned long rangeStart;
     readonly attribute unsigned long rangeEnd;
 };

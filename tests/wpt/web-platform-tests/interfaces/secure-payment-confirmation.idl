@@ -15,7 +15,6 @@ dictionary SecurePaymentConfirmationRequest {
     sequence<USVString> locale;
     boolean showOptOut;
 };
-
 partial dictionary AuthenticationExtensionsClientInputs {
   AuthenticationExtensionsPaymentInputs payment;
 };
@@ -31,11 +30,9 @@ dictionary AuthenticationExtensionsPaymentInputs {
   PaymentCurrencyAmount total;
   PaymentCredentialInstrument instrument;
 };
-
 dictionary CollectedClientPaymentData : CollectedClientData {
     required CollectedClientAdditionalPaymentData payment;
 };
-
 dictionary CollectedClientAdditionalPaymentData {
     required USVString rpId;
     required USVString topOrigin;
@@ -44,16 +41,8 @@ dictionary CollectedClientAdditionalPaymentData {
     required PaymentCurrencyAmount total;
     required PaymentCredentialInstrument instrument;
 };
-
 dictionary PaymentCredentialInstrument {
     required USVString displayName;
     required USVString icon;
     boolean iconMustBeShown = true;
-};
-
-enum TransactionAutomationMode {
-  "none",
-  "autoAccept",
-  "autoReject",
-  "autoOptOut"
 };

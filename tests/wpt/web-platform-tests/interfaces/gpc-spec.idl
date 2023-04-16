@@ -1,0 +1,10 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Global Privacy Control (GPC) (https://privacycg.github.io/gpc-spec/)
+
+interface mixin GlobalPrivacyControl {
+  readonly attribute boolean globalPrivacyControl;
+};
+Navigator includes GlobalPrivacyControl;
+WorkerNavigator includes GlobalPrivacyControl;

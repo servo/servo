@@ -67,5 +67,5 @@ partial interface Gamepad {
   readonly attribute FrozenArray<GamepadHapticActuator> hapticActuators;
   readonly attribute GamepadPose? pose;
   readonly attribute FrozenArray<GamepadTouch>? touchEvents;
-  [SameObject] readonly attribute GamepadHapticActuator vibrationActuator;
+  [SameObject] readonly attribute GamepadHapticActuator? vibrationActuator;
 };

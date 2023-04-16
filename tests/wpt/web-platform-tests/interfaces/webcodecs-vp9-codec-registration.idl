@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: VP9 WebCodecs Registration (https://w3c.github.io/webcodecs/vp9_codec_registration.html)
+
+partial dictionary VideoEncoderEncodeOptions {
+  VideoEncoderEncodeOptionsForVp9 vp9;
+};
+
+dictionary VideoEncoderEncodeOptionsForVp9 {
+  unsigned short? quantizer;
+};

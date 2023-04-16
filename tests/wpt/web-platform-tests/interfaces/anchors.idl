@@ -17,6 +17,8 @@ partial interface XRFrame {
 };
 
 partial interface XRSession {
+  readonly attribute FrozenArray<DOMString> persistentAnchors;
+
   Promise<XRAnchor> restorePersistentAnchor(DOMString uuid);
   Promise<undefined> deletePersistentAnchor(DOMString uuid);
 };

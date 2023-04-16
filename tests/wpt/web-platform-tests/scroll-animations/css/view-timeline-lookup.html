@@ -260,8 +260,7 @@
   }, 'view-timeline on ancestor sibling, closer scroll-timeline wins');
 </script>
 
-
-<template id=timeline_ancestor_view_timeline_wins_on_same_element>
+<template id=timeline_ancestor_scroll_timeline_wins_on_same_element>
   <style>
     #timelines {
       height: 0px;
@@ -294,8 +293,11 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, timeline_ancestor_view_timeline_wins_on_same_element);
+    inflate(t, timeline_ancestor_scroll_timeline_wins_on_same_element);
     await waitForNextFrame();
-    assert_equals(getComputedStyle(target).zIndex, '75');
-  }, 'view-timeline on ancestor sibling, view-timeline wins on same element');
+    // In case of a name conflict on the same element, scroll progress timelines
+    // take precedence over view progress timelines.
+    // https://drafts.csswg.org/scroll-animations-1/#timeline-scope
+    assert_equals(getComputedStyle(target).zIndex, '0');
+  }, 'view-timeline on ancestor sibling, scroll-timeline wins on same element');
 </script>

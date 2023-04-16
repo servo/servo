@@ -12,6 +12,7 @@ interface Headers {
   undefined append(ByteString name, ByteString value);
   undefined delete(ByteString name);
   ByteString? get(ByteString name);
+  sequence<ByteString> getSetCookie();
   boolean has(ByteString name);
   undefined set(ByteString name, ByteString value);
   iterable<ByteString, ByteString>;

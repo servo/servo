@@ -1,0 +1,20 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_clip_cull_distance Extension Draft Specification (https://registry.khronos.org/webgl/extensions/WEBGL_clip_cull_distance/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_clip_cull_distance {
+  const GLenum MAX_CLIP_DISTANCES_WEBGL                   = 0x0D32;
+  const GLenum MAX_CULL_DISTANCES_WEBGL                   = 0x82F9;
+  const GLenum MAX_COMBINED_CLIP_AND_CULL_DISTANCES_WEBGL = 0x82FA;
+
+  const GLenum CLIP_DISTANCE0_WEBGL                       = 0x3000;
+  const GLenum CLIP_DISTANCE1_WEBGL                       = 0x3001;
+  const GLenum CLIP_DISTANCE2_WEBGL                       = 0x3002;
+  const GLenum CLIP_DISTANCE3_WEBGL                       = 0x3003;
+  const GLenum CLIP_DISTANCE4_WEBGL                       = 0x3004;
+  const GLenum CLIP_DISTANCE5_WEBGL                       = 0x3005;
+  const GLenum CLIP_DISTANCE6_WEBGL                       = 0x3006;
+  const GLenum CLIP_DISTANCE7_WEBGL                       = 0x3007;
+};

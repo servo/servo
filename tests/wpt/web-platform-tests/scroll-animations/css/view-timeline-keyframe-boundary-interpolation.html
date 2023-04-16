@@ -80,7 +80,10 @@
 
     promise_test(async t => {
       await waitForNextFrame();
-      const anim = document.getAnimations()[0];
+      const anims = document.getAnimations();
+      assert_equals(anims.length, 1,
+                    "Should have one animation attatched to the view-timeline");
+      const anim = anims[0];
       await anim.ready;
       await waitForNextFrame();
 

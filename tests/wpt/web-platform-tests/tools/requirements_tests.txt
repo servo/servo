@@ -1,5 +1,5 @@
-httpx[http2]==0.23.3
-json-e==4.5.1
+httpx[http2]==0.24.0
+json-e==4.5.2
 jsonschema==4.17.3
 pyyaml==6.0
-taskcluster==48.2.1
+taskcluster==49.0.0

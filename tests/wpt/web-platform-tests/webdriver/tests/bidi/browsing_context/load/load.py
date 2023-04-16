@@ -124,3 +124,14 @@ async def test_document_write(bidi_session, subscribe_events, top_context, wait_
 
     event = await on_entry
     assert_navigation_info(event, {"context": top_context["context"]})
+
+
+async def test_page_with_base_tag(bidi_session, subscribe_events, inline, new_tab, wait_for_event):
+    await subscribe_events(events=[CONTEXT_LOAD_EVENT])
+
+    on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
+    url = inline("""<base href="/relative-path">""")
+    await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url)
+    event = await on_entry
+
+    assert_navigation_info(event, {"context": new_tab["context"], "url": url})

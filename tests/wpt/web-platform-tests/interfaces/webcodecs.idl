@@ -4,7 +4,7 @@
 // Source: WebCodecs (https://w3c.github.io/webcodecs/)
 
 [Exposed=(Window,DedicatedWorker), SecureContext]
-interface AudioDecoder {
+interface AudioDecoder : EventTarget {
   constructor(AudioDecoderInit init);
 
   readonly attribute CodecState state;
@@ -28,7 +28,7 @@ dictionary AudioDecoderInit {
 callback AudioDataOutputCallback = undefined(AudioData output);
 
 [Exposed=(Window,DedicatedWorker), SecureContext]
-interface VideoDecoder {
+interface VideoDecoder : EventTarget {
   constructor(VideoDecoderInit init);
 
   readonly attribute CodecState state;
@@ -52,7 +52,7 @@ dictionary VideoDecoderInit {
 callback VideoFrameOutputCallback = undefined(VideoFrame output);
 
 [Exposed=(Window,DedicatedWorker), SecureContext]
-interface AudioEncoder {
+interface AudioEncoder : EventTarget {
   constructor(AudioEncoderInit init);
 
   readonly attribute CodecState state;
@@ -82,7 +82,7 @@ dictionary EncodedAudioChunkMetadata {
 };
 
 [Exposed=(Window,DedicatedWorker), SecureContext]
-interface VideoEncoder {
+interface VideoEncoder : EventTarget {
   constructor(VideoEncoderInit init);
 
   readonly attribute CodecState state;
@@ -174,7 +174,7 @@ dictionary VideoEncoderConfig {
   HardwareAcceleration hardwareAcceleration = "no-preference";
   AlphaOption alpha = "discard";
   DOMString scalabilityMode;
-  BitrateMode bitrateMode = "variable";
+  VideoEncoderBitrateMode bitrateMode = "variable";
   LatencyMode latencyMode = "quality";
 };
 
@@ -196,6 +196,12 @@ enum LatencyMode {
 
 dictionary VideoEncoderEncodeOptions {
   boolean keyFrame = false;
+};
+
+enum VideoEncoderBitrateMode {
+  "constant",
+  "variable",
+  "quantizer"
 };
 
 enum CodecState {

@@ -46,5 +46,3 @@ interface DOMException { // but see below note about ECMAScript binding
 
 callback Function = any (any... arguments);
 callback VoidFunction = undefined ();
-
-typedef unsigned long long DOMTimeStamp;

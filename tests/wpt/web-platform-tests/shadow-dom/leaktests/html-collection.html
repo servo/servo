@@ -67,10 +67,13 @@ var testParams = [
     ['document.links should not contain shadow nodes', 'links'],
     ['document.anchors should not contain shadow nodes', 'anchors'],
     ['document.embeds should not contain shadow nodes', 'embeds'],
-    ['document.plugins should not contain shadow nodes', 'plugins'],
-    ['document.applets should not contain shadow nodes', 'applets']];
+    ['document.plugins should not contain shadow nodes', 'plugins']];
 
 generate_tests(testCollection, testParams);
+
+test(() => {
+  assert_equals(document.applets.length, 0);
+}, 'document.applets should not contain any nodes');
 
 </script>
 </html>

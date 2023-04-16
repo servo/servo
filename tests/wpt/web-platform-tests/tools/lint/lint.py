@@ -689,7 +689,7 @@ class OpenModeCheck(ASTCheck):
         errors = []
         for node in ast.walk(root):
             if isinstance(node, ast.Call):
-                if hasattr(node.func, "id") and node.func.id in ("open", "file"):  # type: ignore
+                if hasattr(node.func, "id") and node.func.id in ("open", "file"):
                     if (len(node.args) < 2 and
                         all(item.arg != "mode" for item in node.keywords)):
                         errors.append(node.lineno)

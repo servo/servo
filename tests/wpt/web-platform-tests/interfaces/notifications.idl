@@ -72,7 +72,6 @@ dictionary NotificationAction {
 };
 
 callback NotificationPermissionCallback = undefined (NotificationPermission permission);
-
 dictionary GetNotificationOptions {
   DOMString tag = "";
 };

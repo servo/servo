@@ -19,7 +19,7 @@
 <body>
     <p>The following images should not be identical.</p>
     <p>The image should not rotate respecting their EXIF orientation because
-       image-orientation: none is specified.</p>
+       image-orientation: none is specified and the request is same origin.</p>
     <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
 
     <p>This image should rotate respecting their EXIF orientation because
@@ -27,11 +27,20 @@
     <div><img src="../support/exif-orientation-3-lr.jpg" style="image-orientation: from-image" /></div>
 
     <p>The image should not rotate respecting their EXIF orientation because
-       image-orientation: none is specified.</p>
+       image-orientation: none is specified and the request is CORS anonymous.</p>
     <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
 
     <p>The image should not rotate respecting their EXIF orientation because
-       image-orientation: none is specified.</p>
+       image-orientation: none is specified and the request is CORS
+       use-credentials.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the image source is a blob.</p>
+    <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
+
+    <p>The image should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified and the image source is a data url.</p>
     <div><img src="../support/exif-orientation-3-lr.jpg"/></div>
 </body>
 </html>
