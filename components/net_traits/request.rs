@@ -269,7 +269,7 @@ impl RequestBuilder {
             mode: RequestMode::NoCors,
             cache_mode: CacheMode::Default,
             use_cors_preflight: false,
-            credentials_mode: CredentialsMode::Omit,
+            credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
             referrer: referrer,
