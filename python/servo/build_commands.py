@@ -744,12 +744,15 @@ class MachCommands(CommandBase):
                         -1  # timeout
                     )
                 except ImportError:
-                    raise Exception("Optional Python module 'dbus' is not installed.")
+                    print("[Warning] Could not generate notification: "
+                          "Optional Python module 'dbus' is not installed.",
+                          file=sys.stderr)
                 return True
 
         if notify_command:
             if call([notify_command, title, message]) != 0:
-                raise Exception("Could not run '%s'." % notify_command)
+                print("[Warning] Could not generate notification: "
+                      f"Could not run '{notify_command}'.", file=sys.stderr)
         else:
             notifier = LinuxNotifier if sys.platform.startswith("linux") else None
             notification = notifypy.Notify(use_custom_notifier=notifier)
