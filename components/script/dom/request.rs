@@ -232,10 +232,7 @@ impl Request {
         }
 
         // Step 19
-        let credentials = init
-            .credentials
-            .as_ref()
-            .map(|m| m.clone().into());
+        let credentials = init.credentials.as_ref().map(|m| m.clone().into());
 
         if let Some(c) = credentials {
             request.credentials_mode = c;
