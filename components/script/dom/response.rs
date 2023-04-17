@@ -144,6 +144,11 @@ impl Response {
                     )?;
                 }
             };
+        } else {
+            // Reset FetchResponse to an in-memory stream with empty byte sequence here for
+            // no-init-body case
+            let stream = ReadableStream::new_from_bytes(&global, Vec::with_capacity(0));
+            r.body_stream.set(Some(&*stream));
         }
 
         Ok(r)
