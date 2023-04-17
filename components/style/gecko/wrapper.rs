@@ -2001,11 +2001,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
-            NonTSPseudoClass::Closed |
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::MozInert |
-            NonTSPseudoClass::Open |
+            NonTSPseudoClass::PopoverOpen |
             NonTSPseudoClass::PlaceholderShown |
             NonTSPseudoClass::Target |
             NonTSPseudoClass::Valid |
