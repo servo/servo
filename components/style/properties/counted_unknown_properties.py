@@ -32,7 +32,6 @@ COUNTED_UNKNOWN_PROPERTIES = [
     "-webkit-print-color-adjust",
     "-webkit-mask-box-image",
     "-webkit-line-break",
-    "-webkit-text-security",
     "alignment-baseline",
     "-webkit-writing-mode",
     "baseline-shift",
