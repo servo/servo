@@ -1872,8 +1872,7 @@ impl Node {
             NodeTypeId::Element(_) |
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
-            NodeTypeId::Document(_) => return Err(Error::HierarchyRequest),
-            NodeTypeId::Attr => unreachable!(),
+            NodeTypeId::Document(_) | NodeTypeId::Attr => return Err(Error::HierarchyRequest),
         }
 
         // Step 6.
@@ -1942,8 +1941,9 @@ impl Node {
                     }
                 },
                 NodeTypeId::CharacterData(_) => (),
-                NodeTypeId::Document(_) => unreachable!(),
-                NodeTypeId::Attr => unreachable!(),
+                // Because Document and Attr should already throw `HierarchyRequest`
+                // error, both of them are unreachable here.
+                NodeTypeId::Document(_) | NodeTypeId::Attr => unreachable!(),
             }
         }
         Ok(())
@@ -2628,7 +2628,7 @@ impl NodeMethods for Node {
             NodeTypeId::DocumentType if !self.is::<Document>() => {
                 return Err(Error::HierarchyRequest);
             },
-            NodeTypeId::Document(_) => return Err(Error::HierarchyRequest),
+            NodeTypeId::Document(_) | NodeTypeId::Attr => return Err(Error::HierarchyRequest),
             _ => (),
         }
 
@@ -2679,6 +2679,8 @@ impl NodeMethods for Node {
                     }
                 },
                 NodeTypeId::CharacterData(..) => (),
+                // Because Document and Attr should already throw `HierarchyRequest`
+                // error, both of them are unreachable here.
                 NodeTypeId::Document(_) => unreachable!(),
                 NodeTypeId::Attr => unreachable!(),
             }
