@@ -399,3 +399,12 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-color-adjust-1/#forced-color-adjust-prop",
 )}
+
+${helpers.single_keyword(
+    "-webkit-text-security",
+    "none circle disc square",
+    engines="gecko",
+    gecko_enum_prefix="StyleTextSecurity",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text/#MISSING",
+)}
