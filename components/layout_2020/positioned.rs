@@ -196,7 +196,7 @@ impl PositioningContext {
     pub(crate) fn new_for_style(style: &ComputedValues) -> Option<Self> {
         if style.establishes_containing_block_for_all_descendants() {
             Some(Self::new_for_containing_block_for_all_descendants())
-        } else if style.establishes_containing_block() {
+        } else if style.establishes_containing_block_for_absolute_descendants() {
             Some(Self {
                 for_nearest_positioned_ancestor: Some(Vec::new()),
                 for_nearest_containing_block_for_all_descendants: Vec::new(),

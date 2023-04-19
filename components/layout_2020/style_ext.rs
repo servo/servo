@@ -113,7 +113,7 @@ pub(crate) trait ComputedValuesExt {
     fn has_transform_or_perspective(&self) -> bool;
     fn effective_z_index(&self) -> i32;
     fn establishes_stacking_context(&self) -> bool;
-    fn establishes_containing_block(&self) -> bool;
+    fn establishes_containing_block_for_absolute_descendants(&self) -> bool;
     fn establishes_containing_block_for_all_descendants(&self) -> bool;
     fn background_is_transparent(&self) -> bool;
     fn get_webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
@@ -395,7 +395,13 @@ impl ComputedValuesExt for ComputedValues {
         !self.get_position().z_index.is_auto()
     }
 
-    fn establishes_containing_block(&self) -> bool {
+    /// Returns true if this style establishes a containing block for absolute
+    /// descendants (`position: absolute`). If this style happens to establish a
+    /// containing block for “all descendants” (ie including `position: fixed`
+    /// descendants) this method will return true, but a true return value does
+    /// not imply that the style establishes a containing block for all descendants.
+    /// Use `establishes_containing_block_for_all_descendants()` instead.
+    fn establishes_containing_block_for_absolute_descendants(&self) -> bool {
         if self.establishes_containing_block_for_all_descendants() {
             return true;
         }
@@ -403,8 +409,10 @@ impl ComputedValuesExt for ComputedValues {
         self.clone_position() != ComputedPosition::Static
     }
 
-    /// Returns true if this style establishes a containing block for all descendants
-    /// including fixed and absolutely positioned ones.
+    /// Returns true if this style establishes a containing block for
+    /// all descendants, including fixed descendants (`position: fixed`).
+    /// Note that this also implies that it establishes a containing block
+    /// for absolute descendants (`position: absolute`).
     fn establishes_containing_block_for_all_descendants(&self) -> bool {
         if self.get_box().display.outside() != stylo::DisplayOutside::Inline &&
             self.has_transform_or_perspective()
