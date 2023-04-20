@@ -914,6 +914,30 @@ impl<T> LogicalMargin<T> {
         }
         LogicalMargin::new(mode, block_start, inline_end, block_end, inline_start)
     }
+
+    pub fn map<U>(&self, function: impl Fn(&T) -> U) -> LogicalMargin<U> {
+        LogicalMargin {
+            inline_start: function(&self.inline_start),
+            inline_end: function(&self.inline_end),
+            block_start: function(&self.block_start),
+            block_end: function(&self.block_end),
+            debug_writing_mode: self.debug_writing_mode,
+        }
+    }
+
+    pub fn map_inline_and_block_axes<U>(
+        &self,
+        inline_function: impl Fn(&T) -> U,
+        block_function: impl Fn(&T) -> U,
+    ) -> LogicalMargin<U> {
+        LogicalMargin {
+            inline_start: inline_function(&self.inline_start),
+            inline_end: inline_function(&self.inline_end),
+            block_start: block_function(&self.block_start),
+            block_end: block_function(&self.block_end),
+            debug_writing_mode: self.debug_writing_mode,
+        }
+    }
 }
 
 impl<T: Copy> LogicalMargin<T> {

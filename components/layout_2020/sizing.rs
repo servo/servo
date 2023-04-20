@@ -5,7 +5,6 @@
 //! https://drafts.csswg.org/css-sizing/
 
 use crate::style_ext::ComputedValuesExt;
-use style::logical_geometry::WritingMode;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
@@ -63,23 +62,20 @@ impl ContentSizes {
 
 pub(crate) fn outer_inline(
     style: &ComputedValues,
-    containing_block_writing_mode: WritingMode,
     get_content_size: impl FnOnce() -> ContentSizes,
 ) -> ContentSizes {
-    let (mut outer, percentages) =
-        outer_inline_and_percentages(style, containing_block_writing_mode, get_content_size);
+    let (mut outer, percentages) = outer_inline_and_percentages(style, get_content_size);
     outer.adjust_for_pbm_percentages(percentages);
     outer
 }
 
 pub(crate) fn outer_inline_and_percentages(
     style: &ComputedValues,
-    containing_block_writing_mode: WritingMode,
     get_content_size: impl FnOnce() -> ContentSizes,
 ) -> (ContentSizes, Percentage) {
-    let padding = style.padding(containing_block_writing_mode);
-    let border = style.border_width(containing_block_writing_mode);
-    let margin = style.margin(containing_block_writing_mode);
+    let padding = style.logical_padding();
+    let border = style.logical_border_width();
+    let margin = style.logical_margin();
 
     let mut pbm_percentages = Percentage::zero();
     let mut decompose = |x: &LengthPercentage| {
@@ -87,31 +83,30 @@ pub(crate) fn outer_inline_and_percentages(
         x.to_length().unwrap_or_else(Zero::zero)
     };
     let pb_lengths =
-        border.inline_sum() + decompose(padding.inline_start) + decompose(padding.inline_end);
+        border.inline_start_end() + decompose(padding.inline_start) + decompose(padding.inline_end);
     let mut m_lengths = Length::zero();
     if let Some(m) = margin.inline_start.non_auto() {
-        m_lengths += decompose(m)
+        m_lengths += decompose(&m)
     }
     if let Some(m) = margin.inline_end.non_auto() {
-        m_lengths += decompose(m)
+        m_lengths += decompose(&m)
     }
 
     let box_sizing = style.get_position().box_sizing;
     let inline_size = style
-        .box_size(containing_block_writing_mode)
-        .inline
+        .content_inline_size()
         .non_auto()
         // Percentages for 'width' are treated as 'auto'
-        .and_then(|lp| lp.to_length());
+        .and_then(|lp| lp.0.to_length());
     let min_inline_size = style
-        .min_box_size(containing_block_writing_mode)
+        .min_box_size()
         .inline
         // Percentages for 'min-width' are treated as zero
         .percentage_relative_to(Length::zero())
         // FIXME: 'auto' is not zero in Flexbox
         .auto_is(Length::zero);
     let max_inline_size = style
-        .max_box_size(containing_block_writing_mode)
+        .max_box_size()
         .inline
         // Percentages for 'max-width' are treated as 'none'
         .and_then(|lp| lp.to_length());

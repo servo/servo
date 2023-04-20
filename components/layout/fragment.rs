@@ -1271,7 +1271,7 @@ impl Fragment {
     /// can be expensive to compute, so if possible use the `border_padding` field instead.
     #[inline]
     pub fn border_width(&self) -> LogicalMargin<Au> {
-        let style_border_width = self.style().logical_border_width();
+        let style_border_width = self.style().logical_border_width_in_au();
 
         // NOTE: We can have nodes with different writing mode inside
         // the inline fragment context, so we need to overwrite the
@@ -1282,8 +1282,7 @@ impl Fragment {
             Some(ref inline_fragment_context) => inline_fragment_context.nodes.iter().fold(
                 style_border_width,
                 |accumulator, node| {
-                    let mut this_border_width =
-                        node.style.border_width_for_writing_mode(writing_mode);
+                    let mut this_border_width = node.style.logical_border_width_in_au();
                     if !node
                         .flags
                         .contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT)
@@ -1708,7 +1707,7 @@ impl Fragment {
         let writing_mode = self.style.writing_mode;
         if let Some(ref context) = self.inline_context {
             for node in &context.nodes {
-                let mut border_width = node.style.logical_border_width();
+                let mut border_width = node.style.logical_border_width_in_au();
                 let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
                 let mut margin = model::specified_margin_from_style(&*node.style, writing_mode);
                 if !node
@@ -2545,7 +2544,12 @@ impl Fragment {
                         {
                             return false;
                         }
-                        if inline_context_node.style.logical_border_width().inline_end != Au(0) {
+                        if inline_context_node
+                            .style
+                            .logical_border_width_in_au()
+                            .inline_end !=
+                            Au(0)
+                        {
                             return false;
                         }
                     }
@@ -2579,7 +2583,7 @@ impl Fragment {
                         }
                         if inline_context_node
                             .style
-                            .logical_border_width()
+                            .logical_border_width_in_au()
                             .inline_start !=
                             Au(0)
                         {

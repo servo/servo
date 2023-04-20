@@ -121,7 +121,7 @@ impl LengthPercentageOrAuto {
     computed_length_percentage_or_auto!(LengthPercentage);
 }
 
-impl generics::GenericLengthPercentageOrAuto<&LengthPercentage> {
+impl generics::GenericLengthPercentageOrAuto<LengthPercentage> {
     /// Resolves the percentage.
     #[inline]
     pub fn percentage_relative_to(&self, basis: Length) -> LengthOrAuto {

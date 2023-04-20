@@ -1751,7 +1751,7 @@ impl Flow for InlineFlow {
                     debug_assert!(first_fragment_index < self.fragments.fragments.len());
                     let first_fragment = &self.fragments.fragments[first_fragment_index];
                     let padding_box_origin = (first_fragment.border_box -
-                        first_fragment.style.logical_border_width())
+                        first_fragment.style.logical_border_width_in_au())
                     .start;
                     containing_block_positions.push(
                         padding_box_origin.to_physical(self.base.writing_mode, container_size),
@@ -1766,7 +1766,7 @@ impl Flow for InlineFlow {
                     debug_assert!(first_fragment_index < self.fragments.fragments.len());
                     let first_fragment = &self.fragments.fragments[first_fragment_index];
                     let padding_box_origin = (first_fragment.border_box -
-                        first_fragment.style.logical_border_width())
+                        first_fragment.style.logical_border_width_in_au())
                     .start;
                     containing_block_positions.push(
                         padding_box_origin.to_physical(self.base.writing_mode, container_size),

@@ -172,6 +172,20 @@ impl<LengthPercentage> Size<LengthPercentage> {
     }
 }
 
+impl<LengthPercentage> Size<LengthPercentage>
+where
+    LengthPercentage: Clone,
+{
+    /// Returns the non-`auto` value, if any.
+    #[inline]
+    pub fn non_auto(&self) -> Option<LengthPercentage> {
+        match self {
+            Size::LengthPercentage(length) => Some(length.clone()),
+            _ => None,
+        }
+    }
+}
+
 /// A generic value for the `max-width` or `max-height` property.
 #[allow(missing_docs)]
 #[derive(

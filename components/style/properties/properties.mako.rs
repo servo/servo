@@ -41,6 +41,7 @@ use to_shmem::impl_trivial_to_shmem;
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use crate::use_counters::UseCounters;
 use crate::values::generics::text::LineHeight;
+#[cfg(feature = "servo")] use crate::values::computed::CSSPixelLength;
 use crate::values::{computed, resolved};
 use crate::values::computed::NonNegativeLength;
 use crate::values::serialize_atom_name;
@@ -3316,22 +3317,22 @@ impl ComputedValuesInner {
         ))
     }
 
-    /// Get the logical border width
+    /// Gets the logical computed border widths for this style.
     #[inline]
-    pub fn border_width_for_writing_mode(&self, writing_mode: WritingMode) -> LogicalMargin<Au> {
+    pub fn logical_border_width(&self) -> LogicalMargin<CSSPixelLength> {
         let border_style = self.get_border();
-        LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(
-            Au::from(border_style.border_top_width),
-            Au::from(border_style.border_right_width),
-            Au::from(border_style.border_bottom_width),
-            Au::from(border_style.border_left_width),
+        LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
+            border_style.border_top_width.0,
+            border_style.border_right_width.0,
+            border_style.border_bottom_width.0,
+            border_style.border_left_width.0,
         ))
     }
 
-    /// Gets the logical computed border widths for this style.
+    /// Gets the logical computed border widths for this style in Au units.
     #[inline]
-    pub fn logical_border_width(&self) -> LogicalMargin<Au> {
-        self.border_width_for_writing_mode(self.writing_mode)
+    pub fn logical_border_width_in_au(&self) -> LogicalMargin<Au> {
+        self.logical_border_width().map(|v| Au::from(*v))
     }
 
     /// Gets the logical computed margin from this style.
@@ -3349,7 +3350,6 @@ impl ComputedValuesInner {
     /// Gets the logical position from this style.
     #[inline]
     pub fn logical_position(&self) -> LogicalMargin<<&computed::LengthPercentageOrAuto> {
-        // FIXME(SimonSapin): should be the writing mode of the containing block, maybe?
         let position_style = self.get_position();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             &position_style.top,

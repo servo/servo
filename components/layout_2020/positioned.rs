@@ -8,14 +8,15 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefMutIterator, ParallelExtend};
 use rayon_croissant::ParallelIteratorExt;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Length, LengthPercentage};
+use style::values::computed::{
+    CSSPixelLength, Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto,
+};
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 
@@ -124,12 +125,11 @@ impl AbsolutelyPositionedBox {
         self_: ArcRefCell<Self>,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
-        containing_block: &ContainingBlock,
     ) -> HoistedAbsolutelyPositionedBox {
         fn absolute_box_offsets(
             initial_static_start: Length,
-            start: LengthPercentageOrAuto<'_>,
-            end: LengthPercentageOrAuto<'_>,
+            start: &LengthPercentageOrAuto,
+            end: &LengthPercentageOrAuto,
         ) -> AbsoluteBoxOffsets {
             match (start.non_auto(), end.non_auto()) {
                 (None, None) => AbsoluteBoxOffsets::StaticStart {
@@ -148,7 +148,7 @@ impl AbsolutelyPositionedBox {
 
         let box_offsets = {
             let box_ = self_.borrow();
-            let box_offsets = box_.context.style().box_offsets(containing_block);
+            let box_offsets = box_.context.style().logical_position();
             Vec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
@@ -798,12 +798,10 @@ pub(crate) fn relative_adjustement(
 ) -> Vec2<Length> {
     let cbis = containing_block.inline_size;
     let cbbs = containing_block.block_size.auto_is(Length::zero);
-    let box_offsets = style
-        .box_offsets(containing_block)
-        .map_inline_and_block_axes(
-            |v| v.percentage_relative_to(cbis),
-            |v| v.percentage_relative_to(cbbs),
-        );
+    let box_offsets = style.logical_position().map_inline_and_block_axes(
+        |v| v.percentage_relative_to(cbis),
+        |v| v.percentage_relative_to(cbbs),
+    );
     fn adjust(start: LengthOrAuto, end: LengthOrAuto) -> Length {
         match (start, end) {
             (LengthOrAuto::Auto, LengthOrAuto::Auto) => Length::zero(),

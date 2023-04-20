@@ -23,7 +23,6 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::values::specified::text::TextAlignKeyword;
@@ -140,14 +139,9 @@ impl InlineFormattingContext {
     // This works on an already-constructed `InlineFormattingContext`,
     // Which would have to change if/when
     // `BlockContainer::construct` parallelize their construction.
-    pub(super) fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
-    ) -> ContentSizes {
+    pub(super) fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         struct Computation<'a> {
             layout_context: &'a LayoutContext<'a>,
-            containing_block_writing_mode: WritingMode,
             paragraph: ContentSizes,
             current_line: ContentSizes,
             current_line_percentages: Percentage,
@@ -157,20 +151,16 @@ impl InlineFormattingContext {
                 for inline_level_box in inline_level_boxes {
                     match &mut *inline_level_box.borrow_mut() {
                         InlineLevelBox::InlineBox(inline_box) => {
-                            let padding =
-                                inline_box.style.padding(self.containing_block_writing_mode);
-                            let border = inline_box
-                                .style
-                                .border_width(self.containing_block_writing_mode);
-                            let margin =
-                                inline_box.style.margin(self.containing_block_writing_mode);
+                            let padding = inline_box.style.logical_padding();
+                            let border = inline_box.style.logical_border_width();
+                            let margin = inline_box.style.logical_margin();
                             macro_rules! add {
                                 ($condition: ident, $side: ident) => {
                                     if inline_box.$condition {
                                         self.add_lengthpercentage(padding.$side);
                                         self.add_length(border.$side);
                                         if let Some(lp) = margin.$side.non_auto() {
-                                            self.add_lengthpercentage(lp)
+                                            self.add_lengthpercentage(&lp)
                                         }
                                     }
                                 };
@@ -200,10 +190,8 @@ impl InlineFormattingContext {
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
-                            let (outer, pc) = atomic.outer_inline_content_sizes_and_percentages(
-                                self.layout_context,
-                                self.containing_block_writing_mode,
-                            );
+                            let (outer, pc) = atomic
+                                .outer_inline_content_sizes_and_percentages(self.layout_context);
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;
                             self.current_line_percentages += pc;
@@ -248,7 +236,6 @@ impl InlineFormattingContext {
         }
         let mut computation = Computation {
             layout_context,
-            containing_block_writing_mode,
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             current_line_percentages: Percentage::zero(),
@@ -318,7 +305,6 @@ impl InlineFormattingContext {
                             box_.clone(),
                             initial_start_corner,
                             tree_rank,
-                            ifc.containing_block,
                         );
                         let hoisted_fragment = hoisted_box.fragment.clone();
                         ifc.push_hoisted_box_to_positioning_context(hoisted_box);

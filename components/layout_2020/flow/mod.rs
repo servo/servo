@@ -24,7 +24,6 @@ use crate::ContainingBlock;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
@@ -135,30 +134,18 @@ impl BlockContainer {
         }
     }
 
-    pub(super) fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-    ) -> ContentSizes {
+    pub(super) fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         match &self {
             Self::BlockLevelBoxes(boxes) if layout_context.use_rayon => boxes
                 .par_iter()
-                .map(|box_| {
-                    box_.borrow_mut()
-                        .inline_content_sizes(layout_context, writing_mode)
-                })
+                .map(|box_| box_.borrow_mut().inline_content_sizes(layout_context))
                 .reduce(ContentSizes::zero, ContentSizes::max),
             Self::BlockLevelBoxes(boxes) => boxes
                 .iter()
-                .map(|box_| {
-                    box_.borrow_mut()
-                        .inline_content_sizes(layout_context, writing_mode)
-                })
+                .map(|box_| box_.borrow_mut().inline_content_sizes(layout_context))
                 .reduce(ContentSizes::max)
                 .unwrap_or_else(ContentSizes::zero),
-            Self::InlineFormattingContext(context) => {
-                context.inline_content_sizes(layout_context, writing_mode)
-            },
+            Self::InlineFormattingContext(context) => context.inline_content_sizes(layout_context),
         }
     }
 }
@@ -376,7 +363,6 @@ impl BlockLevelBox {
                     // and this value will be adjusted there
                     Vec2::zero(),
                     tree_rank,
-                    containing_block,
                 );
                 let hoisted_fragment = hoisted_box.fragment.clone();
                 positioning_context.push(hoisted_box);
@@ -394,19 +380,14 @@ impl BlockLevelBox {
         }
     }
 
-    fn inline_content_sizes(
-        &mut self,
-        layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
-    ) -> ContentSizes {
+    fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
         match self {
             Self::SameFormattingContextBlock {
                 style, contents, ..
-            } => sizing::outer_inline(style, containing_block_writing_mode, || {
-                contents.inline_content_sizes(layout_context, style.writing_mode)
-            }),
-            Self::Independent(independent) => independent
-                .outer_inline_content_sizes(layout_context, containing_block_writing_mode),
+            } => sizing::outer_inline(style, || contents.inline_content_sizes(layout_context)),
+            Self::Independent(independent) => {
+                independent.outer_inline_content_sizes(layout_context)
+            },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => ContentSizes::zero(),
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
                 // TODO: Actually implement that.

@@ -12,7 +12,6 @@ use crate::fragments::{
     AbsoluteOrFixedPositionedFragment, BoxFragment, CollapsedBlockMargins, Fragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::geom::LengthOrAuto;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
@@ -25,7 +24,7 @@ use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::values::computed::length::Size;
-use style::values::computed::Length;
+use style::values::computed::{Length, LengthOrAuto};
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::Zero;
 
@@ -209,7 +208,6 @@ impl FlexContainer {
                                 absolutely_positioned,
                                 Vec2::zero(),
                                 tree_rank,
-                                containing_block,
                             );
                             let hoisted_fragment = hoisted_box.fragment.clone();
                             positioning_context.push(hoisted_box);

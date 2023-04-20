@@ -14,7 +14,6 @@ use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
 use std::convert::TryInto;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, Percentage};
 use style::values::specified::text::TextDecorationLine;
@@ -138,22 +137,14 @@ impl IndependentFormattingContext {
 
     pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
         match self {
-            Self::NonReplaced(inner) => inner
-                .contents
-                .inline_content_sizes(layout_context, inner.style.writing_mode),
+            Self::NonReplaced(inner) => inner.contents.inline_content_sizes(layout_context),
             Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
         }
     }
 
-    pub fn outer_inline_content_sizes(
-        &mut self,
-        layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
-    ) -> ContentSizes {
-        let (mut outer, percentages) = self.outer_inline_content_sizes_and_percentages(
-            layout_context,
-            containing_block_writing_mode,
-        );
+    pub fn outer_inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
+        let (mut outer, percentages) =
+            self.outer_inline_content_sizes_and_percentages(layout_context);
         outer.adjust_for_pbm_percentages(percentages);
         outer
     }
@@ -161,26 +152,23 @@ impl IndependentFormattingContext {
     pub fn outer_inline_content_sizes_and_percentages(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
     ) -> (ContentSizes, Percentage) {
         match self {
             Self::NonReplaced(non_replaced) => {
                 let style = &non_replaced.style;
                 let content_sizes = &mut non_replaced.content_sizes;
                 let contents = &non_replaced.contents;
-                sizing::outer_inline_and_percentages(&style, containing_block_writing_mode, || {
+                sizing::outer_inline_and_percentages(&style, || {
                     content_sizes
-                        .get_or_insert_with(|| {
-                            contents.inline_content_sizes(layout_context, style.writing_mode)
-                        })
+                        .get_or_insert_with(|| contents.inline_content_sizes(layout_context))
                         .clone()
                 })
             },
-            Self::Replaced(replaced) => sizing::outer_inline_and_percentages(
-                &replaced.style,
-                containing_block_writing_mode,
-                || replaced.contents.inline_content_sizes(&replaced.style),
-            ),
+            Self::Replaced(replaced) => {
+                sizing::outer_inline_and_percentages(&replaced.style, || {
+                    replaced.contents.inline_content_sizes(&replaced.style)
+                })
+            },
         }
     }
 }
@@ -210,24 +198,17 @@ impl NonReplacedFormattingContext {
     }
 
     pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
-        let writing_mode = self.style.writing_mode;
         let contents = &self.contents;
         self.content_sizes
-            .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
+            .get_or_insert_with(|| contents.inline_content_sizes(layout_context))
             .clone()
     }
 }
 
 impl NonReplacedFormattingContextContents {
-    pub fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-    ) -> ContentSizes {
+    pub fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         match self {
-            Self::Flow(inner) => inner
-                .contents
-                .inline_content_sizes(layout_context, writing_mode),
+            Self::Flow(inner) => inner.contents.inline_content_sizes(layout_context),
             Self::Flex(inner) => inner.inline_content_sizes(),
         }
     }

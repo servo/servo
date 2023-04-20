@@ -5,10 +5,8 @@
 use crate::ContainingBlock;
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
-use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection};
-use style::logical_geometry::{PhysicalCorner, WritingMode};
-use style::values::computed::{Length, LengthPercentage};
-use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
+use style::logical_geometry::{LogicalMargin, PhysicalCorner, WritingMode};
+use style::values::computed::{Length, LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 use style_traits::CSSPixel;
 
@@ -16,8 +14,6 @@ pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;
 pub type PhysicalRect<U> = euclid::Rect<U, CSSPixel>;
 pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
-pub type LengthOrAuto = AutoOr<Length>;
-pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
 pub mod flow_relative {
     #[derive(Clone, Serialize)]
@@ -123,7 +119,7 @@ impl flow_relative::Vec2<LengthOrAuto> {
     }
 }
 
-impl flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
+impl flow_relative::Vec2<LengthPercentageOrAuto> {
     pub fn percentages_relative_to(
         &self,
         containing_block: &ContainingBlock,
@@ -186,31 +182,6 @@ impl<T: Clone> flow_relative::Vec2<T> {
             (&self.block, &self.inline)
         };
         PhysicalSize::new(x.clone(), y.clone())
-    }
-}
-
-impl<T: Clone> flow_relative::Sides<T> {
-    pub fn from_physical(sides: &PhysicalSides<T>, mode: WritingMode) -> Self {
-        // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
-        let block_flow = mode.block_flow_direction();
-        let (bs, be) = match mode.block_flow_direction() {
-            BlockFlowDirection::TopToBottom => (&sides.top, &sides.bottom),
-            BlockFlowDirection::RightToLeft => (&sides.right, &sides.left),
-            BlockFlowDirection::LeftToRight => (&sides.left, &sides.right),
-        };
-        use BlockFlowDirection::TopToBottom;
-        let (is, ie) = match (block_flow, mode.inline_base_direction()) {
-            (TopToBottom, InlineBaseDirection::LeftToRight) => (&sides.left, &sides.right),
-            (TopToBottom, InlineBaseDirection::RightToLeft) => (&sides.right, &sides.left),
-            (_, InlineBaseDirection::LeftToRight) => (&sides.top, &sides.bottom),
-            (_, InlineBaseDirection::RightToLeft) => (&sides.bottom, &sides.top),
-        };
-        flow_relative::Sides {
-            inline_start: is.clone(),
-            inline_end: ie.clone(),
-            block_start: bs.clone(),
-            block_end: be.clone(),
-        }
     }
 }
 
@@ -290,13 +261,24 @@ impl<T> flow_relative::Sides<T> {
     }
 }
 
+impl<T> From<LogicalMargin<T>> for flow_relative::Sides<T> {
+    fn from(logical_margins: LogicalMargin<T>) -> Self {
+        flow_relative::Sides {
+            inline_start: logical_margins.inline_start,
+            inline_end: logical_margins.inline_end,
+            block_start: logical_margins.block_start,
+            block_end: logical_margins.block_end,
+        }
+    }
+}
+
 impl flow_relative::Sides<&'_ LengthPercentage> {
     pub fn percentages_relative_to(&self, basis: Length) -> flow_relative::Sides<Length> {
         self.map(|s| s.percentage_relative_to(basis))
     }
 }
 
-impl flow_relative::Sides<LengthPercentageOrAuto<'_>> {
+impl flow_relative::Sides<&LengthPercentageOrAuto> {
     pub fn percentages_relative_to(&self, basis: Length) -> flow_relative::Sides<LengthOrAuto> {
         self.map(|s| s.percentage_relative_to(basis))
     }

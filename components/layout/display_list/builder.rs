@@ -575,7 +575,9 @@ fn build_border_radius_for_inner_rect(
     // Since we are going to using the inner rectangle (outer rectangle minus
     // border width), we need to adjust to border radius so that we are smaller
     // rectangle with the same border curve.
-    let border_widths = style.logical_border_width().to_physical(style.writing_mode);
+    let border_widths = style
+        .logical_border_width_in_au()
+        .to_physical(style.writing_mode);
     border::inner_radii(radii, border_widths)
 }
 
@@ -691,7 +693,9 @@ impl Fragment {
         let (bounds, border_radii) = background::clip(
             color_clip,
             absolute_bounds,
-            style.logical_border_width().to_physical(style.writing_mode),
+            style
+                .logical_border_width_in_au()
+                .to_physical(style.writing_mode),
             self.border_padding.to_physical(self.style.writing_mode),
             border::radii(absolute_bounds, style.get_border()),
         );
@@ -755,7 +759,7 @@ impl Fragment {
                     }
                 },
                 Image::PaintWorklet(ref paint_worklet) => {
-                    let bounding_box = self.border_box - style.logical_border_width();
+                    let bounding_box = self.border_box - style.logical_border_width_in_au();
                     let bounding_box_size = bounding_box.size.to_physical(style.writing_mode);
                     let background_size =
                         get_cyclic(&style.get_background().background_size.0, i).clone();
@@ -823,7 +827,9 @@ impl Fragment {
             state.layout_context.shared_context().viewport_size(),
             absolute_bounds,
             Some(image),
-            style.logical_border_width().to_physical(style.writing_mode),
+            style
+                .logical_border_width_in_au()
+                .to_physical(style.writing_mode),
             self.border_padding.to_physical(self.style.writing_mode),
             border::radii(absolute_bounds, style.get_border()),
             index,
@@ -945,7 +951,9 @@ impl Fragment {
             state.layout_context.shared_context().viewport_size(),
             absolute_bounds,
             None,
-            style.logical_border_width().to_physical(style.writing_mode),
+            style
+                .logical_border_width_in_au()
+                .to_physical(style.writing_mode),
             self.border_padding.to_physical(self.style.writing_mode),
             border::radii(absolute_bounds, style.get_border()),
             index,
@@ -1067,7 +1075,7 @@ impl Fragment {
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
     ) {
-        let mut border = style.logical_border_width();
+        let mut border = style.logical_border_width_in_au();
 
         if let Some(inline_info) = inline_info {
             modify_border_width_for_inline_sides(&mut border, inline_info);
@@ -1739,7 +1747,7 @@ impl Fragment {
                 // nice if it were only calculated once.
                 let border_widths = self
                     .style
-                    .logical_border_width()
+                    .logical_border_width_in_au()
                     .to_physical(self.style.writing_mode);
                 let clip_id = state.add_late_clip_node(
                     stacking_relative_border_box
@@ -2643,7 +2651,7 @@ impl BlockFlow {
         let border_widths = self
             .fragment
             .style
-            .logical_border_width()
+            .logical_border_width_in_au()
             .to_physical(self.fragment.style.writing_mode);
         let clip_rect = border_box.inner_rect(border_widths);
 
