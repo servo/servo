@@ -743,9 +743,8 @@ class MachCommands(CommandBase):
                         {"transient": True},  # hints
                         -1  # timeout
                     )
-                except ImportError:
-                    print("[Warning] Could not generate notification: "
-                          "Optional Python module 'dbus' is not installed.",
+                except Exception as exception:
+                    print(f"[Warning] Could not generate notification: {exception}",
                           file=sys.stderr)
                 return True
 
