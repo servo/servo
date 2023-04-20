@@ -35,6 +35,9 @@ use webrender_api::FontInstanceKey;
 pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<ArcRefCell<InlineLevelBox>>,
     pub(super) text_decoration_line: TextDecorationLine,
+    // Whether this IFC contains the 1st formatted line of an element
+    // https://www.w3.org/TR/css-pseudo-4/#first-formatted-line
+    pub(super) has_first_formatted_line: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -130,10 +133,14 @@ struct Lines {
 }
 
 impl InlineFormattingContext {
-    pub(super) fn new(text_decoration_line: TextDecorationLine) -> InlineFormattingContext {
+    pub(super) fn new(
+        text_decoration_line: TextDecorationLine,
+        has_first_formatted_line: bool,
+    ) -> InlineFormattingContext {
         InlineFormattingContext {
             inline_level_boxes: Default::default(),
             text_decoration_line,
+            has_first_formatted_line,
         }
     }
 
@@ -273,7 +280,16 @@ impl InlineFormattingContext {
                 fragments: Vec::new(),
                 next_line_block_position: Length::zero(),
             },
-            inline_position: Length::zero(),
+            inline_position: if self.has_first_formatted_line {
+                containing_block
+                    .style
+                    .get_inherited_text()
+                    .text_indent
+                    .to_used_value(containing_block.inline_size.into())
+                    .into()
+            } else {
+                Length::zero()
+            },
             current_nesting_level: InlineNestingLevelState {
                 remaining_boxes: InlineBoxChildIter::from_formatting_context(self),
                 fragments_so_far: Vec::with_capacity(self.inline_level_boxes.len()),

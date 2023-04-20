@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-indent length</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<link rel="match" href="reference/text-indent-length-002-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+article {
+  font: 10px/1 Ahem;
+  margin-bottom: 10px;
+  text-indent: 10px;
+}
+</style>
+<article>
+  X<br>X
+</article>
+<article>
+  X<span style="white-space:pre">&#10;</span>X
+</article>
+<article>
+  <div>X</div>
+  <div>X</div>
+  <div>X</div>
+</article>
+<article>
+  <div>X</div>
+  X
+  <div>X</div>
+  X
+  <div>X</div>
+</article>
+<article>
+  X
+  <div>X</div>
+  X
+  <div>X</div>
+  X
+</article>
