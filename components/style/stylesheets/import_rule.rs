@@ -253,6 +253,11 @@ impl ToCssWithGuard for ImportRule {
         dest.write_str("@import ")?;
         self.url.to_css(&mut CssWriter::new(dest))?;
 
+        if let Some(ref layer) = self.layer {
+            dest.write_char(' ')?;
+            layer.to_css(&mut CssWriter::new(dest))?;
+        }
+
         if let Some(ref supports) = self.supports {
             dest.write_str(" supports(")?;
             supports.condition.to_css(&mut CssWriter::new(dest))?;
@@ -264,11 +269,6 @@ impl ToCssWithGuard for ImportRule {
                 dest.write_char(' ')?;
                 media.to_css(&mut CssWriter::new(dest))?;
             }
-        }
-
-        if let Some(ref layer) = self.layer {
-            dest.write_char(' ')?;
-            layer.to_css(&mut CssWriter::new(dest))?;
         }
 
         dest.write_char(';')
