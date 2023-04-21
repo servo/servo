@@ -12,8 +12,7 @@ use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
 };
 use crate::fragments::{
-    AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, CollapsedBlockMargins,
-    CollapsedMargin, Fragment, Tag,
+    AnonymousFragment, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, Tag,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -215,10 +214,7 @@ fn layout_block_level_children(
                         placement_state.current_block_direction_position,
                     inline: Length::new(0.),
                 };
-                fragment
-                    .hoisted_fragment
-                    .borrow_mut()
-                    .adjust_offsets(offset);
+                fragment.borrow_mut().adjust_offsets(offset);
             },
             Fragment::Anonymous(_) => {},
             _ => unreachable!(),
@@ -380,10 +376,7 @@ impl BlockLevelBox {
                 );
                 let hoisted_fragment = hoisted_box.fragment.clone();
                 positioning_context.push(hoisted_box);
-                Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment {
-                    hoisted_fragment,
-                    position: box_.borrow().context.style().clone_position(),
-                })
+                Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
                 // FIXME: call layout_maybe_position_relative_fragment here

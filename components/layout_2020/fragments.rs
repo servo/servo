@@ -19,7 +19,6 @@ use serde::ser::{Serialize, Serializer};
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
-use style::computed_values::position::T as ComputedPosition;
 use style::dom::OpaqueNode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -68,16 +67,17 @@ impl Tag {
 pub(crate) enum Fragment {
     Box(BoxFragment),
     Anonymous(AnonymousFragment),
-    AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment),
+    /// Absolute and fixed position fragments are hoisted up so that they
+    /// are children of the BoxFragment that establishes their containing
+    /// blocks, so that they can be laid out properly. When this happens
+    /// an `AbsoluteOrFixedPositioned` fragment is left at the original tree
+    /// position. This allows these hoisted fragments to be painted with
+    /// regard to their original tree order during stacking context tree /
+    /// display list construction.
+    AbsoluteOrFixedPositioned(ArcRefCell<HoistedSharedFragment>),
     Text(TextFragment),
     Image(ImageFragment),
     IFrame(IFrameFragment),
-}
-
-#[derive(Serialize)]
-pub(crate) struct AbsoluteOrFixedPositionedFragment {
-    pub position: ComputedPosition,
-    pub hoisted_fragment: ArcRefCell<HoistedSharedFragment>,
 }
 
 #[derive(Serialize)]
@@ -214,7 +214,9 @@ impl Fragment {
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
             Fragment::Box(fragment) => fragment.print(tree),
-            Fragment::AbsoluteOrFixedPositioned(fragment) => fragment.print(tree),
+            Fragment::AbsoluteOrFixedPositioned(_) => {
+                tree.add_item("AbsoluteOrFixedPositioned".to_string());
+            },
             Fragment::Anonymous(fragment) => fragment.print(tree),
             Fragment::Text(fragment) => fragment.print(tree),
             Fragment::Image(fragment) => fragment.print(tree),
@@ -277,12 +279,6 @@ impl Fragment {
             },
             _ => None,
         }
-    }
-}
-
-impl AbsoluteOrFixedPositionedFragment {
-    pub fn print(&self, tree: &mut PrintTree) {
-        tree.add_item(format!("AbsoluteOrFixedPositionedFragment"));
     }
 }
 

@@ -8,9 +8,7 @@ use super::geom::{
 use super::{FlexContainer, FlexLevelBox};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
-use crate::fragments::{
-    AbsoluteOrFixedPositionedFragment, BoxFragment, CollapsedBlockMargins, Fragment,
-};
+use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::LengthOrAuto;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -200,11 +198,6 @@ impl FlexContainer {
                             Fragment::Box(flex_item_fragments.next().unwrap())
                         },
                         Ok(absolutely_positioned) => {
-                            let position = absolutely_positioned
-                                .borrow()
-                                .context
-                                .style()
-                                .clone_position();
                             let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                                 absolutely_positioned,
                                 Vec2::zero(),
@@ -213,10 +206,7 @@ impl FlexContainer {
                             );
                             let hoisted_fragment = hoisted_box.fragment.clone();
                             positioning_context.push(hoisted_box);
-                            Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment {
-                                hoisted_fragment,
-                                position,
-                            })
+                            Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
                         },
                     })
                     .collect::<Vec<_>>();
