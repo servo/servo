@@ -80,11 +80,12 @@ def run_tests(**kwargs):
         target_dir = os.path.join(os.environ["CARGO_TARGET_DIR"])
     else:
         target_dir = os.path.join(SERVO_ROOT, "target")
+
+    binary_name = ("servo.exe" if sys.platform == "win32" else "servo")
+
     default_binary_path = os.path.join(
-        target_dir, determine_build_type(kwargs, target_dir), "servo"
+        target_dir, determine_build_type(kwargs, target_dir), binary_name
     )
-    if sys.platform == "win32":
-        target_dir += ".exe"
 
     set_if_none(kwargs, "binary", default_binary_path)
     set_if_none(kwargs, "webdriver_binary", default_binary_path)
