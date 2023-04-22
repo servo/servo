@@ -712,10 +712,13 @@ where
                 )
         });
 
+        let mut ifc = InlineFormattingContext::new(
+            self.ongoing_inline_formatting_context.text_decoration_line,
+            /* has_first_formatted_line = */ false,
+        );
+        std::mem::swap(&mut self.ongoing_inline_formatting_context, &mut ifc);
         let kind = BlockLevelCreator::SameFormattingContextBlock(
-            IntermediateBlockContainer::InlineFormattingContext(std::mem::take(
-                &mut self.ongoing_inline_formatting_context,
-            )),
+            IntermediateBlockContainer::InlineFormattingContext(ifc),
         );
         let info = self.info.new_replacing_style(anonymous_style.clone());
         self.block_level_boxes.push(BlockLevelJob {

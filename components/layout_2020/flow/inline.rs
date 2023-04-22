@@ -31,7 +31,7 @@ use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::FontInstanceKey;
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Serialize)]
 pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<ArcRefCell<InlineLevelBox>>,
     pub(super) text_decoration_line: TextDecorationLine,
