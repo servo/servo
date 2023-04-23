@@ -540,7 +540,10 @@ impl BoxFragment {
         padding_rect: &PhysicalRect<Length>,
         containing_block_info: &mut ContainingBlockInfo,
     ) {
-        if !self.style.establishes_containing_block() {
+        if !self
+            .style
+            .establishes_containing_block_for_absolute_descendants()
+        {
             return;
         }
 
