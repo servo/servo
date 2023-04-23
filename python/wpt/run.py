@@ -1,10 +1,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+# pylint: disable=missing-docstring
 
 import dataclasses
-import grouping_formatter
 import json
+import multiprocessing
 import os
 import re
 import sys
@@ -12,22 +13,21 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from typing import List, NamedTuple, Optional, Union
+
 import mozlog
 import mozlog.formatters
-import multiprocessing
 
-from typing import List, NamedTuple, Optional, Union
-from grouping_formatter import UnexpectedResult, UnexpectedSubtestResult
+from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH, update_args_for_layout_2020
+from .grouping_formatter import (
+    ServoFormatter, ServoHandler,
+    UnexpectedResult, UnexpectedSubtestResult
+)
+from wptrunner import wptcommandline
+from wptrunner import wptrunner
 
-SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
-SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
-WPT_TOOLS_PATH = os.path.join(SCRIPT_PATH, "web-platform-tests", "tools")
+
 CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
-
-sys.path.insert(0, WPT_TOOLS_PATH)
-import localpaths  # noqa: F401,E402
-import update  # noqa: F401,E402
-
 TRACKER_API = "https://build.servo.org/intermittent-tracker"
 TRACKER_API_ENV_VAR = "INTERMITTENT_TRACKER_API"
 TRACKER_DASHBOARD_SECRET_ENV_VAR = "INTERMITTENT_TRACKER_DASHBOARD_SECRET"
@@ -50,23 +50,7 @@ def set_if_none(args: dict, key: str, value):
         args[key] = value
 
 
-def update_args_for_layout_2020(kwargs: dict):
-    if kwargs.pop("layout_2020"):
-        kwargs["test_paths"]["/"]["metadata_path"] = os.path.join(
-            SCRIPT_PATH, "metadata-layout-2020"
-        )
-        kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
-            SCRIPT_PATH, "mozilla", "meta-layout-2020"
-        )
-        kwargs["include_manifest"] = os.path.join(
-            SCRIPT_PATH, "include-layout-2020.ini"
-        )
-
-
 def run_tests(**kwargs):
-    from wptrunner import wptrunner
-    from wptrunner import wptcommandline
-
     # By default, Rayon selects the number of worker threads based on the
     # available CPU count. This doesn't work very well when running tests on CI,
     # since we run so many Servo processes in parallel. The result is a lot of
@@ -77,8 +61,8 @@ def run_tests(**kwargs):
     os.environ["HOST_FILE"] = os.path.join(SERVO_ROOT, "tests", "wpt", "hosts")
 
     set_if_none(kwargs, "product", "servo")
-    set_if_none(kwargs, "config", os.path.join(SCRIPT_PATH, "config.ini"))
-    set_if_none(kwargs, "include_manifest", os.path.join(SCRIPT_PATH, "include.ini"))
+    set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
+    set_if_none(kwargs, "include_manifest", os.path.join(WPT_PATH, "include.ini"))
     set_if_none(kwargs, "manifest_update", False)
     set_if_none(kwargs, "processes", multiprocessing.cpu_count())
 
@@ -131,7 +115,7 @@ def run_tests(**kwargs):
     update_args_for_layout_2020(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
-        grouping_formatter.ServoFormatter,
+        ServoFormatter,
         "Servo's grouping output formatter",
     )
 
@@ -146,7 +130,7 @@ def run_tests(**kwargs):
     else:
         logger = wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
 
-    handler = grouping_formatter.ServoHandler()
+    handler = ServoHandler()
     logger.add_handler(handler)
 
     wptrunner.run_tests(**kwargs)
@@ -198,21 +182,6 @@ def run_tests(**kwargs):
             )
 
     return return_value
-
-
-def update_tests(**kwargs):
-    from update import updatecommandline
-
-    set_if_none(kwargs, "product", "servo")
-    set_if_none(kwargs, "config", os.path.join(SCRIPT_PATH, "config.ini"))
-    kwargs["store_state"] = False
-
-    updatecommandline.check_args(kwargs)
-    update_args_for_layout_2020(kwargs)
-
-    logger = update.setup_logging(kwargs, {"mach": sys.stdout})
-    return_value = update.run_update(logger, **kwargs)
-    return 1 if return_value is update.exit_unclean else 0
 
 
 class GithubContextInformation(NamedTuple):
@@ -317,7 +286,7 @@ def filter_intermittents(
     dashboard = TrackerDashboardFilter()
     dashboard.report_failures(unexpected_results)
 
-    def add_result(output, text, results, filter_func) -> None:
+    def add_result(output, text, results: List[UnexpectedResult], filter_func) -> None:
         filtered = [str(result) for result in filter(filter_func, results)]
         if filtered:
             output += [f"{text} ({len(results)}): ", *filtered]
@@ -325,7 +294,7 @@ def filter_intermittents(
     def is_stable_and_unexpected(result):
         return not result.flaky and not result.issues
 
-    output = []
+    output: List[str] = []
     add_result(output, "Flaky unexpected results", unexpected_results,
                lambda result: result.flaky)
     add_result(output, "Stable unexpected results that are known-intermittent",
@@ -355,15 +324,3 @@ def write_unexpected_only_raw_log(
                 if data["action"] in ["suite_start", "suite_end"] or \
                         ("test" in data and data["test"] in tests):
                     output.write(line)
-
-
-def main():
-    from wptrunner import wptcommandline
-
-    parser = wptcommandline.create_parser()
-    kwargs = vars(parser.parse_args())
-    return run_tests(**kwargs)
-
-
-if __name__ == "__main__":
-    sys.exit(0 if main() else 1)

@@ -17,7 +17,7 @@ import logging
 import os
 import sys
 
-from wptupstreamer import WPTSync
+from exporter import WPTSync
 
 
 def main() -> int:

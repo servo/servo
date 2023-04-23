@@ -10,3 +10,8 @@ is the canonical repository for this code.
 
 servo-tidy is used to check licenses, line lengths, whitespace, flake8 on
 Python files, lock file versions, and more.
+
+# `wpt`
+servo-wpt is a module with support scripts for running, importing,
+exporting, updating manifests, and updating expectations for WPT
+tests.

@@ -9,16 +9,8 @@ import sys
 import tempfile
 
 from wptrunner import update as wptupdate
-
 from wptrunner.update.tree import Commit, CommitMessage, get_unique_name
 
-class HgTree(wptupdate.tree.HgTree):
-    def __init__(self, *args, **kwargs):
-        self.commit_cls = kwargs.pop("commit_cls", Commit)
-        wptupdate.tree.HgTree.__init__(self, *args, **kwargs)
-
-    # TODO: The extra methods for upstreaming patches from a
-    # hg checkout
 
 class GitTree(wptupdate.tree.GitTree):
     def __init__(self, *args, **kwargs):
@@ -117,6 +109,7 @@ class GitTree(wptupdate.tree.GitTree):
                     if ref.startswith("refs/heads/")]
         return get_unique_name(branches, prefix)
 
+
 class Patch(object):
     def __init__(self, author, email, message, merge_message, diff):
         self.author = author
@@ -149,13 +142,13 @@ class GeckoCommitMessage(CommitMessage):
     # slightly different because we need to parse out specific parts of the message rather
     # than just enforce a general pattern.
 
-    _bug_re = re.compile("^Bug (\d+)[^\w]*(?:Part \d+[^\w]*)?(.*?)\s*(?:r=(\w*))?$",
+    _bug_re = re.compile(r"^Bug (\d+)[^\w]*(?:Part \d+[^\w]*)?(.*?)\s*(?:r=(\w*))?$",
                          re.IGNORECASE)
-    _merge_re = re.compile("^Auto merge of #(\d+) - [^:]+:[^,]+, r=(.+)$", re.IGNORECASE)
+    _merge_re = re.compile(r"^Auto merge of #(\d+) - [^:]+:[^,]+, r=(.+)$", re.IGNORECASE)
 
-    _backout_re = re.compile("^(?:Back(?:ing|ed)\s+out)|Backout|(?:Revert|(?:ed|ing))",
+    _backout_re = re.compile(r"^(?:Back(?:ing|ed)\s+out)|Backout|(?:Revert|(?:ed|ing))",
                              re.IGNORECASE)
-    _backout_sha1_re = re.compile("(?:\s|\:)(0-9a-f){12}")
+    _backout_sha1_re = re.compile(r"(?:\s|\:)(0-9a-f){12}")
 
     def _parse_message(self):
         CommitMessage._parse_message(self)
@@ -188,7 +181,7 @@ class GeckoCommit(Commit):
                 merge_rev = self.git("when-merged", *args).strip()
             except subprocess.CalledProcessError as exn:
                 if not find_executable('git-when-merged'):
-                    print('Please add the `when-merged` git command to your PATH ' +
+                    print('Please add the `when-merged` git command to your PATH '
                           '(https://github.com/mhagger/git-when-merged/).')
                     sys.exit(1)
                 raise exn
@@ -206,4 +199,3 @@ class GeckoCommit(Commit):
 
         merge_message = self.merge.message if self.merge else None
         return Patch(self.author, self.email, self.message, merge_message, diff)
-

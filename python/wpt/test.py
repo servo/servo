@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright 2023 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
 #
@@ -37,8 +39,8 @@ from wsgiref.simple_server import WSGIRequestHandler, make_server
 import flask
 import flask.cli
 import requests
-from wptupstreamer import SyncRun, WPTSync
-from wptupstreamer.step import CreateOrUpdateBranchForPRStep
+from exporter import SyncRun, WPTSync
+from exporter.step import CreateOrUpdateBranchForPRStep
 
 TESTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests")
 SYNC: Optional[WPTSync] = None
