@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({generator_api: 'fledge'});
+  await fencedframe.execute(() => {
+    let event = {};
+    assert_throws_js(TypeError, () => {window.fence.reportEvent(event);});
+
+    event.eventType = "click";
+    assert_throws_js(TypeError, () => {window.fence.reportEvent(event);});
+
+    event.eventData = "dummy";
+    assert_throws_js(TypeError, () => {window.fence.reportEvent(event);});
+
+    event.destination = ["buyer"];
+    window.fence.reportEvent(event);
+  });
+}, 'window.fence.reportEvent');
+</script>
+</body>

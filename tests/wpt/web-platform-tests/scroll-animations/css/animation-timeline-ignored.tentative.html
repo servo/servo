@@ -135,11 +135,11 @@
     await waitForNextFrame();
     assert_equals(getComputedStyle(element).width, '120px');
     element.getAnimations()[0].timeline = null;
-    assert_equals(getComputedStyle(element).width, '0px');
+    assert_equals(getComputedStyle(element).width, '120px');
 
     // Changing the animation-timeline property should have no effect.
     element.style = 'animation-timeline:timeline2';
-    assert_equals(getComputedStyle(element).width, '0px');
+    assert_equals(getComputedStyle(element).width, '120px');
   }, 'animation-timeline ignored after setting timeline with JS (null)');
 
 </script>

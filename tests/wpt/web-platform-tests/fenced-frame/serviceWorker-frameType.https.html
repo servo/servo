@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Service Worker: Clients.matchAll with includeUncontrolled</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script>
+
+promise_test(async t => {
+  const frame_type_key = token();
+  const frame_type_ack_key = token();
+
+  attachFencedFrame(generateURL('resources/serviceWorker-frameType-inner.html',
+      [frame_type_key, frame_type_ack_key]));
+
+  const frame_type_result = await nextValueFromServer(frame_type_key);
+  assert_equals(frame_type_result, "top-level",
+                "The service worker for the top-level fenced frame has the " +
+                "right value for `serviceWorker.frameType`");
+
+  // Write an ACK, so that the fenced frame knows it can send message over the
+  // `serviceWorker.frameType` channel again.
+  writeValueToServer(frame_type_ack_key, "ACK");
+
+  const nested_frame_type_result = await nextValueFromServer(frame_type_key);
+  assert_equals(nested_frame_type_result, "nested",
+                "The service worker for the iframe inside the top-level " +
+                "fenced frame has the right value for `serviceWorker.frameType`");
+}, 'serviceWorker.frameType');
+
+</script>
+</body>

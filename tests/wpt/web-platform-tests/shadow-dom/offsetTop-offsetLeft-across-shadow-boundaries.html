@@ -2,6 +2,7 @@
 <link rel=author href="mailto:jarhar@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 
 <style>
 .box {
@@ -80,19 +81,7 @@
 </div>
 
 <script>
-// TODO delete this when all browsers support declarative shadowdom
-(function attachShadowRoots(root) {
-  root.querySelectorAll("template[shadowroot]").forEach(template => {
-    const mode = template.getAttribute("shadowroot");
-    const shadowRoot = template.parentNode.attachShadow({ mode });
-    shadowRoot.appendChild(template.content);
-    template.remove();
-    attachShadowRoots(shadowRoot);
-  });
-})(document);
-</script>
-
-<script>
+polyfill_declarative_shadow_dom(document);
 test(() => {
   assert_equals(target1.offsetTop, 38);
 }, 'Verifies that HTMLElement.offsetTop accounts for shadow boundaries.');

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test successful named frame navigation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  // This test uses the following layout:
+  // A: Top-level frame
+  //   B: fencedframe
+  //   C: iframe
+  //
+  // The purpose is to test that named target lookups of C succeed in A, i.e.
+  // that lookups work even when the first child of a frame is fenced.
+
+  const fencedframe = attachFencedFrameContext();
+  const iframe = attachIFrameContext();
+
+  // Give the iframe a name.
+  await iframe.execute(() => { window.name = "target_frame"; });
+
+  // Modify state in the iframe, using a JS navigation to the target name.
+  window.open("javascript:window.success=true;", "target_frame");
+
+  // Check that the navigation happened in the iframe.
+  await iframe.execute(() => {
+    // If the JS code didn't run in the iframe, `window.success` would be
+    // undefined.
+    assert_true(window.success, 'The JS code ran in the iframe.');
+  });
+}, 'navigate iframe sibling of fenced frame');
+</script>
+</body>

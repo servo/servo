@@ -1,5 +1,5 @@
 import {PressureManager, PressureManagerReceiver, PressureStatus} from '/gen/services/device/public/mojom/pressure_manager.mojom.m.js'
-import {PressureFactor, PressureSource, PressureState} from '/gen/services/device/public/mojom/pressure_update.mojom.m.js'
+import {PressureSource, PressureState} from '/gen/services/device/public/mojom/pressure_update.mojom.m.js'
 
 class MockPressureService {
   constructor() {
@@ -14,10 +14,6 @@ class MockPressureService {
     this.mojomStateType_ = new Map([
       ['nominal', PressureState.kNominal], ['fair', PressureState.kFair],
       ['serious', PressureState.kSerious], ['critical', PressureState.kCritical]
-    ]);
-    this.mojomFactorType_ = new Map([
-      ['thermal', PressureFactor.kThermal],
-      ['power-supply', PressureFactor.kPowerSupply]
     ]);
     this.pressureServiceReadingTimerId_ = null;
   }
@@ -109,26 +105,16 @@ class MockPressureService {
     return this.updatesDelivered_;
   }
 
-  setPressureUpdate(source, state, factors) {
+  setPressureUpdate(source, state) {
     if (!this.mojomSourceType_.has(source))
       throw new Error(`PressureSource '${source}' is invalid`);
 
     if (!this.mojomStateType_.has(state))
       throw new Error(`PressureState '${state}' is invalid`);
 
-    let pressureFactors = [];
-    if (Array.isArray(factors)) {
-      for (const factor of factors) {
-        if (!this.mojomFactorType_.has(factor))
-          throw new Error(`PressureFactor '${factor}' is invalid`);
-        pressureFactors.push(this.mojomFactorType_.get(factor));
-      }
-    }
-
     this.pressureUpdate_ = {
       source: this.mojomSourceType_.get(source),
       state: this.mojomStateType_.get(state),
-      factors: pressureFactors,
     };
   }
 

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to test Web Bluetooth</title>
+
+<body>
+<button id="button">Button</button>
+<script>
+(async () => {
+  await simulateGesture();
+  const [bluetooth_request_device_key] = parseKeylist();
+  try {
+    await navigator.bluetooth.requestDevice({filters: [{name: 'device'}]});
+    writeValueToServer(bluetooth_request_device_key,
+                      'Web Bluetooth requestDevice() succeeded');
+  } catch(e) {
+    if (e.name == 'NotAllowedError' &&
+        e.message.includes(
+          'Web Bluetooth is not allowed in a fenced frame tree.')) {
+      writeValueToServer(bluetooth_request_device_key,
+                        'Web Bluetooth requestDevice() failed');
+    } else {
+      writeValueToServer(
+          bluetooth_request_device_key,
+          'Web Bluetooth requestDevice() failed with unknown error - ' +
+          `${e.name}: ${e.message}`);
+    }
+  }
+})();
+</script>
+</body>

@@ -61,7 +61,8 @@
             -1.7995220850663962,
             9.29585020267449
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -157,7 +158,8 @@
             -1.7995220850663962,
             9.29585020267449
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -253,7 +255,8 @@
             -1.7995220850663962,
             9.29585020267449
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -349,7 +352,8 @@
             -1.7995220850663962,
             9.29585020267449
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -445,7 +449,8 @@
             -1.7995220850663962,
             9.29585020267449
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -520,7 +525,8 @@
             0.48077445494619653,
             -7.091750168010829
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -593,7 +599,8 @@
           "data": [
             5.0114545056636395
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -671,7 +678,8 @@
             -4.424202960837338,
             -6.654683521499036
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -746,7 +754,8 @@
             0.48077445494619653,
             -7.091750168010829
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {
@@ -819,7 +828,8 @@
           "data": [
             5.0114545056636395
           ],
-          "type": "float32"
+          "type": "float32",
+          "constant": true
         }
       },
       "expected": {

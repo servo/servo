@@ -9,6 +9,8 @@ from wptserve.utils import isomorphic_decode, isomorphic_encode
 # Key used to access the reports in the stash.
 REPORTS = "4691a2d7fca5430fb0f33b1bd8a9d388"
 
+CLEAR_STASH = isomorphic_encode("clear_stash")
+
 Header = Tuple[str, str]
 Status = Tuple[int, str]
 Response = Tuple[Status, List[Header], str]
@@ -38,8 +40,14 @@ def handle_post_report(request: Request, headers: List[Header]) -> Response:
   """Handles POST request for reports.
 
   Retrieves the report from the request body and stores the report in the
-  stash.
+  stash. If clear_stash is specified in the query params, clears the stash.
   """
+  if request.GET.get(CLEAR_STASH):
+    clear_stash(request.server.stash)
+    return (200, "OK"), headers, json.dumps({
+        "code": 200,
+        "message": "Stash successfully cleared.",
+    })
   store_report(
       request.server.stash, get_request_origin(request), {
           "body": request.body.decode("utf-8"),
@@ -76,6 +84,10 @@ def store_report(stash: Stash, origin: str, report: str) -> None:
     stash.put(REPORTS, reports_dict)
   return None
 
+def clear_stash(stash: Stash) -> None:
+  "Clears the stash."
+  stash.take(REPORTS)
+  return None
 
 def take_reports(stash: Stash, origin: str) -> List[str]:
   """Takes all the reports from the stash and returns them."""

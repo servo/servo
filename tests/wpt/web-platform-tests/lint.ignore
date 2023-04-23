@@ -161,6 +161,7 @@ SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
 SET TIMEOUT: fetch/metadata/resources/helper.sub.js
 SET TIMEOUT: fetch/metadata/resources/message-opener.html
+SET TIMEOUT: fenced-frame/resources/utils.js
 SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-outer.sub.html
 SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-middle.sub.html
 SET TIMEOUT: focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-outer.sub.html
@@ -452,7 +453,9 @@ INDENT TABS: css/WOFF2/*
 CONSOLE: css/css-shapes/shape-outside/supported-shapes/support/test-utils.js
 CONSOLE: css/css-values/viewport-units-css2-001.html
 CONSOLE: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001*.html
-CONSOLE: css/css-writing-modes/tools/generators/gulpfile.js
+CONSOLE: css/css-writing-modes/tools/generators/template.html
+CONSOLE: bluetooth/characteristic/readValue/characteristic-is-removed.https.window.js
+CONSOLE: bluetooth/resources/bluetooth-test.js
 
 TRAILING WHITESPACE: css/css-fonts/support/fonts/gsubtest-lookup3.ufo/features.fea
 
@@ -492,6 +495,7 @@ SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001v.html
 SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001w.html
 SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001x.html
 SET TIMEOUT: css/css-writing-modes/support/text-orientation.js
+SET TIMEOUT: css/css-writing-modes/tools/generators/template.html
 SET TIMEOUT: css/CSS2/backgrounds/background-root-101.xht
 SET TIMEOUT: css/CSS2/backgrounds/background-root-102.xht
 SET TIMEOUT: css/CSS2/backgrounds/background-root-103.xht

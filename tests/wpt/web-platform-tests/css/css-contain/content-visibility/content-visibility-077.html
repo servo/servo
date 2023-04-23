@@ -1,9 +1,9 @@
 <!doctype HTML>
 <meta charset="utf8">
-<title>CSS Content Visibility: content-visibility is not animatable.</title>
+<title>CSS Content Visibility: content-visibility is animatable.</title>
 <link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
-<meta name="assert" content="content-visibility is not animatable">
+<meta name="assert" content="content-visibility is animatable">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -22,6 +22,6 @@
 <script>
 test(() => {
   const computedStyle = getComputedStyle(container);
-  assert_equals(computedStyle.contentVisibility, "visible");
-}, "Content-visibility is not animatable");
+  assert_equals(computedStyle.contentVisibility, "auto");
+}, "Content-visibility is animatable");
 </script>

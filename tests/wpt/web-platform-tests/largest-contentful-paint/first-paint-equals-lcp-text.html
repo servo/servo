@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+  setup({"hide_test_state": true});
   async_test(function (t) {
     assert_implements(window.PerformancePaintTiming, "PerformancePaintTiming is not implemented");
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
@@ -27,9 +28,14 @@
             assert_equals(entry.entryType, 'largest-contentful-paint');
             largestContentfulPaintTime = entry.renderTime;
           }
-          if (firstPaintTime && firstContentfulPaintTime && largestContentfulPaintTime) {
-            assert_less_than_equal(firstPaintTime, firstContentfulPaintTime, 'FP should be less than or equal to FCP.');
+          // LCP fires necessarily after first-paint and first-contentful-paint.
+          if (largestContentfulPaintTime) {
             assert_equals(firstContentfulPaintTime, largestContentfulPaintTime, 'FCP should equal LCP.');
+            // In PaintTiming spec, first-paint isn't a hard requirement, browsers can support
+            // first-contentful-paint only.
+            if (firstPaintTime) {
+              assert_less_than_equal(firstPaintTime, firstContentfulPaintTime, 'FP should be less than or equal to FCP.');
+            }
             t.done();
           }
         });

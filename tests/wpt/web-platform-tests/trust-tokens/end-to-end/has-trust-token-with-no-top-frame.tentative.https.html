@@ -15,7 +15,7 @@
     frame.remove();
 
     test(() => {
-      assert_equals(cachedDocument.hasPrivateToken("https://issuer.example", 'private-state-token'), undefined,
+      assert_equals(cachedDocument.hasPrivateToken("https://issuer.example"), undefined,
         "Can't construct a Promise in a destroyed execution context.");
     }, 'hasPrivateToken in a destroyed document.');
   </script>

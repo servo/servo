@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of navigator.presentation.receiver</title>
+
+<body>
+<script>
+(async () => {
+  const [presentation_receiver_key] = parseKeylist();
+  const result = await navigator.presentation.receiver;
+  if (result == null) {
+    writeValueToServer(presentation_receiver_key, "denied");
+  } else {
+    writeValueToServer(presentation_receiver_key, "allowed");
+  }
+})();
+</script>
+</body>

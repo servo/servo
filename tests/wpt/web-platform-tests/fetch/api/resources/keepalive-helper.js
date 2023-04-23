@@ -60,7 +60,7 @@ async function queryToken(token) {
 // for the rest of the work. Note that we want the serialized behavior
 // for the steps so far, so we don't want to make the entire test case
 // an async_test.
-function assertStashedTokenAsync(testName, token) {
+function assertStashedTokenAsync(testName, token, {shouldPass = true} = {}) {
   async_test((test) => {
     new Promise((resolve) => test.step_timeout(resolve, 3000))
         .then(() => {
@@ -73,7 +73,11 @@ function assertStashedTokenAsync(testName, token) {
           test.done();
         })
         .catch(test.step_func((e) => {
-          assert_unreached(e);
+          if (shouldPass) {
+            assert_unreached(e);
+          } else {
+            test.done();
+          }
         }));
   }, testName);
 }

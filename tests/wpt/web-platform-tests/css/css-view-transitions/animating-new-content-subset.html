@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: animations in the new element show up in the images if it partially changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="animating-new-content-subset-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+#target {
+  width:100px;
+  height:100px;
+  background: blue;
+  view-transition-name: target;
+  will-change: transform;
+}
+
+.child {
+  width: 50px;
+  height: 50px;
+  will-change: transform;
+  background: green;
+}
+
+.hidden {
+  width: 10px;
+  height: 10px;
+  background: grey;
+  view-transition-name: hidden;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; visibility: hidden;}
+
+html::view-transition-group(target) {
+  animation: unset;
+}
+
+html::view-transition-image-pair(target) {
+  isolation: unset;
+}
+html::view-transition-old(target), html::view-transition-new(target) {
+  animation: unset;
+  mix-blend-mode: normal;
+}
+
+html::view-transition-old(target) {
+  opacity: 0;
+}
+
+html::view-transition-new(target) {
+  opacity: 1;
+}
+</style>
+
+<div id="target">
+  <div class="child" id="child">
+    I'm the inner composited child.
+  </div>
+</div>
+<div class="hidden"></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let transition = document.startViewTransition();
+  transition.ready.then(async () => {
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    child.style.background = "grey";
+
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    takeScreenshot();
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

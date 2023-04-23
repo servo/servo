@@ -38,22 +38,33 @@ sync_access_handle_test((t, handle) => {
 }, 'test SyncAccessHandle.truncate after SyncAccessHandle.write');
 
 sync_access_handle_test((t, handle) => {
-  // The cursor will be at the end of the file after this write.
   const writeBuffer = new Uint8Array(4);
-  writeBuffer.set([0, 1, 2, 3]);
+  writeBuffer.set([96, 97, 98, 99]);
+  handle.write(writeBuffer, {at: 0});
+
+  // Moves cursor to 2
+  handle.truncate(2);
+  let readBuffer = new Uint8Array(256);
+  assert_equals(handle.read(readBuffer), 0);
+
+  writeBuffer.set([100, 101, 102, 103]);
   handle.write(writeBuffer);
 
-  // Extending the file should not move the cursor.
-  handle.truncate(6);
-  let readBuffer = new Uint8Array(2);
-  let expected = new Uint8Array(2);
-  expected.set([0, 0]);
-  assert_equals(2, handle.read(readBuffer));
-  assert_array_equals(expected, readBuffer);
+  assert_equals(handle.read(readBuffer, {at: 0}), 6);
+  let expected = new Uint8Array(256);
+  expected.set([96, 97, 100, 101, 102, 103]);
+  assert_array_equals(readBuffer, expected);
 
-  // Shortening the file should move the cursor to the new end.
-  handle.truncate(2);
-  assert_equals(0, handle.read(readBuffer));
-}, 'test SyncAccessHandle.truncate resets the file position cursor');
+  // Resize the file to 10, expect that everything beyond the old size is '0'.
+  handle.truncate(10); // file cursor should still be at 6
+  // overwrite two bytes
+  const writeBuffer2 = new Uint8Array(2);
+  writeBuffer2.set([110, 111]);
+  handle.write(writeBuffer2);
+  expected = new Uint8Array(256);
+  expected.set([96, 97, 100, 101, 102, 103, 110, 111, 0, 0]);
+  assert_equals(handle.read(readBuffer, {at: 0}), 10);
+  assert_array_equals(readBuffer, expected);
+}, 'Test truncate effect on cursor');
 
 done();

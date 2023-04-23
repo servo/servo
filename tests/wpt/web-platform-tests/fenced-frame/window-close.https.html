@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test window.close has no effect</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+    await frame.execute(async () => {
+      // This should have no effect for fenced frames.
+      window.close();
+      // window.closed will be true if the window closing steps have begun.
+      assert_false(window.closed);
+  });
+}, 'window.close');
+</script>
+</body>

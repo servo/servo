@@ -1,6 +1,6 @@
 import pytest
 
-from tests.perform_actions.support.keys import Keys
+from tests.support.keys import Keys
 
 
 @pytest.mark.parametrize("modifier", [Keys.SHIFT, Keys.R_SHIFT])

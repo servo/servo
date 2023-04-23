@@ -15,6 +15,7 @@ body {
 <script>
   const viewportWidth = document.documentElement.clientWidth;
   const viewportHeight = document.documentElement.clientHeight;
+  setup({"hide_test_state": true});
   async_test(function (t) {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     const beforeLoad = performance.now();

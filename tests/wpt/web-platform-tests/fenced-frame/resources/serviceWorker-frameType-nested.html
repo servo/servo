@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<body>
+<script>
+
+function getFrameType(service_worker, url) {
+  return new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = e => {
+      resolve(e.data);
+    };
+    service_worker.postMessage({port:channel.port2, url:url},
+                               [channel.port2]);
+  });
+}
+
+(async function() {
+  const service_worker = navigator.serviceWorker.controller;
+  const frame_type = await getFrameType(service_worker, location.href);
+
+  const [frame_type_key] = parseKeylist();
+  writeValueToServer(frame_type_key, frame_type);
+})();
+</script>
+</body>

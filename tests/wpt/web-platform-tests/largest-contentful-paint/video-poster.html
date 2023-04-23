@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/largest-contentful-paint-helpers.js"></script>
 <script>
+setup({"hide_test_state": true});
 async_test(function (t) {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
   const beforeLoad = performance.now();

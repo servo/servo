@@ -878,8 +878,6 @@ window.Audit = (function() {
       let absExpected = this._expected ? Math.abs(this._expected) : 1;
       let error = Math.abs(this._actual - this._expected) / absExpected;
 
-      // debugger;
-
       return this._assert(
           error <= this._options.threshold,
           '${actual} is ${expected} within an error of ${threshold}.',

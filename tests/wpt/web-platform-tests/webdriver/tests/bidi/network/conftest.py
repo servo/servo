@@ -29,13 +29,15 @@ def fetch(bidi_session, top_context, configuration):
         # the helper returns.
         await bidi_session.script.evaluate(
             expression=f"""
-                 const controller = new AbortController();
-                 setTimeout(() => controller.abort(), {timeout_in_seconds * 1000});
-                 fetch("{url}", {{
-                   {method_arg}
-                   {headers_arg}
-                   signal: controller.signal
-                 }}).then(response => response.text());""",
+                 {{
+                   const controller = new AbortController();
+                   setTimeout(() => controller.abort(), {timeout_in_seconds * 1000});
+                   fetch("{url}", {{
+                     {method_arg}
+                     {headers_arg}
+                     signal: controller.signal
+                   }}).then(response => response.text());
+                 }}""",
             target=ContextTarget(context["context"]),
             await_promise=True,
         )

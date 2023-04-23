@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame accessing cookies</title>
+
+<body>
+<script>
+async function init() {
+  // This file is meant to run in a <fencedframe>. It sets up multiple frames
+  // in the following arrangements:
+  //   1.) A top-level fenced frame
+  //   2.) An iframe within a fenced frame
+  //   3.) A nested fenced frame
+
+  // Set cookies in the root fenced frame via document and cookieStore APIs.
+  const [cookie_value_key, test_type] = parseKeylist();
+  document.cookie = 'C=fenced; SameSite=Lax';
+  document.cookie = 'D=fenced; SameSite=None; Secure';
+  await cookieStore.set('E', 'fenced');
+
+  const cookie_access_url = generateURL("cookie-access.https.html",
+      [cookie_value_key]);
+
+  switch (test_type) {
+    case "top-level fenced frame":
+      const cookie_value = document.cookie;
+      writeValueToServer(cookie_value_key, cookie_value);
+      break;
+    case "nested iframe":
+      const iframe = document.createElement('iframe');
+      document.body.append(iframe);
+      iframe.src = cookie_access_url;
+      break;
+    case "nested fenced frame":
+      const ff = attachFencedFrame(cookie_access_url);
+      break;
+  }
+}
+
+init();
+</script>
+</body>

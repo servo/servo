@@ -103,7 +103,21 @@ function testReadableStreamClone(initialBuffer, bufferType)
             return stream2.getReader().read();
         }).then(function(data) {
             assert_false(data.done);
-            assert_array_equals(data.value, initialBuffer, "Cloned buffer chunks have the same content");
+            if (initialBuffer instanceof ArrayBuffer) {
+              assert_true(data.value instanceof ArrayBuffer, "Cloned buffer is ArrayBufer");
+              assert_equals(initialBuffer.byteLength, data.value.byteLength, "Length equal");
+              assert_array_equals(new Uint8Array(data.value), new Uint8Array(initialBuffer), "Cloned buffer chunks have the same content");
+            } else if (initialBuffer instanceof DataView) {
+              assert_true(data.value instanceof DataView, "Cloned buffer is DataView");
+              assert_equals(initialBuffer.byteLength, data.value.byteLength, "Lengths equal");
+              assert_equals(initialBuffer.byteOffset, data.value.byteOffset, "Offsets equal");
+              for (let i = 0; i < initialBuffer.byteLength; ++i) {
+                assert_equals(
+                    data.value.getUint8(i), initialBuffer.getUint8(i), "Mismatch at byte ${i}");
+              }
+            } else {
+              assert_array_equals(data.value, initialBuffer, "Cloned buffer chunks have the same content");
+            }
             assert_equals(Object.getPrototypeOf(data.value), Object.getPrototypeOf(initialBuffer), "Cloned buffers have the same type");
             assert_not_equals(data.value, initialBuffer, "Buffer of cloned response stream is a clone of the original buffer");
         });

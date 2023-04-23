@@ -1,8 +1,8 @@
 import pytest
 
-from tests.perform_actions.support.keys import Keys
 from tests.perform_actions.support.refine import get_events
 from tests.support.helpers import filter_dict
+from tests.support.keys import Keys
 
 
 @pytest.mark.parametrize("modifier, prop", [

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Test transparent url navigated in fenced frame interacting with CSP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+function setupCSP(csp) {
+  let meta = document.createElement('meta');
+  meta.httpEquiv = "Content-Security-Policy";
+  meta.content = "fenced-frame-src " + csp;
+  document.head.appendChild(meta);
+}
+
+const allowedCSPs = ["*", "https:", "'self'"];
+allowedCSPs.forEach((csp) => {
+  promise_test(async(t) => {
+    setupCSP(csp);
+
+    t.step_timeout(t.unreached_func(
+      "The fenced frame should load for CSP fenced-frame-src " + csp), 3000);
+
+    const fencedframe = attachFencedFrameContext();
+    await fencedframe.execute(() => {});
+  }, "Fenced frame loaded for CSP fenced-frame-src " + csp);
+});
+
+const blockedCSPs = ["'none'"];
+blockedCSPs.forEach((csp) => {
+  promise_test(async(t) => {
+    setupCSP(csp);
+
+    const csp_violation = new Promise(resolve => {
+      window.addEventListener("securitypolicyviolation", resolve);
+    });
+
+    const fencedframe = attachFencedFrameContext();
+
+    const fencedframe_loaded = fencedframe.execute(() => {});
+    fencedframe_loaded.then(t.unreached_func(
+        "The fenced frame should not load for CSP fenced-frame-src " + csp));
+
+    const csp_violation_event = await csp_violation;
+    const remote_url = getRemoteContextURL(location.origin).toString();
+    assert_true(csp_violation_event.blockedURI.includes(remote_url),
+        "blockedURI should include the url");
+  }, "Fenced frame blocked for CSP fenced-frame-src " + csp);
+});
+</script>
+</body>

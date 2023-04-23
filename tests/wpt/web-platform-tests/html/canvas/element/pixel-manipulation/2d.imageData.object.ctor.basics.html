@@ -63,6 +63,7 @@ var testColor = [0, 255, 255, 128];
 setRGBA(imageData.data, 4, testColor);
 assertArrayEquals(getRGBA(imageData.data, 4), testColor);
 
+assert_throws_js(TypeError, function() { ImageData(1, 1); });
 assert_throws_js(TypeError, function() { new ImageData(10); });
 assert_throws_dom("INDEX_SIZE_ERR", function() { new ImageData(0, 10); });
 assert_throws_dom("INDEX_SIZE_ERR", function() { new ImageData(10, 0); });

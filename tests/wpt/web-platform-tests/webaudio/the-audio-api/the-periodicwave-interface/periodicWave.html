@@ -25,7 +25,7 @@
       const imagPeak = imag[3];
       const imagFundamental = 551.0;
 
-      const testLength = 4096;
+      const testLength = 8192;
       let context = new AudioContext();
 
       let audit = Audit.createTaskRunner();
@@ -34,9 +34,9 @@
 
       audit.define('create with factory method', (task, should) => {
         should(() => {
-          context.createPeriodicWave(new Float32Array(4096), new Float32Array(4096));
-        }, 'context.createPeriodicWave(new Float32Array(4096), ' +
-        'new Float32Array(4096))').notThrow();
+          context.createPeriodicWave(new Float32Array(testLength), new Float32Array(testLength));
+        }, 'context.createPeriodicWave(new Float32Array(' + testLength + '), ' +
+        'new Float32Array(' + testLength + '))').notThrow();
         task.done();
       });
 
@@ -60,16 +60,16 @@
 
       audit.define('create with constructor', (task, should) => {
         should(() => {
-          new PeriodicWave(context, { real: new Float32Array(4096), imag: new Float32Array(4096) });
-        }, 'new PeriodicWave(context, { real : new Float32Array(4096), ' +
-        'imag : new Float32Array(4096) })').notThrow();
+          new PeriodicWave(context, { real: new Float32Array(testLength), imag: new Float32Array(testLength) });
+        }, 'new PeriodicWave(context, { real : new Float32Array(' + testLength + '), ' +
+        'imag : new Float32Array(' + testLength + ') })').notThrow();
         task.done();
       });
 
       audit.define('different length with constructor', (task, should) => {
         should(() => {
-          new PeriodicWave(context, { real: new Float32Array(4096), imag: new Float32Array(4) });
-        }, 'new PeriodicWave(context, { real : new Float32Array(4096), ' +
+          new PeriodicWave(context, { real: new Float32Array(testLength), imag: new Float32Array(4) });
+        }, 'new PeriodicWave(context, { real : new Float32Array(' + testLength + '), ' +
         'imag : new Float32Array(4) })').throw(DOMException, "IndexSizeError");
         task.done();
       });
@@ -83,7 +83,7 @@
       });
 
       audit.define('output test', (task, should) => {
-        let context = new OfflineAudioContext(2, 4096, 44100);
+        let context = new OfflineAudioContext(2, testLength, 44100);
         // Create the expected output buffer
         let expectations = context.createBuffer(2, testLength, context.sampleRate);
         for (var i = 0; i < expectations.length; ++i) {

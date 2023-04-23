@@ -294,3 +294,105 @@
     assert_equals(getComputedStyle(target).getPropertyValue('--applied'), '');
   }, 'Dynamically detaching');
 </script>
+
+<template id=scroll_timeline_ancestor_attached_removed>
+  <div class="timeline defer">
+    <div class=target>Test</div>
+    <div class="scroller timeline ancestor">
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, scroll_timeline_ancestor_attached_removed);
+    let scroller = main.querySelector('.scroller');
+    let target = main.querySelector('.target');
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+
+    let scroller_parent = scroller.parentElement;
+    scroller.remove();
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(target).width, '0px');
+    assert_equals(getComputedStyle(target).getPropertyValue('--applied'), '');
+
+    scroller_parent.append(scroller);
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+  }, 'Removing/inserting ancestor attached element');
+</script>
+
+<template id=scroll_timeline_ancestor_attached_display_none>
+  <div class="timeline defer">
+    <div class=target>Test</div>
+    <div class="scroller timeline ancestor">
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, scroll_timeline_ancestor_attached_display_none);
+    let scroller = main.querySelector('.scroller');
+    let target = main.querySelector('.target');
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+
+    scroller.style.display = 'none';
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(target).width, '0px');
+    assert_equals(getComputedStyle(target).getPropertyValue('--applied'), '');
+
+    scroller.style.display = 'block';
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+  }, 'Ancestor attached element becoming display:none/block');
+</script>
+
+<template id=scroll_timeline_dynamic_defer>
+  <style>
+    .inner-scroller {
+      overflow-y: hidden;
+      width: 50px;
+      height: 50px;
+    }
+    .inner-scroller > .content {
+      margin: 100px 0px;
+      width: 20px;
+      height: 20px;
+      background-color: red;
+    }
+  </style>
+  <div class="scroller timeline">
+    <div class="target content">
+      <div class="inner-scroller timeline ancestor">
+        <div class=content></div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, scroll_timeline_dynamic_defer);
+    let target = main.querySelector('.target');
+    let outer_scroller = main.querySelector('.scroller');
+    let inner_scroller = main.querySelector('.inner-scroller');
+
+    await scrollTop(outer_scroller, 350); // 50%
+    await scrollTop(inner_scroller, 17); // 10%
+
+    // Attached to outer_scroller (local).
+    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+
+    // Effectively attached to inner_scroller.
+    outer_scroller.classList.add('defer');
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(target).width, '20px'); // 0px => 200px, 10%
+
+    // Attached to outer_scroller again.
+    outer_scroller.classList.remove('defer');
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+  }, 'Dynamically becoming a deferred timeline');
+</script>

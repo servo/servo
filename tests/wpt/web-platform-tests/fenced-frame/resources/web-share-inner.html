@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to test Web Share</title>
+
+<body>
+<script>
+(async () => {
+  await simulateGesture();
+  const [navigator_share_key] = parseKeylist();
+  try {
+    await navigator.share({text: 'hello world'});
+    writeValueToServer(navigator_share_key, 'Web Share succeeded');
+  } catch(error) {
+    writeValueToServer(navigator_share_key, 'Web Share failed');
+  }
+})();
+</script>
+</body>

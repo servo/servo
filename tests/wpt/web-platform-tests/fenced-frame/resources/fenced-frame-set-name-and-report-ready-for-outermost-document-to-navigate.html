@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Nested fenced frame named navigation helper</title>
+<!-- This is a helper file. It is meant to be the document loaded inside a
+     nested fenced frame by `navigate-by-name-inner.html`. Once this document is
+     loaded and changes its `window.name` to `target_frame`, it reports to the
+     server so that the outermost document can attempt to navigate it by name.
+     (The navigation should not succeed - see the test expectations).
+-->
+<body>
+<script>
+  const [ready_for_navigation_key] = parseKeylist();
+  window.name = "target_frame";
+  writeValueToServer(ready_for_navigation_key, "READY");
+</script>
+</body>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Test default permission policy features gating ()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/default-enabled-features-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  await runDefaultEnabledFeaturesTest(t, false, get_host_info().ORIGIN);
+}, 'Same-origin fenced frame does not load when feature policies are none');
+
+promise_test(async(t) => {
+  await runDefaultEnabledFeaturesTest(t, false, get_host_info().REMOTE_ORIGIN);
+}, 'Cross-origin fenced frame does not load when feature policies are none');
+
+</script>
+</body>
+</html>

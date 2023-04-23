@@ -29,5 +29,12 @@ class ProcessErrorProcessor extends AudioWorkletProcessor {
 }
 
 
+/**
+ * @class EmptyErrorProcessor
+ * @extends AudioWorkletProcessor
+ */
+class EmptyErrorProcessor extends AudioWorkletProcessor { process() {} }
+
 registerProcessor('constructor-error', ConstructorErrorProcessor);
 registerProcessor('process-error', ProcessErrorProcessor);
+registerProcessor('empty-error', EmptyErrorProcessor);

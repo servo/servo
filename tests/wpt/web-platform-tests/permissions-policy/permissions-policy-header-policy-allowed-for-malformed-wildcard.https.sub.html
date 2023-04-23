@@ -18,7 +18,7 @@
   test(function() {
     assert_array_equals(
       document.featurePolicy.getAllowlistForFeature('fullscreen').sort(),
-      ["https://%2A.%2A.{{domains[]}}:{{ports[https][0]}}", "https://example.%2A.{{domains[]}}:{{ports[https][0]}}", "https://{{domains[]}}:{{ports[https][0]}}"].sort());
+      ["https://*.example.com", "https://{{domains[]}}:{{ports[https][0]}}"].sort());
   }, header_policy + ' -- test allowlist lists all the malformed wildcards and self.');
 
   // Test that fullscreen is allowed on same-origin subframes with or without an allow attribute.

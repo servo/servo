@@ -56,6 +56,10 @@
   test_valid_supports_import('@import url("nonexist.css") supports((display: flex) or (foo: bar));');
   test_valid_supports_import('@import url("nonexist.css") supports(display: block !important);');
 
+  test_valid_supports_import('@import url("nonexist.css") layer supports();');
+  test_valid_supports_import('@import url("nonexist.css") layer(A) supports((display: flex) or (foo: bar));');
+  test_valid_supports_import('@import url("nonexist.css") layer(A.B) supports((display: flex) and (foo: bar));');
+
   test_valid_supports_import('@import url("nonexist.css") supports(selector(a));');
   test_valid_supports_import('@import url("nonexist.css") supports(selector(p a));');
   test_valid_supports_import('@import url("nonexist.css") supports(selector(p > a));');

@@ -349,12 +349,13 @@
 
 - name: 2d.filter.canvasFilterObject.dropShadow.tentative
   desc: Test CanvasFilter() dropShadow object.
-  size: 620, 320
+  size: 520, 420
   code: |
     ctx.fillStyle = 'teal';
-    ctx.fillRect(0, 0, 620, 50);
-    ctx.fillRect(0, 100, 620, 50);
-    ctx.fillRect(0, 200, 620, 50);
+    ctx.fillRect(0, 0, 520, 50);
+    ctx.fillRect(0, 100, 520, 50);
+    ctx.fillRect(0, 200, 520, 50);
+    ctx.fillRect(0, 300, 520, 50);
 
     ctx.fillStyle = 'crimson';
 
@@ -364,91 +365,136 @@
 
     // All parameters specified.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 15, dy: 10, stdDeviation: 5,
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
        floodColor: 'purple', floodOpacity: 0.7});
     ctx.fillRect(110, 10, 80, 80);
 
     // Named color.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 10, dy: 10, stdDeviation: 3,
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'purple'});
     ctx.fillRect(10, 110, 80, 80);
 
     // System color.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 15, dy: 10, stdDeviation: 3,
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'LinkText'});
     ctx.fillRect(110, 110, 80, 80);
-
-    // No blur.
-    ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 10, dy: 15, stdDeviation: 0,
-       floodColor: 'purple'});
-    ctx.fillRect(210, 110, 80, 80);
 
     // Numerical color.
     ctx.filter = new CanvasFilter(
       {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'rgba(20, 50, 130, 1)'});
-    ctx.fillRect(310, 110, 80, 80);
+    ctx.fillRect(210, 110, 80, 80);
 
     // Transparent floodColor.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 15, dy: 10, stdDeviation: 3,
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'rgba(20, 50, 130, 0.7)'});
-    ctx.fillRect(410, 110, 80, 80);
+    ctx.fillRect(310, 110, 80, 80);
 
     // Transparent floodColor and floodOpacity.
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: 15, dy: 10, stdDeviation: 3,
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
        floodColor: 'rgba(20, 50, 130, 0.7)', floodOpacity: 0.7});
-    ctx.fillRect(510, 110, 80, 80);
+    ctx.fillRect(410, 110, 80, 80);
+
+    // No blur.
+    ctx.filter = new CanvasFilter(
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 0,
+       floodColor: 'purple'});
+    ctx.fillRect(10, 210, 80, 80);
+
+    // Single float blur.
+    ctx.filter = new CanvasFilter(
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
+       floodColor: 'purple'});
+    ctx.fillRect(110, 210, 80, 80);
+
+    // Single negative float blur.
+    ctx.filter = new CanvasFilter(
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: -5,
+       floodColor: 'purple'});
+    ctx.fillRect(210, 210, 80, 80);
+
+    // Two floats (X&Y) blur.
+    ctx.filter = new CanvasFilter(
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: [3, 5],
+       floodColor: 'purple'});
+    ctx.fillRect(310, 210, 80, 80);
+
+    // Two negative floats (X&Y) blur.
+    ctx.filter = new CanvasFilter(
+      {filter: 'dropShadow', dx: 9, dy: 12, stdDeviation: [-3, -5],
+       floodColor: 'purple'});
+    ctx.fillRect(410, 210, 80, 80);
 
     // Degenerate parameter values.
     ctx.filter = new CanvasFilter(
       {filter: 'dropShadow', dx: [-5], dy: [], stdDeviation: null,
        floodColor: 'purple', floodOpacity: [2]});
-    ctx.fillRect(10, 210, 80, 80);
+    ctx.fillRect(10, 310, 80, 80);
 
     ctx.filter = new CanvasFilter(
-      {filter: 'dropShadow', dx: null, dy: '5', stdDeviation: -5,
+      {filter: 'dropShadow', dx: null, dy: '5', stdDeviation: [[-5], ['3']],
        floodColor: 'purple', floodOpacity: '0.8'});
-    ctx.fillRect(110, 210, 80, 80);
+    ctx.fillRect(110, 310, 80, 80);
 
     ctx.filter = new CanvasFilter(
       {filter: 'dropShadow', dx: true, dy: ['10'], stdDeviation: false,
        floodColor: 'purple', floodOpacity: ['0.4']});
-    ctx.fillRect(210, 210, 80, 80);
+    ctx.fillRect(210, 310, 80, 80);
   html_reference: |
-    <svg width=620 height=320 xmlns="http://www.w3.org/2000/svg">
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width=520 height=420
+         color-interpolation-filters="sRGB">
       <rect x=0 y=0 width=100% height=50 fill="teal" />
       <rect x=0 y=100 width=100% height=50 fill="teal" />
       <rect x=0 y=200 width=100% height=50 fill="teal" />
+      <rect x=0 y=300 width=100% height=50 fill="teal" />
 
       <rect x=10 y=10 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(2px 2px 2px black)"/>
+            filter="drop-shadow(2px 2px 2px black)"/>
       <rect x=110 y=10 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(15px 10px 5px rgba(128, 0, 128, 0.7))"/>
+            filter="drop-shadow(9px 12px 5px rgba(128, 0, 128, 0.7))"/>
 
       <rect x=10 y=110 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(10px 10px 3px purple)"/>
+            filter="drop-shadow(9px 12px 3px purple)"/>
       <rect x=110 y=110 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(15px 10px 3px LinkText)"/>
+            filter="drop-shadow(9px 12px 3px LinkText)"/>
       <rect x=210 y=110 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(10px 15px 0px purple)"/>
+            filter="drop-shadow(9px 12px 3px rgba(20, 50, 130, 1))"/>
       <rect x=310 y=110 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(9px 12px 3px rgba(20, 50, 130, 1))"/>
+            filter="drop-shadow(9px 12px 3px rgba(20, 50, 130, 0.7))"/>
       <rect x=410 y=110 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(15px 10px 3px rgba(20, 50, 130, 0.7))"/>
-      <rect x=510 y=110 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(15px 10px 3px rgba(20, 50, 130, 0.49))"/>
+            filter="drop-shadow(9px 12px 3px rgba(20, 50, 130, 0.49))"/>
 
       <rect x=10 y=210 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(-5px 0px 0px purple)"/>
+            filter="drop-shadow(9px 12px 0px purple)"/>
       <rect x=110 y=210 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(0px 5px 0px rgba(128, 0, 128, 0.8))"/>
+            filter="drop-shadow(9px 12px 5px purple)"/>
       <rect x=210 y=210 width=80 height=80 fill="crimson"
-            style="filter: drop-shadow(1px 10px 0px rgba(128, 0, 128, 0.4))"/>
+            filter="drop-shadow(9px 12px 0px purple)"/>
+      <filter id="separable-filter"
+              x="-100%" y="-100%" width="300%" height="300%">
+        <feDropShadow dx=9 dy=12 stdDeviation="3 5" flood-color="purple"/>
+      </filter>
+      <rect x=310 y=210 width=80 height=80 fill="crimson"
+            filter="url(#separable-filter)"/>
+      <rect x=410 y=210 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 0px purple)"/>
+
+      <rect x=10 y=310 width=80 height=80 fill="crimson"
+            filter="drop-shadow(-5px 0px 0px purple)"/>
+      <filter id="separable-filter-degenerate"
+              x="-100%" y="-100%" width="300%" height="300%">
+        <feDropShadow dx=0 dy=5 stdDeviation="0 3"
+            flood-color="rgba(128, 0, 128, 0.8)"/>
+      </filter>
+      <rect x=110 y=310 width=80 height=80 fill="crimson"
+            filter="url(#separable-filter-degenerate)"/>
+      <rect x=210 y=310 width=80 height=80 fill="crimson"
+            filter="drop-shadow(1px 10px 0px rgba(128, 0, 128, 0.4))"/>
     </svg>
 
 - name: 2d.filter.canvasFilterObject.dropShadow.exceptions.tentative
@@ -456,8 +502,14 @@
   code: |
     @unroll @assert new CanvasFilter({\
         filter: 'dropShadow', \
-        <dx | dy | stdDeviation | floodOpacity>: \
+        <dx | dy | floodOpacity>: \
         <10 | -1 | 0.5 | null | true | false | [] | [20] | '30'>});
+    @unroll @assert new CanvasFilter({\
+        filter: 'dropShadow', \
+        <stdDeviation>: \
+        <10 | -1 | 0.5 | null | true | false | [] | [20] | '30' | \
+         [10, -1] | [0.5, null] | [true, false] | [[], [20]] | \
+         ['30', ['40']]>});
     @unroll @assert new CanvasFilter({\
         filter: 'dropShadow', \
         <floodColor>: \
@@ -465,8 +517,14 @@
 
     @unroll @assert throws TypeError new CanvasFilter({\
         filter: 'dropShadow', \
-        <dx | dy | stdDeviation | floodOpacity>: \
+        <dx | dy | floodOpacity>: \
         <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2]>});
+    @unroll @assert throws TypeError new CanvasFilter({\
+        filter: 'dropShadow', \
+        <stdDeviation>: \
+        <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2, 3] | \
+         [1, NaN] | [1, Infinity] | [1, -Infinity] | [1, undefined] | \
+         [1, 'test'] | [1, {}] | [1, [2, 3]]>});
     @unroll @assert throws TypeError new CanvasFilter({\
         filter: 'dropShadow', \
         <floodColor>: \

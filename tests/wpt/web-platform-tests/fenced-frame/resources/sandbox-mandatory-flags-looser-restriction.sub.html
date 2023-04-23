@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Iframe content to load a nested sandboxed iframe with all mandatory allow-* flags</title>
+
+<body>
+<iframe
+  src="sandbox-mandatory-flags-iframe.sub.html?key={{GET[key]}}&value={{GET[value]}}"
+  sandbox="allow-same-origin
+           allow-forms
+           allow-scripts
+           allow-popups
+           allow-popups-to-escape-sandbox
+           allow-top-navigation-by-user-activation">
+</iframe>
+</body>

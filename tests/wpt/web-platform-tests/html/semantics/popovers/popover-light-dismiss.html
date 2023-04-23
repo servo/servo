@@ -298,11 +298,10 @@
     assert_false(popover3.matches(':popover-open'));
     popover3.showPopover();
     assert_true(popover3.matches(':popover-open'));
-    assert_true(popover5.matches(':popover-open'));
-    popover5.hidePopover();
+    assert_false(popover5.matches(':popover-open'),'Popover 5 was not invoked from popover3\'s invoker');
+    popover3.hidePopover();
     assert_false(popover3.matches(':popover-open'));
-    assert_false(popover5.matches(':popover-open'));
-  },'An invoking element that was not used to invoke the popover can still be part of the ancestor chain');
+  },'An invoking element that was not used to invoke the popover is not part of the ancestor chain');
 </script>
 
 <div popover id=p6>Inside popover 6
@@ -536,4 +535,41 @@ promise_test(async () => {
   assert_false(p14.matches(':popover-open'));
   assert_false(p15.matches(':popover-open'));
 },'Hide the target popover during "hide all popovers until"');
+</script>
+
+<div id=p16 popover>Popover 16
+    <div id=p17 popover>Popover 17</div>
+    <div id=p18 popover>Popover 18</div>
+</div>
+
+<script>
+promise_test(async () => {
+  p16.showPopover();
+  p18.showPopover();
+  p18.addEventListener('beforetoggle', (e) => {
+    if (e.newState === "closed")
+      p17.showPopover();
+  },{once:true});
+  p16.hidePopover();
+  assert_false(p16.matches(':popover-open'));
+  assert_false(p17.matches(':popover-open'));
+  assert_false(p18.matches(':popover-open'));
+},'Show a sibling popover during "hide all popovers until"');
+</script>
+
+<div id=p19 popover>Popover 19</div>
+<div id=p20 popover>Popover 20</div>
+<button id=example2>Example 2</button>
+
+<script>
+promise_test(async () => {
+  p19.showPopover();
+  p19.addEventListener('beforetoggle', (e) => {
+    if (e.newState === "closed")
+      p20.showPopover();
+  },{once:true});
+  p19.hidePopover();
+  assert_false(p19.matches(':popover-open'));
+  assert_true(p20.matches(':popover-open'));
+},'Show an unrelated popover during "hide popover"');
 </script>

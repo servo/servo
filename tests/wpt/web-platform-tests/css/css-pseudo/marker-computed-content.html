@@ -51,7 +51,6 @@ const expectations = {
 for (const target of document.querySelectorAll('.list > li')) {
   const {content} = getComputedStyle(target, '::marker');
   test(() => {
-    debugger;
     assert_equals(content, expectations[target.className]);
   }, `Computed 'content' for list-item ::marker, variant ${target.className}`);
 }

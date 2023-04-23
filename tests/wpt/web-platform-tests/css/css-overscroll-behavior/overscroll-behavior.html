@@ -102,10 +102,10 @@ function verify_y_prevented_and_set_boundary_prevents_x() {
   instruction1.style.fontWeight = 'normal';
   instruction2.style.fontWeight = 'bold';
   test.step(function() {
-    assert_equals(root.scrollTop, 100);
-    assert_equals(root.scrollLeft, 0);
+    assert_equals(root.scrollTop, 100, "overscroll-behavior-y: none should prevent scroll propagation on y axis.");
+    assert_equals(root.scrollLeft, 0, "overscroll-behavior-y: none should only prevent scroll propagation on y axis.");
     window.scrollTo(0, 0);
-  }, "overscroll-behavior-y: none should only prevent scroll propagation on y axis.");
+  });
 
   container.style.overscrollBehaviorX = 'none';
   container.style.overscrollBehaviorY = 'auto';
@@ -118,9 +118,9 @@ function verify_x_prevented_and_set_boundary_allows_inner() {
   instruction2.style.fontWeight = 'normal';
   instruction3.style.fontWeight = 'bold';
   test.step(function() {
-    assert_equals(root.scrollTop, 0);
-    assert_equals(root.scrollLeft, 100);
-  }, "overscroll-behavior-x: none should only prevent scroll propagation on x axis.");
+    assert_equals(root.scrollTop, 0, "overscroll-behavior-x: none should only prevent scroll propagation on x axis.");
+    assert_equalhhs(root.scrollLeft, 100, "overscroll-behavior-x: none should prevent scroll propagation on x axis." );
+  });
 
   container.style.overscrollBehaviorX = 'none';
   container.style.overscrollBehaviorY = 'none';
@@ -135,11 +135,11 @@ function verify_inner_allowed_and_set_nonscrollable_allows_propagation() {
   instruction3.style.fontWeight = 'normal';
   instruction4.style.fontWeight = 'bold';
   test.step(function() {
-    assert_equals(container.scrollTop, 0);
-    assert_equals(container.scrollLeft, 0);
-    assert_equals(root.scrollTop, 100);
-    assert_equals(root.scrollLeft, 100);
-  }, "overscroll-behavior should latch the scroll to the inner container.");
+    assert_equals(container.scrollTop, 0, "overscroll-behavior should latch the scroll to the inner container.");
+    assert_equals(container.scrollLeft, 0, "overscroll-behavior should latch the scroll to the inner container.");
+    assert_equals(root.scrollTop, 100, "overscroll-behavior should latch the scroll to the inner container.");
+    assert_equals(root.scrollLeft, 100, "overscroll-behavior should latch the scroll to the inner container.");
+  });
 
   non_scrollable.style.overscrollBehaviorX = 'none';
   non_scrollable.style.overscrollBehaviorY = 'none';
@@ -149,9 +149,9 @@ function verify_inner_allowed_and_set_nonscrollable_allows_propagation() {
 
 function verify_non_scrollable_allows_propagation() {
   test.step(function() {
-    assert_equals(root.scrollLeft, 0);
-    assert_equals(root.scrollTop, 0);
-  }, "overscroll-behavior on non-scrollable area should not affect scroll propagation.");
+    assert_equals(root.scrollLeft, 0, "overscroll-behavior on non-scrollable area should not affect scroll propagation.");
+    assert_equals(root.scrollTop, 0, "overscroll-behavior on non-scrollable area should not affect scroll propagation.");
+  });
   actions_promise.then( () => {
     test.done();
   });

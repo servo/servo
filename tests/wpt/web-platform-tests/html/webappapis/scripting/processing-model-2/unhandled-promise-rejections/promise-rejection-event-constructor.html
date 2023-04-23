@@ -9,6 +9,12 @@
 test(function() {
   var p = new Promise(function(resolve, reject) {});
 
+  assert_throws_js(TypeError,
+                   function() {
+                     PromiseRejectionEvent('', { promise: p });
+                   },
+                   "Calling PromiseRejectionEvent constructor without 'new' must throw");
+
   // No custom options are passed (besides required promise).
   assert_equals(new PromiseRejectionEvent('eventType', { promise: p }).bubbles, false);
   assert_equals(new PromiseRejectionEvent('eventType', { promise: p }).cancelable, false);

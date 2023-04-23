@@ -9,12 +9,11 @@ pressure_test(async (t, mockPressureService) => {
     const observer = new PressureObserver(resolve);
     t.add_cleanup(() => observer.disconnect());
     observer.observe('cpu');
-    mockPressureService.setPressureUpdate('cpu', 'critical', ['thermal']);
+    mockPressureService.setPressureUpdate('cpu', 'critical');
     mockPressureService.startPlatformCollector(/*sampleRate=*/ 5.0);
   });
   assert_true(changes.length === 1);
   assert_equals(changes[0].state, 'critical');
   assert_equals(changes[0].source, 'cpu');
   assert_equals(typeof changes[0].time, 'number');
-  assert_equals(changes[0].factors[0], 'thermal');
 }, 'Basic factors functionality test');

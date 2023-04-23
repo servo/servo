@@ -187,7 +187,7 @@
     polyfill_declarative_shadow_dom(test5);
     const [popover1,popover2] = getPopoverReferences('test5');
     popover1.showPopover();
-    popover2.showPopover();
+    popover1.querySelector('button').click(); // Use invoker to keep 2 visible
     // Both 1 and 2 should be open at this point.
     assert_true(popover1.matches(':popover-open'), 'popover1 not open');
     assert_true(isElementVisible(popover1));

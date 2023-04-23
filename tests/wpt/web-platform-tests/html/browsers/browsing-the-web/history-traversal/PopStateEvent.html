@@ -5,6 +5,14 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
+test(function() {
+  assert_throws_js(
+    TypeError,
+    () => PopStateEvent(''),
+    "Calling PopStateEvent constructor without 'new' must throw"
+  );
+}, "PopStateEvent constructor called as normal function");
+
 test(function () {
   assert_false('initPopStateEvent' in PopStateEvent.prototype,
                'There should be no PopStateEvent#initPopStateEvent');

@@ -68,8 +68,8 @@
   test_condition_known('style(--my-prop:)');
   test_condition_known('style(--my-prop: )');
   test_condition_known('style(--foo: bar !important)');
+  test_condition_known('style(--foo)');
 
   test_condition_unknown('style(--foo: bar;)');
-  test_condition_unknown('style(--foo)');
   test_condition_unknown('style(style(--foo: bar))');
 </script>

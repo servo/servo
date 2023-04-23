@@ -255,12 +255,14 @@ promise_test(async t => {
   await animation.ready;
   await updateScrollPosition(scrollTimeline, 100);
 
-  assert_equals(animation.playState, 'running');
+  const progress = animation.currentTime.value / 100;
+  const duration = animation.effect.getTiming().duration;
   animation.timeline = null;
 
-  assert_equals(animation.playState, 'running');
+  const expectedCurrentTime = progress * duration;
+  assert_times_equal(animation.currentTime, expectedCurrentTime);
 }, 'Transitioning from a scroll timeline to a null timeline on a running ' +
-    'animation preserves the play state');
+    'animation preserves current progress.');
 
 promise_test(async t => {
   const keyframeEfect = new KeyframeEffect(createDiv(t),

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test opaque fenced frame navigations with allowed CSP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+for (const resolve_to_config of [true, false]) {
+  const allowedCSPs = ["*", "https:", "https://*:*"];
+  allowedCSPs.forEach((csp) => {
+    promise_test(async() => {
+      setupCSP(csp);
+
+      const key = token();
+      window.addEventListener('securitypolicyviolation', function(e) {
+        // Write to the server even though the listener is in the same file in
+        // the test below.
+        writeValueToServer(key, e.violatedDirective + ";" + e.blockedURI);
+      }, {once: true});
+
+      attachFencedFrame(await runSelectURL("resources/embeddee.html",
+                                  [key], resolve_to_config));
+
+      const result = await nextValueFromServer(key);
+      assert_equals(result, "PASS",
+          "The fenced frame should load for CSP fenced-frame-src " + csp);
+    }, "Fenced frame loaded for CSP fenced-frame-src " + csp + " using " +
+         (resolve_to_config ? "config" : "urn:uuid"));
+
+    promise_test(async() => {
+      setupCSP(csp);
+      assert_true(navigator.canLoadAdAuctionFencedFrame());
+    }, "Opaque-ads can load API returns true for " + csp + " using " +
+       (resolve_to_config ? "config" : "urn:uuid"));
+  });
+}
+</script>
+</body>
