@@ -342,7 +342,9 @@ class PackageCommands(CommandBase):
             change_prefs(dir_to_resources, "macosx")
 
             print("Finding dylibs and relinking")
-            copy_dependencies(path.join(content_dir, 'servo'), content_dir)
+            # TODO(mrobinson): GStreamer dependencies don't need to be packaged
+            # with servo until the media backend is re-enabled.
+            # copy_dependencies(path.join(content_dir, 'servo'), content_dir)
 
             print("Adding version to Credits.rtf")
             version_command = [binary_path, '--version']
@@ -403,7 +405,9 @@ class PackageCommands(CommandBase):
             # Note that in the context of Homebrew, libexec is reserved for private use by the formula
             # and therefore is not symlinked into HOMEBREW_PREFIX.
             os.makedirs(path.join(dir_to_brew, 'libexec'))
-            copy_dependencies(path.join(dir_to_brew, 'bin', 'servo'), path.join(dir_to_brew, 'libexec'))
+            # TODO(mrobinson): GStreamer dependencies don't need to be packaged
+            # with servo until the media backend is re-enabled.
+            # copy_dependencies(path.join(dir_to_brew, 'bin', 'servo'), path.join(dir_to_brew, 'libexec'))
             archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
             delete(dir_to_brew)
             print("Packaged Servo into " + tar_path)
