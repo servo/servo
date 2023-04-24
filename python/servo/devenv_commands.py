@@ -352,7 +352,7 @@ class MachCommands(CommandBase):
     def try_jobs(self, jobs):
         branches = []
         # we validate branches because force pushing is destructive
-        VALID_TRY_BRACHES = ["try", "try-linux", "try-mac", "try-windows", "try-wpt"]
+        VALID_TRY_BRACHES = ["try", "try-linux", "try-mac", "try-windows", "try-wpt", "try-wpt-2020"]
         for job in jobs:
             # branches must start with try-
             if "try" not in job:

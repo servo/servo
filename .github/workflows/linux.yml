@@ -39,13 +39,13 @@ on:
         default: false
         type: boolean
   push:
-    branches: ["try-linux", "try-wpt"]
+    branches: ["try-linux", "try-wpt", "try-wpt-2020"]
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  LAYOUT: "${{ contains(inputs.layout, '2020') && 'layout-2020' || 'layout-2013' }}"
-  PACKAGE: "${{ contains(inputs.layout, '2020') && 'linux-layout2020' || 'linux' }}"
+  LAYOUT: "${{ (contains(inputs.layout, '2020') || github.ref_name == 'try-wpt-2020') && 'layout-2020' || 'layout-2013' }}"
+  PACKAGE: "${{ (contains(inputs.layout, '2020') || github.ref_name == 'try-wpt-2020') && 'linux-layout2020' || 'linux' }}"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
   CCACHE: "sccache"
@@ -102,7 +102,7 @@ jobs:
           path: target.tar.gz
 
   linux-wpt:
-    if: ${{ github.ref_name == 'try-wpt' || inputs.wpt }}
+    if: ${{ contains(github.ref_name, 'wpt') || inputs.wpt }}
     name: Linux WPT Tests
     runs-on: ubuntu-20.04
     needs: ["build-linux"]
@@ -183,7 +183,7 @@ jobs:
   report-test-results:
     name: Reporting test results
     runs-on: ubuntu-latest
-    if: ${{ always() && !cancelled() && success('build-linux') && (github.ref_name == 'try-wpt' || inputs.wpt == 'test') }}
+    if: ${{ always() && !cancelled() && success('build-linux') && (contains(github.ref_name, 'wpt') || inputs.wpt == 'test') }}
     needs:
       - "linux-wpt"
     steps:
