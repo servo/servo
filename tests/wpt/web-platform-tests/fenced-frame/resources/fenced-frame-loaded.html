@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<script src="utils.js"></script>
+<title>Fenced frame loaded</title>
+<body>
+<script>
+(async function() {
+  const [parent_key] = parseKeylist();
+  writeValueToServer(parent_key, "fenced frame loaded");
+})();
+</script>
+</body>
+</html>

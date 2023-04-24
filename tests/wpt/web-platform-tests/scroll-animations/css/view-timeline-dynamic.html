@@ -178,6 +178,10 @@
     await scrollTop(scroller, 50);
     assert_equals(getComputedStyle(target).zIndex, '25');
     timeline.style.display = 'none';
-    assert_equals(getComputedStyle(target).zIndex, '-1');
+    // Animation is held at previous current time.
+    assert_equals(getComputedStyle(target).zIndex, '25');
+    const anim = target.getAnimations()[0];
+    assert_equals(anim.startTime, null);
+    assert_times_equal(anim.currentTime, 250);
   }, 'Element with view-timeline becoming display:none');
 </script>

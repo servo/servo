@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+  <title>Test Content Security Policy</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/utils.js"></script>
+  <script src="/common/utils.js"></script>
+
+  <body>
+
+    <script>
+      promise_test(async () => {
+        const csp_key = token();
+
+        // The 'csp' property does not appear in the IDL definition for
+        // fenced frames, so ensure that the 'csp' property didn't
+        // leak over from the IFrame prototype.
+        assert_equals(HTMLFencedFrameElement.prototype.hasOwnProperty('csp'),
+                      false);
+
+        const new_frame = document.createElement('fencedframe');
+        const new_config = new FencedFrameConfig(generateURL(
+            "resources/csp-inner.html",
+            [csp_key]));
+        new_frame.config = new_config;
+
+        // This attribute will be ignored since the IDL for
+        // fenced frames do not support the 'csp' attribute.
+        new_frame.setAttribute("csp", "style-src 'none';");
+        document.body.append(new_frame);
+
+        // Get the result for the top-level fenced frame.
+        const fenced_frame_result = await nextValueFromServer(csp_key);
+        assert_equals(fenced_frame_result, "pass");
+
+      }, "Fenced Frames should not honor the csp attribute from parent page");
+    </script>
+
+  </body>
+</html>

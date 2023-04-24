@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Test of Web Bluetooth API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async t => {
+  const bluetooth_request_device_key = token();
+
+  attachFencedFrame(generateURL('resources/web-bluetooth-inner.html',
+      [bluetooth_request_device_key]));
+  const result = await nextValueFromServer(bluetooth_request_device_key);
+
+  assert_equals(
+      result, 'Web Bluetooth requestDevice() failed',
+      'Web Bluetooth requestDevice() must fail in a fenced frame.');
+}, 'Web Bluetooth requestDevice() must fail in a fenced frame');
+</script>
+
+</body>

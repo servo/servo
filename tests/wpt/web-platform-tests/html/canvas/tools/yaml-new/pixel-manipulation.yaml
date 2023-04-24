@@ -563,6 +563,7 @@
     setRGBA(imageData.data, 4, testColor);
     assertArrayEquals(getRGBA(imageData.data, 4), testColor);
 
+    @assert throws TypeError ImageData(1, 1);
     @assert throws TypeError new ImageData(10);
     @assert throws INDEX_SIZE_ERR new ImageData(0, 10);
     @assert throws INDEX_SIZE_ERR new ImageData(10, 0);

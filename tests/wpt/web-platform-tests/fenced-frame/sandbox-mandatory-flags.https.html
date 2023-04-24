@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<meta name=timeout content=long>
+<title>Test of sandbox mandatory flags</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+
+<body>
+
+<script>
+
+const mandatory_flags = [
+      'allow-same-origin',
+      'allow-forms',
+      'allow-scripts',
+      'allow-popups',
+      'allow-popups-to-escape-sandbox',
+      'allow-top-navigation-by-user-activation'];
+
+promise_test(async t => {
+  const key = token();
+  const value = 'fenced frame loaded';
+  const iframe = document.createElement('iframe');
+  iframe.src =
+      'resources/sandbox-mandatory-flags-iframe.sub.html?key=' + key +
+      '&value=' + value;
+  mandatory_flags.forEach(flag => {
+    iframe.sandbox.add(flag);
+  });
+
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => {
+    iframe.remove();
+  });
+  const result = await nextValueFromServer(key);
+  assert_equals(result, value, 'The fenced frame must be loaded.');
+}, 'Sandboxed Iframe with mandatory flags can load a fenced frame.');
+
+promise_test(async t => {
+  const key = token();
+  // Try to load a fenced frame in a sandboxed iframe like this:
+  //   <iframe sandbox="|mandatory_flags| without |missing_flag|"
+  //           src="sandbox-mandatory-flags-iframe.sub.html">
+  //     <fencedframe src="sandbox-mandatory-flags-inner.sub.html">
+  //       <img src="key-value-store.py?key=|key|&value=|value|">
+  //     <fencedframe>
+  //   </iframe>
+  // But this should fail because the sandboxed iframe is loaded without
+  // |missing_flag|.
+  for (let missing_flag of mandatory_flags) {
+    const value =
+        'a fenced frame was loaded in a sandboxed iframe without ' +
+        missing_flag + '.';
+    const iframe = document.createElement('iframe');
+    iframe.src =
+        'resources/sandbox-mandatory-flags-iframe.sub.html?key=' + key +
+        '&value=' + value;
+    mandatory_flags.forEach(flag => {
+      if (flag != missing_flag) {
+        iframe.sandbox.add(flag);
+      }
+    });
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => {
+      iframe.remove();
+    });
+  }
+  t.step_timeout(() => t.done(), 3000);
+  let server_value = await nextValueFromServer(key);
+  assert_unreached('fenced frame should not be loaded, but ' + server_value);
+}, 'Sandboxed Iframe without one of mandatory flag must fail to load a fenced' +
+   ' frame.');
+
+promise_test(async t => {
+  const key = token();
+  // Try to load a fenced frame in a nested sandboxed iframe like this:
+  //   <iframe sandbox="|mandatory_flags| without |missing_flag|"
+  //           src="sandbox-mandatory-flags-looser-restriction.sub.html">
+  //     <iframe sandbox="|mandatory_flags|"
+  //             src="sandbox-mandatory-flags-iframe.sub.html">
+  //       <fencedframe src="resources/sandbox-mandatory-flags-inner.sub.html">
+  //         <img src="key-value-store.py?key=|key|&value=|value|">
+  //       <fencedframe>
+  //     </iframe>
+  //   </iframe>
+  // But this should fail because the nested iframe is loaded sandboxed
+  // without |missing_flag|.
+  for (let missing_flag of mandatory_flags) {
+    const value =
+        'a fenced frame was loaded in a nested sandboxed iframe without ' +
+        missing_flag + '.';
+    const iframe = document.createElement('iframe');
+    iframe.src =
+        'resources/sandbox-mandatory-flags-looser-restriction.sub.html?key=' +
+        key + '&value=' + value;
+    mandatory_flags.forEach(flag => {
+      if (flag != missing_flag) {
+        iframe.sandbox.add(flag);
+      }
+    });
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => {
+      iframe.remove();
+    });
+  }
+  t.step_timeout(() => t.done(), 3000);
+  let server_value = await nextValueFromServer(key);
+  assert_unreached('fenced frame should not be loaded, but ' + server_value);
+}, 'Nested sandboxed iframe without one of mandatory flag must fail to load a' +
+   'fenced frame even when the inner nested sandboxed iframe has all ' +
+   'mandatory allow- flags.');
+
+promise_test(async t => {
+  const key = token();
+  // allow-scripts is needed to run iframe.execute, so we will test every other
+  // sandbox flag
+  for (let missing_flag of
+       mandatory_flags.filter(word => word != "allow-scripts")) {
+    const value =
+        'canLoadOpaqueURL returned true even with flag ' +
+        missing_flag + ' not set.';
+    const flags_to_add = mandatory_flags
+        .filter(word => word != missing_flag)
+        .join(" ");
+    const iframe = attachIFrameContext(
+        {attributes: [["sandbox", flags_to_add]]});
+    await iframe.execute(async (t) => {
+      assert_false(navigator.canLoadAdAuctionFencedFrame());
+    });
+  }
+}, 'navigator.canLoadAdAuctionFencedFrame considers mandatory sandbox flags');
+</script>
+
+</body>

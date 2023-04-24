@@ -27,13 +27,3 @@ for (const method of ['GET', 'POST']) {
     assertStashedTokenAsync(`simple ${method} request: no payload`, token1);
   }, `simple ${method} request: no payload; setting up`);
 }
-
-promise_test(async (test) => {
-  const w = window.open(`${
-      HTTP_NOTSAMESITE_ORIGIN}/fetch/api/resources/keepalive-redirect-window.html`);
-  const token = await getTokenFromMessage();
-  w.close();
-
-  assertStashedTokenAsync(
-      'keepalive in onunload in nested frame in another window', token);
-}, 'keepalive in onunload in nested frame in another window; setting up');

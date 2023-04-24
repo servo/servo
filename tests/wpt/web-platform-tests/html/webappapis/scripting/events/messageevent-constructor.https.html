@@ -5,6 +5,14 @@
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
 <script>
 test(function() {
+    assert_throws_js(
+        TypeError,
+        () => MessageEvent(""),
+        "Calling MessageEvent constructor without 'new' must throw"
+    );
+}, "MessageEvent constructor called as normal function");
+
+test(function() {
   var ev = new MessageEvent("test")
   assert_equals(ev.type, "test", "type attribute")
   assert_equals(ev.target, null, "target attribute")

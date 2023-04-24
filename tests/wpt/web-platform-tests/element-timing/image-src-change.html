@@ -14,6 +14,8 @@
   <script src="resources/element-timing-helpers.js"></script>
   <img elementtiming='my_image' id='my_id' />
   <script>
+    setup({"hide_test_state": true});
+
     const performanceEntryPromise = (pathname) => {
       return new Promise(resolve => {
         new PerformanceObserver((entryList, observer) => {

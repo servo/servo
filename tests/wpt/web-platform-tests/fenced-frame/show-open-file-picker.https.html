@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>showOpenFilePicker API test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  const result = await frame.execute(async () => {
+    await simulateGesture();
+    try {
+      const dir = await window.showOpenFilePicker();
+      return 'opened file picker';
+    } catch (e) {
+      if (e.name === 'SecurityError' &&
+          e.message === "Failed to execute 'showOpenFilePicker' on 'Window': Cross origin sub frames aren't allowed to show a file picker.") {
+        return 'Access to the open file picker was disallowed';
+      }
+      return `showOpenFilePicker failed with unknown error ${e.name} ${e.message}`;
+    }
+  });
+  assert_equals(result, 'Access to the open file picker was disallowed');
+}, 'Directory information should not be read in the fenced frame.');
+</script>
+</body>

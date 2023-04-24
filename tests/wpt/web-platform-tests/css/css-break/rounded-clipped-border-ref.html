@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+
+<style>
+  .container {
+    float: left;
+    margin: 10px;
+    text-align: center;
+    inline-size: fit-content;
+  }
+  .multicol {
+    inline-size: 320px;
+    block-size: 120px;
+    border: solid;
+    background: lightgray;
+  }
+  .column {
+    float: left;
+    inline-size: 100px;
+    margin-inline-start: 10px;
+  }
+  .column:first-child {
+    margin-inline-start:0;
+  }
+  .clipper {
+    position: relative;
+    border-radius: 50px;
+    border: 20px solid blue;
+    overflow: clip;
+    background: red;
+  }
+  .clipper.part1 {
+    block-size: 100px;
+    border-block-end: none;
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+  }
+  .clipper.part2 {
+    block-size: 120px;
+    border-block-start: none;
+    border-block-end: none;
+    border-radius: 0;
+  }
+  .clipper.part3 {
+    block-size: 80px;
+    border-block-start: none;
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+  .child {
+    block-size: 300px;
+    background: yellow;
+  }
+</style>
+
+<p>In each figure there should be a yellow box with a rounded blue border around
+  it, split into three columns. There should be no red.</p>
+
+<div class="container">
+  horizontal-tb:
+  <div class="multicol">
+    <div class="column">
+      <div class="clipper part1">
+        <div class="child"></div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="clipper part2">
+        <div class="child"></div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="clipper part3">
+        <div class="child"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  vertical-rl:
+  <div class="multicol" style="writing-mode:vertical-rl;">
+    <div class="column">
+      <div class="clipper part1">
+        <div class="child"></div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="clipper part2">
+        <div class="child"></div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="clipper part3">
+        <div class="child"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  vertical-lr:
+  <div class="multicol" style="writing-mode:vertical-lr;">
+    <div class="column">
+      <div class="clipper part1">
+        <div class="child"></div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="clipper part2">
+        <div class="child"></div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="clipper part3">
+        <div class="child"></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -55,16 +55,21 @@
       anim.rangeStart = 'contain 0%';  // 700px
       anim.rangeEnd = 'contain 100%';  // 800px
       assert_equals(anim.playState, 'running');
+      assert_percents_equal(anim.currentTime, 100/6);
 
       // Animation in the after phase and switches to the finished state.
       anim.rangeStart = 'entry 0%';  // 600px
       anim.rangeEnd = 'entry 100%';  // 700px
       assert_equals(anim.playState, 'finished');
+      // Clamp to effect end when finished.
+      assert_percents_equal(anim.currentTime, 100/3);
 
       // Animation in the before phase and switches back to the running state.
       anim.rangeStart = 'exit 0%';  // 800px
       anim.rangeEnd = 'exit 100%';  // 900px
       assert_equals(anim.playState, 'running');
+      assert_percents_equal(anim.currentTime, -100/6);
+
     }, 'Changing the animation range updates the play state');
   }
 

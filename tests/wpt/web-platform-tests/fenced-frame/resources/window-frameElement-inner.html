@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of window.frameElement</title>
+
+<body>
+<script>
+(async () => {
+  // Report whether or not `window.frameElement` is null
+  const [frame_element_key] = parseKeylist();
+  let result = (window.frameElement == null) ? "PASS" : "FAIL";
+  writeValueToServer(frame_element_key, result);
+})();
+</script>
+</body>

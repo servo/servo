@@ -7,12 +7,13 @@
 <script src="resources/largest-contentful-paint-helpers.js"></script>
 <script src="/common/utils.js"></script>
 <script>
+    setup({"hide_test_state": true});
     setup(() =>
         assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented"));
 
     const imageURL = `${window.location.origin}/images/blue.png`;
     async function load_image_and_get_lcp_size(t, imageStyle = {}, containerStyle = {}) {
-        const popup = window.open('about:blank');
+        const popup = window.open();
         t.add_cleanup(() => popup.close());
         const image = popup.document.createElement('img');
         image.src = imageURL;

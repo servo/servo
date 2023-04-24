@@ -156,9 +156,14 @@ const testCases = [
     expectedReturnValue: "foo"
   },
   {
+    setReturnValue: "",
+    expectedReturnValue: "",
+    expectCancelation: false,
+  },
+  {
     expectCancelation: true,
-    cancel: true,
-    expectedReturnValue: ""
+    expectedReturnValue: "",
+    cancel: true
   },
   {
     setReturnValue: "foo",

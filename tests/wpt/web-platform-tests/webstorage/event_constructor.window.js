@@ -1,4 +1,12 @@
 test(function() {
+    assert_throws_js(
+        TypeError,
+        () => StorageEvent(""),
+        "Calling StorageEvent constructor without 'new' must throw"
+    );
+}, "StorageEvent constructor called as normal function");
+
+test(function() {
     assert_throws_js(TypeError, () => new StorageEvent());
     // should be redundant, but .length can be wrong with custom bindings
     assert_equals(StorageEvent.length, 1, 'StorageEvent.length');

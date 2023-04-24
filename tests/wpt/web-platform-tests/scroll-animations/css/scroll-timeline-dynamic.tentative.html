@@ -159,6 +159,10 @@
     // DocumentTimeline applies by default.
     await assert_width(element, '100px');
 
+    // Wait for the animation to be ready so that we a start time and no hold
+    // time.
+    await element.getAnimations()[0].ready;
+
     // DocumentTimeline -> none
     element.style.animationTimeline = 'none';
     await assert_width(element, '0px');

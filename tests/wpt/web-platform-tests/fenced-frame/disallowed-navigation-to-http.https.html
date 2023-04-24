@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Fenced frame disallowed navigations</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+function getTimeoutPromise(t) {
+  return new Promise(resolve =>
+      t.step_timeout(() => resolve("NOT LOADED"), 2000));
+}
+
+// The following test ensures that an embedder cannot navigate a
+// `mode=opaque-ads` fenced frame to an opaque URN that represents a:
+//   - http: URL
+// We split this into a separate test file because `sharedStorage.selectURL()`,
+// which is used to generate the URN in the test, has a limit of 3 calls per
+// origin per pageload. We are unabled to generate this URN from FLEDGE.
+for (const resolve_to_config of [true, false]) {
+  promise_test(async t => {
+    const key = token();
+    const http_url = new URL("resources/embeddee.html",
+      get_host_info().HTTP_ORIGIN + location.pathname);
+    const select_url_result = await runSelectURL(http_url, [key],
+                                                 resolve_to_config);
+    const fencedframe = attachFencedFrame(select_url_result,
+                                          /*mode=*/'opaque-ads');
+    const loaded_promise = nextValueFromServer(key);
+    const result = await Promise.any([loaded_promise, getTimeoutPromise(t)]);
+    assert_equals(result, "NOT LOADED");
+  }, "fenced frame " + (resolve_to_config ? "config" : "urn:uuid") +
+     " => http: URL");
+}
+</script>
+</body>

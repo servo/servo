@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Test navigating an ancestor frame from a nested fenced frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/navigate-ancestor-helper.js"></script>
+
+<body>
+<script>
+promise_test(async t => {
+  await runNavigateAncestorTest("nested fenced frame", "parent");
+}, "Nested fenced frames that navigate _parent end up navigating themselves");
+
+promise_test(async t => {
+  await runNavigateAncestorTest("nested fenced frame", "top");
+}, "Nested fenced frames that navigate _top end up navigating themselves");
+</script>
+
+</body>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Test default permission policy features with allow="" attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/default-enabled-features-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().ORIGIN,
+      allow="shared-storage *; attribution-reporting *");
+}, 'Same-origin fenced frame with allow attribute enabling required features');
+
+promise_test(async(t) => {
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().REMOTE_ORIGIN,
+      allow="shared-storage *; attribution-reporting *");
+}, 'Cross-origin fenced frame with allow attribute enabling required features');
+
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+        generator_api: "fledge",
+        headers: [["Permissions-Policy", "attribution-reporting=()"]],
+        origin: get_host_info().ORIGIN});
+
+  await fencedframe.execute(async () => {
+    assert_false(document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Attribution reporting should NOT be allowed in the fenced frame.");
+  }, []);
+}, 'Delivered policies can further restrict permissions of a fenced frame');
+
+</script>
+</body>
+</html>

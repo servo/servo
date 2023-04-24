@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<title>Fenced frame attribution reporting redirect test</title>
+
+<body>
+<script>
+// This helper function will redirect a fenced frame to a remote origin page
+// while embedded in a frame that does not allow attribution reporting on
+// remote origins. That redirect should fail to load because of the attribution
+// reporting restriction.
+const [key1, key2] = parseKeylist();
+
+if (location.origin == get_host_info().ORIGIN) {
+  const result_val =
+      document.featurePolicy.allowsFeature('attribution-reporting') &
+      document.featurePolicy.allowsFeature('shared-storage');
+
+  writeValueToServer(key1,
+      document.featurePolicy.allowsFeature('attribution-reporting'));
+
+  const next_url = getRemoteOriginURL(generateURL(
+      "attribution-reporting-redirect.https.html", [key1, key2]));
+  location.href = next_url;
+} else {
+  // The redirect should have been unsuccessful, so we should not reach this
+  // point.
+  writeValueToServer(key2, "FAIL");
+}
+
+</script>
+</body>

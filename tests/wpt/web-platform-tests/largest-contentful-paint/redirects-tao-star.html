@@ -10,6 +10,7 @@
 </head>
 <body>
 <script>
+setup({"hide_test_state": true});
 async_test(t => {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let destUrl = get_host_info().HTTP_REMOTE_ORIGIN

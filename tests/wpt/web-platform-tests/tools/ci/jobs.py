@@ -35,6 +35,7 @@ job_path_map = {
     "update_built": ["update-built-tests\\.sh",
                      "conformance-checkers/",
                      "css/css-ui/",
+                     "css/css-writing-modes/",
                      "html/",
                      "infrastructure/",
                      "mimesniff/"],

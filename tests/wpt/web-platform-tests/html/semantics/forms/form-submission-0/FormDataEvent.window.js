@@ -2,6 +2,7 @@
 
 test(() => {
   let fd = new FormData();
+  assert_throws_js(TypeError, () => { FormDataEvent('', {formData:fd}) }, "Calling FormDataEvent constructor without 'new' must throw");
   assert_throws_js(TypeError, () => { new FormDataEvent() }, '0 arguments');
   assert_throws_js(TypeError, () => { new FormDataEvent('foo') }, '1 argument');
   assert_throws_js(TypeError, () => { new FormDataEvent(fd, fd) }, '2 invalid arguments');

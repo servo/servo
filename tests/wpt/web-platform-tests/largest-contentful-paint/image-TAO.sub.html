@@ -7,6 +7,7 @@
 <script src="resources/largest-contentful-paint-helpers.js"></script>
 <div id='my_div'></div>
 <script>
+  setup({"hide_test_state": true});
   async_test(t => {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     const remote_img = 'http://{{domains[www]}}:{{ports[http][1]}}/element-timing/resources/TAOImage.py?'

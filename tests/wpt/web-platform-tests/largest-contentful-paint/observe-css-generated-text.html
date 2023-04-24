@@ -20,6 +20,7 @@
 </style>
 <body>
   <script>
+    setup({"hide_test_state": true});
     const checkText = (entry, expectedSize, expectedID, beforeRender) => {
       assert_equals(entry.entryType, 'largest-contentful-paint',
         'Entry should be of type largest-contentful-paint');

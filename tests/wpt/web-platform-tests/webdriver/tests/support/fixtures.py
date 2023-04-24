@@ -12,6 +12,7 @@ from tests.support import defaults
 from tests.support.helpers import cleanup_session, deep_update
 from tests.support.inline import build_inline
 from tests.support.http_request import HTTPRequest
+from tests.support.keys import Keys
 
 
 SCRIPT_TIMEOUT = 1
@@ -207,6 +208,14 @@ def url(server_config):
         return urlunsplit((protocol, host, path, query, fragment))
 
     return url
+
+
+@pytest.fixture
+def modifier_key(session):
+    if session.capabilities["platformName"] == "mac":
+        return Keys.META
+    else:
+        return Keys.CONTROL
 
 
 @pytest.fixture

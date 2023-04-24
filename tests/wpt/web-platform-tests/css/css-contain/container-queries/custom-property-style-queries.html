@@ -210,8 +210,14 @@
   @container style(--initial: initial) {
     #initial { color: green; }
   }
+  @container not style(--initial) {
+    #initial-implicit { color: green; }
+  }
   @container not style(--initial-no: initial) {
     #initial-no { color: green; }
+  }
+  @container style(--initial-no) {
+    #initial-no-implicit { color: green; }
   }
   @container style(--inherit: inherit) {
     #inherit { color: green; }
@@ -229,7 +235,9 @@
 <div id="defaulting">
   <div id="defaulting-container">
     <div id="initial"></div>
+    <div id="initial-implicit"></div>
     <div id="initial-no"></div>
+    <div id="initial-no-implicit"></div>
     <div id="inherit"></div>
     <div id="inherit-no"></div>
     <div id="unset"></div>
@@ -242,8 +250,16 @@
   }, "Style query 'initial' matching");
 
   test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#initial-implicit")).color, green);
+  }, "Style query matching negated value-less query against initial value");
+
+  test(() => {
     assert_equals(getComputedStyle(document.querySelector("#initial-no")).color, green);
   }, "Style query 'initial' not matching");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#initial-no-implicit")).color, green);
+  }, "Style query matching value-less query against non-initial value");
 
   test(() => {
     assert_equals(getComputedStyle(document.querySelector("#inherit")).color, green);
@@ -284,6 +300,9 @@
   @container style(--reg-length: initial) {
     #reg-px-initial { color: green; }
   }
+  @container not style(--reg-length) {
+    #reg-px-initial-implicit { color: green; }
+  }
 
   #reg-container-font-relative {
     --reg-length: 10px;
@@ -316,11 +335,15 @@
   @container style(--reg-length: initial) {
     #reg-initial-keyword { color: green; }
   }
+  @container not style(--reg-length) {
+    #reg-initial-implicit { color: green; }
+  }
 </style>
 <div id="registered">
   <div id="reg-container-px">
     <div id="reg-px"></div>
     <div id="reg-px-initial"></div>
+    <div id="reg-px-initial-implicit"></div>
   </div>
   <div id="reg-container-font-relative">
     <div id="reg-font-relative"></div>
@@ -334,6 +357,7 @@
   <div id="reg-container-initial">
     <div id="reg-initial-value"></div>
     <div id="reg-initial-keyword"></div>
+    <div id="reg-initial-implicit"></div>
   </div>
 </div>
 <script>
