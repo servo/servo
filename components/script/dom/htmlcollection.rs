@@ -252,11 +252,17 @@ impl HTMLCollection {
                 let case_sensitivity = document_from_node(elem)
                     .quirks_mode()
                     .classes_and_ids_case_sensitivity();
+
                 self.classes
                     .iter()
                     .all(|class| elem.has_class(class, case_sensitivity))
             }
         }
+
+        if classes.is_empty() {
+            return HTMLCollection::always_empty(window, root);
+        }
+
         let filter = ClassNameFilter { classes: classes };
         HTMLCollection::create(window, root, Box::new(filter))
     }
