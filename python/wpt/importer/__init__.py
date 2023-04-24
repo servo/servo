@@ -47,6 +47,8 @@ def create_parser():
     parser = wptcommandline.create_parser_update()
     parser.add_argument("--layout-2020", "--with-layout-2020", default=False, action="store_true",
                         help="Use expected results for the 2020 layout engine")
+    parser.add_argument("--layout-2013", "--with-layout-2013", default=True, action="store_true",
+                        help="Use expected results for the 2013 layout engine")
     return parser
 
 
