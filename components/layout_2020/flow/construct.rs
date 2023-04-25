@@ -63,6 +63,7 @@ impl BlockFormattingContext {
         let ifc = InlineFormattingContext {
             inline_level_boxes,
             text_decoration_line,
+            has_first_formatted_line: true,
         };
         let contents = BlockContainer::InlineFormattingContext(ifc);
         let bfc = Self {
@@ -187,7 +188,10 @@ impl BlockContainer {
             context,
             info,
             block_level_boxes: Vec::new(),
-            ongoing_inline_formatting_context: InlineFormattingContext::new(text_decoration_line),
+            ongoing_inline_formatting_context: InlineFormattingContext::new(
+                text_decoration_line,
+                /* has_first_formatted_line = */ true,
+            ),
             ongoing_inline_boxes_stack: Vec::new(),
             anonymous_style: None,
             contains_floats: ContainsFloats::No,
@@ -690,6 +694,8 @@ where
             .is_empty()
         {
             // There should never be an empty inline formatting context.
+            self.ongoing_inline_formatting_context
+                .has_first_formatted_line = false;
             return;
         }
 
