@@ -168,26 +168,27 @@ enum WindowState {
 #[derive(Debug, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
-    RefreshTick,
-    FirstLoad,
-    KeyEvent,
-    MouseEvent,
-    Query,
-    Timer,
-    Viewport,
-    WindowResize,
     DOMContentLoaded,
     DocumentLoaded,
-    StylesheetLoaded,
-    ImageLoaded,
-    RequestAnimationFrame,
-    WebFontLoaded,
-    WorkletLoaded,
+    ElementStateChanged,
+    FirstLoad,
     FramedContentChanged,
     IFrameLoadEvent,
+    ImageLoaded,
+    KeyEvent,
     MissingExplicitReflow,
-    ElementStateChanged,
+    MouseEvent,
     PendingReflow,
+    Query,
+    RefreshTick,
+    RequestAnimationFrame,
+    ScrollFromScript,
+    StylesheetLoaded,
+    Timer,
+    Viewport,
+    WebFontLoaded,
+    WindowResize,
+    WorkletLoaded,
 }
 
 #[dom_struct]
@@ -1698,24 +1699,23 @@ impl Window {
 
         // TODO Step 4 - determine if a window has a viewport
 
-        // Step 5
-        //TODO remove scrollbar width
-        let width = self.InnerWidth() as f64;
-        // Step 6
-        //TODO remove scrollbar height
-        let height = self.InnerHeight() as f64;
+        // Step 5 & 6
+        // TODO: Remove scrollbar dimensions.
+        let viewport = self.window_size.get().initial_viewport;
 
         // Step 7 & 8
-        //TODO use overflow direction
+        // TODO: Consider `block-end` and `inline-end` overflow direction.
         let body = self.Document().GetBody();
         let (x, y) = match body {
             Some(e) => {
-                let content_size = e.upcast::<Node>().bounding_content_box_or_zero();
-                let content_height = content_size.size.height.to_f64_px();
-                let content_width = content_size.size.width.to_f64_px();
+                let scroll_area = e.upcast::<Node>().scroll_area();
                 (
-                    xfinite.min(content_width - width).max(0.0f64),
-                    yfinite.min(content_height - height).max(0.0f64),
+                    xfinite
+                        .min(scroll_area.width() as f64 - viewport.width as f64)
+                        .max(0.0f64),
+                    yfinite
+                        .min(scroll_area.height() as f64 - viewport.height as f64)
+                        .max(0.0f64),
                 )
             },
             None => (xfinite.max(0.0f64), yfinite.max(0.0f64)),
@@ -1730,14 +1730,13 @@ impl Window {
         //TODO Step 11
         //let document = self.Document();
         // Step 12
-        let global_scope = self.upcast::<GlobalScope>();
         let x = x.to_f32().unwrap_or(0.0f32);
         let y = y.to_f32().unwrap_or(0.0f32);
         self.update_viewport_for_scroll(x, y);
         self.perform_a_scroll(
             x,
             y,
-            global_scope.pipeline_id().root_scroll_id(),
+            self.upcast::<GlobalScope>().pipeline_id().root_scroll_id(),
             behavior,
             None,
         );
@@ -1755,15 +1754,13 @@ impl Window {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        match self.layout_chan() {
-            Some(chan) => chan
-                .send(Msg::UpdateScrollStateFromScript(ScrollState {
-                    scroll_id,
-                    scroll_offset: Vector2D::new(-x, -y),
-                }))
-                .unwrap(),
-            None => warn!("Layout channel unavailable"),
-        }
+        self.reflow(
+            ReflowGoal::UpdateScrollNode(ScrollState {
+                scroll_id,
+                scroll_offset: Vector2D::new(-x, -y),
+            }),
+            ReflowReason::ScrollFromScript,
+        );
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -2719,6 +2716,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
     let goal_string = match *reflow_goal {
         ReflowGoal::Full => "\tFull",
         ReflowGoal::TickAnimations => "\tTickAnimations",
+        ReflowGoal::UpdateScrollNode(_) => "\tUpdateScrollNode",
         ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
             &QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
             &QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",

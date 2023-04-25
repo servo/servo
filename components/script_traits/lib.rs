@@ -791,7 +791,7 @@ bitflags! {
 }
 
 /// The scroll state of a stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ScrollState {
     /// The ID of the scroll root.
     pub scroll_id: ExternalScrollId,

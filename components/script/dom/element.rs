@@ -120,7 +120,6 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
     self, background_image, border_spacing, font_family, font_size,
 };
-use style::properties::longhands::{overflow_x, overflow_y};
 use style::properties::{parse_style_attribute, PropertyDeclarationBlock};
 use style::properties::{ComputedValues, Importance, PropertyDeclaration};
 use style::rule_tree::CascadeLevel;
@@ -408,44 +407,57 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
-    fn potentially_scrollable(&self) -> bool {
-        self.has_css_layout_box() && !self.has_any_visible_overflow()
+    fn is_potentially_scrollable_body(&self) -> bool {
+        let node = self.upcast::<Node>();
+        debug_assert!(
+            node.owner_doc().GetBody().as_deref() == self.downcast::<HTMLElement>(),
+            "Called is_potentially_scrollable_body on element that is not the <body>"
+        );
+
+        // "An element body (which will be the body element) is potentially
+        // scrollable if all of the following conditions are true:
+        //  - body has an associated box."
+        if !self.has_css_layout_box() {
+            return false;
+        }
+
+        // " - body’s parent element’s computed value of the overflow-x or
+        //     overflow-y properties is neither visible nor clip."
+        if let Some(parent) = node.GetParentElement() {
+            if let Some(style) = parent.style() {
+                if !style.get_box().clone_overflow_x().is_scrollable() &&
+                    !style.get_box().clone_overflow_y().is_scrollable()
+                {
+                    return false;
+                }
+            };
+        }
+
+        // " - body’s computed value of the overflow-x or overflow-y properties
+        //     is neither visible nor clip."
+        if let Some(style) = self.style() {
+            if !style.get_box().clone_overflow_x().is_scrollable() &&
+                !style.get_box().clone_overflow_y().is_scrollable()
+            {
+                return false;
+            }
+        };
+
+        true
     }
 
     // https://drafts.csswg.org/cssom-view/#scrolling-box
     fn has_scrolling_box(&self) -> bool {
         // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
         //       self.has_scrolling_mechanism()
-        self.has_any_hidden_overflow()
+        self.style().map_or(false, |style| {
+            style.get_box().clone_overflow_x().is_scrollable() ||
+                style.get_box().clone_overflow_y().is_scrollable()
+        })
     }
 
     fn has_overflow(&self) -> bool {
         self.ScrollHeight() > self.ClientHeight() || self.ScrollWidth() > self.ClientWidth()
-    }
-
-    // TODO: Once #19183 is closed (overflow-x/y types moved out of mako), then we could implement
-    //       a more generic `fn has_some_overflow(&self, overflow: Overflow)` rather than have
-    //       these two `has_any_{visible,hidden}_overflow` methods which are very structurally
-    //       similar.
-
-    /// Computed value of overflow-x or overflow-y is "visible"
-    fn has_any_visible_overflow(&self) -> bool {
-        self.style().map_or(false, |s| {
-            let box_ = s.get_box();
-
-            box_.clone_overflow_x() == overflow_x::computed_value::T::Visible ||
-                box_.clone_overflow_y() == overflow_y::computed_value::T::Visible
-        })
-    }
-
-    /// Computed value of overflow-x or overflow-y is "hidden"
-    fn has_any_hidden_overflow(&self) -> bool {
-        self.style().map_or(false, |s| {
-            let box_ = s.get_box();
-
-            box_.clone_overflow_x() == overflow_x::computed_value::T::Hidden ||
-                box_.clone_overflow_y() == overflow_y::computed_value::T::Hidden
-        })
     }
 
     fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
@@ -1765,7 +1777,7 @@ impl Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.potentially_scrollable()
+            !self.is_potentially_scrollable_body()
         {
             win.scroll(x, y, behavior);
             return;
@@ -2305,7 +2317,7 @@ impl ElementMethods for Element {
         // Step 7
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.potentially_scrollable()
+            !self.is_potentially_scrollable_body()
         {
             return win.ScrollY() as f64;
         }
@@ -2355,7 +2367,7 @@ impl ElementMethods for Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.potentially_scrollable()
+            !self.is_potentially_scrollable_body()
         {
             win.scroll(win.ScrollX() as f64, y, behavior);
             return;
@@ -2401,7 +2413,7 @@ impl ElementMethods for Element {
         // Step 7
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.potentially_scrollable()
+            !self.is_potentially_scrollable_body()
         {
             return win.ScrollX() as f64;
         }
@@ -2452,7 +2464,7 @@ impl ElementMethods for Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.potentially_scrollable()
+            !self.is_potentially_scrollable_body()
         {
             win.scroll(x, win.ScrollY() as f64, behavior);
             return;
