@@ -669,6 +669,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 flags,
                 sender,
             )) => {
+                // When a display list is sent to WebRender, it starts scene building in a
+                // separate thread and then that display list is available for hit testing.
+                // Without flushing scene building, any hit test we do might be done against
+                // a previous scene, if the last one we sent hasn't finished building.
+                //
+                // TODO(mrobinson): Flushing all scene building is a big hammer here, because
+                // we might only be interested in a single pipeline. The only other option
+                // would be to listen to the TransactionNotifier for previous per-pipeline
+                // transactions, but that isn't easily compatible with the event loop wakeup
+                // mechanism from libserver.
+                self.webrender_api.flush_scene_builder();
+
                 let result = self.hit_test_at_point_with_flags_and_pipeline(point, flags, pipeline);
                 let _ = sender.send(result);
             },
