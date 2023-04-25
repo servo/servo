@@ -21,7 +21,7 @@ import sys
 import textwrap
 import xml.etree.ElementTree as ElementTree
 
-from typing import Optional
+from typing import List, Optional
 
 
 SUBTEST_RESULT_TRUNCATION = 10
@@ -34,14 +34,14 @@ class Item:
         self.children = children
 
     @classmethod
-    def from_result(cls, result: dict, title_key: str = "path", title_prefix: str = "", print_stack=True):
+    def from_result(cls, result: dict, title: Optional[str] = None, print_stack=True):
         expected = result["expected"]
         actual = result["actual"]
-        title = result[title_key]
+        title = title if title else result["path"]
         if expected != actual:
-            title = f"{actual} [expected {expected}] {title_prefix}{title}"
+            title = f"{actual} [expected {expected}] {title}"
         else:
-            title = f"{actual} {title_prefix}{title}"
+            title = f"{actual} {title}"
 
         issue_url = "http://github.com/servo/servo/issues/"
         if "issues" in result and result["issues"]:
@@ -54,7 +54,10 @@ class Item:
 
         subtest_results = result.get("unexpected_subtest_results", [])
         children = [
-            cls.from_result(subtest_result, "subtest", "subtest: ", False)
+            cls.from_result(
+                subtest_result,
+                f"subtest: {subtest_result['subtest']} {subtest_result.get('message', '')}",
+                False)
             for subtest_result in subtest_results
         ]
         return cls(title, body, children)
@@ -115,13 +118,13 @@ def get_results() -> Optional[Item]:
     def is_stable_and_unexpected(result):
         return not is_flaky(result) and not result["issues"]
 
-    def add_children(children, results, filter_func, text):
+    def add_children(children: List[Item], results: List[dict], filter_func, text):
         filtered = [Item.from_result(result) for result in
                     filter(filter_func, results)]
         if filtered:
             children.append(Item(f"{text} ({len(filtered)})", "", filtered))
 
-    children = []
+    children: List[Item] = []
     add_children(children, unexpected, is_flaky, "Flaky unexpected result")
     add_children(children, unexpected, is_stable_and_known,
                  "Stable unexpected results that are known to be intermittent")
