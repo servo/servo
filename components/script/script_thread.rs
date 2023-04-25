@@ -1702,10 +1702,12 @@ impl ScriptThread {
         true
     }
 
-    // Perform step 11.10 from https://html.spec.whatwg.org/multipage/#event-loops.
+    // Perform step 7.10 from https://html.spec.whatwg.org/multipage/#event-loop-processing-model.
+    // Described at: https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events
     fn update_animations_and_send_events(&self) {
         for (_, document) in self.documents.borrow().iter() {
             document.update_animation_timeline();
+            document.maybe_mark_animating_nodes_as_dirty();
         }
 
         for (_, document) in self.documents.borrow().iter() {
@@ -3012,8 +3014,7 @@ impl ScriptThread {
             document.run_the_animation_frame_callbacks();
         }
         if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
-            document.animations().mark_animating_nodes_as_dirty();
-            document.window().add_pending_reflow();
+            document.maybe_mark_animating_nodes_as_dirty();
         }
     }
 

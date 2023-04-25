@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![deny(missing_docs)]
-
 //! The set of animations for a document.
 
 use crate::dom::animationevent::AnimationEvent;
@@ -47,6 +45,11 @@ pub(crate) struct Animations {
 
     /// A list of pending animation-related events.
     pending_events: DomRefCell<Vec<TransitionOrAnimationEvent>>,
+
+    /// The timeline value at the last time all animations were marked dirty.
+    /// This is used to prevent marking animations dirty when the timeline
+    /// has not changed.
+    timeline_value_at_last_dirty: Cell<f64>,
 }
 
 impl Animations {
@@ -56,6 +59,7 @@ impl Animations {
             has_running_animations: Cell::new(false),
             rooted_nodes: Default::default(),
             pending_events: Default::default(),
+            timeline_value_at_last_dirty: Cell::new(0.0),
         }
     }
 
@@ -65,12 +69,23 @@ impl Animations {
         self.pending_events.borrow_mut().clear();
     }
 
-    pub(crate) fn mark_animating_nodes_as_dirty(&self) {
+    // Mark all animations dirty, if they haven't been marked dirty since the
+    // specified `current_timeline_value`. Returns true if animations were marked
+    // dirty or false otherwise.
+    pub(crate) fn mark_animating_nodes_as_dirty(&self, current_timeline_value: f64) -> bool {
+        if current_timeline_value <= self.timeline_value_at_last_dirty.get() {
+            return false;
+        }
+        self.timeline_value_at_last_dirty
+            .set(current_timeline_value);
+
         let sets = self.sets.sets.read();
         let rooted_nodes = self.rooted_nodes.borrow();
         for node in sets.keys().filter_map(|key| rooted_nodes.get(&key.node)) {
             node.dirty(NodeDamage::NodeStyleDamaged);
         }
+
+        true
     }
 
     pub(crate) fn update_for_new_timeline_value(&self, window: &Window, now: f64) {
@@ -97,7 +112,6 @@ impl Animations {
         }
 
         self.unroot_unused_nodes(&sets);
-        //self.update_running_animations_presence(window);
     }
 
     /// Cancel animations for the given node, if any exist.
