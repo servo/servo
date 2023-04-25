@@ -1184,7 +1184,8 @@ impl LayoutThread {
                         process_node_geometry_request(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
-                    rw_data.scroll_area_response = process_node_scroll_area_request(node);
+                    rw_data.scroll_area_response =
+                        process_node_scroll_area_request(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::NodeScrollIdQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };

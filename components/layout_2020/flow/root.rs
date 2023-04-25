@@ -538,6 +538,39 @@ impl FragmentTree {
         })
         .unwrap_or_else(Rect::zero)
     }
+
+    pub fn get_scroll_area_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
+        let mut scroll_area: PhysicalRect<Length> = PhysicalRect::zero();
+        let tag_to_find = Tag::Node(requested_node);
+        self.find(|fragment, _, containing_block| {
+            if fragment.tag() != Some(tag_to_find) {
+                return None::<()>;
+            }
+
+            scroll_area = match fragment {
+                Fragment::Box(fragment) => fragment
+                    .scrollable_overflow(&containing_block)
+                    .translate(containing_block.origin.to_vector()),
+                Fragment::Text(_) |
+                Fragment::AbsoluteOrFixedPositioned(_) |
+                Fragment::Image(_) |
+                Fragment::IFrame(_) |
+                Fragment::Anonymous(_) => return None,
+            };
+            None::<()>
+        });
+
+        Rect::new(
+            Point2D::new(
+                scroll_area.origin.x.px() as i32,
+                scroll_area.origin.y.px() as i32,
+            ),
+            Size2D::new(
+                scroll_area.size.width.px() as i32,
+                scroll_area.size.height.px() as i32,
+            ),
+        )
+    }
 }
 
 /// https://drafts.csswg.org/css-backgrounds/#root-background

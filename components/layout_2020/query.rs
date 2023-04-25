@@ -201,8 +201,15 @@ pub fn process_node_scroll_id_request<'dom>(
 }
 
 /// https://drafts.csswg.org/cssom-view/#scrolling-area
-pub fn process_node_scroll_area_request(_requested_node: OpaqueNode) -> Rect<i32> {
-    Rect::zero()
+pub fn process_node_scroll_area_request(
+    requested_node: OpaqueNode,
+    fragment_tree: Option<Arc<FragmentTree>>,
+) -> Rect<i32> {
+    if let Some(fragment_tree) = fragment_tree {
+        fragment_tree.get_scroll_area_for_node(requested_node)
+    } else {
+        Rect::zero()
+    }
 }
 
 /// Return the resolved value of property for a given (pseudo)element.
