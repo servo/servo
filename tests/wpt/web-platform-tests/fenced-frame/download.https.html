@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Test fenced frame does not allow triggering download</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="resources/download-helper.js"></script>
+
+<body>
+  <script>
+    const testTypes = [
+      {
+        type: "anchor",
+        description: "Anchor click triggering download in fenced frames is blocked."
+      },
+      {
+        type: "navigation",
+        description: "Navigation resulted download in fenced frames is blocked."
+      }
+    ];
+
+    testTypes.forEach(({type, description}) => {
+      promise_test(async t => {
+        const download_key = token();
+        const download_ack_key = token();
+
+        // The download link is clicked inside the fenced frame after the loading
+        const fenced_frame_url = generateURL("resources/download-inner.html", [download_key, download_ack_key]) + `&type=${type}`;
+        attachFencedFrame(fenced_frame_url);
+
+        const response = await nextValueFromServer(download_ack_key);
+        assert_equals(response, 'Triggered the action for download');
+
+        const result = await VerifyDownload(t, download_key);
+        assert_false(result, 'Expect no download to happen');
+      }, description);
+    });
+  </script>
+</body>

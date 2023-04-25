@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of `Sec-Fetch-Dest` header</title>
+
+<body>
+<script>
+(() => {
+  // This file is meant to run in a <fencedframe>. It reports back to the
+  // outermost page the value of `Sec-Fetch-Dest` in the request header for
+  // nested iframes inside a fenced frame.
+  const [sec_fetch_dest_value_key] = parseKeylist();
+  const https_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+  const https_origin_url =
+      getRemoteOriginURL(
+          generateURL(
+              'check-header-sec-fetch-dest.py',
+              [sec_fetch_dest_value_key]));
+
+  const iframe = document.createElement('iframe');
+  iframe.src = https_origin_url;
+  document.body.append(iframe);
+})();
+</script>
+</body>

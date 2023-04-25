@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Navigate a fenced frame to a nested config</title>
+<body>
+<script>
+  const [key] = parseKeylist();
+  const configs = window.fence.getNestedConfigs();
+  const ff = document.createElement("fencedframe");
+  ff.config = configs[0]
+  document.body.appendChild(ff);
+</script>
+</body>
+</html>

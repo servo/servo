@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<script src="utils.js"></script>
+<title>Header Inheritance CSP Reporting Page</title>
+<body>
+<script>
+// This file is embedded in an iframe by ancestor-throttle-inner.https.html
+// which in turn has been embedded in a fenced frame by
+// ancestor-throttle.https.html
+async function init() {
+  const [ancestor_key] = parseKeylist();
+  writeValueToServer(ancestor_key, "loaded");
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Test frame size restrictions in FLEDGE.</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="resources/opaque-ad-sizes-utils.js"></script>
+
+<body>
+<script>
+
+// Rounding cases.
+promise_test(async () => { return runOpaqueAdSizesTest(970.1, 250, 970, 250); }, '970.1x250');
+promise_test(async () => { return runOpaqueAdSizesTest(970, 250.1, 970, 250); }, '970x250.1');
+promise_test(async () => { return runOpaqueAdSizesTest(971, 250, 970, 250); }, '971x250');
+promise_test(async () => { return runOpaqueAdSizesTest(970, 251, 970, 250); }, '970x251');
+
+// Edge cases. The particular sizes it rounds to aren't important here, just
+// that it rounds to one of the sizes on the allowed list.
+promise_test(async () => { return runOpaqueAdSizesTest(0, 100, 320, 50); }, '0x100');
+promise_test(async () => { return runOpaqueAdSizesTest(100, 0, 320, 50); }, '100x0');
+promise_test(async () => { return runOpaqueAdSizesTest(Number.MAX_VALUE, Number.MAX_VALUE, 300, 250); }, 'MAXxMAX');
+promise_test(async () => { return runOpaqueAdSizesTest(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, 320, 100); }, 'INFINITYxINFINITY');
+</script>
+</body>

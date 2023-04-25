@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#valdef-box-decoration-break-slice">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-image">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-attachment">
+<link rel="match" href="background-attachment-fixed-ref.html">
+<style>
+body {
+  overflow: hidden;
+  margin: 0;
+}
+</style>
+<div style="height: 300px"></div>
+<div style="width: 320px; height: 200px; columns: 3; column-gap: 10px">
+  <div style="height: 600px;
+              border: 20px solid transparent;
+              box-sizing: border-box;
+              padding: 10px;
+              background-size: 200px 200px;
+              background-image: linear-gradient(blue 50%, green 50%);
+              background-clip: content-box;
+              background-attachment: fixed">
+  </div>
+</div>
+<div style="width: 2000px; height: 2000px"></div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 300);
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>

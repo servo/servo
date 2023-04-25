@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="base-uri {{location[scheme]}}://{{domains[www1]}}:0{{ports[http][0]}}/">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+
+    <script>
+      var t = async_test("Check that base URIs can be set if they do not violate the page's policy because leading 0s are stripped from the port.");
+      window.addEventListener('securitypolicyviolation', t.step_func(function(t) {
+        assert_unreached('No CSP violation report should have been fired.');
+      }));
+    </script>
+
+    <base href="{{location[scheme]}}://{{domains[www1]}}:{{ports[http][0]}}/">
+    <script>
+    t.step(function() {
+      assert_equals(document.baseURI, "{{location[scheme]}}://{{domains[www1]}}:{{ports[http][0]}}/");
+      t.done();
+    });
+    </script>
+</head>
+<body>
+</html>

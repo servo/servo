@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>Test that private state token redemption is enabled/disabled according to the permissions policy</title>
+
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script>
+    'use strict';
+    const same_origin_src = '/permissions-policy/experimental-features/resources/permissions-policy-private-state-token-redemption.html';
+    const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_src;
+    const header = 'Default "private-state-token-redemption" permissions policy ["self"]';
+
+    test(() => {
+      try {
+        // The permissions policy gates redemption and signing via both the Fetch
+        // and XHR interfaces.
+        new Request("https://issuer.example/", {
+          privateToken: {
+            version: 1,
+            operation: "token-redemption"
+          }
+        });
+        new Request("https://destination.example/", {
+          privateToken: {
+            version: 1,
+            operation: "send-redemption-record", // signing
+            issuers: ["https://issuer.example/"]
+          }
+        });
+
+        const redemption_xhr = new XMLHttpRequest();
+        redemption_xhr.open("GET", "https://issuer.example/");
+        redemption_xhr.setPrivateToken({
+          version: 1,
+          operation: "token-redemption"
+        });
+
+        const signing_xhr = new XMLHttpRequest();
+        signing_xhr.open("GET", "https://destination.example/");
+        signing_xhr.setPrivateToken({
+          version: 1,
+          operation: "send-redemption-record", // signing
+          issuers: ["https://issuer.example/"]
+        });
+      } catch (e) {
+        assert_unreached();
+      }
+    }, header + ' allows the top-level document.');
+
+    async_test(t => {
+      test_feature_availability('Private state token redemption', t, same_origin_src,
+        (data, desc) => {
+          assert_equals(data.num_operations_enabled, 4, desc);
+        });
+    }, header + ' allows same-origin iframes.');
+
+    async_test(t => {
+      test_feature_availability('Private state token redemption', t, cross_origin_src,
+        (data, desc) => {
+          assert_equals(data.num_operations_enabled, 0, desc);
+        });
+    }, header + ' disallows cross-origin iframes.');
+  </script>
+</body>

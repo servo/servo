@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Test that fencedframes cannot open a DocumentPictureInPicture window.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+</body>
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  const result = await frame.execute(async () => {
+    await simulateGesture();
+    try {
+      await documentPictureInPicture.requestWindow();
+      return null;
+    } catch(e) {
+      return e.name;
+    }
+  });
+  assert_equals(result, 'NotAllowedError', 'requestWindow() from a fencedframe should trigger a NotAllowedError');
+}, 'fencedframes cannot open a DocumentPictureInPicture window.');
+</script>

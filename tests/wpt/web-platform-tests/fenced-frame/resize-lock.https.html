@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<title>Test cases when fenced frame size shouldn't be restricted..</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+async function runTest(api1,
+                       expected_initial_size,
+                       expected_size_after_resize,
+                       api2,
+                       expected_size_after_renavigation,
+                       expected_size_after_reresize) {
+  const initial_width = 321;
+  const initial_height = 51;
+
+  const resized_width = 729;
+  const resized_height = 91;
+
+  const reresized_width = 971;
+  const reresized_height = 251;
+
+  var frame = await attachFencedFrameContext({
+      generator_api: api1, resolve_to_config: true,
+      attributes: [['width', initial_width], ['height', initial_height]]});
+
+  const assert_dimensions =
+      (expected_width, expected_height) => {
+    getComputedStyle(document.documentElement).width; // Force layout.
+    assert_equals(window.innerWidth, expected_width, "width");
+    assert_equals(window.innerHeight, expected_height, "height");
+  }
+
+  // Check that the initial size of the fenced frame is what we expect.
+  await frame.execute(assert_dimensions, expected_initial_size);
+
+  // Resize the frame, and check that the size is now what we expect.
+  frame.element.width = resized_width;
+  frame.element.height = resized_height;
+  await frame.execute(assert_dimensions, expected_size_after_resize);
+
+  // Perform an embedder-initiated navigation, and check that the size is now
+  // what we expect (it should be based on the new context, rather than the old
+  // context).
+  frame = await replaceFrameContext(frame, {generator_api: api2,
+      resolve_to_config: true});
+  await frame.execute(assert_dimensions, expected_size_after_renavigation);
+
+  // Resize the newly navigated frame, and check the size.
+  frame.element.width = reresized_width;
+  frame.element.height = reresized_height;
+  await frame.execute(assert_dimensions, expected_size_after_reresize);
+}
+
+promise_test(async () => {
+    return runTest('fledge', [320, 50], [320, 50],
+                   'fledge', [728, 90], [728, 90]); },
+                   "FLEDGE->FLEDGE");
+promise_test(async () => {
+    return runTest('sharedstorage', [321, 51], [729, 91],
+                   'sharedstorage', [729, 91], [971, 251]); },
+                   "sharedStorage->sharedStorage");
+promise_test(async () => {
+    return runTest('default', [321, 51], [729, 91],
+                   'default', [729, 91], [971, 251]); },
+                   "default->default");
+promise_test(async () => {
+    return runTest('default', [321, 51], [729, 91],
+                   'fledge', [728, 90], [728, 90]); },
+                   "default->FLEDGE");
+promise_test(async () => {
+    return runTest('default', [321, 51], [729, 91],
+                   'sharedStorage', [729, 91], [971, 251]); },
+                   "default->sharedStorage");
+promise_test(async () => {
+    return runTest('fledge', [320, 50], [320, 50],
+                   'default', [729, 91], [971, 251]); },
+                   "FLEDGE->default");
+promise_test(async () => {
+    return runTest('sharedstorage', [321, 51], [729, 91],
+                   'default', [729, 91], [971, 251]); },
+                   "sharedStorage->default");
+promise_test(async () => {
+    return runTest('sharedstorage', [321, 51], [729, 91],
+                   'fledge', [728, 90], [728, 90]); },
+                   "sharedStorage->FLEDGE");
+promise_test(async () => {
+    return runTest('fledge', [320, 50], [320, 50],
+                   'sharedstorage', [729, 91], [971, 251]); },
+                   "FLEDGE->sharedStorage");
+</script>
+</body>

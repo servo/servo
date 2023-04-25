@@ -4,7 +4,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
-  .target { color: red; }
+  @layer {
+    .target { color: red; }
+  }
 </style>
 <div id="target" class="target"></div>
 <script>
@@ -98,6 +100,14 @@
     {
       importCondition: "supports(font-format(invalid))",
       matches: false
+    },
+    {
+      importCondition: "layer(A.B) supports(font-format(opentype))",
+      matches: true
+    },
+    {
+      importCondition: "layer supports(selector(a))",
+      matches: true
     },
   ];
   let target = document.getElementById("target");

@@ -27,7 +27,10 @@ test(() => {
   assert_true(p2.matches(':popover-open'),
     'The popover should be open after calling showPopover()');
 
-  p2.hidePopover();
+  // Because the `beforetoggle` handler changes the document,
+  // and that action closes the popover, the call to hidePopover()
+  // will result in an exception.
+  assert_throws_dom('InvalidStateError',() => p2.hidePopover());
   assert_false(p2.matches(':popover-open'),
     'The popover should be closed after moving it between documents.');
 }, 'Moving popovers between documents while hiding should not throw an exception.');

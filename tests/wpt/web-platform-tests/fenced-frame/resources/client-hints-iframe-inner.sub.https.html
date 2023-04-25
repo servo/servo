@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Client Hint Echoing Iframe</title>
+<body>
+<script>
+window.parent.postMessage({'headers': {
+    'sec-ch-viewport-width': '{{header_or_default(sec-ch-viewport-width, )}}',
+    'sec-ch-ua-reduced': '{{header_or_default(sec-ch-ua-reduced, )}}',
+    'sec-ch-ua-mobile': '{{header_or_default(sec-ch-ua-mobile, )}}',
+}}, '*');
+</script>
+</body>

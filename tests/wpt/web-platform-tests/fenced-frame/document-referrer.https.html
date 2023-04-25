@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Test document.referrer referrer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const fenced_frame = attachFencedFrameContext();
+
+  // Test the value of `document.referrer` inside a top-level fenced frame.
+  const fenced_frame_url = await fenced_frame.execute(() => {
+    assert_equals(document.referrer, "",
+                  "The top-level fenced frame's document.referrer is censored");
+    return location.href;
+  });
+
+  // Test an iframe nested inside a fenced frame.
+  await fenced_frame.execute(async () => {
+    const nested_iframe = attachIFrameContext();
+    await nested_iframe.execute((expected_referrer) => {
+      assert_equals(document.referrer, expected_referrer,
+                    `The document.referrer of the iframe inside the fenced
+                     frame is not censored`);
+    }, [location.href]);
+  });
+
+  // Test a nested fenced frame.
+  await fenced_frame.execute(async () => {
+    const nested_fenced_frame = attachFencedFrameContext();
+    await nested_fenced_frame.execute(() => {
+      assert_equals(document.referrer, "",
+                    `The document.referrer of the nested fenced frame is
+                     censored`);
+    });
+  });
+
+  // Test a top-level fenced frame after it navigates itself.
+  // Navigate the fenced frame. (Refresh it, so we can still send it scripts.)
+  await fenced_frame.execute(() => {
+    window.executor.suspend(() => {
+      location.href = location.href;
+    });
+  });
+
+  // Check that it now sees its original URL as the referrer.
+  await fenced_frame.execute((expected_referrer) => {
+    assert_equals(document.referrer, expected_referrer,
+                  `The document.referrer of a fenced frame after it navigates
+                   itself is not censored.`);
+  }, [fenced_frame_url]);
+
+}, "document.referrer");
+</script>
+
+</body>

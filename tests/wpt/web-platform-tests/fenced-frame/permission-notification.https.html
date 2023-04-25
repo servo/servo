@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Test permission of notification</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async t => {
+  const permission_notification_key = token();
+  await test_driver.set_permission({name: 'notifications'}, 'granted', true);
+
+  attachFencedFrame(generateURL(
+      'resources/permission-notification-inner.html',
+      [permission_notification_key]));
+  const actual_result = await nextValueFromServer(permission_notification_key);
+
+  assert_equals(
+      actual_result, 'result: denied',
+      'notification permission should not be granted in the fenced frame.');
+}, 'notification permission should not be granted');
+</script>
+
+</body>
