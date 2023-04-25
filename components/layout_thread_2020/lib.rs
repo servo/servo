@@ -616,9 +616,6 @@ impl LayoutThread {
             Msg::CreateLayoutThread(..) => LayoutHangAnnotation::CreateLayoutThread,
             Msg::SetFinalUrl(..) => LayoutHangAnnotation::SetFinalUrl,
             Msg::SetScrollStates(..) => LayoutHangAnnotation::SetScrollStates,
-            Msg::UpdateScrollStateFromScript(..) => {
-                LayoutHangAnnotation::UpdateScrollStateFromScript
-            },
             Msg::RegisterPaint(..) => LayoutHangAnnotation::RegisterPaint,
             Msg::SetNavigationStart(..) => LayoutHangAnnotation::SetNavigationStart,
         };
@@ -723,19 +720,6 @@ impl LayoutThread {
             },
             Msg::SetScrollStates(new_scroll_states) => {
                 self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
-            },
-            Msg::UpdateScrollStateFromScript(state) => {
-                let mut rw_data = possibly_locked_rw_data.lock();
-                rw_data
-                    .scroll_offsets
-                    .insert(state.scroll_id, state.scroll_offset);
-
-                let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-                self.webrender_api.send_scroll_node(
-                    webrender_api::units::LayoutPoint::from_untyped(point),
-                    state.scroll_id,
-                    webrender_api::ScrollClamping::ToContentBounds,
-                );
             },
             Msg::CollectReports(reports_chan) => {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
@@ -935,7 +919,9 @@ impl LayoutThread {
                                 .cloned();
                         },
                     },
-                    ReflowGoal::Full | ReflowGoal::TickAnimations => {},
+                    ReflowGoal::Full |
+                    ReflowGoal::TickAnimations |
+                    ReflowGoal::UpdateScrollNode(_) => {},
                 }
                 return;
             },
@@ -1256,8 +1242,24 @@ impl LayoutThread {
                     rw_data.inner_window_dimensions_response = None;
                 },
             },
+            ReflowGoal::UpdateScrollNode(scroll_state) => {
+                self.update_scroll_node_state(&scroll_state, rw_data);
+            },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},
         }
+    }
+
+    fn update_scroll_node_state(&self, state: &ScrollState, rw_data: &mut LayoutThreadData) {
+        rw_data
+            .scroll_offsets
+            .insert(state.scroll_id, state.scroll_offset);
+
+        let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
+        self.webrender_api.send_scroll_node(
+            webrender_api::units::LayoutPoint::from_untyped(point),
+            state.scroll_id,
+            webrender_api::ScrollClamping::ToContentBounds,
+        );
     }
 
     fn set_scroll_states<'a, 'b>(

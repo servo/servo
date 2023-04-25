@@ -168,26 +168,27 @@ enum WindowState {
 #[derive(Debug, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
-    RefreshTick,
-    FirstLoad,
-    KeyEvent,
-    MouseEvent,
-    Query,
-    Timer,
-    Viewport,
-    WindowResize,
     DOMContentLoaded,
     DocumentLoaded,
-    StylesheetLoaded,
-    ImageLoaded,
-    RequestAnimationFrame,
-    WebFontLoaded,
-    WorkletLoaded,
+    ElementStateChanged,
+    FirstLoad,
     FramedContentChanged,
     IFrameLoadEvent,
+    ImageLoaded,
+    KeyEvent,
     MissingExplicitReflow,
-    ElementStateChanged,
+    MouseEvent,
     PendingReflow,
+    Query,
+    RefreshTick,
+    RequestAnimationFrame,
+    ScrollFromScript,
+    StylesheetLoaded,
+    Timer,
+    Viewport,
+    WebFontLoaded,
+    WindowResize,
+    WorkletLoaded,
 }
 
 #[dom_struct]
@@ -1755,15 +1756,13 @@ impl Window {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        match self.layout_chan() {
-            Some(chan) => chan
-                .send(Msg::UpdateScrollStateFromScript(ScrollState {
-                    scroll_id,
-                    scroll_offset: Vector2D::new(-x, -y),
-                }))
-                .unwrap(),
-            None => warn!("Layout channel unavailable"),
-        }
+        self.reflow(
+            ReflowGoal::UpdateScrollNode(ScrollState {
+                scroll_id,
+                scroll_offset: Vector2D::new(-x, -y),
+            }),
+            ReflowReason::ScrollFromScript,
+        );
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -2719,6 +2718,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
     let goal_string = match *reflow_goal {
         ReflowGoal::Full => "\tFull",
         ReflowGoal::TickAnimations => "\tTickAnimations",
+        ReflowGoal::UpdateScrollNode(_) => "\tUpdateScrollNode",
         ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
             &QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
             &QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",

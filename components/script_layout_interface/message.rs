@@ -81,10 +81,6 @@ pub enum Msg {
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetScrollStates(Vec<ScrollState>),
 
-    /// Tells layout about a single new scrolling offset from the script. The rest will
-    /// remain untouched and layout won't forward this back to script.
-    UpdateScrollStateFromScript(ScrollState),
-
     /// Tells layout that script has added some paint worklet modules.
     RegisterPaint(Atom, Vec<Atom>, Box<dyn Painter>),
 
@@ -125,6 +121,10 @@ pub enum ReflowGoal {
     Full,
     TickAnimations,
     LayoutQuery(QueryMsg, u64),
+
+    /// Tells layout about a single new scrolling offset from the script. The rest will
+    /// remain untouched and layout won't forward this back to script.
+    UpdateScrollNode(ScrollState),
 }
 
 impl ReflowGoal {
@@ -132,7 +132,7 @@ impl ReflowGoal {
     /// be present or false if it only needs stacking-relative positions.
     pub fn needs_display_list(&self) -> bool {
         match *self {
-            ReflowGoal::Full | ReflowGoal::TickAnimations => true,
+            ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
                 QueryMsg::NodesFromPointQuery(..) |
                 QueryMsg::TextIndexQuery(..) |
@@ -155,7 +155,7 @@ impl ReflowGoal {
     /// false if a layout_thread display list is sufficient.
     pub fn needs_display(&self) -> bool {
         match *self {
-            ReflowGoal::Full | ReflowGoal::TickAnimations => true,
+            ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
                 QueryMsg::NodesFromPointQuery(..) |
                 QueryMsg::TextIndexQuery(..) |
