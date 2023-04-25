@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Fenced frame content to report the result of navigator.geolocation.getCurrentPosition()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="utils.js"></script>
+
+<body>
+<script>
+
+window.runTest = async (fenced_frame_url) => {
+  const [permission_geolocation_key] = parseKeylist();
+  await test_driver.set_permission({name: 'geolocation'}, 'granted', true);
+
+  attachFencedFrame(generateURL(fenced_frame_url, [permission_geolocation_key]));
+  const actual_result = await nextValueFromServer(permission_geolocation_key);
+
+  assert_equals(
+      actual_result, 'result: denied',
+      'geolocation permission is not permitted for fenced frames.');
+};
+</script>
+</body>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Destination page opened by a frame in a Fenced Frame tree</title>
+<script>
+  // It is the document that `popup-noopener-inner.html` loads in a new
+  // window/tab from a root fenced frame, an iframe in a fenced frame and from
+  // a nested fenced frame. It's expected that any popup opened from a Fenced
+  // Frame tree cannot reach the opener.
+  const [popup_noopener_key, popup_name_key] = parseKeylist();
+  if (window.opener) {
+    writeValueToServer(popup_noopener_key, "FAIL: window.opener is not null");
+  } else {
+    writeValueToServer(popup_noopener_key, "PASS");
+  }
+  if (window.name) {
+    writeValueToServer(popup_name_key, "FAIL: window.name is not empty");
+  } else {
+    writeValueToServer(popup_name_key, "PASS");
+  }
+</script>

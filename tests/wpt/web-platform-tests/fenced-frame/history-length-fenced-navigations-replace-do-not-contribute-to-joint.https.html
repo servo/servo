@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Test history.length in outermost document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const kInnerAssertion = "Navigations inside of a fenced frame are always " +
+                          "replacement navigations and never increase " +
+                          "`history.length` inside the fence: ";
+  const kOuterAssertion = "Navigations inside of a fenced frame never " +
+                          "contribute to joint session history, or increase " +
+                          "`history.length` outside the fence: ";
+  // This is used by
+  // `resources/history-length-fenced-navigations-replace-do-not-contribute-to-joint-inner.html`
+  // to let us know once a navigation is complete inside the fence. The inner
+  // page will test its `history.length` and report to us "PASS <frame type>" or
+  // "FAIL <frame type>" (the history length should be unaffected by the
+  // navigation). If the inner test passes, then we will check our
+  // `history.length` and ensure that the inner fenced navigation did not
+  // contribute to the joint session history.
+  const fenced_navigation_complete_key = token();
+  // This is sent by us to the inner page to let it know that we're finished
+  // observing the effects of the last navigation, and that it should perform
+  // the next one for us to observe.
+  const outer_page_ready_for_next_fenced_navigation_key = token();
+
+  const level = "top-level-fenced-frame";
+
+  attachFencedFrame(generateURL(
+      "resources/history-length-fenced-navigations-replace-do-" +
+      "not-contribute-to-joint-inner.html",
+      [fenced_navigation_complete_key,
+       outer_page_ready_for_next_fenced_navigation_key,
+       level]));
+
+  const tests = ["top-level-fenced-frame", "nested-fenced-frame", "nested-iframe"];
+  for (test_type of tests) {
+    // Wait for the fenced navigations to complete, and then see if they
+    // observable via the outermost `history.length`.
+    let result = await nextValueFromServer(fenced_navigation_complete_key);
+    assert_equals(result, "PASS > " + test_type, kInnerAssertion + test_type);
+    assert_equals(history.length, 1, kOuterAssertion + test_type);
+
+    // Acknowledge the results, and let the fenced frame know that we're ready
+    // to observe more fenced navigations.
+    writeValueToServer(outer_page_ready_for_next_fenced_navigation_key, "READY");
+  }
+}, "All fenced navigations should be replace-only and not contribute to joint " +
+   "session history");
+</script>
+</body>

@@ -161,6 +161,7 @@ SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
 SET TIMEOUT: fetch/metadata/resources/helper.sub.js
 SET TIMEOUT: fetch/metadata/resources/message-opener.html
+SET TIMEOUT: fenced-frame/resources/history-length-fenced-navigations-replace-do-not-contribute-to-joint-inner.html
 SET TIMEOUT: fenced-frame/resources/utils.js
 SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-outer.sub.html
 SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-middle.sub.html

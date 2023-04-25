@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of navigator.geolocation.getCurrentPosition()</title>
+
+<body>
+<script>
+(async () => {
+  const [permission_geolocation_key] = parseKeylist();
+  const result = await new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+        () => resolve('granted'), () => resolve('denied'));
+  });
+  writeValueToServer(permission_geolocation_key, `result: ${result}`);
+})();
+</script>
+</body>

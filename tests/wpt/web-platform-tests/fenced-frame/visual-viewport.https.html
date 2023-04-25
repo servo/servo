@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>Test visualViewport inside a fenced frame.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+function pinch_zoom_in() {
+  return new test_driver.Actions()
+      .setContext(window)
+      .addPointer("finger1", "touch")
+      .addPointer("finger2", "touch")
+      .pointerMove(400, 250, {origin: "viewport", sourceName: "finger1"})
+      .pointerMove(400, 350, {origin: "viewport", sourceName: "finger2"})
+      .pointerDown({sourceName: "finger1"})
+      .pointerDown({sourceName: "finger2"})
+      .pointerMove(400, 200, {origin: "viewport", sourceName: "finger1"})
+      .pointerMove(400, 400, {origin: "viewport", sourceName: "finger2"})
+      .pointerUp({sourceName: "finger1"})
+      .pointerUp({sourceName: "finger2"})
+      .send();
+}
+
+promise_test(async () => {
+  // Create a fenced frame, and use the same target name inside of it.
+  const frame = attachFencedFrameContext({html: `
+    <!DOCTYPE html>
+    <style>
+      body {
+        /* Make fenced frame scrollable */
+        width: 200vw;
+        height: 200vh;
+      }
+
+      ::-webkit-scrollbar {
+        display: none;
+      }
+    </style>`});
+
+  const is_mac = navigator.platform.indexOf('Mac') == 0;
+
+  // Mac doesn't support pinch zooming via test driver so just avoid trying.
+  if (!is_mac) {
+    await pinch_zoom_in();
+
+    // Run the test zoomed in to ensure the fenced frame doesn't incorrectly
+    // bring values in from its embedder.
+    assert_greater_than(window.visualViewport.scale, 1,
+        '[PRECONDITION] outer window pinch-zoomed in');
+  }
+
+  await frame.execute(async (width, height) => {
+    window.scrollTo(30, 40);
+    assert_equals(window.scrollX, 30, '[PRECONDITION] document scrolled x');
+    assert_equals(window.scrollY, 40, '[PRECONDITION] document scrolled y');
+
+    assert_equals(window.visualViewport.width, width,
+                  'visualViewport.width matches fencedframe width');
+    assert_equals(window.visualViewport.height, height,
+                  'visualViewport.height matches fencedframe height');
+    assert_equals(window.visualViewport.scale, 1,
+                  'visualViewport.scale is 1');
+    assert_equals(window.visualViewport.offsetLeft, 0,
+                  'visualViewport.offsetLeft is 0');
+    assert_equals(window.visualViewport.offsetTop, 0,
+                  'visualViewport.offsetTop is 0');
+    assert_equals(window.visualViewport.pageLeft, window.scrollX,
+                  'visualViewport.pageLeft reflects only window scroll offset');
+    assert_equals(window.visualViewport.pageTop, window.scrollY,
+                  'visualViewport.pageTop reflects only window scroll offset');
+  }, [frame.clientWidth, frame.clientHeight]);
+
+}, 'visualViewport values inside fenced frame');
+
+</script>
+</body>

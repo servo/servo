@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test of Web Bluetooth API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  const result = await frame.execute(async () => {
+    await simulateGesture();
+    try {
+      await navigator.hid.getDevices();
+      return 'HID getDevice succeeded';
+    } catch(e) {
+      if (e.name == 'SecurityError' &&
+          e.message.includes(
+          'Access to the feature "hid" is disallowed by permissions policy.')) {
+        return 'HID getDevice failed';
+      } else {
+        return `HID getDevice failed with unknown error - ${e.name}: ${e.message}`;
+      }
+    }
+  });
+  assert_equals(result, 'HID getDevice failed',
+                'HID getDevice must fail in a fenced frame.');
+}, 'HID getDevice must fail in a fenced frame');
+</script>
+
+</body>

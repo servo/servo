@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>The page triggering download embedded as a Fenced Frame</title>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="download-helper.js"></script>
+  <script src="utils.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', async () => {
+      const [download_key, download_ack_key] = parseKeylist();
+      const type = new URL(location).searchParams.get('type');
+      const href = `download-stash.py?token=${download_key}`;
+
+      if (type == 'anchor') {
+        const anchor = document.querySelector('#download');
+        anchor.href = href;
+        test_driver.click(anchor);
+      } else {
+        const delay = StreamDownloadFinishDelay();
+        location.href = `${href}&finish-delay=${delay}`
+      }
+
+      await writeValueToServer(download_ack_key, 'Triggered the action for download');
+    });
+  </script>
+</head>
+
+<body>
+  <a id="download" download>Download</a>
+</body>
+
+</html>

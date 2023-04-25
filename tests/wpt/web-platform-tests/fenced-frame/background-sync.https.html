@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<title>Test fenced frame does not allow to register background sync</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script>
+const background_sync_register_key = token();
+const fenced_frame_url = 'resources/background-sync-inner.https.html';
+const fenced_frame_url_for_service_worker_test =
+  'resources/background-sync-sw-inner.https.html';
+
+const generateFencedFrameUrl = (params, is_worker_test = false) => {
+  const searchParams = new URLSearchParams(params);
+  const frame_url = is_worker_test ?
+    fenced_frame_url_for_service_worker_test : fenced_frame_url;
+
+  return generateURL(`${frame_url}?${searchParams.toString()}`,
+    [background_sync_register_key]);
+};
+
+async function background_sync_test(url, expected_text, message) {
+  attachFencedFrame(url)
+
+  // Get the result for the top-level fenced frame.
+  const fenced_frame_result =
+      await nextValueFromServer(background_sync_register_key);
+  assert_equals(fenced_frame_result, expected_text, message);
+};
+
+const background_sync_message =
+  "Background Sync is not allowed in fenced frames.";
+const periodic_background_sync_message =
+  "Periodic Background Sync is not allowed in fenced frames.";
+
+promise_test(async (t) => {
+  const method = 'register';
+  const frame_url = generateFencedFrameUrl({method});
+  const expected_message = "Failed to execute 'register' on 'SyncManager': " +
+    background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'register() is disallowed inside a same-origin fenced frame');
+
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'register() is disallowed inside a cross-origin fenced frame');
+}, 'background sync register');
+
+promise_test(async (t) => {
+  const method = 'getTags';
+  const frame_url = generateFencedFrameUrl({method});
+  const expected_message = background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'getTags() is disallowed inside a same-origin fenced frame');
+
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'getTags() is disallowed inside a cross-origin fenced frame');
+}, 'background sync getTags');
+
+promise_test(async (t) => {
+  const method = 'register';
+  const frame_url = generateFencedFrameUrl({method}, true);
+  const expected_message = "Failed to execute 'register' on 'SyncManager': " +
+    background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'register() is disallowed inside a same-origin fenced frame');
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'register() is disallowed inside a cross-origin fenced frame');
+}, 'background sync register in service worker');
+
+promise_test(async (t) => {
+  const method = 'getTags';
+  const frame_url = generateFencedFrameUrl({method}, true);
+  const expected_message = background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'getTags() is disallowed inside a same-origin fenced frame');
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'getTags() is disallowed inside a cross-origin fenced frame');
+}, 'background sync getTags in service worker');
+
+promise_test(async (t) => {
+  const params = {
+    method: 'register',
+    periodic: true
+  };
+  const frame_url = generateFencedFrameUrl(params)
+  const expected_message = "Failed to execute 'register' on " +
+    "'PeriodicSyncManager': " + periodic_background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'register() is disallowed inside a same-origin fenced frame');
+
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'register() is disallowed inside a cross-origin fenced frame');
+}, 'periodic sync register');
+
+promise_test(async (t) => {
+  const params = {
+    method: 'getTags',
+    periodic: true
+  };
+  const frame_url = generateFencedFrameUrl(params)
+  const expected_message = periodic_background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'getTags() is disallowed inside a same-origin fenced frame');
+
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'getTags() is disallowed inside a cross-origin fenced frame');
+}, 'periodic sync getTags');
+
+promise_test(async (t) => {
+  const params = {
+    method: 'unregister',
+    periodic: true
+  };
+  const frame_url = generateFencedFrameUrl(params)
+  const expected_message = periodic_background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'unregister() is disallowed inside a same-origin fenced frame');
+
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'unregister() is disallowed inside a cross-origin fenced frame');
+}, 'periodic sync unregister');
+
+promise_test(async (t) => {
+  const params = {
+    method: 'register',
+    periodic: true
+  };
+  const frame_url = generateFencedFrameUrl(params, true)
+  const expected_message = "Failed to execute 'register' on " +
+    "'PeriodicSyncManager': " + periodic_background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'register() is disallowed inside a same-origin fenced frame');
+
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'register() is disallowed inside a cross-origin fenced frame');
+}, 'periodic sync register in service worker');
+
+promise_test(async (t) => {
+  const params = {
+    method: 'getTags',
+    periodic: true
+  };
+  const frame_url = generateFencedFrameUrl(params, true)
+  const expected_message = periodic_background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'getTags() is disallowed inside a same-origin fenced frame');
+
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'getTags() is disallowed inside a cross-origin fenced frame');
+}, 'periodic sync getTags in service worker');
+
+promise_test(async (t) => {
+  const params = {
+    method: 'unregister',
+    periodic: true
+  };
+  const frame_url = generateFencedFrameUrl(params, true)
+  const expected_message = periodic_background_sync_message;
+  await background_sync_test(
+      frame_url,
+      expected_message,
+      'unregister() is disallowed inside a same-origin fenced frame');
+
+  const cross_origin_frame_url = getRemoteOriginURL(frame_url);
+  await background_sync_test(
+      cross_origin_frame_url,
+      expected_message,
+      'unregister() is disallowed inside a cross-origin fenced frame');
+}, 'periodic sync unregister in service worker');
+</script>
+</body>

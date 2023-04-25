@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of navigator.permissions.query</title>
+
+<body>
+  <script>
+    (async () => {
+      const [permission_key, permission_name] = parseKeylist();
+      // Push permission without userVisibleOnly:true is not supported.
+      let user_visible_only = permission_name === 'push' ? true : false;
+      const result = await navigator.permissions.query({ name: permission_name, userVisibleOnly: user_visible_only });
+      writeValueToServer(permission_key, `result: ${result.state}`);
+    })();
+  </script>
+</body>

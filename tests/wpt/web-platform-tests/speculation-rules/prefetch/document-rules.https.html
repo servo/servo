@@ -15,6 +15,12 @@
 <meta name="variant" content="?include=linkInShadowTree">
 <meta name="variant" content="?include=linkHrefChanged">
 <meta name="variant" content="?include=newRuleSetAdded">
+<meta name="variant" content="?include=selectorMatches">
+<meta name="variant" content="?include=selectorMatchesScopingRoot">
+<meta name="variant" content="?include=selectorMatchesInShadowTree">
+<meta name="variant" content="?include=selectorMatchesDisplayNone">
+<meta name="variant" content="?include=selectorMatchesDisplayLocked">
+<meta name="variant" content="?include=unslottedLink">
 
 <body>
 <script>
@@ -166,5 +172,127 @@
     assert_equals(await isUrlPrefetched(url), 1);
   }, 'test that adding a second rule set triggers prefetch');
 
+  subsetTestByKey('selectorMatches', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    insertDocumentRule({ selector_matches: 'a.important-link' });
+
+    const url_1 = getPrefetchUrl({foo: 'bar'});
+    const importantLink = addLink(url_1);
+    importantLink.className = 'important-link';
+    const url_2 = getPrefetchUrl({foo: 'buzz'});
+    addLink(url_2)
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 1);
+    assert_equals(await isUrlPrefetched(url_2), 0);
+  }, 'test selector_matches document rule');
+
+  subsetTestByKey('selectorMatchesScopingRoot', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    insertDocumentRule({ selector_matches: ':root > body > a' });
+
+    const url_1 = getPrefetchUrl({ foo: 'bar' });
+    addLink(url_1);
+
+    const url_2 = getPrefetchUrl({ foo: 'buzz' });
+    const extraContainer = document.createElement('div');
+    document.body.appendChild(extraContainer);
+    addLink(url_2, extraContainer);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 1);
+    assert_equals(await isUrlPrefetched(url_2), 0);
+  }, 'test selector_matches with :root');
+
+  // 'selector_matches' should never match with a link inside a shadow tree
+  // because the scoping root used when matching is always the document.
+  subsetTestByKey('selectorMatchesInShadowTree', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    insertDocumentRule({ selector_matches: 'a.important-link' });
+
+    // Create shadow root.
+    const shadowHost = document.createElement('div');
+    document.body.appendChild(shadowHost);
+    const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
+
+    const url = getPrefetchUrl();
+    const link = addLink(url, shadowRoot);
+    link.className = 'important-link';
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'test selector_matches with link inside shadow tree');
+
+  subsetTestByKey('selectorMatchesDisplayNone', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    const style = document.createElement('style');
+    style.innerText = ".important-section { display: none; }";
+    document.head.appendChild(style);
+    insertDocumentRule();
+
+    const importantSection = document.createElement('div');
+    importantSection.className = 'important-section';
+    document.body.appendChild(importantSection);
+    const url = getPrefetchUrl();
+    addLink(url, importantSection);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+
+    style.remove();
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test selector_matches with link inside display:none container');
+
+  subsetTestByKey('selectorMatchesDisplayLocked', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    const style = document.createElement('style');
+    style.innerText = ".important-section { content-visibility: hidden; }";
+    document.head.appendChild(style);
+    insertDocumentRule({ selector_matches: '.important-section a' });
+
+    const importantSection = document.createElement('div');
+    importantSection.className = 'important-section';
+    document.body.appendChild(importantSection);
+    const url = getPrefetchUrl();
+    addLink(url, importantSection);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+
+    style.remove();
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test selector_matches with link inside display locked container');
+
+  subsetTestByKey('unslottedLink', promise_test, async t => {
+    assert_implements(HTMLScriptElement.supports('speculationrules'),
+      'Speculation Rules not supported');
+
+    insertDocumentRule();
+
+    // Create shadow root.
+    const shadowHost = document.createElement('div');
+    document.body.appendChild(shadowHost);
+    const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
+
+    // Add unslotted link.
+    const url = getPrefetchUrl();
+    addLink(url, shadowHost);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'test that unslotted link never matches document rule');
 </script>
 </body>

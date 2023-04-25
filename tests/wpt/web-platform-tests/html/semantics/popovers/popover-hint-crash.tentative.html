@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8" />
+<title>Popover=hint crash test</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<p>This test passes if it does not crash.</p>
+
+<div popover id=popover1>Popover 1
+  <div popover id=popover2 style="top:100px">Popover 2</div>
+</div>
+<div popover=manual id=popover3 style="top:200px">Popover 3</div>
+<div popover=hint id=popover4 anchor=popover3 style="inset:0;top:300px">Popover 4 - Click me</div>
+<script>
+popover1.showPopover();
+popover2.showPopover();
+popover3.showPopover();
+popover4.showPopover();
+clickOn(popover4)
+  .then(() => {
+    document.documentElement.classList.remove("reftest-wait");
+  });
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>history-back-and-forward-should-not-work-in-fenced-tree-inner</title>
+
+<body>
+  <script>
+    // This is a helper file that will serve as the document loaded inside
+    // a fenced frame by 'history-back-and-forward-should-not-work-in-fenced
+    // -tree' Once loaded, it will sequentially perform the back and forward
+    // history navigations to observe whether these methods were successfuly
+    // restricted for the fenced tree.
+
+    const [history_navigation_performed_key, outer_page_ready_key,
+           embed_scope] = parseKeylist();
+
+    (async function () {
+      const url = new URL(location.href);
+      const test = url.searchParams.get("test");
+
+      writeValueToServer(history_navigation_performed_key, "yes");
+
+      // Execute history.back() within fenced frame and iframe.
+      await nextValueFromServer(outer_page_ready_key);
+      window.history.back();
+      writeValueToServer(history_navigation_performed_key, "yes");
+
+      // Execute history.forward() within fenced frame and iframe.
+      await nextValueFromServer(outer_page_ready_key);
+      window.history.forward();
+      writeValueToServer(history_navigation_performed_key, "yes");
+
+      if (embed_scope === "outerPage::fencedFrame::iframe") return;
+
+      const iframe = document.createElement('iframe');
+      const iframe_embed_scope = "outerPage::fencedFrame::iframe";
+      iframe.src = generateURL(
+          "history-back-and-forward-should-not-work-in-fenced-tree-" +
+          "inner.html",
+          [history_navigation_performed_key, outer_page_ready_key,
+           iframe_embed_scope]);
+      document.body.append(iframe);
+    })();
+  </script>
+</body>

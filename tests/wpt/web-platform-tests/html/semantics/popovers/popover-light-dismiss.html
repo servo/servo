@@ -568,7 +568,10 @@ promise_test(async () => {
     if (e.newState === "closed")
       p20.showPopover();
   },{once:true});
-  p19.hidePopover();
+  // Because the `beforetoggle` handler shows a different popover,
+  // and that action closes the p19 popover, the call to hidePopover()
+  // will result in an exception.
+  assert_throws_dom('InvalidStateError',() => p19.hidePopover());
   assert_false(p19.matches(':popover-open'));
   assert_true(p20.matches(':popover-open'));
 },'Show an unrelated popover during "hide popover"');

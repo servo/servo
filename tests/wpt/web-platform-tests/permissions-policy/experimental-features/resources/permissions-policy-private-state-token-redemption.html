@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script>
+  'use strict';
+
+  window.onload = function() {
+    // When the private-state-token-redemption permissions policy is enabled, redemption
+    // and signing ("send-redemption-record") should both be available; when it's disabled,
+    // they should both be unavailable. Send the number of available operations
+    // upstream in order to enforce this in assertions.
+    let num_enabled = 4;
+    try {
+      new Request("https://issuer.example/", {
+        privateToken: {
+          version: 1,
+          operation: "token-redemption"
+        }
+      });
+    } catch (e) {
+      num_enabled--;
+    }
+    try {
+      new Request("https://destination.example/", {
+        privateToken: {
+          version: 1,
+          operation: "send-redemption-record",
+          issuers: ["https://issuer.example/"]
+        }
+      });
+    } catch (e) {
+      num_enabled--;
+    }
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "https://issuer.example/");
+      xhr.setPrivateToken({
+        version: 1,
+        operation: "token-redemption"
+      });
+    } catch (e) {
+      num_enabled--;
+    }
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "https://destination.example/");
+      xhr.setPrivateToken({
+        version: 1,
+        operation: "send-redemption-record",
+        issuers: ["https://issuer.example/"]
+      });
+    } catch (e) {
+      num_enabled--;
+    }
+
+    parent.postMessage({
+      type: 'availability-result',
+      num_operations_enabled: num_enabled,
+    }, '*');
+  }
+</script>
