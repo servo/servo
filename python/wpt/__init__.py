@@ -33,6 +33,8 @@ def create_parser():
                         help="Pass preferences to servo")
     parser.add_argument('--layout-2020', '--with-layout-2020', default=False,
                         action="store_true", help="Use expected results for the 2020 layout engine")
+    parser.add_argument('--layout-2013', '--with-layout-2013', default=True,
+                        action="store_true", help="Use expected results for the 2013 layout engine")
     parser.add_argument('--log-servojson', action="append", type=mozlog.commandline.log_file,
                         help="Servo's JSON logger of unexpected results")
     parser.add_argument('--always-succeed', default=False, action="store_true",
