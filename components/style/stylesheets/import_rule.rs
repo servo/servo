@@ -7,14 +7,17 @@
 //! [import]: https://drafts.csswg.org/css-cascade-3/#at-import
 
 use crate::media_queries::MediaList;
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock};
-use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::parser::{Parse, ParserContext};
+use crate::shared_lock::{
+    DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard,
+};
 use crate::str::CssStringWriter;
-use crate::stylesheets::supports_rule::SupportsCondition;
-use crate::stylesheets::layer_rule::LayerName;
-use crate::stylesheets::{CssRule, StylesheetInDocument};
+use crate::stylesheets::{
+    layer_rule::LayerName, stylesheet::Namespaces, supports_rule::SupportsCondition, CssRule,
+    CssRuleType, StylesheetInDocument,
+};
 use crate::values::CssUrl;
-use cssparser::SourceLocation;
+use cssparser::{Parser, SourceLocation};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 use to_shmem::{self, SharedMemoryBuilder, ToShmem};
@@ -62,8 +65,7 @@ impl ImportSheet {
                 }
                 Some(s)
             },
-            ImportSheet::Refused |
-            ImportSheet::Pending => None,
+            ImportSheet::Refused | ImportSheet::Pending => None,
         }
     }
 
@@ -181,7 +183,7 @@ pub struct ImportSupportsCondition {
     pub condition: SupportsCondition,
 
     /// If the import is enabled, from the result of the import condition.
-    pub enabled: bool
+    pub enabled: bool,
 }
 
 impl ToCss for ImportLayer {
@@ -221,6 +223,54 @@ pub struct ImportRule {
 
     /// The line and column of the rule's source code.
     pub source_location: SourceLocation,
+}
+
+impl ImportRule {
+    /// Parses the layer() / layer / supports() part of the import header, as per
+    /// https://drafts.csswg.org/css-cascade-5/#at-import:
+    ///
+    ///     [ layer | layer(<layer-name>) ]?
+    ///     [ supports([ <supports-condition> | <declaration> ]) ]?
+    ///
+    /// We do this here so that the import preloader can look at this without having to parse the
+    /// whole import rule or parse the media query list or what not.
+    pub fn parse_layer_and_supports<'i, 't>(
+        input: &mut Parser<'i, 't>,
+        context: &ParserContext,
+        namespaces: &Namespaces,
+    ) -> (Option<ImportLayer>, Option<ImportSupportsCondition>) {
+        let layer = if input
+            .try_parse(|input| input.expect_ident_matching("layer"))
+            .is_ok()
+        {
+            Some(ImportLayer { name: None })
+        } else {
+            input
+                .try_parse(|input| {
+                    input.expect_function_matching("layer")?;
+                    input
+                        .parse_nested_block(|input| LayerName::parse(context, input))
+                        .map(|name| ImportLayer { name: Some(name) })
+                })
+                .ok()
+        };
+
+        let supports = if !static_prefs::pref!("layout.css.import-supports.enabled") {
+            None
+        } else {
+            input
+                .try_parse(SupportsCondition::parse_for_import)
+                .map(|condition| {
+                    let eval_context =
+                        ParserContext::new_with_rule_type(context, CssRuleType::Style, namespaces);
+                    let enabled = condition.eval(&eval_context, namespaces);
+                    ImportSupportsCondition { condition, enabled }
+                })
+                .ok()
+        };
+
+        (layer, supports)
+    }
 }
 
 impl ToShmem for ImportRule {
