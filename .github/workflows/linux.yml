@@ -102,7 +102,7 @@ jobs:
           path: target.tar.gz
 
   linux-wpt:
-    if: ${{ contains(github.ref_name, 'wpt') || inputs.wpt }}
+    if: ${{ github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt }}
     name: Linux WPT Tests
     runs-on: ubuntu-20.04
     needs: ["build-linux"]
@@ -183,7 +183,7 @@ jobs:
   report-test-results:
     name: Reporting test results
     runs-on: ubuntu-latest
-    if: ${{ always() && !cancelled() && success('build-linux') && (contains(github.ref_name, 'wpt') || inputs.wpt == 'test') }}
+    if: ${{ always() && !cancelled() && success('build-linux') && (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt == 'test') }}
     needs:
       - "linux-wpt"
     steps:
