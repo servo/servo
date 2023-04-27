@@ -93,7 +93,8 @@ class UnexpectedResult():
 
         # Test names sometimes contain control characters, which we want
         # to be printed in their raw form, and not their interpreted form.
-        first_line += f" {result.path.encode('unicode-escape').decode('utf-8')}"
+        title = result.subtest if isinstance(result, UnexpectedSubtestResult) else result.path
+        first_line += f" {title.encode('unicode-escape').decode('utf-8')}"
 
         if isinstance(result, UnexpectedResult) and result.issues:
             first_line += f" ({', '.join([f'#{bug}' for bug in result.issues])})"
