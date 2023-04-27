@@ -132,7 +132,7 @@ impl Parse for Resolution {
             } => Self::parse_dimension(value, unit)
                 .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 CalcNode::parse_resolution(context, input, function)
             },
             ref t => return Err(location.new_unexpected_token_error(t.clone())),

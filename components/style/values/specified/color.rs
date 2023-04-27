@@ -556,7 +556,7 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorParser<'i> for ColorParser<'a, 'b> {
             },
             Token::Number { value, .. } => Ok(AngleOrNumber::Number { value }),
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(self.0, name, location)?;
                 CalcNode::parse_angle_or_number(self.0, input, function)
             },
             t => return Err(location.new_unexpected_token_error(t)),
@@ -585,7 +585,7 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorParser<'i> for ColorParser<'a, 'b> {
                 Ok(NumberOrPercentage::Percentage { unit_value })
             },
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(self.0, name, location)?;
                 CalcNode::parse_number_or_percentage(self.0, input, function)
             },
             ref t => return Err(location.new_unexpected_token_error(t.clone())),
