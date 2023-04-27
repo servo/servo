@@ -260,7 +260,7 @@ impl Angle {
                 }
             },
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 CalcNode::parse_angle(context, input, function)
             },
             Token::Number { value, .. } if value == 0. && allow_unitless_zero => Ok(Angle::zero()),

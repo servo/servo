@@ -1307,7 +1307,7 @@ impl Length {
                 ))))
             },
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 let calc = CalcNode::parse_length(context, input, num_context, function)?;
                 Ok(Length::Calc(Box::new(calc)))
             },
@@ -1536,7 +1536,7 @@ impl LengthPercentage {
                 }
             },
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 let calc =
                     CalcNode::parse_length_or_percentage(context, input, num_context, function)?;
                 Ok(LengthPercentage::Calc(Box::new(calc)))

@@ -199,7 +199,7 @@ fn parse_number_with_clamping_mode<'i, 't>(
             })
         },
         Token::Function(ref name) => {
-            let function = CalcNode::math_function(name, location)?;
+            let function = CalcNode::math_function(context, name, location)?;
             let result = CalcNode::parse_number(context, input, function)?;
             Ok(Number {
                 value: result.min(f32::MAX).max(f32::MIN),
@@ -633,7 +633,7 @@ impl Parse for Integer {
                 int_value: Some(v), ..
             } => Ok(Integer::new(v)),
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 let result = CalcNode::parse_integer(context, input, function)?;
                 Ok(Integer::from_calc(result))
             },

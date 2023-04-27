@@ -119,7 +119,7 @@ impl Percentage {
                 Ok(Percentage::new(unit_value))
             },
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 let value = CalcNode::parse_percentage(context, input, function)?;
                 Ok(Percentage {
                     value,
