@@ -212,6 +212,11 @@ impl Fragment {
 
         let color = fragment.parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
+        let dppx = builder.context.style_context.device_pixel_ratio().get();
+        let round_to_nearest_device_pixel = |value: Length| -> Length {
+            // Round to the nearest integer device pixel, ensuring at least one device pixel.
+            Length::new((value.px() * dppx).round().max(1.0) / dppx)
+        };
 
         // Underline.
         if fragment
@@ -220,7 +225,7 @@ impl Fragment {
         {
             let mut rect = rect;
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.underline_offset;
-            rect.size.height = font_metrics.underline_size;
+            rect.size.height = round_to_nearest_device_pixel(font_metrics.underline_size);
             self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
         }
 
@@ -230,7 +235,7 @@ impl Fragment {
             .contains(TextDecorationLine::OVERLINE)
         {
             let mut rect = rect;
-            rect.size.height = font_metrics.underline_size;
+            rect.size.height = round_to_nearest_device_pixel(font_metrics.underline_size);
             self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
         }
 
@@ -252,7 +257,7 @@ impl Fragment {
             let mut rect = rect;
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.strikeout_offset;
             // XXX(ferjm) This does not work on MacOS #942
-            rect.size.height = font_metrics.strikeout_size;
+            rect.size.height = round_to_nearest_device_pixel(font_metrics.strikeout_size);
             self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
         }
     }

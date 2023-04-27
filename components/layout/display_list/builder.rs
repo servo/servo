@@ -2064,6 +2064,15 @@ impl Fragment {
 
         // Create display items for text decorations.
         let text_decorations = self.style().get_inherited_text().text_decorations_in_effect;
+        let dppx = state
+            .layout_context
+            .style_context
+            .device_pixel_ratio()
+            .get();
+        let round_to_nearest_device_pixel = |value: Au| -> Au {
+            // Round to the nearest integer device pixel, ensuring at least one device pixel.
+            Au::from_f32_px((value.to_f32_px() * dppx).round().max(1.0) / dppx)
+        };
 
         let logical_stacking_relative_content_box = LogicalRect::from_physical(
             self.style.writing_mode,
@@ -2077,7 +2086,8 @@ impl Fragment {
             stacking_relative_box.start.b = logical_stacking_relative_content_box.start.b +
                 metrics.ascent -
                 metrics.underline_offset;
-            stacking_relative_box.size.block = metrics.underline_size;
+            stacking_relative_box.size.block =
+                round_to_nearest_device_pixel(metrics.underline_size);
             self.build_display_list_for_text_decoration(
                 state,
                 &text_color,
@@ -2089,7 +2099,8 @@ impl Fragment {
         // Overline
         if text_decorations.overline {
             let mut stacking_relative_box = logical_stacking_relative_content_box;
-            stacking_relative_box.size.block = metrics.underline_size;
+            stacking_relative_box.size.block =
+                round_to_nearest_device_pixel(metrics.underline_size);
             self.build_display_list_for_text_decoration(
                 state,
                 &text_color,
@@ -2144,7 +2155,8 @@ impl Fragment {
             let mut stacking_relative_box = logical_stacking_relative_content_box;
             stacking_relative_box.start.b =
                 stacking_relative_box.start.b + metrics.ascent - metrics.strikeout_offset;
-            stacking_relative_box.size.block = metrics.strikeout_size;
+            stacking_relative_box.size.block =
+                round_to_nearest_device_pixel(metrics.strikeout_size);
             self.build_display_list_for_text_decoration(
                 state,
                 &text_color,
