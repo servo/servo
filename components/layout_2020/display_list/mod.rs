@@ -4,6 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
+use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragments::{BoxFragment, Fragment, Tag, TextFragment};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
@@ -21,7 +22,7 @@ use style::computed_values::text_decoration_style::T as ComputedTextDecorationSt
 use style::dom::OpaqueNode;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::ComputedValues;
-use style::values::computed::{BorderStyle, Length, LengthPercentage};
+use style::values::computed::{BorderStyle, Color, Length, LengthPercentage, OutlineStyle};
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use style_traits::CSSPixel;
@@ -115,11 +116,12 @@ impl Fragment {
         &self,
         builder: &mut DisplayListBuilder,
         containing_block: &PhysicalRect<Length>,
+        section: StackingContextSection,
     ) {
         match self {
             Fragment::Box(b) => match b.style.get_inherited_box().visibility {
                 Visibility::Visible => {
-                    BuilderForBoxFragment::new(b, containing_block).build(builder)
+                    BuilderForBoxFragment::new(b, containing_block).build(builder, section)
                 },
                 Visibility::Hidden => (),
                 Visibility::Collapse => (),
@@ -418,10 +420,14 @@ impl<'a> BuilderForBoxFragment<'a> {
         })
     }
 
-    fn build(&mut self, builder: &mut DisplayListBuilder) {
-        self.build_hit_test(builder);
-        self.build_background(builder);
-        self.build_border(builder);
+    fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
+        if section == StackingContextSection::Outline {
+            self.build_outline(builder);
+        } else {
+            self.build_hit_test(builder);
+            self.build_background(builder);
+            self.build_border(builder);
+        }
     }
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder) {
@@ -555,18 +561,8 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
-    fn build_border(&mut self, builder: &mut DisplayListBuilder) {
-        let b = self.fragment.style.get_border();
-        let widths = SideOffsets2D::new(
-            b.border_top_width.px(),
-            b.border_right_width.px(),
-            b.border_bottom_width.px(),
-            b.border_left_width.px(),
-        );
-        if widths == SideOffsets2D::zero() {
-            return;
-        }
-        let side = |style, color| wr::BorderSide {
+    fn build_border_side(&mut self, style: BorderStyle, color: Color) -> wr::BorderSide {
+        wr::BorderSide {
             color: rgba(self.fragment.style.resolve_color(color)),
             style: match style {
                 BorderStyle::None => wr::BorderStyle::None,
@@ -580,19 +576,61 @@ impl<'a> BuilderForBoxFragment<'a> {
                 BorderStyle::Inset => wr::BorderStyle::Inset,
                 BorderStyle::Outset => wr::BorderStyle::Outset,
             },
-        };
+        }
+    }
+
+    fn build_border(&mut self, builder: &mut DisplayListBuilder) {
+        let border = self.fragment.style.get_border();
+        let widths = SideOffsets2D::new(
+            border.border_top_width.px(),
+            border.border_right_width.px(),
+            border.border_bottom_width.px(),
+            border.border_left_width.px(),
+        );
+        if widths == SideOffsets2D::zero() {
+            return;
+        }
         let common = builder.common_properties(self.border_rect, &self.fragment.style);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
-            top: side(b.border_top_style, b.border_top_color),
-            right: side(b.border_right_style, b.border_right_color),
-            bottom: side(b.border_bottom_style, b.border_bottom_color),
-            left: side(b.border_left_style, b.border_left_color),
+            top: self.build_border_side(border.border_top_style, border.border_top_color),
+            right: self.build_border_side(border.border_right_style, border.border_right_color),
+            bottom: self.build_border_side(border.border_bottom_style, border.border_bottom_color),
+            left: self.build_border_side(border.border_left_style, border.border_left_color),
             radius: self.border_radius,
             do_aa: true,
         });
         builder
             .wr
             .push_border(&common, self.border_rect, widths, details)
+    }
+
+    fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
+        let outline = self.fragment.style.get_outline();
+        let width = outline.outline_width.px();
+        if width == 0.0 {
+            return;
+        }
+        let outline_rect = self.border_rect.inflate(width, width);
+        let common = builder.common_properties(outline_rect, &self.fragment.style);
+        let widths = SideOffsets2D::new_all_same(width);
+        let style = match outline.outline_style {
+            // TODO: treating 'auto' as 'solid' is allowed by the spec,
+            // but we should do something better.
+            OutlineStyle::Auto => BorderStyle::Solid,
+            OutlineStyle::BorderStyle(s) => s,
+        };
+        let side = self.build_border_side(style, outline.outline_color);
+        let details = wr::BorderDetails::Normal(wr::NormalBorder {
+            top: side,
+            right: side,
+            bottom: side,
+            left: side,
+            radius: expand_radii(self.border_radius, width),
+            do_aa: true,
+        });
+        builder
+            .wr
+            .push_border(&common, outline_rect, widths, details)
     }
 }
 
@@ -696,6 +734,27 @@ fn inner_radii(mut radii: wr::BorderRadius, offsets: units::LayoutSideOffsets) -
 
     radii.bottom_left.height -= offsets.bottom;
     radii.bottom_right.height -= offsets.bottom;
+    radii
+}
+
+fn expand_radii(mut radii: wr::BorderRadius, increment: f32) -> wr::BorderRadius {
+    assert!(increment > 0.0, "increment must be positive");
+    let expand = |radius: &mut f32| {
+        // Expand the radius by the specified amount, but keeping sharp corners.
+        // TODO: this behavior is not continuous, it's being discussed in the CSSWG:
+        // https://github.com/w3c/csswg-drafts/issues/7103
+        if *radius > 0.0 {
+            *radius += increment;
+        }
+    };
+    expand(&mut radii.top_left.width);
+    expand(&mut radii.top_left.height);
+    expand(&mut radii.top_right.width);
+    expand(&mut radii.top_right.height);
+    expand(&mut radii.bottom_right.width);
+    expand(&mut radii.bottom_right.height);
+    expand(&mut radii.bottom_left.width);
+    expand(&mut radii.bottom_left.height);
     radii
 }
 

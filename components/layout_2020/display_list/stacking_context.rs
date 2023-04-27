@@ -99,6 +99,7 @@ pub(crate) enum StackingContextSection {
     BackgroundsAndBorders,
     BlockBackgroundsAndBorders,
     Content,
+    Outline,
 }
 
 pub(crate) struct StackingContextFragment {
@@ -113,7 +114,7 @@ impl StackingContextFragment {
         builder.current_space_and_clip = self.space_and_clip;
         self.fragment
             .borrow()
-            .build_display_list(builder, &self.containing_block);
+            .build_display_list(builder, &self.containing_block, self.section);
     }
 }
 
@@ -424,6 +425,13 @@ impl StackingContext {
             child_context.build_display_list(builder);
         }
 
+        // Step 10: Outline
+        while child_fragments.peek().map_or(false, |child| {
+            child.section == StackingContextSection::Outline
+        }) {
+            child_fragments.next().unwrap().build_display_list(builder);
+        }
+
         if pushed_context {
             builder.wr.pop_stacking_context();
         }
@@ -671,6 +679,14 @@ impl BoxFragment {
             containing_block: containing_block_info.rect,
             fragment: fragment.clone(),
         });
+        if self.style.get_outline().outline_width.px() > 0.0 {
+            stacking_context.fragments.push(StackingContextFragment {
+                space_and_clip: builder.current_space_and_clip,
+                section: StackingContextSection::Outline,
+                containing_block: containing_block_info.rect,
+                fragment: fragment.clone(),
+            });
+        }
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
