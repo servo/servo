@@ -203,7 +203,7 @@ jobs:
           path: |
             unexpected-test-wpt.log
       - name: Comment on PR with results
-        run: etc/ci/report_aggregated_expected_results.py wpt-filtered-results-linux/*.json
+        run: etc/ci/report_aggregated_expected_results.py --tag="linux-wpt-${{ env.LAYOUT }}" wpt-filtered-results-linux/*.json
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -17,7 +17,7 @@ import json
 import os
 import re
 import subprocess
-import sys
+import argparse
 import textwrap
 import xml.etree.ElementTree as ElementTree
 
@@ -99,9 +99,9 @@ class Item:
         return result
 
 
-def get_results() -> Optional[Item]:
+def get_results(filenames: list[str], tag: str = "") -> Optional[Item]:
     unexpected = []
-    for filename in sys.argv[1:]:
+    for filename in filenames:
         with open(filename, encoding="utf-8") as file:
             unexpected += json.load(file)
     unexpected.sort(key=lambda result: result["path"])
@@ -129,10 +129,13 @@ def get_results() -> Optional[Item]:
                  "Stable unexpected results")
 
     run_url = get_github_run_url()
+    text = "Test results"
+    if tag:
+        text += f" for {tag}"
+    text += " from try job"
     if run_url:
-        text = f"Results from try job ({run_url}):"
-    else:
-        text = "Results from try job:"
+        text += f" ({run_url})"
+    text += ":"
     return Item(text, "", children) if children else None
 
 
@@ -158,7 +161,7 @@ def get_pr_number() -> Optional[str]:
     return match.group(1) if match else None
 
 
-def create_check_run(body: str):
+def create_check_run(body: str, tag: str):
     # https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-runs
     conclusion = 'neutral'
     # get conclusion
@@ -178,14 +181,14 @@ def create_check_run(body: str):
         return None
     repo = github_context["repository"]
     data = {
-        'name': 'WPT',
+        'name': tag,
         'head_sha': github_context["sha"],
         'status': 'completed',
         'started_at': datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         'conclusion': conclusion,
         'completed_at': datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         'output': {
-            'title': 'Aggregated WPT report',
+            'title': f'Aggregated {tag} report',
             'summary': body,
             # 'text': '',
             'images': [{'alt': 'WPT logo', 'image_url': 'https://avatars.githubusercontent.com/u/37226233'}]
@@ -205,7 +208,11 @@ def create_check_run(body: str):
 
 
 def main():
-    results = get_results()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tag", default="wpt", action="store",
+                        help="A string tag used to distinguish the results.")
+    args, filenames = parser.parse_known_args()
+    results = get_results(filenames, args.tag)
     if not results:
         print("Did not find any unexpected results.")
         create_check_run("Did not find any unexpected results.")
@@ -216,7 +223,7 @@ def main():
     pr_number = get_pr_number()
     html_string = ElementTree.tostring(
         results.to_html(), encoding="unicode")
-    create_check_run(html_string)
+    create_check_run(html_string, args.tag)
 
     if pr_number:
         process = subprocess.Popen(
