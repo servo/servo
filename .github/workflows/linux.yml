@@ -29,7 +29,7 @@ on:
         default: "test"
         required: false
         type: choice
-        options: ["test", "sync"]
+        options: ["test", "sync", "auto"]
       unit-tests:
         required: false
         default: false
@@ -55,6 +55,12 @@ jobs:
   build-linux:
     name: Build
     runs-on: ubuntu-20.04
+    permissions:
+      pull-requests: read
+    # Set job outputs to values from filter step
+    outputs:
+      layout2020: ${{ steps.filter.outputs.layout2020 }}
+      layout2013: ${{ steps.filter.outputs.layout2013 }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -100,9 +106,31 @@ jobs:
         with:
           name: ${{ env.LAYOUT }}-release-binary
           path: target.tar.gz
+      # Filters that automagically detect if WPT test for specific layout needs to be run
+      - uses: dorny/paths-filter@v2
+        if: ${{ inputs.wpt == 'auto' }}
+        id: filter
+        with:
+          filters: |
+            layout2020:
+              - 'components/layout_traits/**'
+              - 'components/layout_2020/**'
+              - 'components/layout_thread_2020/**'
+              - 'tests/wpt/metadata-layout-2020/**'
+              - 'tests/wpt/mozilla/meta-layout-2020/**'
+            layout2013:
+              - 'components/layout_traits/**'
+              - 'components/layout/**'
+              - 'components/layout_thread/**'
+              - 'tests/wpt/metadata/**'
+              - 'tests/wpt/mozilla/meta/**'
 
   linux-wpt:
-    if: ${{ github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt }}
+    if: |
+        github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' ||
+        inputs.wpt == 'test' || inputs.wpt == 'sync' ||
+        (needs.build-linux.outputs.layout2020 == 'true' && contains(inputs.layout, '2020')) ||
+        (needs.build-linux.outputs.layout2013 == 'true' && !contains(inputs.layout, '2020'))
     name: Linux WPT Tests
     runs-on: ubuntu-20.04
     needs: ["build-linux"]
@@ -183,8 +211,13 @@ jobs:
   report-test-results:
     name: Reporting test results
     runs-on: ubuntu-latest
-    if: ${{ always() && !cancelled() && success('build-linux') && (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt == 'test') }}
+    if: |
+      always() && !cancelled() && success('build-linux') &&
+      (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt == 'test' ||
+      (needs.build-linux.outputs.layout2020 == 'true' && contains(inputs.layout, '2020')) ||
+      (needs.build-linux.outputs.layout2013 == 'true' && !contains(inputs.layout, '2020')))
     needs:
+      - "build-linux"
       - "linux-wpt"
     steps:
       - uses: actions/checkout@v3
