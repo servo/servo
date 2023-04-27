@@ -509,7 +509,7 @@ impl Request {
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
-            credentials_mode: CredentialsMode::Omit,
+            credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             cache_mode: CacheMode::Default,
             redirect_mode: RedirectMode::Follow,
