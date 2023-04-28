@@ -102,6 +102,15 @@ impl CssRules {
         dest: &mut CssStringWriter,
     ) -> fmt::Result {
         dest.write_str(" {")?;
+        self.to_css_block_without_opening(guard, dest)
+    }
+
+    /// As above, but without the opening curly bracket. That's needed for nesting.
+    pub fn to_css_block_without_opening(
+        &self,
+        guard: &SharedRwLockReadGuard,
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result {
         for rule in self.0.iter() {
             dest.write_str("\n  ")?;
             rule.to_css(guard, dest)?;

@@ -788,6 +788,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors,
             block,
+            rules: None, // TODO(nesting)
             source_location: start.source_location(),
         }))))
     }
