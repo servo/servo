@@ -63,7 +63,6 @@ where
         *effective = true;
         match *rule {
             CssRule::Namespace(_) |
-            CssRule::Style(_) |
             CssRule::FontFace(_) |
             CssRule::CounterStyle(_) |
             CssRule::Viewport(_) |
@@ -72,6 +71,10 @@ where
             CssRule::LayerStatement(_) |
             CssRule::FontFeatureValues(_) |
             CssRule::FontPaletteValues(_) => None,
+            CssRule::Style(ref style_rule) => {
+                let style_rule = style_rule.read_with(guard);
+                style_rule.rules.as_ref().map(|r| r.read_with(guard).0.iter())
+            },
             CssRule::Import(ref import_rule) => {
                 let import_rule = import_rule.read_with(guard);
                 if !C::process_import(guard, device, quirks_mode, import_rule) {

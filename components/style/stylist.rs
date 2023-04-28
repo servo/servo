@@ -49,12 +49,13 @@ use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{matches_selector, MatchingContext, MatchingMode, NeedsSelectorFlags};
-use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorIter};
+use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorList, SelectorIter};
 use selectors::visitor::{SelectorListKind, SelectorVisitor};
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
@@ -549,33 +550,39 @@ impl From<StyleRuleInclusion> for RuleInclusion {
     }
 }
 
+type AncestorSelectorList<'a> = Cow<'a, SelectorList<SelectorImpl>>;
+
 /// A struct containing state from ancestor rules like @layer / @import /
-/// @container.
-struct ContainingRuleState {
+/// @container / nesting.
+struct ContainingRuleState<'a> {
     layer_name: LayerName,
     layer_id: LayerId,
     container_condition_id: ContainerConditionId,
+    ancestor_selector_lists: SmallVec<[AncestorSelectorList<'a>; 2]>,
 }
 
-impl Default for ContainingRuleState {
+impl<'a> Default for ContainingRuleState<'a> {
     fn default() -> Self {
         Self {
             layer_name: LayerName::new_empty(),
             layer_id: LayerId::root(),
             container_condition_id: ContainerConditionId::none(),
+            ancestor_selector_lists: Default::default(),
         }
     }
 }
 
 struct SavedContainingRuleState {
+    ancestor_selector_lists_len: usize,
     layer_name_len: usize,
     layer_id: LayerId,
     container_condition_id: ContainerConditionId,
 }
 
-impl ContainingRuleState {
+impl<'a> ContainingRuleState<'a> {
     fn save(&self) -> SavedContainingRuleState {
         SavedContainingRuleState {
+            ancestor_selector_lists_len: self.ancestor_selector_lists.len(),
             layer_name_len: self.layer_name.0.len(),
             layer_id: self.layer_id,
             container_condition_id: self.container_condition_id,
@@ -584,6 +591,8 @@ impl ContainingRuleState {
 
     fn restore(&mut self, saved: &SavedContainingRuleState) {
         debug_assert!(self.layer_name.0.len() >= saved.layer_name_len);
+        debug_assert!(self.ancestor_selector_lists.len() >= saved.ancestor_selector_lists_len);
+        self.ancestor_selector_lists.truncate(saved.ancestor_selector_lists_len);
         self.layer_name.0.truncate(saved.layer_name_len);
         self.layer_id = saved.layer_id;
         self.container_condition_id = saved.container_condition_id;
@@ -2630,15 +2639,15 @@ impl CascadeData {
         }
     }
 
-    fn add_rule_list<S>(
+    fn add_rule_list<'a, S>(
         &mut self,
-        rules: std::slice::Iter<'_, CssRule>,
-        device: &Device,
+        rules: std::slice::Iter<'a, CssRule>,
+        device: &'a Device,
         quirks_mode: QuirksMode,
         stylesheet: &S,
-        guard: &SharedRwLockReadGuard,
+        guard: &'a SharedRwLockReadGuard,
         rebuild_kind: SheetRebuildKind,
-        containing_rule_state: &mut ContainingRuleState,
+        containing_rule_state: &mut ContainingRuleState<'a>,
         mut precomputed_pseudo_element_decls: Option<&mut PrecomputedPseudoElementDeclarations>,
     ) -> Result<(), AllocErr>
     where
@@ -2648,18 +2657,33 @@ impl CascadeData {
             // Handle leaf rules first, as those are by far the most common
             // ones, and are always effective, so we can skip some checks.
             let mut handled = true;
+            let mut selectors_for_nested_rules = None;
             match *rule {
                 CssRule::Style(ref locked) => {
-                    let style_rule = locked.read_with(&guard);
+                    let style_rule = locked.read_with(guard);
                     self.num_declarations += style_rule.block.read_with(&guard).len();
+
+                    let has_nested_rules = style_rule.rules.is_some();
+                    let ancestor_selectors = containing_rule_state.ancestor_selector_lists.last();
+                    if has_nested_rules {
+                        selectors_for_nested_rules = Some(
+                            if ancestor_selectors.is_some() {
+                                Cow::Owned(SelectorList(Default::default()))
+                            } else {
+                                Cow::Borrowed(&style_rule.selectors)
+                            }
+                        );
+                    }
+
                     for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
 
                         let pseudo_element = selector.pseudo_element();
-
                         if let Some(pseudo) = pseudo_element {
                             if pseudo.is_precomputed() {
                                 debug_assert!(selector.is_universal());
+                                debug_assert!(ancestor_selectors.is_none());
+                                debug_assert!(!has_nested_rules);
                                 debug_assert_eq!(stylesheet.contents().origin, Origin::UserAgent);
                                 debug_assert_eq!(containing_rule_state.layer_id, LayerId::root());
 
@@ -2681,10 +2705,15 @@ impl CascadeData {
                             }
                         }
 
+                        let selector = match ancestor_selectors {
+                            Some(s) => selector.replace_parent_selector(&s.0),
+                            None => selector.clone(),
+                        };
+
                         let hashes = AncestorHashes::new(&selector, quirks_mode);
 
                         let rule = Rule::new(
-                            selector.clone(),
+                            selector,
                             hashes,
                             locked.clone(),
                             self.rules_source_order,
@@ -2692,8 +2721,12 @@ impl CascadeData {
                             containing_rule_state.container_condition_id,
                         );
 
+                        if let Some(Cow::Owned(ref mut nested_selectors)) = selectors_for_nested_rules {
+                            nested_selectors.0.push(rule.selector.clone())
+                        }
+
                         if rebuild_kind.should_rebuild_invalidation() {
-                            self.invalidation_map.note_selector(selector, quirks_mode)?;
+                            self.invalidation_map.note_selector(&rule.selector, quirks_mode)?;
                             let mut needs_revalidation = false;
                             let mut visitor = StylistSelectorVisitor {
                                 needs_revalidation: &mut needs_revalidation,
@@ -2725,7 +2758,7 @@ impl CascadeData {
                         // Part is special, since given it doesn't have any
                         // selectors inside, it's not worth using a whole
                         // SelectorMap for it.
-                        if let Some(parts) = selector.parts() {
+                        if let Some(parts) = rule.selector.parts() {
                             // ::part() has all semantics, so we just need to
                             // put any of them in the selector map.
                             //
@@ -2745,10 +2778,10 @@ impl CascadeData {
                             // ::slotted(..), since :host::slotted(..) could never
                             // possibly match, as <slot> is not a valid shadow host.
                             let rules =
-                                if selector.is_featureless_host_selector_or_pseudo_element() {
+                                if rule.selector.is_featureless_host_selector_or_pseudo_element() {
                                     self.host_rules
                                         .get_or_insert_with(|| Box::new(Default::default()))
-                                } else if selector.is_slotted() {
+                                } else if rule.selector.is_slotted() {
                                     self.slotted_rules
                                         .get_or_insert_with(|| Box::new(Default::default()))
                                 } else {
@@ -2759,6 +2792,7 @@ impl CascadeData {
                         }
                     }
                     self.rules_source_order += 1;
+                    handled = !has_nested_rules;
                 },
                 CssRule::Keyframes(ref keyframes_rule) => {
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
@@ -2932,6 +2966,11 @@ impl CascadeData {
                         containing_rule_state.restore(&saved_containing_rule_state);
                     }
                 },
+                CssRule::Style(..) => {
+                    if let Some(s) = selectors_for_nested_rules {
+                        containing_rule_state.ancestor_selector_lists.push(s);
+                    }
+                }
                 CssRule::Container(ref lock) => {
                     let container_rule = lock.read_with(guard);
                     let id = ContainerConditionId(self.container_conditions.len() as u16);
