@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cell::ArcRefCell;
-use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, Tag};
+use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, ContainingBlockManager, Tag};
 use crate::geom::flow_relative::{Rect, Sides};
-use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use crate::positioned::HoistedSharedFragment;
+use crate::style_ext::ComputedValuesExt;
 use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
@@ -14,9 +15,10 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
+use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::computed::{CSSPixelLength, Length, LengthPercentage, LengthPercentageOrAuto};
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
@@ -59,6 +61,9 @@ pub(crate) struct BoxFragment {
 
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
+
+    /// Whether or not this box was overconstrained in the given dimension.
+    overconstrained: PhysicalSize<bool>,
 }
 
 #[derive(Serialize)]
@@ -207,36 +212,54 @@ impl Fragment {
 
     pub(crate) fn find<T>(
         &self,
-        containing_block: &PhysicalRect<Length>,
+        manager: &ContainingBlockManager<PhysicalRect<Length>>,
         level: usize,
         process_func: &mut impl FnMut(&Fragment, usize, &PhysicalRect<Length>) -> Option<T>,
     ) -> Option<T> {
+        let containing_block = manager.get_containing_block_for_fragment(self);
         if let Some(result) = process_func(self, level, containing_block) {
             return Some(result);
         }
 
         match self {
             Fragment::Box(fragment) => {
-                let new_containing_block = fragment
+                let content_rect = fragment
                     .content_rect
                     .to_physical(fragment.style.writing_mode, containing_block)
                     .translate(containing_block.origin.to_vector());
-                fragment.children.iter().find_map(|child| {
-                    child
-                        .borrow()
-                        .find(&new_containing_block, level + 1, process_func)
-                })
+                let padding_rect = fragment
+                    .padding_rect()
+                    .to_physical(fragment.style.writing_mode, containing_block)
+                    .translate(containing_block.origin.to_vector());
+                let new_manager = if fragment
+                    .style
+                    .establishes_containing_block_for_all_descendants()
+                {
+                    manager.new_for_absolute_and_fixed_descendants(&content_rect, &padding_rect)
+                } else if fragment
+                    .style
+                    .establishes_containing_block_for_absolute_descendants()
+                {
+                    manager.new_for_absolute_descendants(&content_rect, &padding_rect)
+                } else {
+                    manager.new_for_non_absolute_descendants(&content_rect)
+                };
+
+                fragment
+                    .children
+                    .iter()
+                    .find_map(|child| child.borrow().find(&new_manager, level + 1, process_func))
             },
             Fragment::Anonymous(fragment) => {
-                let new_containing_block = fragment
+                let content_rect = fragment
                     .rect
                     .to_physical(fragment.mode, containing_block)
                     .translate(containing_block.origin.to_vector());
-                fragment.children.iter().find_map(|child| {
-                    child
-                        .borrow()
-                        .find(&new_containing_block, level + 1, process_func)
-                })
+                let new_manager = manager.new_for_non_absolute_descendants(&content_rect);
+                fragment
+                    .children
+                    .iter()
+                    .find_map(|child| child.borrow().find(&new_manager, level + 1, process_func))
             },
             _ => None,
         }
@@ -304,6 +327,39 @@ impl BoxFragment {
         margin: Sides<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
+        let position = style.get_box().position;
+        let insets = style.get_position();
+        let width_overconstrained = position == ComputedPosition::Relative &&
+            !insets.left.is_auto() &&
+            !insets.right.is_auto();
+        let height_overconstrained = position == ComputedPosition::Relative &&
+            !insets.left.is_auto() &&
+            !insets.bottom.is_auto();
+
+        Self::new_with_overconstrained(
+            base_fragment_info,
+            style,
+            children,
+            content_rect,
+            padding,
+            border,
+            margin,
+            block_margins_collapsed_with_children,
+            PhysicalSize::new(width_overconstrained, height_overconstrained),
+        )
+    }
+
+    pub fn new_with_overconstrained(
+        base_fragment_info: BaseFragmentInfo,
+        style: ServoArc<ComputedValues>,
+        children: Vec<Fragment>,
+        content_rect: Rect<Length>,
+        padding: Sides<Length>,
+        border: Sides<Length>,
+        margin: Sides<Length>,
+        block_margins_collapsed_with_children: CollapsedBlockMargins,
+        overconstrained: PhysicalSize<bool>,
+    ) -> BoxFragment {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
         let containing_block = PhysicalRect::zero();
@@ -311,6 +367,7 @@ impl BoxFragment {
             children.iter().fold(PhysicalRect::zero(), |acc, child| {
                 acc.union(&child.scrollable_overflow(&containing_block))
             });
+
         BoxFragment {
             base: base_fragment_info.into(),
             style,
@@ -324,6 +381,7 @@ impl BoxFragment {
             margin,
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
+            overconstrained,
         }
     }
 
@@ -363,6 +421,7 @@ impl BoxFragment {
                 \nborder rect={:?}\
                 \nscrollable_overflow={:?}\
                 \noverflow={:?} / {:?}\
+                \noverconstrained={:?}
                 \nstyle={:p}",
             self.base,
             self.content_rect,
@@ -371,6 +430,7 @@ impl BoxFragment {
             self.scrollable_overflow(&PhysicalRect::zero()),
             self.style.get_box().overflow_x,
             self.style.get_box().overflow_y,
+            self.overconstrained,
             self.style,
         ));
 
@@ -413,6 +473,81 @@ impl BoxFragment {
         }
 
         overflow
+    }
+
+    pub(crate) fn calculate_resolved_insets_if_positioned(
+        &self,
+        containing_block: &PhysicalRect<CSSPixelLength>,
+    ) -> PhysicalSides<CSSPixelLength> {
+        let position = self.style.get_box().position;
+        debug_assert_ne!(
+            position,
+            ComputedPosition::Static,
+            "Should not call this method on statically positioned box."
+        );
+
+        let (cb_width, cb_height) = (containing_block.width(), containing_block.height());
+        let content_rect = self
+            .content_rect
+            .to_physical(self.style.writing_mode, &containing_block);
+
+        // "A resolved value special case property like top defined in another
+        // specification If the property applies to a positioned element and the
+        // resolved value of the display property is not none or contents, and
+        // the property is not over-constrained, then the resolved value is the
+        // used value. Otherwise the resolved value is the computed value."
+        // https://drafts.csswg.org/cssom/#resolved-values
+        let insets = self.style.get_position();
+        if position == ComputedPosition::Relative {
+            let get_resolved_axis =
+                |start: &LengthPercentageOrAuto,
+                 end: &LengthPercentageOrAuto,
+                 container_length: CSSPixelLength| {
+                    let start = start.map(|v| v.percentage_relative_to(container_length));
+                    let end = end.map(|v| v.percentage_relative_to(container_length));
+                    match (start.non_auto(), end.non_auto()) {
+                        (None, None) => (Length::zero(), Length::zero()),
+                        (None, Some(end)) => (-end, end),
+                        (Some(start), None) => (start, -start),
+                        // This is the overconstrained case, for which the resolved insets will
+                        // simply be the computed insets.
+                        (Some(start), Some(end)) => (start, end),
+                    }
+                };
+            let (left, right) = get_resolved_axis(&insets.left, &insets.right, cb_width);
+            let (top, bottom) = get_resolved_axis(&insets.top, &insets.bottom, cb_height);
+            return PhysicalSides::new(top, right, bottom, left);
+        }
+
+        debug_assert!(
+            position == ComputedPosition::Fixed || position == ComputedPosition::Absolute,
+            "Got unknown position."
+        );
+
+        let resolve = |value: &LengthPercentageOrAuto, container_length| {
+            value
+                .auto_is(LengthPercentage::zero)
+                .percentage_relative_to(container_length)
+        };
+
+        let (top, bottom) = if self.overconstrained.height {
+            (
+                resolve(&insets.top, cb_height),
+                resolve(&insets.bottom, cb_height),
+            )
+        } else {
+            (content_rect.origin.y, cb_height - content_rect.max_y())
+        };
+        let (left, right) = if self.overconstrained.width {
+            (
+                resolve(&insets.left, cb_width),
+                resolve(&insets.right, cb_width),
+            )
+        } else {
+            (content_rect.origin.x, cb_width - content_rect.max_x())
+        };
+
+        PhysicalSides::new(top, right, bottom, left)
     }
 }
 

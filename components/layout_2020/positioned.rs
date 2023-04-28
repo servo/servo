@@ -93,6 +93,13 @@ pub(crate) enum AbsoluteBoxOffsets {
 }
 
 impl AbsoluteBoxOffsets {
+    fn both_specified(&self) -> bool {
+        match self {
+            AbsoluteBoxOffsets::Both { .. } => return true,
+            _ => return false,
+        }
+    }
+
     fn adjust_offset(&mut self, new_offset: Length) {
         match *self {
             AbsoluteBoxOffsets::StaticStart { ref mut start } => *start = new_offset,
@@ -444,32 +451,30 @@ impl HoistedAbsolutelyPositionedBox {
         };
 
         let shared_fragment = self.fragment.borrow();
-
-        let solve_inline_axis = |computed_size| {
-            solve_axis(
-                cbis,
-                pbm.padding_border_sums.inline,
-                pbm.margin.inline_start,
-                pbm.margin.inline_end,
-                /* avoid_negative_margin_start */ true,
-                &shared_fragment.box_offsets.inline,
-                computed_size,
-            )
-        };
-        let solve_block_axis = |computed_size| {
-            solve_axis(
-                cbbs,
-                pbm.padding_border_sums.block,
-                pbm.margin.block_start,
-                pbm.margin.block_end,
-                /* avoid_negative_margin_start */ false,
-                &shared_fragment.box_offsets.block,
-                computed_size,
-            )
+        let inline_axis_solver = AbsoluteAxisSolver {
+            containing_size: cbis,
+            padding_border_sum: pbm.padding_border_sums.inline,
+            computed_margin_start: pbm.margin.inline_start,
+            computed_margin_end: pbm.margin.inline_end,
+            avoid_negative_margin_start: true,
+            box_offsets: &shared_fragment.box_offsets.inline,
         };
 
-        let mut inline_axis = solve_inline_axis(computed_size.inline);
-        let mut block_axis = solve_block_axis(computed_size.block);
+        let block_axis_solver = AbsoluteAxisSolver {
+            containing_size: cbbs,
+            padding_border_sum: pbm.padding_border_sums.block,
+            computed_margin_start: pbm.margin.block_start,
+            computed_margin_end: pbm.margin.block_end,
+            avoid_negative_margin_start: false,
+            box_offsets: &shared_fragment.box_offsets.block,
+        };
+        let overconstrained = Vec2 {
+            inline: inline_axis_solver.is_overconstrained_for_size(computed_size.inline),
+            block: block_axis_solver.is_overconstrained_for_size(computed_size.block),
+        };
+
+        let mut inline_axis = inline_axis_solver.solve_for_size(computed_size.inline);
+        let mut block_axis = block_axis_solver.solve_for_size(computed_size.block);
 
         let mut positioning_context =
             PositioningContext::new_for_style(absolutely_positioned_box.context.style()).unwrap();
@@ -519,7 +524,8 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/#min-max-widths (step 2)
                     if let Some(max) = max_size.inline {
                         if inline_size > max {
-                            inline_axis = solve_inline_axis(LengthOrAuto::LengthPercentage(max));
+                            inline_axis = inline_axis_solver
+                                .solve_for_size(LengthOrAuto::LengthPercentage(max));
                             inline_size = inline_axis.size.auto_is(|| unreachable!());
                         }
                     }
@@ -530,8 +536,8 @@ impl HoistedAbsolutelyPositionedBox {
                     // because a non-‘auto’ computed ‘inline-size’ always becomes the used value.
                     // https://drafts.csswg.org/css2/#min-max-widths (step 3)
                     if inline_size < min_size.inline {
-                        inline_axis =
-                            solve_inline_axis(LengthOrAuto::LengthPercentage(min_size.inline));
+                        inline_axis = inline_axis_solver
+                            .solve_for_size(LengthOrAuto::LengthPercentage(min_size.inline));
                         inline_size = inline_axis.size.auto_is(|| unreachable!());
                     }
 
@@ -581,7 +587,8 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/#min-max-heights (step 2)
                     if let Some(max) = max_size.block {
                         if result.content_size.block > max {
-                            block_axis = solve_block_axis(LengthOrAuto::LengthPercentage(max));
+                            block_axis = block_axis_solver
+                                .solve_for_size(LengthOrAuto::LengthPercentage(max));
                             result = try_layout(LengthOrAuto::LengthPercentage(max));
                         }
                     }
@@ -592,8 +599,8 @@ impl HoistedAbsolutelyPositionedBox {
                     // because a non-‘auto’ computed ‘block-size’ always becomes the used value.
                     // https://drafts.csswg.org/css2/#min-max-heights (step 3)
                     if result.content_size.block < min_size.block {
-                        block_axis =
-                            solve_block_axis(LengthOrAuto::LengthPercentage(min_size.block));
+                        block_axis = block_axis_solver
+                            .solve_for_size(LengthOrAuto::LengthPercentage(min_size.block));
                         result = try_layout(LengthOrAuto::LengthPercentage(min_size.block));
                     }
 
@@ -631,7 +638,10 @@ impl HoistedAbsolutelyPositionedBox {
                 size: content_size,
             };
 
-            BoxFragment::new(
+            let physical_overconstrained =
+                overconstrained.to_physical(containing_block.style.writing_mode);
+
+            BoxFragment::new_with_overconstrained(
                 absolutely_positioned_box.context.base_fragment_info(),
                 absolutely_positioned_box.context.style().clone(),
                 fragments,
@@ -640,6 +650,7 @@ impl HoistedAbsolutelyPositionedBox {
                 pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
+                physical_overconstrained,
             )
         };
         positioning_context.layout_collected_children(layout_context, &mut new_fragment);
@@ -661,97 +672,111 @@ struct AxisResult {
     margin_end: Length,
 }
 
-/// This unifies some of the parts in common in:
-///
-/// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-/// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-///
-/// … and:
-///
-/// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-/// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-///
-/// In the replaced case, `size` is never `Auto`.
-fn solve_axis(
+struct AbsoluteAxisSolver<'a> {
     containing_size: Length,
     padding_border_sum: Length,
     computed_margin_start: LengthOrAuto,
     computed_margin_end: LengthOrAuto,
     avoid_negative_margin_start: bool,
-    box_offsets: &AbsoluteBoxOffsets,
-    computed_size: LengthOrAuto,
-) -> AxisResult {
-    match box_offsets {
-        AbsoluteBoxOffsets::StaticStart { start } => AxisResult {
-            anchor: Anchor::Start(*start),
-            size: computed_size,
-            margin_start: computed_margin_start.auto_is(Length::zero),
-            margin_end: computed_margin_end.auto_is(Length::zero),
-        },
-        AbsoluteBoxOffsets::Start { start } => AxisResult {
-            anchor: Anchor::Start(start.percentage_relative_to(containing_size)),
-            size: computed_size,
-            margin_start: computed_margin_start.auto_is(Length::zero),
-            margin_end: computed_margin_end.auto_is(Length::zero),
-        },
-        AbsoluteBoxOffsets::End { end } => AxisResult {
-            anchor: Anchor::End(end.percentage_relative_to(containing_size)),
-            size: computed_size,
-            margin_start: computed_margin_start.auto_is(Length::zero),
-            margin_end: computed_margin_end.auto_is(Length::zero),
-        },
-        AbsoluteBoxOffsets::Both { start, end } => {
-            let start = start.percentage_relative_to(containing_size);
-            let end = end.percentage_relative_to(containing_size);
+    box_offsets: &'a AbsoluteBoxOffsets,
+}
 
-            let margin_start;
-            let margin_end;
-            let used_size;
-            if let LengthOrAuto::LengthPercentage(s) = computed_size {
-                used_size = s;
-                let margins = containing_size - start - end - padding_border_sum - s;
-                match (computed_margin_start, computed_margin_end) {
-                    (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
-                        if avoid_negative_margin_start && margins < Length::zero() {
-                            margin_start = Length::zero();
-                            margin_end = margins;
-                        } else {
-                            margin_start = margins / 2.;
-                            margin_end = margins / 2.;
-                        }
-                    },
-                    (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
-                        margin_start = margins - end;
-                        margin_end = end;
-                    },
-                    (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => {
-                        margin_start = start;
-                        margin_end = margins - start;
-                    },
-                    (
-                        LengthOrAuto::LengthPercentage(start),
-                        LengthOrAuto::LengthPercentage(end),
-                    ) => {
-                        margin_start = start;
-                        margin_end = end;
-                    },
+impl<'a> AbsoluteAxisSolver<'a> {
+    /// This unifies some of the parts in common in:
+    ///
+    /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+    /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+    ///
+    /// … and:
+    ///
+    /// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+    /// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+    ///
+    /// In the replaced case, `size` is never `Auto`.
+    fn solve_for_size(&self, computed_size: LengthOrAuto) -> AxisResult {
+        match self.box_offsets {
+            AbsoluteBoxOffsets::StaticStart { start } => AxisResult {
+                anchor: Anchor::Start(*start),
+                size: computed_size,
+                margin_start: self.computed_margin_start.auto_is(Length::zero),
+                margin_end: self.computed_margin_end.auto_is(Length::zero),
+            },
+            AbsoluteBoxOffsets::Start { start } => AxisResult {
+                anchor: Anchor::Start(start.percentage_relative_to(self.containing_size)),
+                size: computed_size,
+                margin_start: self.computed_margin_start.auto_is(Length::zero),
+                margin_end: self.computed_margin_end.auto_is(Length::zero),
+            },
+            AbsoluteBoxOffsets::End { end } => AxisResult {
+                anchor: Anchor::End(end.percentage_relative_to(self.containing_size)),
+                size: computed_size,
+                margin_start: self.computed_margin_start.auto_is(Length::zero),
+                margin_end: self.computed_margin_end.auto_is(Length::zero),
+            },
+            AbsoluteBoxOffsets::Both { start, end } => {
+                let start = start.percentage_relative_to(self.containing_size);
+                let end = end.percentage_relative_to(self.containing_size);
+
+                let margin_start;
+                let margin_end;
+                let used_size;
+                if let LengthOrAuto::LengthPercentage(s) = computed_size {
+                    used_size = s;
+                    let margins = self.containing_size - start - end - self.padding_border_sum - s;
+                    match (self.computed_margin_start, self.computed_margin_end) {
+                        (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
+                            if self.avoid_negative_margin_start && margins < Length::zero() {
+                                margin_start = Length::zero();
+                                margin_end = margins;
+                            } else {
+                                margin_start = margins / 2.;
+                                margin_end = margins / 2.;
+                            }
+                        },
+                        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
+                            margin_start = margins - end;
+                            margin_end = end;
+                        },
+                        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => {
+                            margin_start = start;
+                            margin_end = margins - start;
+                        },
+                        (
+                            LengthOrAuto::LengthPercentage(start),
+                            LengthOrAuto::LengthPercentage(end),
+                        ) => {
+                            margin_start = start;
+                            margin_end = end;
+                        },
+                    }
+                } else {
+                    margin_start = self.computed_margin_start.auto_is(Length::zero);
+                    margin_end = self.computed_margin_end.auto_is(Length::zero);
+
+                    // This may be negative, but the caller will later effectively
+                    // clamp it to ‘min-inline-size’ or ‘min-block-size’.
+                    used_size = self.containing_size -
+                        start -
+                        end -
+                        self.padding_border_sum -
+                        margin_start -
+                        margin_end;
+                };
+                AxisResult {
+                    anchor: Anchor::Start(start),
+                    size: LengthOrAuto::LengthPercentage(used_size),
+                    margin_start,
+                    margin_end,
                 }
-            } else {
-                margin_start = computed_margin_start.auto_is(Length::zero);
-                margin_end = computed_margin_end.auto_is(Length::zero);
+            },
+        }
+    }
 
-                // This may be negative, but the caller will later effectively
-                // clamp it to ‘min-inline-size’ or ‘min-block-size’.
-                used_size =
-                    containing_size - start - end - padding_border_sum - margin_start - margin_end
-            };
-            AxisResult {
-                anchor: Anchor::Start(start),
-                size: LengthOrAuto::LengthPercentage(used_size),
-                margin_start,
-                margin_end,
-            }
-        },
+    fn is_overconstrained_for_size(&self, computed_size: LengthOrAuto) -> bool {
+        !computed_size.is_auto() &&
+            self.box_offsets.both_specified() &&
+            !self.computed_margin_start.is_auto() &&
+            !self.computed_margin_end.is_auto()
     }
 }
 
@@ -796,6 +821,10 @@ pub(crate) fn relative_adjustement(
     style: &ComputedValues,
     containing_block: &ContainingBlock,
 ) -> Vec2<Length> {
+    // "If the height of the containing block is not specified explicitly (i.e.,
+    // it depends on content height), and this element is not absolutely
+    // positioned, the value computes to 'auto'.""
+    // https://www.w3.org/TR/CSS2/visudet.html#the-height-property
     let cbis = containing_block.inline_size;
     let cbbs = containing_block.block_size.auto_is(Length::zero);
     let box_offsets = style
