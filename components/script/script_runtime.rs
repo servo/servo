@@ -483,7 +483,7 @@ unsafe fn new_rt_and_cx_with_parent(
         JS_SetGCCallback(cx, Some(debug_gc_callback), ptr::null_mut());
     }
 
-    if opts::get().gc_profile {
+    if opts::get().debug.gc_profile {
         SetGCSliceCallback(cx, Some(gc_slice_callback));
     }
 

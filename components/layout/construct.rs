@@ -2068,7 +2068,7 @@ impl FlowRef {
     /// All flows must be finished at some point, or they will not have their intrinsic inline-sizes
     /// properly computed. (This is not, however, a memory safety problem.)
     fn finish(&mut self) {
-        if !opts::get().bubble_inline_sizes_separately {
+        if !opts::get().debug.bubble_inline_sizes_separately {
             FlowRef::deref_mut(self).bubble_inline_sizes();
             FlowRef::deref_mut(self)
                 .mut_base()

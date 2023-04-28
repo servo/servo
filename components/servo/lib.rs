@@ -293,9 +293,9 @@ where
         use std::sync::atomic::Ordering;
 
         style::context::DEFAULT_DISABLE_STYLE_SHARING_CACHE
-            .store(opts.disable_share_style_cache, Ordering::Relaxed);
+            .store(opts.debug.disable_share_style_cache, Ordering::Relaxed);
         style::context::DEFAULT_DUMP_STYLE_STATISTICS
-            .store(opts.style_sharing_stats, Ordering::Relaxed);
+            .store(opts.debug.dump_style_statistics, Ordering::Relaxed);
         style::traversal::IS_SERVO_NONINCREMENTAL_LAYOUT
             .store(opts.nonincremental_layout, Ordering::Relaxed);
 
@@ -374,7 +374,10 @@ where
 
         let (mut webrender, webrender_api_sender) = {
             let mut debug_flags = webrender::DebugFlags::empty();
-            debug_flags.set(webrender::DebugFlags::PROFILER_DBG, opts.webrender_stats);
+            debug_flags.set(
+                webrender::DebugFlags::PROFILER_DBG,
+                opts.debug.webrender_stats,
+            );
 
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
 
@@ -387,14 +390,15 @@ where
                 webrender::RendererOptions {
                     device_pixel_ratio,
                     resource_override_path: opts.shaders_dir.clone(),
-                    enable_aa: opts.enable_text_antialiasing,
+                    enable_aa: !opts.debug.disable_text_antialiasing,
                     debug_flags: debug_flags,
-                    precache_flags: if opts.precache_shaders {
+                    precache_flags: if opts.debug.precache_shaders {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
+                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled) &&
+                        !opts.debug.disable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color: None,
                     ..Default::default()
@@ -542,7 +546,7 @@ where
             opts.output_file.clone(),
             opts.is_running_problem_test,
             opts.exit_after_load,
-            opts.convert_mouse_to_touch,
+            opts.debug.convert_mouse_to_touch,
             browser_id,
         );
 
@@ -936,7 +940,7 @@ fn create_constellation(
         opts.random_pipeline_closure_seed,
         opts.is_running_problem_test,
         opts.hard_fail,
-        opts.enable_canvas_antialiasing,
+        !opts.debug.disable_canvas_antialiasing,
         canvas_chan,
         ipc_canvas_chan,
     );

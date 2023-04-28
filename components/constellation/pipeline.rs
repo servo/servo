@@ -576,9 +576,9 @@ impl UnprivilegedPipelineContent {
                 inherited_secure_context: self.load_data.inherited_secure_context.clone(),
             },
             self.load_data.clone(),
-            self.opts.profile_script_events,
+            self.opts.debug.profile_script_events,
             self.opts.print_pwm,
-            self.opts.relayout_event,
+            self.opts.debug.relayout_event,
             self.opts.output_file.is_some() ||
                 self.opts.exit_after_load ||
                 self.opts.webdriver_port.is_some(),
@@ -586,7 +586,7 @@ impl UnprivilegedPipelineContent {
             self.opts.local_script_source,
             self.opts.userscripts,
             self.opts.headless,
-            self.opts.replace_surrogates,
+            self.opts.debug.replace_surrogates,
             self.user_agent,
         );
 
@@ -607,16 +607,16 @@ impl UnprivilegedPipelineContent {
             self.webrender_api_sender,
             paint_time_metrics,
             layout_thread_busy_flag.clone(),
-            self.opts.load_webfonts_synchronously,
+            self.opts.debug.load_webfonts_synchronously,
             self.window_size,
-            self.opts.dump_display_list,
-            self.opts.dump_display_list_json,
-            self.opts.dump_style_tree,
-            self.opts.dump_rule_tree,
-            self.opts.relayout_event,
+            self.opts.debug.dump_display_list,
+            self.opts.debug.dump_display_list_json,
+            self.opts.debug.dump_style_tree,
+            self.opts.debug.dump_rule_tree,
+            self.opts.debug.relayout_event,
             self.opts.nonincremental_layout,
-            self.opts.trace_layout,
-            self.opts.dump_flow_tree,
+            self.opts.debug.trace_layout,
+            self.opts.debug.dump_flow_tree,
         );
 
         if wait_for_completion {

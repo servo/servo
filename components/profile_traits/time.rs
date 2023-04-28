@@ -133,7 +133,7 @@ pub fn profile<T, F>(
 where
     F: FnOnce() -> T,
 {
-    if opts::get().signpost {
+    if opts::get().debug.signpost {
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
     let start_time = precise_time_ns();
@@ -141,7 +141,7 @@ where
     let val = callback();
 
     let end_time = precise_time_ns();
-    if opts::get().signpost {
+    if opts::get().debug.signpost {
         signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
 

@@ -58,55 +58,14 @@ pub struct Opts {
 
     pub output_file: Option<String>,
 
-    /// Replace unpaired surrogates in DOM strings with U+FFFD.
-    /// See <https://github.com/servo/servo/issues/6564>
-    pub replace_surrogates: bool,
-
-    /// Log GC passes and their durations.
-    pub gc_profile: bool,
-
-    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
-    pub load_webfonts_synchronously: bool,
-
     pub headless: bool,
 
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
 
-    /// True if we should bubble intrinsic widths sequentially (`-b`). If this is true, then
-    /// intrinsic widths are computed as a separate pass instead of during flow construction. You
-    /// may wish to turn this flag on in order to benchmark style recalculation against other
-    /// browser engines.
-    pub bubble_inline_sizes_separately: bool,
-
-    /// True if we should show borders on all fragments for debugging purposes
-    /// (`--show-debug-fragment-borders`).
-    pub show_debug_fragment_borders: bool,
-
-    /// True if we should paint borders around flows based on which thread painted them.
-    pub show_debug_parallel_layout: bool,
-
-    /// If set with --disable-text-aa, disable antialiasing on fonts. This is primarily useful for reftests
-    /// where pixel perfect results are required when using fonts such as the Ahem
-    /// font for layout tests.
-    pub enable_text_antialiasing: bool,
-
-    /// If set with --disable-subpixel, use subpixel antialiasing for glyphs. In the future
-    /// this will likely become the default, but for now it's opt-in while we work
-    /// out any bugs and improve the implementation.
-    pub enable_subpixel_text_antialiasing: bool,
-
-    /// If set with --disable-canvas-aa, disable antialiasing on the HTML canvas element.
-    /// Like --disable-text-aa, this is useful for reftests where pixel perfect results are required.
-    pub enable_canvas_antialiasing: bool,
-
-    /// True if each step of layout is traced to an external JSON file
-    /// for debugging purposes. Setting this implies sequential layout
-    /// and paint.
-    pub trace_layout: bool,
-
-    /// Periodically print out on which events script threads spend their processing time.
-    pub profile_script_events: bool,
+    /// Debug options that are used by developers to control Servo
+    /// behavior for debugging purposes.
+    pub debug: DebugOptions,
 
     /// Port number to start a server to listen to remote Firefox devtools connections.
     /// 0 for random port.
@@ -139,62 +98,14 @@ pub struct Opts {
     /// used for testing the hardening of the constellation.
     pub random_pipeline_closure_seed: Option<usize>,
 
-    /// Dumps the DOM after restyle.
-    pub dump_style_tree: bool,
-
-    /// Dumps the rule tree.
-    pub dump_rule_tree: bool,
-
-    /// Dumps the flow tree after a layout.
-    pub dump_flow_tree: bool,
-
-    /// Dumps the display list after a layout.
-    pub dump_display_list: bool,
-
-    /// Dumps the display list in JSON form after a layout.
-    pub dump_display_list_json: bool,
-
-    /// Emits notifications when there is a relayout.
-    pub relayout_event: bool,
-
-    /// Whether Style Sharing Cache is used
-    pub disable_share_style_cache: bool,
-
-    /// Whether to show in stdout style sharing cache stats after a restyle.
-    pub style_sharing_stats: bool,
-
-    /// Translate mouse input into touch events.
-    pub convert_mouse_to_touch: bool,
-
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
-
-    /// True to show webrender profiling stats on screen.
-    pub webrender_stats: bool,
-
-    /// True if webrender recording should be enabled.
-    pub webrender_record: bool,
-
-    /// True if webrender is allowed to batch draw calls as instances.
-    pub webrender_batch: bool,
 
     /// Load shaders from disk.
     pub shaders_dir: Option<PathBuf>,
 
-    /// True to compile all webrender shaders at init time. This is mostly
-    /// useful when modifying the shaders, to ensure they all compile
-    /// after each change is made.
-    pub precache_shaders: bool,
-
     /// Directory for a default config directory
     pub config_dir: Option<PathBuf>,
-
-    // don't skip any backtraces on panic
-    pub full_backtraces: bool,
-
-    /// True to use OS native signposting facilities. This makes profiling events (script activity,
-    /// reflow, compositing, etc.) appear in Instruments.app on macOS.
-    pub signpost: bool,
 
     /// Print the version and exit.
     pub is_printing_version: bool,
@@ -221,22 +132,30 @@ fn print_usage(app: &str, opts: &Options) {
 }
 
 /// Debug options for Servo, currently set on the command line with -Z
-#[derive(Default)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct DebugOptions {
     /// List all the debug options.
     pub help: bool,
 
-    /// Bubble intrinsic widths separately like other engines.
-    pub bubble_widths: bool,
+    /// True if we should bubble intrinsic widths sequentially. If this is true,
+    /// then intrinsic widths are computed as a separate pass instead of during
+    /// flow construction. You may wish to turn this flag on in order to
+    /// benchmark style recalculation against other browser engines.
+    pub bubble_inline_sizes_separately: bool,
 
-    /// Disable antialiasing of rendered text.
-    pub disable_text_aa: bool,
+    /// If set with `disable-text-aa`, disable antialiasing on fonts. This is
+    /// primarily useful for reftests where pixel perfect results are required
+    /// when using fonts such as the Ahem font for layout tests.
+    pub disable_text_antialiasing: bool,
 
     /// Disable subpixel antialiasing of rendered text.
-    pub disable_subpixel_aa: bool,
+    pub disable_subpixel_text_antialiasing: bool,
 
     /// Disable antialiasing of rendered text on the HTML canvas element.
-    pub disable_canvas_aa: bool,
+    /// If set with `disable-canvas-aa`, disable antialiasing on the HTML canvas
+    /// element.  Like `disable-text-aa`, this is useful for reftests where
+    /// pixel perfect results are required.
+    pub disable_canvas_antialiasing: bool,
 
     /// Print the DOM after each restyle.
     pub dump_style_tree: bool,
@@ -256,7 +175,7 @@ pub struct DebugOptions {
     /// Print notifications when there is a relayout.
     pub relayout_event: bool,
 
-    /// Profile which events script threads spend their time on.
+    /// Periodically print out on which events script threads spend their processing time.
     pub profile_script_events: bool,
 
     /// Paint borders along fragment boundaries.
@@ -265,14 +184,16 @@ pub struct DebugOptions {
     /// Mark which thread laid each flow out with colors.
     pub show_parallel_layout: bool,
 
-    /// Write layout trace to an external file for debugging.
+    /// True if each step of layout is traced to an external JSON file
+    /// for debugging purposes. Setting this implies sequential layout
+    /// and paint.
     pub trace_layout: bool,
 
     /// Disable the style sharing cache.
     pub disable_share_style_cache: bool,
 
     /// Whether to show in stdout style sharing cache stats after a restyle.
-    pub style_sharing_stats: bool,
+    pub dump_style_statistics: bool,
 
     /// Translate mouse input into touch events.
     pub convert_mouse_to_touch: bool,
@@ -290,15 +211,6 @@ pub struct DebugOptions {
     /// Show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
-    /// Enable webrender recording.
-    pub webrender_record: bool,
-
-    /// Enable webrender instanced draw call batching.
-    pub webrender_disable_batch: bool,
-
-    // don't skip any backtraces on panic
-    pub full_backtraces: bool,
-
     /// True to compile all webrender shaders at init time. This is mostly
     /// useful when modifying the shaders, to ensure they all compile
     /// after each change is made.
@@ -314,127 +226,131 @@ impl DebugOptions {
         for option in debug_string.split(',') {
             match option {
                 "help" => self.help = true,
-                "bubble-widths" => self.bubble_widths = true,
-                "disable-text-aa" => self.disable_text_aa = true,
-                "disable-subpixel-aa" => self.disable_subpixel_aa = true,
-                "disable-canvas-aa" => self.disable_text_aa = true,
-                "dump-style-tree" => self.dump_style_tree = true,
-                "dump-rule-tree" => self.dump_rule_tree = true,
-                "dump-flow-tree" => self.dump_flow_tree = true,
+                "bubble-inline-sizes-separately" => self.bubble_inline_sizes_separately = true,
+                "convert-mouse-to-touch" => self.convert_mouse_to_touch = true,
+                "disable-canvas-aa" => self.disable_canvas_antialiasing = true,
+                "disable-share-style-cache" => self.disable_share_style_cache = true,
+                "disable-subpixel-aa" => self.disable_subpixel_text_antialiasing = true,
+                "disable-text-aa" => self.disable_text_antialiasing = true,
                 "dump-display-list" => self.dump_display_list = true,
                 "dump-display-list-json" => self.dump_display_list_json = true,
-                "relayout-event" => self.relayout_event = true,
-                "profile-script-events" => self.profile_script_events = true,
-                "show-fragment-borders" => self.show_fragment_borders = true,
-                "show-parallel-layout" => self.show_parallel_layout = true,
-                "trace-layout" => self.trace_layout = true,
-                "disable-share-style-cache" => self.disable_share_style_cache = true,
-                "style-sharing-stats" => self.style_sharing_stats = true,
-                "convert-mouse-to-touch" => self.convert_mouse_to_touch = true,
-                "replace-surrogates" => self.replace_surrogates = true,
+                "dump-flow-tree" => self.dump_flow_tree = true,
+                "dump-rule-tree" => self.dump_rule_tree = true,
+                "dump-style-tree" => self.dump_style_tree = true,
                 "gc-profile" => self.gc_profile = true,
                 "load-webfonts-synchronously" => self.load_webfonts_synchronously = true,
-                "wr-stats" => self.webrender_stats = true,
-                "wr-record" => self.webrender_record = true,
-                "wr-no-batch" => self.webrender_disable_batch = true,
-                "full-backtraces" => self.full_backtraces = true,
                 "precache-shaders" => self.precache_shaders = true,
+                "profile-script-events" => self.profile_script_events = true,
+                "relayout-event" => self.relayout_event = true,
+                "replace-surrogates" => self.replace_surrogates = true,
+                "show-fragment-borders" => self.show_fragment_borders = true,
+                "show-parallel-layout" => self.show_parallel_layout = true,
                 "signpost" => self.signpost = true,
+                "dump-style-stats" => self.dump_style_statistics = true,
+                "trace-layout" => self.trace_layout = true,
+                "wr-stats" => self.webrender_stats = true,
                 "" => {},
                 _ => return Err(String::from(option)),
             };
         }
+
+        if self.trace_layout {
+            self.bubble_inline_sizes_separately = true;
+        }
+
         Ok(())
     }
-}
 
-fn print_debug_usage(app: &str) -> ! {
-    fn print_option(name: &str, description: &str) {
-        println!("\t{:<35} {}", name, description);
+    fn print_usage(app: &str) {
+        fn print_option(name: &str, description: &str) {
+            println!("\t{:<35} {}", name, description);
+        }
+
+        println!(
+            "Usage: {} debug option,[options,...]\n\twhere options include\n\nOptions:",
+            app
+        );
+
+        print_option(
+            "bubble-inline-sizes-separately",
+            "Bubble intrinsic widths separately like other engines.",
+        );
+        print_option(
+            "convert-mouse-to-touch",
+            "Send touch events instead of mouse events",
+        );
+        print_option(
+            "disable-canvas-aa",
+            "Disable antialiasing on the HTML canvas element.",
+        );
+        print_option(
+            "disable-share-style-cache",
+            "Disable the style sharing cache.",
+        );
+        print_option(
+            "disable-subpixel-aa",
+            "Disable subpixel text antialiasing overriding preference.",
+        );
+        print_option("disable-text-aa", "Disable antialiasing of rendered text.");
+        print_option(
+            "dump-display-list",
+            "Print the display list after each layout.",
+        );
+        print_option(
+            "dump-display-list-json",
+            "Print the display list in JSON form.",
+        );
+        print_option("dump-flow-tree", "Print the flow tree after each layout.");
+        print_option(
+            "dump-rule-tree",
+            "Print the style rule tree after each layout.",
+        );
+        print_option(
+            "dump-style-tree",
+            "Print the DOM with computed styles after each restyle.",
+        );
+        print_option("dump-style-stats", "Print style statistics each restyle.");
+        print_option("gc-profile", "Log GC passes and their durations.");
+        print_option(
+            "load-webfonts-synchronously",
+            "Load web fonts synchronously to avoid non-deterministic network-driven reflows",
+        );
+        print_option(
+            "parallel-display-list-building",
+            "Build display lists in parallel.",
+        );
+        print_option("precache-shaders", "Compile all shaders during init.");
+        print_option(
+            "profile-script-events",
+            "Enable profiling of script-related events.",
+        );
+        print_option(
+            "relayout-event",
+            "Print notifications when there is a relayout.",
+        );
+        print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. See https://github.com/servo/servo/issues/6564");
+        print_option(
+            "show-fragment-borders",
+            "Paint borders along fragment boundaries.",
+        );
+        print_option(
+            "show-parallel-layout",
+            "Mark which thread laid each flow out with colors.",
+        );
+        print_option(
+            "signpost",
+            "Emit native OS signposts for profile events (currently macOS only)",
+        );
+        print_option(
+            "trace-layout",
+            "Write layout trace to an external file for debugging.",
+        );
+        print_option("wr-stats", "Show WebRender profiler on screen.");
+
+        println!();
+
+        process::exit(0)
     }
-
-    println!(
-        "Usage: {} debug option,[options,...]\n\twhere options include\n\nOptions:",
-        app
-    );
-
-    print_option(
-        "bubble-widths",
-        "Bubble intrinsic widths separately like other engines.",
-    );
-    print_option("disable-text-aa", "Disable antialiasing of rendered text.");
-    print_option(
-        "disable-canvas-aa",
-        "Disable antialiasing on the HTML canvas element.",
-    );
-    print_option(
-        "dump-style-tree",
-        "Print the DOM with computed styles after each restyle.",
-    );
-    print_option("dump-flow-tree", "Print the flow tree after each layout.");
-    print_option(
-        "dump-display-list",
-        "Print the display list after each layout.",
-    );
-    print_option(
-        "dump-display-list-json",
-        "Print the display list in JSON form.",
-    );
-    print_option(
-        "relayout-event",
-        "Print notifications when there is a relayout.",
-    );
-    print_option(
-        "profile-script-events",
-        "Enable profiling of script-related events.",
-    );
-    print_option(
-        "show-fragment-borders",
-        "Paint borders along fragment boundaries.",
-    );
-    print_option(
-        "show-parallel-layout",
-        "Mark which thread laid each flow out with colors.",
-    );
-    print_option(
-        "trace-layout",
-        "Write layout trace to an external file for debugging.",
-    );
-    print_option(
-        "disable-share-style-cache",
-        "Disable the style sharing cache.",
-    );
-    print_option(
-        "parallel-display-list-building",
-        "Build display lists in parallel.",
-    );
-    print_option(
-        "convert-mouse-to-touch",
-        "Send touch events instead of mouse events",
-    );
-    print_option(
-        "replace-surrogates",
-        "Replace unpaires surrogates in DOM strings with U+FFFD. \
-         See https://github.com/servo/servo/issues/6564",
-    );
-    print_option("gc-profile", "Log GC passes and their durations.");
-    print_option(
-        "load-webfonts-synchronously",
-        "Load web fonts synchronously to avoid non-deterministic network-driven reflows",
-    );
-    print_option("wr-stats", "Show WebRender profiler on screen.");
-    print_option("full-backtraces", "Print full backtraces for all errors");
-    print_option("wr-debug", "Display webrender tile borders.");
-    print_option("wr-no-batch", "Disable webrender instanced batching.");
-    print_option("precache-shaders", "Compile all shaders during init.");
-    print_option(
-        "signpost",
-        "Emit native OS signposts for profile events (currently macOS only)",
-    );
-
-    println!();
-
-    process::exit(0)
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -468,18 +384,8 @@ pub fn default_opts() -> Opts {
         userscripts: None,
         user_stylesheets: Vec::new(),
         output_file: None,
-        replace_surrogates: false,
-        gc_profile: false,
-        load_webfonts_synchronously: false,
         headless: false,
         hard_fail: true,
-        bubble_inline_sizes_separately: false,
-        show_debug_fragment_borders: false,
-        show_debug_parallel_layout: false,
-        enable_text_antialiasing: true,
-        enable_subpixel_text_antialiasing: true,
-        enable_canvas_antialiasing: true,
-        trace_layout: false,
         devtools_port: 0,
         devtools_server_enabled: false,
         webdriver_port: None,
@@ -489,26 +395,11 @@ pub fn default_opts() -> Opts {
         random_pipeline_closure_probability: None,
         random_pipeline_closure_seed: None,
         sandbox: false,
-        dump_style_tree: false,
-        dump_rule_tree: false,
-        dump_flow_tree: false,
-        dump_display_list: false,
-        dump_display_list_json: false,
-        relayout_event: false,
-        profile_script_events: false,
-        disable_share_style_cache: false,
-        style_sharing_stats: false,
-        convert_mouse_to_touch: false,
+        debug: Default::default(),
         exit_after_load: false,
-        webrender_stats: false,
         config_dir: None,
-        full_backtraces: false,
         is_printing_version: false,
-        webrender_record: false,
-        webrender_batch: true,
         shaders_dir: None,
-        precache_shaders: false,
-        signpost: false,
         certificate_path: None,
         unminify_js: false,
         local_script_source: None,
@@ -673,7 +564,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     }
 
     let mut debug_options = DebugOptions::default();
-
     for debug_string in opt_match.opt_strs("Z") {
         if let Err(e) = debug_options.extend(debug_string) {
             args_fail(&format!("error: unrecognized debug option: {}", e));
@@ -681,7 +571,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     }
 
     if debug_options.help {
-        print_debug_usage(app_name)
+        DebugOptions::print_usage(app_name)
     }
 
     let cwd = env::current_dir().unwrap();
@@ -778,10 +668,8 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
                 })
             });
 
-    let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
         layout_threads = Some(1);
-        bubble_inline_sizes_separately = true;
     }
 
     let (devtools_server_enabled, devtools_port) = if opt_match.opt_present("devtools") {
@@ -841,12 +729,10 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         })
         .collect();
 
-    let enable_subpixel_text_antialiasing =
-        !debug_options.disable_subpixel_aa && pref!(gfx.subpixel_text_antialiasing.enabled);
-
     let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
 
     let opts = Opts {
+        debug: debug_options.clone(),
         is_running_problem_test,
         url: url_opt,
         tile_size,
@@ -857,14 +743,8 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         userscripts: opt_match.opt_default("userscripts", ""),
         user_stylesheets,
         output_file: opt_match.opt_str("o"),
-        replace_surrogates: debug_options.replace_surrogates,
-        gc_profile: debug_options.gc_profile,
-        load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
-        bubble_inline_sizes_separately,
-        profile_script_events: debug_options.profile_script_events,
-        trace_layout: debug_options.trace_layout,
         devtools_port,
         devtools_server_enabled,
         webdriver_port,
@@ -874,30 +754,10 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         sandbox: opt_match.opt_present("S"),
         random_pipeline_closure_probability,
         random_pipeline_closure_seed,
-        show_debug_fragment_borders: debug_options.show_fragment_borders,
-        show_debug_parallel_layout: debug_options.show_parallel_layout,
-        enable_text_antialiasing: !debug_options.disable_text_aa,
-        enable_subpixel_text_antialiasing,
-        enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
-        dump_style_tree: debug_options.dump_style_tree,
-        dump_rule_tree: debug_options.dump_rule_tree,
-        dump_flow_tree: debug_options.dump_flow_tree,
-        dump_display_list: debug_options.dump_display_list,
-        dump_display_list_json: debug_options.dump_display_list_json,
-        relayout_event: debug_options.relayout_event,
-        disable_share_style_cache: debug_options.disable_share_style_cache,
-        style_sharing_stats: debug_options.style_sharing_stats,
-        convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
-        webrender_stats: debug_options.webrender_stats,
         config_dir: opt_match.opt_str("config-dir").map(Into::into),
-        full_backtraces: debug_options.full_backtraces,
         is_printing_version,
-        webrender_record: debug_options.webrender_record,
-        webrender_batch: !debug_options.webrender_disable_batch,
         shaders_dir: opt_match.opt_str("shaders").map(Into::into),
-        precache_shaders: debug_options.precache_shaders,
-        signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
         local_script_source: opt_match.opt_str("local-script-source"),

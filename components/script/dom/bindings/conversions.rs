@@ -239,7 +239,7 @@ pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString
                              please comment on https://github.com/servo/servo/issues/6564"
                         };
                     }
-                    if opts::get().replace_surrogates {
+                    if opts::get().debug.replace_surrogates {
                         error!(message!());
                         s.push('\u{FFFD}');
                     } else {
