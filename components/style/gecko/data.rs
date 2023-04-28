@@ -25,6 +25,16 @@ use std::fmt;
 #[derive(Eq, PartialEq)]
 pub struct GeckoStyleSheet(*const DomStyleSheet);
 
+// NOTE(emilio): These are kind of a lie. We allow to make these Send + Sync so that other data
+// structures can also be Send and Sync, but Gecko's stylesheets are main-thread-reference-counted.
+//
+// We assert that we reference-count in the right thread (in the Addref/Release implementations).
+// Sending these to a different thread can't really happen (it could theoretically really happen if
+// we allowed @import rules inside a nested style rule, but that can't happen per spec and would be
+// a parser bug, caught by the asserts).
+unsafe impl Send for GeckoStyleSheet {}
+unsafe impl Sync for GeckoStyleSheet {}
+
 impl fmt::Debug for GeckoStyleSheet {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let contents = self.contents();
