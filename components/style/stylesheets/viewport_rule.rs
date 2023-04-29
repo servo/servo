@@ -24,8 +24,10 @@ use crate::values::generics::NonNegative;
 use crate::values::specified::{self, NoCalcLength};
 use crate::values::specified::{NonNegativeLengthPercentageOrAuto, ViewportPercentageLength};
 use app_units::Au;
-use cssparser::CowRcStr;
-use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{
+    parse_important, AtRuleParser, CowRcStr, DeclarationListParser, DeclarationParser, Parser,
+    QualifiedRuleParser,
+};
 use euclid::Size2D;
 use selectors::parser::SelectorParseErrorKind;
 use std::borrow::Cow;
@@ -234,6 +236,12 @@ fn parse_shorthand<'i, 't>(
 impl<'a, 'b, 'i> AtRuleParser<'i> for ViewportRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = Vec<ViewportDescriptorDeclaration>;
+    type Error = StyleParseErrorKind<'i>;
+}
+
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for ViewportRuleParser<'a, 'b> {
+    type Prelude = ();
+    type QualifiedRule = Vec<ViewportDescriptorDeclaration>;
     type Error = StyleParseErrorKind<'i>;
 }
 

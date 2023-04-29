@@ -13,7 +13,7 @@ use crate::str::CssStringWriter;
 use crate::values::specified::Integer;
 use crate::values::CustomIdent;
 use crate::Atom;
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, QualifiedRuleParser};
 use cssparser::{CowRcStr, Parser, SourceLocation, Token};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
@@ -150,6 +150,12 @@ struct CounterStyleRuleParser<'a, 'b: 'a> {
 impl<'a, 'b, 'i> AtRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
+    type Error = StyleParseErrorKind<'i>;
+}
+
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
+    type Prelude = ();
+    type QualifiedRule = ();
     type Error = StyleParseErrorKind<'i>;
 }
 
