@@ -379,7 +379,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .to_physical(self.fragment.style.writing_mode)
                         .to_webrender(),
                 ),
-                self.border_rect,
+                *self.padding_rect(),
                 builder,
             )
         })
@@ -394,7 +394,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .to_physical(self.fragment.style.writing_mode)
                         .to_webrender(),
                 ),
-                self.border_rect,
+                *self.content_rect(),
                 builder,
             )
         })
@@ -667,7 +667,7 @@ fn image_rendering(ir: style::computed_values::image_rendering::T) -> wr::ImageR
 
 /// Radii for the padding edge or content edge
 fn inner_radii(mut radii: wr::BorderRadius, offsets: units::LayoutSideOffsets) -> wr::BorderRadius {
-    radii.top_left.width -= -offsets.left;
+    radii.top_left.width -= offsets.left;
     radii.bottom_left.width -= offsets.left;
 
     radii.top_right.width -= offsets.right;
