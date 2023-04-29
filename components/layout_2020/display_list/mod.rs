@@ -661,19 +661,8 @@ fn image_rendering(ir: style::computed_values::image_rendering::T) -> wr::ImageR
 }
 
 /// Radii for the padding edge or content edge
-fn inner_radii(mut radii: wr::BorderRadius, offsets: units::LayoutSideOffsets) -> wr::BorderRadius {
-    radii.top_left.width -= -offsets.left;
-    radii.bottom_left.width -= offsets.left;
-
-    radii.top_right.width -= offsets.right;
-    radii.bottom_right.width -= offsets.right;
-
-    radii.top_left.height -= offsets.top;
-    radii.top_right.height -= offsets.top;
-
-    radii.bottom_left.height -= offsets.bottom;
-    radii.bottom_right.height -= offsets.bottom;
-    radii
+fn inner_radii(_radii: wr::BorderRadius, _offsets: units::LayoutSideOffsets) -> wr::BorderRadius {
+    wr::BorderRadius::uniform(1e5)
 }
 
 fn clip_for_radii(
