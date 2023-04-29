@@ -8,7 +8,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
 use js::rust::describe_scripted_caller;
-use std::io;
+use std::{io};
+use std::any::Any;
+use std::option::Option;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 pub struct Console(());
@@ -65,11 +67,57 @@ fn console_message(global: &GlobalScope, message: DOMString, level: LogLevel) {
     })
 }
 
+enum TabularData {
+    PrimitiveArray(Vec<DOMString>)
+}
+
+//handle case where tabular data is an array of DOMStrings
+fn generate_table_from_primitive_array(tabularData: &Vec<DOMString>) -> Vec<Vec<DOMString>> {
+    let mut tableMatrix: Vec<Vec<DOMString>> = vec![vec![DOMString::from_string(String::from("(index)")),
+                                                     DOMString::from_string(String::from("Value"))]];
+
+    for (index, value) in tabularData.iter().enumerate() {
+        tableMatrix.push(vec![DOMString::from_string(index.to_string()), value.clone()]);
+    }
+
+    tableMatrix
+}
+
+//generate 2D vector from tabular data
+fn generate_table(tabularData: &Option<TabularData>) -> Vec<Vec<DOMString>> {
+    let table: Vec<Vec<DOMString>> = match tabularData {
+        Some(TabularData::PrimitiveArray(arr)) => generate_table_from_primitive_array(arr),
+        None => Vec::new()
+    };
+
+    table
+}
+
+//squash table 2d array into a printable string
+fn generate_table_display_string(tableMatrix: &Vec<Vec<DOMString>>) -> DOMString {
+    let mut displayString: DOMString = DOMString::new();
+    for row in tableMatrix.iter() {
+        for col in row.iter() {
+            displayString.extend(col.chars());
+        }
+    }
+
+    displayString
+}
+
 #[allow(non_snake_case)]
 impl Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {
         console_messages(global, &messages, LogLevel::Log)
+    }
+
+    //https://developer.mozilla.org/en-US/docs/Web/API/Console/table
+    pub fn Table(global: &GlobalScope, tabularData: Box<dyn Any>, properties: Option<Vec<DOMString>>) {
+        // console_messages(global, &messages, LogLevel::Log)
+        // let tableMatrix = generate_table(&tabularData);
+        let displayString: DOMString = "hello".into();
+        console_messages(global, &[displayString], LogLevel::Log);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/clear
