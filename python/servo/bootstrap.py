@@ -11,11 +11,29 @@ import distro
 import subprocess
 import six
 import urllib
+
+from os import path
 from subprocess import PIPE
 from zipfile import BadZipfile
 
 import servo.packages as packages
 from servo.util import extract, download_file, host_triple
+from servo.gstreamer import macos_gst_root
+
+
+def check_macos_gstreamer_lib():
+    try:
+        env = os.environ.copy()
+        gst_root = macos_gst_root()
+        env["PATH"] = path.join(gst_root, "bin")
+        env["PKG_CONFIG_PATH"] = path.join(gst_root, "lib", "pkgconfig")
+        has_gst = subprocess.call(["pkg-config", "--atleast-version=1.21", "gstreamer-1.0"],
+                                  stdout=PIPE, stderr=PIPE, env=env) == 0
+        gst_lib_dir = subprocess.check_output(["pkg-config", "--variable=libdir", "gstreamer-1.0"],
+                                              env=env)
+        return has_gst and gst_lib_dir.startswith(bytes(gst_root, 'utf-8'))
+    except FileNotFoundError:
+        return False
 
 
 def check_gstreamer_lib():

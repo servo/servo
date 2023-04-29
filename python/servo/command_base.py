@@ -36,11 +36,12 @@ import toml
 
 from xml.etree.ElementTree import XML
 from servo.util import download_file
-from .bootstrap import check_gstreamer_lib
+from .bootstrap import check_gstreamer_lib, check_macos_gstreamer_lib
 from mach.decorators import CommandArgument
 from mach.registrar import Registrar
 from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple
+from servo.gstreamer import macos_gst_root
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
@@ -240,6 +241,8 @@ def gstreamer_root(target, env, topdir=None):
             return gst_default_path
     elif is_linux():
         return path.join(topdir, "support", "linux", "gstreamer", "gst")
+    elif is_macosx():
+        return macos_gst_root()
     return None
 
 
@@ -541,6 +544,16 @@ class CommandBase(object):
             return False
         if "media-dummy" in features:
             return False
+
+        if is_macosx():
+            if check_macos_gstreamer_lib():
+                # We override homebrew gstreamer if installed and
+                # always use pkgconfig from official gstreamer framework
+                return True
+            else:
+                raise Exception("Official GStreamer framework not found (we need at least 1.21)."
+                                "Please see installation instructions in README.md")
+
         try:
             if check_gstreamer_lib():
                 return False
@@ -660,14 +673,17 @@ install them, let us know by filing a bug!")
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if is_build and self.needs_gstreamer_env(target or host_triple(), env, uwp, features):
-            gstpath = gstreamer_root(target or host_triple(), env, self.get_top_dir())
-            extra_path += [path.join(gstpath, "bin")]
-            libpath = path.join(gstpath, "lib")
+            gst_root = gstreamer_root(target or host_triple(), env, self.get_top_dir())
+            bin_path = path.join(gst_root, "bin")
+            lib_path = path.join(gst_root, "lib")
+            pkg_config_path = path.join(lib_path, "pkgconfig")
             # we append in the reverse order so that system gstreamer libraries
             # do not get precedence
-            extra_path = [libpath] + extra_path
-            extra_lib = [libpath] + extra_lib
-            append_to_path_env(path.join(libpath, "pkgconfig"), env, "PKG_CONFIG_PATH")
+            extra_path = [bin_path] + extra_path
+            extra_lib = [lib_path] + extra_lib
+            append_to_path_env(pkg_config_path, env, "PKG_CONFIG_PATH")
+            if is_macosx():
+                env["OPENSSL_INCLUDE_DIR"] = path.join(gst_root, "Headers")
 
         if is_linux():
             distrib, version, _ = distro.linux_distribution()

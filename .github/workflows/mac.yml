@@ -66,18 +66,11 @@ jobs:
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip virtualenv
-          brew bundle install --verbose --no-upgrade --file=etc/homebrew/Brewfile
-          brew bundle install --verbose --no-upgrade --file=etc/homebrew/Brewfile-build
-          rm -rf /usr/local/etc/openssl
-          rm -rf /usr/local/etc/openssl@1.1
-          brew install openssl@1.1 gnu-tar
+          bash etc/install_macos_gstreamer.sh
+          brew install gnu-tar
       - name: Release build
         run: |
-          export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
-          export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
-          export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
-          export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
-          python3 ./mach build --release --media-stack=dummy --with-${{ env.LAYOUT }}
+          python3 ./mach build --release --with-${{ env.LAYOUT }}
       - name: Smoketest
         run: python3 ./mach smoketest
       - name: Unit tests

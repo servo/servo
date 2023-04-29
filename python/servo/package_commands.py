@@ -40,7 +40,8 @@ from servo.command_base import (
     is_macosx,
     is_windows,
 )
-from servo.gstreamer import macos_dylibs, macos_plugins
+from servo.build_commands import copy_dependencies, change_rpath_in_binary
+from servo.gstreamer import macos_gst_root
 from servo.util import delete
 
 # Note: mako cannot be imported at the top level because it breaks mach bootstrap
@@ -99,64 +100,9 @@ else:
             raise e
 
 
-def otool(s):
-    o = subprocess.Popen(['/usr/bin/otool', '-L', s], stdout=subprocess.PIPE)
-    for line in map(lambda s: s.decode('ascii'), o.stdout):
-        if line[0] == '\t':
-            yield line.split(' ', 1)[0][1:]
-
-
 def listfiles(directory):
     return [f for f in os.listdir(directory)
             if path.isfile(path.join(directory, f))]
-
-
-def install_name_tool(old, new, binary):
-    try:
-        subprocess.check_call(['install_name_tool', '-change', old, '@executable_path/' + new, binary])
-    except subprocess.CalledProcessError as e:
-        print("install_name_tool exited with return value %d" % e.returncode)
-
-
-def is_system_library(lib):
-    return lib.startswith("/System/Library") or lib.startswith("/usr/lib")
-
-
-def change_non_system_libraries_path(libraries, relative_path, binary):
-    for lib in libraries:
-        if is_system_library(lib):
-            continue
-        new_path = path.join(relative_path, path.basename(lib))
-        install_name_tool(lib, new_path, binary)
-
-
-def copy_dependencies(binary_path, lib_path):
-    relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
-
-    # Update binary libraries
-    binary_dependencies = set(otool(binary_path))
-    binary_dependencies = binary_dependencies.union(macos_dylibs())
-    binary_dependencies = binary_dependencies.union(macos_plugins())
-    change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
-
-    # Update dependencies libraries
-    need_checked = binary_dependencies
-    checked = set()
-    while need_checked:
-        checking = set(need_checked)
-        need_checked = set()
-        for f in checking:
-            # No need to check these for their dylibs
-            if is_system_library(f):
-                continue
-            need_relinked = set(otool(f))
-            new_path = path.join(lib_path, path.basename(f))
-            if not path.exists(new_path):
-                shutil.copyfile(f, new_path)
-            change_non_system_libraries_path(need_relinked, relative_path, new_path)
-            need_checked.update(need_relinked)
-        checked.update(checking)
-        need_checked.difference_update(checked)
 
 
 def copy_windows_dependencies(binary_path, destination):
@@ -336,15 +282,16 @@ class PackageCommands(CommandBase):
             shutil.copy2(path.join(dir_to_root, 'Info.plist'), path.join(dir_to_app, 'Contents', 'Info.plist'))
 
             content_dir = path.join(dir_to_app, 'Contents', 'MacOS')
-            os.makedirs(content_dir)
+            lib_dir = path.join(content_dir, 'lib')
+            os.makedirs(lib_dir)
             shutil.copy2(binary_path, content_dir)
 
             change_prefs(dir_to_resources, "macosx")
 
             print("Finding dylibs and relinking")
-            # TODO(mrobinson): GStreamer dependencies don't need to be packaged
-            # with servo until the media backend is re-enabled.
-            # copy_dependencies(path.join(content_dir, 'servo'), content_dir)
+            dmg_binary = path.join(content_dir, "servo")
+            dir_to_gst_lib = path.join(macos_gst_root(), 'lib', '')
+            copy_dependencies(dmg_binary, lib_dir, dir_to_gst_lib)
 
             print("Adding version to Credits.rtf")
             version_command = [binary_path, '--version']
@@ -401,13 +348,17 @@ class PackageCommands(CommandBase):
                 os.remove(tar_path)
             shutil.copytree(path.join(dir_to_root, 'resources'), path.join(dir_to_brew, 'resources'))
             os.makedirs(path.join(dir_to_brew, 'bin'))
-            shutil.copy2(binary_path, path.join(dir_to_brew, 'bin', 'servo'))
             # Note that in the context of Homebrew, libexec is reserved for private use by the formula
             # and therefore is not symlinked into HOMEBREW_PREFIX.
-            os.makedirs(path.join(dir_to_brew, 'libexec'))
-            # TODO(mrobinson): GStreamer dependencies don't need to be packaged
-            # with servo until the media backend is re-enabled.
-            # copy_dependencies(path.join(dir_to_brew, 'bin', 'servo'), path.join(dir_to_brew, 'libexec'))
+            # The 'lib' sub-directory within 'libexec' is necessary to satisfy
+            # rpath relative install_names in the gstreamer packages
+            brew_servo_bin = path.join(dir_to_brew, 'bin', 'servo')
+            shutil.copy2(binary_path, brew_servo_bin)
+            change_rpath_in_binary(
+                brew_servo_bin, '@executable_path/lib/', '@executable_path/../libexec/lib/')
+            dir_to_lib = path.join(dir_to_brew, 'libexec', 'lib')
+            os.makedirs(dir_to_lib)
+            copy_dependencies(brew_servo_bin, dir_to_lib, dir_to_gst_lib)
             archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
             delete(dir_to_brew)
             print("Packaged Servo into " + tar_path)
