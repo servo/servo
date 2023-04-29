@@ -18,9 +18,10 @@ use crate::stylesheets::CssRuleType;
 use crate::values::computed::font::FamilyName;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
-use cssparser::{AtRuleParser, BasicParseErrorKind, CowRcStr};
-use cssparser::{DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{ParserState, QualifiedRuleParser, RuleListParser, SourceLocation, Token};
+use cssparser::{
+    AtRuleParser, BasicParseErrorKind, CowRcStr, DeclarationListParser, DeclarationParser, Parser,
+    ParserState, QualifiedRuleParser, RuleListParser, SourceLocation, Token,
+};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
@@ -190,6 +191,12 @@ struct FFVDeclarationsParser<'a, 'b: 'a, T: 'a> {
 impl<'a, 'b, 'i, T> AtRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
     type Prelude = ();
     type AtRule = ();
+    type Error = StyleParseErrorKind<'i>;
+}
+
+impl<'a, 'b, 'i, T> QualifiedRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
+    type Prelude = ();
+    type QualifiedRule = ();
     type Error = StyleParseErrorKind<'i>;
 }
 

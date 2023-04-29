@@ -18,10 +18,12 @@ use crate::selector_map::PrecomputedHashSet;
 use crate::selector_parser::SelectorImpl;
 use crate::shared_lock::Locked;
 use crate::str::{CssString, CssStringWriter};
-use crate::stylesheets::{CssRuleType, Origin, UrlExtraData, layer_rule::LayerOrder};
+use crate::stylesheets::{layer_rule::LayerOrder, CssRuleType, Origin, UrlExtraData};
 use crate::values::computed::Context;
-use cssparser::{parse_important, CowRcStr, DeclarationListParser, ParserInput};
-use cssparser::{AtRuleParser, DeclarationParser, Delimiter, ParseErrorKind, Parser};
+use cssparser::{
+    parse_important, AtRuleParser, CowRcStr, DeclarationListParser, DeclarationParser, Delimiter,
+    ParseErrorKind, Parser, ParserInput, QualifiedRuleParser,
+};
 use itertools::Itertools;
 use selectors::SelectorList;
 use smallbitvec::{self, SmallBitVec};
@@ -930,7 +932,13 @@ impl PropertyDeclarationBlock {
 
         for declaration in self.normal_declaration_iter() {
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
-                builder.cascade(declaration, CascadePriority::new(CascadeLevel::same_tree_author_normal(), LayerOrder::root()));
+                builder.cascade(
+                    declaration,
+                    CascadePriority::new(
+                        CascadeLevel::same_tree_author_normal(),
+                        LayerOrder::root(),
+                    ),
+                );
             }
         }
 
@@ -1094,12 +1102,11 @@ impl PropertyDeclarationBlock {
                 // 3.4.7:
                 //    Let value be the result of invoking serialize a CSS value
                 //    of current longhands.
-                let appendable_value = match shorthand
-                    .get_shorthand_appendable_value(&current_longhands)
-                {
-                    None => continue,
-                    Some(appendable_value) => appendable_value,
-                };
+                let appendable_value =
+                    match shorthand.get_shorthand_appendable_value(&current_longhands) {
+                        None => continue,
+                        Some(appendable_value) => appendable_value,
+                    };
 
                 // We avoid re-serializing if we're already an
                 // AppendableValue::Css.
@@ -1122,7 +1129,9 @@ impl PropertyDeclarationBlock {
                         AppendableValue::Css({
                             // Safety: serialization only generates valid utf-8.
                             #[cfg(feature = "gecko")]
-                            unsafe { v.as_str_unchecked() }
+                            unsafe {
+                                v.as_str_unchecked()
+                            }
                             #[cfg(feature = "servo")]
                             &v
                         })
@@ -1350,6 +1359,13 @@ struct PropertyDeclarationParser<'a, 'b: 'a> {
 impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Prelude = ();
     type AtRule = Importance;
+    type Error = StyleParseErrorKind<'i>;
+}
+
+/// Default methods reject all rules.
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
+    type Prelude = ();
+    type QualifiedRule = Importance;
     type Error = StyleParseErrorKind<'i>;
 }
 

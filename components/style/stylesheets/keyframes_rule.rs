@@ -636,6 +636,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Error = StyleParseErrorKind<'i>;
 }
 
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
+    type Prelude = ();
+    type QualifiedRule = ();
+    type Error = StyleParseErrorKind<'i>;
+}
+
 impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = ();
     type Error = StyleParseErrorKind<'i>;
