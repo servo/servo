@@ -39,7 +39,7 @@ def install_linux_deps(context, pkgs_ubuntu, pkgs_fedora, pkgs_void, force):
         pkgs = pkgs_ubuntu
         if subprocess.call(['dpkg', '-s'] + pkgs, stdout=PIPE, stderr=PIPE) != 0:
             install = True
-    elif context.distro in ['CentOS', 'CentOS Linux', 'Fedora']:
+    elif context.distro in ['CentOS', 'CentOS Linux', 'Fedora', 'Fedora Linux']:
         installed_pkgs = str(subprocess.check_output(['rpm', '-qa'])).replace('\n', '|')
         pkgs = pkgs_fedora
         for p in pkgs:
@@ -196,9 +196,8 @@ LINUX_SPECIFIC_BOOTSTRAPPERS = {
 
 
 def get_linux_distribution():
-    distrib, version, _ = distro.linux_distribution()
-    distrib = six.ensure_str(distrib)
-    version = six.ensure_str(version)
+    distrib = six.ensure_str(distro.name())
+    version = six.ensure_str(distro.version())
 
     if distrib in ['LinuxMint', 'Linux Mint', 'KDE neon']:
         if '.' in version:
