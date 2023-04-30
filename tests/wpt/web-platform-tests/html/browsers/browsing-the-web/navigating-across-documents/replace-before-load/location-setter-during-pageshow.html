@@ -68,7 +68,7 @@ promise_test(async t => {
   const iframe = insertIframe(t, startURL);
   assert_equals(history.length, startingHistoryLength, "Inserting the under-test iframe must not change history.length");
 
-  await waitForMessage(t, "done");
+  assert_equals(await waitForMessage(), "done");
   assert_equals(history.length, startingHistoryLength, "history.length must not change after waiting for the replacement");
 
   await checkSentinelIframe(t, sentinelIframe);

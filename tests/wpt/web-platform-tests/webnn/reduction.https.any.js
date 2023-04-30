@@ -8,6 +8,17 @@
 // https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder-reduce
 
 testWebNNOperation(
-  ['reduceMax', 'reduceMean', 'reduceMin', 'reduceProduct', 'reduceSum'],
+  [
+    'reduceL1',
+    'reduceL2',
+    'reduceLogSum',
+    'reduceLogSumExp',
+    'reduceMax',
+    'reduceMean',
+    'reduceMin',
+    'reduceProduct',
+    'reduceSum',
+    'reduceSumSquare',
+  ],
   buildOperationWithSingleInput
 );

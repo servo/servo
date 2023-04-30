@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Host Language Label</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<label for="t">label</label>
+<input id="t" data-expectedlabel="label" data-testname="host language: label[for] input[type=text]" class="ex">
+<!-- Todo: test all remaining input types with label[for] -->
+
+<label>
+  <input type="checkbox" data-expectedlabel="label" data-testname="host language: label input[type=checkbox] encapsulation" class="ex">
+  label
+</label>
+<!-- Todo: test all remaining input types with label encapsulation -->
+
+<!-- Todo: test all remaining cases of https://w3c.github.io/accname/#comp_host_language_label -->
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

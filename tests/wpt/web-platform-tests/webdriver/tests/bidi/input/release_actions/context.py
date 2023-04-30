@@ -9,9 +9,9 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_different_top_level_contexts(
-    bidi_session, new_tab, top_context, test_actions_page_bidi, get_focused_key_input
+    bidi_session, new_tab, top_context, load_static_test_page, get_focused_key_input
 ):
-    await test_actions_page_bidi()
+    await load_static_test_page(page="test_actions.html")
     await get_focused_key_input()
 
     actions = Actions()
@@ -28,7 +28,7 @@ async def test_different_top_level_contexts(
     # Release actions in another context
     await bidi_session.input.release_actions(context=new_tab["context"])
 
-    events = await get_events(top_context["context"], bidi_session)
+    events = await get_events(bidi_session, top_context["context"])
     assert len(events) == 0
 
     # Release actions in right context
@@ -37,6 +37,6 @@ async def test_different_top_level_contexts(
     expected = [
         {"code": "KeyA", "key": "a", "type": "keyup"},
     ]
-    all_events = await get_events(top_context["context"], bidi_session)
+    all_events = await get_events(bidi_session, top_context["context"])
     (events, expected) = filter_supported_key_events(all_events, expected)
     assert events == expected

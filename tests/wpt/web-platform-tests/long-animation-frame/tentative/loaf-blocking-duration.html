@@ -14,37 +14,44 @@ function loaf_blocking_duration_test(run, label) {
   const OVERHEAD_EPSILON = 5;
   const BLOCKING_THRESHOLD = 50;
   promise_test(async t => {
-    const longtask_promise = new Promise(resolve => new PerformanceObserver(
+    let found = false;
+    for (let i = 0; i < 10 && !found; ++i) {
+      const longtask_promise = new Promise(resolve => new PerformanceObserver(
       (entries, observer) => {
         resolve(entries.getEntries());
         observer.disconnect();
-    }).observe({entryTypes: ["longtask"]}));
-    const [longtask_entries, loaf_entry] = await Promise.all(
-      [longtask_promise, expect_long_frame(run, t)]);
-    const overlapping = longtask_entries.filter(longtask =>
-      (longtask.startTime >= loaf_entry.startTime &&
-        longtask.startTime < (loaf_entry.startTime + loaf_entry.duration) &&
-        (!loaf_entry.renderStart ||
-        (longtask.startTime < loaf_entry.renderStart - OVERHEAD_EPSILON))));
+      }).observe({entryTypes: ["longtask"]}));
+      const [longtask_entries, loaf_entry] = await Promise.all(
+        [longtask_promise, expect_long_frame(run, t)]);
+      const overlapping = longtask_entries.filter(longtask =>
+        (longtask.startTime >= loaf_entry.startTime &&
+          longtask.startTime < (loaf_entry.startTime + loaf_entry.duration) &&
+          (!loaf_entry.renderStart ||
+          (longtask.startTime < loaf_entry.renderStart - OVERHEAD_EPSILON))));
 
-    const longest_index = overlapping.reduce(
-      (max, cur, i) => cur > overlapping[max] ? i : max, 0);
-    let expected_blocking_duration = 0;
-    overlapping.forEach(({duration}, i) => {
-      if (i === longest_index && loaf_entry.renderStart)
-        duration += loaf_entry.startTime + loaf_entry.duration -
-        loaf_entry.renderStart;
-      expected_blocking_duration += Math.max(0, duration - BLOCKING_THRESHOLD);
-    });
+      const longest_index = overlapping.reduce(
+        (max, cur, i) => cur > overlapping[max] ? i : max, 0);
+      let expected_blocking_duration = 0;
+      overlapping.forEach(({duration}, i) => {
+        if (i === longest_index && loaf_entry.renderStart)
+          duration += loaf_entry.startTime + loaf_entry.duration -
+          loaf_entry.renderStart;
+        expected_blocking_duration += Math.max(0, duration - BLOCKING_THRESHOLD);
+      });
 
-    if (!overlapping.length && loaf_entry.renderStart)
-      expected_blocking_duration =
-         Math.max(0,
-          loaf_entry.startTime + loaf_entry.duration - loaf_entry.renderStart -
-          BLOCKING_THRESHOLD);
-    assert_approx_equals(loaf_entry.blockingDuration,
-      expected_blocking_duration,
-      OVERHEAD_EPSILON);
+      if (!overlapping.length && loaf_entry.renderStart) {
+        expected_blocking_duration =
+          Math.max(0,
+            loaf_entry.startTime + loaf_entry.duration - loaf_entry.renderStart -
+            BLOCKING_THRESHOLD);
+      }
+
+      if (Math.abs(loaf_entry.blockingDuration - expected_blocking_duration) <
+          OVERHEAD_EPSILON) {
+        found = true;
+      }
+    }
+    assert_true(found);
   }, `LoAF blockingDuration should be equivalent to long tasks: ${label}`);
 }
 

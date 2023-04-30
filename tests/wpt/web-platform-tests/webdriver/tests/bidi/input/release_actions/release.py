@@ -7,9 +7,9 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_release_no_actions_sends_no_events(
-    bidi_session, top_context, test_actions_page_bidi, get_focused_key_input
+    bidi_session, top_context, load_static_test_page, get_focused_key_input
 ):
-    await test_actions_page_bidi()
+    await load_static_test_page(page="test_actions.html")
     elem = await get_focused_key_input()
 
     await bidi_session.input.release_actions(context=top_context["context"])
@@ -22,7 +22,7 @@ async def test_release_no_actions_sends_no_events(
         target=ContextTarget(top_context["context"]),
         await_promise=False,
     )
-    events = await get_events(top_context["context"], bidi_session)
+    events = await get_events(bidi_session, top_context["context"])
 
     assert len(keys["value"]) == 0
     assert len(events) == 0

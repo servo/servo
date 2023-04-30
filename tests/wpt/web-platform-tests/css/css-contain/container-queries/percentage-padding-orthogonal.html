@@ -55,7 +55,7 @@
        "#container width 400px after padding is applied. #second is removed from the rendering");
 
   // Reduce width by 1px to test that a re-layout is not stateful.
-  vertical.style.width = "399px";
+  vertical.style.width = "499px";
 
   test(() => assert_equals(padded.offsetHeight, 100),
        "#container height measured with 499px width. Both container children visible");

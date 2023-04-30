@@ -11,12 +11,12 @@
 
 promise_test(async t => {
   const label = await test_driver.get_computed_label(document.getElementById('d'));
-  assert_true(label == "test label");
+  assert_equals(label, "test label");
 }, "tests labelFrom: author");
 
 promise_test(async t => {
   const label = await test_driver.get_computed_label(document.getElementById('h'));
-  assert_true(label == "test heading");
+  assert_equals(label, "test heading");
 }, "tests labelFrom: contents");
 
 </script>

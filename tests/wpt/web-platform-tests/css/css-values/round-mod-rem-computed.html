@@ -143,4 +143,8 @@ test_math_used('rem(-18px,100% / 15)', '-3px');
 test_math_used('rem(18vw,5vw)', '3vw');
 test_math_used('rem(-18vw,5vw)', '-3vw');
 
+test_math_used('calc(round(1px + 0%, 1px + 0%))', '1px');
+test_math_used('calc(mod(1px + 0%, 1px + 0%))', '0px');
+test_math_used('calc(rem(1px + 0%, 1px + 0%))', '0px');
+
 </script>

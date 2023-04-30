@@ -13,7 +13,7 @@ promise_test(t => xhrTest(t, {
     treatAsPublic: true,
   },
   target: {
-    server: Server.HTTPS_LOCAL,
+    server: Server.OTHER_HTTPS_LOCAL,
     behavior: { response: ResponseBehavior.allowCrossOrigin() },
   },
   expected: XhrTestResult.FAILURE,
@@ -25,14 +25,23 @@ promise_test(t => xhrTest(t, {
     treatAsPublic: true,
   },
   target: {
-    server: Server.HTTPS_LOCAL,
+    server: Server.OTHER_HTTPS_LOCAL,
     behavior: {
-      preflight: PreflightBehavior.optionalSuccess(token()),
+      preflight: PreflightBehavior.success(token()),
       response: ResponseBehavior.allowCrossOrigin(),
     },
   },
   expected: XhrTestResult.SUCCESS,
 }), "treat-as-public to local: success.");
+
+promise_test(t => xhrTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: { server: Server.HTTPS_LOCAL },
+  expected: XhrTestResult.SUCCESS,
+}), "treat-as-public to local (same-origin): no preflight required.");
 
 promise_test(t => xhrTest(t, {
   source: {

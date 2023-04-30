@@ -15,18 +15,6 @@ promise_test(t => sharedWorkerScriptTest(t, {
     treatAsPublic: true,
   },
   target: { server: Server.HTTPS_LOCAL },
-  expected: WorkerScriptTestResult.FAILURE,
-}), "treat-as-public to local: failed preflight.");
-
-promise_test(t => sharedWorkerScriptTest(t, {
-  source: {
-    server: Server.HTTPS_LOCAL,
-    treatAsPublic: true,
-  },
-  target: {
-    server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.optionalSuccess(token()) },
-  },
   expected: WorkerScriptTestResult.SUCCESS,
 }), "treat-as-public to local: success.");
 
@@ -36,18 +24,6 @@ promise_test(t => sharedWorkerScriptTest(t, {
     treatAsPublic: true,
   },
   target: { server: Server.HTTPS_PRIVATE },
-  expected: WorkerScriptTestResult.FAILURE,
-}), "treat-as-public to private: failed preflight.");
-
-promise_test(t => sharedWorkerScriptTest(t, {
-  source: {
-    server: Server.HTTPS_PRIVATE,
-    treatAsPublic: true,
-  },
-  target: {
-    server: Server.HTTPS_PRIVATE,
-    behavior: { preflight: PreflightBehavior.optionalSuccess(token()) },
-  },
   expected: WorkerScriptTestResult.SUCCESS,
 }), "treat-as-public to private: success.");
 

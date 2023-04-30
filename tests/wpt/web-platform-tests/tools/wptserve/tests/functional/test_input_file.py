@@ -4,25 +4,35 @@ import pytest
 
 from wptserve.request import InputFile
 
-bstr = b'This is a test document\nWith new lines\nSeveral in fact...'
-rfile = ''
-test_file = ''  # This will be used to test the InputFile functions against
-input_file = InputFile(None, 0)
+def files_with_buffer(max_buffer_size=None):
+    bstr = b"This is a test document\nWith new lines\nSeveral in fact..."
+
+    with BytesIO(bstr) as rfile, BytesIO(bstr) as test_file:
+        if max_buffer_size is not None:
+            old_max_buf = InputFile.max_buffer_size
+            InputFile.max_buffer_size = max_buffer_size
+
+        try:
+            with InputFile(rfile, len(bstr)) as input_file:
+                yield (input_file, test_file)
+        finally:
+            if max_buffer_size is not None:
+                InputFile.max_buffer_size = old_max_buf
 
 
-def setup_function(function):
-    global rfile, input_file, test_file
-    rfile = BytesIO(bstr)
-    test_file = BytesIO(bstr)
-    input_file = InputFile(rfile, len(bstr))
+@pytest.fixture
+def files():
+    yield from files_with_buffer()
 
 
-def teardown_function(function):
-    rfile.close()
-    test_file.close()
+@pytest.fixture
+def files_small_buffer():
+    yield from files_with_buffer(10)
 
 
-def test_seek():
+def test_seek(files):
+    input_file, test_file = files
+
     input_file.seek(2)
     test_file.seek(2)
     assert input_file.read(1) == test_file.read(1)
@@ -32,7 +42,9 @@ def test_seek():
     assert input_file.read(1) == test_file.read(1)
 
 
-def test_seek_backwards():
+def test_seek_backwards(files):
+    input_file, test_file = files
+
     input_file.seek(2)
     test_file.seek(2)
     assert input_file.tell() == test_file.tell()
@@ -44,45 +56,40 @@ def test_seek_backwards():
     assert input_file.read(1) == test_file.read(1)
 
 
-def test_seek_negative_offset():
+def test_seek_negative_offset(files):
+    input_file, test_file = files
+
     with pytest.raises(ValueError):
         input_file.seek(-1)
 
 
-def test_seek_file_bigger_than_buffer():
-    old_max_buf = InputFile.max_buffer_size
-    InputFile.max_buffer_size = 10
+def test_seek_file_bigger_than_buffer(files_small_buffer):
+    input_file, test_file = files_small_buffer
 
-    try:
-        input_file = InputFile(rfile, len(bstr))
+    input_file.seek(2)
+    test_file.seek(2)
+    assert input_file.read(1) == test_file.read(1)
 
-        input_file.seek(2)
-        test_file.seek(2)
-        assert input_file.read(1) == test_file.read(1)
-
-        input_file.seek(4)
-        test_file.seek(4)
-        assert input_file.read(1) == test_file.read(1)
-    finally:
-        InputFile.max_buffer_size = old_max_buf
+    input_file.seek(4)
+    test_file.seek(4)
+    assert input_file.read(1) == test_file.read(1)
 
 
-def test_read():
+def test_read(files):
+    input_file, test_file = files
+
     assert input_file.read() == test_file.read()
 
 
-def test_read_file_bigger_than_buffer():
-    old_max_buf = InputFile.max_buffer_size
-    InputFile.max_buffer_size = 10
+def test_read_file_bigger_than_buffer(files_small_buffer):
+    input_file, test_file = files_small_buffer
 
-    try:
-        input_file = InputFile(rfile, len(bstr))
-        assert input_file.read() == test_file.read()
-    finally:
-        InputFile.max_buffer_size = old_max_buf
+    assert input_file.read() == test_file.read()
 
 
-def test_readline():
+def test_readline(files):
+    input_file, test_file = files
+
     assert input_file.readline() == test_file.readline()
     assert input_file.readline() == test_file.readline()
 
@@ -91,59 +98,49 @@ def test_readline():
     assert input_file.readline() == test_file.readline()
 
 
-def test_readline_max_byte():
+def test_readline_max_byte(files):
+    input_file, test_file = files
+
     line = test_file.readline()
     assert input_file.readline(max_bytes=len(line)//2) == line[:len(line)//2]
     assert input_file.readline(max_bytes=len(line)) == line[len(line)//2:]
 
 
-def test_readline_max_byte_longer_than_file():
+def test_readline_max_byte_longer_than_file(files):
+    input_file, test_file = files
+
     assert input_file.readline(max_bytes=1000) == test_file.readline()
     assert input_file.readline(max_bytes=1000) == test_file.readline()
 
 
-def test_readline_file_bigger_than_buffer():
-    old_max_buf = InputFile.max_buffer_size
-    InputFile.max_buffer_size = 10
+def test_readline_file_bigger_than_buffer(files_small_buffer):
+    input_file, test_file = files_small_buffer
 
-    try:
-        input_file = InputFile(rfile, len(bstr))
-
-        assert input_file.readline() == test_file.readline()
-        assert input_file.readline() == test_file.readline()
-    finally:
-        InputFile.max_buffer_size = old_max_buf
+    assert input_file.readline() == test_file.readline()
+    assert input_file.readline() == test_file.readline()
 
 
-def test_readlines():
+def test_readlines(files):
+    input_file, test_file = files
+
     assert input_file.readlines() == test_file.readlines()
 
 
-def test_readlines_file_bigger_than_buffer():
-    old_max_buf = InputFile.max_buffer_size
-    InputFile.max_buffer_size = 10
+def test_readlines_file_bigger_than_buffer(files_small_buffer):
+    input_file, test_file = files_small_buffer
 
-    try:
-        input_file = InputFile(rfile, len(bstr))
-
-        assert input_file.readlines() == test_file.readlines()
-    finally:
-        InputFile.max_buffer_size = old_max_buf
+    assert input_file.readlines() == test_file.readlines()
 
 
-def test_iter():
+def test_iter(files):
+    input_file, test_file = files
+
     for a, b in zip(input_file, test_file):
         assert a == b
 
 
-def test_iter_file_bigger_than_buffer():
-    old_max_buf = InputFile.max_buffer_size
-    InputFile.max_buffer_size = 10
+def test_iter_file_bigger_than_buffer(files_small_buffer):
+    input_file, test_file = files_small_buffer
 
-    try:
-        input_file = InputFile(rfile, len(bstr))
-
-        for a, b in zip(input_file, test_file):
-            assert a == b
-    finally:
-        InputFile.max_buffer_size = old_max_buf
+    for a, b in zip(input_file, test_file):
+        assert a == b

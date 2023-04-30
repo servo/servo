@@ -23,7 +23,7 @@ promise_test(async t => {
   const iframe = insertIframe(t, startURL);
   assert_equals(history.length, startingHistoryLength, "Inserting the under-test iframe must not change history.length");
 
-  await waitForMessage(t, "done");
+  assert_equals(await waitForMessage(), "done");
   assert_equals(history.length, startingHistoryLength + 1, "history.length must change after waiting for the replacement");
 }, "history.pushState() during the pageshow event must NOT replace");
 </script>

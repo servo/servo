@@ -380,7 +380,7 @@
     await sendTab();
     assert_equals(document.activeElement,popover8Anchor,'Focus should move to the anchor element');
     assert_true(popover8.matches(':popover-open'),'popover should stay open');
-    popover8.hidePopover();
+    popover8.hidePopover(); // Cleanup
   },'Moving focus back to the anchor element should not dismiss the popover');
 </script>
 
@@ -534,6 +534,7 @@ promise_test(async () => {
   assert_true(p13.matches(':popover-open'),'p13 should still be open');
   assert_false(p14.matches(':popover-open'));
   assert_false(p15.matches(':popover-open'));
+  p13.hidePopover(); // Cleanup
 },'Hide the target popover during "hide all popovers until"');
 </script>
 
@@ -546,11 +547,16 @@ promise_test(async () => {
 promise_test(async () => {
   p16.showPopover();
   p18.showPopover();
+  let events = [];
+  const logEvents = (e) => {events.push(`${e.newState==='open' ? 'show' : 'hide'} ${e.target.id}`)};
+  p16.addEventListener('beforetoggle', logEvents);
+  p17.addEventListener('beforetoggle', logEvents);
   p18.addEventListener('beforetoggle', (e) => {
-    if (e.newState === "closed")
-      p17.showPopover();
-  },{once:true});
+    logEvents(e);
+    p17.showPopover();
+  });
   p16.hidePopover();
+  assert_array_equals(events,['hide p18','show p17','hide p16'],'There should not be a hide event for p17');
   assert_false(p16.matches(':popover-open'));
   assert_false(p17.matches(':popover-open'));
   assert_false(p18.matches(':popover-open'));
@@ -564,15 +570,20 @@ promise_test(async () => {
 <script>
 promise_test(async () => {
   p19.showPopover();
+  let events = [];
+  const logEvents = (e) => {events.push(`${e.newState==='open' ? 'show' : 'hide'} ${e.target.id}`)};
   p19.addEventListener('beforetoggle', (e) => {
-    if (e.newState === "closed")
-      p20.showPopover();
-  },{once:true});
+    logEvents(e);
+    p20.showPopover();
+  });
+  p20.addEventListener('beforetoggle', logEvents);
   // Because the `beforetoggle` handler shows a different popover,
   // and that action closes the p19 popover, the call to hidePopover()
   // will result in an exception.
   assert_throws_dom('InvalidStateError',() => p19.hidePopover());
+  assert_array_equals(events,['hide p19','show p20'],'There should not be a second hide event for 19');
   assert_false(p19.matches(':popover-open'));
   assert_true(p20.matches(':popover-open'));
+  p20.hidePopover(); // Cleanup
 },'Show an unrelated popover during "hide popover"');
 </script>

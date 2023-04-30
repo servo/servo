@@ -2,7 +2,6 @@
 
 import json
 import os
-import traceback
 from collections import defaultdict
 
 from urllib.parse import quote, unquote, urljoin
@@ -361,9 +360,8 @@ class FunctionHandler:
             rv = self.func(request, response)
         except HTTPException:
             raise
-        except Exception:
-            msg = traceback.format_exc()
-            raise HTTPException(500, message=msg)
+        except Exception as e:
+            raise HTTPException(500) from e
         if rv is not None:
             if isinstance(rv, tuple):
                 if len(rv) == 3:

@@ -69,6 +69,10 @@ test_valid_value("color", "oklab(0.2 none none / none)", "oklab(0.2 none none / 
 test_valid_value("color", "oklab(none none none / 0.5)", "oklab(none none none / 0.5)");
 test_valid_value("color", "oklab(0 0 0 / none)", "oklab(0 0 0 / none)");
 
+// These tests validate the ranges of lab() vs. oklab() components
+test_valid_value("color", "lab(20% -50% 90%/0.5)", "lab(20 -62.5 112.5 / 0.5)");
+test_valid_value("color", "oklab(20% 70% -80%/0.5)", "oklab(0.2 0.28 -0.32 / 0.5)");
+
 test_valid_value("color", "oklab(calc(infinity) 0 0)", "oklab(1 0 0)");
 test_valid_value("color", "oklab(0.5 calc(infinity) 0)", "oklab(0.5 calc(infinity) 0)");
 test_valid_value("color", "oklab(0.5 calc(-infinity) 0)", "oklab(0.5 calc(-infinity) 0)");
@@ -137,11 +141,17 @@ test_valid_value("color", "oklch(0.2 none none / none)", "oklch(0.2 none none / 
 test_valid_value("color", "oklch(none none none / 0.5)", "oklch(none none none / 0.5)");
 test_valid_value("color", "oklch(0 0 0 / none)", "oklch(0 0 0 / none)");
 
+
+// These tests validate the ranges of lch() vs. oklch() lightness and chroma
+test_valid_value("color", "lch(20% 80% 10/0.5)", "lch(20 120 10 / 0.5)");
+test_valid_value("color", "oklch(20% 60% 10/0.5)", "oklch(0.2 0.24 10 / 0.5)");
+
 test_valid_value("color", "oklch(calc(infinity) 0 0)", "oklch(1 0 0)");
 test_valid_value("color", "oklch(0.5 calc(infinity) 0)", "oklch(0.5 calc(infinity) 0)");
 test_valid_value("color", "oklch(0.5 calc(-infinity) 0)", "oklch(0.5 0 0)");
 test_valid_value("color", "oklch(calc(NaN) 0 0)", "oklch(calc(NaN) 0 0)");
 test_valid_value("color", "oklch(calc(0 / 0) 0 0)", "oklch(calc(NaN) 0 0)");
+
 </script>
 </body>
 </html>

@@ -9,9 +9,9 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_release_char_sequence_sends_keyup_events_in_reverse(
-    bidi_session, top_context, test_actions_page_bidi, get_focused_key_input
+    bidi_session, top_context, load_static_test_page, get_focused_key_input
 ):
-    await test_actions_page_bidi()
+    await load_static_test_page(page="test_actions.html")
     await get_focused_key_input()
 
     actions = Actions()
@@ -30,7 +30,7 @@ async def test_release_char_sequence_sends_keyup_events_in_reverse(
         {"code": "KeyB", "key": "b", "type": "keyup"},
         {"code": "KeyA", "key": "a", "type": "keyup"},
     ]
-    all_events = await get_events(top_context["context"], bidi_session)
+    all_events = await get_events(bidi_session, top_context["context"])
     (events, expected) = filter_supported_key_events(all_events, expected)
     assert events == expected
 
@@ -43,15 +43,13 @@ async def test_release_char_sequence_sends_keyup_events_in_reverse(
 async def test_release_mouse_sequence_resets_dblclick_state(
     bidi_session,
     top_context,
-    test_actions_page_bidi,
+    get_element,
+    load_static_test_page,
     release_actions
 ):
-    await test_actions_page_bidi()
-    reporter = await bidi_session.script.evaluate(
-        expression="document.querySelector('#outer')",
-        target=ContextTarget(top_context["context"]),
-        await_promise=False,
-    )
+    await load_static_test_page(page="test_actions.html")
+    reporter = await get_element("#outer")
+
     actions = Actions()
     actions.add_pointer(pointer_type="mouse").pointer_move(
         x=0, y=0, origin=reporter["value"]
@@ -66,7 +64,7 @@ async def test_release_mouse_sequence_resets_dblclick_state(
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]
     )
-    events = await get_events(top_context["context"], bidi_session)
+    events = await get_events(bidi_session, top_context["context"])
 
     expected = [
         {"type": "mousedown", "button": 0},

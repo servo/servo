@@ -67,8 +67,8 @@ function check(event, li) {
   const el = document.elementFromPoint(event.clientX, event.clientY);
   assert_equals(el, li, "elementFromPoint");
 }
-(async function() {
-  setup({ explicit_done: true });
+setup({ explicit_done: true });
+addEventListener("load", async function() {
   for (let list of document.querySelectorAll("ol")) {
     for (let li of list.querySelectorAll("li")) {
       const listener = e => check(e, li);
@@ -91,6 +91,6 @@ function check(event, li) {
     }
   }
   done();
-})();
+});
 </script>
 

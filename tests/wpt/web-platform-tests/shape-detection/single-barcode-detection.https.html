@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/single-detection-helpers.js"></script>
+<body>
+</body>
+<script>
+const imageTests = {
+    aztecCorrection: {
+        name: "aztec-correction.jpg",
+        format: "aztec",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 240, right: 559, top: 144, bottom: 454}, fuzziness: 15},
+        topLeft: {position: {x: 240, y: 144}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 559, y: 144}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 559, y: 454}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 240, y: 454}, fuzzinessX: 15, fuzzinessY: 15}},
+    aztecFull: {
+        name: "aztec-full.jpg",
+        format: "aztec",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 281, right: 518, top: 184, bottom: 414}, fuzziness: 15},
+        topLeft: {position: {x: 281, y: 184}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 518, y: 184}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 518, y: 414}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 281, y: 414}, fuzzinessX: 15, fuzzinessY: 15}},
+    aztecLayers: {
+        name: "aztec-layers.jpg",
+        format: "aztec",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 175, right: 625, top: 75, bottom: 525}, fuzziness: 15},
+        topLeft: {position: {x: 175, y: 75}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 625, y: 75}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 625, y: 525}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 175, y: 525}, fuzzinessX: 15, fuzzinessY: 15}},
+    aztec: {
+        name: "aztec.jpg",
+        format: "aztec",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 302, right: 497, top: 202, bottom: 397}, fuzziness: 15},
+        topLeft: {position: {x: 302, y: 202}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 497, y: 202}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 497, y: 397}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 302, y: 397}, fuzzinessX: 15, fuzzinessY: 15}},
+    code128Height: {
+        name: "code128-height.jpg",
+        format: "code_128",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 90, right: 711, top: 149, bottom: 449}, fuzziness: 15},
+        topLeft: {position: {x: 90, y: 149}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 711, y: 149}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 711, y: 450}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 90, y: 450}, fuzzinessX: 15, fuzzinessY: 15}},
+    code128: {
+        name: "code128.jpg",
+        format: "code_128",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 90, right: 710, top: 267, bottom: 332}, fuzziness: 15},
+        topLeft: {position: {x: 90, y: 267}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 710, y: 267}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 710, y: 332}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 90, y: 332}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417Columns: {
+        name: "pdf417-columns.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 39, right: 755, top: 243, bottom: 356}, fuzziness: 15},
+        topLeft: {position: {x: 39, y: 243}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 755, y: 243}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 755, y: 356}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 39, y: 356}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417Compact: {
+        name: "pdf417-compact.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 186, right: 786, top: 242, bottom: 359}, fuzziness: 15},
+        topLeft: {position: {x: 186, y: 242}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 786, y: 242}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 786, y: 359}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 186, y: 359}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417Compaction: {
+        name: "pdf417-compaction.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 84, right: 712, top: 217, bottom: 382}, fuzziness: 15},
+        topLeft: {position: {x: 84, y: 217}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 712, y: 217}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 712, y: 382}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 84, y: 382}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417Correction: {
+        name: "pdf417-correction.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 39, right: 755, top: 209, bottom: 390}, fuzziness: 15},
+        topLeft: {position: {x: 39, y: 209}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 755, y: 209}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 755, y: 390}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 39, y: 390}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417Rows: {
+        name: "pdf417-rows.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 84, right: 712, top: 227, bottom: 360}, fuzziness: 15},
+        topLeft: {position: {x: 84, y: 227}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 712, y: 227}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 712, y: 360}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 84, y: 360}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417Square: {
+        name: "pdf417-square.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 170, right: 621, top: 119, bottom: 480}, fuzziness: 15},
+        topLeft: {position: {x: 171, y: 119}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 621, y: 119}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 621, y: 480}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 170, y: 480}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417Taller: {
+        name: "pdf417-taller.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 84, right: 713, top: 209, bottom: 390}, fuzziness: 15},
+        topLeft: {position: {x: 84, y: 209}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 713, y: 209}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 713, y: 390}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 84, y: 390}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417Wider: {
+        name: "pdf417-wider.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 84, right: 712, top: 227, bottom: 360}, fuzziness: 15},
+        topLeft: {position: {x: 84, y: 227}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 712, y: 227}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 712, y: 360}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 84, y: 360}, fuzzinessX: 15, fuzzinessY: 15}},
+    pdf417: {
+        name: "pdf417.jpg",
+        format: "pdf417",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 126, right: 666, top: 209, bottom: 390}, fuzziness: 15},
+        topLeft: {position: {x: 126, y: 209}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 666, y: 209}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 666, y: 390}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 126, y: 390}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrBottomLeft: {
+        name: "qr-bottom-left.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 75, right: 325, top: 325, bottom: 575}, fuzziness: 5},
+        topLeft: {position: {x: 75, y: 325}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 325, y: 325}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 325, y: 575}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 75, y: 575}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrBottomRight: {
+        name: "qr-bottom-right.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 475, right: 725, top: 325, bottom: 575}, fuzziness: 5},
+        topLeft: {position: {x: 475, y: 325}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 725, y: 325}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 725, y: 575}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 475, y: 575}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrCenter: {
+        name: "qr-center.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 277, right: 524, top: 172, bottom: 428}, fuzziness: 5},
+        topLeft: {position: {x: 277, y: 172}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 521, y: 172}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 524, y: 425}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 277, y: 428}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrH: {
+        name: "qr-h.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 235, right: 565, top: 135, bottom: 465}, fuzziness: 5},
+        topLeft: {position: {x: 235, y: 135}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 565, y: 135}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 565, y: 465}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 235, y: 465}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrL: {
+        name: "qr-l.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 275, right: 525, top: 175, bottom: 425}, fuzziness: 5},
+        topLeft: {position: {x: 275, y: 175}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 525, y: 175}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 525, y: 425}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 275, y: 425}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrM: {
+        name: "qr-m.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 277, right: 524, top: 172, bottom: 428}, fuzziness: 5},
+        topLeft: {position: {x: 277, y: 172}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 521, y: 172}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 524, y: 425}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 277, y: 428}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrQ: {
+        name: "qr-q.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 252, right: 548, top: 157, bottom: 444}, fuzziness: 5},
+        topLeft: {position: {x: 252, y: 157}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 548, y: 157}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 545, y: 444}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 252, y: 441}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrTopLeft: {
+        name: "qr-top-left.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 75, right: 325, top: 25, bottom: 275}, fuzziness: 5},
+        topLeft: {position: {x: 75, y: 25}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 325, y: 25}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 325, y: 275}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 75, y: 275}, fuzzinessX: 15, fuzzinessY: 15}},
+    qrTopRight: {
+        name: "qr-top-right.jpg",
+        format: "qr_code",
+        payload: "Barcode Detection is Fun!",
+        barcode: {boundingBox: {left: 475, right: 725, top: 25, bottom: 275}, fuzziness: 5},
+        topLeft: {position: {x: 475, y: 25}, fuzzinessX: 15, fuzzinessY: 15},
+        topRight: {position: {x: 725, y: 25}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomRight: {position: {x: 725, y: 275}, fuzzinessX: 15, fuzzinessY: 15},
+        bottomLeft: {position:  {x: 475, y: 275}, fuzzinessX: 15, fuzzinessY: 15}}};
+
+const videoTests = {
+    "barcodes.mov": [
+        {time: 0.5, test: imageTests.aztecCorrection},
+        {time: 1.5, test: imageTests.aztecFull},
+        {time: 2.5, test: imageTests.aztecLayers},
+        {time: 3.5, test: imageTests.aztec},
+        {time: 4.5, test: imageTests.code128Height},
+        {time: 5.5, test: imageTests.code128},
+        {time: 6.5, test: imageTests.pdf417Columns},
+        {time: 7.5, test: imageTests.pdf417Compact},
+        {time: 8.5, test: imageTests.pdf417Compaction},
+        {time: 9.5, test: imageTests.pdf417Correction},
+        {time: 10.5, test: imageTests.pdf417Rows},
+        {time: 11.5, test: imageTests.pdf417Square},
+        {time: 12.5, test: imageTests.pdf417Taller},
+        {time: 13.5, test: imageTests.pdf417Wider},
+        {time: 14.5, test: imageTests.pdf417},
+        {time: 15.5, test: imageTests.qrBottomLeft},
+        {time: 16.5, test: imageTests.qrBottomRight},
+        {time: 17.5, test: imageTests.qrCenter},
+        {time: 18.5, test: imageTests.qrH},
+        {time: 19.5, test: imageTests.qrL},
+        {time: 20.5, test: imageTests.qrM},
+        {time: 21.5, test: imageTests.qrQ},
+        {time: 22.5, test: imageTests.qrTopLeft},
+        {time: 23.5, test: imageTests.qrTopRight}]};
+
+// All the fields in FaceDetectorOptions are hints, so they can't be tested.
+const barcodeDetector = new BarcodeDetector();
+
+async function testImage(imageBitmapSource, test, key) {
+    const supportedFormats = await BarcodeDetector.getSupportedFormats();
+    if (!supportedFormats.includes(test.format))
+        return;
+    const detectedBarcodes = await barcodeDetector.detect(imageBitmapSource);
+    assert_equals(detectedBarcodes.length, 1);
+    const detectedBarcode = detectedBarcodes[0];
+    checkBoundingBox(detectedBarcode.boundingBox, test.barcode.boundingBox, test.barcode.fuzziness);
+    assert_equals(detectedBarcode.rawValue, test.payload);
+    assert_equals(detectedBarcode.format, test.format);
+    assert_equals(detectedBarcode.cornerPoints.length, 4);
+    const [topLeft, topRight, bottomRight, bottomLeft] = detectedBarcode.cornerPoints;
+    checkPointIsNear(topLeft, test.topLeft.position, test.topLeft.fuzzinessX, test.topLeft.fuzzinessY);
+    checkPointIsNear(topRight, test.topRight.position, test.topRight.fuzzinessX, test.topRight.fuzzinessY);
+    checkPointIsNear(bottomRight, test.bottomRight.position, test.bottomRight.fuzzinessX, test.bottomRight.fuzzinessY);
+    checkPointIsNear(bottomLeft, test.bottomLeft.position, test.bottomLeft.fuzzinessX, test.bottomLeft.fuzzinessY);
+}
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        await testImage(imageElement, imageTest, key);
+    }
+}, "HTMLImageElement");
+
+// Intentionally don't test SVGImageElement. The spec https://html.spec.whatwg.org/multipage/canvas.html#canvasimagesource says it's supposed to be
+// a CanvasImageSource, but neither WebKit nor Blink actually seem to implement that.
+
+promise_test(async t => {
+    for (const [name, tests] of Object.entries(videoTests)) {
+        const videoElement = document.createElement("video");
+        document.body.appendChild(videoElement);
+        videoElement.src = `resources/${name}`;
+        const loadedPromise = videoLoadedPromise(videoElement);
+        videoElement.load();
+        await loadedPromise;
+        for (const test of tests) {
+            await seekTo(videoElement, test.time);
+            await testImage(videoElement, test.test, name);
+        }
+        document.body.removeChild(videoElement);
+    }
+}, "HTMLVideoElement");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const canvasElement = document.createElement("canvas");
+        canvasElement.width = imageElement.width;
+        canvasElement.height = imageElement.height;
+        const context = canvasElement.getContext("2d");
+        context.drawImage(imageElement, 0, 0);
+        await testImage(canvasElement, imageTest, key);
+    }
+}, "HTMLCanvasElement");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const imageBitmap = await createImageBitmap(imageElement);
+        await testImage(imageBitmap, imageTest, key);
+    }
+}, "ImageBitmap");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const offscreenCanvas = new OffscreenCanvas(imageElement.width, imageElement.height);
+        const context = offscreenCanvas.getContext("2d");
+        context.drawImage(imageElement, 0, 0);
+        await testImage(offscreenCanvas, imageTest, key);
+    }
+}, "OffscreenCanvas");
+
+promise_test(async t => {
+    for (const [name, tests] of Object.entries(videoTests)) {
+        const videoElement = document.createElement("video");
+        document.body.appendChild(videoElement);
+        videoElement.src = `resources/${name}`;
+        const loadedPromise = videoLoadedPromise(videoElement);
+        videoElement.load();
+        await loadedPromise;
+        for (const test of tests) {
+            await seekTo(videoElement, test.time);
+            const videoFrame = new VideoFrame(videoElement);
+            await testImage(videoFrame, test.test, name);
+            videoFrame.close();
+        }
+        document.body.removeChild(videoElement);
+    }
+}, "VideoFrame");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const canvasElement = document.createElement("canvas");
+        canvasElement.width = imageElement.width;
+        canvasElement.height = imageElement.height;
+        const context = canvasElement.getContext("2d");
+        context.drawImage(imageElement, 0, 0);
+        const blob = await new Promise(function(resolve, reject) {
+            canvasElement.toBlob(function(blob) {
+                return resolve(blob);
+            });
+        });
+        await testImage(blob, imageTest, key);
+    }
+}, "Blob");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const canvasElement = document.createElement("canvas");
+        canvasElement.width = imageElement.width;
+        canvasElement.height = imageElement.height;
+        const context = canvasElement.getContext("2d");
+        context.drawImage(imageElement, 0, 0);
+        const imageData = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
+        await testImage(imageData, imageTest, key);
+    }
+}, "ImageData");
+
+</script>

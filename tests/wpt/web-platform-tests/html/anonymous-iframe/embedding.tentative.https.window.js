@@ -101,8 +101,8 @@ subsetTest(embeddingTest,
 
 // variant = 11
 subsetTest(embeddingTest,
-  "Parents embeds a CSP:frame-ancestore credentialless iframe", {
-  child_headers: "|headers(Content-Security-Policy,frame-ancestors 'none')",
+  "Parents embeds a CSP:frame-ancestors credentialless iframe", {
+  child_headers: "|header(Content-Security-Policy,frame-ancestors 'none')",
   expectation: EXPECT_BLOCK,
 });
 

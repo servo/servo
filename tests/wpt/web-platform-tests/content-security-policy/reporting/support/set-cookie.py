@@ -21,8 +21,9 @@ def main(request, response):
 
     name = request.GET[b'name']
     path = request.GET[b'path']
+    value = request.GET.first(b'value', b"1")
     expiry_year = date.today().year + 1
-    cookie = b"%s=1; Path=%s; Expires=09 Jun %d 10:18:14 GMT" % (name, path, expiry_year)
+    cookie = b"%s=%s; Path=%s; Expires=09 Jun %d 10:18:14 GMT" % (name, value, path, expiry_year)
 
     headers = [
         (b"Content-Type", b"application/json"),

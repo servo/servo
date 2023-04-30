@@ -207,14 +207,16 @@ class TestH2Response(TestUsingH2Server):
     def test_set_error(self):
         @wptserve.handlers.handler
         def handler(request, response):
-            response.set_error(503, message="Test error")
+            response.set_error(503, "Test error")
 
         route = ("GET", "/h2test/test_set_error", handler)
         self.server.router.register(*route)
         resp = self.client.get(route[1])
 
         assert resp.status_code == 503
-        assert json.loads(resp.content) == json.loads("{\"error\": {\"message\": \"Test error\", \"code\": 503}}")
+        error = json.loads(resp.content)["error"]
+        assert error["code"] == 503
+        assert "Test error" in error["message"]
 
     def test_file_like_response(self):
         @wptserve.handlers.handler

@@ -35,8 +35,13 @@ class InvalidArgumentException(BidiException):
     error_code = "invalid argument"
 
 
+class MoveTargetOutOfBoundsException(BidiException):
+    error_code = "move target out of bounds"
+
+
 class NoSuchFrameException(BidiException):
     error_code = "no such frame"
+
 
 class NoSuchHandleException(BidiException):
     error_code = "no such handle"

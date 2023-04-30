@@ -81,9 +81,9 @@ def test_actions_page(session, url):
 
 @pytest.fixture
 def test_actions_scroll_page(session, url):
-    session.url = url("/webdriver/tests/perform_actions/support/test_actions_scroll_wdspec.html")
+    session.url = url("/webdriver/tests/support/html/test_actions_scroll.html")
 
 
 @pytest.fixture
 def test_actions_pointer_page(session, url):
-    session.url = url("/webdriver/tests/perform_actions/support/test_actions_pointer_wdspec.html")
+    session.url = url("/webdriver/tests/support/html/test_actions_pointer.html")

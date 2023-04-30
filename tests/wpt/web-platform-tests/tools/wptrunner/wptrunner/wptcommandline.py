@@ -261,6 +261,11 @@ scheme host and port.""")
                               help="Don't run browser in headless mode")
     config_group.add_argument("--instrument-to-file", action="store",
                               help="Path to write instrumentation logs to")
+    config_group.add_argument("--suppress-handler-traceback", action="store_true", default=None,
+                              help="Don't write the stacktrace for exceptions in server handlers")
+    config_group.add_argument("--no-suppress-handler-traceback", action="store_false",
+                              dest="supress_handler_traceback",
+                              help="Write the stacktrace for exceptions in server handlers")
 
     build_type = parser.add_mutually_exclusive_group()
     build_type.add_argument("--debug-build", dest="debug", action="store_true",

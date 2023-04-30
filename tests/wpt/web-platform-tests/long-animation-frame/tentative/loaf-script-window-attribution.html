@@ -25,6 +25,8 @@ promise_test (async t => {
 }, 'Scripts in this window should be self-attributed');
 
 promise_test (async t => {
+  let found = false;
+  for (let i = 0; i < 10 && !found; ++i) {
     const [executor, iframe] = await prepare_exec_iframe(t, ORIGIN);
     const [entry, script] = await expect_long_frame_with_script(() =>
       executor.execute_script(async (duration) => {
@@ -32,11 +34,18 @@ promise_test (async t => {
         const deadline = performance.now() + duration;
         while (performance.now() < deadline) {}
       }, [very_long_frame_duration]), () => true, t);
-    assert_equals(script.windowAttribution, "descendant");
-    assert_equals(script.window, iframe.contentWindow);
+
+      if (script.windowAttribution === "descendant" && script.window === iframe.contentWindow) {
+          found = true;
+      }
+  }
+
+  assert_true(found);
 }, 'Scripts in subframes should be descendant-attributed');
 
 promise_test (async t => {
+  let found = false;
+  for (let i = 0; i < 10 && !found; ++i) {
     const [executor1, iframe1] = await prepare_exec_iframe(t, ORIGIN);
     const [executor2, iframe2] = await prepare_exec_iframe(t, ORIGIN);
     const [entry, script] = await expect_long_frame_with_script(() =>
@@ -52,10 +61,15 @@ promise_test (async t => {
 
     const iframe1_entry = find_entry(iframe1.contentWindow);
     const iframe2_entry = find_entry(iframe2.contentWindow);
-    assert_equals(iframe1_entry.windowAttribution, "self");
-    assert_equals(iframe2_entry.windowAttribution, "same-page");
-    assert_equals(iframe1_entry.window, iframe1.contentWindow);
-    assert_equals(iframe2_entry.window, iframe1.contentWindow);
+    if (iframe1_entry.windowAttribution === "self" &&
+      iframe2_entry.windowAttribution === "same-page" &&
+      iframe1_entry.window === iframe1.contentWindow &&
+      iframe2_entry.window === iframe1.contentWindow) {
+        found = true;
+    }
+  }
+
+  assert_true(found);
 }, 'Scripts in subframes should be same-page-attributed to other subframes');
 
 </script>

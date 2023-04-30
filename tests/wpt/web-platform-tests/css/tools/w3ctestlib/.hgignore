@@ -1,7 +1,0 @@
-syntax: glob
-
-*.xcodeproj
-*.DS_Store
-*.pyc
-*.svn
-*.directory

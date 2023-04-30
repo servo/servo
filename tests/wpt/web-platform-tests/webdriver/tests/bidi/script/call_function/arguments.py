@@ -1,7 +1,7 @@
 import pytest
 from tests.support.sync import AsyncPoll
 import webdriver.bidi.error as error
-from webdriver.bidi.modules.script import ContextTarget
+from webdriver.bidi.modules.script import ContextTarget, SerializationOptions
 
 from ... import any_string, recursive_compare
 
@@ -461,6 +461,7 @@ async def test_remote_reference_dom_collection(
     result = await call_function(
         function_declaration=function_declaration,
         arguments=[remote_value],
+        serialization_options=SerializationOptions(max_dom_depth=1),
     )
 
     recursive_compare(expected, result)

@@ -1,7 +1,7 @@
 import pytest
 import webdriver.bidi.error as error
 
-from webdriver.bidi.modules.script import ContextTarget, RealmTarget
+from webdriver.bidi.modules.script import ContextTarget, RealmTarget, SerializationOptions
 
 pytestmark = pytest.mark.asyncio
 
@@ -82,5 +82,72 @@ async def test_params_result_ownership_invalid_value(bidi_session, top_context, 
         await bidi_session.script.evaluate(
             expression="1 + 2",
             result_ownership=result_ownership,
+            target=ContextTarget(top_context["context"]),
+            await_promise=True)
+
+
+@pytest.mark.parametrize("serialization_options", [False, "_UNKNOWN_", 42, []])
+async def test_params_serialization_options_invalid_type(bidi_session, top_context, serialization_options):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.evaluate(
+            expression="1 + 2",
+            serialization_options=serialization_options,
+            target=ContextTarget(top_context["context"]),
+            await_promise=True)
+
+
+@pytest.mark.parametrize("max_dom_depth", [False, "_UNKNOWN_", {}, []])
+async def test_params_max_dom_depth_invalid_type(bidi_session, top_context, max_dom_depth):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.evaluate(
+            expression="1 + 2",
+            serialization_options=SerializationOptions(max_dom_depth=max_dom_depth),
+            target=ContextTarget(top_context["context"]),
+            await_promise=True)
+
+
+async def test_params_max_dom_depth_invalid_value(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.evaluate(
+            expression="1 + 2",
+            serialization_options=SerializationOptions(max_dom_depth=-1),
+            target=ContextTarget(top_context["context"]),
+            await_promise=True)
+
+
+@pytest.mark.parametrize("max_object_depth", [False, "_UNKNOWN_", {}, []])
+async def test_params_max_object_depth_invalid_type(bidi_session, top_context, max_object_depth):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.evaluate(
+            expression="1 + 2",
+            serialization_options=SerializationOptions(max_object_depth=max_object_depth),
+            target=ContextTarget(top_context["context"]),
+            await_promise=True)
+
+
+async def test_params_max_object_depth_invalid_value(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.evaluate(
+            expression="1 + 2",
+            serialization_options=SerializationOptions(max_object_depth=-1),
+            target=ContextTarget(top_context["context"]),
+            await_promise=True)
+
+
+@pytest.mark.parametrize("include_shadow_tree", [False, 42, {}, []])
+async def test_params_max_object_depth_invalid_type(bidi_session, top_context, include_shadow_tree):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.evaluate(
+            expression="1 + 2",
+            serialization_options=SerializationOptions(include_shadow_tree=include_shadow_tree),
+            target=ContextTarget(top_context["context"]),
+            await_promise=True)
+
+
+async def test_params_max_object_depth_invalid_value(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.evaluate(
+            expression="1 + 2",
+            serialization_options=SerializationOptions(include_shadow_tree="foo"),
             target=ContextTarget(top_context["context"]),
             await_promise=True)

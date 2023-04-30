@@ -60,6 +60,16 @@ class InputFile:
         else:
             self._buf = BytesIO()
 
+    def close(self):
+        self._buf.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+        return False
+
     @property
     def _buf_position(self):
         rv = self._buf.tell()
@@ -298,6 +308,16 @@ class Request:
         self._auth = None
 
         self.server = Server(self)
+
+    def close(self):
+        return self.raw_input.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+        return False
 
     def __repr__(self):
         return "<Request %s %s>" % (self.method, self.url)

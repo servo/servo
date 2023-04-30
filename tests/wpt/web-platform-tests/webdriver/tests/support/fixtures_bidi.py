@@ -285,6 +285,18 @@ def compare_png_bidi(bidi_session, url):
 
 
 @pytest.fixture
+def get_element(bidi_session, top_context):
+    async def get_element(css_selector, context=top_context):
+        result = await bidi_session.script.evaluate(
+            expression=f"document.querySelector('{css_selector}')",
+            target=ContextTarget(context["context"]),
+            await_promise=False,
+        )
+        return result
+    return get_element
+
+
+@pytest.fixture
 def get_reference_png(
     bidi_session, inline, render_pdf_to_png_bidi, top_context
 ):
@@ -337,14 +349,14 @@ def render_pdf_to_png_bidi(bidi_session, new_tab, url):
 
 
 @pytest.fixture
-def test_actions_page_bidi(bidi_session, url, top_context):
-    """Navigate to test_actions.html."""
+def load_static_test_page(bidi_session, url, top_context):
+    """Navigate to a test page from the support/html folder."""
 
-    async def test_actions_page_bidi(context=top_context):
+    async def load_static_test_page(page, context=top_context):
         await bidi_session.browsing_context.navigate(
             context=context["context"],
-            url=url("/webdriver/tests/support/html/test_actions.html"),
+            url=url(f"/webdriver/tests/support/html/{page}"),
             wait="complete",
         )
 
-    return test_actions_page_bidi
+    return load_static_test_page

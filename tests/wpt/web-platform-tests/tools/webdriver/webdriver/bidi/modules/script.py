@@ -43,6 +43,21 @@ class ContextTarget(Dict[str, Any]):
 Target = Union[RealmTarget, ContextTarget]
 
 
+class SerializationOptions(Dict[str, Any]):
+    def __init__(
+            self,
+            max_dom_depth: Optional[int] = None,
+            max_object_depth: Optional[int] = None,
+            include_shadow_tree: Optional[str] = None
+    ):
+        if max_dom_depth is not None:
+            self["maxDomDepth"] = max_dom_depth
+        if max_object_depth is not None:
+            self["maxObjectDepth"] = max_object_depth
+        if include_shadow_tree is not None:
+            self["includeShadowTree"] = include_shadow_tree
+
+
 class Script(BidiModule):
     @command
     def add_preload_script(
@@ -77,6 +92,7 @@ class Script(BidiModule):
         arguments: Optional[List[Mapping[str, Any]]] = None,
         this: Optional[Mapping[str, Any]] = None,
         result_ownership: Optional[OwnershipModel] = None,
+        serialization_options: Optional[SerializationOptions] = None
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
             "functionDeclaration": function_declaration,
@@ -90,6 +106,8 @@ class Script(BidiModule):
             params["this"] = this
         if result_ownership is not None:
             params["resultOwnership"] = result_ownership
+        if serialization_options is not None:
+            params["serializationOptions"] = serialization_options
         return params
 
     @call_function.result
@@ -115,6 +133,7 @@ class Script(BidiModule):
         target: Target,
         await_promise: bool,
         result_ownership: Optional[OwnershipModel] = None,
+        serialization_options: Optional[SerializationOptions] = None
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
             "expression": expression,
@@ -124,6 +143,8 @@ class Script(BidiModule):
 
         if result_ownership is not None:
             params["resultOwnership"] = result_ownership
+        if serialization_options is not None:
+            params["serializationOptions"] = serialization_options
         return params
 
     @evaluate.result

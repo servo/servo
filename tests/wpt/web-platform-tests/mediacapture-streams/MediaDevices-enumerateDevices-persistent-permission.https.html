@@ -18,8 +18,8 @@
     // the page loaded below hasn't had capture enabled
     // so enumerateDevices should not list detailed info yet
     const iframe = document.createElement("iframe");
-    iframe.setAttribute("allow", "camera 'src';microphone 'src'");
-    iframe.src = "/mediacapture-streams/iframe-enumerate.html";
+    iframe.setAttribute("allow", "microphone;camera");
+    iframe.src = "/mediacapture-streams/iframe-enumerate-nogum.html";
     document.body.appendChild(iframe);
     const loadWatcher = new EventWatcher(t, iframe, ['load']);
     await loadWatcher.wait_for('load');

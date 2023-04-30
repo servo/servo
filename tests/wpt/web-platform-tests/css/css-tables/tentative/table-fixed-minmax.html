@@ -42,6 +42,21 @@ default to regular max size.</p>
   <div style="width:100px;border:1px solid black;flex-shrink:0">flex div</div>
 </div>
 
+<p>flex width:min-content</p>
+<div id="flextest_min1" style="display: flex; width: min-content;">
+  <table style="flex: 0 0 content; min-width: 0px;">
+    <td style="width: 100px;"></td>
+  </table>
+</div>
+
+<div id="flextest_min2" style="display: flex; width: min-content;">
+  <div style="flex: 0 0 auto; min-width: 0px;">
+    <table>
+      <td style="width: 100px;"></td>
+    </table>
+  </div>
+</div>
+
 <h3>Grid</h3>
 <p>grid width:auto</p>
 <div id="grid" style="display:grid;grid-template-columns: 1fr;width:auto">
@@ -89,6 +104,20 @@ default to regular max size.</p>
     let table = flexbox.querySelector("table");
     assert_greater_than(table.offsetWidth, document.body.offsetWidth);
   }, "table's width inside flexbox width:max-content is infinite");
+
+  test(_ => {
+    let flexbox = document.querySelector("#flextest_min1");
+    let table = flexbox.querySelector("table");
+    assert_equals(flexbox.offsetWidth, 100);
+    assert_greater_than(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside flexbox width:min-content is infinite, but the flexbox is finite; scenario 1");
+
+  test(_ => {
+    let flexbox = document.querySelector("#flextest_min2");
+    let table = flexbox.querySelector("table");
+    assert_equals(flexbox.offsetWidth, 100);
+    assert_greater_than(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside flexbox width:min-content is infinite, but the flexbox is finite; scenario 2");
 
   test(_ => {
     let grid = document.querySelector("#grid");

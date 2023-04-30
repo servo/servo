@@ -161,7 +161,10 @@ promise_test(t => makeTest(t, {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
   },
-  target: { server: Server.HTTPS_LOCAL },
+  target: {
+    server: Server.OTHER_HTTPS_LOCAL,
+    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+  },
   expected: TestResult.FAILURE,
 }), "treat-as-public to local: failed preflight.");
 
@@ -171,11 +174,23 @@ promise_test(t => makeTest(t, {
     treatAsPublic: true,
   },
   target: {
-    server: Server.HTTPS_LOCAL,
-    behavior: { preflight: PreflightBehavior.success(token()) },
+    server: Server.OTHER_HTTPS_LOCAL,
+    behavior: {
+      preflight: PreflightBehavior.success(token()),
+      response: ResponseBehavior.allowCrossOrigin(),
+    },
   },
   expected: TestResult.SUCCESS,
 }), "treat-as-public to local: success.");
+
+promise_test(t => makeTest(t, {
+  source: {
+    server: Server.HTTPS_LOCAL,
+    treatAsPublic: true,
+  },
+  target: { server: Server.HTTPS_LOCAL },
+  expected: TestResult.SUCCESS,
+}), "treat-as-public to local (same-origin): no preflight required.");
 
 promise_test(t => makeTest(t, {
   source: {

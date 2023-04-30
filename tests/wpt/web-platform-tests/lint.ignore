@@ -367,8 +367,6 @@ SET TIMEOUT: common/rendering-utils.js
 SET TIMEOUT: acid/acid3/test.html
 
 # Third party code
-*: css/tools/apiclient/*
-*: css/tools/w3ctestlib/*
 *: resources/webidl2/*
 *: tools/*
 *: */third_party/*
@@ -379,9 +377,6 @@ SET TIMEOUT: acid/acid3/test.html
 *: css/css-writing-modes/tools/generators/.gitignore
 *: resources/.gitignore
 *: webaudio/.gitignore
-
-# Build system virtualenv
-*: css/tools/_virtualenv/*
 
 ## Third party data files
 TRAILING WHITESPACE: resources/chromium/*
@@ -394,36 +389,6 @@ OPEN-NO-MODE: css/*
 PRINT STATEMENT: css/*
 CONTENT-VISUAL: css/*
 CONTENT-MANUAL: css/*
-
-## Support files not in /support/ or similar
-SUPPORT-WRONG-DIR: css/README.md
-SUPPORT-WRONG-DIR: css/*/reftest.list
-SUPPORT-WRONG-DIR: css/*/README
-SUPPORT-WRONG-DIR: css/*/README.md
-SUPPORT-WRONG-DIR: css/*-README
-SUPPORT-WRONG-DIR: css/*/LICENSE
-SUPPORT-WRONG-DIR: css/*/LICENSE-*
-SUPPORT-WRONG-DIR: css/*/Makefile
-
-# The selectors-3 testsuite has a weird build system
-SUPPORT-WRONG-DIR: css/selectors/*
-
-# Things we should fix
-SUPPORT-WRONG-DIR: css/css-animations/animationevent-interface.js
-SUPPORT-WRONG-DIR: css/css-backgrounds/justfortest.html
-SUPPORT-WRONG-DIR: css/css-backgrounds/background-attachment-local/aqua-yellow-32x32.png
-SUPPORT-WRONG-DIR: css/css-backgrounds/background-clip/list.txt
-SUPPORT-WRONG-DIR: css/css-backgrounds/background-origin/list.txt
-SUPPORT-WRONG-DIR: css/css-color/htaccess
-SUPPORT-WRONG-DIR: css/css-fonts/font-variant-debug.html
-SUPPORT-WRONG-DIR: css/css-masking/clip-path/svg-clipPath.svg
-SUPPORT-WRONG-DIR: css/css-multicol/multicol-red.png
-SUPPORT-WRONG-DIR: css/CSS2/section-index.xht
-SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-18.css
-SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-19-alt.xml
-SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-19.css
-SUPPORT-WRONG-DIR: css/WOFF2/testcaseindex.xht
-
 
 ## Whitespace rules that we can't enforce yet
 INDENT TABS: css/compositing/*
@@ -462,6 +427,9 @@ TRAILING WHITESPACE: css/css-fonts/support/fonts/gsubtest-lookup3.ufo/features.f
 
 SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-parent-with-3D-transform-and-transition.html
 SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-sibling-with-3D-transform-and-transition.html
+SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-border-repaint-parent.html
+SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-border-repaint.html
+SET TIMEOUT: css/css-backgrounds/currentcolor-border-repaint-parent.html
 SET TIMEOUT: css/css-transitions/events-007.html
 SET TIMEOUT: css/css-transitions/support/generalParallelTest.js
 SET TIMEOUT: css/css-transitions/support/runParallelAsyncHarness.js
@@ -512,166 +480,13 @@ SET TIMEOUT: css/CSS2/selectors/dom-hover-002.xht
 SET TIMEOUT: css/CSS2/tables/tables-102.xht
 SET TIMEOUT: css/mediaqueries/min-width-tables-001.html
 SET TIMEOUT: css/css-text/crashtests/rendering-rtl-bidi-override-crash.html
+SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-border-repaint-parent.html
+SET TIMEOUT: svg/painting/color-mix-currentcolor-fill-stroke-repaint.html
+SET TIMEOUT: svg/painting/currentcolor-fill-stroke-repaint.html
 SET TIMEOUT: resource-timing/resources/run-async-tasks-promise.js
-
-## Build system stuff
-CSS-COLLIDING-SUPPORT-NAME: css/*/README
-CSS-COLLIDING-SUPPORT-NAME: css/*/LOCK
-
-# These are all the current "merge mismatch" errors the build system produces
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/200x200-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/200x200-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-sizing/aspect-ratio/support/200x200-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/solidblue.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes/support/swatch-fuchsia.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/swatch-fuchsia.png
-
-# More duplicated copies of the above
-CSS-COLLIDING-SUPPORT-NAME: css/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/floats-clear/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/media/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/syntax/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/cascade/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/zindex/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/margin-padding-clear/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-text/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/box-display/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/colors/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/lists/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/filter-effects/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/bidi-text/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generated-content/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/margin-padding-clear/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/syntax/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/zindex/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/colors/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/cascade/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/bidi-text/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/lists/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/filter-effects/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-text/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/box-display/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/media/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/floats-clear/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generated-content/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/pattern-grg-rgr-grg.png
-
-# Duplicate filename not picked up by the build system
-# https:css///github.com/w3c/csswg-test/issues/1236
-CSS-COLLIDING-REF-NAME: css/css-masking/clip-path-svg-content/reference/clip-path-square-001-ref.svg
-CSS-COLLIDING-REF-NAME: css/css-masking/clip-path/reference/clip-path-square-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-masking/clip-path-svg-content/reference/clip-path-square-002-ref.svg
-CSS-COLLIDING-REF-NAME: css/css-masking/clip-path/reference/clip-path-square-002-ref.html
-
-# Duplicate filename where there's no actual merging
-# (i.e., we're being more aggressive than the build system at forbidding it)
-CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-lowercase-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-lowercase-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-capitalize-003-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-capitalize-003-ref.html
-CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-capitalize-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-capitalize-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-pseudo/first-letter-001-ref.html
-CSS-COLLIDING-REF-NAME: css/CSS2/selectors/first-letter-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-uppercase-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-uppercase-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/CSS2/visufx/overflow-applies-to-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/CSS2/ui/overflow-applies-to-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/CSS2/visuren/inline-formatting-context-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/CSS2/linebox/inline-formatting-context-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-flexbox/reference/percentage-size-subitems-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-grid/grid-items/percentage-size-subitems-001-ref.html
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
-CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
-CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-3.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-sizing/support/replaced-min-max-3.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/background-size/support/50x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/50x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/50x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/50x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/animated.gif
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid/alignment/support/50x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid/alignment/support/25x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/25x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/animated.gif
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/shape-outside/shape-image/support/animated.gif
-CSS-COLLIDING-SUPPORT-NAME: css/css-display/support/util.js
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-1.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-sizing/support/replaced-min-max-1.png
-CSS-COLLIDING-REF-NAME: css/css-multicol/baseline-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-grid/subgrid/baseline-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-backgrounds/simple-bg-color-ref.html
-CSS-COLLIDING-REF-NAME: css/css-backgrounds/hidpi/simple-bg-color-ref.html
-
-CSS-COLLIDING-TEST-NAME: css/css-contain/content-visibility/inheritance.html
-CSS-COLLIDING-TEST-NAME: css/css-contain/inheritance.html
-CSS-COLLIDING-TEST-NAME: css/css-grid/grid-items/replaced-element-001.html
-CSS-COLLIDING-TEST-NAME: css/css-grid/grid-items/replaced-element-002.html
-CSS-COLLIDING-TEST-NAME: css/css-grid/grid-items/replaced-element-007.html
-CSS-COLLIDING-TEST-NAME: css/css-grid/grid-items/replaced-element-010.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/aspect-ratio/parsing/contain-intrinsic-size-computed.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/aspect-ratio/parsing/contain-intrinsic-size-invalid.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/aspect-ratio/parsing/contain-intrinsic-size-valid.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/aspect-ratio/replaced-element-001.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/aspect-ratio/replaced-element-002.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/aspect-ratio/replaced-element-007.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/aspect-ratio/replaced-element-010.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/contain-intrinsic-size/parsing/contain-intrinsic-size-computed.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/contain-intrinsic-size/parsing/contain-intrinsic-size-invalid.html
-CSS-COLLIDING-TEST-NAME: css/css-sizing/contain-intrinsic-size/parsing/contain-intrinsic-size-valid.html
 
 # CSS tests that used to be at the top level and weren't subject to lints
 MISSING-LINK: css/css-fonts/matching/fixed-stretch-style-over-weight.html
-SUPPORT-WRONG-DIR: css/css-fonts/matching/font-matching.css
 MISSING-LINK: css/css-fonts/matching/stretch-distance-over-weight-distance.html
 MISSING-LINK: css/css-fonts/matching/style-ranges-over-weight-direction.html
 MISSING-LINK: css/css-fonts/variations/font-parse-numeric-stretch-style-weight.html
@@ -697,10 +512,8 @@ MISSING-LINK: css/css-scroll-anchoring/position-change-heuristic.html
 MISSING-LINK: css/css-scroll-anchoring/start-edge-in-block-layout-direction.html
 MISSING-LINK: css/css-scroll-anchoring/subtree-exclusion.html
 MISSING-LINK: css/css-scroll-anchoring/wrapped-text.html
-SUPPORT-WRONG-DIR: css/css-easing/testcommon.js
 MISSING-LINK: css/css-typed-om/CSSMatrixComponent-DOMMatrix-mutable.html
 MISSING-LINK: css/css-typed-om/declared-styleMap-accepts-inherit.html
-SUPPORT-WRONG-DIR: css/cssom/stylesheet-same-origin.css
 MISSING-LINK: css/cssom-view/DOMRectList.html
 MISSING-LINK: css/cssom-view/elementFromPoint-002.html
 MISSING-LINK: css/cssom-view/elementFromPoint-003.html
@@ -715,7 +528,6 @@ MISSING-LINK: css/cssom-view/elementsFromPoint-table.html
 MISSING-LINK: css/cssom-view/elementsFromPoint.html
 MISSING-LINK: css/cssom-view/historical.html
 MISSING-LINK: css/cssom-view/HTMLBody-ScrollArea_quirksmode.html
-SUPPORT-WRONG-DIR: css/cssom-view/iframe.html
 MISSING-LINK: css/cssom-view/mouseEvent.html
 MISSING-LINK: css/cssom-view/negativeMargins.html
 MISSING-LINK: css/cssom-view/offsetTopLeftInScrollableParent.html
@@ -856,9 +668,6 @@ DUPLICATE-BASENAME-PATH: svg/struct/reftests/reference/green-100x100.html
 DUPLICATE-BASENAME-PATH: svg/struct/reftests/reference/green-100x100.svg
 
 SET TIMEOUT: mediacapture-insertable-streams/MediaStreamTrackProcessor-video.https.html
-
-CSS-COLLIDING-REF-NAME: css/css-backgrounds/reference/background-image-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-break/background-image-001-ref.html
 
 # Ported crashtests from Mozilla
 SET TIMEOUT: editing/crashtests/backcolor-in-nested-editing-host-td-from-DOMAttrModified.html
