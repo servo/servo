@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Console.table() better work!</title>
+    <script>
+        let obj = {
+            a: 1,
+            b: 2,
+            c: "Hello",
+            d: 4.42
+        };
+
+        //Array of string primitives
+        console.table(["Hello", "world"]);
+
+        //2D Array of string primitives
+        console.table([["a", "b"], ["c", "d"]]);
+
+        //Array of int primitives
+        console.table([1, 2, 3, 4, 5]);
+
+        //Array of objects
+        console.table([obj, obj, obj]);
+
+        //String
+        console.table("Stringed!");
+
+        //Int
+        console.table(1);
+
+        //Object
+        console.table([obj, obj], ["a"]);
+
+        //console log obj
+        console.log(obj);
+
+        //Extremely long strings
+        console.table(["hellooooooooooooooooooooooooooooooo", "world"]);
+    </script>
+</head>
+<body>
+    <p>console.table() better work!</p>
+</body>
+</html>
